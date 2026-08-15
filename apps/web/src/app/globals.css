@@ -1,0 +1,17 @@
+/*
+ * Deliberately almost empty.
+ *
+ * The design system — every token from `design-handoff/design/Land It.html`,
+ * the self-hosted fonts, and the primitives — is T3's job and lands in
+ * `@landit/ui-web`. Nothing here should grow into a second place where styling
+ * lives.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}

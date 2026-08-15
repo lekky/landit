@@ -1,0 +1,22 @@
+# Every text file is LF in the repo *and* in the working tree, on every platform.
+# Without this, a Windows checkout gets CRLF and `pnpm lint` fails on formatting
+# for that developer alone while CI stays green.
+* text=auto eol=lf
+
+# Never touched by line-ending conversion.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.mp4 binary
+*.zip binary
+
+# Generated; keep it out of PR diffs.
+pnpm-lock.yaml linguist-generated=true -diff
+
+# The received design pack is reference material, not our source.
+design-handoff/** linguist-vendored=true

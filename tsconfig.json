@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "types": ["node"]
+  },
+  "include": ["vitest.config.ts", "playwright.config.ts", "e2e/**/*.ts"],
+  "exclude": ["node_modules", "apps", "packages"]
+}
