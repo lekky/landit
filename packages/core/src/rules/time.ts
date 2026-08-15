@@ -1,0 +1,91 @@
+import type { DayKey, Instant } from '../types';
+
+/**
+ * Day arithmetic in the rider's own timezone.
+ *
+ * Every date question this product asks is a *calendar day* question — did you
+ * ride today, is the streak still alive, is the challenge live — and a calendar
+ * day only exists inside a timezone. A rider in Auckland tapping "I rode today"
+ * at 9am is on a different UTC day to the server; scoring that in UTC would
+ * break their streak overnight. Hence `users.timezone`, an IANA string captured
+ * at onboarding (plan §3).
+ *
+ * Days are handled as `YYYY-MM-DD` strings rather than `Date`s on purpose: they
+ * compare and sort lexically, they survive a round trip through JSON and
+ * SQLite, and they cannot silently acquire a time-of-day.
+ *
+ * `Intl` is part of the language, not the DOM, so this stays inside the
+ * `packages/core` rule (plan §2.2).
+ */
+
+const DAY_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const MS_PER_DAY = 86_400_000;
+
+/** The timezone to fall back on when a rider has none recorded yet. */
+export const DEFAULT_TIMEZONE = 'Europe/London';
+
+/** Is this string already a `YYYY-MM-DD` day key? */
+export function isDayKey(value: unknown): value is DayKey {
+  return typeof value === 'string' && DAY_KEY_PATTERN.test(value);
+}
+
+/**
+ * The calendar day an instant falls on, in the given timezone.
+ *
+ * A value that is already a day key is returned as-is — `users.last_ride` may
+ * hold either a stored datetime or a day, and neither should be reinterpreted.
+ * Throws `RangeError` on an unparseable instant or an unknown timezone, rather
+ * than quietly answering with the wrong day.
+ */
+export function toDayKey(value: Instant, timeZone: string = DEFAULT_TIMEZONE): DayKey {
+  if (isDayKey(value)) return value;
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    throw new RangeError(`Not an instant: ${String(value)}`);
+  }
+
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((p) => p.type === type)?.value ?? '';
+
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+function dayKeyToUtcMs(day: DayKey): number {
+  if (!isDayKey(day)) throw new RangeError(`Not a day key: ${String(day)}`);
+  const year = Number(day.slice(0, 4));
+  const month = Number(day.slice(5, 7));
+  const date = Number(day.slice(8, 10));
+  return Date.UTC(year, month - 1, date);
+}
+
+/**
+ * Whole days from `from` to `to`. Positive when `to` is later, negative when it
+ * is earlier, zero on the same day.
+ */
+export function daysBetween(from: DayKey, to: DayKey): number {
+  return Math.round((dayKeyToUtcMs(to) - dayKeyToUtcMs(from)) / MS_PER_DAY);
+}
+
+/** The day `n` days after this one. Negative `n` goes backwards. */
+export function addDays(day: DayKey, n: number): DayKey {
+  const shifted = new Date(dayKeyToUtcMs(day) + n * MS_PER_DAY);
+  return shifted.toISOString().slice(0, 10);
+}
+
+/** `-1`, `0` or `1`, so day keys can be sorted without knowing their shape. */
+export function compareDayKeys(a: DayKey, b: DayKey): number {
+  return a === b ? 0 : a < b ? -1 : 1;
+}
+
+/** Is `day` within `[from, to]`, both ends inclusive? */
+export function isDayWithin(day: DayKey, from: DayKey, to: DayKey): boolean {
+  return day >= from && day <= to;
+}
