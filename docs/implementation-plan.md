@@ -179,7 +179,9 @@ tasks**:
 4. Uptime Kuma alerting on app and PocketBase health.
 
 The VPS setup is done by hand (Rachid + Claude over SSH), not by an agent session — see the infra
-track in §7. The provider's weekly snapshots are a bonus, not the backup story.
+track in §7. The provider's weekly snapshots are a bonus, not the backup story. The live
+infrastructure — addresses, URLs, access patterns, security posture, remaining checklist — is
+recorded in `docs/infrastructure.md`; agent sessions never need SSH access to the box.
 
 Total infrastructure cost: ~£18/month flat (VPS + pennies of R2), shared across every product on
 the box.
