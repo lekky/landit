@@ -353,10 +353,10 @@ steps, trick logging, paywall hits and upgrades as those screens are built. The 
 rides alongside for plain traffic counts. No consent banner needed for either; keep it that way —
 no session recording without revisiting consent, given the audience.
 
-**Hosting — decided: VPS + Coolify** (2026-08-15, replacing the earlier Railway decision). See
-§2.6. Coventry datacentre keeps rider data in the UK. Coolify's preview deployments stand in for
-Railway's per-PR environments — wire them up during the infra track so screens can be reviewed as
-they land from Wave 2 onward.
+**Hosting — decided and live** (2026-08-15, replacing the earlier Railway decision). The box is
+set up, hardened, monitored and backed up — see `docs/infrastructure.md` for current state.
+Coventry datacentre keeps rider data in the UK. Coolify's preview deployments stand in for per-PR
+environments; they get wired to the Land It repo once there is something to deploy (after Wave 2).
 
 **Worth revisiting — staff portal placement.** The handoff recommends a separate internal app. This
 plan puts it in a route group in the web app behind a role gate, which is cheaper at current team
@@ -377,7 +377,8 @@ Litestream → R2, the restore rehearsal and Uptime Kuma (§2.6) are done by han
 agent session. None of it blocks Waves 0–2 (all local); the hosted PocketBase instance and preview
 deploys should exist by the end of Wave 2 so Wave 3 onward can be reviewed on real URLs.
 
-**Ground rules for every session:**
+**Session mechanics — worktrees, branch naming, gates, the merge policy — live in `CLAUDE.md`
+(one fact, one place); follow that protocol end to end.** Plan-specific ground rules:
 
 - Read this plan and `design-handoff/README.md` first, then the specific prototype files and
   screenshots named in the task. The prototype is the behavioural spec; this plan wins where they
@@ -386,8 +387,6 @@ deploys should exist by the end of Wave 2 so Wave 3 onward can be reviewed on re
   has merged: a screen session may add a new export, collection field or hook it needs, but must
   not change the signature or behaviour of an existing one. If a breaking change seems necessary,
   stop and flag it instead.
-- Definition of done: `pnpm build`, `pnpm test`, `pnpm lint` green; new behaviour has tests where
-  the task says so; screens visually checked against the named screenshots.
 
 ### Wave 0 — one session, serial
 
