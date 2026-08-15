@@ -20,7 +20,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Hosting | **Railway** | Preview environments per PR. |
 | Error reporting | **Sentry** | Already connected; PII scrubbed. See §2.5. |
 | Analytics | **PostHog EU (free tier) + Cloudflare Web Analytics** | PostHog for product events (onboarding funnel, upgrades), Cloudflare beacon for traffic. Both cookie-less, no ad identifiers. |
-| Transactional email | **Resend** (proposed) | Needed by T6: Supabase's built-in SMTP is rate-limited; confirmation, reset and guardian-consent emails go through a real provider on the product domain. |
+| Transactional email | **Resend** | Confirmed 2026-08-15. Needed by T6: Supabase's built-in SMTP is rate-limited; confirmation, reset and guardian-consent emails go through Resend on the product domain. |
 | Pricing | **Rookie free; Shredder £3.99/mo · £39.99/yr; Legend £6.99/mo · £69.99/yr** | Confirmed 2026-08-15. Yearly ≈ 2 months free. Crew Pass dropped, replaced by the single-rider Legend tier — see §2.4. |
 
 ---
