@@ -47,13 +47,25 @@ Set up 2026-08-15. This file records what exists and how to reach it — no secr
   product-specific goes in `infra`.
 - Server uuid (for API calls): `lvkalcforx2tdkygp0odsk2a`.
 
+## Backups (done 2026-08-15)
+
+- **R2 bucket `box1-backups`** on Rachid's Cloudflare account, **EU jurisdiction** — note the
+  endpoint is therefore `https://<ACCOUNT_ID>.eu.r2.cloudflarestorage.com` (the `.eu.` matters;
+  the plain endpoint 403s). Free tier 10GB; usage alert configured in Cloudflare Notifications.
+- **Litestream** (systemd service `litestream`, config `/etc/litestream.yml`, credentials via
+  `EnvironmentFile=/root/.litestream-r2.env`). Replicates continuously, 7-day retention.
+- A **canary database** (`/var/lib/litestream-canary/canary.db`) replicates at all times so the
+  pipeline proves itself even before/between real databases.
+- **Restore rehearsal passed 2026-08-15**: replicate → delete local → `litestream restore` →
+  content verified. Re-rehearse after adding each real database.
+- **When a PocketBase instance is deployed**: add its `pb_data/data.db` path as a new entry in
+  `/etc/litestream.yml` (template comment inside) and `systemctl restart litestream`. A PocketBase
+  whose database is not in that file is NOT backed up.
+
 ## Not done yet (infra track, implementation-plan.md §7)
 
-- [ ] Cloudflare account + R2 bucket — needed for Litestream backups before any hosted
-      PocketBase holds real data (end of Wave 2), and later for Land It clips.
-- [ ] Litestream on the box replicating each product's PocketBase SQLite file to R2,
-      plus one rehearsed restore onto a scratch directory/box.
 - [ ] Land It domain — buy, point at the box, then create the Land It Coolify project
-      (Next.js app + PocketBase + preview deploys).
+      (Next.js app + PocketBase + preview deploys) and add its DB to litestream.yml.
 - [ ] Uptime Kuma monitors for each deployed site as they appear (plus one for
       https://box1.hellowebdesign.co.uk).
+- [ ] R2 lifecycle rule + clips bucket when T14 (clips) approaches.
