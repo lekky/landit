@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm blocks dependency install scripts unless they are named here. Keep this
+# list as short as it can be, and say why each one is on it.
+allowBuilds:
+  # Native resolver behind eslint-import-resolver-typescript (via
+  # eslint-config-next). Without its install step ESLint cannot resolve imports.
+  unrs-resolver: true
