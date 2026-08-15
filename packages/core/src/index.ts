@@ -1,15 +1,29 @@
 /**
- * `@landit/core` — the game rules, as pure TypeScript.
+ * `@landit/core` — the game rules and the canonical data, as pure TypeScript.
  *
  * This package must never import React, Next, `react-native`, or anything DOM.
- * Web hooks, server hooks and (later) the native app all call the same functions
- * from here, so anything platform-specific in this package makes the second
- * platform expensive. The rule is enforced by ESLint, not by good intentions:
- * see `eslint.config.mjs` at the repo root.
+ * The web client, the PocketBase hooks and (later) the Expo app all call the
+ * same functions from here, so anything platform-specific in this package makes
+ * the second platform expensive. The rule is enforced by ESLint, not by good
+ * intentions: see `eslint.config.mjs` at the repo root.
  *
- * T1 fills this in — trick graph, stage rules, sticker evaluation, stats,
- * streaks and challenge state. Everything below is scaffolding only.
+ * Two halves:
+ *
+ * - `./data` — the canonical records transcribed from the design pack: 61
+ *   tricks and their prerequisite edges, stickers, plans, spots, events,
+ *   challenges, stances, goals and the avatar registry. Single source for both
+ *   the database seeds and the test fixtures.
+ * - `./rules` — the behaviour: landed stages, free and locked tricks,
+ *   prerequisite unlocks, stats, sticker evaluation, challenge state, streaks
+ *   and log-derived dates.
+ *
+ * Where a rule is security-relevant — the paywall, sticker awards — it is
+ * *defined* here and *enforced* in `pocketbase/hooks` (plan §3). Nothing in
+ * this package is a security boundary on its own.
  */
 
-/** Package identity. Exists so the scaffold has something real to import and test. */
 export const CORE_PACKAGE = '@landit/core' as const;
+
+export * from './types';
+export * from './data';
+export * from './rules';
