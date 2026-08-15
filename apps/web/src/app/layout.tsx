@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
+import '@landit/ui-web/styles.css';
+
+import { fontVariables } from '../fonts';
+
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -10,7 +14,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en-GB">
+    // `fontVariables` defines --font-anton / --font-barlow-condensed /
+    // --font-archivo, which the design system's --fd / --fc / --fb read.
+    <html lang="en-GB" className={fontVariables}>
       <body>{children}</body>
     </html>
   );
