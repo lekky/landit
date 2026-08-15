@@ -50,9 +50,13 @@ buried in prose). Report PR and check state as it actually is.
 
 ## Rules the plan depends on
 
-- **The three security guarantees are non-negotiable** (plan §3): profile privacy enforced by
+- **The four security guarantees are non-negotiable** (plan §3): profile privacy enforced by
   API rules; clips never public; paywall enforced server-side in hooks, never only in the
-  client.
+  client; the guardian-consent gate enforced the same way.
+- **No stranger-contact surface** (plan §6.1). Crews are invite-only with no discovery, there is
+  no rider-to-rider messaging, and there is no algorithmic feed. These are the load-bearing facts
+  of the child-safety position, not preferences — a session that wants to add one stops and flags
+  it.
 - **`packages/core` never imports React, Next, or anything DOM.** Every game rule is a pure,
   unit-tested function there; hooks and UI both call it.
 - **Change control: plan first, then code.** A deliberate divergence from the plan or the

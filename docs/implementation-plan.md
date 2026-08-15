@@ -14,11 +14,14 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Backend | **PocketBase** (self-hosted on the VPS, one instance per product) | SQLite + auth + file storage + API rules in one binary. Replaced Supabase 2026-08-15 — see §2.6 for why and what it demands. |
 | Hosting | **VPS (hostmedia.uk, Coventry) + Coolify** | 4GB/2vCPU, £16.80/mo flat for all products. Coolify does deploys, SSL, subdomains and PR previews. Replaced Railway 2026-08-15. |
 | Backups | **Litestream → Cloudflare R2**, continuous | Non-negotiable for self-hosting children's data. Restore rehearsed before launch. See §2.6. |
-| Auth and consent | **Age captured at sign-up for everyone; parental consent flow for under-threshold riders** | Threshold and consent mechanics still need legal advice. See §6. |
-| Clip storage | **Cloudflare R2 via PocketBase's S3 backend, 2GB cap per rider (5GB Legend)** | Zero egress fees; VPS disk never holds video. See §6. |
+| Auth and consent | **Age band captured at sign-up for everyone; guardian consent required below the rider's country threshold** | Threshold 13 in the UK, resolved per country elsewhere. Mechanics decided 2026-08-16 — see §6.2. |
+| Minimum age | **None stated.** The terms do not say "13+" | Stating a minimum age creates an Ofcom duty to enforce it with highly effective age assurance, and a tick-box does not qualify. 13+ is the *audience*, not a gate — see §6.2. |
+| Launch markets | **Global sign-up, UK-first product** | Anyone can sign up; the consent threshold follows the rider's country. One refusal: US under-13, which needs COPPA verifiable parental consent we are not building at launch. See §6.3. |
+| Regulatory scope | **UK Online Safety Act (Part 3, user-to-user) + ICO Children's code, applied to every rider** | Added 2026-08-16 — the plan previously missed the OSA entirely. Children's code standards are the baseline for *all* users, not only declared children. See §6.1. |
+| Clip storage | **Cloudflare R2 via PocketBase's S3 backend, 2GB cap per rider (5GB Legend)** | Zero egress fees; VPS disk never holds video. See §6.6. |
 | Maps provider | **Mapbox** (provisional) | Store plain `lat`/`lng` so it stays swappable. |
 | Payments | **Stripe on web**; entitlements modelled independently of Stripe; **single-rider plans only — Crew Pass dropped** (2026-08-15) | See §2.4 — entitlement independence is the decision that protects the native option. |
-| Staff portal placement | **Route group in the web app**, hard role gate, full audit log | Handoff prefers a separate app; see §6. |
+| Staff portal placement | **Route group in the web app**, hard role gate, full audit log | Handoff prefers a separate app; see §6.10. |
 | Error reporting | **Sentry** | Already connected; PII scrubbed. See §2.5. |
 | Analytics | **PostHog EU (free tier) + Cloudflare Web Analytics** | PostHog for product events (onboarding funnel, upgrades), Cloudflare beacon for traffic. Both cookie-less, no ad identifiers. |
 | Transactional email | **Resend** | Confirmed 2026-08-15. PocketBase sends auth, reset and guardian-consent email through Resend's SMTP on the product domain. |
@@ -117,7 +120,7 @@ costs almost nothing now and is expensive to unpick later.
 **The Crew Pass is dropped** (2026-08-15), not deferred by accident: it was the fiddliest part of
 payments (a seat model, seat invites/claims, seat management, cancel-mid-cycle edge cases), and its
 other job — being the parental-consent mechanism — is better served by consent living in the
-sign-up flow itself (§6). In its place the third tier is **Legend** — still a single-rider
+sign-up flow itself (§6.2). In its place the third tier is **Legend** — still a single-rider
 subscription, so billing stays one rider / one subscription throughout. (Not "Pro": that already
 names the top difficulty tier, and a Shredder-plan rider working on Pro-difficulty tricks would
 make the word mean two things at once.) Launch plans, plan ids `rookie | shredder | legend`:
@@ -204,14 +207,14 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 | `stickers` | Name, hue, icon, condition copy, editable threshold `n`, `is_live`. Rules stay in code |
 | `rider_stickers` | `earned_at` plus `seen_at`, so a sticker is never re-announced |
 | `plans`, `subscriptions` | See §2.4. No seat collection — Crew Pass dropped. `plans` carries the per-plan clip cap |
-| `guardian_consents` | Rider, guardian email, requested/granted/revoked timestamps, method. Backs the sign-up consent flow (§6) |
+| `guardian_consents` | Rider, guardian email, hashed approval token + expiry, requested/granted/revoked timestamps, `method` (`email_approval` at launch). Backs the sign-up consent flow (§6.2). Revocation is a state, not a delete — the record is the evidence |
 | `crews`, `crew_members`, `crew_invites` | Real crews — the prototype has one demo crew |
 | `challenges`, `challenge_log` | Per sport per week. State derived from dates |
 | `spots` | Includes `status` (`pending`/`live`/`rejected`) and `submitted_by` — that is the review queue |
 | `events`, `event_attendance` | "I'm going" |
 | `announcements`, `announcement_dismissals` | Replaces `seenNotices`. `audience` field (all / plan / sport) per the composer |
 | `audit_log` | Actor, action, entity, before, after. The handoff flags its absence explicitly |
-| `reports` | Reporter, subject (`profile` / `clip` / `spot`), reason, status. The safeguarding page promises reporting; the prototype has no flow for it — the collection goes in now so the buttons have somewhere to write |
+| `reports` | Reporter (nullable — the OSA wants a route for non-users too), subject (`profile` / `clip` / `spot`), reason, status, outcome, `complaint_of` self-link for appeals against our own moderation decisions. The safeguarding page promises reporting; the prototype has no flow for it — the collection goes in now so the buttons have somewhere to write |
 
 Additions the handoff implies but never names:
 
@@ -229,6 +232,16 @@ Additions the handoff implies but never names:
 - **`users.handle`**: unique case-insensitively (SQLite `COLLATE NOCASE` unique index),
   format-constrained, with a reserved-word list (admin, staff, landit, api…). Handles appear in
   URLs and share cards.
+- **Age is stored as a band, never a birth date** (§6.2). Four fields on `users`:
+  `age_band` (`under_13 | 13_15 | 16_17 | adult`), `band_next_change_on` (the date the rider
+  leaves the band, so transitions are automatic and consent lapses on the 13th birthday without a
+  job scanning birth dates), `age_declared_at`, and `country` (ISO-3166-2, chosen at sign-up —
+  it selects the consent threshold). The browser collects a date of birth to compute the band and
+  discards it; the date of birth is never sent to the server, never stored and never displayed.
+  Data minimisation is the point (Children's code standard 8) and it is cheaper to get right at
+  T6 than to unpick after riders exist.
+- **`users.consent_state`** (`not_required | pending | granted | revoked`), written only by the
+  consent hook, never by the client. It is the gate the fourth guarantee below tests against.
 - **One live challenge per sport** is enforced in the challenge create/update hook (reject a date
   range overlapping an existing challenge for the same sport), not admin discipline. SQLite has no
   exclusion constraints, so the hook is the constraint — it must run on every write path.
@@ -252,7 +265,7 @@ same `core` functions exist for instant UI feedback only.
 ### Access rules (the RLS role, in PocketBase terms)
 
 Collection API rules plus hooks carry what row-level security carried in the Supabase design.
-Three guarantees matter more than the rest, and T2's tests must prove each one over the HTTP API,
+Four guarantees matter more than the rest, and T2's tests must prove each one over the HTTP API,
 not by reading the rule text:
 
 1. **Profile privacy.** `public` / `members` / `private` maps onto the view rules for `users`,
@@ -265,6 +278,15 @@ not by reading the rule text:
 3. **The paywall is a data-layer rule, not a UI rule.** The `trick_progress` create hook rejects a
    paid trick for a rookie-plan rider, whatever the client sends. If the paywall only lives in the
    client it is a suggestion.
+4. **The consent gate is server-side** (added 2026-08-16). A rider whose `consent_state` is
+   `pending` or `revoked` may read and write only their own data — tricks, stages, notes,
+   streaks, progress. Every collection that makes a rider visible, reachable or billable rejects
+   them at the rule or hook layer: `crews`, `crew_members`, `crew_invites`, `spots` create,
+   `event_attendance`, `clips`, `subscriptions`, and any view rule that would surface their
+   profile to another rider (they read as `private` regardless of their own setting, and they do
+   not appear on a crew board). The same list is in §6.2 as behaviour; this is where it is
+   enforced. A client-side consent gate protects nobody, and this one is a promise made to a
+   parent.
 
 ---
 
@@ -275,7 +297,8 @@ tricks and their prerequisite edges, design tokens as CSS custom properties, `pa
 and unit-tested against the prototype's behaviour. No screens yet.
 
 **Phase 2 — Signed out.** Landing, the five legal documents, sign in / sign up, four-step
-onboarding. *Consent constants blocked on the legal answer (§6).*
+onboarding. *Consent constants decided 2026-08-16 (§6.2) — build against them; the counsel review
+confirms them rather than unblocking them.*
 
 **Phase 3 — The core loop.** Home, trick library with filters, trick detail, locked trick, progress
 (by category, by stage, over time, skill tree). This is the product; Phases 1–2 are scaffolding.
@@ -305,6 +328,7 @@ Tracked from the handoff's own list, mapped to phases:
 | --- | --- | --- |
 | `localStorage` persistence | PocketBase | 1 |
 | Auth and accounts | Real sign-up, reset, guardian consent | 2 |
+| Legal copy pointing under-13s at "a parent's Crew Pass" | Guardian consent inside sign-up (§6.2) — the Crew Pass no longer exists, so this copy is now wrong, not just draft | 2 |
 | Streaks (a counter) | Date logic, timezones, grace period | 3 |
 | Crews (one demo crew) | Creation, invites, membership | 4 |
 | Clips (`createObjectURL`, die on refresh) | Upload, R2 storage, token-gated delivery | 4 |
@@ -316,19 +340,174 @@ Tracked from the handoff's own list, mapped to phases:
 
 ---
 
-## 6. Still needed from you
+## 6. Legal position, and what is still open
 
-**Blocking Phase 2 (merge, not build) — the consent flow details.** Decided in principle
-(2026-08-15): every sign-up captures age, and riders under the threshold go through a parental
-consent step — guardian email, approval link, account limited until granted — recorded in
-`guardian_consents`. This replaces the prototype's idea of the Crew Pass as the consent mechanism
-(the pass is dropped anyway, §2.4). What still needs legal advice, framed exactly this way:
-the age threshold; how strong guardian verification must be (email approval vs more); what
-"limited until granted" must exclude; whether to store date of birth or just an age band (UK AADC
-leans data-minimisation — prefer the band); and which regimes apply (AADC, GDPR, COPPA if US
-riders). The safeguarding page makes promises the implementation has to keep.
+Land It is a product whose core audience is 8–16 year olds, built by a team of one, in the most
+active period of child-safety regulation the UK has had. This section is the position we build
+against. It was rewritten 2026-08-16 after a research pass found the plan had named only two of
+the four regimes that bind us.
 
-**Clips — decided** (2026-08-15). **2GB on Shredder, 5GB on Legend**, enforced server-side at
+Working positions below are taken so that no session sits blocked; the ones marked **needs
+counsel** are questions framed tightly enough that an hour of a solicitor's time answers them.
+Nothing here is legal advice.
+
+### 6.1 Which regimes apply
+
+**UK Online Safety Act 2023, Part 3 — user-to-user.** The plan missed this entirely until
+2026-08-16. Land It lets riders encounter content generated by other riders: submitted spots,
+profiles, crew boards, crew invites. Schedule 1's "limited functionality" exemption covers only
+comments, reviews and likes on *provider* content, so it does not reach us; and "likely to be
+accessed by children" is not a close call. None of the duties scale with size — a service of one
+rider owes the same as a service of a million. Before launch we owe an **illegal content risk
+assessment** (a new service does this before going live), a **children's access assessment**, and
+a **children's risk assessment** per harm type and per age group. Then the Protection of Children
+Codes measures that apply to a smaller, low-risk service: a named accountable individual, clear
+terms, an easy reporting route, a complaints procedure covering our own moderation decisions, a
+content moderation function with a written policy and someone resourced to run it, and an annual
+review. All of it written down and kept. There is no Ofcom fee at our size — that regime starts at
+£250m qualifying revenue.
+
+**ICO Children's code (AADC).** Applies to any service likely to be accessed by under-18s, which
+is us. The consequence that shapes the build: because we will never have confident ages, the ICO's
+position is that the code's standards apply to **every** user as the baseline. That is simpler than
+a two-tier product, not harder — high-privacy defaults everywhere, geolocation off by default with
+a visible indicator when it is on, profiling off by default, no nudge techniques, a DPIA before
+processing starts. §6.4 lists the ones with teeth for us.
+
+**UK GDPR Article 8.** Below 13 in the UK, processing on a consent basis needs the consent of a
+holder of parental responsibility, with "reasonable efforts… taking into consideration available
+technology" to verify it. The threshold varies elsewhere — see §6.3.
+
+**COPPA (US).** Bites only if we are directed to US children or have actual knowledge that a user
+is under 13. Because we ask for age, we will have actual knowledge. The amended rule (full
+compliance since 22 April 2026) wants genuinely verifiable parental consent, separate consent for
+third-party disclosure, a written security programme and a retention policy — materially heavier
+than an approval email. See §6.3 for how we handle it.
+
+**EU DSA Article 28 — does not bind us yet.** Article 28 sits in Section 3, and Article 19 exempts
+micro and small enterprises (<50 staff, <€10m turnover), so neither Article 28 nor the July 2025
+minors guidelines apply while we are that size. Revisit if either threshold is ever in sight.
+
+**The incoming under-16 rules — the one to watch.** The government announced (June/July 2026) a
+ban on social media for under-16s, regulations to be laid by the end of 2026 and in force from
+Spring 2027, plus default-off livestreaming and stranger communication, no personalised feeds or
+autoplay, and an overnight curfew for 16–17s. The working scope is "user-to-user platforms whose
+purpose is to enable social interaction and which allow users to post material, alongside
+algorithms". There is no statutory definition yet. Land It's *purpose* is trick tracking, so we are
+very likely outside the ban — but our core audience is exactly the age group it targets, so being
+outside it has to be demonstrable rather than assumed. Four design properties make that argument,
+and all four are free now and expensive to retrofit. **Treat them as decisions, not preferences:**
+
+- Crews are **invite-only**. No crew discovery, no browsing riders you do not already know.
+- **No rider-to-rider free-text messaging, ever.** None is planned; nothing may add one without
+  reopening this section. Trick notes are personal, not a channel.
+- **No algorithmic feed.** The crew board is a deterministic leaderboard and the activity feed is
+  chronological, scoped to a crew you were invited to.
+- Rider-submitted spots reach nobody until a human approves them (already the plan).
+
+Together these mean there is no stranger-contact surface in Land It. That is the sentence the whole
+child-safety position rests on; protect it.
+
+### 6.2 The consent flow — decided (2026-08-16)
+
+**No minimum age is stated anywhere.** 13+ is the audience we build for, not a gate we claim to
+enforce. Ofcom's 2026 position is that a service stating a minimum age must enforce it with highly
+effective age assurance, and the Ofcom/ICO joint statement (March 2026) says a self-declaration
+tick-box is explicitly not effective. "13+, please tick" is therefore the *worst* option available:
+it manufactures a duty we cannot discharge. Younger riders are welcome, with a guardian.
+
+**Every sign-up picks a country and declares a date of birth in the browser.** The browser computes
+an age band and sends the band; the date of birth is discarded and never leaves the device (§3).
+
+**Riders below their country's threshold enter the consent flow:** guardian email, an approval link
+valid for a limited window, `consent_state` = `pending` until granted, recorded in
+`guardian_consents`. Email approval is the method at launch — Article 8 asks for reasonable efforts
+proportionate to the risk of the processing, and ours is low: no ad tech, no public content, no
+stranger contact, no third-party disclosure. Highly effective age assurance is reserved for
+pornography and self-harm content and is not triggered here.
+
+**What a `pending` or `revoked` account can do:** sign in, browse the library, log tricks, write
+notes, build a streak, see their own progress. Everything that touches only their own data.
+
+**What it cannot do:** be visible to any other rider (they read as `private` regardless of setting,
+and do not appear on a crew board), join or create or be invited to a crew, submit a spot, attend
+an event, upload a clip, or hold a subscription. Enforced in rules and hooks as the fourth
+guarantee in §3 — not in the client.
+
+**Consent can be revoked, by a guardian who has no account.** Every consent email carries a
+revocation link that works forever. Revocation returns the rider to the limited state above; it
+does not delete their tricks. The `guardian_consents` record is evidence and is never hard-deleted
+while the account exists.
+
+**Consent lapses on the 13th birthday** (or the local equivalent) without anyone doing anything —
+that is what `band_next_change_on` is for.
+
+**The payer must be an adult.** An under-18 cannot comfortably be our counterparty for a
+subscription, and selling to a child is exactly what the AADC and the DSA minors guidelines look
+hard at. The upgrade flow requires the payer to confirm they are 18 or over; for riders under 16 it
+routes to a guardian by email rather than being purchasable in-app by the child. This shapes T15,
+so it is decided here rather than discovered there.
+
+### 6.3 Markets — global sign-up, resolved per country (2026-08-16)
+
+Anyone can sign up. The consent threshold follows the rider's declared country, resolved by a
+lookup in `packages/core`:
+
+- **UK — 13.**
+- **EEA — 16 by default**, lowered only by an explicit per-country entry with a cited source
+  (member states may set anything from 13 to 16 and many have; the table only ever lowers, never
+  raises, so an unmaintained table fails safe).
+- **Everywhere else — 13**, the same fail-safe direction.
+- **US under-13 is declined at sign-up**, with a plain explanation. COPPA's verifiable parental
+  consent is a different and much heavier mechanism than an approval email, and we are not building
+  it at launch. This is the one place "anyone can sign up" does not hold, and it is a deliberate
+  refusal rather than a thing we quietly ignore. Revisit as its own project if US riders become a
+  real segment.
+
+**Needs counsel:** confirm the EEA table's values, and confirm the US refusal is the right posture
+rather than building COPPA consent.
+
+### 6.4 The Children's code standards with teeth here
+
+Not all fifteen bite equally. These four change what gets built:
+
+- **Standard 7, default settings.** High privacy by default for everyone. New profiles default to
+  `private`, not `public` — check this against the prototype, which does not.
+- **Standard 10, geolocation.** Spots carry `lat`/`lng`. Location is off by default, there is a
+  visible indicator whenever it is on, and it never persists across sessions. We store the spot's
+  location, never the rider's.
+- **Standard 12, profiling.** The Legend insights panel (§2.4) derives suggestions from a rider's
+  own history. That is defensible and in the rider's interest, but it is profiling: off by
+  default, opt-in, and it never leaves the rider's own data.
+- **Standard 13, nudge techniques.** The streak is exactly the pattern regulators are looking at,
+  and the June 2026 measures (curfews, autoplay off, infinite scroll under consideration) aim
+  squarely at engagement mechanics pointed at children. A streak that reflects real riding is
+  defensible; what is not, and what we therefore do not build: loss-framed notifications ("your
+  streak dies in 2 hours"), any notification between 21:00 and 07:00 local, and a paid streak
+  freeze — which would break "achievements are never for sale" anyway. Write the grace period as
+  generosity, not as a lever.
+
+### 6.5 Compliance artefacts nobody currently owns
+
+None of this is agent-session work, and none of it blocks a build session. All of it blocks
+**launch**, and it runs beside the waves like the infra track (§7):
+
+- **A DPIA.** Mandatory under the Children's code and under UK GDPR for children's data. It has to
+  exist before processing starts, which means before the first real rider.
+- **The three OSA assessments** from §6.1, written and retained.
+- **ICO registration and the data protection fee** — £52/yr, £47 by direct debit, tier 1.
+- **A named accountable individual** for OSA compliance, and the controller entity settled (sole
+  trader or limited company). **Open — the owner has not decided.** It gates ICO registration and
+  determines where liability sits, so it is the first of these to answer.
+- **Processor list, Article 28 contracts and a ROPA** for Resend, PostHog, Sentry, Cloudflare and
+  Mapbox. PostHog EU and R2 EU already keep transfers simple — that call was right.
+- **A published complaints procedure** and a reporting route that works for people who are not
+  signed-up riders. The `reports` collection covers the data; the route and the promised response
+  time need a human behind them.
+
+### 6.6 Clips
+
+**Decided** (2026-08-15). **2GB on Shredder, 5GB on Legend**, enforced server-side at
 upload in the clips hook, with the cap read from the `plans` record so staff can tune it. Clips
 live on Cloudflare R2 through PocketBase's S3 storage backend — zero egress fees, so the
 watch-cost concern managed hosting had is gone by construction, and the VPS disk never holds
@@ -339,7 +518,9 @@ Retention defaults, flagged as defaults not law: account deletion hard-deletes c
 everything else; downgrade to Rookie keeps existing clips viewable but blocks new saves. The
 privacy-policy promise stands: clips are never public and delivery is always token-gated.
 
-**Pricing — confirmed** (2026-08-15): Rookie free; Shredder £3.99/mo or £39.99/yr; Legend
+### 6.7 Pricing
+
+**Confirmed** (2026-08-15): Rookie free; Shredder £3.99/mo or £39.99/yr; Legend
 £6.99/mo or £69.99/yr — Legend replaces the dropped Crew Pass as a single-rider tier (§2.4).
 Yearly ≈ two months free throughout. Cost sanity (checked 2026-08-15, VPS stack): fixed base is
 ~£18/mo flat — the VPS at £16.80 plus pennies of R2, shared across every product on the box —
@@ -347,18 +528,24 @@ so break-even is **~5 Shredders**. Per paying rider, Stripe takes ~26p of £3.99
 is the pennies above; there is no egress bill (R2). Native apps will later take a 15% store cut,
 which the yearly price should anticipate.
 
-**Analytics — decided: PostHog EU free tier + Cloudflare Web Analytics** (2026-08-15). PostHog
+### 6.8 Analytics
+
+**Decided: PostHog EU free tier + Cloudflare Web Analytics** (2026-08-15). PostHog
 (EU cloud, cookie-less config) is the product-analytics source of truth — instrument onboarding
 steps, trick logging, paywall hits and upgrades as those screens are built. The Cloudflare beacon
 rides alongside for plain traffic counts. No consent banner needed for either; keep it that way —
 no session recording without revisiting consent, given the audience.
 
-**Hosting — decided and live** (2026-08-15, replacing the earlier Railway decision). The box is
+### 6.9 Hosting
+
+**Decided and live** (2026-08-15, replacing the earlier Railway decision). The box is
 set up, hardened, monitored and backed up — see `docs/infrastructure.md` for current state.
 Coventry datacentre keeps rider data in the UK. Coolify's preview deployments stand in for per-PR
 environments; they get wired to the Land It repo once there is something to deploy (after Wave 2).
 
-**Worth revisiting — staff portal placement.** The handoff recommends a separate internal app. This
+### 6.10 Staff portal placement — worth revisiting
+
+The handoff recommends a separate internal app. This
 plan puts it in a route group in the web app behind a role gate, which is cheaper at current team
 size and keeps one deploy. The audit log is non-negotiable either way. Revisit when non-engineering
 staff need access on a different release cadence.
@@ -376,6 +563,14 @@ invisible to them).
 Litestream → R2, the restore rehearsal and Uptime Kuma (§2.6) are done by hand over SSH, not by an
 agent session. None of it blocks Waves 0–2 (all local); the hosted PocketBase instance and preview
 deploys should exist by the end of Wave 2 so Wave 3 onward can be reviewed on real URLs.
+
+**The compliance track runs beside them too, and it is the owner's, not a session's.** The DPIA,
+the three OSA assessments, ICO registration, the named accountable individual, the processor
+contracts and the complaints procedure (§6.5) are paperwork an agent cannot sign. None of it blocks
+a build session and all of it blocks launch, so it cannot be left to the end. Two dependencies run
+the other way and are worth watching: the controller entity gates ICO registration, and the
+children's risk assessment should be drafted before Wave 5 builds crews and spots, because its
+findings are cheaper as design input than as rework.
 
 **Session mechanics — worktrees, branch naming, gates, the merge policy — live in `CLAUDE.md`
 (one fact, one place); follow that protocol end to end.** Plan-specific ground rules:
@@ -411,10 +606,15 @@ fixtures. Inputs: `landit-data.js`, `landit-ui.jsx` (stats, sticker evaluation, 
 including the additions (role, timezone, handle index + reserved words, reports, audit_log), all
 collection API rules, and the hooks: paywall check on `trick_progress` writes, sticker award,
 same-sport prereq check, challenge-overlap rejection, clip-cap skeleton, audit-log writer. Tests
-run against a throwaway local PocketBase over HTTP and must prove the three §3 guarantees —
+run against a throwaway local PocketBase over HTTP and must prove the four §3 guarantees —
 privacy gating, clips never public, paywall enforced on create — as observed API behaviour. Uses a
 handful of handwritten fixture records; real seeds come in T4. Inputs: §3 of this plan, handoff
 data model section, PocketBase JS hooks + migrations docs.
+
+Scope note added 2026-08-16: this is now **four** guarantees, not three. The consent gate (§3
+guarantee 4) needs the `users` age/consent fields, the `guardian_consents` shape and the rules that
+reject a `pending` rider from crews, spots, events, clips and subscriptions — with tests that prove
+each refusal over HTTP. Profile view rules default to `private`, not `public`.
 
 **T3 · Design system.** `packages/ui-web`: every token from `Land It.html` as CSS custom
 properties, self-hosted fonts, the primitives (buttons with press/hover translate, panels, hard
@@ -437,15 +637,31 @@ global sport-switch state, toast host, modal host; the landing page; the five le
 site footer. No auth yet — signed-out only. Depends on T3. Inputs: `landit-legal.jsx`,
 `landit-auth.jsx` (landing), `landit-app.jsx` (shell/routing), screenshots 01–03.
 
+**The legal copy is wrong, not merely draft** (found 2026-08-16). `landit-legal.jsx` still routes
+under-13s to "a parent's Crew Pass" and says an adult may hold up to five rider accounts — the Crew
+Pass was dropped in §2.4, so the consent mechanism the terms describe does not exist. Rewrite the
+age, consent and safeguarding sections against §6.2 rather than transcribing them, and hold the
+handoff's register: written to be read by a fourteen year old and their parent. Do not invent a
+"13+" minimum — §6.2 says why. Two promises need the owner's sign-off before they ship as written:
+the one-working-day response on `safeguarding@`, and "every profile and clip can be reported" while
+the reporting flow is still T18. Flag rather than quietly soften them.
+
 ### Wave 3 — one session
 
 **T6 · Auth + onboarding + consent.** PocketBase auth (email/password + reset, mail through
 Resend SMTP), profile fields on `users`, handle generation, the four onboarding steps, avatar
-picker, timezone capture. Sign-up captures age (age band, not date of birth, pending legal);
-riders under the threshold enter the parental consent flow — guardian email, approval link,
-account limited until granted — writing `guardian_consents`. The threshold and the "limited" scope
-live in one config module, loudly flagged pending the legal answer: build the flow, confirm the
-constants before merging. Depends on T4 + T5. Inputs: `landit-auth.jsx`, §6 of this plan,
+picker, timezone capture. Sign-up captures country and an age band computed in the browser from a
+date of birth that is then discarded (§3) — no minimum age is stated anywhere. Riders below their
+country's threshold enter the guardian consent flow — guardian email, approval link, account
+limited until granted, revocation link that never expires — writing `guardian_consents`.
+
+The threshold table and the "limited" scope live in one pure module in `packages/core`
+(`consent.ts`), unit-tested: threshold by country per §6.3 (UK 13, EEA 16 unless explicitly
+lowered, elsewhere 13, US under-13 declined at sign-up with a plain explanation), band transitions
+via `band_next_change_on`, and the allow/deny list for a `pending` account. The client renders the
+gate; `pocketbase/hooks/` enforces it (§3 guarantee 4). **Constants are decided (§6.2), not
+pending** — counsel confirms them rather than unblocking them, so this task no longer holds up the
+Wave 3 merge. Depends on T4 + T5. Inputs: `landit-auth.jsx`, §6.2–6.3 of this plan,
 screenshots 04–05.
 
 ### Wave 4 — the core loop, three concurrent sessions (route-disjoint)
@@ -456,13 +672,17 @@ only (real clips are T14). Inputs: `landit-screens-a.jsx`, screenshots 08–10.
 
 **T8 · Home + streak + announcements.** Dashboard, stat blocks, seven-day strip, "I rode today",
 streak logic wired to `core` (timezone-aware), announcement banner + dismissal, working-on/start-here,
-wish list, stickers/crew teaser panels. Inputs: `landit-screens-a.jsx` (Home), screenshots 06.
+wish list, stickers/crew teaser panels. The streak obeys the §6.4 nudge rules: no loss-framed
+copy or notifications, nothing sent between 21:00 and 07:00 local, and the grace period is written
+as generosity rather than as a lever. Inputs: `landit-screens-a.jsx` (Home), screenshots 06.
 
 **T9 · Progress + skill tree.** By category, by stage, over-time chart with the estimated-dates
 note, skill tree with prerequisite/paywall lock states, printable sheets panel. Also the
 Legend-gated **insights panel** (§2.4): per-category trends, personal records, next-trick
 suggestions derived from the skill tree — locked state on lower plans mirrors the clips-panel
-upsell pattern. Inputs: `landit-screens-b.jsx`, screenshots 11–13.
+upsell pattern. The panel is profiling under the Children's code (§6.4): off by default, opt-in
+even on Legend, and it never reads anything but the rider's own history. Inputs:
+`landit-screens-b.jsx`, screenshots 11–13.
 
 ### Wave 5 — four concurrent sessions (clips may lag)
 
@@ -473,8 +693,11 @@ sticker by tracking, see the toast once, never re-announced). Inputs: `landit-sc
 **T11 · Crew + rider profiles.** Real crews: create, invite (the 1080×1080 canvas share card with
 `navigator.share` fallbacks), join, board, activity feed; rider profile with the three-way privacy
 gating driven by the §3 access rules (the "viewing as" toggle from the prototype becomes real
-signed-in/out states); coach view. Inputs: `landit-screens-b.jsx`, `landit-screens-c.jsx`,
-`landit-screens-d.jsx`, screenshots 15–16, 24.
+signed-in/out states); coach view. Two constraints from §6.1 that the prototype does not enforce
+and this task must: crews are **invite-only with no discovery** — no directory, no browsing or
+searching riders you are not already crewed with — and new profiles default to **private**, not
+public. There is no rider-to-rider messaging and none may be added here. Inputs:
+`landit-screens-b.jsx`, `landit-screens-c.jsx`, `landit-screens-d.jsx`, screenshots 15–16, 24.
 
 **T12 · Challenge + events.** Live/upcoming/past challenge states derived from dates, log button
 gated server-side to the live window, past weeks blurred on free plan; events list, filters, detail
@@ -482,12 +705,15 @@ modal, "I'm going". Inputs: `landit-screens-b.jsx`, `landit-screens-d.jsx`, scre
 
 **T13 · Spots + map.** Mapbox with every live spot plotted, styled to the design language;
 selection sync between list and map; spot submission (Maps-link or coordinate parsing) into the
-`pending` queue, rate-limited. Inputs: `landit-screens-b.jsx`, screenshot 19.
+`pending` queue, rate-limited. Children's code standard 10 (§6.4): browser geolocation is off by
+default and opt-in per use, there is a visible indicator whenever it is live, it never persists
+across sessions, and the rider's own position is never stored — only the spot's. Inputs:
+`landit-screens-b.jsx`, screenshot 19.
 
 **T14 · Clips.** Upload through PocketBase's file field backed by R2, token-gated playback,
 per-plan cap read from the `plans` record (2GB Shredder / 5GB Legend) enforced in the upload hook,
-the at-cap states from §6, delete. Slot anywhere after Wave 4. Inputs: `landit-screens-a.jsx`
-(clips panel), §6 clip decision.
+the at-cap states from §6.6, delete. Slot anywhere after Wave 4. Inputs: `landit-screens-a.jsx`
+(clips panel), §6.6 clip decision.
 
 ### Wave 6 — three sessions, T15 ∥ T16 then T17
 
@@ -498,8 +724,11 @@ actually unlocks a paid trick at the hook layer. Three plan cards as designed, b
 **Legend** (single rider, §2.4), not the prototype's Crew Pass — rewrite its pitch, perks and FAQ
 copy around the 5GB vault, flair and insights; Shredder stays the raised "Most riders" card.
 Legend flair itself (profile/crew-board tag, exclusive avatars) is applied where those surfaces
-live — coordinate the tag rendering with what T11 built. Inputs: `landit-screens-c.jsx`, §2.4,
-screenshot 20.
+live — coordinate the tag rendering with what T11 built. **The payer must be an adult** (§6.2):
+checkout requires an 18+ confirmation, a rider whose `consent_state` is not `granted` cannot hold a
+subscription at all (§3 guarantee 4), and for riders under 16 the upgrade routes to a guardian by
+email rather than being purchasable in-app by the child. Test that refusal at the hook layer beside
+the upgrade test. Inputs: `landit-screens-c.jsx`, §2.4, §6.2, screenshot 20.
 
 **T16 · Admin: shell + riders + audit.** `/admin` route group behind the role gate, admin nav,
 Overview, Riders (search, plan override, rider sheet, suspend), and the audit-log plumbing every
@@ -516,6 +745,10 @@ over the `reports` collection. Depends on T16. Inputs: `landit-admin.jsx`, scree
 **T18 · Hardening.** Reporting flows in the rider app (profile/clip report buttons), account
 deletion + data export (GDPR — the privacy policy promises both), rate limits on submissions and
 handle checks, Sentry verification, then run a full security review pass over the branch history.
+The OSA reporting duties (§6.1) land here too: a route that works for someone who is not a
+signed-up rider, and a complaints path for appealing our own moderation decisions — both writing
+`reports`. This task is a launch blocker in a way the rest of Wave 7 is not; the safeguarding page
+promises it in Phase 2 and cannot ship promising a button that does nothing.
 
 **T19 · PWA + offline read cache.** Service worker caching the library and the rider's tracked
 list, install manifest, the "read at the park" story from §2.3.
