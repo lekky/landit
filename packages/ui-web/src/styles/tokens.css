@@ -1,0 +1,126 @@
+/*
+ * Land It design tokens.
+ *
+ * Transcribed from `design-handoff/design/Land It.html`, which is the spec.
+ * Values are copied, not re-derived: if a colour or a shadow here disagrees with
+ * that file, this file is wrong.
+ *
+ * The one deliberate difference is the three font stacks. The prototype names
+ * the Google Fonts families directly; we serve the same three fonts from our own
+ * origin with `next/font/local` (plan §2.5), which generates its own family
+ * names and hands them over as `--font-anton` / `--font-barlow-condensed` /
+ * `--font-archivo`. The literal family names stay in the stack as the fallback,
+ * so this stylesheet still renders correctly on its own.
+ */
+
+:root {
+  /* ink and paper */
+  --ink: #12100b;
+  --ink-2: #3a352c;
+  --ink-3: #6e665a;
+  --paper: #fffdf5;
+  --paper-2: #fff7e4;
+  --wash: #f2ecdc;
+
+  /* accents */
+  --pink: #ff3d78;
+  --orange: #ff5a1f;
+  --yellow: #ffc23f;
+  --lime: #9ce05b;
+  --green: #10a06a;
+  --mint: #2ec4b6;
+  --sky: #3ac0ff;
+  --blue: #246bff;
+  --violet: #8a3be0;
+  --red: #e0392b;
+
+  /* trick categories */
+  --street: #ff5a1f;
+  --park: #246bff;
+  --flat: #10a06a;
+  --hybrid: #8a3be0;
+  --air: #e0392b;
+
+  /* type */
+  --fd: var(--font-anton, 'Anton'), Impact, sans-serif;
+  --fc: var(--font-barlow-condensed, 'Barlow Condensed'), sans-serif;
+  --fb: var(--font-archivo, 'Archivo'), system-ui, sans-serif;
+
+  /* structure. Hard offsets only, never blurred. Radius is 0 everywhere. */
+  --bd: 3px solid var(--ink);
+  --sh: 5px 5px 0 var(--ink);
+  --sh-sm: 3px 3px 0 var(--ink);
+}
+
+/* base */
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+body {
+  background: var(--wash);
+  color: var(--ink);
+  font-family: var(--fb);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+a {
+  color: var(--orange);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--pink);
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+::selection {
+  background: var(--yellow);
+}
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+}
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+/* type classes */
+.d {
+  font-family: var(--fd);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 0.92;
+  font-weight: 400;
+}
+.lab {
+  font-family: var(--fc);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 11px;
+}
+.cond {
+  font-family: var(--fc);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.eyebrow {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}

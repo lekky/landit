@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --port 3000",
-    "build": "next build",
+    "dev": "node scripts/sync-avatars.mjs && next dev --port 3000",
+    "build": "node scripts/sync-avatars.mjs && next build",
     "start": "next start --port 3000",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "fonts:sync": "node scripts/sync-fonts.mjs"
   },
   "dependencies": {
     "@landit/core": "workspace:*",
@@ -18,6 +19,9 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@fontsource-variable/archivo": "5.3.0",
+    "@fontsource/anton": "5.3.0",
+    "@fontsource/barlow-condensed": "5.3.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "typescript": "5.9.3"

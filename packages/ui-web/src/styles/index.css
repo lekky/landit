@@ -1,0 +1,9 @@
+/*
+ * The whole design system stylesheet. Import once, at the app root:
+ *
+ *   import '@landit/ui-web/styles.css';
+ *
+ * There is deliberately no second place where Land It styling lives.
+ */
+@import './tokens.css';
+@import './primitives.css';
