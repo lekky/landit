@@ -79,15 +79,19 @@ describe('the free / paid split', () => {
     // no override has no `free` key in its inferred type at all.
     const library: readonly Trick[] = TRICKS;
     const free = library.filter(isTrickFree);
-    expect(free).toHaveLength(29);
-    expect(library.filter((t) => !isTrickFree(t))).toHaveLength(68);
+    expect(free).toHaveLength(30);
+    expect(library.filter((t) => !isTrickFree(t))).toHaveLength(67);
 
-    // Exactly one trick overrides difficulty, and it is named here on purpose:
-    // an override is how the free tier silently grows, so a second one appearing
+    // Two tricks override difficulty, and they are named here on purpose: an
+    // override is how the free tier silently grows, so a third one appearing
     // should fail this test and be argued for rather than noticed later.
+    //
+    // Both exist for the same reason — each is the trick its sport's entire
+    // street branch descends from, so leaving it paid puts no street content at
+    // all in that sport's free tier (issue #75).
     const overridden = library.filter((t) => t.free !== undefined);
-    expect(overridden.map((t) => t.id)).toEqual(['bmx-double-peg']);
-    expect(overridden[0]?.free).toBe(true);
+    expect(overridden.map((t) => t.id)).toEqual(['sk-50-50', 'bmx-double-peg']);
+    expect(overridden.every((t) => t.free === true)).toBe(true);
 
     // Everything else is the Rookie and Easy tiers, nothing more.
     expect(free.every((t) => t.diff <= FREE_MAX_DIFF || t.free === true)).toBe(true);
