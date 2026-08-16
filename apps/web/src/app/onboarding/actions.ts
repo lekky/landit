@@ -94,5 +94,6 @@ export async function finishOnboarding(input: OnboardingInput): Promise<Onboardi
     }
   }
 
-  redirect(ROUTES.account);
+  // Straight to the dashboard: the four steps just filled it in (T8).
+  redirect(ROUTES.dashboard);
 }

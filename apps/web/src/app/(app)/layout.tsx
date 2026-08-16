@@ -1,4 +1,4 @@
-import type { SportId } from '@landit/core';
+import { DEFAULT_TIMEZONE, currentWeeklyStreak, type SportId } from '@landit/core';
 import type { ReactNode } from 'react';
 
 import { AppShell } from '@/components/shell/AppShell';
@@ -19,13 +19,28 @@ import { currentRider } from '@/lib/session';
  * gets the Sign in button instead — the page itself decides whether being
  * signed out is allowed, which for `/account` means a redirect.
  *
- * The streak shown here is the **stored** one, which may be stale: the weekly
- * streak is recomputed from the rider's week on read (`currentWeeklyStreak`),
- * and T8 owns doing that. A new rider's is zero either way.
+ * The streak chip shows the **reconciled** number, not the stored one. A stored
+ * streak is only as fresh as the last write and nothing writes to a rider who
+ * has stopped riding, so a run that ended a month ago would sit in the top bar
+ * looking alive — `currentWeeklyStreak` decides that from the rider's own week
+ * (T8, plan §1).
  */
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await currentRider();
   const rider = session?.rider;
+
+  const streak = rider
+    ? currentWeeklyStreak(
+        {
+          streak: rider.streak ?? 0,
+          lastQualifyingWeek: rider.last_qualifying_week || null,
+          weekStart: rider.week_start || null,
+          ridesThisWeek: rider.rides_this_week ?? 0,
+          lastRide: rider.last_ride || null,
+        },
+        { timezone: rider.timezone || DEFAULT_TIMEZONE },
+      )
+    : 0;
 
   return (
     <AppShell
@@ -34,7 +49,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           ? {
               name: rider.name || 'Rider',
               avatarId: rider.avatar_key || undefined,
-              streak: rider.streak ?? 0,
+              streak,
             }
           : undefined
       }

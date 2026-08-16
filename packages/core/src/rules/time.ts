@@ -123,3 +123,62 @@ export function weekEnd(day: DayKey): DayKey {
 export function weeksBetween(from: DayKey, to: DayKey): number {
   return daysBetween(weekStart(from), weekStart(to)) / 7;
 }
+
+/* ------------------------------------------------------- naming the day -- */
+
+/**
+ * Weekday and month names, as data.
+ *
+ * Deliberately **not** `toLocaleDateString`. Home's eyebrow ("Saturday 15
+ * August") renders on the server and again in the browser, and anything
+ * locale-derived on both sides is a hydration risk: Node and Chromium ship
+ * different ICU builds, React finds the two trees disagree, and it throws away
+ * the client tree — which in T6's sign-up form meant wiping what a child had
+ * typed (LESSONS §3a). A date is exactly the kind of string that trap is made
+ * of. Two arrays cost nothing and cannot disagree with themselves.
+ *
+ * English only, and that is the product: Land It has no localisation and the
+ * decision to add one is not this file's to make.
+ */
+export const WEEKDAY_NAMES = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+] as const;
+
+export const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const;
+
+/** The weekday a day key falls on: "Saturday". */
+export function weekdayName(day: DayKey): string {
+  return WEEKDAY_NAMES[new Date(dayKeyToUtcMs(day)).getUTCDay()] as string;
+}
+
+/** The month a day key falls in: "August". */
+export function monthName(day: DayKey): string {
+  return MONTH_NAMES[Number(day.slice(5, 7)) - 1] as string;
+}
+
+/**
+ * "Saturday 15 August" — the greeting panel's eyebrow, in the form the design
+ * pack uses (`en-GB`: day before month, no comma, no year).
+ */
+export function formatDayLong(day: DayKey): string {
+  return `${weekdayName(day)} ${Number(day.slice(8, 10))} ${monthName(day)}`;
+}

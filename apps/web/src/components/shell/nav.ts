@@ -24,7 +24,7 @@ export type NavItem = {
 
 /** The primary five. Also the bottom bar, in this order. */
 export const NAV: readonly NavItem[] = [
-  { id: 'home', label: 'Home', icon: 'home' },
+  { id: 'home', label: 'Home', icon: 'home', href: '/home' },
   { id: 'library', label: 'Tricks', icon: 'grid', href: '/library' },
   { id: 'progress', label: 'Progress', icon: 'chart', href: '/progress' },
   { id: 'stickers', label: 'Stickers', icon: 'star' },

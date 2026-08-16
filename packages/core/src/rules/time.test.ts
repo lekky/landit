@@ -3,15 +3,20 @@ import { describe, expect, it } from 'vitest';
 import { CHALLENGES } from '../data/challenges';
 import {
   DEFAULT_TIMEZONE,
+  MONTH_NAMES,
+  WEEKDAY_NAMES,
   WEEK_STARTS_ON,
   addDays,
   compareDayKeys,
   daysBetween,
+  formatDayLong,
   isDayKey,
   isDayWithin,
+  monthName,
   toDayKey,
   weekEnd,
   weekStart,
+  weekdayName,
   weeksBetween,
 } from './time';
 
@@ -131,5 +136,55 @@ describe('weeks, cut where the challenges cut them', () => {
     expect(weeksBetween('2026-08-16', '2026-08-17')).toBe(1); // Sunday to Monday
     expect(weeksBetween('2026-08-10', '2026-08-31')).toBe(3);
     expect(weeksBetween('2026-08-31', '2026-08-10')).toBe(-3);
+  });
+});
+
+describe('naming a day without asking ICU', () => {
+  it('reads the eyebrow the design pack shows', () => {
+    expect(formatDayLong('2026-08-15')).toBe('Saturday 15 August');
+    expect(formatDayLong('2026-01-01')).toBe('Thursday 1 January');
+    expect(formatDayLong('2026-12-31')).toBe('Thursday 31 December');
+  });
+
+  it('drops the leading zero the way an English sentence does', () => {
+    expect(formatDayLong('2026-08-05')).toBe('Wednesday 5 August');
+  });
+
+  it('names every weekday and every month', () => {
+    expect(WEEKDAY_NAMES).toHaveLength(7);
+    expect(MONTH_NAMES).toHaveLength(12);
+    // A week of consecutive days walks the whole array in order.
+    const week = [
+      '2026-08-10',
+      '2026-08-11',
+      '2026-08-12',
+      '2026-08-13',
+      '2026-08-14',
+      '2026-08-15',
+      '2026-08-16',
+    ];
+    expect(week.map(weekdayName)).toEqual([
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ]);
+    expect(monthName('2026-02-14')).toBe('February');
+  });
+
+  /**
+   * The reason this is a table rather than `toLocaleDateString`: the string is
+   * rendered on the server and again in the browser, and a locale-derived one
+   * that differs between the two throws away the whole client tree (LESSONS
+   * §3a). A pure function of the day key cannot differ from itself.
+   */
+  it('gives the same answer whatever the ambient locale and timezone are', () => {
+    const first = formatDayLong('2026-08-15');
+    const second =
+      new Intl.DateTimeFormat('ar-EG').format(new Date()) && formatDayLong('2026-08-15');
+    expect(second).toBe(first);
   });
 });

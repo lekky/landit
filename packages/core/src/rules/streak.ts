@@ -393,3 +393,52 @@ export function logWeeklyRide(
     targetMetNow: true,
   };
 }
+
+/* -------------------------------------------------------------------------- */
+/* What the streak card says (T8, 2026-08-16).                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The words on the Home streak card live here, not in the screen, for the same
+ * reason `stickerCondition` and `challengeRangeLabel` do: they are decisions
+ * rather than decoration, and a decision in a `.tsx` file has no test around it.
+ *
+ * Two decisions in particular, both one careless copy edit from reverting:
+ *
+ * - **The unit is weeks.** The streak counted days until 2026-08-16 (plan §1).
+ *   Every sentence below says "week", and `weeklyStreakLabel` is the only place
+ *   the noun is written down.
+ * - **Nothing is loss-framed.** Plan §6.4, Standard 13: "a rider is shown the
+ *   rides they have made this week, never the streak they are about to lose."
+ *   So there is no "don't break it", no "your streak ends in", no countdown —
+ *   and `streak-copy` is tested against a list of the words that would put one
+ *   back.
+ */
+
+/** "5 weeks", "1 week", "No weeks yet". The card's Anton headline. */
+export function weeklyStreakLabel(weeks: number): string {
+  const n = Math.max(0, Math.floor(weeks));
+  if (n === 0) return 'No weeks yet';
+  return `${n} week${n === 1 ? '' : 's'}`;
+}
+
+/** "1 of 2 rides this week" — what the strip under the headline is counting. */
+export function weeklyProgressLabel(progress: WeeklyProgress): string {
+  const shown = Math.min(progress.rides, progress.target);
+  return `${shown} of ${progress.target} ride${progress.target === 1 ? '' : 's'} this week`;
+}
+
+/**
+ * The line under the strip. Gain-framed in every branch — it names what a ride
+ * *earns*, never what missing one costs.
+ */
+export function weeklyEncouragement(progress: WeeklyProgress): string {
+  if (progress.met) {
+    const spare = progress.rides - progress.target;
+    return spare > 0
+      ? `This week is banked, with ${spare} ride${spare === 1 ? '' : 's'} to spare.`
+      : 'This week is banked.';
+  }
+  if (progress.remaining === 1) return 'One more ride banks this week.';
+  return `${progress.remaining} rides bank this week.`;
+}

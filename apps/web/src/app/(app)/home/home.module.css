@@ -1,0 +1,283 @@
+/*
+ * Home (screenshot 06).
+ *
+ * The numbers are the prototype's, transcribed rather than reinterpreted: the
+ * 340px right column, the 18px column gap, the 30px stack, the 900px breakpoint
+ * where both grids go one-up. Zero border radius throughout; the panels and the
+ * hard offset shadows come from `@landit/ui-web`'s `.panel`.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* --------------------------------------------------------- announcement -- */
+
+.notice {
+  padding: 15px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.noticeBody {
+  min-width: 200px;
+  flex: 1;
+}
+
+.noticeText {
+  margin: 4px 0 0;
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------ the hero --- */
+
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  gap: 18px;
+  align-items: start;
+}
+
+.greeting {
+  padding: 22px 22px 20px;
+  background: var(--paper);
+}
+
+.hello {
+  font-size: clamp(30px, 5.5vw, 50px);
+  margin: 8px 0 0;
+}
+
+.summary {
+  margin: 10px 0 18px;
+  color: var(--ink-2);
+  font-size: 16px;
+  max-width: 460px;
+}
+
+.across {
+  display: block;
+  margin-top: 6px;
+  color: var(--ink-3);
+  font-size: 14.5px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: 10px;
+}
+
+.stat {
+  border: 3px solid var(--ink);
+  padding: 12px 14px;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.statNumber {
+  font-size: 34px;
+  line-height: 0.9;
+}
+
+.statLabel {
+  margin-top: 5px;
+  color: var(--ink-2);
+}
+
+.library {
+  margin-top: 18px;
+}
+
+.libraryHead {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+/* ------------------------------------------------------- the right rail -- */
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* --------------------------------------------------------- streak card --- */
+
+.streak {
+  padding: 18px;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.streakHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.flame {
+  width: 46px;
+  height: 46px;
+  background: var(--orange);
+  border: 3px solid var(--paper);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.streakNumber {
+  font-size: 30px;
+  line-height: 0.9;
+}
+
+.streakLabel {
+  color: #c9c2b4;
+  margin-top: 4px;
+}
+
+.week {
+  margin: 15px 0 14px;
+}
+
+/*
+ * One cell per ride the week needs — not seven day cells. The unit changed with
+ * the rule (plan §1, and §7 T8 records the design call). Because the count is
+ * `WEEKLY_RIDE_TARGET` rather than a fixed seven, the cells are flexible and the
+ * row survives a target of two, three or five without a second edit here.
+ */
+.weekCells {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.weekCell {
+  flex: 1;
+  height: 26px;
+  border: 2px solid #3a352c;
+  background: transparent;
+}
+
+.weekCell[data-filled] {
+  border-color: var(--yellow);
+  background: var(--yellow);
+}
+
+.spare {
+  flex: none;
+  font-size: 10px;
+  color: var(--yellow);
+  padding-left: 2px;
+}
+
+.weekLabel {
+  color: #c9c2b4;
+  margin-top: 8px;
+}
+
+.encouragement {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: #8d8679;
+}
+
+/* ------------------------------------------------------ challenge card --- */
+
+.challenge {
+  padding: 16px;
+}
+
+.challengeHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.challengeTitle {
+  font-size: 26px;
+  color: #fff;
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.challengeBlurb {
+  margin: 8px 0 12px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------- stickers and crew -- */
+
+.bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.stickerRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.crew {
+  padding: 4px;
+}
+
+.crewRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+  border-bottom: 2px solid var(--wash);
+}
+
+.crewRow[data-last] {
+  border-bottom: none;
+}
+
+.crewRow[data-me] {
+  background: var(--paper-2);
+}
+
+.crewRank {
+  font-size: 16px;
+  width: 20px;
+  color: var(--ink-3);
+}
+
+.crewName {
+  min-width: 0;
+}
+
+.crewHandle {
+  color: var(--ink-3);
+  letter-spacing: 0.08em;
+  font-size: 10.5px;
+}
+
+.crewScore {
+  margin-left: auto;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .top {
+    grid-template-columns: 1fr;
+  }
+
+  .bottom {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+}

@@ -3,7 +3,10 @@ import type { RiderSnapshot, SportId, StageId, Trick, TrickLogEntry } from '@lan
 import type { Client } from './clients';
 import { records } from './collections';
 import type {
+  AnnouncementDismissalsRecord,
+  AnnouncementsRecord,
   ChallengesRecord,
+  CrewMembersRecord,
   EventsRecord,
   PlansRecord,
   RiderStickersRecord,
@@ -308,5 +311,76 @@ export async function listEvents(client: Client, sport?: SportId): Promise<Event
     filter: clauses.join(' && '),
     params: sport ? { sport } : undefined,
     sort: 'date',
+  });
+}
+
+/* --------------------------------------------------------- announcements -- */
+
+/**
+ * The staff announcements a rider is in the audience for, newest first.
+ *
+ * Audience is `all`, `plan` or `sport` (plan §3), and the match is made here
+ * rather than in a filter string because `audience_sport` compares against the
+ * sport a rider is *looking at* — the tab, not the record — and the Home screen
+ * changes tabs without a round trip. There are never many live announcements,
+ * so this reads the live ones and narrows them in memory.
+ *
+ * `is_live` is enforced by the collection's list rule too, so a hidden notice is
+ * not merely filtered out here — it is not readable at all.
+ */
+export async function listAnnouncements(client: Client): Promise<AnnouncementsRecord[]> {
+  return records(client, 'announcements').list({ filter: 'is_live = true', sort: '-created' });
+}
+
+/** The announcements this rider has already tapped "Got it" on. */
+export async function listAnnouncementDismissals(
+  client: Client,
+  userId: string,
+): Promise<AnnouncementDismissalsRecord[]> {
+  return records(client, 'announcement_dismissals').list({
+    filter: 'user = {:user}',
+    params: { user: userId },
+  });
+}
+
+/* ------------------------------------------------------------ crew board -- */
+
+/** One row of the crew board, as the hook route shapes it (plan §3 guarantee 1). */
+export interface CrewBoardRider {
+  readonly id: string;
+  readonly name: string;
+  readonly handle: string;
+  readonly avatar_key: string;
+  readonly streak: number;
+  readonly sports: SportId[];
+  readonly landed: number;
+  readonly role: string;
+}
+
+/**
+ * The crew board, from `GET /api/landit/crew-board/{crew}`.
+ *
+ * Not a collection read, and deliberately: guarantee 1 says a private rider
+ * still appears on the board by name and score, which no view rule can express.
+ * The route builds a fixed field list server-side — this function only carries
+ * it, and must never be "improved" into an expanded `crew_members` query, which
+ * is exactly the leak the route exists to prevent.
+ */
+export async function getCrewBoard(
+  client: Client,
+  crewId: string,
+): Promise<{ crew: string; riders: CrewBoardRider[] }> {
+  return client.send(`/api/landit/crew-board/${encodeURIComponent(crewId)}`, { method: 'GET' });
+}
+
+/** The crews a rider belongs to. Empty until T11 lets anyone join one. */
+export async function listCrewMemberships(
+  client: Client,
+  userId: string,
+): Promise<CrewMembersRecord[]> {
+  return records(client, 'crew_members').list({
+    filter: 'user = {:user}',
+    params: { user: userId },
+    sort: 'joined',
   });
 }

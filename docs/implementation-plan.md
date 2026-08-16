@@ -895,6 +895,41 @@ settle in this session. The streak obeys the §6.4 nudge rules: no loss-framed c
 notifications, and nothing sent between 21:00 and 07:00 local. Inputs: `landit-screens-a.jsx`
 (Home), screenshots 06.
 
+**Built 2026-08-16. The design call is settled, and two things the entry above could not know:**
+
+- **The seven-day strip becomes a rides-this-week strip.** The cells stay — same ink panel, same
+  hard-keylined segmented row, same yellow fill, same button under it, so the card's silhouette
+  against screenshot 06 is unchanged — but there is now **one cell per ride the week needs**
+  (`WEEKLY_RIDE_TARGET`, two today), filled left to right as rides land, under the label "Rides this
+  week" and a count reading "1 of 2". Rides past the target show as a `+N` chip rather than more
+  cells, so the row never grows unbounded. The Anton headline changes unit with the rule: "5 weeks
+  / Riding streak", not "5 days".
+
+  Three reasons this and not a strip of *weeks*. The data model deliberately stores no calendar
+  (§3) — one counter and two day keys — so week cells could only be drawn from the streak count,
+  which is a redraw of the number above them and says nothing a rider can act on. §6.4 Standard 13
+  is explicit that "a rider is shown the rides they have made this week, never the streak they are
+  about to lose", and a rides-this-week strip is that sentence rendered. And it follows the tunable:
+  moving `WEEKLY_RIDE_TARGET` from 2 to 3 moves the strip with it, with no second place to edit.
+  `streakStrip` in `packages/core` stays exported and deprecated; nothing calls it.
+
+- **"I rode today" is a Next.js server action holding the superuser client, not a PocketBase
+  route.** The T4 note above and `hooks/lib/landit.js` both anticipated a PocketBase route running
+  the rule. It cannot be one: **the PocketBase JSVM has no `Intl`**, and — worse than absent —
+  `Date.prototype.toLocaleString` accepts a `timeZone` option and *silently ignores it*. Probed on
+  0.39.11 by asking one instant for its local time in UTC, Europe/London, Pacific/Auckland,
+  America/Los_Angeles and the nonsense zone `Not/AZone`: all five answered identically, in the
+  host's zone. A weekly streak scored there would be scored in the box's timezone for every rider on
+  earth, and would look right in Coventry. So the rule runs once, in `@landit/core`, in Node where
+  `Intl` is real, and the result is written with the superuser client — the same privileged path
+  §3 already gives the consent flow and staff actions. **The guarantee is unchanged**: `users`'
+  streak tuple is still frozen against every client write by `guardUserWrite`, and
+  `pocketbase/tests/streak-is-server-owned.test.ts` still proves it over HTTP. What moved is only
+  which server runs the arithmetic. Consequence: `apps/web` needs `POCKETBASE_SUPERUSER_EMAIL` and
+  `POCKETBASE_SUPERUSER_PASSWORD` set wherever it is deployed, or "I rode today" fails softly and
+  the rider is told to try again (issue filed). Revisit if PocketBase ever gains a real timezone
+  database in the JSVM.
+
 **T9 · Progress + skill tree.** By category, by stage, over-time chart with the estimated-dates
 note, skill tree with prerequisite/paywall lock states, printable sheets panel. Also the
 Legend-gated **insights panel** (§2.4): per-category trends, personal records, next-trick
