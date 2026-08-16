@@ -6,15 +6,26 @@
 # the root cannot see them. Coolify's "Base Directory" therefore stays `/` and
 # the Dockerfile path is `apps/web/Dockerfile`.
 #
-# Three stages so the image that runs is not the image that built: `deps` holds
-# the whole `node_modules` tree, `builder` produces `.next`, and `runner` keeps
-# only Next's standalone output. The result carries no pnpm store, no source and
-# no dev dependencies.
+# **This image ships the real `node_modules` and runs `next start`.** The obvious
+# alternative — Next's `output: 'standalone'`, which traces the handful of files
+# the server needs into a much smaller image — was tried first and abandoned
+# after three failed deploys. Its file tracer cannot follow pnpm's symlinked
+# store reliably: `@swc/helpers` came out missing, the image built perfectly and
+# then crash-looped on `Cannot find module`. Worse, pnpm names that store
+# differently on Windows than on Linux, so the traced tree on a developer's
+# machine is not the tree in the image and the fault cannot be reproduced
+# locally at all.
+#
+# Every documented escape (`node-linker=hoisted` in `.npmrc`, `nodeLinker` in
+# `pnpm-workspace.yaml`, `--config.nodeLinker`, `pnpm config set`) is silently
+# ignored by pnpm 11.22.0 — all four were tested. So the trade here is
+# deliberate: a larger image that resolves modules the ordinary way, on a box
+# with 40GB of disk and one app on it. **If you are tempted to reintroduce
+# standalone to save space, that is the history you are re-running.**
 
-# **24, matching CI's `node-version: 24`** — so a build that passes there passes
-# here. It cannot be the `engines` floor: that says >=22.13.0, and pnpm 11.22.0
-# refuses to start on anything lower, which is what the first version of this
-# line found out.
+# 24, matching CI's `node-version: 24`, so a build that passes there passes here.
+# It cannot be the `engines` floor: that says >=22.13.0, and pnpm 11.22.0 refuses
+# to start on anything lower.
 ARG NODE_VERSION=24
 
 # ------------------------------------------------------------------ base --
@@ -23,15 +34,13 @@ FROM node:${NODE_VERSION}-alpine AS base
 # Corepack reads `packageManager` from the root package.json, so pnpm's version
 # comes from the repo rather than from whatever the base image happens to ship.
 #
-# **Corepack is upgraded first, and that is not tidiness.** The copy bundled
-# with Node 22.12.0 carries signing keys that no longer match npm's, so the
-# first `pnpm` invocation dies with `Error: Cannot find matching keyid` while
-# trying to verify the download — which reads like a network fault and is not
-# one. Installing a current corepack fixes the keys while leaving
-# `packageManager` as the single source of truth for the version.
+# **Corepack is upgraded first, and that is not tidiness.** The copy bundled with
+# Node's images carries signing keys that no longer match npm's, so the first
+# `pnpm` invocation dies with `Error: Cannot find matching keyid` while verifying
+# its own download — which reads like a network fault and is not one.
 RUN npm install --global corepack@latest && corepack enable
 
-# ----------------------------------------------------------------- deps --
+# ------------------------------------------------------------------ deps --
 FROM base AS deps
 WORKDIR /repo
 
@@ -69,28 +78,26 @@ ENV NEXT_PUBLIC_POCKETBASE_URL=${NEXT_PUBLIC_POCKETBASE_URL}
 RUN pnpm --filter @landit/web build
 
 # ---------------------------------------------------------------- runner --
-FROM node:${NODE_VERSION}-alpine AS runner
-WORKDIR /app
+FROM base AS runner
+WORKDIR /repo
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-# Not root. The container has no business writing to its own filesystem.
+# Not root. The container has no business writing outside `.next/cache`.
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
 
-# `output: 'standalone'` traces exactly the files the server needs and copies
-# the workspace packages in with it, which is why this is three directories and
-# not a `node_modules`. `outputFileTracingRoot` in `next.config.ts` is what
-# makes the paths come out repo-relative.
-COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/.next/static ./apps/web/.next/static
-COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/public ./apps/web/public
+# The whole built workspace, symlinks and all — which is the point: pnpm's layout
+# is preserved exactly as it was installed, so module resolution at run time is
+# the same resolution that worked at build time.
+COPY --from=builder --chown=nextjs:nodejs /repo ./
 
 USER nextjs
 EXPOSE 3000
 
-# The standalone server, at the path the trace put it.
-CMD ["node", "apps/web/server.js"]
+# `next start`, through the script the repo already defines, so the port and the
+# flags live in one place (`apps/web/package.json`).
+CMD ["pnpm", "--filter", "@landit/web", "start"]
