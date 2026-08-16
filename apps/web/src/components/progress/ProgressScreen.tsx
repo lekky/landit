@@ -5,7 +5,9 @@ import { Bar, Panel, SectionHead, SkillNode, Tag } from '@landit/ui-web';
 
 import type { SportProgressView } from '@/app/(app)/progress/view';
 import { SportSwitch } from '@/components/shell/SportSwitch';
+import { trickHref } from '@/lib/routes';
 import { useSport } from '@/providers/sport';
+import { useRouter } from 'next/navigation';
 
 import { InsightsPanel } from './InsightsPanel';
 import { PrintableSheets } from './PrintableSheets';
@@ -40,6 +42,7 @@ export function ProgressScreen({
   optedIntoInsights,
 }: ProgressScreenProps) {
   const { sport } = useSport();
+  const router = useRouter();
   const view = views.find((v) => v.sport === sport) ?? views[0];
 
   if (!view) {
@@ -221,20 +224,15 @@ export function ProgressScreen({
                   >
                     <span className={`lab ${styles.muted}`}>Stage {tier.stage}</span>
                     {tier.nodes.map((node) => (
-                      /*
-                       * Not a link, and not a dead button either. `/library/[trick]`
-                       * is T7's route and does not exist on this branch, so the node
-                       * renders as a label — `typedRoutes` would refuse the link and
-                       * casting it would delete the guard rather than solve anything
-                       * (LESSONS §3a). The follow-up that wires Wave 4's routes
-                       * together drops `interactive={false}` and hands it an `onOpen`.
-                       */
+                      // Straight into the trick page, the way T7's library grid
+                      // opens one. Nodes are keyed by slug, which is what the URL
+                      // carries, so this survives a reseed.
                       <SkillNode
                         key={node.id}
                         name={node.name}
                         difficulty={node.diff}
                         state={node.state}
-                        interactive={false}
+                        onOpen={() => router.push(trickHref(node.id))}
                       />
                     ))}
                   </div>

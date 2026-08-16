@@ -934,10 +934,10 @@ decisions rather than details:**
   that reaches for it on a rendered page should reach for `monthKeyLabel` instead (LESSONS §3a,
   issue filed).
 
-Two cross-route links are deliberately unwired, per LESSONS §3a: skill-tree nodes render as
-surfaces rather than controls because `/library/[trick]` is T7's, and the insights upsell states
-what Legend includes without linking `/plans`, which is T15's. A follow-up wires both once Wave 4
-has merged.
+One cross-route link is deliberately unwired, per LESSONS §3a: the insights upsell states what
+Legend includes without linking `/plans`, which is T15's and does not exist. Skill-tree nodes *are*
+wired — T7 merged first, so `trickHref` was there by the time this rebased, and a node opens its
+trick page the same way the library grid does.
 
 ### Wave 5 — four concurrent sessions (clips may lag)
 

@@ -178,28 +178,11 @@ export type SkillNodeProps = {
   /** Right-hand label: "Landed", "Shredder", or nothing. */
   note?: string;
   onOpen?: () => void;
-  /**
-   * Draw the node as a plain surface rather than a control.
-   *
-   * The tree's nodes want to open the trick page, and until that route exists a
-   * node with nowhere to go should not be a focusable button that does nothing
-   * (LESSONS §3a — a destination nobody has built renders as a label, not a
-   * link). Defaults to `true`, so the node keeps the shape it has always had.
-   */
-  interactive?: boolean;
 };
 
-export function SkillNode({
-  name,
-  difficulty,
-  state,
-  note,
-  onOpen,
-  interactive = true,
-}: SkillNodeProps) {
-  const className = cx('node', state !== 'open' && state);
-  const body = (
-    <>
+export function SkillNode({ name, difficulty, state, note, onOpen }: SkillNodeProps) {
+  return (
+    <button type="button" className={cx('node', state !== 'open' && state)} onClick={onOpen}>
       <span className="nn">{name}</span>
       <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
         <Difficulty value={difficulty} small />
@@ -219,16 +202,6 @@ export function SkillNode({
         )}
         {state === 'lock' && <Icon name="lock" size={13} strokeWidth={2.6} />}
       </span>
-    </>
-  );
-
-  if (!interactive) {
-    return <div className={className}>{body}</div>;
-  }
-
-  return (
-    <button type="button" className={className} onClick={onOpen}>
-      {body}
     </button>
   );
 }
