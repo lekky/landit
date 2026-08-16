@@ -31,9 +31,13 @@ export default tseslint.config(
       'playwright-report/**',
       'test-results/**',
       'pocketbase/.bin/**',
-      'pocketbase/.pb_data/**',
-      // The e2e run's own scratch database (playwright.config.ts).
-      'pocketbase/.pb_e2e/**',
+      // Any local PocketBase database, not only the two the repo's own scripts
+      // make: `.pb_data` (pnpm pb:dev), `.pb_e2e` (playwright.config.ts), and
+      // whatever a parallel session picks so it does not share a port with a
+      // sibling. PocketBase writes a 24,000-line generated `types.d.ts` into
+      // each one, and naming them individually meant `pnpm lint` failing with
+      // 693 errors in a directory nobody wrote (T12).
+      'pocketbase/.pb_*/**',
       // The received design pack is reference material, not our code.
       'design-handoff/**',
     ],

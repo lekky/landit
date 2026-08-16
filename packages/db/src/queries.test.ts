@@ -1,8 +1,13 @@
-import { isTrickFree, isTrickLocked, trickById } from '@landit/core';
+import { challengeState, eventsFor, isTrickFree, isTrickLocked, trickById } from '@landit/core';
 import { describe, expect, it } from 'vitest';
 
-import type { TrickPrereqsRecord, TricksRecord } from './generated/collections';
-import { tricksFromRecords } from './queries';
+import type {
+  ChallengesRecord,
+  EventsRecord,
+  TrickPrereqsRecord,
+  TricksRecord,
+} from './generated/collections';
+import { challengesFromRecords, eventsFromRecords, tricksFromRecords } from './queries';
 
 /**
  * The `tricks` row → `Trick` mapping.
@@ -87,5 +92,101 @@ describe('tricksFromRecords', () => {
   it('carries the hidden flag through, so the library can drop it', () => {
     const tricks = tricksFromRecords([row({ id: 'rec1', slug: 'pulled', is_live: false })]);
     expect(tricks[0]?.isLive).toBe(false);
+  });
+});
+
+/* ---------------------------------------------- challenges and events (T12) */
+
+const challengeRow = (
+  over: Partial<ChallengesRecord> & Pick<ChallengesRecord, 'id' | 'slug'>,
+): ChallengesRecord => ({
+  collectionId: 'c',
+  collectionName: 'challenges',
+  sport: 'scooter',
+  week: 'Week 33',
+  title: 'Switch Week',
+  blurb: 'Roll backwards.',
+  starts: '2026-08-10 00:00:00.000Z',
+  ends: '2026-08-16 00:00:00.000Z',
+  goal: 3,
+  reward: 'Challenger sticker',
+  hue: '#3AC0FF',
+  riders_copy: '',
+  verb: 'Log a switch trick',
+  created: '',
+  updated: '',
+  ...over,
+});
+
+const eventRow = (
+  over: Partial<EventsRecord> & Pick<EventsRecord, 'id' | 'slug'>,
+): EventsRecord => ({
+  collectionId: 'e',
+  collectionName: 'events',
+  name: 'Northern Jam',
+  kind: 'Comp',
+  town: 'Manchester',
+  venue: 'Projekts MCR',
+  date: '2026-08-29 00:00:00.000Z',
+  sports: ['scooter'],
+  level: 'All levels',
+  price: '£8 entry',
+  spots_copy: '40 riders',
+  blurb: '',
+  is_live: true,
+  created: '',
+  updated: '',
+  ...over,
+});
+
+describe('challengesFromRecords', () => {
+  it('keys a challenge by slug, not by database id', () => {
+    // `Challenge.id` is the slug everywhere in `@landit/core` — `challengeLogged`,
+    // the seed and the fixtures all agree on that, and a record id leaking into
+    // a rule is what made challenge progress read zero before T12.
+    const [challenge] = challengesFromRecords([challengeRow({ id: 'rec1', slug: 'sc-33' })]);
+    expect(challenge?.id).toBe('sc-33');
+  });
+
+  it('cuts a stored datetime back to the calendar day the rules compare', () => {
+    const [challenge] = challengesFromRecords([challengeRow({ id: 'rec1', slug: 'sc-33' })]);
+    expect(challenge?.starts).toBe('2026-08-10');
+    expect(challenge?.ends).toBe('2026-08-16');
+    // And the derived state is then answerable, which is the whole point of the
+    // mapping: state is never stored (plan §2.2).
+    expect(
+      challengeState(challenge!, { now: Date.parse('2026-08-16T20:00:00Z'), timezone: 'UTC' }),
+    ).toBe('live');
+  });
+
+  it('carries riders_copy through as the handoff’s display string', () => {
+    const [challenge] = challengesFromRecords([
+      challengeRow({ id: 'rec1', slug: 'sc-33', riders_copy: '1,284 riders in' }),
+    ]);
+    expect(challenge?.riders).toBe('1,284 riders in');
+  });
+});
+
+describe('eventsFromRecords', () => {
+  it('keys an event by slug and reads spots_copy as spots', () => {
+    const [event] = eventsFromRecords([eventRow({ id: 'rec1', slug: 'e1' })]);
+    expect(event?.id).toBe('e1');
+    expect(event?.spots).toBe('40 riders');
+    expect(event?.date).toBe('2026-08-29');
+  });
+
+  it('carries the hidden flag through, so a pulled event disappears', () => {
+    const rows = [
+      eventRow({ id: 'rec1', slug: 'on' }),
+      eventRow({ id: 'rec2', slug: 'off', is_live: false }),
+    ];
+    expect(eventsFor('scooter', eventsFromRecords(rows)).map((e) => e.id)).toEqual(['on']);
+  });
+
+  it('carries every sport an event is good for', () => {
+    const [event] = eventsFromRecords([
+      eventRow({ id: 'rec1', slug: 'e1', sports: ['scooter', 'skate', 'bmx'] }),
+    ]);
+    expect(event?.sports).toEqual(['scooter', 'skate', 'bmx']);
   });
 });

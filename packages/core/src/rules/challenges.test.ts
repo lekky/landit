@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { CHALLENGES } from '../data/challenges';
+import { SPORT_IDS } from '../data/sports';
 import type { Challenge } from '../types';
+import { stickerRule } from './stickers';
 import {
   canLogChallenge,
   challengeProgress,
   challengeRangeLabel,
+  challengeRewardSticker,
   challengeState,
   challengesFor,
   challengesOverlap,
@@ -201,23 +204,55 @@ describe('the date range label', () => {
 });
 
 describe('the shipped schedule', () => {
-  it('runs the scooter and skate weeks in step', () => {
-    const scooter = challengesFor('scooter', CHALLENGES);
-    const skate = challengesFor('skate', CHALLENGES);
-    expect(scooter).toHaveLength(6);
-    expect(skate).toHaveLength(6);
-    expect(scooter.map((c) => c.starts)).toEqual(skate.map((c) => c.starts));
+  // `SPORT_IDS`, never a literal pair (plan §7). The two-sport version of these
+  // assertions passed happily while BMX had no challenges at all and the
+  // `challenger` sticker was unearnable for a BMX-only rider (issue #80).
+  it('runs every sport’s weeks in step', () => {
+    const weeks = SPORT_IDS.map((sport) => challengesFor(sport, CHALLENGES));
+    for (const sport of weeks) expect(sport).toHaveLength(6);
+    const first = weeks[0]?.map((c) => c.starts);
+    for (const sport of weeks) expect(sport.map((c) => c.starts)).toEqual(first);
+  });
+
+  it('leaves no sport without a challenge to run', () => {
+    for (const sport of SPORT_IDS) {
+      expect(challengesFor(sport, CHALLENGES).length).toBeGreaterThan(0);
+    }
   });
 
   it('has exactly one live week per sport on any given day', () => {
     for (const day of ['2026-07-22', '2026-08-05', '2026-08-13', '2026-08-27']) {
       const clock = at(`${day}T12:00:00Z`);
-      for (const sport of ['scooter', 'skate'] as const) {
+      for (const sport of SPORT_IDS) {
         const live = challengesFor(sport, CHALLENGES).filter(
           (c) => challengeState(c, clock) === 'live',
         );
         expect(live).toHaveLength(1);
       }
     }
+  });
+});
+
+describe('the reward a challenge promises', () => {
+  // Issue #76: all twelve shipped challenges named a sticker that did not
+  // exist, so the screen promised a reward the award flow could never grant.
+  it('names a sticker that exists, is live, and has a rule behind it', () => {
+    for (const challenge of CHALLENGES) {
+      const sticker = challengeRewardSticker(challenge);
+      expect(sticker, `${challenge.id} promises "${challenge.reward}"`).not.toBeNull();
+      expect(sticker?.isLive).toBe(true);
+      expect(stickerRule(sticker?.id ?? '')).toBeTypeOf('function');
+    }
+  });
+
+  it('reads a reward with or without the trailing word "sticker"', () => {
+    expect(challengeRewardSticker({ reward: 'Challenger' })?.id).toBe('challenger');
+    expect(challengeRewardSticker({ reward: 'Challenger sticker' })?.id).toBe('challenger');
+    expect(challengeRewardSticker({ reward: 'challenger STICKER' })?.id).toBe('challenger');
+  });
+
+  it('resolves to null rather than guessing when the name is not a sticker', () => {
+    expect(challengeRewardSticker({ reward: 'Long Roller sticker' })).toBeNull();
+    expect(challengeRewardSticker({ reward: '' })).toBeNull();
   });
 });

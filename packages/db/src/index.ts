@@ -80,6 +80,8 @@ export {
 export * from './generated/collections';
 
 export {
+  challengesFromRecords,
+  eventsFromRecords,
   getCrewBoard,
   getRider,
   getRiderByHandle,
@@ -87,8 +89,10 @@ export {
   getTrickNote,
   listAnnouncementDismissals,
   listAnnouncements,
+  listChallengeLog,
   listChallenges,
   listCrewMemberships,
+  listEventAttendance,
   listEvents,
   listPlans,
   listRiderStickers,

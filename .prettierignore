@@ -26,5 +26,4 @@ playwright-report/
 test-results/
 pnpm-lock.yaml
 pocketbase/.bin/
-pocketbase/.pb_data/
-pocketbase/.pb_e2e/
+pocketbase/.pb_*/

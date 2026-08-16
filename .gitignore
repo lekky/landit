@@ -16,10 +16,10 @@ next-env.d.ts
 # Local PocketBase: the downloaded binary and the scratch database.
 # The schema lives in pocketbase/migrations/ and is committed.
 pocketbase/.bin/
-pocketbase/.pb_data/
 # The e2e run gets its own database on its own port, so a `pnpm e2e` never
-# writes test riders into the one you are developing against (LESSONS §1).
-pocketbase/.pb_e2e/
+# writes test riders into the one you are developing against (LESSONS §1), and
+# a parallel session gets a third. The glob covers all of them.
+pocketbase/.pb_*/
 
 # Playwright
 playwright-report/

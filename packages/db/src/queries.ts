@@ -1,12 +1,22 @@
-import type { RiderSnapshot, SportId, StageId, Trick, TrickLogEntry } from '@landit/core';
+import type {
+  Challenge,
+  LandItEvent,
+  RiderSnapshot,
+  SportId,
+  StageId,
+  Trick,
+  TrickLogEntry,
+} from '@landit/core';
 
 import type { Client } from './clients';
 import { records } from './collections';
 import type {
   AnnouncementDismissalsRecord,
   AnnouncementsRecord,
+  ChallengeLogRecord,
   ChallengesRecord,
   CrewMembersRecord,
+  EventAttendanceRecord,
   EventsRecord,
   PlansRecord,
   RiderStickersRecord,
@@ -232,7 +242,7 @@ export async function riderSnapshot(
 ): Promise<RiderSnapshot> {
   const library = tricks ?? (await listTricks(client));
 
-  const [rider, progress, clips, crews, challengeLog] = await Promise.all([
+  const [rider, progress, clips, crews, challengeLog, challenges] = await Promise.all([
     getRider(client, userId),
     listTrickProgress(client, userId),
     records(client, 'clips').list({ filter: 'user = {:user}', params: { user: userId } }),
@@ -241,11 +251,23 @@ export async function riderSnapshot(
       filter: 'user = {:user}',
       params: { user: userId },
     }),
+    records(client, 'challenges').list({ fields: 'id,slug' }),
   ]);
 
+  // Keyed by **slug**, because `Challenge.id` is the slug everywhere in
+  // `@landit/core` — `computeSportStats` looks up `logged[c.id]` against the
+  // canonical records, and the challenge screen looks it up against
+  // `challengesFromRecords`. Keyed by database id (as it was until T12) every
+  // one of those lookups misses, so a rider's challenge progress read zero no
+  // matter how much they had logged and the `challenger` sticker's stats were
+  // always empty. The extra read is one narrow request over a table with a
+  // dozen rows in it.
+  const slugOf = new Map(challenges.map((c) => [c.id, c.slug]));
   const challengeLogged: Record<string, number> = {};
   for (const row of challengeLog) {
-    challengeLogged[row.challenge] = (challengeLogged[row.challenge] ?? 0) + 1;
+    const slug = slugOf.get(row.challenge);
+    if (!slug) continue;
+    challengeLogged[slug] = (challengeLogged[slug] ?? 0) + 1;
   }
 
   return {
@@ -382,5 +404,88 @@ export async function listCrewMemberships(
     filter: 'user = {:user}',
     params: { user: userId },
     sort: 'joined',
+  });
+}
+
+/* ------------------------------------------------ challenges and events -- */
+
+/**
+ * `challenges` rows as the `Challenge` shape every rule in `@landit/core`
+ * takes. The mapping, not a rule — the same job `tricksFromRecords` does.
+ *
+ * Two column names differ from the canonical shape and this is the one place
+ * that knows it:
+ *
+ * - **`id` is the slug**, exactly as it is for tricks, so `challengeLogged`,
+ *   the seed and the fixtures all key a challenge the same way and a record id
+ *   never leaks into a rule.
+ * - **`riders_copy` is the handoff's `riders`.** Display copy, not a count.
+ *
+ * There is no `is_live` column and there should not be: whether a challenge is
+ * *running* is derived from its dates and never stored (plan §2.2, §3). Every
+ * stored challenge is a real one, so `isLive` is `true` — the flag exists in
+ * the shape for the staff "pulled" case the admin portal will need (T17).
+ */
+export function challengesFromRecords(challenges: readonly ChallengesRecord[]): Challenge[] {
+  return challenges.map((row) => ({
+    id: row.slug,
+    sport: row.sport as SportId,
+    week: row.week,
+    title: row.title,
+    blurb: row.blurb,
+    // PocketBase hands a `date` field back as a full datetime; the rules compare
+    // calendar days, and a day is what was stored.
+    starts: row.starts.slice(0, 10),
+    ends: row.ends.slice(0, 10),
+    goal: row.goal,
+    reward: row.reward,
+    hue: row.hue,
+    riders: row.riders_copy,
+    verb: row.verb,
+    isLive: true,
+  }));
+}
+
+/** `events` rows as the `LandItEvent` shape the rules take. `spots_copy` is `spots`. */
+export function eventsFromRecords(events: readonly EventsRecord[]): LandItEvent[] {
+  return events.map((row) => ({
+    id: row.slug,
+    name: row.name,
+    kind: row.kind as LandItEvent['kind'],
+    town: row.town,
+    venue: row.venue,
+    date: row.date.slice(0, 10),
+    sports: [...row.sports] as SportId[],
+    level: row.level,
+    price: row.price,
+    spots: row.spots_copy,
+    blurb: row.blurb,
+    isLive: row.is_live,
+  }));
+}
+
+/**
+ * A rider's own challenge log. `challenge_log` is `listRule: OWN`, so this
+ * returns nothing for anyone else's id — the rule decides, not this function.
+ */
+export async function listChallengeLog(
+  client: Client,
+  userId: string,
+): Promise<ChallengeLogRecord[]> {
+  return records(client, 'challenge_log').list({
+    filter: 'user = {:user}',
+    params: { user: userId },
+    sort: '-at',
+  });
+}
+
+/** The events this rider said they are going to. Also `OWN`. */
+export async function listEventAttendance(
+  client: Client,
+  userId: string,
+): Promise<EventAttendanceRecord[]> {
+  return records(client, 'event_attendance').list({
+    filter: 'user = {:user}',
+    params: { user: userId },
   });
 }

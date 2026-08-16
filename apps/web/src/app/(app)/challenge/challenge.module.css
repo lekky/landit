@@ -1,0 +1,216 @@
+/*
+ * Weekly challenge (screenshot 17).
+ *
+ * Numbers transcribed from `landit-screens-b.jsx`'s `Challenge`: the 24px/22px
+ * banner padding, the 22px body, the 230px and 190px card grids, the 26px
+ * stack. Zero border radius; the keylines and hard offset shadows come from
+ * `@landit/ui-web`'s `.panel`.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.head {
+  font-size: clamp(30px, 5vw, 44px);
+  margin: 6px 0 0;
+}
+
+.muted {
+  color: var(--ink-3);
+}
+
+.push {
+  margin-left: auto;
+}
+
+/* ------------------------------------------------------- the live card --- */
+
+.card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.banner {
+  padding: 24px 22px;
+  border-bottom: 3px solid var(--ink);
+}
+
+.bannerTop {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+/* A paper tag needs ink text; the default `.tag` is white on colour. */
+.tagInk {
+  color: var(--ink);
+}
+
+.range {
+  color: var(--ink);
+}
+
+.title {
+  font-size: clamp(32px, 6vw, 54px);
+  color: #fff;
+  text-shadow: 3px 3px 0 var(--ink);
+}
+
+.blurb {
+  margin: 12px 0 0;
+  font-size: 16px;
+  max-width: 540px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.body {
+  padding: 22px;
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.progress {
+  flex: 1;
+  min-width: 220px;
+}
+
+.progressHead {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.reward {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+  letter-spacing: 0.03em;
+}
+
+/* ---------------------------------------------------- the other sport ---- */
+
+.other {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--paper-2);
+}
+
+.otherTitle {
+  font-size: 15px;
+}
+
+/* ------------------------------------------------------- week cards ------ */
+
+.upcoming {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+
+.weekCard {
+  padding: 0;
+  overflow: hidden;
+}
+
+.weekStripe {
+  height: 8px;
+  border-bottom: 2.5px solid var(--ink);
+}
+
+.weekBody {
+  padding: 15px;
+}
+
+.weekHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.weekTitle {
+  font-size: 21px;
+  margin: 8px 0 7px;
+}
+
+.weekBlurb {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+/* --------------------------------------------------------- past weeks --- */
+
+.pastHold {
+  position: relative;
+}
+
+.past {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+/*
+ * The design's blur. It is a *presentation* of a limit, not the limit itself:
+ * a free rider's past results never leave the server (`view.ts`), so lifting
+ * this in dev tools reveals three dots, which is what is actually there.
+ */
+.blurred {
+  filter: blur(3px);
+  pointer-events: none;
+  user-select: none;
+}
+
+.pastCard {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.lockHold {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.lock {
+  text-align: center;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+  padding: 18px 22px;
+  max-width: 340px;
+}
+
+.lockTitle {
+  font-size: 20px;
+}
+
+.lockNote {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+@media (max-width: 620px) {
+  .body {
+    align-items: stretch;
+  }
+}

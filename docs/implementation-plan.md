@@ -1018,6 +1018,65 @@ public. There is no rider-to-rider messaging and none may be added here. Inputs:
 gated server-side to the live window, past weeks blurred on free plan; events list, filters, detail
 modal, "I'm going". Inputs: `landit-screens-b.jsx`, `landit-screens-d.jsx`, screenshots 17–18.
 
+**Shipped, with what it decided:**
+
+- **BMX has six weeks, so the schedule is per sport and not per pair** (issue #80). The design pack
+  predates the three-sport decision, so the BMX weeks are **authored, not transcribed** — a
+  deliberate divergence from "recreate, don't reinterpret", named here so no later session reads it
+  as a fidelity failure. Each names tricks that exist in the shipped BMX library. Without them
+  `challengesFor('bmx')` was empty and the `challenger` sticker was unearnable for a BMX-only
+  rider. `data.test.ts` and `challenges.test.ts` now count off `SPORT_IDS`; the two-sport versions
+  were green for as long as BMX had nothing.
+- **Every challenge's `reward` names the `challenger` sticker** (issue #76). The pack gave each week
+  a bespoke reward — "Long Roller", "Waxed In", "Down The Set" — and **not one of those ten names
+  was a sticker record**, so the screen promised what the award flow could never grant. Of the
+  issue's three options this is the second: point them at the sticker that exists, has a rule, and
+  is already awarded server-side on the `challenge_log` write. Option 1 (ten new stickers) needs
+  per-challenge completion in `RiderStats` and would have shipped "Down The Set", a stair-set
+  badge, while #79 asks whether this product should badge stair sets at all. `challengeRewardSticker`
+  resolves the copy and a test asserts every challenge resolves to a live sticker with a rule, so a
+  rename cannot quietly re-open the hole (LESSONS §4). **The screen prints no reward it cannot
+  resolve**, and says "already on your wall" rather than dangling one the rider holds.
+- **The fabricated participation copy is not rendered.** `riders` ("1,284 riders in") is invented
+  engagement, shown to children, for a product with no riders yet. The column and the field stay —
+  removing either would not be additive — but the screen does not print them, and the BMX weeks
+  leave the field empty rather than inventing six more. Issue filed for what should replace it.
+- **The free-plan limit on past weeks is a data limit, not a blur.** The design blurs the history
+  behind an upgrade panel; a blur that lifts in dev tools is a costume. A rookie rider's past
+  *results* are never computed and never sent — the cards arrive with the week, the dates and no
+  outcome. The panel says in as many words that logging a challenge and the sticker for finishing
+  one are the same on every plan, because "history is paid" and "achievements are for sale" are one
+  careless rewrite apart and §1 forbids the second.
+- **The server-side gate now admits the challenge's last day.** `challengeIsLive` compared a full
+  timestamp against `ends`, which PocketBase hands back at midnight, so a challenge was unloggable
+  for the whole of its final day — the day a rider is most likely to be finishing it. Nothing
+  errored: writes were refused while the screen said "Live now". It compares calendar days now, with
+  **a day of tolerance either side**, because the JSVM cannot compute a rider-local day (no `Intl`,
+  and `toLocaleString` ignores a `timeZone` — LESSONS §5) and a day covers every offset from UTC-12
+  to UTC+14. The gate's job is to refuse *last week*; the exact boundary is the client's, in the
+  rider's own zone. Proven in `pocketbase/tests/challenge-log-window.test.ts`, watched red against
+  the old comparison before being believed.
+- **`riderSnapshot` keys `challengeLogged` by slug.** It keyed by database id, and every consumer —
+  `computeSportStats`, both screens — looks up by slug, so challenge progress read zero however much
+  a rider had logged and the `challenger` stats were always empty. `challengesFromRecords` and
+  `eventsFromRecords` moved into `@landit/db` alongside `tricksFromRecords`; Home's local
+  `toChallenge` (which invited this) is gone.
+- **Standard 13 (§6.4), positively.** No countdown, no "your streak dies", no notification of any
+  kind, and no purchasable anything. A finished week is reported in the past tense with nothing
+  attached to it, and the copy states what a rider has done rather than what they are about to lose.
+- **A past event is dimmed, not dropped** — hidden by the default filter, one pill away. A row a
+  child ticked that silently disappears reads as a bug. And **nobody else's attendance is anywhere
+  on the events screen**: `event_attendance` is `OWN`, and "who else is going" would be exactly the
+  stranger-contact surface §6.1 rules out. Asserted in `e2e/events.spec.ts` rather than assumed.
+- **The e2e schedule is seeded by the spec, around today.** The shipped challenges carry fixed 2026
+  dates, so a spec asserting "Live now" against them would pass in August and fail in September —
+  a test with an expiry date (`e2e/support/seed-schedule.ts`, LESSONS §1).
+
+Two cross-route links are deliberately unwired, per LESSONS §3a: the history upsell states what the
+paid tiers keep without linking `/plans` (T15's), and the nav entries for both screens are the
+orchestrator's `chore-wire-wave5-links`, after every Wave 5 screen exists. `ROUTES` carries both
+paths, so wiring them is one line each.
+
 **T13 · Spots + map.** Mapbox with every live spot plotted, styled to the design language;
 selection sync between list and map; spot submission (Maps-link or coordinate parsing) into the
 `pending` queue, rate-limited. Children's code standard 10 (§6.4): browser geolocation is off by

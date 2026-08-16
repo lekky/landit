@@ -233,10 +233,16 @@ describe('plans (implementation plan §2.4)', () => {
 });
 
 describe('challenges', () => {
-  it('holds twelve challenges, six per sport, with unique ids', () => {
-    expect(CHALLENGES).toHaveLength(12);
-    expect(CHALLENGES.filter((c) => c.sport === 'scooter')).toHaveLength(6);
-    expect(CHALLENGES.filter((c) => c.sport === 'skate')).toHaveLength(6);
+  // Counted off `SPORT_IDS`, not a literal pair: the two-sport version of this
+  // was green for as long as BMX had no challenges at all (issue #80).
+  it('holds six challenges for every sport, with unique ids', () => {
+    for (const sport of SPORT_IDS) {
+      expect(
+        CHALLENGES.filter((c) => c.sport === sport),
+        sport,
+      ).toHaveLength(6);
+    }
+    expect(CHALLENGES).toHaveLength(SPORT_IDS.length * 6);
     expect(new Set(ids(CHALLENGES)).size).toBe(CHALLENGES.length);
   });
 

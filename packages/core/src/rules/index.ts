@@ -12,6 +12,7 @@ export {
   canLogChallenge,
   challengeProgress,
   challengeRangeLabel,
+  challengeRewardSticker,
   challengeState,
   challengesFor,
   challengesOverlap,
@@ -20,6 +21,19 @@ export {
   overlappingChallenges,
   type ChallengeProgress,
 } from './challenges';
+export {
+  EVENT_KIND_COLORS,
+  EVENT_KIND_IDS,
+  eventDateBlock,
+  eventKindColor,
+  eventKindsPresent,
+  eventsFor,
+  filterEvents,
+  isEventPast,
+  sortedEvents,
+  type EventDateBlock,
+  type EventQuery,
+} from './events';
 export {
   AGE_BANDS,
   CONSENT_APPROVAL_WINDOW_DAYS,

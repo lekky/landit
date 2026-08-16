@@ -2,11 +2,33 @@ import type { Challenge } from '../types';
 
 /**
  * One challenge per sport per week, transcribed from
- * `design-handoff/design/landit-data.js`.
+ * `design-handoff/design/landit-data.js`, with the BMX weeks authored here.
  *
  * State (`upcoming` / `live` / `past`) is never stored — it is derived from
  * `starts`/`ends` in the rider's timezone by `../rules/challenges.ts`
  * (plan §2.2). `starts` and `ends` are inclusive calendar days, `YYYY-MM-DD`.
+ *
+ * Two deliberate divergences from the design pack's data, both T12, both
+ * recorded in plan §7:
+ *
+ * - **`reward` names the `challenger` sticker, not one of ten that never
+ *   existed** (issue #76). The pack gave each week a bespoke reward — "Long
+ *   Roller", "Waxed In", "Down The Set" — and not one of those ten names is a
+ *   sticker record, so the challenge screen promised a reward the award flow
+ *   could never grant. `challenger` ("Finish a weekly challenge") is the one
+ *   that exists, has a rule, and is already awarded server-side on the
+ *   `challenge_log` write. `challengeRewardSticker` in `../rules/challenges.ts`
+ *   resolves the string and a test holds the two together, so a rename cannot
+ *   quietly re-open the hole.
+ * - **`riders` is empty on the BMX weeks.** The shipped copy ("1,102 riders
+ *   in") is invented participation, and the challenge screen no longer renders
+ *   it — inventing more of it for a third sport would be inventing a lie in a
+ *   product aimed at children. The field stays because the column does.
+ *
+ * **Three sports, not two** (plan §1, issue #80). BMX runs the same six weeks
+ * as the other two, so `challengesFor('bmx')` is not an empty list and the
+ * `challenger` sticker is reachable for a BMX-only rider. Every BMX week names
+ * tricks that are actually in the shipped BMX library.
  */
 export const CHALLENGES = [
   {
@@ -18,7 +40,7 @@ export const CHALLENGES = [
     starts: '2026-07-20',
     ends: '2026-07-26',
     goal: 3,
-    reward: 'Long Roller sticker',
+    reward: 'Challenger sticker',
     hue: '#FF9F1C',
     riders: '1,102 riders in',
     verb: 'Log a manual',
@@ -33,7 +55,7 @@ export const CHALLENGES = [
     starts: '2026-07-27',
     ends: '2026-08-02',
     goal: 3,
-    reward: 'Waxed In sticker',
+    reward: 'Challenger sticker',
     hue: '#9CE05B',
     riders: '1,340 riders in',
     verb: 'Log a grind',
@@ -48,7 +70,7 @@ export const CHALLENGES = [
     starts: '2026-08-03',
     ends: '2026-08-09',
     goal: 3,
-    reward: 'Spun sticker',
+    reward: 'Challenger sticker',
     hue: '#8A3BE0',
     riders: '1,208 riders in',
     verb: 'Log a bar spin',
@@ -64,7 +86,7 @@ export const CHALLENGES = [
     starts: '2026-08-10',
     ends: '2026-08-16',
     goal: 3,
-    reward: 'Switch Hitter sticker',
+    reward: 'Challenger sticker',
     hue: '#3AC0FF',
     riders: '1,284 riders in',
     verb: 'Log a switch trick',
@@ -79,7 +101,7 @@ export const CHALLENGES = [
     starts: '2026-08-17',
     ends: '2026-08-23',
     goal: 3,
-    reward: 'Hands Off sticker',
+    reward: 'Challenger sticker',
     hue: '#FF5A1F',
     riders: 'Opens Monday',
     verb: 'Log a no hander',
@@ -94,7 +116,7 @@ export const CHALLENGES = [
     starts: '2026-08-24',
     ends: '2026-08-30',
     goal: 1,
-    reward: 'Full Lap sticker',
+    reward: 'Challenger sticker',
     hue: '#10A06A',
     riders: 'Opens in two weeks',
     verb: 'Log a full lap',
@@ -109,7 +131,7 @@ export const CHALLENGES = [
     starts: '2026-07-20',
     ends: '2026-07-26',
     goal: 3,
-    reward: 'Long Roller sticker',
+    reward: 'Challenger sticker',
     hue: '#FF9F1C',
     riders: '1,880 riders in',
     verb: 'Log a manual',
@@ -124,7 +146,7 @@ export const CHALLENGES = [
     starts: '2026-07-27',
     ends: '2026-08-02',
     goal: 3,
-    reward: 'Waxed In sticker',
+    reward: 'Challenger sticker',
     hue: '#9CE05B',
     riders: '2,240 riders in',
     verb: 'Log a ledge trick',
@@ -139,7 +161,7 @@ export const CHALLENGES = [
     starts: '2026-08-03',
     ends: '2026-08-09',
     goal: 3,
-    reward: 'In And Out sticker',
+    reward: 'Challenger sticker',
     hue: '#8A3BE0',
     riders: '1,975 riders in',
     verb: 'Log a flip trick',
@@ -155,7 +177,7 @@ export const CHALLENGES = [
     starts: '2026-08-10',
     ends: '2026-08-16',
     goal: 3,
-    reward: 'Backwards sticker',
+    reward: 'Challenger sticker',
     hue: '#FF9F1C',
     riders: '2,067 riders in',
     verb: 'Log a fakie trick',
@@ -170,7 +192,7 @@ export const CHALLENGES = [
     starts: '2026-08-17',
     ends: '2026-08-23',
     goal: 3,
-    reward: 'On The Coping sticker',
+    reward: 'Challenger sticker',
     hue: '#246BFF',
     riders: 'Opens Monday',
     verb: 'Log a lip trick',
@@ -185,10 +207,111 @@ export const CHALLENGES = [
     starts: '2026-08-24',
     ends: '2026-08-30',
     goal: 1,
-    reward: 'Down The Set sticker',
+    reward: 'Challenger sticker',
     hue: '#E0392B',
     riders: 'Opens in two weeks',
     verb: 'Log a set',
+    isLive: true,
+  },
+
+  /* ------------------------------------------------------------------ BMX --
+   * Authored here rather than transcribed: the design pack predates the
+   * three-sport decision and contains no BMX material (plan §7, the BMX
+   * track). Same six weeks as the other two sports, and the same shape — five
+   * weeks asking for three logs, then a closing week that asks for one.
+   *
+   * Every week points at tricks that exist in the shipped BMX library
+   * (`./tricks.ts`), so a rider reading "log a grind" has somewhere in the app
+   * to go and find one.
+   */
+  {
+    id: 'bx-30',
+    sport: 'bmx',
+    week: 'Week 30',
+    title: 'Manual Metres',
+    blurb: 'Front wheel up, no pedalling, keep rolling. Three that stayed up on their own.',
+    starts: '2026-07-20',
+    ends: '2026-07-26',
+    goal: 3,
+    reward: 'Challenger sticker',
+    hue: '#FF9F1C',
+    riders: '',
+    verb: 'Log a manual',
+    isLive: true,
+  },
+  {
+    id: 'bx-31',
+    sport: 'bmx',
+    week: 'Week 31',
+    title: 'Peg Week',
+    blurb: 'Anything on the pegs. Double peg, feeble, icepick — three grinds you rode away from.',
+    starts: '2026-07-27',
+    ends: '2026-08-02',
+    goal: 3,
+    reward: 'Challenger sticker',
+    hue: '#9CE05B',
+    riders: '',
+    verb: 'Log a grind',
+    isLive: true,
+  },
+  {
+    id: 'bx-32',
+    sport: 'bmx',
+    week: 'Week 32',
+    title: 'Bar Week',
+    blurb: 'Bars go round. Pull-up, off a hop, out of a 180. Three of them, any way you like.',
+    starts: '2026-08-03',
+    ends: '2026-08-09',
+    goal: 3,
+    reward: 'Challenger sticker',
+    hue: '#8A3BE0',
+    riders: '',
+    verb: 'Log a barspin',
+    isLive: true,
+  },
+  {
+    id: 'bx-33',
+    sport: 'bmx',
+    week: 'Week 33',
+    title: 'Fakie Week',
+    blurb: 'Roll out backwards. Fakie off a bank, a nollie, a fakie 180. Three before Sunday.',
+    starts: '2026-08-10',
+    ends: '2026-08-16',
+    goal: 3,
+    reward: 'Challenger sticker',
+    hue: '#3AC0FF',
+    riders: '',
+    verb: 'Log a fakie trick',
+    isLive: true,
+  },
+  {
+    id: 'bx-34',
+    sport: 'bmx',
+    week: 'Week 34',
+    title: 'Pump Week',
+    blurb: 'Get across the park without pedalling. Three lines that carried their own speed.',
+    starts: '2026-08-17',
+    ends: '2026-08-23',
+    goal: 3,
+    reward: 'Challenger sticker',
+    hue: '#FF5A1F',
+    riders: '',
+    verb: 'Log a pumped line',
+    isLive: true,
+  },
+  {
+    id: 'bx-35',
+    sport: 'bmx',
+    week: 'Week 35',
+    title: 'Air Out',
+    blurb: 'Both wheels above the coping, once. A quarter you already know beats one you do not.',
+    starts: '2026-08-24',
+    ends: '2026-08-30',
+    goal: 1,
+    reward: 'Challenger sticker',
+    hue: '#10A06A',
+    riders: '',
+    verb: 'Log an air',
     isLive: true,
   },
 ] as const satisfies readonly Challenge[];

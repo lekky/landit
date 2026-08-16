@@ -79,15 +79,27 @@ function ensureSuperuser(): void {
   }
 }
 
-export async function seedLibrary(): Promise<void> {
-  if ((await trickCount()) > 0) return;
-
+/**
+ * A superuser client against the e2e instance.
+ *
+ * Exported for the specs that have to write a collection with `createRule:
+ * null` and cannot use the canonical seed — T12's, because the shipped
+ * challenges carry fixed 2026 dates and "which week is live" has to be true on
+ * the day the suite runs, not on the day the data was transcribed.
+ */
+export async function e2eSuperuser() {
   ensureSuperuser();
-  const client = await createSuperuserClient({
+  return createSuperuserClient({
     url: POCKETBASE_URL,
     email: SUPERUSER_EMAIL,
     password: SUPERUSER_PASSWORD,
   });
+}
+
+export async function seedLibrary(): Promise<void> {
+  if ((await trickCount()) > 0) return;
+
+  const client = await e2eSuperuser();
 
   // Only what the library screen reads. Stickers, spots, events and challenges
   // belong to other tasks' tests, and seeding them here would make this run
