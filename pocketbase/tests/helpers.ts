@@ -86,6 +86,11 @@ export interface Rider {
  * endpoint — and then, where the test needs it, moved into a state only the
  * server can put them in (a plan, a consent state) with a superuser call.
  * Nothing here quietly hands a client a power the product would not.
+ *
+ * Every sign-up declares a country and an age band (plan §6.2), and since T6 the
+ * server refuses one that does not — so the default here is an adult in the UK,
+ * which is the "no consent question to answer" case most tests want. Override
+ * either to put a rider on the other side of the gate.
  */
 export async function makeRider(
   overrides: Record<string, unknown> = {},
@@ -104,6 +109,8 @@ export async function makeRider(
       password,
       passwordConfirm: password,
       name: `Rider ${suffix}`,
+      country: 'GB',
+      age_band: 'adult',
       ...overrides,
       handle,
     },

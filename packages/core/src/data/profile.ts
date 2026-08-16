@@ -92,3 +92,82 @@ export const CUSTOM_GOAL_ID = 'custom' as const;
 
 /** How long a written goal may be. It goes on the dashboard, so keep it blunt. */
 export const CUSTOM_GOAL_MAX_LENGTH = 60;
+
+/* ---------------------------------------------------------------- handles -- */
+
+export const HANDLE_MIN_LENGTH = 2;
+export const HANDLE_MAX_LENGTH = 20;
+
+/**
+ * What a handle may look like: lowercase letters, numbers and underscores,
+ * starting and ending with a letter or number.
+ *
+ * The same expression is in `pocketbase/hooks/lib/landit.js` and in the `users`
+ * migration's field pattern. Three copies is deliberate — the migration refuses
+ * the write, the hook produces the message a rider reads, and this one lets the
+ * sign-up form say so before the request leaves. When one changes, all three do.
+ */
+export const HANDLE_PATTERN = /^[a-z0-9][a-z0-9_]{0,18}[a-z0-9]$/;
+
+/**
+ * Handles nobody may hold. They appear in URLs and on share cards, so a name
+ * that could be read as Land It talking to you, or as a route, is out.
+ *
+ * Mirrors `RESERVED_HANDLES` in `pocketbase/hooks/lib/landit.js`, which is the
+ * copy that actually refuses the write. A test pins the two together.
+ */
+export const RESERVED_HANDLES: readonly string[] = Object.freeze([
+  'about',
+  'admin',
+  'administrator',
+  'api',
+  'auth',
+  'challenge',
+  'challenges',
+  'clip',
+  'clips',
+  'contact',
+  'cookies',
+  'crew',
+  'crews',
+  'event',
+  'events',
+  'help',
+  'landit',
+  'land-it',
+  'legal',
+  'login',
+  'logout',
+  'me',
+  'mod',
+  'moderator',
+  'new',
+  'null',
+  'official',
+  'plans',
+  'pocketbase',
+  'privacy',
+  'profile',
+  'report',
+  'reports',
+  'root',
+  'safeguarding',
+  'security',
+  'settings',
+  'signin',
+  'signup',
+  'spot',
+  'spots',
+  'staff',
+  'sticker',
+  'stickers',
+  'superuser',
+  'support',
+  'system',
+  'team',
+  'terms',
+  'trick',
+  'tricks',
+  'undefined',
+  'you',
+]);

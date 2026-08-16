@@ -17,6 +17,9 @@ next-env.d.ts
 # The schema lives in pocketbase/migrations/ and is committed.
 pocketbase/.bin/
 pocketbase/.pb_data/
+# The e2e run gets its own database on its own port, so a `pnpm e2e` never
+# writes test riders into the one you are developing against (LESSONS §1).
+pocketbase/.pb_e2e/
 
 # Playwright
 playwright-report/

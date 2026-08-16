@@ -68,6 +68,16 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Since T6 the suite signs riders up, so Playwright starts a PocketBase
+      # alongside the web server (`playwright.config.ts`). Same cache and same
+      # key as the gates job: the version is the key, so an upgrade fetches a
+      # fresh binary and nothing else does.
+      - name: Cache the pinned PocketBase binary
+        uses: actions/cache@v4
+        with:
+          path: pocketbase/.bin
+          key: pocketbase-${{ runner.os }}-${{ hashFiles('pocketbase/pocketbase.version') }}
+
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium
 

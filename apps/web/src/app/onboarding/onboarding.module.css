@@ -1,0 +1,272 @@
+/*
+ * Onboarding, four steps (screenshot 05).
+ *
+ * The dotted wash and the segmented step bar are the pack's; everything inside
+ * a step is the design system's classes. The one place this file has an opinion
+ * the prototype did not is the sport grid — see `.sports`.
+ */
+
+.screen {
+  min-height: 100vh;
+  background: var(--wash);
+  background-image: radial-gradient(rgba(18, 16, 11, 0.07) 1.1px, transparent 1.1px);
+  background-size: 14px 14px;
+  padding: 26px 16px 60px;
+}
+
+.column {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.steps {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.step {
+  flex: 1;
+  height: 10px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+}
+
+.stepOn {
+  background: var(--yellow);
+}
+
+.head {
+  font-size: clamp(30px, 6vw, 46px);
+  margin: 10px 0 0;
+}
+
+.headSmall {
+  font-size: clamp(28px, 5.4vw, 42px);
+  margin: 10px 0 0;
+}
+
+.lede {
+  color: var(--ink-2);
+  margin: 10px 0 20px;
+}
+
+/*
+ * One card per sport, and there are three (plan §1) where the pack drew two.
+ *
+ * `auto-fit` with a floor is what makes that not a rewrite every time the list
+ * changes: three across on a desktop, two then one as the screen narrows, and a
+ * fourth sport would slot in without anybody editing this rule. A fixed
+ * `1fr 1fr` was the prototype's, and it only ever worked for exactly two.
+ *
+ * The floor is **200px**, and the number is load-bearing rather than taste: the
+ * column is 700px wide, so three cards plus two gaps come to 225px each, and a
+ * 240px floor — the first thing I tried — wrapped BMX onto a row of its own.
+ * Two big cards and a third underneath is precisely the layout §7 warns about,
+ * where the sport added last reads as an afterthought. Three sports, three equal
+ * cards.
+ */
+.sports {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.sport {
+  padding: 20px 18px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  cursor: pointer;
+}
+
+.sportHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sportIcon {
+  width: 40px;
+  height: 40px;
+  border: 2.5px solid var(--ink);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.sportName {
+  font-size: 24px;
+}
+
+.sportBlurb {
+  font-size: 13.5px;
+  letter-spacing: 0.03em;
+  opacity: 0.9;
+}
+
+.note {
+  margin: 14px 0 0;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.03em;
+}
+
+.panelGap {
+  padding: 16px;
+  margin-top: 18px;
+}
+
+.pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* avatar row, step 2 */
+.avatarRow {
+  padding: 14px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  flex-wrap: wrap;
+}
+
+.avatarText {
+  min-width: 140px;
+  flex: 1;
+}
+
+.avatarPicks {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.avatarButton {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.levels {
+  display: grid;
+  gap: 10px;
+}
+
+.level {
+  padding: 15px 17px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+}
+
+.radio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  flex: none;
+}
+
+.levelName {
+  font-size: 20px;
+  display: block;
+}
+
+.levelSub {
+  font-size: 13.5px;
+  color: var(--ink-2);
+  letter-spacing: 0.03em;
+}
+
+/* step 3 */
+.goalInput {
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  padding: 11px 13px;
+  font-size: 15px;
+  width: 100%;
+  font: inherit;
+  box-shadow: 3px 3px 0 var(--yellow);
+}
+
+/* step 4 */
+.tricks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.empty {
+  padding: 20px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.next {
+  margin-left: auto;
+}
+
+.error {
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin: 16px 0 0;
+}
+
+/* the avatar picker modal */
+.pickerBody {
+  padding: 20px;
+}
+
+.pickerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pickerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 10px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.pickerCell {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+}
+
+.pickerName {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+.pickerGroup {
+  margin: 14px 0 6px;
+}

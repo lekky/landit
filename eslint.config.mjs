@@ -32,6 +32,8 @@ export default tseslint.config(
       'test-results/**',
       'pocketbase/.bin/**',
       'pocketbase/.pb_data/**',
+      // The e2e run's own scratch database (playwright.config.ts).
+      'pocketbase/.pb_e2e/**',
       // The received design pack is reference material, not our code.
       'design-handoff/**',
     ],
@@ -125,6 +127,7 @@ export default tseslint.config(
         __hooks: 'readonly',
         $app: 'readonly',
         $apis: 'readonly',
+        $os: 'readonly',
         $security: 'readonly',
         migrate: 'readonly',
         routerAdd: 'readonly',
@@ -132,6 +135,7 @@ export default tseslint.config(
         Record: 'readonly',
         DateTime: 'readonly',
         DynamicModel: 'readonly',
+        MailerMessage: 'readonly',
         BadRequestError: 'readonly',
         ForbiddenError: 'readonly',
         NotFoundError: 'readonly',
@@ -152,6 +156,7 @@ export default tseslint.config(
         onRecordCreateRequest: 'readonly',
         onRecordUpdateRequest: 'readonly',
         onRecordDeleteRequest: 'readonly',
+        onRecordAuthRequest: 'readonly',
         onRecordAfterCreateSuccess: 'readonly',
         onRecordAfterUpdateSuccess: 'readonly',
         onRecordAfterDeleteSuccess: 'readonly',

@@ -101,8 +101,16 @@ function argsFor(userArgs) {
   const args = [...userArgs];
   if (args.length === 0) args.push('serve');
 
+  // `POCKETBASE_DATA_DIR` lets a second instance — the e2e run's, on its own
+  // port — keep its own database instead of writing test riders into the one
+  // you are developing against. Relative paths are resolved against
+  // `pocketbase/`, so `.pb_e2e` means what it looks like.
+  const dataDir = process.env.POCKETBASE_DATA_DIR
+    ? path.resolve(pbRoot, process.env.POCKETBASE_DATA_DIR)
+    : path.join(pbRoot, '.pb_data');
+
   const repoFlags = [
-    `--dir=${path.join(pbRoot, '.pb_data')}`,
+    `--dir=${dataDir}`,
     `--migrationsDir=${path.join(pbRoot, 'migrations')}`,
     `--hooksDir=${path.join(pbRoot, 'hooks')}`,
   ];

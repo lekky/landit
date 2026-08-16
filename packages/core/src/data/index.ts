@@ -14,6 +14,14 @@
 
 export { AVATARS, AVATAR_GROUPS, type AvatarId } from './avatars';
 export { CATS, CATEGORY_IDS, TIERS_LABEL } from './categories';
+export {
+  COUNTRIES,
+  COUNTRY_CODES,
+  COUNTRY_SUGGESTIONS,
+  DEFAULT_COUNTRY,
+  countryName,
+  countryOptions,
+} from './countries';
 export { CHALLENGES, type ChallengeId } from './challenges';
 export { EVENTS, type EventId } from './events';
 export { PLAN, PLAN_IDS, PLANS } from './plans';
@@ -22,8 +30,12 @@ export {
   CUSTOM_GOAL_MAX_LENGTH,
   DEFAULT_PRIVACY,
   GOALS,
+  HANDLE_MAX_LENGTH,
+  HANDLE_MIN_LENGTH,
+  HANDLE_PATTERN,
   LEVELS,
   PRIVACY,
+  RESERVED_HANDLES,
   STANCES,
 } from './profile';
 export { SPORT_IDS, SPORTS } from './sports';
