@@ -78,6 +78,27 @@ disk and which `pnpm build` listed — its watcher had lost a directory the reba
 bracketed `[action]/[token]` pair, on Windows). Twenty minutes went into the page before the server.
 If a route 404s in dev but builds, restart the dev server before reading the code.
 
+**A dev server the harness starts for you runs in the session's working directory — which is the
+shared root checkout, not your worktree.** `chore-holding-page` added a `proxy.ts`, a `/coming-soon`
+route and an `.env.local`, started a preview, and got: the old landing page, a 404 on the new route,
+and an environment variable that appeared not to load. Every one of those is what you would see if
+the feature were broken, and none of them was: the preview tool read `.claude/launch.json` from the
+**root checkout** — where a previous session had left one — and ran `next dev` there, against a
+checkout with none of the new files in it. Twenty minutes went into "why is Next ignoring my env
+file" before the question became "which copy of the repo is this server serving?".
+
+Two tells name it in seconds, and both are absences, which is why they are easy to miss. Next prints
+`- Environments: .env.local` on startup when it loads one; no such line means it never saw the file.
+And a running `next dev` creates `.next/` within seconds — if your worktree does not have one, the
+server is not in your worktree. Check the second one directly, because it cannot be argued with.
+
+The fix is to pin the directory rather than hope: give the launch entry `pnpm -C <absolute worktree
+path> --filter @landit/web dev` under a name of its own, so it cannot collide with an entry another
+session left behind, and delete it when the worktree goes. The general rule: **before you trust
+anything a browser tells you about your change, prove the server is serving your worktree.** It
+generalises past dev servers — any tool the harness runs on your behalf inherits the session's
+directory, not the one you have been editing in.
+
 **Your local database is richer than CI's, and that makes a local pass a lie too.** The rule above is
 about a local run reading somebody else's *code*; T9 found the same trap one layer down, in the
 *data*. Its e2e spec asserted on a paywalled node in the skill tree. It passed locally, because the
