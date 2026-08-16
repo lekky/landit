@@ -1,3 +1,4 @@
+import { CONTACT } from '@landit/core';
 import { previewConsentLink, type ConsentLinkPreview } from '@landit/db';
 import { Panel } from '@landit/ui-web';
 import type { Metadata } from 'next';
@@ -60,7 +61,7 @@ export default async function ConsentPage({
               </p>
               <p>
                 If you were not expecting this email, you can ignore it — nothing happens either
-                way. Anything that worries you: safeguarding@landit.app, and we answer within one
+                way. Anything that worries you: {CONTACT.safeguarding}, and we answer within one
                 working day.
               </p>
             </div>

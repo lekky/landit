@@ -1,4 +1,4 @@
-import { SPORT_IDS } from '@landit/core';
+import { CONTACT, SPORT_IDS } from '@landit/core';
 
 import { countWord, sportsList } from '@/lib/sports';
 
@@ -113,7 +113,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         h: 'Getting your data or deleting it',
         p: [
           'Ask us and we will send you everything we hold on you, or delete all of it. Both are free and we aim to do it within 30 days.',
-          'Email privacy@landit.app.',
+          `Email ${CONTACT.privacy}.`,
         ],
       },
     ],
@@ -191,7 +191,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
       {
         h: 'Reporting',
         p: [
-          'Email safeguarding@landit.app with a link, a rider name or a description, and we will look at it. It reaches a human, not a queue nobody reads.',
+          `Email ${CONTACT.safeguarding} with a link, a rider name or a description, and we will look at it. It reaches a human, not a queue nobody reads.`,
           'We will respond within one working day.',
           'Report buttons on profiles and clips are being built. Until they are live, email is the route, and it reaches the same person.',
         ],
@@ -262,8 +262,8 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
       {
         h: 'Get in touch',
         p: [
-          'hello@landit.app for anything, safeguarding@landit.app for anything urgent about a rider’s safety.',
-          'If you run a park, a shop or a comp and want your events on the calendar, email events@landit.app.',
+          `${CONTACT.hello} for anything, ${CONTACT.safeguarding} for anything urgent about a rider’s safety.`,
+          `If you run a park, a shop or a comp and want your events on the calendar, email ${CONTACT.events}.`,
         ],
       },
     ],

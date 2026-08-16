@@ -1,3 +1,4 @@
+import { CONTACT } from '@landit/core';
 import { expect, test } from '@playwright/test';
 
 /**
@@ -88,7 +89,7 @@ test('safeguarding keeps the one-working-day promise and claims only email repor
 
   // Ships as written — owner decision, 2026-08-16.
   expect(body).toContain('within one working day');
-  expect(body).toContain('safeguarding@landit.app');
+  expect(body).toContain(CONTACT.safeguarding);
 
   // Softened until T18 builds the flow — same decision. The pack promised
   // "Every profile and clip can be reported" while no button existed.

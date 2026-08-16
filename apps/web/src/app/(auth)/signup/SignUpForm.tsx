@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  CONTACT,
   COUNTRY_SUGGESTIONS,
   DEFAULT_COUNTRY,
   consentAge,
@@ -152,8 +153,7 @@ export function SignUpForm() {
           <strong>We cannot sign you up yet</strong>
           In the United States, an account for a rider under 13 needs a kind of parental consent we
           have not built yet — a proper checked one, not an email. We would rather say so than do it
-          badly. Come back on your 13th birthday, or ask a grown-up to email
-          safeguarding@landit.app.
+          badly. Come back on your 13th birthday, or ask a grown-up to email {CONTACT.safeguarding}.
         </div>
       ) : null}
 

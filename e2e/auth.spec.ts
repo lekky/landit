@@ -1,4 +1,4 @@
-import { SPORTS, SPORT_IDS } from '@landit/core';
+import { CONTACT, SPORTS, SPORT_IDS } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
 /**
@@ -164,7 +164,7 @@ test('a guardian link that is not valid says so, and offers a way out', async ({
   await page.goto('/consent/approve/not-a-real-token');
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText('That link is not valid');
-  await expect(page.getByText(/safeguarding@landit.app/)).toBeVisible();
+  await expect(page.getByText(CONTACT.safeguarding)).toBeVisible();
   // Nothing to press: an invalid link cannot approve anything.
   await expect(page.getByRole('button', { name: /approve/i })).toHaveCount(0);
 });
