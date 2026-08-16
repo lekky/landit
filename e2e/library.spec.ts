@@ -162,7 +162,13 @@ test('a rookie can open a free trick and log a stage that sticks', async ({ page
   await expect(page.getByText('Can you do it?')).toBeVisible();
 
   await page.getByRole('button', { name: 'Sometimes' }).click();
-  await expect(page.getByText(/Logged as/i).first()).toBeVisible();
+  // The **toast**, not the stage note beside the picker (issues #64, #72). That
+  // note is optimistic — `StagePanel` renders it the instant the button is
+  // pressed — so waiting on it reloads the page mid-write, aborts the request,
+  // and the stage never saves. The toast is rendered from the server action's
+  // result, so it is the only one of the two that means the write landed
+  // (LESSONS §1).
+  await expect(page.locator('.toast', { hasText: /Logged as/i })).toBeVisible();
 
   await page.reload();
   await expect(page.getByRole('button', { name: 'Sometimes' })).toHaveAttribute(

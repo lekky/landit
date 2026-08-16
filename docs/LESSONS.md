@@ -157,6 +157,13 @@ write landed. **Wait on something only the server could have produced** — here
 rendered from the action's result. The optimistic path is the feature; it is also the thing that
 makes a test lie.
 
+The same line was already costing CI money elsewhere. T7's "a rookie can open a free trick and log a
+stage that sticks" waited on that same optimistic note and then reloaded, which **aborted the write
+in flight** — the stage genuinely did not save, so the failure was real and the test was the cause of
+it. It had been filed twice as flake (issues #64, #72) and re-run past. An intermittent failure in a
+screen with an optimistic update is worth reading as a race with the write before it is read as
+flake, exactly as an intermittent failure in a form is worth reading as hydration (§3a).
+
 **A sibling that merges mid-flight may have already fixed what you are about to file.** The same
 session filed an issue asking for exactly that seeding helper, twenty minutes before its rebase
 brought the merged helper onto the branch. Cheap to close, but an issue nobody re-checks is a
