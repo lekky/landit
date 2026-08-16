@@ -72,6 +72,12 @@ working in. It runs on **8091** with its own data directory (`POCKETBASE_DATA_DI
 so a developer's `.env.local` cannot redirect the run. The rule generalises: **a server a test suite
 starts gets its own port and its own state, or it is not the suite's server.**
 
+The same session found the mirror image: a dev server you started *yourself* goes stale. After a
+rebase, the long-lived `next dev` on the manual port kept serving 404 for a route whose files were on
+disk and which `pnpm build` listed — its watcher had lost a directory the rebase rewrote (the
+bracketed `[action]/[token]` pair, on Windows). Twenty minutes went into the page before the server.
+If a route 404s in dev but builds, restart the dev server before reading the code.
+
 ## 2. Gates, merging and cleanup
 
 **Gate on exit codes, never on piped output.** A `| tail` or `| tee` returns the pipe's status,
