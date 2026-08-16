@@ -25,16 +25,22 @@ test('the hero, the sample cards and the footer all render', async ({ page }) =>
   await expect(page.getByRole('link', { name: 'Privacy policy' })).toBeVisible();
 });
 
-test('sign-up is honest about not existing yet', async ({ page }) => {
+test('every call to action goes somewhere real', async ({ page }) => {
   await page.goto('/');
 
-  // T6 makes these links. Until then they must not pretend: a disabled button
-  // is the point, so when this test starts failing it is because sign-up
-  // landed and `AUTH_ROUTES_LIVE` needs flipping.
-  await expect(page.getByRole('button', { name: 'Start tracking, free' })).toBeDisabled();
+  // These were disabled buttons until T6 built the pages behind them. T5 wrote
+  // the test that way on purpose — it failed the moment sign-up landed, which
+  // is what brought somebody here to change it.
+  await expect(page.getByRole('link', { name: 'Start tracking, free' })).toHaveAttribute(
+    'href',
+    '/signup',
+  );
   // The label carries a typographic apostrophe, so match on the tail of it.
-  await expect(page.getByRole('button', { name: /got an account/ })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Sign in' })).toBeDisabled();
+  await expect(page.getByRole('link', { name: /got an account/ })).toHaveAttribute(
+    'href',
+    '/signin',
+  );
+  await expect(page.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/signin');
 });
 
 test('the footer links to every legal document', async ({ page }) => {

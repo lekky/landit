@@ -1,11 +1,11 @@
 'use client';
 
-import { Avatar, Button, Icon } from '@landit/ui-web';
+import { Avatar, Icon } from '@landit/ui-web';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { Wordmark } from '@/components/site/Wordmark';
-import { AUTH_ROUTES_LIVE, ROUTES } from '@/lib/routes';
+import { ROUTES } from '@/lib/routes';
 
 import { TOP_NAV, isNavActive } from './nav';
 
@@ -65,20 +65,23 @@ export function TopBar({ rider }: { rider?: TopBarRider }) {
                 <Icon name="flame" size={15} fill="var(--yellow)" />
                 {rider.streak}
               </span>
-              <Avatar
-                avatarId={rider.avatarId}
-                name={rider.name}
-                size={34}
-                ringWidth={2.5}
-                ring="var(--paper)"
-                title={rider.name}
-              />
+              {/* The avatar is the way to the account, which is the only
+                  signed-in destination there is until T7 and T8 land. */}
+              <Link href={ROUTES.account} aria-label="Your account">
+                <Avatar
+                  avatarId={rider.avatarId}
+                  name={rider.name}
+                  size={34}
+                  ringWidth={2.5}
+                  ring="var(--paper)"
+                  title={rider.name}
+                />
+              </Link>
             </>
           ) : (
-            // T6 turns this into a link to /signin and deletes AUTH_ROUTES_LIVE.
-            <Button variant="ghost" size="sm" disabled={!AUTH_ROUTES_LIVE}>
+            <Link href={ROUTES.signIn} className="btn ghost sm">
               Sign in
-            </Button>
+            </Link>
           )}
         </div>
       </div>

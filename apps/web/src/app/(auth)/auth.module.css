@@ -1,0 +1,159 @@
+/*
+ * The signed-out auth screens (screenshot 04).
+ *
+ * Ink field, one panel, a yellow offset shadow. Everything inside the panel is
+ * the design system's — `.panel`, `.field`, `.btn`, `.logo` — so this file only
+ * holds the frame and the few pieces the pack styles inline in `landit-auth.jsx`
+ * rather than with a class.
+ */
+
+.screen {
+  min-height: 100vh;
+  background: var(--ink);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.column {
+  width: min(430px, 100%);
+}
+
+.back {
+  font-family: var(--fc);
+  background: none;
+  border: none;
+  color: #9d968a;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  margin-bottom: 16px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--paper);
+}
+
+.card {
+  padding: 24px;
+  box-shadow: 8px 8px 0 var(--yellow);
+}
+
+.title {
+  font-size: 30px;
+  margin: 12px 0 4px;
+}
+
+.lede {
+  margin: 0 0 20px;
+  color: var(--ink-3);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.submit {
+  margin-top: 4px;
+  font-size: 16px;
+  padding: 13px 20px;
+}
+
+.swap {
+  margin-top: 16px;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+.swap a {
+  color: var(--orange);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* The line under the card. In the pack it read "Under 16? Ask a parent. They
+ * can hold the account with a Crew Pass." — a mechanism that no longer exists
+ * (§2.4), and a minimum age we deliberately do not state (§6.2). */
+.footnote {
+  color: #7d766a;
+  font-size: 12px;
+  text-align: center;
+  margin-top: 14px;
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+}
+
+.footnote a {
+  color: #9d968a;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Country and date of birth sit together: one asks which rules apply, the other
+ * asks how old they are, and neither means much without the other. */
+.ageRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 400px) {
+  .ageRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hint {
+  font-family: var(--fc);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  margin: -4px 0 0;
+}
+
+/* The refusal (§6.3) and the "a grown-up will need to say yes" notice. Loud
+ * enough to be read, not styled as an error the rider has made. */
+.notice {
+  border: 2.5px solid var(--ink);
+  background: var(--paper-2);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 13px 15px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.notice strong {
+  display: block;
+  font-family: var(--fd);
+  font-weight: 400;
+  font-size: 19px;
+  letter-spacing: 0.01em;
+  margin-bottom: 4px;
+}
+
+.declined {
+  background: #ffe1d6;
+}
+
+.formError {
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin: 0;
+}

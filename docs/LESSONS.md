@@ -63,6 +63,15 @@ PLAYWRIGHT_BASE_URL=http://localhost:3987 pnpm e2e
 CI is unaffected: `reuseExistingServer` is false there and every run gets its own server. This is
 purely a local-parallel-sessions trap, which is why it is here and not in §2.
 
+**A second server is a second copy of that trap, and a database makes it worse.** T6's e2e run needs
+a PocketBase as well as a web server. The obvious wiring — start it on 8090, the port `pnpm pb:dev`
+uses, with `reuseExistingServer` — would have pointed the suite at whatever instance a developer
+already had running: their schema, their data, and e2e riders written into the database they are
+working in. It runs on **8091** with its own data directory (`POCKETBASE_DATA_DIR=.pb_e2e`) and
+`reuseExistingServer: false`, and the Next entry is handed `NEXT_PUBLIC_POCKETBASE_URL` explicitly
+so a developer's `.env.local` cannot redirect the run. The rule generalises: **a server a test suite
+starts gets its own port and its own state, or it is not the suite's server.**
+
 ## 2. Gates, merging and cleanup
 
 **Gate on exit codes, never on piped output.** A `| tail` or `| tee` returns the pipe's status,
@@ -127,6 +136,21 @@ page with no routes, so `.nav` and `.mobnav` style `button` children. A real app
 wherever the pack styles an element type rather than a class — `.btn` had it too, plus an
 `a:hover` in the token sheet that outranks `.btn` and turns every link-button pink. Check the
 selector, not just the class name, the first time you put a design-system class on a different tag.
+
+**A hydration mismatch does not just warn — it throws away what the user typed.** T6's sign-up form
+listed 249 countries and named them with `Intl.DisplayNames`, so the list came out of the runtime
+rather than a table that could go stale. Node and Chromium disagree about a handful of names, React
+found the server's HTML did not match, and it regenerated the whole tree — which reset every
+uncontrolled input in the form. The symptom was one e2e test failing intermittently with "Tell us
+what to call you" over an empty form: the name had been typed, then wiped, in the moment between
+first paint and hydration. On a slow connection that is a child filling in a sign-up form and
+watching it clear itself.
+
+Two things follow. **Anything locale-derived is a hydration risk**: names from `Intl.DisplayNames`,
+ordering from `localeCompare`, dates from `toLocaleString`. If it renders on both sides, it has to
+come from data, not from ICU. And **an intermittent e2e failure in a form is worth reading as a
+hydration problem** before it is read as flake — the dev server's error overlay had said so all
+along, and the failing assertion pointed somewhere else entirely.
 
 **Copy decisions get tests, or they get quietly reverted.** T5's legal documents are a rewrite, not
 a transcription: no minimum age, no Crew Pass, profiles private by default, reporting described as

@@ -1,11 +1,12 @@
 import { CATS, SPORT_IDS, STAGE, TRICKS, type Trick } from '@landit/core';
-import { Button, Icon, Panel, Tag, TrickCard, type IconName } from '@landit/ui-web';
+import { Icon, Panel, Tag, TrickCard, type IconName } from '@landit/ui-web';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 import siteStyles from '@/components/site/site.module.css';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { Wordmark } from '@/components/site/Wordmark';
-import { AUTH_ROUTES_LIVE } from '@/lib/routes';
+import { ROUTES } from '@/lib/routes';
 import { SPORT_LOOKS, countWord, sentenceCase, sportsChoicePhrase, sportsList } from '@/lib/sports';
 
 import styles from './landing.module.css';
@@ -13,9 +14,9 @@ import styles from './landing.module.css';
 /**
  * The landing page (screenshots 01 and 02).
  *
- * Signed out only — there is no auth until T6, so the two calls to action and
- * the top bar's Sign in are disabled rather than linking to a page that does
- * not exist (`lib/routes.ts`).
+ * Signed out. The two calls to action and the top bar's Sign in were disabled
+ * buttons until T6 built the pages they point at; they are ordinary links now,
+ * and `AUTH_ROUTES_LIVE` is gone with them (`lib/routes.ts`).
  *
  * Every sentence that names the sports is generated from `SPORT_IDS`
  * (`lib/sports.ts`). It reads exactly as the screenshots do while there are
@@ -74,10 +75,9 @@ export default function LandingPage() {
       <div className={siteStyles.bar}>
         <Wordmark />
         <span className={siteStyles.barEnd}>
-          {/* T6 turns this into a link to /signin. */}
-          <Button variant="ghost" size="sm" disabled={!AUTH_ROUTES_LIVE}>
+          <Link href={ROUTES.signIn} className="btn ghost sm">
             Sign in
-          </Button>
+          </Link>
         </span>
       </div>
 
@@ -99,16 +99,13 @@ export default function LandingPage() {
               well you&rsquo;ve actually got it. Earn stickers you can hold. Beat your crew.
             </p>
             <div className={styles.ctas}>
-              <Button className={styles.cta} disabled={!AUTH_ROUTES_LIVE}>
+              <Link href={ROUTES.signUp} className={`btn ${styles.cta}`}>
                 Start tracking, free
-              </Button>
-              <Button variant="ghost" className={styles.cta} disabled={!AUTH_ROUTES_LIVE}>
+              </Link>
+              <Link href={ROUTES.signIn} className={`btn ghost ${styles.cta}`}>
                 I&rsquo;ve got an account
-              </Button>
+              </Link>
             </div>
-            {!AUTH_ROUTES_LIVE && (
-              <p className={`cond ${styles.ctaNote}`}>Accounts open when sign-up ships</p>
-            )}
           </div>
 
           <div className={styles.cards}>

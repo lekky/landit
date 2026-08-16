@@ -37,6 +37,26 @@ export {
 } from './clients';
 
 export {
+  approveConsent,
+  claimHandle,
+  confirmPasswordReset,
+  isUniqueViolation,
+  previewConsentLink,
+  refreshAuth,
+  requestGuardianConsent,
+  requestPasswordReset,
+  revokeConsent,
+  signIn,
+  signUp,
+  type AgeDeclarationInput,
+  type AuthResult,
+  type ConsentDecision,
+  type ConsentLinkPreview,
+  type ConsentRequestResult,
+  type SignUpInput,
+} from './auth';
+
+export {
   isForbidden,
   isNotFound,
   records,

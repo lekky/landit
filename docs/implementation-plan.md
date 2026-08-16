@@ -826,6 +826,33 @@ where screenshot 05 shows two. The two-card grid becomes an N-card grid; multi-s
 at-least-one rule are unchanged. Step 4's suggested tricks and step 3's goal pills already filter by
 the rider's chosen sports, so they need nothing beyond not assuming a pair.
 
+**Built 2026-08-16. Five things the entry above did not say, recorded here because they are
+decisions rather than details:**
+
+- **A sign-up with no age declaration is refused, by the server.** `consent_state` is computed from
+  the declared country and band in a model-layer hook, whatever the client sent — but a sign-up that
+  simply *omitted* the fields would have landed as `not_required` and walked past guarantee 4 by
+  omission. So `age_band` and `country` are now required on any non-superuser `users` create.
+  Consequence for later sessions: a rider created through the public endpoint needs both fields, and
+  `pocketbase/tests/helpers.ts` defaults them to an adult in the UK.
+- **The consent routes are PocketBase's, not Next's.** `POST /api/landit/consent/{request,preview,
+  approve,revoke}` join the two routes in §3, because §1 puts guardian-consent mail on PocketBase's
+  Resend SMTP and that is where the credentials are. The approval link in the email opens a page
+  that *asks*; the decision is a form POST. A link that acted on its own would be actioned by every
+  mail scanner that follows links in an inbox.
+- **No new field, and no `consent_lapses_on`.** The first design stored the day consent lapses.
+  It is derivable exactly — consent is owed for whole bands, so it always ends on a band boundary —
+  and `consentLapsesOn` derives it. Nothing in T6 changes the schema, so there is no migration.
+- **The EEA table ships empty**, so every EEA rider under 16 is asked. §6.3 admits an entry only
+  with a cited source, and that is still open. One consequence worth knowing before counsel fills it
+  in: because the decision is made from the stored *band*, a threshold of 14 or 15 rounds up to 16.
+  An entry of 13 works exactly; anything between over-protects rather than under-protects.
+- **`/account` is a new screen, and a small one.** A rider has to land somewhere the moment sign-up
+  exists, and a rider held at `pending` needs a place that says so and lets them send the guardian
+  email. It shows the profile onboarding just saved, the guardian panel while it applies, and sign
+  out. It is also the first screen to use the app shell's `rider`, which T5 left for T6. T8's Home
+  supersedes most of it.
+
 ### Wave 4 — the core loop, three concurrent sessions (route-disjoint)
 
 **T7 · Library + trick detail + locked trick.** Filters, search, rookie banner, stage picker,

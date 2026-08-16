@@ -21,6 +21,39 @@ export {
   type ChallengeProgress,
 } from './challenges';
 export {
+  AGE_BANDS,
+  CONSENT_APPROVAL_WINDOW_DAYS,
+  CONSENT_LIMITED_ALLOWS,
+  CONSENT_LIMITED_DENIES,
+  CONSENT_LIMITED_STATES,
+  DEFAULT_CONSENT_AGE,
+  EEA_CONSENT_AGE,
+  EEA_COUNTRIES,
+  EEA_LOWERED_CONSENT_AGES,
+  UNDER_13_DECLINED_COUNTRIES,
+  advanceBand,
+  ageOn,
+  approvalExpired,
+  bandForAge,
+  birthdayOn,
+  canWhileConsentLimited,
+  canWithConsent,
+  consentAge,
+  consentLapsesOn,
+  consentRequired,
+  countryOf,
+  declareAge,
+  initialConsentState,
+  isConsentLimited,
+  refreshConsent,
+  signupOutcome,
+  type AgeBand,
+  type AgeDeclaration,
+  type ConsentState,
+  type RiderCapability,
+  type SignupOutcome,
+} from './consent';
+export {
   firstLanded,
   landedByMonth,
   latestLanded,
@@ -28,7 +61,16 @@ export {
   type LandedMonth,
   type LogOptions,
 } from './log';
-export { goalLabel, goalsFor, isValidCustomGoal } from './profile';
+export {
+  goalLabel,
+  goalsFor,
+  handleCandidates,
+  handleFromName,
+  handleProblem,
+  isValidCustomGoal,
+  isValidHandle,
+  normaliseHandle,
+} from './profile';
 export { distanceMiles, isValidLatLng, parseCoords } from './spots';
 export { computeSportStats, computeStats, sportsOf, type StatsCatalogue } from './stats';
 export {

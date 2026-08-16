@@ -15,19 +15,23 @@ import type { LegalDocId } from '@/content/legal';
  * When your task lands a screen, add its path here and to the nav item that
  * points at it. That is the whole handover — one line, and the navigation, the
  * footer and the landing page start linking to you.
+ *
+ * T6 added the auth routes and deleted `AUTH_ROUTES_LIVE`, the constant that
+ * kept the landing page's calls to action disabled while `/signup` did not
+ * exist.
  */
 export const ROUTES = {
   home: '/',
+  signUp: '/signup',
+  signIn: '/signin',
+  forgotPassword: '/forgot-password',
+  resetPassword: '/reset-password',
+  onboarding: '/onboarding',
+  account: '/account',
 } as const satisfies Record<string, Route>;
 
-/**
- * Whether sign-up and sign-in exist. T6 builds them; until then the landing
- * page's two calls to action and the top bar's Sign in are disabled rather than
- * pointing at a page that is not there.
- *
- * Deleting this constant is part of T6: flip the buttons to links and the
- * `false` branches go with it.
- */
-export const AUTH_ROUTES_LIVE = false;
-
 export const legalHref = (doc: LegalDocId): Route => `/legal/${doc}`;
+
+/** A guardian's link from the consent email (plan §6.2). */
+export const consentHref = (action: 'approve' | 'revoke', token: string): Route =>
+  `/consent/${action}/${encodeURIComponent(token)}`;
