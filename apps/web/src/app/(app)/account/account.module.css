@@ -150,3 +150,80 @@
   letter-spacing: 0.01em;
   margin-bottom: 4px;
 }
+
+/* ---------------------------------------------------- privacy (T11) ------- */
+
+.privacy {
+  padding: 18px;
+  margin-top: 22px;
+}
+
+.privacyLede {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+  max-width: 60ch;
+}
+
+.privacyForm {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.privacyOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 13px 15px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  box-shadow: 2px 2px 0 var(--ink);
+  cursor: pointer;
+}
+
+.privacyOption:has(input:checked) {
+  background: var(--paper-2);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.privacyOption input {
+  margin-top: 3px;
+  accent-color: var(--ink);
+  flex: none;
+}
+
+.privacyLabel {
+  font-size: 15.5px;
+  display: block;
+}
+
+.privacyBlurb {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  display: block;
+}
+
+.privacyActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.privacySaved {
+  color: var(--green);
+}
+
+.privacyError {
+  color: var(--red);
+  font-size: 13.5px;
+}
+
+.profileLinks {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}

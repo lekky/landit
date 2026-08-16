@@ -164,6 +164,21 @@ export interface Plan {
    * opt in (`users.insights_opt_in`, plan §6.4 standard 12).
    */
   readonly includesInsights: boolean;
+  /**
+   * Whether the plan carries **Legend flair** — the tag beside a rider's name
+   * on their profile and on the crew board (plan §2.4).
+   *
+   * An entitlement on the plan record for the same reason as the two above, and
+   * for one more that matters here: the crew board's payload is built
+   * server-side from a fixed field list (§3 guarantee 1) and deliberately does
+   * not carry a rider's plan. What crosses to another rider is this boolean,
+   * already resolved — never the plan a rider is on.
+   *
+   * Cosmetic and only ever cosmetic. Plan §2.4: achievements are never for
+   * sale, so flair may decorate a name and may never change a score, a stage,
+   * a sticker or a place on the board.
+   */
+  readonly includesFlair: boolean;
 }
 
 /* -------------------------------------------------------------- challenges */

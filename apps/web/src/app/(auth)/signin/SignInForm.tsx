@@ -6,8 +6,14 @@ import { useActionState } from 'react';
 import { signInAction, type AuthFormState } from '../actions';
 import styles from '../auth.module.css';
 
-/** Sign in (screenshot 04's sibling: same card, two fields). */
-export function SignInForm() {
+/**
+ * Sign in (screenshot 04's sibling: same card, two fields).
+ *
+ * The third field is hidden and is where the rider was going before they were
+ * asked to sign in (issue #66). The server validates it again — a hidden input
+ * is a value the browser can edit.
+ */
+export function SignInForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState<AuthFormState | undefined, FormData>(
     signInAction,
     undefined,
@@ -15,6 +21,7 @@ export function SignInForm() {
 
   return (
     <form action={action} className={styles.form}>
+      {next ? <input type="hidden" name="next" value={next} /> : null}
       <div className="field">
         <label htmlFor="email">Email</label>
         <input id="email" name="email" type="email" placeholder="you@example.com" />

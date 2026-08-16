@@ -1140,6 +1140,66 @@ searching riders you are not already crewed with — and new profiles default to
 public. There is no rider-to-rider messaging and none may be added here. Inputs:
 `landit-screens-b.jsx`, `landit-screens-c.jsx`, `landit-screens-d.jsx`, screenshots 15–16, 24.
 
+**Built 2026-08-16. Six things the entry above did not settle, recorded here because they are
+decisions rather than details:**
+
+- **The activity feed respects profile privacy; the crew board does not.** Guarantee 1 carves out
+  exactly one exception — a private rider still appears *on the board*, by name and score — and it
+  was tempting to read the feed as more of the same. It is not. `trick_progress` and
+  `rider_stickers` are named in that guarantee as privacy-gated, and what a rider landed this week
+  is more than a name and a score, so `GET /api/landit/crew-feed/{crew}` applies the same three-way
+  test the API rules apply: your own activity always, a `public` or `members` crewmate's to a
+  signed-in crewmate, a `private` rider's never. Consequence, stated so nobody "fixes" it: because
+  new accounts default to `private` (§6.4 standard 7), **a crew of riders who have not changed that
+  setting has an empty feed**, and the panel says so. The feed is a route rather than a collection
+  read for the same reason the board is — the rows behind it are gated per rider — but it inherits
+  none of the board's exception.
+- **The invite code is minted by the server on every write, and the hook that did it conditionally
+  now does it unconditionally.** `60_ownership.pb.js` (T2) says "with a server-set code" and mints
+  one *when the body left it empty*; before T11 there was no client sending invites, so nothing
+  exercised the other branch. A code a rider can choose is a code a rider can make guessable, and
+  an invite code is the only thing between a stranger and a crew of children (§6.1). T11 adds a
+  later hook (`85_crews.pb.js`) that overwrites the code whatever the body said. Codes are ten
+  characters from a 31-symbol alphabet with `I`, `L`, `O`, `0` and `1` removed — unguessable, and
+  typable by a child off a screenshot. Invites also gain a 14-day expiry and a 25-use ceiling, and
+  a rider may own at most five crews; all three are anti-spam ceilings, mirrored as constants in
+  `packages/core/src/rules/crew.ts`.
+- **The crew board's payload gains one field: `flair`.** Legend flair is a §2.4 perk on the
+  profile *and* the crew board, so the board has to be able to show it — and the board is a fixed
+  server-built field list precisely so it cannot widen by accident. `flair` is resolved from the
+  `plans` record on the server and crosses as a boolean, so `plan` still never reaches another
+  rider: what travels is whether a name may wear a tag, not what somebody pays. The assertion in
+  `pocketbase/tests/guarantee-1-privacy.test.ts` that pins the field list was widened deliberately
+  and says so. New field `plans.includes_flair` (migration `1787098411_crew_flair.js`,
+  `Plan.includesFlair` beside it in `packages/core`); **nothing compares a plan id to the string
+  `legend`**, exactly as with `includes_insights`, so T15 can move the perk without touching a
+  screen. Flair is cosmetic and stays cosmetic — it moves nobody's place on a board.
+- **The coach view is free, and the Crew Pass is why it had to be decided.** The prototype gates it
+  behind the Crew Pass, which §2.4 dropped, so the gate had no plan left to hang on. It ships open
+  to every rider: a parent-facing summary is part of the child-safety position (§6.1, §6.4), and a
+  safeguarding surface behind a paywall is the wrong shape whatever it costs. It shows the rider's
+  own data **to the rider** — no separate parent login, no share link, no token, because each of
+  those would be a new way to reach a child's data from outside their account. It counts weeks, not
+  days, which is the §1 streak sweep (LESSONS §4) applied to a screen that quotes the rule. **The
+  owner can move this**; moving it means an entitlement on the `plans` record, never a plan id in
+  code.
+- **The privacy setting became settable.** T6's account screen displayed "Who can see you" and
+  there was nowhere to change it, so the `private` default (§6.4 standard 7) was not a default but
+  a rule nobody had chosen. `/account` now carries the three-way control from screenshot 23, with
+  the copy read from `PRIVACY` in `packages/core` rather than retyped. The rest of the prototype's
+  profile-settings screen (avatar picker, sports, goal, stance, level — screenshots 21–22) is still
+  unbuilt and belongs to no task in this section; issue filed.
+- **Sign-in returns you to where you were sent (issue #66, closed here).** An invite link is the
+  case that made it unavoidable: a signed-out visitor following `/join/{code}` used to be dropped
+  on `/home` with the code gone. `signInHref`/`safeReturnTo` in `apps/web/src/lib/routes.ts` carry
+  the path and refuse anything that is not a same-site absolute path, so the parameter cannot be
+  turned into an open redirect by whoever wrote the link.
+
+Also worth knowing: `/join/{code}` **says nothing about the crew** — not its name, its size or who
+is in it. A page holding a code has not been let into anything yet, and the name arrives on the crew
+screen after the code is redeemed. That ordering is §6.1's no-discovery position applied to the one
+URL a stranger is most likely to be holding.
+
 **T12 · Challenge + events.** Live/upcoming/past challenge states derived from dates, log button
 gated server-side to the live window, past weeks blurred on free plan; events list, filters, detail
 modal, "I'm going". Inputs: `landit-screens-b.jsx`, `landit-screens-d.jsx`, screenshots 17–18.

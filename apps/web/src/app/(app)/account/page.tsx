@@ -6,6 +6,7 @@ import {
   goalLabel,
   isConsentLimited,
   type ConsentState,
+  type PrivacyId,
   type SportId,
 } from '@landit/core';
 import { Avatar, Button, Panel, SportChip, Tag } from '@landit/ui-web';
@@ -13,7 +14,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { ROUTES, legalHref } from '@/lib/routes';
+import { ROUTES, legalHref, riderHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { currentRider } from '@/lib/session';
 
@@ -21,6 +22,7 @@ import { signOutAction } from '../../(auth)/actions';
 
 import styles from './account.module.css';
 import { GuardianPanel } from './GuardianPanel';
+import { PrivacyPanel } from './PrivacyPanel';
 
 export const metadata: Metadata = {
   title: 'Your account · Land It',
@@ -98,12 +100,40 @@ export default async function AccountPage() {
         </Panel>
       </div>
 
+      {/*
+        The privacy control (T11). Until this landed the value was shown here
+        and set nowhere — a rider could read "Private" and had no way to choose
+        anything else, which makes a high-privacy default (plan §6.4 standard 7)
+        into a setting nobody consented to rather than one they were handed.
+      */}
+      <PrivacyPanel value={(rider.privacy || 'private') as PrivacyId} />
+
+      <Panel flat className={styles.later}>
+        <div className="lab">Your profile, and who it is for</div>
+        <div className={styles.profileLinks}>
+          {rider.handle ? (
+            <Link className="btn sm ghost" href={riderHref(rider.handle)}>
+              View your public profile
+            </Link>
+          ) : null}
+          <Link className="btn sm ghost" href={ROUTES.crew}>
+            Your crew
+          </Link>
+          <Link className="btn sm ghost" href={ROUTES.coach}>
+            Coach / parent view
+          </Link>
+        </div>
+        <p className={`cond ${styles.handle}`} style={{ marginTop: 10 }}>
+          The coach view is a read-only summary of the week, on this device, for showing to a
+          grown-up. It is not shared with anyone and there is no separate login for it.
+        </p>
+      </Panel>
+
       <Panel flat className={styles.later}>
         <div className="lab">Still on its way</div>
         <ul className={styles.laterList}>
-          <li>Your dashboard, the streak and &ldquo;I rode today&rdquo;</li>
-          <li>The trick library, progress and the skill tree</li>
-          <li>Crews, spots, events and clips</li>
+          <li>Clips, spots, events and the weekly challenge</li>
+          <li>Editing your name, avatar, stance and goal</li>
         </ul>
         <p className={`cond ${styles.handle}`} style={{ marginTop: 10 }}>
           Everything you log now is kept and will be there when they land.

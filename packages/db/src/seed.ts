@@ -84,6 +84,7 @@ export function buildSeed(): SeedPlan {
           unlocks_paid_tricks: plan.unlocksPaidTricks,
           clip_cap_bytes: plan.clipCapBytes,
           includes_insights: plan.includesInsights,
+          includes_flair: plan.includesFlair,
           is_live: true,
         })),
       },

@@ -56,7 +56,22 @@ routerAdd(
         { user: rider.id },
       ).length;
 
-      const row = { landed: landed, role: membership.getString('role') };
+      // `landed`, `role` and `flair` are computed here rather than copied off
+      // the record, which is why they sit outside `BOARD_FIELDS` — the list
+      // above is what may be *read across* from another rider, and none of
+      // these three is.
+      //
+      // `flair` (added by T11) is the Legend tag from plan §2.4, resolved from
+      // the plan record to a boolean on this side of the wire. It is the reason
+      // the board can show flair without `plan` ever joining the field list;
+      // a plan id crossing to another rider would say what somebody pays for,
+      // where the boolean says only what their name is allowed to wear. It is
+      // cosmetic and stays cosmetic: it moves nobody's place on this board.
+      const row = {
+        landed: landed,
+        role: membership.getString('role'),
+        flair: lib.planIncludesFlair(e.app, rider),
+      };
       for (const field of BOARD_FIELDS) row[field] = rider.get(field);
       rows.push(row);
     }

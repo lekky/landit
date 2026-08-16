@@ -15,8 +15,10 @@ import type {
   AnnouncementsRecord,
   ChallengeLogRecord,
   ChallengesRecord,
+  CrewInvitesRecord,
   CrewMembersRecord,
   EventAttendanceRecord,
+  CrewsRecord,
   EventsRecord,
   PlansRecord,
   RiderStickersRecord,
@@ -377,6 +379,12 @@ export interface CrewBoardRider {
   readonly sports: SportId[];
   readonly landed: number;
   readonly role: string;
+  /**
+   * Legend flair (plan §2.4) — resolved from the plan record on the server, so
+   * what crosses is the cosmetic yes/no and never the plan a rider is on.
+   * Cosmetic only: it moves nobody's place on this board.
+   */
+  readonly flair: boolean;
 }
 
 /**
@@ -395,7 +403,7 @@ export async function getCrewBoard(
   return client.send(`/api/landit/crew-board/${encodeURIComponent(crewId)}`, { method: 'GET' });
 }
 
-/** The crews a rider belongs to. Empty until T11 lets anyone join one. */
+/** The crews a rider belongs to. */
 export async function listCrewMemberships(
   client: Client,
   userId: string,
@@ -512,4 +520,77 @@ export async function listUnseenRiderStickers(
     params: { user: userId },
     sort: 'earned_at',
   });
+}
+/* ------------------------------------------------------------------ crews -- */
+
+/**
+ * The crews this rider is in — **all of them, and no others**.
+ *
+ * There is no filter here and that is the whole point. `crews` has
+ * `listRule: member of this crew`, so the collection answers with exactly the
+ * caller's crews and a rider who is in none gets an empty list. Plan §6.1 says
+ * crews are invite-only with no discovery; the absence of a search parameter on
+ * this function is what that sentence looks like in code, and adding one would
+ * be adding the discovery surface, not adding a convenience.
+ */
+export async function listCrews(client: Client): Promise<CrewsRecord[]> {
+  return records(client, 'crews').list({ sort: 'created' });
+}
+
+/** One crew, or `null` when the caller is not in it (which reads the same). */
+export async function getCrew(client: Client, crewId: string): Promise<CrewsRecord | null> {
+  return records(client, 'crews').first('id = {:id}', { id: crewId });
+}
+
+/** The live invites for a crew. Readable only by that crew's members. */
+export async function listCrewInvites(
+  client: Client,
+  crewId: string,
+): Promise<CrewInvitesRecord[]> {
+  return records(client, 'crew_invites').list({
+    filter: 'crew = {:crew}',
+    params: { crew: crewId },
+    sort: '-created',
+  });
+}
+
+/** One item of a crew's activity feed, as the hook route shapes it. */
+export interface CrewFeedItem {
+  readonly id: string;
+  readonly kind: 'stage' | 'sticker';
+  /** ISO instant. Formatted by the client, in the rider's own zone. */
+  readonly at: string;
+  readonly rider: {
+    readonly id: string;
+    readonly name: string;
+    readonly handle: string;
+    readonly avatar_key: string;
+    readonly flair: boolean;
+  };
+  readonly stage?: StageId;
+  readonly trick?: string;
+  readonly sport?: SportId;
+  readonly sticker?: string;
+  readonly hue?: string;
+}
+
+/**
+ * A crew's activity, newest first, from `GET /api/landit/crew-feed/{crew}`.
+ *
+ * A route rather than a collection read for the same reason as the board: the
+ * rows behind it are privacy-gated per rider and no client may assemble them.
+ * But it is **not** the board's exception to privacy — a `private` rider is on
+ * the board and not in the feed. See the route's own comment for why the
+ * guarantee stops where it does.
+ *
+ * Every string in an item is one the product wrote. There is no free text from
+ * a rider anywhere in this payload, because there is no rider-to-rider
+ * messaging in Land It and a feed that could carry a sentence would be one
+ * (plan §6.1).
+ */
+export async function getCrewFeed(
+  client: Client,
+  crewId: string,
+): Promise<{ crew: string; items: CrewFeedItem[] }> {
+  return client.send(`/api/landit/crew-feed/${encodeURIComponent(crewId)}`, { method: 'GET' });
 }
