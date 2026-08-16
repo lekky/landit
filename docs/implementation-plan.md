@@ -10,6 +10,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Decision | Chosen | Notes |
 | --- | --- | --- |
 | Platform | **Web first (Next.js), native later** | One repo, shared logic. See §2. |
+| Sports at launch | **Three: scooter, skateboard and BMX** | Decided 2026-08-16. BMX ships at launch, not as a fast-follow. Sport is already a dimension in the code, so the engineering is small; the BMX trick library and its visual assets have no source and are the owner's to author — see the BMX track in §7. |
 | Offline level | **Read-only cache** on web; full local-first deferred to the native app | Departs from the handoff's recommendation — see §2.3. |
 | Backend | **PocketBase** (self-hosted on the VPS, one instance per product) | SQLite + auth + file storage + API rules in one binary. Replaced Supabase 2026-08-15 — see §2.6 for why and what it demands. |
 | Hosting | **VPS (hostmedia.uk, Coventry) + Coolify** | 4GB/2vCPU, £16.80/mo flat for all products. Coolify does deploys, SSL, subdomains and PR previews. Replaced Railway 2026-08-15. |
@@ -73,7 +74,7 @@ landit/
   pocketbase/
     migrations/          JS migrations defining collections, rules and indexes
     hooks/               pb_hooks — server-side rule enforcement (paywall, stickers, audit)
-    seed/                61 tricks, stickers, plans, spots, events, challenges
+    seed/                tricks (61 scooter+skate, BMX added by T21), stickers, plans, spots, events, challenges
   design-handoff/        the received design pack (reference, not compiled)
 ```
 
@@ -199,7 +200,7 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 | Collection | Purpose |
 | --- | --- |
 | `users` | PocketBase auth collection, extended with the profile fields: name, handle, town, stance, level, goal, avatar, privacy, `sports`, the weekly-streak fields, last_ride, timezone, role, plan-facing fields. Email stays a hidden field |
-| `tricks` | 61 records. `sport`, `cat`, `diff 1..5`, `about`, `tips`, `fact`, nullable `free` override, `is_live` |
+| `tricks` | 61 records for scooter and skate, plus the BMX library when it is authored (§7). `sport`, `cat`, `diff 1..5`, `about`, `tips`, `fact`, nullable `free` override, `is_live` |
 | `trick_prereqs` | Edge collection (`trick`, `prereq`). Same-sport constraint enforced in a hook |
 | `trick_progress` | `(user, trick) → stage`. The `byId` map |
 | `trick_log` | Append-only. `(user, trick, stage, at, estimated)`. Drives every date in the app |
@@ -257,6 +258,18 @@ Additions the handoff implies but never names:
 
 `trick_log` keeps the `estimated` flag from the prototype's `est: true`. The UI says when a date is
 estimated rather than pretending it is exact — keep that behaviour.
+
+**Sport is a dimension, not a pair.** Nothing in this model changes to admit BMX (§1). `tricks`,
+`challenges` and the sport-scoped stickers already key off a `sport` value; `users.sports` is
+already a list; prerequisites are already same-sport constrained, so a BMX graph sits beside the
+existing two without touching them; and the five categories (`flat` / `street` / `park` / `hybrid`
+/ `air`) are sport-agnostic, so BMX needs no new taxonomy. The only schema work is widening the
+fixed-option `sport` selects to include `bmx`, which is an ordinary additive migration. In
+`packages/core` the equivalent is widening the `SportId` union and adding a `SPORTS` entry — at
+which point every `Record<SportId, …>` stops compiling until it has a BMX entry, which is the point:
+the type system enumerates the sites that need attention rather than leaving them to be found by
+hand. Sessions must therefore never hard-code a two-sport assumption — iterate `SPORT_IDS`, never a
+literal pair.
 
 **Log semantics, reconciled.** The handoff says the log is append-only *and* that removing a stage
 removes that trick's log entries. Both, precisely: the app never edits a log row, but a rider may
@@ -340,6 +353,10 @@ challenge, events, spots + map.
 Phase 3 is the one worth protecting. Everything before it is setup and everything after is
 expansion; the trick loop is what riders actually come for.
 
+**BMX is not a phase.** It ships at launch (§1) but it is not a stage of the build: the sport
+dimension already exists (§3), so BMX is content plus one widening session, slotted late enough
+that it never sits in front of the core loop. §7 places it and names what the owner has to author.
+
 The phases are the conceptual order. The unit of execution is a **session** — one agent session,
 one branch, one PR. §7 breaks the phases into sessions and says which can run concurrently.
 
@@ -362,6 +379,7 @@ Tracked from the handoff's own list, mapped to phases:
 | Admin rider list (mock data) | Real riders | 6 |
 | Moderation (queue for spots only) | Reporting for profiles and clips | 6 |
 | Offline | Service worker cache, then native | 7 |
+| Two sports (scooter, skate) | Three — BMX joins at launch (§1), built by T21 | — (§7) |
 
 ---
 
@@ -598,12 +616,43 @@ the other way and are worth watching: the controller entity gates ICO registrati
 children's risk assessment should be drafted before Wave 5 builds crews and spots, because its
 findings are cheaper as design input than as rework.
 
+**The BMX track runs beside them as well, and it is also the owner's.** BMX ships at launch (§1),
+and two of its three parts cannot be produced by an agent session:
+
+- **The BMX trick library and its prerequisite graph — the long pole.** Scooter and skate got
+  61 tricks, difficulty tiers, prerequisite edges and per-trick copy from the design pack. BMX has
+  no equivalent source. An agent session cannot invent one credibly: a trick graph is a claim about
+  the order children should learn things in, made to children who will follow it, and a
+  plausible-looking graph written by something that does not know BMX progression is worse than no
+  BMX at all. It has to be authored by a rider who knows the sport — the owner, or someone he
+  commissions. The deliverable is per trick: name, one of the five existing categories, difficulty
+  1–5, prerequisite trick names, and the `about` / `tips` / `fact` copy, plus a `free` override
+  where the default (`diff <= 2`) is wrong. **This blocks launch and it blocks T21; it blocks no
+  other session**, so it should start now and run the length of the build.
+- **BMX visual assets and sport copy.** A sport icon on the 24px grid to sit beside `scoot` and
+  `board`, BMX-flavoured avatars (the current 36 are scooter- and skate-flavoured in places), and
+  the sport record's `label` / `short` / `color` / `kit` / `blurb`. The design pack contains no BMX
+  material, so this is **new design work and a deliberate divergence from "recreate, don't
+  reinterpret"** — named here so no session treats it as a fidelity failure. It has to be produced
+  in the existing visual language rather than around it. The sport colour is the awkward one: every
+  token already has a job (`--orange` is scooter and Street, `--blue` is skate and Park, `--violet`
+  is the paywall and staff, `--lime` is landed, `--red` is destructive and Air), so BMX either takes
+  `--pink` — the only token the handoff describes as a general accent — or the palette gains one.
+  **That is the owner's call, not a session's.**
+
+Also unsourced but small enough to fold into T21: BMX stickers, either as new records or by
+widening existing shared ones.
+
 **Session mechanics — worktrees, branch naming, gates, the merge policy — live in `CLAUDE.md`
 (one fact, one place); follow that protocol end to end.** Plan-specific ground rules:
 
 - Read this plan and `design-handoff/README.md` first, then the specific prototype files and
   screenshots named in the task. The prototype is the behavioural spec; this plan wins where they
   conflict.
+- **Three sports, not two.** Any screen, filter, tab strip, seed or query that enumerates sports
+  iterates `SPORT_IDS` and renders whatever it finds — never a hard-coded scooter/skate pair, and
+  never a layout that only works for two. The prototype and the screenshots show two sports because
+  they predate the decision; that is not a spec (§3, §1).
 - Shared packages (`core`, `db`, `ui-web`) and `pocketbase/` are **additive-only** once their wave
   has merged: a screen session may add a new export, collection field or hook it needs, but must
   not change the signature or behaviour of an existing one. If a breaking change seems necessary,
@@ -656,12 +705,19 @@ rendering everything side by side for comparison against the screenshots. Inputs
 **T4 · DB package + seeds.** `packages/db`: PocketBase JS SDK clients (browser + server, plus the
 server-held superuser client for admin actions), generated collection types (`pocketbase-typegen`),
 typed query and mutation functions for every collection, and seed scripts that load T1's canonical
-data into local and hosted PocketBase. Depends on T1 + T2.
+data into local and hosted PocketBase. Depends on T1 + T2. Seeds iterate the canonical data rather
+than a fixed sport list, so the BMX library seeds itself once T21 adds it.
 
 **T5 · Shell, landing, legal.** App shell and routing: top nav, sub-860px five-item bottom bar,
 global sport-switch state, toast host, modal host; the landing page; the five legal documents; the
 site footer. No auth yet — signed-out only. Depends on T3. Inputs: `landit-legal.jsx`,
 `landit-auth.jsx` (landing), `landit-app.jsx` (shell/routing), screenshots 01–03.
+
+The sport switch renders one control per entry in `SPORT_IDS`, which is **three** at launch (§1),
+not the prototype's two — build and check it that way now rather than widening it later. The
+squeeze is the sub-520px breakpoint, where the design already goes two-up; a third tab has to fit
+there without wrapping into something ugly. Build the switch against three sports even while only
+two have tricks.
 
 **The legal copy is wrong, not merely draft** (found 2026-08-16). `landit-legal.jsx` still routes
 under-13s to "a parent's Crew Pass" and says an adult may hold up to five rider accounts — the Crew
@@ -689,6 +745,11 @@ gate; `pocketbase/hooks/` enforces it (§3 guarantee 4). **Constants are decided
 pending** — counsel confirms them rather than unblocking them, so this task no longer holds up the
 Wave 3 merge. Depends on T4 + T5. Inputs: `landit-auth.jsx`, §6.2–6.3 of this plan,
 screenshots 04–05.
+
+Onboarding step 1 ("what you ride") offers a card per entry in `SPORT_IDS` — three at launch (§1),
+where screenshot 05 shows two. The two-card grid becomes an N-card grid; multi-select and the
+at-least-one rule are unchanged. Step 4's suggested tricks and step 3's goal pills already filter by
+the rider's chosen sports, so they need nothing beyond not assuming a pair.
 
 ### Wave 4 — the core loop, three concurrent sessions (route-disjoint)
 
@@ -770,14 +831,44 @@ screenshots 25–27.
 announcements composer, plans editor — all on T16's action/audit pattern. Also the moderation view
 over the `reports` collection. Depends on T16. Inputs: `landit-admin.jsx`, screenshots 28–31.
 
-### Wave 7 — three concurrent sessions
+### Wave 7 — one session, alone
+
+**T21 · BMX as a third sport.** Turns the decision in §1 into a shipped sport:
+
+- Widen `SportId` to `'scooter' | 'skate' | 'bmx'` and add the `SPORTS` entry from the owner's sport
+  copy. Every `Record<SportId, …>` in the repo then fails to compile until it has a BMX entry —
+  work the compiler's list; that list *is* the scope.
+- Load the owner's BMX trick library and its prerequisite edges into `packages/core`'s canonical
+  data as a third block, with tests holding the same-sport prerequisite invariant and the
+  free/locked rule over the new tricks.
+- BMX stickers — new records, or widen shared ones — per the owner's list.
+- An additive PocketBase migration adding `bmx` to every fixed-option `sport` select, and a seed run
+  that loads the new tricks, edges and stickers.
+- The BMX sport icon into `packages/ui-web`'s icon map beside `scoot` and `board`, and the BMX
+  avatars as package assets plus registry entries.
+- **Explicitly authorised here** (so a later session does not have to stop and flag it): reword the
+  two skate-flavoured category blurbs — `flat`'s "Balance and board control" and `hybrid`'s "Combos
+  and deck flips". Categories are sport-agnostic (§3) and the copy has to be too. Copy only; no
+  signature or behaviour changes.
+- Sweep for the two-sport assumptions the type system cannot catch: tab strips and filter rows built
+  from literals, seed scripts, and any copy that says "both sports".
+
+**This session runs alone in its wave.** Widening `SportId` is a repo-wide edit that touches every
+package at once, so nothing else can share the wave without conflicting. It depends on the BMX
+content track above, not only on the wave before it, and it can move **earlier** if the library and
+assets are ready sooner — the only hard constraint is that it must not sit in front of Wave 4. It is
+placed here, late, because the content is the risk and this maximises the runway for it. Inputs:
+§1, §3, the owner's BMX trick library and asset set, `packages/core/src/data/sports.ts`,
+`packages/ui-web/src/icons.tsx`.
+
+### Wave 8 — three concurrent sessions
 
 **T18 · Hardening.** Reporting flows in the rider app (profile/clip report buttons), account
 deletion + data export (GDPR — the privacy policy promises both), rate limits on submissions and
 handle checks, Sentry verification, then run a full security review pass over the branch history.
 The OSA reporting duties (§6.1) land here too: a route that works for someone who is not a
 signed-up rider, and a complaints path for appealing our own moderation decisions — both writing
-`reports`. This task is a launch blocker in a way the rest of Wave 7 is not; the safeguarding page
+`reports`. This task is a launch blocker in a way the rest of Wave 8 is not; the safeguarding page
 promises it in Phase 2 and cannot ship promising a button that does nothing.
 
 **T19 · PWA + offline read cache.** Service worker caching the library and the rider's tracked
@@ -787,14 +878,33 @@ list, install manifest, the "read at the park" story from §2.3.
 gating, and a screen-by-screen visual comparison against all 31 screenshots with fixes for
 divergences. This session gets the *whole* app, so nothing else runs beside it.
 
+Every three-sport surface is a **known and intended** divergence from the screenshots, which were
+captured before the decision in §1: sport tabs, onboarding step 1, filter rows and any sport chip
+row will show three where the capture shows two. Do not "fix" those back. BMX's own visuals — icon,
+avatars, sport colour — have no screenshot to compare against at all; judge them against the design
+language in `design-handoff/README.md` and flag anything that fights it rather than silently
+restyling the owner's assets.
+
 ### Dependency graph
 
 ```
-T0 ─┬─ T1 ─┬─ T4 ─┬─ T6 ─┬─ T7  T8  T9 ─┬─ T10 T11 T12 T13 (T14) ─┬─ T15 ─┐
-    ├─ T2 ─┘      │      │               │                         ├─ T16 ── T17 ─┬─ T18 T19
-    └─ T3 ─── T5 ─┘      └───────────────┘                         │              └─ T20 (last)
+T0 ─┬─ T1 ─┬─ T4 ─┬─ T6 ─┬─ T7  T8  T9 ─┬─ T10 T11 T12 T13 (T14) ─┬─ T15 ──────┐
+    ├─ T2 ─┘      │      │               │                        │            ├─ T21 ─┬─ T18 T19
+    └─ T3 ─── T5 ─┘      └───────────────┘                        └─ T16 ─ T17 ┘       └─ T20 (last)
 ```
 
-Sixteen of the twenty sessions run inside a concurrent wave; the serial spine is
-T0 → (wave 1) → T4 → T6 → (wave 4) → … — about seven sequential steps end to end. The infra track
-(§2.6) runs alongside and needs to be live by the end of Wave 2.
+Sixteen of the twenty-one sessions run inside a concurrent wave; T21 and T20 each get a wave to
+themselves. The serial spine is T0 → (wave 1) → T4 → T6 → (wave 4) → … — about eight sequential
+steps end to end. The infra track (§2.6) runs alongside and needs to be live by the end of Wave 2.
+T21 also depends on the BMX content track above, which is not on this graph because no session
+produces it.
+
+**What BMX at launch costs, honestly.** The engineering is one session and it is mechanical, because
+sport was already a dimension (§3) — nothing is dropped or deferred to make room for T21, and no
+existing wave gets longer. The cost is the content: a BMX library with the depth of the other two
+(scooter and skate ship 61 tricks between them) is a real body of authoring work, and it is the
+owner's, not a session's. So the launch date moves **only** if the BMX library and assets are not
+finished by the time the build reaches Wave 7 — and on a build with this many sequential waves in
+front of it, that is a runway measured in waves, not days. If the content slips anyway, the choice
+is to hold launch or to launch on two sports and add BMX behind it; both are the owner's call, and
+neither is a decision a session may take on its own.

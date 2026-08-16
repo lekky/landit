@@ -1,6 +1,6 @@
 # Land It
 
-A trick tracker for scooter and skateboard riders: log tricks through five honesty-based stages,
+A trick tracker for scooter, skateboard and BMX riders: log tricks through five honesty-based stages,
 earn stickers, follow weekly challenges, find spots and events, compare with a crew. Built for
 riders of all ages — safeguarding is a feature, not a checkbox.
 
