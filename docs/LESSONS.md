@@ -78,6 +78,27 @@ disk and which `pnpm build` listed — its watcher had lost a directory the reba
 bracketed `[action]/[token]` pair, on Windows). Twenty minutes went into the page before the server.
 If a route 404s in dev but builds, restart the dev server before reading the code.
 
+**Your local database is richer than CI's, and that makes a local pass a lie too.** The rule above is
+about a local run reading somebody else's *code*; T9 found the same trap one layer down, in the
+*data*. Its e2e spec asserted on a paywalled node in the skill tree. It passed locally, because the
+session had seeded its own PocketBase to look at the screen in a browser — and failed in CI, where
+`playwright.config.ts` starts an instance from the migrations with nothing in it, so the tree
+rendered as an empty `<div class="tree">`. A test written against a screen you have just been looking
+at inherits whatever you put in the database to look at it.
+
+Two things follow. **Ask what the suite's database contains before asserting on content**, and if the
+answer is "nothing", either seed it in the spec or assert only what holds when it is empty — never
+both by accident. And **an empty collection makes assertions pass as readily as it makes them fail**:
+a "no locked tricks are hidden" check over zero tricks is green and worthless, which is §5's rule
+arriving through the data rather than through the harness. (T7 has since added
+`e2e/support/seed-library.ts`, which is what a content screen should call.)
+
+**A sibling that merges mid-flight may have already fixed what you are about to file.** The same
+session filed an issue asking for exactly that seeding helper, twenty minutes before its rebase
+brought the merged helper onto the branch. Cheap to close, but an issue nobody re-checks is a
+backlog item that sends the next session to build a thing twice. After a rebase that pulls in a
+sibling's work, re-read the issues you filed against the state of `main` you no longer have.
+
 ## 2. Gates, merging and cleanup
 
 **Gate on exit codes, never on piped output.** A `| tail` or `| tee` returns the pipe's status,
