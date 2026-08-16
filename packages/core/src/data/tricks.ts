@@ -947,6 +947,19 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: [],
+    // Paid despite being difficulty 2. BMX's library grades its early tricks
+    // more generously than the other two, which left it with fourteen free
+    // tricks against ten each for scooter and skate — the free tier was
+    // lopsided by grading accident rather than by decision. Four flatground
+    // flourishes move behind the paywall to level it: this, `bmx-nollie`,
+    // `bmx-pull-up-barspin` and `bmx-footjam`.
+    //
+    // The line held while choosing them: no difficulty-1 trick is ever paid, so
+    // the Rookie tier still means "the easiest tricks", and every foundation
+    // (bunny hop, manual) and branch entry (`bmx-double-peg` for street,
+    // `bmx-pump` and `bmx-drop-in` for park) stays free. Nothing still free
+    // depends on any of the four.
+    free: false,
     about:
       'Turn the bars a full 180 degrees so your arms cross into an X, then turn them back. You can do it rolling along — no hop needed.',
     tips: 'Try it standing still holding a wall first. Loosen your grip so your wrists are not fighting the turn.',
@@ -960,6 +973,8 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['bmx-bunny-hop'],
+    // Paid to level BMX's free tier with the other two sports — see `bmx-x-up`.
+    free: false,
     about:
       'A bunny hop backwards. Your weight goes forward over the front wheel and the back end comes up first.',
     tips: 'Start by just lifting the back wheel and setting it straight back down. Keep the lift small until it stops feeling like you are about to go over the bars.',
@@ -973,6 +988,9 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['bmx-x-up'],
+    // Paid to level BMX's free tier with the other two sports — see `bmx-x-up`,
+    // which is also its prerequisite, so the two move together either way.
+    free: false,
     about:
       'Lift just the front wheel, let go of the bars and spin them a full turn, then catch them straight before the wheel touches down.',
     tips: 'Throw with one hand and catch with the other, in the same spot every time. Practise the throw standing over the bike before you roll.',
@@ -999,6 +1017,8 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: [],
+    // Paid to level BMX's free tier with the other two sports — see `bmx-x-up`.
+    free: false,
     about:
       'Jam your front foot between the fork and the front tyre so the bike stops dead and the back wheel lifts up behind you.',
     tips: 'Roll slowly and put the foot in gently the first few times. Wear proper shoes — this one chews them.',

@@ -74,30 +74,42 @@ describe('the free / paid split', () => {
     expect(isTrickFree(noOverride)).toBe(true);
   });
 
-  it('splits the shipped library 34 free / 63 paid', () => {
+  it('splits the shipped library 30 free / 67 paid, ten free per sport', () => {
     // Read through `Trick`: the canonical data is `as const`, so a trick with
     // no override has no `free` key in its inferred type at all.
     const library: readonly Trick[] = TRICKS;
     const free = library.filter(isTrickFree);
-    expect(free).toHaveLength(34);
-    expect(library.filter((t) => !isTrickFree(t))).toHaveLength(63);
+    expect(free).toHaveLength(30);
+    expect(library.filter((t) => !isTrickFree(t))).toHaveLength(67);
 
-    // Six tricks override difficulty, and they are named here on purpose: an
-    // override is how the free tier silently grows, so a seventh appearing
+    // Ten free tricks per sport, deliberately equal. Difficulty alone does not
+    // produce that — the three libraries were graded separately and disagree
+    // about what an early trick is worth — so the overrides below are what hold
+    // the three free tiers level.
+    for (const sport of ['scooter', 'skate', 'bmx'] as const) {
+      expect(
+        free.filter((t) => t.sport === sport),
+        sport,
+      ).toHaveLength(10);
+    }
+
+    // Ten tricks override difficulty, and they are named here on purpose: an
+    // override is how the free tier silently moves, so an eleventh appearing
     // should fail this test and be argued for rather than noticed later.
     //
-    // All six exist to keep the sticker wall earnable without paying (#75).
-    // Three arguments, in order of how much they give away:
+    // Six are pulled in, to keep the sticker wall earnable without paying (#75):
     //
     // - `sk-50-50` and `bmx-double-peg` are the tricks their sport's entire
     //   street branch descends from. Paid, they leave that sport with no free
     //   street content at all — a branch you can see and never enter.
     // - `sk-pop-shuvit`, `sk-180` and `sk-kickflip` are the beginner flatground
-    //   ladder. Skate grades them 3 where scooter and BMX grade the same rungs
-    //   2, which left a free skate rider six tricks against a BMX rider's
-    //   fourteen, and put `ten-deep` out of reach for a skate-only rider.
-    // - `tailwhip` and `sk-kickflip` are their sports' rites of passage. A
+    //   ladder, graded 3 in skate where scooter and BMX grade the same rungs 2.
+    // - `tailwhip` and `sk-kickflip` are their sports' rites of passage, and a
     //   milestone behind the paywall is an achievement for sale (plan §1).
+    //
+    // Four are pushed out, because BMX's grading gave it fourteen free tricks
+    // where the others had ten. They are flatground flourishes, not foundations
+    // or branch entries, and no difficulty-1 trick is paid in any sport.
     const overridden = library.filter((t) => t.free !== undefined);
     expect(overridden.map((t) => t.id)).toEqual([
       'tailwhip',
@@ -105,13 +117,39 @@ describe('the free / paid split', () => {
       'sk-180',
       'sk-kickflip',
       'sk-50-50',
+      'bmx-x-up',
+      'bmx-nollie',
+      'bmx-pull-up-barspin',
+      'bmx-footjam',
       'bmx-double-peg',
     ]);
-    expect(overridden.every((t) => t.free === true)).toBe(true);
+    expect(overridden.filter((t) => t.free === false).map((t) => t.sport)).toEqual([
+      'bmx',
+      'bmx',
+      'bmx',
+      'bmx',
+    ]);
 
-    // Everything else is the Rookie and Easy tiers, nothing more.
+    // The Rookie tier still means "the easiest tricks": nothing at difficulty 1
+    // is ever paid, in any sport.
+    expect(library.filter((t) => t.diff === 1).every(isTrickFree)).toBe(true);
+
+    // Everything free is the Rookie and Easy tiers, or an override pulling a
+    // harder trick in.
     expect(free.every((t) => t.diff <= FREE_MAX_DIFF || t.free === true)).toBe(true);
-    expect(library.every((t) => t.diff > FREE_MAX_DIFF || isTrickFree(t))).toBe(true);
+
+    // The converse used to hold too — every difficulty-2 trick was free — but
+    // an override can push an easy trick out as well as pull a hard one in, and
+    // `isTrickFree` has always said so. The BMX levelling is the first data to
+    // exercise that direction, so the rule is now: difficulty decides, unless
+    // an override says otherwise, and the overrides are the list above.
+    const easyButPaid = library.filter((t) => t.diff <= FREE_MAX_DIFF && !isTrickFree(t));
+    expect(easyButPaid.map((t) => t.id)).toEqual([
+      'bmx-x-up',
+      'bmx-nollie',
+      'bmx-pull-up-barspin',
+      'bmx-footjam',
+    ]);
   });
 });
 
