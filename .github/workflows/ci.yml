@@ -30,6 +30,17 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # `pnpm test` starts a real PocketBase and drives it over HTTP to prove the
+      # four security guarantees (plan §3). The binary is pinned by
+      # `pocketbase/pocketbase.version`; caching it keeps the run off GitHub's
+      # release downloads on every push, and the version is the cache key so an
+      # upgrade fetches a fresh one.
+      - name: Cache the pinned PocketBase binary
+        uses: actions/cache@v4
+        with:
+          path: pocketbase/.bin
+          key: pocketbase-${{ runner.os }}-${{ hashFiles('pocketbase/pocketbase.version') }}
+
       # Each gate is its own step so a failure names itself. They are judged on
       # exit codes — never pipe them.
       - name: Build

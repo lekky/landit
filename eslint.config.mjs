@@ -108,6 +108,64 @@ export default tseslint.config(
     },
   },
 
+  /**
+   * `pocketbase/migrations` and `pocketbase/hooks` are not our runtime: they are
+   * executed by PocketBase's embedded JS engine (goja), which supplies its own
+   * globals and its own CommonJS `require`. They are plain `.js` on purpose —
+   * the engine does not run TypeScript — so the globals are declared here rather
+   * than pretending the files are Node.
+   */
+  {
+    files: ['pocketbase/{migrations,hooks}/**/*.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.commonjs,
+        console: 'readonly',
+        __hooks: 'readonly',
+        $app: 'readonly',
+        $apis: 'readonly',
+        $security: 'readonly',
+        migrate: 'readonly',
+        routerAdd: 'readonly',
+        Collection: 'readonly',
+        Record: 'readonly',
+        DateTime: 'readonly',
+        DynamicModel: 'readonly',
+        BadRequestError: 'readonly',
+        ForbiddenError: 'readonly',
+        NotFoundError: 'readonly',
+        AutodateField: 'readonly',
+        BoolField: 'readonly',
+        DateField: 'readonly',
+        EditorField: 'readonly',
+        EmailField: 'readonly',
+        FileField: 'readonly',
+        JSONField: 'readonly',
+        NumberField: 'readonly',
+        RelationField: 'readonly',
+        SelectField: 'readonly',
+        TextField: 'readonly',
+        onRecordCreate: 'readonly',
+        onRecordUpdate: 'readonly',
+        onRecordDelete: 'readonly',
+        onRecordCreateRequest: 'readonly',
+        onRecordUpdateRequest: 'readonly',
+        onRecordDeleteRequest: 'readonly',
+        onRecordAfterCreateSuccess: 'readonly',
+        onRecordAfterUpdateSuccess: 'readonly',
+        onRecordAfterDeleteSuccess: 'readonly',
+      },
+    },
+    rules: {
+      // goja is CommonJS-only, and PocketBase's own type declarations are
+      // consumed through a triple-slash reference. Both are how these files are
+      // supposed to look; neither is a lapse to be fixed.
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/triple-slash-reference': 'off',
+    },
+  },
+
   // Next.js rules apply to the web app only.
   ...nextForWeb,
 
