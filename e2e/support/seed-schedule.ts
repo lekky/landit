@@ -40,17 +40,40 @@ export const LIVE_GOAL = 3;
 export async function seedSchedule(): Promise<SeededSchedule> {
   const client = await e2eSuperuser();
 
+  /**
+   * Find-or-create, then re-read on a failed create.
+   *
+   * Two spec files call this, and Playwright's `fullyParallel` will happily run
+   * them in two workers against the one instance — so both can find nothing and
+   * both can create, and the loser hits the unique index on `slug` (or the
+   * one-live-challenge-per-sport hook) and throws out of a `beforeAll`. CI runs
+   * one worker and would never have shown it; a developer running `pnpm e2e`
+   * would, intermittently, which is the worst way to find out.
+   */
   const upsert = async (
     collection: 'challenges' | 'events',
     slug: string,
     body: Record<string, unknown>,
   ) => {
-    const existing = await client
-      .collection(collection)
-      .getFirstListItem(client.filter('slug = {:slug}', { slug }))
-      .catch(() => null);
-    if (existing) await client.collection(collection).update(existing.id, { slug, ...body });
-    else await client.collection(collection).create({ slug, ...body });
+    const find = () =>
+      client
+        .collection(collection)
+        .getFirstListItem(client.filter('slug = {:slug}', { slug }))
+        .catch(() => null);
+
+    const existing = await find();
+    if (existing) {
+      await client.collection(collection).update(existing.id, { slug, ...body });
+      return;
+    }
+
+    try {
+      await client.collection(collection).create({ slug, ...body });
+    } catch (error) {
+      const raced = await find();
+      if (!raced) throw error;
+      await client.collection(collection).update(raced.id, { slug, ...body });
+    }
   };
 
   const live: Record<string, string> = {};
