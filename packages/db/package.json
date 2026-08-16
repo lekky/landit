@@ -10,10 +10,13 @@
   "scripts": {
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typegen": "node scripts/generate-types.mjs",
+    "seed": "node --experimental-strip-types scripts/seed.mts"
   },
   "dependencies": {
-    "@landit/core": "workspace:*"
+    "@landit/core": "workspace:*",
+    "pocketbase": "0.27.3"
   },
   "devDependencies": {
     "typescript": "5.9.3",

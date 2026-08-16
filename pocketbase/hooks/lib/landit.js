@@ -96,6 +96,40 @@ const USER_PROTECTED_DEFAULTS = {
 // consent gate.
 const USER_AGE_FIELDS = ['age_band', 'band_next_change_on', 'age_declared_at', 'country'];
 
+/**
+ * The weekly streak, in full. Server-owned: no client may write any of it.
+ *
+ * `streak` feeds two sticker rules, so while a rider could PATCH it they could
+ * PATCH themselves an achievement — in a product whose plan says achievements
+ * are never for sale (issue #8). The other four are the rest of the tuple
+ * `logWeeklyRide` reads and writes; leaving any one of them client-writable
+ * would let a rider rewrite the week the count belongs to and bank the same
+ * week twice, which forges `streak` by a longer route.
+ *
+ * "I rode today" therefore cannot be a PATCH from the browser. It is a server
+ * route that runs the rule and writes the result (T8). This list is what makes
+ * that the only door.
+ *
+ * Owner-authorised additive-only exception (lekky, 2026-08-16) — see plan §7.
+ */
+const USER_STREAK_FIELDS = [
+  'streak',
+  'last_ride',
+  'week_start',
+  'rides_this_week',
+  'last_qualifying_week',
+];
+
+// Zero-value defaults pinned on create, so a sign-up cannot arrive with a
+// streak already on it.
+const USER_STREAK_DEFAULTS = {
+  streak: 0,
+  last_ride: '',
+  week_start: '',
+  rides_this_week: 0,
+  last_qualifying_week: '',
+};
+
 const CONSENT_LIMITED = ['pending', 'revoked'];
 
 // ---------------------------------------------------------------- helpers --
@@ -168,6 +202,9 @@ function assertHandleAllowed(handle) {
  * none of them is writable through the API by the account they describe. The
  * superuser dashboard (ours alone, not a rider login) is the only way in, which
  * is exactly what plan §3 asks for.
+ *
+ * The weekly streak (`USER_STREAK_FIELDS`) joined them on 2026-08-16: it feeds
+ * two sticker rules, so a writable streak is a forgeable achievement (issue #8).
  */
 function guardUserWrite(e, isCreate) {
   const record = e.record;
@@ -189,6 +226,9 @@ function guardUserWrite(e, isCreate) {
       for (const field of Object.keys(USER_PROTECTED_DEFAULTS)) {
         record.set(field, USER_PROTECTED_DEFAULTS[field]);
       }
+      for (const field of Object.keys(USER_STREAK_DEFAULTS)) {
+        record.set(field, USER_STREAK_DEFAULTS[field]);
+      }
     }
     return;
   }
@@ -196,7 +236,9 @@ function guardUserWrite(e, isCreate) {
   if (superuser) return;
 
   const original = record.original();
-  const frozen = Object.keys(USER_PROTECTED_DEFAULTS).concat(USER_AGE_FIELDS);
+  const frozen = Object.keys(USER_PROTECTED_DEFAULTS)
+    .concat(USER_AGE_FIELDS)
+    .concat(USER_STREAK_FIELDS);
   for (const field of frozen) {
     if (String(record.get(field)) !== String(original.get(field))) {
       throw new ForbiddenError(`"${field}" is not something an account can change about itself.`);
@@ -359,6 +401,7 @@ module.exports = {
   RESERVED_HANDLES,
   HANDLE_PATTERN,
   CONSENT_LIMITED,
+  USER_STREAK_FIELDS,
   actorOf,
   assertHandleAllowed,
   challengeIsLive,
