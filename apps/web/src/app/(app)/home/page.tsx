@@ -37,7 +37,10 @@ import {
   listCrewMemberships,
   listRiderStickers,
   listStickers,
+  listTrickPrereqs,
+  listTricks,
   riderSnapshot,
+  tricksFromRecords,
   type AnnouncementsRecord,
   type ChallengesRecord,
 } from '@landit/db';
@@ -86,16 +89,34 @@ export default async function HomePage() {
   const clock = { timezone };
   const today = riderToday(clock);
 
-  const [snapshot, stickerRecords, earnedRecords, challengeRecords, notices, dismissals, crews] =
-    await Promise.all([
-      riderSnapshot(client, rider.id),
-      listStickers(client),
-      listRiderStickers(client, rider.id),
-      listChallenges(client),
-      listAnnouncements(client),
-      listAnnouncementDismissals(client, rider.id),
-      listCrewMemberships(client, rider.id),
-    ]);
+  // The library comes from the database, not from `@landit/core`'s canonical
+  // constants. They agree today because the seed is built from those constants,
+  // but staff can edit tricks (T17) and a hidden or renamed trick has to
+  // disappear from Home the moment it disappears from `/library` — otherwise
+  // Home offers a card whose page 404s, which is exactly what CI caught.
+  const [
+    trickRecords,
+    prereqRecords,
+    snapshot,
+    stickerRecords,
+    earnedRecords,
+    challengeRecords,
+    notices,
+    dismissals,
+    crews,
+  ] = await Promise.all([
+    listTricks(client),
+    listTrickPrereqs(client),
+    riderSnapshot(client, rider.id),
+    listStickers(client),
+    listRiderStickers(client, rider.id),
+    listChallenges(client),
+    listAnnouncements(client),
+    listAnnouncementDismissals(client, rider.id),
+    listCrewMemberships(client, rider.id),
+  ]);
+
+  const tricks = tricksFromRecords(trickRecords, prereqRecords);
 
   /* ------------------------------------------------------------- streak -- */
 
@@ -157,13 +178,14 @@ export default async function HomePage() {
   const challenges = challengeRecords.map(toChallenge);
   const plan = (rider.plan ?? 'rookie') as PlanId;
   const goal = goalLabel(rider.goal, rider.goal_custom);
-  const globalLanded = computeStats(snapshot, null).landed;
+  const globalLanded = computeStats(snapshot, null, { tricks }).landed;
 
   const bySport: Record<string, SportView> = {};
   for (const sport of sports) {
     bySport[sport] = buildSportView({
       sport,
       snapshot,
+      tricks,
       plan,
       goal,
       globalLanded,
@@ -253,6 +275,8 @@ function toCardView(trick: Trick, stage: StageId | undefined, plan: PlanId): Tri
 interface SportViewInput {
   sport: SportId;
   snapshot: Parameters<typeof computeStats>[0];
+  /** The live library, as `@landit/core` takes it. */
+  tricks: readonly Trick[];
   plan: PlanId;
   goal: string | null;
   globalLanded: number;
@@ -266,15 +290,15 @@ interface SportViewInput {
 }
 
 function buildSportView(input: SportViewInput): SportView {
-  const { sport, snapshot, plan, goal, clock, today } = input;
-  const stats = computeStats(snapshot, sport);
+  const { sport, snapshot, tricks, plan, goal, clock, today } = input;
+  const stats = computeStats(snapshot, sport, { tricks });
   const byId = snapshot.byId ?? {};
   const look = SPORTS[sport];
   const short = look.short.toLowerCase();
 
   const inSport = (id: string): Trick | undefined => {
-    const trick = trickById(id);
-    return trick && trick.sport === sport ? trick : undefined;
+    const trick = trickById(id, tricks);
+    return trick && trick.isLive && trick.sport === sport ? trick : undefined;
   };
 
   const staged = (stage: StageId): TrickCardView[] =>
@@ -291,7 +315,7 @@ function buildSportView(input: SportViewInput): SportView {
   // trick this rider cannot track: the paywall is a refusal, not a tease.
   const startHere = workingTricks.length
     ? []
-    : suggestedNextTricks(byId, plan, sport)
+    : suggestedNextTricks(byId, plan, sport, tricks)
         // Plain `<`, not `localeCompare`: ordering from ICU is one more thing
         // two runtimes can disagree about (LESSONS §3a), and trick names are
         // ASCII.

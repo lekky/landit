@@ -1,6 +1,8 @@
 import { WEEKLY_RIDE_TARGET } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
+import { seedLibrary } from './support/seed-library';
+
 /**
  * The dashboard (T8), against a real PocketBase — see `playwright.config.ts`.
  *
@@ -17,6 +19,21 @@ import { expect, test, type Page } from '@playwright/test';
 
 const password = 'a-long-local-test-password';
 const unique = () => Math.random().toString(36).slice(2, 10);
+
+/*
+ * Home reads the *database's* trick library, so "Start here" offers real
+ * records and its cards open pages that exist. Without the seed the grid is
+ * empty and the trick page 404s — which is how CI caught Home reading the
+ * canonical constants instead.
+ *
+ * `seedLibrary` returns early once the library is there, so this costs nothing
+ * when `library.spec.ts` has already run. CI uses a single worker, so the two
+ * files never race; locally the guard covers the common case.
+ */
+test.beforeAll(async () => {
+  test.setTimeout(180_000);
+  await seedLibrary();
+});
 
 function birthDate(years: number): string {
   const now = new Date();
