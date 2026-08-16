@@ -1,0 +1,54 @@
+# What never belongs in a build context.
+#
+# `node_modules` is the entry that matters. The web image installs dependencies
+# in its own `deps` stage and copies them forward; without this line the later
+# `COPY . .` drags the *host's* tree in on top and wins — which on a Windows or
+# macOS machine means native binaries built for the wrong platform, in an image
+# that then fails at run time rather than at build time. CI checks out clean, so
+# this is the difference between "works everywhere" and "works on CI".
+#
+# The rest is size and secrecy: a build context is uploaded to the daemon whole.
+node_modules/
+**/node_modules/
+
+# Build output — regenerated inside the image, and stale copies confuse the
+# trace that produces `.next/standalone`.
+.next/
+**/.next/
+dist/
+build/
+coverage/
+
+# The PocketBase binary and its scratch databases. The image downloads its own
+# pinned copy; `.pb_data` is a local database that must never reach a registry.
+pocketbase/.bin/
+pocketbase/.pb_data/
+pocketbase/.pb_e2e/
+
+# Test artefacts.
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# History and tooling. `.git` is the big one — nothing in either image reads it.
+.git/
+.github/
+.claude/
+.vscode/
+.idea/
+
+# Never. `.env*` files are templates in this repo, but a build context is not
+# the place to find out somebody filled one in locally.
+.env
+.env.*
+!.env.example
+
+# Reference material, not shipped code (design-handoff/README.md explains why).
+design-handoff/
+
+# Docs and local notes. The image does not read them and they invalidate the
+# cache on every edit.
+docs/
+*.md
+!apps/web/README.md
