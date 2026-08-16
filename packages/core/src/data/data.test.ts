@@ -121,7 +121,7 @@ describe('sports, categories and stages', () => {
     expect(SPORT_IDS).toEqual(['scooter', 'skate', 'bmx']);
     expect(SPORTS.scooter.color).toBe('#FF5A1F');
     expect(SPORTS.skate.color).toBe('#246BFF');
-    // BMX's is a placeholder until the owner picks (plan §7, T21).
+    // `--pink`, confirmed by the owner on 2026-08-16 (plan §7, T21).
     expect(SPORTS.bmx.color).toBe('#FF3D78');
   });
 

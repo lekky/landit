@@ -41,7 +41,7 @@ export const COLOUR_TOKENS = [
   { name: '--paper', hex: '#FFFDF5', use: 'Card surface' },
   { name: '--paper-2', hex: '#FFF7E4', use: 'Secondary surface, table headers' },
   { name: '--wash', hex: '#F2ECDC', use: 'Page background (with dot pattern)' },
-  { name: '--pink', hex: '#FF3D78', use: 'Accent' },
+  { name: '--pink', hex: '#FF3D78', use: 'Accent, link hover, BMX' },
   { name: '--orange', hex: '#FF5A1F', use: 'Primary button, scooter, Street' },
   { name: '--yellow', hex: '#FFC23F', use: 'Brand accent, streak, highlight rows' },
   { name: '--lime', hex: '#9CE05B', use: 'Progress fill, landed state' },

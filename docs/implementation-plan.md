@@ -963,15 +963,20 @@ over the `reports` collection. Depends on T16. Inputs: `landit-admin.jsx`, scree
    readers. A test asserts the label is *not* "Flatland" so the round trip cannot happen by
    accident.
 
-**Still outstanding, and both need the owner:**
+**The BMX sport colour is settled: `--pink` (`#FF3D78`), confirmed by the owner on 2026-08-16.**
+The palette does not gain a colour. §1's warning that "every token already has a job" stands, and
+BMX shares rather than takes — `--pink` is also the link-hover colour, the default avatar
+background, and the hue on the `send` level and two stickers. That is the established pattern, not
+a compromise: `--orange` is scooter *and* Street, `--blue` is skate *and* Park. The one difference
+in kind is **link hover**, a global interaction colour rather than a category; if BMX pink ever has
+to read as BMX alone, that rule is what moves, not the sport record.
 
-- **The BMX sport colour.** `SPORTS.bmx.color` ships as `#FF3D78` (`--pink`) as a **placeholder**.
-  Every other token has a job; BMX takes `--pink` or the palette gains a colour. Swapping the hex
-  is the whole of the change.
-- **BMX avatars.** The 36 shipped avatars are scooter- and skate-flavoured in places, and no BMX
-  ones exist. New design work, as the content track says. BMX stickers are likewise unbuilt: the
-  shared ones apply, but there are no BMX-scoped stickers, because there is no owner list to
-  build them from.
+**Still outstanding, and it needs the owner:**
+
+- **BMX avatars and BMX-scoped stickers.** The 36 shipped avatars are scooter- and skate-flavoured
+  in places, and no BMX ones exist — new design work, as the content track says. Stickers are
+  likewise unbuilt: the shared ones apply, but there are no BMX-scoped stickers, because there is
+  no owner list to build them from. Tracked as issue #25.
 
 **This session runs alone in its wave.** Widening `SportId` is a repo-wide edit that touches every
 package at once, so nothing else can share the wave without conflicting. It depends on the BMX
