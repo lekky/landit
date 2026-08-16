@@ -65,7 +65,8 @@ async function newRider(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Land my first trick' }).click();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: "Let's go" }).click();
-  await page.waitForURL('**/account');
+  // T8 landed the dashboard, so that is where a finished onboarding goes.
+  await page.waitForURL('**/home');
 }
 
 test('progress is reachable from the nav and shows the four panels', async ({ page }) => {

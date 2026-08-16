@@ -71,11 +71,15 @@ export {
 export * from './generated/collections';
 
 export {
+  getCrewBoard,
   getRider,
   getRiderByHandle,
   getTrickBySlug,
   getTrickNote,
+  listAnnouncementDismissals,
+  listAnnouncements,
   listChallenges,
+  listCrewMemberships,
   listEvents,
   listPlans,
   listRiderStickers,
@@ -89,6 +93,7 @@ export {
   trickLogEntries,
   trickProgressById,
   tricksFromRecords,
+  type CrewBoardRider,
   type TrickFilter,
 } from './queries';
 
@@ -96,8 +101,10 @@ export {
   attendEvent,
   clearTrickStage,
   deleteLogEntry,
+  dismissAnnouncement,
   logChallengeEntry,
   saveTrickNote,
+  saveWeeklyStreak,
   setInsightsOptIn,
   setTrickStage,
   submitSpot,
@@ -105,6 +112,7 @@ export {
   updateProfile,
   type ProfileEdit,
   type StageChange,
+  type WeeklyStreakWrite,
 } from './mutations';
 
 export { buildSeed, seed, type SeedPlan, type SeedResult } from './seed';

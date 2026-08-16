@@ -3,6 +3,7 @@ import type { StageId } from '@landit/core';
 import type { Client } from './clients';
 import { records } from './collections';
 import type {
+  AnnouncementDismissalsRecord,
   ChallengeLogRecord,
   EventAttendanceRecord,
   SpotsRecord,
@@ -23,9 +24,10 @@ import type {
  *   because there is no client path to one, which is what makes "achievements
  *   are never for sale" true rather than merely stated (plan §1, §3).
  * - **The weekly streak.** `users.streak` and the rest of the tuple are
- *   server-owned (issue #8), so "I rode today" is a server route that runs
- *   `logWeeklyRide` and writes the result — not a PATCH from a screen. T8 owns
- *   that route.
+ *   server-owned (issue #8), so "I rode today" is not a PATCH from a screen.
+ *   `saveWeeklyStreak` below is the write, and it only works for a caller
+ *   holding the superuser client; T8's server action is the one caller, and it
+ *   runs `logWeeklyRide` from `@landit/core` to decide what to write.
  *
  * The paywall is likewise absent: `setTrickStage` does not check whether a
  * trick is paid. The hook does, on every write path including a superuser one,
@@ -251,4 +253,65 @@ export async function unattendEvent(
     { user: userId, event: eventId },
   );
   if (existing) await records(client, 'event_attendance').remove(existing.id);
+}
+
+/* --------------------------------------------------------- announcements -- */
+
+/**
+ * "Got it" on a staff announcement. Idempotent: a second tap, or a second tab,
+ * finds the row already there rather than tripping the unique index.
+ */
+export async function dismissAnnouncement(
+  client: Client,
+  userId: string,
+  announcementId: string,
+): Promise<AnnouncementDismissalsRecord> {
+  const existing = await records(client, 'announcement_dismissals').first(
+    'user = {:user} && announcement = {:announcement}',
+    { user: userId, announcement: announcementId },
+  );
+  if (existing) return existing;
+
+  return records(client, 'announcement_dismissals').create({
+    user: userId,
+    announcement: announcementId,
+  });
+}
+
+/* ---------------------------------------------------------- the streak ---- */
+
+/** The five stored fields of `WeeklyStreakState`, as they sit on `users`. */
+export interface WeeklyStreakWrite {
+  readonly streak: number;
+  readonly week_start: string;
+  readonly rides_this_week: number;
+  readonly last_qualifying_week: string;
+  readonly last_ride: string;
+}
+
+/**
+ * Write a rider's weekly streak.
+ *
+ * **Requires a privileged client.** The whole tuple is frozen against every
+ * client write by `guardUserWrite` (issue #8): a streak a rider can PATCH is a
+ * sticker a rider can forge, in a product whose plan says achievements are
+ * never for sale. Handing this a rider's own client gets a 403, which is the
+ * system working.
+ *
+ * It takes a already-computed result rather than computing one, because this
+ * package holds no rules: `logWeeklyRide` in `@landit/core` decides what the
+ * numbers are and T8's server action puts the two together.
+ */
+export async function saveWeeklyStreak(
+  client: Client,
+  userId: string,
+  state: WeeklyStreakWrite,
+): Promise<UsersRecord> {
+  return records(client, 'users').update(userId, {
+    streak: state.streak,
+    week_start: state.week_start,
+    rides_this_week: state.rides_this_week,
+    last_qualifying_week: state.last_qualifying_week,
+    last_ride: state.last_ride,
+  });
 }

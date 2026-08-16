@@ -120,6 +120,13 @@ export {
   stickersFor,
 } from './stickers';
 export {
+  NUDGE_QUIET_FROM_HOUR,
+  NUDGE_QUIET_UNTIL_HOUR,
+  canNudge,
+  isQuietHours,
+  riderHour,
+} from './nudges';
+export {
   STREAK_GRACE_DAYS,
   WEEKLY_RIDE_TARGET,
   WEEKLY_STREAK_GRACE_WEEKS,
@@ -131,8 +138,11 @@ export {
   riderWeekStart,
   rodeToday,
   streakStrip,
+  weeklyEncouragement,
   weeklyProgress,
+  weeklyProgressLabel,
   weeklyRideCount,
+  weeklyStreakLabel,
   weeklyTargetMet,
   type RideResult,
   type RiderClock,
@@ -144,15 +154,20 @@ export {
 } from './streak';
 export {
   DEFAULT_TIMEZONE,
+  MONTH_NAMES,
+  WEEKDAY_NAMES,
   WEEK_STARTS_ON,
   addDays,
   compareDayKeys,
   daysBetween,
+  formatDayLong,
   isDayKey,
   isDayWithin,
+  monthName,
   toDayKey,
   weekEnd,
   weekStart,
+  weekdayName,
   weeksBetween,
 } from './time';
 export {

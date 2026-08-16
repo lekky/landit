@@ -137,7 +137,9 @@ export async function signInAction(
     return { errors: { form: 'That email and password do not match an account' } };
   }
 
-  redirect(ROUTES.account);
+  // The dashboard, since T8 landed one. `/account` was where a rider went when
+  // it was the only signed-in screen there was.
+  redirect(ROUTES.dashboard);
 }
 
 export async function signOutAction(): Promise<void> {

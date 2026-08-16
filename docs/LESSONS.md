@@ -232,6 +232,19 @@ otherwise leave every rule test passing against an empty database. The harness t
 `Error:` line as failure and a test asserts every collection exists. Assume any tool may lie
 about its exit code until you have watched it fail.
 
+**Probe a runtime's capability with a value it must reject, not one it should accept.** T8 was
+about to put the weekly-streak rule in a PocketBase hook, where plan §3 puts rule enforcement. The
+rule is timezone arithmetic, so the first question was whether the JSVM could do it. `Intl` is
+simply absent there, which is the honest failure — but `Date.prototype.toLocaleString` accepts a
+`timeZone` option, returns a plausible timestamp, and **ignores the zone entirely**. Asking one
+instant for its wall clock in Europe/London and in Pacific/Auckland returns the same string, so a
+probe that checked either against a hand-worked expectation could pass by luck. What settled it was
+asking for `Not/AZone`: a runtime that answers a nonsense timezone is not applying timezones at all.
+The consequence had it shipped: every rider's streak scored in the box's timezone, correct in
+Coventry and silently wrong everywhere else, with no error anywhere. Include an input the feature
+must reject in any capability probe — an accepted-and-ignored option looks exactly like a working
+one. (The rule now runs in Node, in `packages/core`; plan §7, T8 records why.)
+
 **Watch a new guarantee test fail before you believe it passes.** T4 tightened the users guard
 so no client can write the streak, and wrote eleven HTTP tests around it. Green proves nothing
 on its own — the tests would also have been green against a guard that did nothing, if they had

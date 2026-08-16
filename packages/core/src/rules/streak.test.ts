@@ -12,8 +12,11 @@ import {
   riderWeekStart,
   rodeToday,
   streakStrip,
+  weeklyEncouragement,
   weeklyProgress,
+  weeklyProgressLabel,
   weeklyRideCount,
+  weeklyStreakLabel,
   weeklyTargetMet,
   type WeeklyStreakState,
 } from './streak';
@@ -436,5 +439,54 @@ describe('the week boundary is the rider’s, not the server’s', () => {
     expect(currentWeeklyStreak(state, { now: instant, timezone: 'Europe/London' })).toBe(5);
     // Auckland has turned over into the week after that: it is gone.
     expect(currentWeeklyStreak(state, { now: instant, timezone: 'Pacific/Auckland' })).toBe(0);
+  });
+});
+
+describe('what the streak card says (plan §1 and §6.4)', () => {
+  const progress = (rides: number) =>
+    weeklyProgress({ ...fresh, weekStart: riderWeekStart(london), ridesThisWeek: rides }, london);
+
+  it('counts the streak in weeks, because that is what it counts', () => {
+    // The unit changed on 2026-08-16 and the words are the only place a reader
+    // ever sees it. "5 days" here is the whole decision quietly undone.
+    expect(weeklyStreakLabel(5)).toBe('5 weeks');
+    expect(weeklyStreakLabel(1)).toBe('1 week');
+    expect(weeklyStreakLabel(0)).toBe('No weeks yet');
+    expect(weeklyStreakLabel(-3)).toBe('No weeks yet');
+  });
+
+  it('names the rides made, not the ones missing', () => {
+    expect(weeklyProgressLabel(progress(0))).toBe('0 of 2 rides this week');
+    expect(weeklyProgressLabel(progress(1))).toBe('1 of 2 rides this week');
+    // Past the target the count stops rather than reading "4 of 2".
+    expect(weeklyProgressLabel(progress(4))).toBe('2 of 2 rides this week');
+  });
+
+  it('frames the next ride as something gained', () => {
+    expect(weeklyEncouragement(progress(0))).toBe('2 rides bank this week.');
+    expect(weeklyEncouragement(progress(1))).toBe('One more ride banks this week.');
+    expect(weeklyEncouragement(progress(2))).toBe('This week is banked.');
+    expect(weeklyEncouragement(progress(3))).toBe('This week is banked, with 1 ride to spare.');
+  });
+
+  /**
+   * Standard 13's prohibition, as a test rather than a paragraph: "loss-framed
+   * notifications ('your streak dies in 2 hours')" and copy that shows a rider
+   * the streak they are about to lose. Every string the card can produce is
+   * swept for the vocabulary that would put one back.
+   */
+  it('never says anything loss-framed, at any state', () => {
+    const forbidden =
+      /\b(lose|loses|losing|lost|break|breaks|breaking|broken|die|dies|dying|end|ends|ending|expire|expires|gone|miss|misses|missing|last chance|hurry|left|remaining|only|don'?t|before it)\b/i;
+
+    const strings: string[] = [];
+    for (let weeks = 0; weeks <= 3; weeks += 1) strings.push(weeklyStreakLabel(weeks));
+    for (let rides = 0; rides <= 5; rides += 1) {
+      strings.push(weeklyProgressLabel(progress(rides)), weeklyEncouragement(progress(rides)));
+    }
+
+    for (const line of strings) {
+      expect(line, `"${line}" is loss-framed`).not.toMatch(forbidden);
+    }
   });
 });

@@ -100,7 +100,7 @@ test('a US under-13 is declined, with the reason and no account', async ({ page 
   await expect(page.getByRole('button', { name: 'Create account' })).toBeDisabled();
 });
 
-test('sign up, onboard and land on an account', async ({ page }) => {
+test('sign up, onboard and land on the dashboard', async ({ page }) => {
   const email = `e2e-${unique()}@landit.invalid`;
   await fillSignUp(page, { name: 'Miles Carter', email, country: 'GB', dob: birthDate(22) });
   await page.getByRole('button', { name: 'Create account' }).click();
@@ -124,14 +124,18 @@ test('sign up, onboard and land on an account', async ({ page }) => {
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: "Let's go" }).click();
 
-  await page.waitForURL('**/account');
+  // T8 landed a dashboard, so that is where a finished onboarding goes.
+  await page.waitForURL('**/home');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Alright, Miles.');
+
+  await page.goto('/account');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Miles Carter');
   // The gate does not apply to this rider, so the guardian panel is absent.
   await expect(page.getByText('a grown-up needs to say yes')).toBeHidden();
 
   // Onboarding is done, so going back to it does not start again.
   await page.goto('/onboarding');
-  await page.waitForURL('**/account');
+  await page.waitForURL('**/home');
 });
 
 test('a younger rider arrives at an account that says what it is waiting for', async ({ page }) => {
@@ -147,7 +151,8 @@ test('a younger rider arrives at an account that says what it is waiting for', a
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: "Let's go" }).click();
 
-  await page.waitForURL('**/account');
+  await page.waitForURL('**/home');
+  await page.goto('/account');
   await expect(page.getByText(/a grown-up needs to say yes/i)).toBeVisible();
   // What they can do comes first, and it is most of the product.
   await expect(page.getByText('Log every trick you land')).toBeVisible();
@@ -186,8 +191,9 @@ test('signing out ends the session', async ({ page }) => {
   await page.getByRole('button', { name: 'Land my first trick' }).click();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: "Let's go" }).click();
-  await page.waitForURL('**/account');
+  await page.waitForURL('**/home');
 
+  await page.goto('/account');
   await page.getByRole('button', { name: 'Sign out' }).click();
   await page.waitForURL((url) => url.pathname === '/');
   await page.goto('/account');

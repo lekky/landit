@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function SignInPage() {
-  if (await currentRider()) redirect(ROUTES.account);
+  if (await currentRider()) redirect(ROUTES.dashboard);
 
   return (
     <AuthCard

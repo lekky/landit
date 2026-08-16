@@ -21,7 +21,16 @@ import type { LegalDocId } from '@/content/legal';
  * exist.
  */
 export const ROUTES = {
+  /** The signed-out landing page. The rider's dashboard is `dashboard`. */
   home: '/',
+  /**
+   * The signed-in dashboard (T8).
+   *
+   * A route of its own rather than `/`, because `/` is the marketing landing
+   * page and stays one: a rider arriving from a shared link should see what
+   * everybody else sees, and the two pages have nothing in common but a name.
+   */
+  dashboard: '/home',
   signUp: '/signup',
   signIn: '/signin',
   forgotPassword: '/forgot-password',

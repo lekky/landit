@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 export default async function OnboardingPage() {
   const session = await currentRider();
   if (!session) redirect(ROUTES.signIn);
-  if (session.rider.onboarded) redirect(ROUTES.account);
+  if (session.rider.onboarded) redirect(ROUTES.dashboard);
 
   let tricks: OnboardingTrick[] = [];
   try {

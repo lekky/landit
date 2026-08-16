@@ -161,8 +161,17 @@ jobs:
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium
 
+      # "I rode today" writes the server-owned streak tuple through the
+      # superuser client (plan §7, T8), so the web server the suite starts needs
+      # credentials or the button fails softly and its tests fail with it. These
+      # are the same throwaway fixture pair `pocketbase/tests/instance.ts` and
+      # `e2e/support/seed-library.ts` provision in the scratch database — not a
+      # secret, and deliberately not the ones any real instance uses.
       - name: Playwright
         run: pnpm e2e
+        env:
+          POCKETBASE_SUPERUSER_EMAIL: test-superuser@landit.invalid
+          POCKETBASE_SUPERUSER_PASSWORD: a-long-local-test-password
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
