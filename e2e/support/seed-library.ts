@@ -1,0 +1,99 @@
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Reached by path rather than by package name: `@landit/db` is not a dependency
+// of the root manifest (only `@landit/core` is), and adding one would mean a
+// lockfile change for a single import in a test helper.
+import { buildSeed, createSuperuserClient, seed } from '../../packages/db/src/index';
+
+/**
+ * Put the trick library into the e2e PocketBase.
+ *
+ * Everything the suite tested before T7 was written *through the app* — a
+ * sign-up creates its own rider — so the e2e database has never needed content
+ * in it. The library screen is the first that reads a collection only staff can
+ * write, and a locked-trick test against an empty `tricks` collection would
+ * pass by finding nothing, which is the failure mode LESSONS §5 is about.
+ *
+ * Two constraints shape how this works:
+ *
+ * - **`plans` has to be seeded too.** The paywall hook resolves a rider's plan
+ *   from that collection and fails *closed* when it is missing (plan §3), so an
+ *   unseeded database refuses every trick to everyone — which would make the
+ *   locked-trick assertions pass for entirely the wrong reason.
+ * - **The seed needs a superuser, and the e2e instance may have none.**
+ *   PocketBase only mints the first one from the CLI, so the CLI is what mints
+ *   it, against the same data directory the running server is using. The
+ *   credentials are the same fixed local pair `pocketbase/tests/instance.ts`
+ *   uses: a throwaway database on a loopback port, and nothing here is a secret.
+ *   Provisioning one is also what stops PocketBase treating the next start as a
+ *   first run and opening its installer page in whoever's browser is to hand.
+ *
+ * Idempotent, and skipped entirely when the library is already there, so a
+ * second run costs one HTTP request.
+ */
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(here, '..', '..');
+
+/** The same fixture pair `pocketbase/tests/instance.ts` provisions and authenticates as. */
+const SUPERUSER_EMAIL = 'test-superuser@landit.invalid';
+const SUPERUSER_PASSWORD = 'a-long-local-test-password';
+
+/**
+ * Where PocketBase is. The value `playwright.config.ts` hands the web server,
+ * so a run driven by `PLAYWRIGHT_BASE_URL` seeds the instance that run is
+ * actually using — set `NEXT_PUBLIC_POCKETBASE_URL` in that shell, as the
+ * session-local instructions in `CLAUDE.md` do.
+ */
+export const POCKETBASE_URL = process.env.NEXT_PUBLIC_POCKETBASE_URL ?? 'http://127.0.0.1:8091';
+
+/** Matches `playwright.config.ts`'s `POCKETBASE_DATA_DIR`, and lets a local run override it. */
+const dataDir = process.env.POCKETBASE_DATA_DIR ?? '.pb_e2e';
+
+async function trickCount(): Promise<number> {
+  const response = await fetch(`${POCKETBASE_URL}/api/collections/tricks/records?perPage=1`);
+  if (!response.ok) throw new Error(`PocketBase said ${response.status} to a tricks read.`);
+  const body = (await response.json()) as { totalItems?: number };
+  return body.totalItems ?? 0;
+}
+
+function ensureSuperuser(): void {
+  const result = spawnSync(
+    process.execPath,
+    [
+      path.join(repoRoot, 'pocketbase', 'scripts', 'pocketbase.mjs'),
+      'superuser',
+      'upsert',
+      SUPERUSER_EMAIL,
+      SUPERUSER_PASSWORD,
+    ],
+    { encoding: 'utf8', env: { ...process.env, POCKETBASE_DATA_DIR: dataDir } },
+  );
+  if (result.status !== 0) {
+    throw new Error(
+      `Could not create the e2e superuser in ${dataDir}:\n${result.stdout ?? ''}${result.stderr ?? ''}`,
+    );
+  }
+}
+
+export async function seedLibrary(): Promise<void> {
+  if ((await trickCount()) > 0) return;
+
+  ensureSuperuser();
+  const client = await createSuperuserClient({
+    url: POCKETBASE_URL,
+    email: SUPERUSER_EMAIL,
+    password: SUPERUSER_PASSWORD,
+  });
+
+  // Only what the library screen reads. Stickers, spots, events and challenges
+  // belong to other tasks' tests, and seeding them here would make this run
+  // slower for nothing. `seed` writes the prerequisite edges either way, which
+  // the trick page's "built on" pills need.
+  const wanted = new Set(['plans', 'tricks']);
+  await seed(client, { tables: buildSeed().tables.filter((t) => wanted.has(t.collection)) });
+
+  if ((await trickCount()) === 0) throw new Error('The seed ran but the library is still empty.');
+}

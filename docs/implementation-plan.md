@@ -863,6 +863,28 @@ decisions rather than details:**
 notes, prerequisite/unlock pills, locked-trick page. Clips panel renders in its locked/upsell state
 only (real clips are T14). Inputs: `landit-screens-a.jsx`, screenshots 08–10.
 
+**Built 2026-08-16. Four decisions the entry above did not settle:**
+
+- **The library and a trick page are readable signed out.** `tricks` and `trick_prereqs` are
+  listable without a token by their own API rules, and `@landit/db` already described the library
+  as readable signed out, so a visitor gets the grid and the lowdown, with the paid tiers drawn as
+  locked and a sign-in prompt where the stage picker goes. Nothing rider-shaped is on the page for
+  them: no status filters with anything in them, no notes, no clips.
+- **The tricks are read from the collection, never from `@landit/core`'s constants.** The canonical
+  data seeds the collection and the collection is what staff edit (T17), so a screen reading the
+  constants would make a staff edit invisible. What comes from `core` is the rules applied to those
+  rows — `tricksFromRecords` in `@landit/db` is the one place that knows how a row differs from the
+  rule shape, and the empty `free_override` arriving as `undefined` rather than `false` is the part
+  worth not getting wrong.
+- **"See plans" renders disabled, on both the rookie banner and the clips panel.** `/plans` is T15
+  and `typedRoutes` makes a link to it a compile error; this is T5's established answer to that
+  (§7, T5). Each carries one line saying upgrading is not switched on yet.
+- **The "Share it" button on a landed trick is not built.** Screenshot 09 shows one, and the share
+  card it opens is a component T10 builds for stickers and tricks together (`landit-ui.jsx`'s
+  `ShareCard` takes a `kind`). Building a second one here would be the thing to delete in Wave 5.
+  The first-landed date ships without it; tracked as an issue, and it is the only fidelity gap on
+  screen 09.
+
 **T8 · Home + streak + announcements.** Dashboard, stat blocks, "I rode today", streak logic wired
 to `core` (timezone-aware), announcement banner + dismissal, working-on/start-here, wish list,
 stickers/crew teaser panels. The streak is the **weekly** one (§1): wire `logWeeklyRide`,

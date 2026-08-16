@@ -232,6 +232,23 @@ worth skipping: `apps/web`'s routes are under `src/app`, not `app`, and a direct
 with `_` is a private folder Next does not route — a probe in either place builds cleanly and
 proves nothing.)
 
+**A suite that reads a collection only staff can write has to seed it, or it proves nothing.**
+Every e2e test before T7 wrote its own data *through the app* — a sign-up makes its rider — so the
+e2e PocketBase had never needed content in it. The library is the first screen that reads `tricks`,
+which has `createRule: null`, and against the empty database the whole file passed while asserting
+almost nothing: no locked cards to find, so no locked cards missing. Worse, `plans` was empty too,
+and the paywall hook fails *closed* on a missing plan — so every trick was refused to everyone and
+"a rookie cannot track this" would have been true for entirely the wrong reason.
+
+The seed runs in the spec's `beforeAll` (`e2e/support/seed-library.ts`), which has two consequences
+worth keeping. It needs a **superuser**, and PocketBase only mints the first one from the CLI, so
+the helper runs `pocketbase superuser upsert` against the same data directory the running server is
+using — that works on a live instance, and it is also what stops PocketBase treating the next start
+as a first run and **opening its installer page in whoever's browser is to hand**, which is what a
+sibling session's instance did to the owner mid-wave. And the file sets
+`test.describe.configure({ mode: 'default' })`, because `fullyParallel` splits a file across workers
+and would race the seed against itself.
+
 ## 5a. The shell is not a text box
 
 **Backticks inside a double-quoted shell argument execute.** Filing issue #48 — whose subject

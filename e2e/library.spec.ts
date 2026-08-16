@@ -1,0 +1,190 @@
+import { SPORTS, SPORT_IDS, TIERS_LABEL, TRICKS, isTrickLocked, tricksFor } from '@landit/core';
+import { expect, test, type Page } from '@playwright/test';
+
+import { seedLibrary } from './support/seed-library';
+
+/**
+ * The trick library, the trick page and the locked trick (T7; screenshots
+ * 08–10).
+ *
+ * **What this file is really for.** The locked page is the visible half of a
+ * security guarantee whose enforcing half lives in a PocketBase hook (plan §3,
+ * guarantee 3, proved over HTTP in `pocketbase/tests/guarantee-3-paywall.test.ts`).
+ * The UI half can be edited away without anything failing: delete the
+ * `isTrickLocked` branch and every unit test still passes, the build is green,
+ * and a rookie quietly gets the lowdown, the tips and a stage picker for a
+ * trick they have not paid for. These assertions are what notice.
+ *
+ * The tricks are chosen from the canonical data rather than named, so a library
+ * edit moves the test with it instead of breaking it.
+ */
+
+const password = 'a-long-local-test-password';
+const unique = () => Math.random().toString(36).slice(2, 10);
+
+const scooterTricks = tricksFor('scooter', TRICKS);
+
+/**
+ * A trick whose name is not a substring of another trick's, so "is it on the
+ * page" is never ambiguous. Picked from the data rather than typed in, so an
+ * edit to the library moves the test instead of breaking it.
+ */
+const distinct = (candidate: (typeof scooterTricks)[number]): boolean =>
+  scooterTricks.filter((t) => t.name.toLowerCase().includes(candidate.name.toLowerCase()))
+    .length === 1;
+
+const freeTrick = scooterTricks.find((t) => !isTrickLocked(t, 'rookie') && distinct(t))!;
+const lockedTrick = scooterTricks.find((t) => isTrickLocked(t, 'rookie') && distinct(t))!;
+
+/** One trick card in the grid, found by the name it shows. */
+const card = (page: Page, name: string) => page.locator('.tcard').filter({ hasText: name });
+
+// Tests in this file share one seeded library and run in order in a single
+// worker, so the seed happens once. `fullyParallel` would otherwise split them
+// across workers and race the seed against itself.
+test.describe.configure({ mode: 'default' });
+
+test.beforeAll(async () => {
+  test.setTimeout(180_000);
+  await seedLibrary();
+});
+
+/** A brand new rider, on the free plan, through the real sign-up. */
+async function signUpRookie(page: Page): Promise<void> {
+  const now = new Date();
+  const dob = new Date(Date.UTC(now.getUTCFullYear() - 24, now.getUTCMonth(), now.getUTCDate()))
+    .toISOString()
+    .slice(0, 10);
+
+  await page.goto('/signup');
+  await page.getByLabel('Your name').fill('Library Rider');
+  await page.getByLabel('Email').fill(`e2e-lib-${unique()}@landit.invalid`);
+  await page.getByLabel('Password').fill(password);
+  await page.getByLabel('Where you live').selectOption('GB');
+  await page.getByLabel('Date of birth').fill(dob);
+  await page.getByRole('button', { name: 'Create account' }).click();
+
+  // Step 1 arrives with the first sport already chosen, so clicking one would
+  // *deselect* it. The rider keeps the default and moves on.
+  await page.waitForURL('**/onboarding');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: /Just started/ }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Land my first trick' }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: "Let's go" }).click();
+  await page.waitForURL('**/account');
+}
+
+test('the library lists the tricks, signed out, with one tab per sport', async ({ page }) => {
+  await page.goto('/library');
+
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('tricks');
+  await expect(card(page, freeTrick.name)).toBeVisible();
+
+  // Three sports since T21 — screenshot 08 shows two because it predates the
+  // decision (plan §7 ground rules).
+  for (const id of SPORT_IDS) {
+    await expect(page.getByRole('tab', { name: new RegExp(SPORTS[id].label, 'i') })).toBeVisible();
+  }
+  expect(SPORT_IDS.length).toBe(3);
+});
+
+test('a paid trick is listed, not hidden, and says which tier it is', async ({ page }) => {
+  await page.goto('/library');
+
+  const locked = card(page, lockedTrick.name);
+  await expect(locked).toBeVisible();
+  await expect(locked).toContainText(TIERS_LABEL[lockedTrick.diff - 1]!);
+  await expect(locked).toContainText('Shredder');
+});
+
+test('search and the filters narrow the grid', async ({ page }) => {
+  await page.goto('/library');
+
+  await page.getByLabel('Search tricks').fill(freeTrick.name);
+  await expect(card(page, freeTrick.name)).toBeVisible();
+  await expect(card(page, lockedTrick.name)).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Clear' }).click();
+  await expect(card(page, lockedTrick.name)).toBeVisible();
+
+  // Nothing matches: the empty state offers a way back rather than a blank page.
+  await page.getByLabel('Search tricks').fill('zzzz-no-such-trick');
+  await expect(page.getByText('Nothing matches')).toBeVisible();
+  await page.getByRole('button', { name: 'Reset filters' }).click();
+  await expect(card(page, freeTrick.name)).toBeVisible();
+});
+
+test('a rookie is told what their plan covers, without being leant on', async ({ page }) => {
+  await signUpRookie(page);
+  await page.goto('/library');
+
+  await expect(page.getByText('You’re on Rookie')).toBeVisible();
+  await expect(
+    page.getByText(`The ${TIERS_LABEL[2]}, ${TIERS_LABEL[3]} and ${TIERS_LABEL[4]}`),
+  ).toBeVisible();
+
+  // Plan §6.4, standard 13: no loss framing, no countdown, nothing that reads
+  // as a squeeze. A copy edit that adds one has to fail here.
+  const body = (await page.locator('body').innerText()).toLowerCase();
+  for (const phrase of ['missing out', 'hurry', 'ends in', "don't lose", 'only today']) {
+    expect(body).not.toContain(phrase);
+  }
+});
+
+test('a rookie opening a paid trick gets the lock, not the trick', async ({ page }) => {
+  await signUpRookie(page);
+  await page.goto(`/library/${lockedTrick.id}`);
+
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(lockedTrick.name);
+  await expect(
+    page.getByText(`${TIERS_LABEL[lockedTrick.diff - 1]} tier is on Shredder`),
+  ).toBeVisible();
+
+  // The tier is what is behind the paywall, so none of it is on the page: not
+  // the lowdown, not the tips, and not a stage picker to write with.
+  const body = await page.locator('body').innerText();
+  expect(body).not.toContain(lockedTrick.about.slice(0, 40));
+  expect(body).not.toContain(lockedTrick.tips.slice(0, 40));
+  await expect(page.getByRole('button', { name: 'Every time' })).toHaveCount(0);
+  await expect(page.getByText('Can you do it?')).toHaveCount(0);
+});
+
+test('a rookie can open a free trick and log a stage that sticks', async ({ page }) => {
+  await signUpRookie(page);
+  await page.goto(`/library/${freeTrick.id}`);
+
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(freeTrick.name);
+  await expect(page.getByText('The lowdown')).toBeVisible();
+  await expect(page.getByText('Can you do it?')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Sometimes' }).click();
+  await expect(page.getByText(/Logged as/i).first()).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Sometimes' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+
+  // And the library says so too.
+  await page.goto('/library');
+  await expect(card(page, freeTrick.name)).toContainText('Sometimes');
+});
+
+test('clips render as an upsell, never as an upload, on the free plan', async ({ page }) => {
+  await signUpRookie(page);
+  await page.goto(`/library/${freeTrick.id}`);
+
+  await expect(page.getByText('Filming your attempts is part of Shredder')).toBeVisible();
+  await expect(page.getByRole('button', { name: /add a clip/i })).toHaveCount(0);
+});
+
+test('a signed-out visitor can read a trick but not track it', async ({ page }) => {
+  await page.goto(`/library/${freeTrick.id}`);
+
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(freeTrick.name);
+  await expect(page.getByRole('link', { name: 'Sign in' }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Every time' })).toHaveCount(0);
+});

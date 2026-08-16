@@ -1,0 +1,337 @@
+/*
+ * The trick page and its locked twin (screenshots 09 and 10).
+ *
+ * The two share their furniture — the back link, the header band, the panel
+ * that holds them — and differ in exactly the ways the design says they do: the
+ * locked header is a hatch instead of the category colour, and its name is
+ * `--ink-3` instead of white on a 3px ink shadow.
+ */
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 14px;
+  color: var(--ink-3);
+  font-size: 13.5px;
+}
+
+.back:hover {
+  color: var(--ink);
+}
+
+.panel {
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.header {
+  padding: 20px 22px;
+  border-bottom: 3px solid var(--ink);
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Locked: the same diagonal hatch the locked trick card and the skill tree use. */
+.headerLocked {
+  background: repeating-linear-gradient(45deg, #efe9da 0 11px, #e5decc 11px 22px);
+}
+
+.headerTags {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.name {
+  font-size: clamp(36px, 7vw, 64px);
+  color: #fff;
+  text-shadow: 3px 3px 0 var(--ink);
+  margin-top: 10px;
+}
+
+.nameLocked {
+  font-size: clamp(36px, 7vw, 64px);
+  color: var(--ink-3);
+  margin-top: 10px;
+}
+
+.difficulty {
+  margin-left: auto;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+/* ------------------------------------------------------------- unlocked -- */
+
+.grid {
+  padding: 22px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 22px;
+}
+
+@media (max-width: 820px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sectionLabel {
+  margin-bottom: 6px;
+}
+
+.prose {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.kit {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper-2);
+  padding: 11px 14px;
+}
+
+.kitIcon {
+  width: 34px;
+  height: 34px;
+  border: 2.5px solid var(--ink);
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: #fff;
+}
+
+.kitText {
+  min-width: 0;
+}
+
+.kitCopy {
+  font-size: 14.5px;
+  margin-top: 2px;
+}
+
+.fact {
+  background: var(--paper-2);
+  border: 2.5px solid var(--ink);
+  border-left-width: 7px;
+  padding: 13px 15px;
+  display: flex;
+  gap: 12px;
+}
+
+.factLabel {
+  font-size: 13px;
+  flex: none;
+  width: 46px;
+  line-height: 1.05;
+}
+
+.factBody {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+/* ---------------------------------------------------------- side panels -- */
+
+.stagePanel {
+  padding: 15px;
+  background: var(--paper-2);
+}
+
+.sidePanel {
+  padding: 15px;
+}
+
+.stages {
+  margin-top: 10px;
+}
+
+.stageNote {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+  letter-spacing: 0.03em;
+}
+
+.landed {
+  margin-top: 12px;
+  border-top: 2.5px solid var(--wash);
+  padding-top: 12px;
+}
+
+.landedDate {
+  font-size: 14.5px;
+  margin-top: 2px;
+}
+
+.signIn {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.panelHeadEnd {
+  margin-left: auto;
+}
+
+.clipSlot {
+  min-height: 90px;
+  margin-bottom: 10px;
+  border-style: solid;
+  border-color: var(--violet);
+}
+
+.clipNote {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.notes {
+  border: 2.5px solid var(--ink);
+  padding: 10px;
+  font-size: 14px;
+  width: 100%;
+  resize: vertical;
+  background: var(--paper);
+  margin-top: 8px;
+  font-family: var(--fb);
+}
+
+.pillRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+/*
+ * `.pill` on an `<a>`: the design system styles the class, but `tokens.css`
+ * carries an `a:hover { color: var(--pink) }` that outranks it, and an anchor
+ * is inline by default (LESSONS §3a). Both are settled here rather than in the
+ * shared stylesheet.
+ */
+.pillLink {
+  font-size: 12px;
+  padding: 5px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.pillLink:hover:not(.pillLanded) {
+  color: var(--ink);
+  background: var(--paper-2);
+}
+
+.pillLink:hover {
+  color: var(--ink);
+}
+
+.pillLanded {
+  background: var(--lime);
+}
+
+.pillLocked {
+  opacity: 0.6;
+}
+
+.unlocksLabel {
+  margin-top: 15px;
+}
+
+/* ------------------------------------------------------------- the lock -- */
+
+.lockBody {
+  padding: 34px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.lockMark {
+  width: 56px;
+  height: 56px;
+  background: var(--violet);
+  border: 3px solid var(--ink);
+  display: grid;
+  place-items: center;
+  transform: rotate(-5deg);
+  color: #fff;
+}
+
+.lockTitle {
+  font-size: 26px;
+}
+
+.lockCopy {
+  margin: 0;
+  max-width: 460px;
+  font-size: 15.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.lockActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.lockNote {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.lockPrereqs {
+  border-top: 2.5px solid var(--wash);
+  padding-top: 16px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.lockPrereqRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: center;
+  margin-top: 9px;
+}

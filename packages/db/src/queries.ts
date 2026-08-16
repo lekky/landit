@@ -1,4 +1,4 @@
-import type { RiderSnapshot, SportId, StageId, TrickLogEntry } from '@landit/core';
+import type { RiderSnapshot, SportId, StageId, Trick, TrickLogEntry } from '@landit/core';
 
 import type { Client } from './clients';
 import { records } from './collections';
@@ -72,6 +72,54 @@ export async function getTrickBySlug(client: Client, slug: string): Promise<Tric
  */
 export async function listTrickPrereqs(client: Client): Promise<TrickPrereqsRecord[]> {
   return records(client, 'trick_prereqs').list();
+}
+
+/**
+ * `tricks` rows as the `Trick` shape every rule in `@landit/core` takes.
+ *
+ * The mapping, not a rule: two columns spell things differently from the
+ * canonical shape and this is the one place that knows it.
+ *
+ * - **`id` is the slug.** The rules, the seeds and the fixtures all key tricks
+ *   by slug, exactly as `trickProgressById` does, so a snapshot survives a
+ *   reseed and a URL is readable.
+ * - **`free_override` is the handoff's nullable `free`.** The empty select
+ *   value means "inherit from `diff`", which is `undefined` in the rule shape —
+ *   not `false`, which would push every trick in the library onto the paid tier.
+ *
+ * Passing the result into a rule is what makes a staff edit take effect without
+ * a deploy: every function in `@landit/core` takes an optional trick list, and
+ * the live rows are what should be handed to it (plan §7, T17).
+ */
+export function tricksFromRecords(
+  tricks: readonly TricksRecord[],
+  prereqs: readonly TrickPrereqsRecord[] = [],
+): Trick[] {
+  const slugOf = new Map(tricks.map((t) => [t.id, t.slug]));
+
+  const pre = new Map<string, string[]>();
+  for (const edge of prereqs) {
+    const trick = slugOf.get(edge.trick);
+    const prereq = slugOf.get(edge.prereq);
+    if (!trick || !prereq) continue;
+    const list = pre.get(trick);
+    if (list) list.push(prereq);
+    else pre.set(trick, [prereq]);
+  }
+
+  return tricks.map((row) => ({
+    id: row.slug,
+    name: row.name,
+    sport: row.sport,
+    cat: row.cat,
+    diff: row.diff as Trick['diff'],
+    pre: pre.get(row.slug) ?? [],
+    about: row.about,
+    tips: row.tips,
+    fact: row.fact,
+    ...(row.free_override ? { free: row.free_override === 'free' } : {}),
+    isLive: row.is_live,
+  }));
 }
 
 /* ---------------------------------------------------------------- riders -- */

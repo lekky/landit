@@ -1,0 +1,96 @@
+/*
+ * The library screen's own layout. Everything with a look — the panel, the
+ * pills, the search box, the trick card, the two-column split — is the design
+ * system's; what is here is only the spacing between them (screenshot 08).
+ */
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+
+.title {
+  font-size: clamp(30px, 5vw, 44px);
+  margin-top: 6px;
+}
+
+.search {
+  flex: 1;
+  min-width: 240px;
+}
+
+.clear {
+  background: none;
+  border: none;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.filters {
+  padding: 15px;
+}
+
+.groupLabel {
+  margin-top: 17px;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.toggleState {
+  margin-left: auto;
+}
+
+/* The rookie banner: what the plan covers, stated once, with no urgency. */
+.banner {
+  padding: 13px 15px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--paper-2);
+}
+
+.bannerIcon {
+  width: 34px;
+  height: 34px;
+  background: var(--violet);
+  border: 2.5px solid var(--ink);
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: #fff;
+}
+
+.bannerText {
+  min-width: 180px;
+  flex: 1;
+}
+
+.bannerTitle {
+  font-size: 15px;
+}
+
+.bannerBody {
+  margin: 3px 0 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+.bannerNote {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.count {
+  color: var(--ink-3);
+  margin-bottom: 11px;
+}
