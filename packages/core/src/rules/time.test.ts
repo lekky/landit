@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
+import { CHALLENGES } from '../data/challenges';
 import {
   DEFAULT_TIMEZONE,
+  WEEK_STARTS_ON,
   addDays,
   compareDayKeys,
   daysBetween,
   isDayKey,
   isDayWithin,
   toDayKey,
+  weekEnd,
+  weekStart,
+  weeksBetween,
 } from './time';
 
 describe('day keys', () => {
@@ -92,5 +97,39 @@ describe('day arithmetic', () => {
     expect(isDayWithin('2026-08-16', '2026-08-10', '2026-08-16')).toBe(true); // end inclusive
     expect(isDayWithin('2026-08-10', '2026-08-10', '2026-08-16')).toBe(true); // start inclusive
     expect(isDayWithin('2026-08-17', '2026-08-10', '2026-08-16')).toBe(false);
+  });
+});
+
+describe('weeks, cut where the challenges cut them', () => {
+  it('opens the week on Monday and closes it on Sunday', () => {
+    // 2026-08-10 is a Monday, 2026-08-16 the Sunday that closes the same week.
+    expect(weekStart('2026-08-10')).toBe('2026-08-10');
+    expect(weekStart('2026-08-13')).toBe('2026-08-10');
+    expect(weekStart('2026-08-16')).toBe('2026-08-10');
+    expect(weekEnd('2026-08-10')).toBe('2026-08-16');
+    expect(weekEnd('2026-08-16')).toBe('2026-08-16');
+    expect(weekStart('2026-08-17')).toBe('2026-08-17'); // the next week opens
+  });
+
+  it('agrees with every seeded challenge window', () => {
+    // One product, one definition of a week: the streak week must be the same
+    // seven days as the challenge week, or "this week" means two things.
+    expect(WEEK_STARTS_ON).toBe(1);
+    for (const challenge of CHALLENGES) {
+      expect(weekStart(challenge.starts)).toBe(challenge.starts);
+      expect(weekEnd(challenge.starts)).toBe(challenge.ends);
+    }
+  });
+
+  it('crosses a month and a year boundary', () => {
+    expect(weekStart('2026-08-01')).toBe('2026-07-27');
+    expect(weekEnd('2026-12-31')).toBe('2027-01-03');
+  });
+
+  it('counts whole weeks between the weeks two days fall in', () => {
+    expect(weeksBetween('2026-08-10', '2026-08-16')).toBe(0); // same week
+    expect(weeksBetween('2026-08-16', '2026-08-17')).toBe(1); // Sunday to Monday
+    expect(weeksBetween('2026-08-10', '2026-08-31')).toBe(3);
+    expect(weeksBetween('2026-08-31', '2026-08-10')).toBe(-3);
   });
 });

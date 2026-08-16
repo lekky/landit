@@ -89,3 +89,37 @@ export function compareDayKeys(a: DayKey, b: DayKey): number {
 export function isDayWithin(day: DayKey, from: DayKey, to: DayKey): boolean {
   return day >= from && day <= to;
 }
+
+/**
+ * The day a week turns over on, as a `Date.getUTCDay()` index: `1`, Monday.
+ *
+ * **One product, one definition of "a week."** The weekly challenges were
+ * already Monday-to-Sunday before the weekly streak existed — every seeded
+ * challenge `starts` on a Monday and `ends` on the Sunday six days later, and
+ * the cards say "Opens Monday". The weekly streak (plan §1) is scored on the
+ * same boundary rather than a second one, so a rider's challenge week and
+ * streak week are always the same seven days.
+ *
+ * This is not a knob. Changing it would silently re-cut every challenge window,
+ * so a different week boundary is a plan decision, not a call-site option.
+ */
+export const WEEK_STARTS_ON = 1;
+
+/** The Monday of the week `day` falls in. `day` itself when it is a Monday. */
+export function weekStart(day: DayKey): DayKey {
+  const weekday = new Date(dayKeyToUtcMs(day)).getUTCDay();
+  return addDays(day, -((weekday - WEEK_STARTS_ON + 7) % 7));
+}
+
+/** The Sunday of the week `day` falls in — inclusive, like a challenge's `ends`. */
+export function weekEnd(day: DayKey): DayKey {
+  return addDays(weekStart(day), 6);
+}
+
+/**
+ * Whole weeks from the week containing `from` to the week containing `to`.
+ * Zero when both days share a week, positive when `to` is later.
+ */
+export function weeksBetween(from: DayKey, to: DayKey): number {
+  return daysBetween(weekStart(from), weekStart(to)) / 7;
+}
