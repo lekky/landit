@@ -12,12 +12,23 @@ import { expect, test, type Page } from '@playwright/test';
  *   The refusal itself is server-side and proven over HTTP in
  *   `pocketbase/tests/insights-opt-in.test.ts`; what this asserts is that the
  *   screen does not put a control in front of somebody it would refuse.
- * - **The skill tree draws the paywall rather than hiding it.** Locked tricks
- *   stay visible throughout (handoff, Interactions), so a rookie rider is told
- *   what they are missing and by name.
+ * - **The printable-sheets panel names its plan rather than offering a button
+ *   that would not work.**
  *
- * The Legend side of the gate is not tested here: putting a rider on a plan
- * needs a superuser, which is the HTTP suite's job, not a browser's.
+ * Two things are deliberately *not* asserted here, and the reason is the same
+ * for both: **the e2e PocketBase carries no trick library.** It is started from
+ * the migrations with nothing seeded (`playwright.config.ts`), so every rider in
+ * this file has an empty library, an empty skill tree and no landings. So the
+ * node states — landed, prerequisite-locked, paywalled — are proven in
+ * `packages/core/src/rules/progress.test.ts` against a fixture library, and the
+ * paywall itself over HTTP in `pocketbase/tests/guarantee-3-paywall.test.ts`.
+ * An earlier version of this file asserted on a node in the tree; it passed
+ * locally against a seeded instance and failed in CI, which is LESSONS §1's
+ * "a green local e2e proves nothing if the bytes came from somewhere else"
+ * arriving from the other direction. Seeding the e2e instance is issue #60.
+ *
+ * The Legend side of the gate is not tested here either: putting a rider on a
+ * plan needs a superuser, which is the HTTP suite's job, not a browser's.
  */
 
 const password = 'a-long-local-test-password';
@@ -77,18 +88,19 @@ test('the insights panel offers a rookie rider nothing to switch on', async ({ p
   await expect(page.getByRole('button', { name: /turn insights off/i })).toHaveCount(0);
 });
 
-test('the skill tree shows the paywall rather than hiding the tricks', async ({ page }) => {
+test('the skill tree section renders, and its nodes are never dead controls', async ({ page }) => {
   await newRider(page);
   await page.goto('/progress');
 
-  const tree = page.locator('.tree');
-  await expect(tree).toBeVisible();
-  // Locked nodes stay visible and say what would unlock them.
-  await expect(tree.locator('.node.paid').first()).toBeVisible();
-  await expect(tree.getByText('Shredder').first()).toBeVisible();
-  // A node with nowhere to go yet is a surface, not a control (LESSONS §3a):
-  // `/library/[trick]` is T7's route and this branch has no link to give it.
-  await expect(tree.locator('button.node')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Skill tree' })).toBeVisible();
+  await expect(page.getByText(/Tricks unlock tricks/i)).toBeVisible();
+  await expect(page.locator('.tree')).toHaveCount(1);
+
+  // Whatever the library holds, no node is a button until something has a
+  // destination to give it: `/library/[trick]` is T7's route, and a focusable
+  // control that does nothing is what LESSONS §3a exists to prevent. This one
+  // holds on an empty library *and* a full one, which is why it survives here.
+  await expect(page.locator('button.node')).toHaveCount(0);
 });
 
 test('printable sheets are offered to paid riders and named as such to free ones', async ({
