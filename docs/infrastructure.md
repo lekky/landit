@@ -66,6 +66,8 @@ Set up 2026-08-15. This file records what exists and how to reach it — no secr
 
 - [ ] Land It domain — buy, point at the box, then create the Land It Coolify project
       (Next.js app + PocketBase + preview deploys) and add its DB to litestream.yml.
+- [ ] Resend account + sending-domain DNS (needs the Land It domain first) — required before T6
+      (auth emails) is tested against the hosted instance.
 - [ ] Uptime Kuma monitors for each deployed site as they appear (plus one for
       https://box1.hellowebdesign.co.uk).
 - [ ] R2 lifecycle rule + clips bucket when T14 (clips) approaches.
