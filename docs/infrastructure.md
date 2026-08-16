@@ -102,6 +102,7 @@ Set up 2026-08-15. This file records what exists and how to reach it — no secr
       its own record and its own reputation and touches neither. Testing on it is fine, launching
       on it is not — a child-safety email from an unrelated agency domain reads as phishing to a
       parent.
-- [ ] Uptime Kuma monitors for each deployed site as they appear (plus one for
-      https://box1.hellowebdesign.co.uk).
+- [ ] Uptime Kuma monitors for each deployed site as they appear — for Land It that is
+      https://landthetrick.com and https://api.landthetrick.com — plus one for
+      https://box1.hellowebdesign.co.uk.
 - [ ] R2 lifecycle rule + clips bucket when T14 (clips) approaches.
