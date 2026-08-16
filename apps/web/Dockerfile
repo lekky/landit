@@ -15,17 +15,27 @@
 # and CI runs, so a build that passes there passes here.
 ARG NODE_VERSION=22.12.0
 
-# ----------------------------------------------------------------- deps --
-FROM node:${NODE_VERSION}-alpine AS deps
-WORKDIR /repo
+# ------------------------------------------------------------------ base --
+FROM node:${NODE_VERSION}-alpine AS base
 
 # Corepack reads `packageManager` from the root package.json, so pnpm's version
 # comes from the repo rather than from whatever the base image happens to ship.
-RUN corepack enable
+#
+# **Corepack is upgraded first, and that is not tidiness.** The copy bundled
+# with Node 22.12.0 carries signing keys that no longer match npm's, so the
+# first `pnpm` invocation dies with `Error: Cannot find matching keyid` while
+# trying to verify the download — which reads like a network fault and is not
+# one. Installing a current corepack fixes the keys while leaving
+# `packageManager` as the single source of truth for the version.
+RUN npm install --global corepack@latest && corepack enable
+
+# ----------------------------------------------------------------- deps --
+FROM base AS deps
+WORKDIR /repo
 
 # Only the manifests first: this layer is what Docker caches, and it should not
 # be invalidated by a change to a component.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/
 COPY packages/core/package.json packages/core/
 COPY packages/db/package.json packages/db/
@@ -37,9 +47,8 @@ COPY pocketbase/package.json pocketbase/
 RUN pnpm install --frozen-lockfile
 
 # --------------------------------------------------------------- builder --
-FROM node:${NODE_VERSION}-alpine AS builder
+FROM base AS builder
 WORKDIR /repo
-RUN corepack enable
 
 COPY --from=deps /repo/node_modules ./node_modules
 COPY --from=deps /repo/apps/web/node_modules ./apps/web/node_modules
