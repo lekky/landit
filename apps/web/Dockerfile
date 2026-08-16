@@ -56,8 +56,19 @@ COPY pocketbase/package.json pocketbase/
 # fault cannot be reproduced locally at all. A flat `node_modules` removes the
 # whole class: the tracer resolves exactly as it would under npm.
 #
+# Written as an `.npmrc` rather than passed as a flag, because a flag pnpm
+# does not recognise is ignored in silence and the image builds anyway — which
+# is how the first attempt at this shipped a broken deploy. The `if` below is
+# the belt: no `.pnpm` directory may survive the install, and the build stops
+# here rather than producing an image that starts and dies.
+#
 # The lockfile still decides *what* is installed. This only changes the layout.
-RUN pnpm install --frozen-lockfile --config.node-linker=hoisted
+RUN echo "node-linker=hoisted" > .npmrc \
+  && pnpm install --frozen-lockfile \
+  && if [ -d node_modules/.pnpm ]; then \
+       echo "node_modules is still pnpm-linked; the standalone trace will be incomplete"; \
+       exit 1; \
+     fi
 
 # --------------------------------------------------------------- builder --
 FROM base AS builder
