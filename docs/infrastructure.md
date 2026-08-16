@@ -64,8 +64,8 @@ Set up 2026-08-15. This file records what exists and how to reach it — no secr
 
 ## Bringing `landthetrick.com` up (runbook)
 
-The product domain, chosen 2026-08-16 (Rachid) and ordered the same day. Nothing below has been
-done yet; tick the checklist in the next section as it is.
+The product domain, chosen and registered 2026-08-16 (Rachid, at Namecheap). Step 1 is done; the
+checklist in the next section is the live progress.
 
 **Order matters.** Certificates need DNS and Coolify needs certificates. Steps 5 and 6 both touch
 the same SPF record, and that is where the one mistake in this list gets made.
@@ -75,33 +75,42 @@ was written into published copy before anyone owned it — it belongs to someone
 registration has expired — which is where the rule came from: **never publish an address on a domain
 that is not yet registered to us.**
 
-### 1. DNS at hostmedia
+### 1. DNS at Namecheap — **done 2026-08-16**
 
-**DNS stays with hostmedia** (2026-08-16), alongside the cPanel that will hold the mailboxes in
-step 5. Cloudflare was considered and is not needed: R2 and Cloudflare Web Analytics both work
-regardless of where DNS lives, and its free Email Routing — the one real draw — is redundant when
-cPanel already provides mailboxes. One account, and an SPF record with one include rather than two.
+The domain is registered at **Namecheap**, and its DNS stays there on **Namecheap BasicDNS**. Two
+alternatives were considered and rejected: Cloudflare (R2 and Cloudflare Web Analytics both work
+wherever DNS lives, and its free Email Routing is redundant once cPanel provides mailboxes), and
+hostmedia's own nameservers.
 
-Records, all to the box (`188.119.155.124`, `2a0f:8f00::c:0:0:2`):
+Namecheap wins on one thing that matters more than either: **cPanel's DNS zone is then never
+authoritative**, so creating the mail account in step 5 cannot move the website off the box. With
+hostmedia's nameservers it could, and silently.
 
-| Type | Name | Points at |
+The cost is that cPanel's generated mail records live in a zone nobody queries, so two of them get
+copied across by hand — see step 5. That is a one-off; a website disappearing is not.
+
+Records, in **Domain List → Manage → Advanced DNS → Host Records**. `Host` is a label, so type
+`api`, not `api.landthetrick.com`:
+
+| Type | Host | Value |
 | --- | --- | --- |
-| A + AAAA | `@` | the box |
-| A + AAAA | `www` | the box |
-| A + AAAA | `api` | the box — PocketBase |
-| A + AAAA | `*` | the box — **wildcard, where Coolify's PR previews land** |
+| A Record | `@` | `188.119.155.124` |
+| AAAA Record | `@` | `2a0f:8f00::c:0:0:2` |
+| A Record | `www` | `188.119.155.124` |
+| A Record | `api` | `188.119.155.124` |
+| A Record | `*` | `188.119.155.124` |
 
-Two traps:
+Three things about this screen:
 
-- **Web and mail live on different servers.** The A records point at the VPS
-  (`188.119.155.124`); the MX points at whichever cPanel server the Land It account sits on. That
-  split is normal and intended — but **creating the cPanel account in step 5 builds a full DNS zone
-  with every record aimed at that shared server**, which silently moves the website off the box.
-  After step 5, come back and check `@`, `www`, `api` and `*` still resolve to `188.119.155.124`,
-  and that only `MX` (and cPanel's own `mail.`) points elsewhere. This is the most likely thing in
-  this runbook to go wrong.
+- **Delete the two records Namecheap ships with**: a URL Redirect on `@` to a parking page and a
+  CNAME `www` → `parkingpage.namecheap.com`. Both fight the records above.
 - **Without the wildcard there are no preview deploys.** Coolify gives each PR its own subdomain;
   `*` is what makes them resolve.
+- **The AAAA is the first suspect if certificates fail in step 2.** Let's Encrypt prefers IPv6 when
+  a hostname has an AAAA, and Docker does not publish ports on IPv6 unless the daemon is configured
+  for it. Boulder does fall back to IPv4, so this usually just works — but if the root domain will
+  not issue while `api` and the previews do, that difference is why. `curl -6 -I http://[2a0f:8f00::c:0:0:2]`
+  from an IPv6-capable machine settles it in one command.
 
 ### 2. Coolify project
 
@@ -130,16 +139,27 @@ allows several, and a separate account keeps Land It's mail isolated from HelloW
 separate SPF and DKIM, separate sending reputation, separate suspension risk, and a safeguarding
 inbox that can be handed to whoever is answering it without also handing over the agency's email.
 
-Create `safeguarding@`, `privacy@`, `hello@` and `events@` there and point the MX at that server.
-Real mailboxes or forwards to an inbox somebody reads — either is fine; what is not fine is an MX
-pointing at something that accepts and discards.
+Create `safeguarding@`, `privacy@`, `hello@` and `events@` there. Real mailboxes or forwards to an
+inbox somebody reads — either is fine; what is not fine is an MX pointing at something that accepts
+and discards.
 
 All four are published in the terms, the privacy policy, the safeguarding page and the
 guardian-consent email, and `safeguarding@` carries a **one-working-day response promise** the owner
 made deliberately (plan §7, T5). Until this is done they all bounce.
 
-**Then re-check the A records** — see the trap in step 1. Adding the domain here is exactly when
-they get pointed at the wrong server.
+**cPanel's zone is not authoritative** (step 1), so nothing it writes takes effect and three things
+have to be carried over to Namecheap by hand:
+
+1. **Set Mail Settings to Custom MX** at the bottom of Namecheap's Advanced DNS tab, then add the
+   MX record pointing at the cPanel server. Left on "Email Forwarding" or "No Email Service", the
+   MX record is ignored and the mailboxes are unreachable. The target is in the cPanel welcome
+   email.
+2. **Copy cPanel's DKIM** out of its Zone Editor into Namecheap as a TXT record — host
+   `default._domainkey`, or whatever selector cPanel used.
+3. **Copy cPanel's SPF** the same way. Step 6 then appends MailerSend's include to it.
+
+cPanel will keep reporting the mail DNS as misconfigured, because it cannot see Namecheap's zone.
+That is cosmetic. What matters is what `dig` says.
 
 ### 6. MailerSend
 
@@ -153,12 +173,12 @@ they get pointed at the wrong server.
    SMTP credentials into PocketBase's mail settings (`pocketbase/.env.example` lists the five
    values).
 
-⚠️ **The SPF trap.** cPanel writes an SPF record of its own the moment the account is created in
-step 5 — `hellowebdesign.co.uk` carries the same shape, `v=spf1 +a +mx +ip4:<that server>
-include:relay.mailchannels.net ~all`. MailerSend will then ask for an SPF record too. **A domain may
-have only one `v=spf1` record**: a second is not "two senders allowed", it is a permanent error that
-fails both, and one of the two is a guardian-consent email. Append MailerSend's include to the
-record cPanel made rather than adding another:
+⚠️ **The SPF trap.** cPanel generates an SPF record when the account is created in step 5 —
+`hellowebdesign.co.uk` carries the same shape, `v=spf1 +a +mx +ip4:<that server>
+include:relay.mailchannels.net ~all` — and step 5 copies it into Namecheap. MailerSend will then ask
+for an SPF record too. **A domain may have only one `v=spf1` record**: a second is not "two senders
+allowed", it is a permanent error that fails both, and one of the two is a guardian-consent email.
+Edit the record already at Namecheap to append MailerSend's include rather than adding a second:
 
 ```
 v=spf1 +a +mx +ip4:<the Land It cPanel server> include:relay.mailchannels.net include:_spf.mailersend.net ~all
@@ -191,11 +211,11 @@ the mechanism the child-safety position rests on.
 
 Steps 1–8 above are the sequence; this is the progress.
 
-- [ ] The four DNS records at hostmedia, all pointing at the box (runbook 1)
+- [x] The five DNS records at Namecheap, all pointing at the box (runbook 1) — done 2026-08-16
 - [ ] Land It Coolify project, both hostnames on HTTPS (runbook 2) — **the late one**
 - [ ] The new PocketBase database in `litestream.yml`, restore rehearsed (runbook 3)
 - [ ] `LANDIT_APP_URL` set on the hosted instance (runbook 4)
-- [ ] Own cPanel account, the four published mailboxes, MX pointed at it, A records re-checked (runbook 5)
+- [ ] Own cPanel account, the four published mailboxes, and its MX/DKIM/SPF copied to Namecheap (runbook 5)
 - [ ] MailerSend out of trial, domain verified, SPF merged (runbook 6)
 - [ ] DMARC (runbook 7)
 - [ ] Uptime Kuma monitors, then the email paths by hand — issue #31 (runbook 8)
