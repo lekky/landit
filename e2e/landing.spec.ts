@@ -88,6 +88,15 @@ test('a screen that has been built is a real link', async ({ page }) => {
   for (const [name, href] of [
     ['Trick library', '/library'],
     ['Progress', '/progress'],
+    // Wave 5's five, wired by `chore-wire-wave5-links` once all four sessions
+    // had merged. Each shipped its screen reachable by URL and left this list
+    // alone on purpose, so this assertion is the only thing standing between a
+    // merged screen and a dead label.
+    ['Stickers', '/stickers'],
+    ['Events', '/events'],
+    ['Spots', '/spots'],
+    ['Crew', '/crew'],
+    ['Weekly challenge', '/challenge'],
   ] as const) {
     await expect(footer.getByRole('link', { name, exact: true })).toHaveAttribute('href', href);
   }

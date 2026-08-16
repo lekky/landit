@@ -37,14 +37,18 @@ const COLUMNS: readonly FooterColumn[] = [
     links: [
       { label: 'Trick library', href: ROUTES.library },
       { label: 'Progress', href: ROUTES.progress },
-      { label: 'Stickers' },
-      { label: 'Events' },
-      { label: 'Spots' },
+      { label: 'Stickers', href: ROUTES.stickers },
+      { label: 'Events', href: ROUTES.events },
+      { label: 'Spots', href: ROUTES.spots },
     ],
   },
   {
     title: 'Riders',
-    links: [{ label: 'Crew' }, { label: 'Weekly challenge' }, { label: 'Plans and pricing' }],
+    links: [
+      { label: 'Crew', href: ROUTES.crew },
+      { label: 'Weekly challenge', href: ROUTES.challenge },
+      { label: 'Plans and pricing' },
+    ],
   },
   {
     title: 'Company',
