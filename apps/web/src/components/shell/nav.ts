@@ -9,9 +9,12 @@ import type { Route } from 'next';
  * design's, not an implementation detail — the handoff specifies a five-item
  * bar and five is what fits.
  *
- * Every `href` is absent because no screen exists yet. When your task lands
- * one, fill it in here: the top bar, the bottom bar and the active-state
- * highlighting all read this list, so that is the only edit needed.
+ * An `href` is present once the screen behind it exists: Home, Tricks and
+ * Progress landed in T7 to T9. The rest are still bare labels, and the task
+ * that lands each screen fills in its own line — Stickers is T10, Crew T11,
+ * Challenge and Events T12, Spots T13, Plans T15. One edit is all it takes:
+ * the top bar, the bottom bar and the active-state highlighting all read this
+ * list.
  */
 
 export type NavItem = {
