@@ -656,7 +656,8 @@ widening existing shared ones.
 - Shared packages (`core`, `db`, `ui-web`) and `pocketbase/` are **additive-only** once their wave
   has merged: a screen session may add a new export, collection field or hook it needs, but must
   not change the signature or behaviour of an existing one. If a breaking change seems necessary,
-  stop and flag it instead.
+  stop and flag it instead. Exceptions come from the owner and are recorded here naming the owner
+  and the date — a session never authorises its own (`CLAUDE.md` §4).
 
 ### Wave 0 — one session, serial
 
@@ -846,9 +847,9 @@ over the `reports` collection. Depends on T16. Inputs: `landit-admin.jsx`, scree
   that loads the new tricks, edges and stickers.
 - The BMX sport icon into `packages/ui-web`'s icon map beside `scoot` and `board`, and the BMX
   avatars as package assets plus registry entries.
-- **Explicitly authorised here** (so a later session does not have to stop and flag it): reword the
-  two skate-flavoured category blurbs — `flat`'s "Balance and board control" and `hybrid`'s "Combos
-  and deck flips". Categories are sport-agnostic (§3) and the copy has to be too. Copy only; no
+- **Owner-authorised exception to additive-only (Rachid, 2026-08-16):** reword the two
+  skate-flavoured category blurbs — `flat`'s "Balance and board control" and `hybrid`'s "Combos and
+  deck flips". Categories are sport-agnostic (§3) and the copy has to be too. Copy only; no
   signature or behaviour changes.
 - Sweep for the two-sport assumptions the type system cannot catch: tab strips and filter rows built
   from literals, seed scripts, and any copy that says "both sports".
