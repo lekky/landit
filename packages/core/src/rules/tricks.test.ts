@@ -74,23 +74,39 @@ describe('the free / paid split', () => {
     expect(isTrickFree(noOverride)).toBe(true);
   });
 
-  it('splits the shipped library 29 free / 68 paid', () => {
+  it('splits the shipped library 34 free / 63 paid', () => {
     // Read through `Trick`: the canonical data is `as const`, so a trick with
     // no override has no `free` key in its inferred type at all.
     const library: readonly Trick[] = TRICKS;
     const free = library.filter(isTrickFree);
-    expect(free).toHaveLength(30);
-    expect(library.filter((t) => !isTrickFree(t))).toHaveLength(67);
+    expect(free).toHaveLength(34);
+    expect(library.filter((t) => !isTrickFree(t))).toHaveLength(63);
 
-    // Two tricks override difficulty, and they are named here on purpose: an
-    // override is how the free tier silently grows, so a third one appearing
+    // Six tricks override difficulty, and they are named here on purpose: an
+    // override is how the free tier silently grows, so a seventh appearing
     // should fail this test and be argued for rather than noticed later.
     //
-    // Both exist for the same reason — each is the trick its sport's entire
-    // street branch descends from, so leaving it paid puts no street content at
-    // all in that sport's free tier (issue #75).
+    // All six exist to keep the sticker wall earnable without paying (#75).
+    // Three arguments, in order of how much they give away:
+    //
+    // - `sk-50-50` and `bmx-double-peg` are the tricks their sport's entire
+    //   street branch descends from. Paid, they leave that sport with no free
+    //   street content at all — a branch you can see and never enter.
+    // - `sk-pop-shuvit`, `sk-180` and `sk-kickflip` are the beginner flatground
+    //   ladder. Skate grades them 3 where scooter and BMX grade the same rungs
+    //   2, which left a free skate rider six tricks against a BMX rider's
+    //   fourteen, and put `ten-deep` out of reach for a skate-only rider.
+    // - `tailwhip` and `sk-kickflip` are their sports' rites of passage. A
+    //   milestone behind the paywall is an achievement for sale (plan §1).
     const overridden = library.filter((t) => t.free !== undefined);
-    expect(overridden.map((t) => t.id)).toEqual(['sk-50-50', 'bmx-double-peg']);
+    expect(overridden.map((t) => t.id)).toEqual([
+      'tailwhip',
+      'sk-pop-shuvit',
+      'sk-180',
+      'sk-kickflip',
+      'sk-50-50',
+      'bmx-double-peg',
+    ]);
     expect(overridden.every((t) => t.free === true)).toBe(true);
 
     // Everything else is the Rookie and Easy tiers, nothing more.
@@ -166,11 +182,15 @@ describe('prerequisite unlocks', () => {
   });
 
   it('keeps the paywall and the prerequisite lock independent', () => {
-    // A rookie who has landed a bunny hop has *unlocked* the tailwhip and is
+    // A rookie who has landed a bunny hop has *unlocked* the bar spin and is
     // still *locked out* of it. The skill tree draws these differently.
-    const tailwhip = trickById('tailwhip')!;
-    expect(isTrickUnlocked(tailwhip, { 'bunny-hop': 'every' })).toBe(true);
-    expect(isTrickLocked(tailwhip, 'rookie')).toBe(true);
+    //
+    // This used to be written with the tailwhip, which is now free (#75). The
+    // bar spin is the same shape — difficulty 3, park, bunny hop prerequisite —
+    // and still paid, so the two locks stay genuinely independent here.
+    const barSpin = trickById('bar-spin')!;
+    expect(isTrickUnlocked(barSpin, { 'bunny-hop': 'every' })).toBe(true);
+    expect(isTrickLocked(barSpin, 'rookie')).toBe(true);
   });
 });
 
@@ -214,14 +234,17 @@ describe('what to try next', () => {
     const suggested = suggestions.map((t) => t.id);
     expect(suggested).not.toContain('bunny-hop'); // already landed
     expect(suggested).toContain('manual'); // diff 2, prerequisite met
-    expect(suggested).not.toContain('tailwhip'); // diff 3, behind the paywall
+    expect(suggested).toContain('tailwhip'); // diff 3 but freed — see #75
+    expect(suggested).not.toContain('bar-spin'); // diff 3, behind the paywall
   });
 
   it('offers the paid rider the tricks the rookie could not have', () => {
     const suggested = suggestedNextTricks({ 'bunny-hop': 'some' }, 'shredder', 'scooter').map(
       (t) => t.id,
     );
-    expect(suggested).toContain('tailwhip');
+    // Was the tailwhip, which is now free and so proved nothing about the paid
+    // tier any more (#75). The bar spin is the same shape and still paid.
+    expect(suggested).toContain('bar-spin');
   });
 
   it('ignores hidden tricks', () => {

@@ -199,6 +199,13 @@ export const TRICKS = [
     cat: 'park',
     diff: 3,
     pre: ['bunny-hop'],
+    // Free despite being difficulty 3, and the only scooter park trick that is:
+    // park had no free content at all, so a free rider could see the branch and
+    // never enter it. It is also the sport's rite of passage — the trick riders
+    // themselves treat as the milestone — and a milestone behind a paywall is an
+    // achievement for sale (issue #75). Bar spin, no-footer, toboggan, 360 and
+    // everything above them stay paid.
+    free: true,
     about:
       'The signature scooter move. Hop up, kick the deck through a full 360° loop around the headtube, then stomp it back under your feet mid-air.',
     tips: 'Kick with your front foot and keep the bars dead still. Spot the grip tape coming back round before you stamp down.',
@@ -453,6 +460,11 @@ export const TRICKS = [
     cat: 'flat',
     diff: 3,
     pre: ['sk-ollie', 'sk-shuvit'],
+    // One of three flatground rungs freed together. Skate is graded harder than
+    // the other two libraries — scooter and BMX put the equivalent early tricks
+    // at difficulty 2 — which left a free skate rider six tricks where a scooter
+    // rider had nine and a BMX rider fourteen (issue #75).
+    free: true,
     about:
       'A shuvit with an ollie pop in it, so the board spins in the air rather than on the ground.',
     tips: 'Pop and scoop in the same motion. Front foot goes up and slightly out to leave room for the spin.',
@@ -466,6 +478,10 @@ export const TRICKS = [
     cat: 'flat',
     diff: 3,
     pre: ['sk-ollie'],
+    // Second of the three freed flatground rungs — see `sk-pop-shuvit`. This is
+    // also the gateway to riding fakie, so leaving it paid closed off a whole
+    // direction of the library rather than one trick.
+    free: true,
     about:
       'You and the board turn a half rotation together and roll away fakie, with your chest opening towards the direction of travel.',
     tips: 'Wind your shoulders the opposite way first, then unwind. Turn your head and the rest follows.',
@@ -491,6 +507,10 @@ export const TRICKS = [
     cat: 'flat',
     diff: 3,
     pre: ['sk-ollie'],
+    // Third of the three freed flatground rungs, and skate's rite of passage —
+    // the same argument that frees the scooter `tailwhip`. Heelflip, tre flip,
+    // hardflip and the rest of the flip family stay paid.
+    free: true,
     about:
       'Ollie up and flick the edge of the nose with your toes so the board spins a full barrel roll under you, then catch it with your feet.',
     tips: 'Ollie first, flick second. Keep your shoulders square and catch it with the back foot before you look for the ground.',
