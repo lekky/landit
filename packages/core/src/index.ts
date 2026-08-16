@@ -27,3 +27,7 @@ export const CORE_PACKAGE = '@landit/core' as const;
 export * from './types';
 export * from './data';
 export * from './rules';
+
+// Neither data nor a game rule: the pure decision behind the pre-launch holding
+// page, shared by the web proxy and `robots.ts` so the two cannot disagree.
+export * from './launch';

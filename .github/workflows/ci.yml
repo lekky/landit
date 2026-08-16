@@ -90,17 +90,95 @@ jobs:
       # nothing about whether `node server.js` finds its modules, which is a
       # runtime question and was answered — twice — by a crash loop on the box
       # rather than by CI. Starting it and asking for a page is the whole test.
+      #
+      # `LANDIT_SITE_LIVE=true` because this step's job is to prove the *app*
+      # serves. Without it the pre-launch gate would answer with the holding
+      # page — also a 200, so the old status-code-only check would have passed
+      # while proving nothing about the landing page.
       - name: Web app starts and serves
         run: |
-          docker run -d --name landit-web-ci -p 3000:3000 landit-web:ci
+          docker run -d --name landit-web-ci -p 3000:3000 \
+            -e LANDIT_SITE_LIVE=true landit-web:ci
           for i in $(seq 1 30); do
             code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/ || true)
-            [ "$code" = "200" ] && echo "served 200 after ${i}s" && exit 0
+            [ "$code" = "200" ] && echo "served 200 after ${i}s" && served=1 && break
             sleep 1
           done
-          echo "::error::the web image never served a 200"
-          docker logs landit-web-ci
-          exit 1
+          if [ "$served" != "1" ]; then
+            echo "::error::the web image never served a 200"
+            docker logs landit-web-ci
+            exit 1
+          fi
+          # Asserted on the <title>, not on body copy. The footer's brand line
+          # ("Every trick you can do, on a scooter…") appears on *every* page
+          # including the holding page, so a body-text match cannot tell the two
+          # apart — which is exactly how the first version of this check went
+          # green against the wrong page.
+          curl -s http://localhost:3000/ | grep -q 'Every trick you can do, proven' || {
+            echo "::error::200, but that is not the landing page"
+            docker logs landit-web-ci; exit 1;
+          }
+
+      # The gate, on the real production image, both ways round.
+      #
+      # Two things are being proven and neither is provable in `pnpm dev`:
+      # that an **unset** flag in a production build holds the site shut, and
+      # that the flag is read at **runtime** rather than inlined at build time.
+      # The image under test is byte-for-byte the one the step above just ran
+      # with the flag on — same build, opposite behaviour, so the only thing
+      # that can have changed the answer is the environment. That is the
+      # `NEXT_PUBLIC_*` trap from LESSONS §6 being tested for, not assumed away.
+      - name: The pre-launch gate holds the site shut
+        run: |
+          docker rm -f landit-web-ci > /dev/null 2>&1 || true
+          docker run -d --name landit-web-gate -p 3001:3000 landit-web:ci
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/ || true)
+            [ "$code" = "200" ] && served=1 && break
+            sleep 1
+          done
+          # A 200, not a 503: Uptime Kuma watches this URL and the gate must not
+          # read as an outage (docs/infrastructure.md).
+          if [ "$served" != "1" ]; then
+            echo "::error::the gated site never served a 200"
+            docker logs landit-web-gate
+            exit 1
+          fi
+          # Every assertion below matches a <title>, never body copy. The
+          # footer's brand line ("Every trick you can do, on a scooter…") is on
+          # *every* page including this one, so "does the body mention tricks"
+          # cannot tell the landing page from the holding page — which is how the
+          # first version of this check failed, on the assertion rather than on
+          # the gate.
+          body=$(curl -s http://localhost:3001/)
+          if ! echo "$body" | grep -q 'Coming soon'; then
+            echo "::error::the flag was unset and the site served something other than the holding page"
+            docker logs landit-web-gate
+            exit 1
+          fi
+          if echo "$body" | grep -q 'Every trick you can do, proven'; then
+            echo "::error::the landing page leaked through the gate"
+            exit 1
+          fi
+          # Sign-up is the thing that actually matters: a real child could make a
+          # real account here. It must not render while the gate is shut.
+          echo "gated /signup: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/signup)"
+          signup=$(curl -s http://localhost:3001/signup)
+          if ! echo "$signup" | grep -q 'Coming soon'; then
+            echo "::error::/signup did not return the holding page"
+            exit 1
+          fi
+          if echo "$signup" | grep -q 'Make an account'; then
+            echo "::error::the sign-up form rendered behind the gate"
+            exit 1
+          fi
+          # And crawlers are told to stay out, per app/robots.ts.
+          if ! curl -s http://localhost:3001/robots.txt | grep -qi 'Disallow: /'; then
+            echo "::error::robots.txt did not disallow while the gate was shut"
+            curl -s http://localhost:3001/robots.txt
+            exit 1
+          fi
+          echo "gate shut: holding page served, /signup covered, crawlers disallowed"
 
       - name: PocketBase
         uses: docker/build-push-action@v6
