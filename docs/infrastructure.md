@@ -114,11 +114,41 @@ Three things about this screen:
 
 ### 2. Coolify project
 
-Create the Land It project (Next.js app + PocketBase + preview deploys), add `landthetrick.com` and
-`api.landthetrick.com`, and let it issue certificates. Confirm **both** serve HTTPS before going on.
+The project exists (Rachid, 2026-08-16); the two services inside it do not. Both deploy **from this
+repository's Dockerfiles** — Nixpacks cannot be trusted with a pnpm workspace whose app compiles
+three sibling packages from source, and PocketBase has no image that would carry *our* migrations
+and hooks. Both are built on every PR by CI's `docker images` job, so what Coolify builds here is
+what was already proven green.
 
-Plan §7 wanted preview deploys by the end of Wave 2 so later waves could be reviewed on real URLs.
-Wave 3 has already merged without them, so this is the item that is actually late.
+**Both services use Base Directory `/`** — the repository root. A narrower context cannot see
+`packages/`, and the build fails at the point where it tries to.
+
+| | Web app | PocketBase |
+| --- | --- | --- |
+| Build pack | Dockerfile | Dockerfile |
+| Dockerfile | `apps/web/Dockerfile` | `pocketbase/Dockerfile` |
+| Base directory | `/` | `/` |
+| Domain | `https://landthetrick.com` | `https://api.landthetrick.com` |
+| Port | `3000` | `8090` |
+| Persistent storage | none | **`/pb_data`** |
+
+Two settings that are not obvious and cost a rebuild each:
+
+- **The web app needs `NEXT_PUBLIC_POCKETBASE_URL=https://api.landthetrick.com` as a *build*
+  argument, not a runtime variable.** Next inlines `NEXT_PUBLIC_*` into the browser bundle at build
+  time, so setting it at runtime does nothing at all and the deployed app's API calls go nowhere.
+  In Coolify it must be marked "Build Variable".
+- **PocketBase's `/pb_data` must be a persistent volume before the first deploy.** Without it the
+  database — riders, consent records, everything — lives in the container's writable layer and is
+  destroyed by the next deploy. Its `data.db` inside that volume is also the path step 3 adds to
+  Litestream.
+
+Deploy PocketBase first, visit `https://api.landthetrick.com/_/` and create the superuser, then
+deploy the web app. Confirm **both** serve HTTPS before going on.
+
+Turn on **preview deployments** for the web app. Plan §7 wanted them by the end of Wave 2 so later
+waves could be reviewed on real URLs; Wave 3 has merged without them, so this is the part that is
+actually late. They need the wildcard DNS record from step 1, which is already there.
 
 ### 3. Litestream
 
