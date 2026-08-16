@@ -1,5 +1,6 @@
 'use client';
 
+import { CONTACT } from '@landit/core';
 import type { ConsentLinkPreview } from '@landit/db';
 import { Button, Panel } from '@landit/ui-web';
 import { useActionState } from 'react';
@@ -59,7 +60,7 @@ export function Decision({
           </p>
           <p>
             If you change your mind, they can send you a fresh request from their account. Anything
-            you would like removed altogether: safeguarding@landit.app.
+            you would like removed altogether: {CONTACT.safeguarding}.
           </p>
         </div>
       </Panel>

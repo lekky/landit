@@ -1,3 +1,4 @@
+import { CONTACT } from '@landit/core';
 import { Panel } from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -99,7 +100,7 @@ export default async function LegalDocPage(props: PageProps<'/legal/[doc]'>) {
               <div className={styles.contactCopy}>
                 <div className={`d ${styles.contactTitle}`}>Something not right?</div>
                 <p className={styles.contactText}>
-                  Tell us and we will fix it. hello@landit.app, or safeguarding@landit.app if it is
+                  Tell us and we will fix it. {CONTACT.hello}, or {CONTACT.safeguarding} if it is
                   about a rider&rsquo;s safety.
                 </p>
               </div>

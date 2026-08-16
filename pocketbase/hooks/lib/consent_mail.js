@@ -16,6 +16,17 @@
  * happened; nothing silently pretends an email went out.
  */
 
+/**
+ * The safeguarding address, which this email has to carry: a parent reading it
+ * may want to raise a concern with a human rather than press either link.
+ *
+ * A deliberate second copy of `CONTACT.safeguarding` in
+ * `packages/core/src/data/contact.ts`, because the JSVM cannot import
+ * TypeScript — the same arrangement as the consent rules. **When the domain
+ * changes, both change.**
+ */
+const SAFEGUARDING_EMAIL = 'safeguarding@landthetrick.com';
+
 /** Where the guardian's links point. The app, not the API. */
 function appUrl() {
   const configured = $os.getenv('LANDIT_APP_URL');
@@ -60,7 +71,7 @@ the account stays as it is. You can also
 <a href="${revoke}">say no, or change your mind later</a>. That link never expires, and using it
 does not delete anything ${name} has logged.</p>
 <p style="font-size:14px;color:#5B554A">If you were not expecting this, ignore it and nothing will
-happen. Questions or concerns: safeguarding@landit.app.</p>
+happen. Questions or concerns: ${SAFEGUARDING_EMAIL}.</p>
 </div>`;
 }
 

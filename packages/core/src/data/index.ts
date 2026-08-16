@@ -14,6 +14,7 @@
 
 export { AVATARS, AVATAR_GROUPS, type AvatarId } from './avatars';
 export { CATS, CATEGORY_IDS, TIERS_LABEL } from './categories';
+export { CONTACT, CONTACT_ADDRESSES, DOMAIN, SITE_URL } from './contact';
 export {
   COUNTRIES,
   COUNTRY_CODES,

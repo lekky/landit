@@ -64,23 +64,44 @@ Set up 2026-08-15. This file records what exists and how to reach it — no secr
 
 ## Not done yet (infra track, implementation-plan.md §7)
 
-- [ ] Land It domain — buy, point at the box, then create the Land It Coolify project
-      (Next.js app + PocketBase + preview deploys) and add its DB to litestream.yml.
-- [ ] MailerSend account + sending-domain DNS — required before T6 (auth and guardian-consent
-      email) can be tested against the hosted instance. Three things in order, and none of them
-      needs the Land It domain:
+- [ ] **`landthetrick.com`** — the product domain, chosen 2026-08-16 (Rachid). Point it at the
+      box, then create the Land It Coolify project (Next.js app + PocketBase at `api.` +
+      preview deploys) and add its DB to litestream.yml. This is the **first** item here: plan §7
+      wanted preview deploys by the end of Wave 2 so later waves could be reviewed on real URLs,
+      and Wave 3 has already merged without them.
+      - The brand is **Land It**; the domain does not match it, and that is fine. `landit.app`
+        was written into the copy before anyone owned it — it is registered to someone else and
+        its registration has expired, so it was never ours to promise. Never publish an address
+        on a domain that is not yet registered to us.
+- [ ] **Mailboxes that receive.** `safeguarding@`, `privacy@`, `hello@` and `events@` on
+      `landthetrick.com` are published in the terms, the privacy policy, the safeguarding page and
+      the guardian-consent email — and `safeguarding@` carries a **one-working-day response
+      promise** the owner made deliberately (plan §7, T5). **MailerSend only sends.** Nothing in
+      the stack receives mail today, so all four of those addresses currently bounce.
+      Cloudflare Email Routing forwards for free if the domain sits on Cloudflare; the cPanel host
+      is the other option. Whichever, this has to be true before launch — an address that bounces
+      is worse than no address, and one of them is a safeguarding route.
+- [ ] MailerSend account + sending domain — required before T6 (auth and guardian-consent email)
+      can be tested against the hosted instance. Three things, in order:
       1. **The dashboard is `accounts.mailersend.com`, not `dashboard.mailerlite.com`.** They are
          sibling products; MailerLite is the newsletter one and has no SMTP relay.
       2. **Get out of the trial phase.** A new MailerSend account can only send *100/day to 5
          recipients* until it is approved — fine for testing against your own inbox, and a hard
          stop the first time a real parent is on the other end. Clear it early, not on launch day.
-      3. **Verify a domain and take the SMTP credentials** into PocketBase's mail settings
-         (`pocketbase/.env.example` lists the five values). The free tier allows **one** domain, so
-         `hellowebdesign.co.uk` can carry the pre-launch testing and gets swapped for the Land It
-         domain when that is bought — testing on it is fine, launching on it is not, because a
-         child-safety email from an unrelated agency domain reads as phishing to a parent.
+      3. **Verify `landthetrick.com`** and take the SMTP credentials into PocketBase's mail
+         settings (`pocketbase/.env.example` lists the five values). The free tier allows **one**
+         domain, so verify the real one and there is nothing to swap later.
       Also set `LANDIT_APP_URL` on the hosted instance, or the guardian's approval and revocation
       links point at `http://localhost:3000`.
+
+      *If the domain's DNS is not ready and the email testing cannot wait*, an interim sending
+      domain is `landit.hellowebdesign.co.uk` — a **subdomain, never the root**. The root already
+      carries the agency's own mail on a single SPF record
+      (`v=spf1 +a +mx +ip4:… include:relay.mailchannels.net ~all`), and a domain may only have
+      one: adding a second `v=spf1` record breaks SPF for that business email. A subdomain gets
+      its own record and its own reputation and touches neither. Testing on it is fine, launching
+      on it is not — a child-safety email from an unrelated agency domain reads as phishing to a
+      parent.
 - [ ] Uptime Kuma monitors for each deployed site as they appear (plus one for
       https://box1.hellowebdesign.co.uk).
 - [ ] R2 lifecycle rule + clips bucket when T14 (clips) approaches.
