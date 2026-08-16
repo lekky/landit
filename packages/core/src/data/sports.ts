@@ -27,14 +27,18 @@ export const SPORTS = {
     label: 'BMX',
     short: 'BMX',
     /**
-     * **Placeholder — the owner's call is outstanding** (plan §7, T21).
+     * `--pink`. **Confirmed by the owner on 2026-08-16** — no longer
+     * provisional, and the palette does not gain a colour.
      *
-     * Every other token in the palette already has a job: `--orange` is scooter
-     * and Street, `--blue` is skate and Park, `--violet` is the paywall and
-     * staff, `--lime` is landed, `--red` is destructive and Air. That leaves
-     * `--pink`, the only token the handoff describes as a general accent — so
-     * BMX takes it provisionally, or the palette gains a colour. Swapping this
-     * hex is the whole of the change either way.
+     * Every token already had a job, so BMX shares rather than takes: `--pink`
+     * is also the link-hover colour, the default avatar background, and the hue
+     * on the `send` level and two stickers. That is the established pattern
+     * rather than a compromise — `--orange` is scooter *and* Street, `--blue`
+     * is skate *and* Park.
+     *
+     * The one worth knowing about is **link hover**, which is different in kind:
+     * a global interaction colour rather than a category. If BMX pink ever
+     * needs to read as BMX alone, that rule is the thing to move, not this hex.
      */
     color: '#FF3D78',
     icon: 'bmx',
