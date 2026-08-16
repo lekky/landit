@@ -11,9 +11,11 @@
 # only Next's standalone output. The result carries no pnpm store, no source and
 # no dev dependencies.
 
-# Pinned rather than `lts`: the same Node the workspace declares in `engines`
-# and CI runs, so a build that passes there passes here.
-ARG NODE_VERSION=22.12.0
+# **24, matching CI's `node-version: 24`** — so a build that passes there passes
+# here. It cannot be the `engines` floor: that says >=22.13.0, and pnpm 11.22.0
+# refuses to start on anything lower, which is what the first version of this
+# line found out.
+ARG NODE_VERSION=24
 
 # ------------------------------------------------------------------ base --
 FROM node:${NODE_VERSION}-alpine AS base
