@@ -178,10 +178,20 @@
   letter-spacing: 0.03em;
 }
 
+/*
+ * The first-landed row, with "Share it" pushed to the right of it
+ * (screenshot 09). It wraps rather than squeezing: the date is the content and
+ * the button is the offer, so on a narrow panel the button drops below.
+ */
 .landed {
   margin-top: 12px;
   border-top: 2.5px solid var(--wash);
   padding-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .landedDate {

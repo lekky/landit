@@ -28,6 +28,7 @@ function computeStats(app, userId) {
 
   const base = () => ({
     landed: 0,
+    mastered: 0,
     hardLanded: 0,
     bySlug: {},
     catCount: { flat: 0, street: 0, park: 0, hybrid: 0, air: 0 },
@@ -35,7 +36,16 @@ function computeStats(app, userId) {
   });
 
   const all = base();
-  const perSport = { scooter: base(), skate: base() };
+  // Discovered from the library rather than listed here. A literal pair
+  // (`{ scooter, skate }`) is the two-sport assumption plan §3 forbids, and it
+  // was here until T10: every BMX-scoped sticker would have been skipped
+  // silently, because `stats[sport]` came back undefined.
+  const perSport = {};
+  const scopeFor = (sport) => {
+    if (!sport) return null;
+    perSport[sport] ??= base();
+    return perSport[sport];
+  };
 
   for (const id of Object.keys(tricks)) {
     const t = tricks[id];
@@ -43,7 +53,8 @@ function computeStats(app, userId) {
     const sport = t.getString('sport');
     const cat = t.getString('cat');
     all.catTotal[cat] = (all.catTotal[cat] || 0) + 1;
-    if (perSport[sport]) perSport[sport].catTotal[cat] = (perSport[sport].catTotal[cat] || 0) + 1;
+    const scope = scopeFor(sport);
+    if (scope) scope.catTotal[cat] = (scope.catTotal[cat] || 0) + 1;
   }
 
   const landedSports = {};
@@ -55,8 +66,15 @@ function computeStats(app, userId) {
     const sport = trick.getString('sport');
     const cat = trick.getString('cat');
 
+    const scope = scopeFor(sport);
+
     all.bySlug[slug] = stage;
-    if (perSport[sport]) perSport[sport].bySlug[slug] = stage;
+    if (scope) scope.bySlug[slug] = stage;
+
+    if (stage === 'every') {
+      all.mastered += 1;
+      if (scope) scope.mastered += 1;
+    }
 
     if (LANDED_STAGES.indexOf(stage) === -1) continue;
 
@@ -65,11 +83,10 @@ function computeStats(app, userId) {
     all.catCount[cat] = (all.catCount[cat] || 0) + 1;
     if (trick.getInt('diff') >= 5) all.hardLanded += 1;
 
-    const s = perSport[sport];
-    if (s) {
-      s.landed += 1;
-      s.catCount[cat] = (s.catCount[cat] || 0) + 1;
-      if (trick.getInt('diff') >= 5) s.hardLanded += 1;
+    if (scope) {
+      scope.landed += 1;
+      scope.catCount[cat] = (scope.catCount[cat] || 0) + 1;
+      if (trick.getInt('diff') >= 5) scope.hardLanded += 1;
     }
   }
 
@@ -81,21 +98,26 @@ function computeStats(app, userId) {
     return done;
   };
   all.catDone = catDone(all);
-  perSport.scooter.catDone = catDone(perSport.scooter);
-  perSport.skate.catDone = catDone(perSport.skate);
+  for (const sport of Object.keys(perSport)) perSport[sport].catDone = catDone(perSport[sport]);
 
   const user = app.findRecordById('users', userId);
   const shared = {
     streak: user.getInt('streak'),
     clips: lib.findAll(app, 'clips', 'user = {:user}', { user: userId }).length,
     crew: lib.findAll(app, 'crew_members', 'user = {:user}', { user: userId }).length > 0,
-    bothSports: !!landedSports.scooter && !!landedSports.skate,
+    // "Two or more", not "scooter and skate". `bothSports` in `@landit/core`
+    // changed meaning in T21 when BMX arrived; this copy did not, so a rider on
+    // scooter and BMX was shown the sticker by the client and refused it by the
+    // server. Same fix, same reason (LESSONS §4).
+    bothSports: Object.keys(landedSports).length >= 2,
     challenges: countFinishedChallenges(app, userId),
   };
 
   const merge = (scope) => Object.assign({}, scope, shared);
 
-  return { all: merge(all), scooter: merge(perSport.scooter), skate: merge(perSport.skate) };
+  const out = { all: merge(all) };
+  for (const sport of Object.keys(perSport)) out[sport] = merge(perSport[sport]);
+  return out;
 }
 
 /** A challenge is "finished" when the rider logged it at least `goal` times. */
@@ -121,6 +143,18 @@ function countFinishedChallenges(app, userId) {
 
 const landed = (stats, slug) => LANDED_STAGES.indexOf(stats.bySlug[slug]) !== -1;
 const anyLanded = (stats, slugs) => slugs.some((slug) => landed(stats, slug));
+const countLanded = (stats, slugs) => slugs.filter((slug) => landed(stats, slug)).length;
+
+/** Skate's `street` category minus `sk-gap`, "Stair Set" — see issue #79. */
+const LEDGE_AND_RAIL = [
+  'sk-50-50',
+  'sk-boardslide',
+  'sk-noseslide',
+  'sk-5-0',
+  'sk-nosegrind',
+  'sk-crooked',
+  'sk-tailslide',
+];
 
 /**
  * `(stats, n) => boolean`, keyed by sticker slug. A sticker whose slug is not
@@ -130,26 +164,32 @@ const RULES = {
   'first-land': (s) => s.landed >= 1,
   'five-deep': (s, n) => s.landed >= (n || 5),
   'ten-deep': (s, n) => s.landed >= (n || 10),
-  'week-one': (s, n) => s.streak >= (n || 7),
-  'month-on': (s, n) => s.streak >= (n || 30),
+  // Weeks, not days: the streak counts qualifying weeks (plan §1, issue #10).
+  'week-one': (s, n) => s.streak >= (n || 4),
+  'month-on': (s, n) => s.streak >= (n || 12),
   'first-clip': (s) => s.clips >= 1,
   challenger: (s) => s.challenges >= 1,
   'crew-up': (s) => s.crew,
-  gnarly: (s) => s.hardLanded >= 1,
+  gnarly: (s, n) => s.hardLanded >= (n || 1),
+  'every-time': (s, n) => s.mastered >= (n || 3),
   'both-feet': (s) => s.bothSports,
 
   'hop-master': (s) => s.bySlug['bunny-hop'] === 'every',
   'whip-club': (s) => landed(s, 'tailwhip'),
-  'flat-out': (s) => !!s.catDone.flat,
+  // A count, never `catDone` — "every trick in the category" un-earns itself
+  // when staff add one (issue #78).
+  'flat-out': (s, n) => s.catCount.flat >= (n || 7),
   'street-cred': (s, n) => s.catCount.street >= (n || 3),
   'park-rat': (s, n) => s.catCount.park >= (n || 3),
   'grind-time': (s) => anyLanded(s, ['50-50', 'feeble', 'smith', 'icepick']),
-  upside: (s) => anyLanded(s, ['backflip', 'frontflip', 'flair']),
+  // `upside` is retired (issue #77) and has no entry here on purpose: a slug
+  // with no rule is never awarded, so the server cannot badge a backflip even
+  // if the record is switched live again.
 
   'ollie-up': (s) => s.bySlug['sk-ollie'] === 'every',
   'flip-club': (s) => landed(s, 'sk-kickflip'),
-  'flat-track': (s) => !!s.catDone.flat,
-  'ledge-rat': (s, n) => s.catCount.street >= (n || 3),
+  'flat-track': (s, n) => s.catCount.flat >= (n || 10),
+  'ledge-rat': (s, n) => countLanded(s, LEDGE_AND_RAIL) >= (n || 4),
   'bowl-rider': (s, n) => s.catCount.park >= (n || 3),
   'coping-time': (s) => landed(s, 'sk-axle-stall'),
   'tre-deep': (s) => landed(s, 'sk-tre-flip'),

@@ -61,7 +61,8 @@ describe('sticker scoping', () => {
 
   it('does not award a scooter sticker for skate riding', () => {
     // All ten skate Flat tricks landed, and Flat Out is still locked because it
-    // is a scooter sticker.
+    // is a scooter sticker. (`flat-track`'s threshold is ten for the same
+    // reason — see issue #78.)
     const skateFlat = [
       'sk-ollie',
       'sk-manual',
@@ -171,25 +172,37 @@ describe('the shipped rules', () => {
     ).toBe(false);
   });
 
-  it('Upside Down accepts any scooter flip trick', () => {
-    expect(evaluateSticker(statsFor({ byId: byId({ backflip: 'some' }) }), sticker('upside'))).toBe(
-      true,
-    );
-    expect(evaluateSticker(statsFor({ byId: byId({ flair: 'every' }) }), sticker('upside'))).toBe(
-      true,
-    );
-  });
-
-  it('Gnarly needs a landed difficulty-5 trick', () => {
+  it('Gnarly needs a landed difficulty-5 trick, at a threshold staff can move', () => {
     expect(
       evaluateSticker(statsFor({ byId: byId({ backflip: 'trying' }) }), sticker('gnarly')),
     ).toBe(false);
     expect(evaluateSticker(statsFor({ byId: byId({ backflip: 'some' }) }), sticker('gnarly'))).toBe(
       true,
     );
+    // Issue #81: it was a literal `>= 1`, the only threshold sticker staff
+    // could not retune. One is still the shipped bar.
+    expect(sticker('gnarly').n).toBe(1);
+    expect(
+      evaluateSticker(statsFor({ byId: byId({ backflip: 'some' }) }), {
+        ...sticker('gnarly'),
+        n: 2,
+      }),
+    ).toBe(false);
   });
 
-  it('Both Feet needs something landed on each sport', () => {
+  it('Every Time counts tricks landed at the every stage, and nothing less', () => {
+    // Issue #81: `SportStats.mastered` was computed and read by nothing.
+    const three = byId({ 'bunny-hop': 'every', 'tic-tac': 'every', 'x-up': 'every' });
+    expect(evaluateSticker(statsFor({ byId: three }), sticker('every-time'))).toBe(true);
+    expect(
+      evaluateSticker(
+        statsFor({ byId: byId({ 'bunny-hop': 'every', 'tic-tac': 'every', 'x-up': 'most' }) }),
+        sticker('every-time'),
+      ),
+    ).toBe(false);
+  });
+
+  it('Crossover needs something landed on two sports', () => {
     expect(
       evaluateSticker(statsFor({ byId: byId({ 'bunny-hop': 'every' }) }), sticker('both-feet')),
     ).toBe(false);
@@ -201,11 +214,23 @@ describe('the shipped rules', () => {
     ).toBe(true);
   });
 
-  it('the streak stickers read the streak, at 7 and 30 days', () => {
-    expect(evaluateSticker(statsFor({ streak: 6 }), sticker('week-one'))).toBe(false);
-    expect(evaluateSticker(statsFor({ streak: 7 }), sticker('week-one'))).toBe(true);
-    expect(evaluateSticker(statsFor({ streak: 29 }), sticker('month-on'))).toBe(false);
-    expect(evaluateSticker(statsFor({ streak: 30 }), sticker('month-on'))).toBe(true);
+  it('the streak stickers count weeks, not days (issue #10)', () => {
+    // `RiderSnapshot.streak` counts qualifying *weeks* (plan §1). These two
+    // records tested it against 7 and 30 under the names "7 Day Streak" and
+    // "30 Day Streak", so the day the rule changed they silently became a
+    // seven-week and a thirty-week sticker — LESSONS §4.
+    expect(evaluateSticker(statsFor({ streak: 3 }), sticker('week-one'))).toBe(false);
+    expect(evaluateSticker(statsFor({ streak: 4 }), sticker('week-one'))).toBe(true);
+    expect(evaluateSticker(statsFor({ streak: 11 }), sticker('month-on'))).toBe(false);
+    expect(evaluateSticker(statsFor({ streak: 12 }), sticker('month-on'))).toBe(true);
+  });
+
+  it('no streak sticker name states a unit the rule can change under it', () => {
+    for (const id of ['week-one', 'month-on']) {
+      const name = sticker(id).name;
+      expect(name, id).not.toMatch(/day|week|month|\d/i);
+      expect(stickerCondition(sticker(id)), id).toContain('weeks in a row');
+    }
   });
 
   it('Caught On Cam, Challenger and Crew Up read their own counters', () => {
@@ -274,6 +299,115 @@ describe('earning and announcing', () => {
   });
 });
 
+/**
+ * The T10 sticker audit, as tests rather than as intentions.
+ *
+ * Every one of these encodes a decision recorded in `docs/implementation-plan.md`
+ * §7 T10. They exist because a copy or threshold decision that is not asserted
+ * gets quietly reverted by the next session that finds it odd (LESSONS §3a).
+ */
+describe('the T10 sticker decisions', () => {
+  const landedAll = (ids: readonly string[]) =>
+    statsFor({ byId: Object.fromEntries(ids.map((id) => [id, 'some' as StageId])) });
+
+  it('badges no inversion, in any sport (issue #77)', () => {
+    // The app's own coaching copy says foam pit first for both of these. A
+    // badge for landing one is a reason for a child to skip that rung.
+    const flips = landedAll(['backflip', 'frontflip', 'flair']);
+    expect(evaluateSticker(flips, sticker('upside'))).toBe(false);
+    expect(earnedStickerIds(flips)).not.toContain('upside');
+    // Retired rather than deleted: the seed upserts and never removes, so a
+    // deleted record would stay live and unearnable in every seeded database.
+    expect(sticker('upside').isLive).toBe(false);
+    expect(stickersFor(['scooter']).map((s) => s.id)).not.toContain('upside');
+    // The recognition it stood for survives, without naming a target.
+    expect(evaluateSticker(flips, sticker('gnarly'))).toBe(true);
+  });
+
+  it('never un-earns a category sticker when the library grows (issue #78)', () => {
+    const scooterFlat = ['bunny-hop', 'tic-tac', 'manual', 'fingerwhip', 'hippie-jump', 'x-up'];
+    const withNoseManual = landedAll([...scooterFlat, 'nose-manual']);
+    expect(evaluateSticker(withNoseManual, sticker('flat-out'))).toBe(true);
+
+    // Staff add an eighth Flat trick from the admin portal. Under `catDone`
+    // this took the sticker away from everyone who had it; under a count it
+    // cannot.
+    const bigger = [
+      ...TRICKS,
+      {
+        ...TRICKS[0]!,
+        id: 'staff-added-flat',
+        name: 'Staff Added',
+        sport: 'scooter' as const,
+        cat: 'flat' as const,
+      },
+    ];
+    const sameRider = computeStats({ byId: withNoseManual.byId, sports: ['scooter'] }, null, {
+      tricks: bigger,
+    });
+    expect(evaluateSticker(sameRider, sticker('flat-out'))).toBe(true);
+  });
+
+  it('does not count the stair set toward Ledge Rat (issue #79)', () => {
+    // Four stair sets is one stair set, four times. It is also the escalation
+    // ladder an achievement in a children's product must not nudge.
+    // The exact shape the old rule rewarded: two ledges and a stair set made
+    // three `street` tricks, which was the whole threshold.
+    const stairCounted = landedAll(['sk-50-50', 'sk-boardslide', 'sk-gap']);
+    expect(evaluateSticker(stairCounted, sticker('ledge-rat'))).toBe(false);
+
+    const ledges = landedAll(['sk-50-50', 'sk-boardslide', 'sk-noseslide', 'sk-5-0']);
+    expect(evaluateSticker(ledges, sticker('ledge-rat'))).toBe(true);
+
+    // Three of the seven qualifying tricks are difficulty 3, so a threshold of
+    // three would have meant "the three easy ones".
+    expect(sticker('ledge-rat').n).toBe(4);
+    const three = landedAll(['sk-50-50', 'sk-boardslide', 'sk-noseslide']);
+    expect(evaluateSticker(three, sticker('ledge-rat'))).toBe(false);
+  });
+
+  it('holds the naming rule the copy review produced (issue #82)', () => {
+    for (const s of STICKERS) {
+      // No number in a name: `n` is editable, so a name quoting it goes stale
+      // the moment staff retune the record.
+      expect(s.name, s.id).not.toMatch(/\d/);
+      // The name is set on a fixed arc in `StickerBadge` and the font ramp
+      // steps once. Past thirteen characters it runs off the curve.
+      expect(s.name.length, s.id).toBeLessThanOrEqual(13);
+    }
+
+    // The four names the review singled out, pinned so they do not come back.
+    const nameOf = (id: string) => sticker(id).name;
+    expect(nameOf('flip-club')).not.toBe('Flip Club');
+    expect(nameOf('coping-time')).not.toBe('Coping Time');
+    expect(nameOf('tre-deep')).not.toBe('Tre Deep');
+    expect(nameOf('flat-track')).not.toBe('Flat Tracked');
+    // Factually wrong, both fixed: skate `park` is a quarter pipe, not a bowl,
+    // and "Ollie Up" meant nothing.
+    expect(nameOf('bowl-rider')).not.toBe('Bowl Rider');
+    expect(nameOf('ollie-up')).not.toBe('Ollie Up');
+    // "Both" is a two-sport word in a three-sport product.
+    expect(nameOf('both-feet')).not.toBe('Both Feet');
+  });
+
+  it('keeps every sticker id stable, because ids are what riders hold', () => {
+    // A `rider_stickers` row points at the record, the hook's rule map is keyed
+    // by slug, and the seed matches on slug. Renaming an id un-earns a sticker
+    // for everyone who has it, so the rename above moved names only.
+    const ids = STICKERS.map((s) => s.id);
+    for (const id of [
+      'week-one',
+      'month-on',
+      'both-feet',
+      'flip-club',
+      'coping-time',
+      'tre-deep',
+    ]) {
+      expect(ids, id).toContain(id);
+    }
+  });
+});
+
 describe('what a rider on the free tier can reach', () => {
   /**
    * Plan §1: achievements are never for sale. The paywall gates *tricks*, so it
@@ -298,6 +432,9 @@ describe('what a rider on the free tier can reach', () => {
       const earned = earnedStickerIds(freeRider(sport));
       expect(earned, sport).toContain('first-land');
       expect(earned, sport).toContain('five-deep');
+      // Added in T10 (issue #81). The consistency sticker must be reachable
+      // without paying: every free trick can be taken to "every time".
+      expect(earned, sport).toContain('every-time');
     }
   });
 

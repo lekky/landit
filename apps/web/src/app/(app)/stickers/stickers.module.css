@@ -1,0 +1,78 @@
+/*
+ * The sticker wall (screenshot 14).
+ *
+ * The numbers are the prototype's, transcribed: the 26px/22px ink panel, the
+ * 118px minimum badge column, the 18px grid gap, the fluid clamp on the count.
+ * Zero border radius throughout; the panel and its hard offset shadow come from
+ * `@landit/ui-web`'s `.panel`.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* --------------------------------------------------------------- header -- */
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.count {
+  font-size: clamp(30px, 5vw, 44px);
+  margin-top: 6px;
+}
+
+.progress {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 6px;
+}
+
+/* ----------------------------------------------------------- the wall ---- */
+
+.wall {
+  padding: 26px 22px;
+  background: var(--ink);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 18px;
+}
+
+/* --------------------------------------------------------------- detail -- */
+
+.detail {
+  padding: 24px;
+  text-align: center;
+}
+
+.detailBadge {
+  width: 150px;
+  margin: 0 auto 18px;
+}
+
+.detailSport {
+  display: flex;
+  justify-content: center;
+  margin-top: 9px;
+}
+
+.detailCond {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: var(--ink-2);
+  letter-spacing: 0.04em;
+}
+
+.detailButtons {
+  display: flex;
+  gap: 9px;
+  margin-top: 20px;
+}

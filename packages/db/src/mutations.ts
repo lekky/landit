@@ -6,6 +6,7 @@ import type {
   AnnouncementDismissalsRecord,
   ChallengeLogRecord,
   EventAttendanceRecord,
+  RiderStickersRecord,
   SpotsRecord,
   TrickLogRecord,
   TrickNotesRecord,
@@ -313,5 +314,27 @@ export async function saveWeeklyStreak(
     rides_this_week: state.rides_this_week,
     last_qualifying_week: state.last_qualifying_week,
     last_ride: state.last_ride,
+  });
+}
+
+/* --------------------------------------------------------------- stickers -- */
+
+/**
+ * Mark an earned sticker announced, so it is never announced again (plan §3).
+ *
+ * This is the *whole* of a rider's write access to `rider_stickers`:
+ * `createRule` and `deleteRule` are both `null`, and `30_stickers.pb.js`
+ * rejects an update that moves `user`, `sticker` or `earned_at`. So a rider can
+ * dismiss their own toast and can do nothing else — which is what keeps
+ * "achievements are earned, never sent" true at the data layer rather than in
+ * the client (plan §1, §3).
+ */
+export async function markStickerSeen(
+  client: Client,
+  riderStickerId: string,
+  at: Date = new Date(),
+): Promise<RiderStickersRecord> {
+  return records(client, 'rider_stickers').update(riderStickerId, {
+    seen_at: at.toISOString(),
   });
 }

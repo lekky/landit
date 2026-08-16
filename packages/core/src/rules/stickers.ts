@@ -20,6 +20,30 @@ function landedAny(scope: SportStats, ids: readonly string[]): boolean {
   return ids.some((id) => isLandedStage(scope.byId[id]));
 }
 
+/** How many of these tricks has the rider landed? */
+function landedCount(scope: SportStats, ids: readonly string[]): number {
+  return ids.filter((id) => isLandedStage(scope.byId[id])).length;
+}
+
+/**
+ * The ledge and rail tricks in skate's `street` category — the whole category
+ * except `sk-gap`, "Stair Set".
+ *
+ * Named explicitly rather than counted by category, because the category is
+ * staff-editable and the point is *which* tricks count, not how many there are
+ * (issue #79). Counting the category badged stair sets, which is the one
+ * escalation ladder in skateboarding an achievement must not nudge.
+ */
+const LEDGE_AND_RAIL = [
+  'sk-50-50',
+  'sk-boardslide',
+  'sk-noseslide',
+  'sk-5-0',
+  'sk-nosegrind',
+  'sk-crooked',
+  'sk-tailslide',
+] as const;
+
 /**
  * Every sticker's condition, as code.
  *
@@ -32,6 +56,13 @@ function landedAny(scope: SportStats, ids: readonly string[]): boolean {
  * The map is keyed by `StickerId`, so a sticker added to the canonical data
  * without a rule here is a type error rather than a sticker nobody can ever
  * earn.
+ *
+ * **A rule must be monotonic in the rider's own riding.** `catDone` ("every
+ * live trick in the category") and any percentage of the library re-base when
+ * staff add a trick, so a rider loses an earned sticker because somebody else
+ * edited the library (issue #78). `landed >= n`, `catCount >= n` and
+ * `landedCount(list) >= n` only ever go up, and they are the shapes to reach
+ * for. `catDone` is still computed on `SportStats` — nothing here reads it.
  */
 export const STICKER_RULES = {
   /* --- combined: judged against the rider's global stats --- */
@@ -43,23 +74,28 @@ export const STICKER_RULES = {
   'first-clip': (s) => s.clips >= 1,
   challenger: (s) => s.challenges >= 1,
   'crew-up': (s) => s.crew,
-  gnarly: (s) => s.hardLanded >= 1,
+  gnarly: (s, x) => s.hardLanded >= threshold(x),
+  'every-time': (s, x) => s.mastered >= threshold(x),
   'both-feet': (s) => s.bothSports,
 
   /* --- scooter: judged against scooter stats alone --- */
   'hop-master': (s) => s.byId['bunny-hop'] === 'every',
   'whip-club': (s) => landedAny(s, ['tailwhip']),
-  'flat-out': (s) => s.catDone.flat,
+  'flat-out': (s, x) => s.catCount.flat >= threshold(x),
   'street-cred': (s, x) => s.catCount.street >= threshold(x),
   'park-rat': (s, x) => s.catCount.park >= threshold(x),
   'grind-time': (s) => landedAny(s, ['50-50', 'feeble', 'smith', 'icepick']),
-  upside: (s) => landedAny(s, ['backflip', 'frontflip', 'flair']),
+  // Retired (issue #77) — see the record in `../data/stickers.ts`. It is
+  // `isLive: false` there and the hook never evaluates a retired sticker, so
+  // this is the third lock: switching the record back on from the admin portal
+  // still cannot award a badge for landing a backflip.
+  upside: () => false,
 
   /* --- skate: judged against skate stats alone --- */
   'ollie-up': (s) => s.byId['sk-ollie'] === 'every',
   'flip-club': (s) => landedAny(s, ['sk-kickflip']),
-  'flat-track': (s) => s.catDone.flat,
-  'ledge-rat': (s, x) => s.catCount.street >= threshold(x),
+  'flat-track': (s, x) => s.catCount.flat >= threshold(x),
+  'ledge-rat': (s, x) => landedCount(s, LEDGE_AND_RAIL) >= threshold(x),
   'bowl-rider': (s, x) => s.catCount.park >= threshold(x),
   'coping-time': (s) => landedAny(s, ['sk-axle-stall']),
   'tre-deep': (s) => landedAny(s, ['sk-tre-flip']),

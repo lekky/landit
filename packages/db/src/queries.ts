@@ -489,3 +489,27 @@ export async function listEventAttendance(
     params: { user: userId },
   });
 }
+
+/* --------------------------------------------------------- sticker toast -- */
+
+/**
+ * The stickers this rider has earned but never been told about.
+ *
+ * `rider_stickers.seen_at` is what stops a sticker being announced twice
+ * (plan §3): the award hook creates the row with `earned_at` set and `seen_at`
+ * empty, the app announces the empty ones, and `markStickerSeen` closes them
+ * off. An empty date is `""` in PocketBase, not `null`.
+ *
+ * Oldest first, so a rider who earns three at once is told about them in the
+ * order they were earned rather than backwards.
+ */
+export async function listUnseenRiderStickers(
+  client: Client,
+  userId: string,
+): Promise<RiderStickersRecord[]> {
+  return records(client, 'rider_stickers').list({
+    filter: 'user = {:user} && seen_at = ""',
+    params: { user: userId },
+    sort: 'earned_at',
+  });
+}

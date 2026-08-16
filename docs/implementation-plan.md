@@ -1005,6 +1005,132 @@ trick page the same way the library grid does.
 sticker by tracking, see the toast once, never re-announced). Inputs: `landit-screens-b.jsx`,
 `landit-ui.jsx` (StickerBadge, share), screenshot 14.
 
+**Built 2026-08-16.** The screens are a transcription; the sticker *set* was not, and most of this
+entry is about that. Eight issues from the pre-wave audit were folded in by the owner (below), six
+of which change what a rider earns. Every call is written down here because the owner does not
+review PRs and because the obvious "correction" to several of them is to put back what was
+there — the precedent is T21's "Flatground" note.
+
+**Authorised additive-only exception (owner: lekky, 2026-08-16, in chat).** Issues #10, #77, #78,
+#79, #81 and #82 were folded into this session with the copy and threshold calls delegated to it.
+Five of them are behaviour changes to already-merged shared code (`packages/core`'s sticker rules
+and data, and the server-side copies in `pocketbase/hooks/lib/stickers.js`), which additive-only
+would otherwise forbid. Nothing else in this session changes an existing signature: `ShareCard`,
+`landedCount`, `listUnseenRiderStickers`, `markStickerSeen`, the `every-time` sticker and
+`StageActionResult.earned` are all additions.
+
+*What the wall does*
+
+- **Earned means the server said so.** `/stickers` reads `rider_stickers`, never the client-side
+  evaluation in `@landit/core`. Those functions exist for instant feedback (§3); the hook is the
+  authority, and it is the only thing that can create the row. A wall drawn from the client's
+  opinion would show a sticker the rider does not hold, in a product whose §1 says achievements are
+  never for sale.
+- **A sticker is announced exactly once, and the shape is announce-then-acknowledge.** The stage
+  write returns the rows with an empty `seen_at`, the screen toasts them (or plays the `just` pop on
+  the wall), and *then* a second call stamps `seen_at`. Stamping on the way out would mark a
+  sticker announced to a rider whose browser dropped the response, and for an achievement that is
+  the wrong way to fail. Proved end to end in `pocketbase/tests/sticker-award-flow.test.ts` (the
+  award, the refused forgery, the seen-once, the idempotent re-award) and in `e2e/stickers.spec.ts`
+  (a rider tracks a trick in a browser, is told once, and finds it on the wall).
+- **One `ShareCard`, two kinds.** T7 shipped the trick page without its "Share it" button precisely
+  so this stayed one component (§7 T7); the button is now there and issue #51 closes. The card takes
+  every string already formatted — the prototype built its date with `toLocaleDateString` and wrote
+  "N day streak" into the footer, and both are traps: ICU across a hydration boundary (LESSONS §3a),
+  and a unit the rule changed under (LESSONS §4).
+- **The "real vinyl" panel is dropped.** The prototype sells a posted die-cut pack to "Crew Pass
+  riders". The Crew Pass was dropped in §2.4 and no posted pack exists, so the panel promised a
+  product on a plan, neither of which is real. Whether Land It should ever post physical stickers is
+  a product question and it is the owner's — filed as an issue, not answered here. An e2e test holds
+  the page free of both words so the copy cannot drift back.
+- **The nav link is not wired here.** `ROUTES.stickers` exists; `components/shell/nav.ts` is the
+  orchestrator's `chore-wire-wave5-links` after all four Wave 5 sessions merge, as PR #65 did for
+  Wave 4.
+
+*The six sticker issues, and the calls taken*
+
+- **#10 — the streak stickers counted days.** `users.streak` counts qualifying *weeks* (§1), so
+  "7 Day Streak" and "30 Day Streak" had silently become seven-week and thirty-week stickers.
+  Rethresholded to **4 weeks and 12 weeks** — a month of riding, and a season — and renamed **"Kept
+  It Up"** and **"Still Rolling"**. Neither name carries a number or a unit, deliberately: the
+  original failure was a name quoting a rule that then moved, and `n` is staff-editable, so a name
+  that quotes it is the same bug waiting. The condition line carries both ("4 weeks in a row"). The
+  ids are unchanged — a `rider_stickers` row points at the record and the hook's rule map is keyed
+  by slug, so renaming an id would un-earn a sticker for everyone holding it.
+- **#77 — "Upside Down" is retired.** It was the only sticker whose condition named difficulty-5
+  inversions, and the trick library's own coaching copy says "learn it into a foam pit or a resi
+  ramp first" (`backflip`) and "foam pit only until it's automatic" (`frontflip`). A badge on the
+  wall is a reason for a child to skip that rung, and the audience is 8–16. Its copy and its rule
+  also disagreed: "Land a scooter flip trick" reads as a bri-flip or a scooter flip — the deck
+  rotates, the rider does not — and the rule excluded both, so the copy pointed at the safe reading
+  and the badge paid out only for the dangerous one. `gnarly` is the acceptable version of the same
+  recognition: any difficulty-5 trick, no target named, and six of twelve scooter and two of five
+  BMX difficulty-5 tricks are non-inverting, so nobody is steered into a flip to earn it. **The
+  decision is taken once for all three sports: no sticker rewards an inversion, and BMX gets no
+  equivalent** (T21 had already declined to mirror it). *Retired, not deleted* — the seed upserts
+  and never removes, so a deleted record would sit live and unearnable in every seeded database.
+  It is `isLive: false`, its `@landit/core` rule is `() => false`, and it has no entry at all in the
+  server-side rule map, so switching the record back on from the admin portal still cannot award it.
+- **#78 — `catDone` stickers un-earned themselves.** "Every live trick in the category" meant staff
+  adding one trick took the sticker away from every rider who had it. `flat-out` and `flat-track`
+  now count: `catCount.flat >= n`, at **7** (scooter Flat) and **10** (skate Flat), which is
+  identical behaviour at today's library size and cannot go backwards. **A sticker rule must be
+  monotonic in the rider's own riding** — `catDone` and any percentage of the library re-base when
+  the library grows, and `landed >= n`, `catCount >= n` and `landedCount(list) >= n` are the shapes
+  to reach for. Recorded on `STICKER_RULES` so the next rule author reads it there.
+- **#79 — "Ledge Rat" counted stair sets.** Skate's `street` category includes `sk-gap`, "Stair
+  Set", so a rider could earn a *ledge* sticker without touching a ledge, and — the reason it is a
+  p2 — the app counted stair sets toward an achievement, which is the classic escalation ladder in
+  skateboarding and the one thing a badge in a children's product should not nudge. It now counts
+  the seven named ledge and rail tricks (`LEDGE_AND_RAIL`, the category minus `sk-gap`) at **n: 4**;
+  three of the seven are difficulty 3, so three would have meant "the three easy ones". The name
+  stays — "skate rat" is genuine, affectionate slang.
+- **#81 — `gnarly` gets `n: 1`, and `mastered` gets a sticker.** `gnarly` was the one threshold
+  sticker with its bar written into the rule rather than read off the record; one is still the bar,
+  so nothing moves today and staff can retune it now. `SportStats.mastered` was computed and read by
+  nothing, which left the set with no achievement for landing a trick *reliably* — the only
+  achievement shape that cannot function as a dare, because it rewards repeating a trick a rider
+  already lands rather than attempting something new. **New shared sticker `every-time` ("Every
+  Time", `mastered >= 3`)**, named after the app's own stage label. It is reachable on the free tier
+  in all three sports, which a test pins.
+- **#82 — seven names changed, and a naming rule came out of it.** "Flip Club" → **Kickflip**,
+  "Coping Time" → **Axle Stall** (to any adult or teasing classmate the first reading of "coping" is
+  emotional coping), "Tre Deep" → **Tre Flip**, "Flat Tracked" → **Flatground** (the old name punned
+  on flat track, a motorcycle discipline; "flatground" is the word skaters use — and yes it is also
+  BMX's category label from T21, which is fine: the sticker is skate-scoped and the word is
+  ordinary), "Bowl Rider" → **Ramp Rider** (skate `park` is drop-in, rock to fakie, axle stall,
+  blunt to fakie and hip transfer; three of those is a quarter pipe, not a bowl), "Ollie Up" →
+  **Ollie Dialled**, "Both Feet" → **Crossover** ("both" is a two-sport word in a three-sport
+  product). "Hop Master", "Ledge Rat", "Whip Club", "Grind Time" and the shared spine were reviewed
+  and left alone. The rule, now in the header of `packages/core/src/data/stickers.ts` and held by a
+  test: names survive when they are literal, dry, or use words riders actually say; they fail as
+  adult-invented puns, hierarchy words (club / master / pro), or a word whose first reading is
+  something else. No number in a name, because `n` is editable. Thirteen characters at the outside,
+  because the name is set on a fixed arc in `StickerBadge` and the font-size ramp only steps once.
+
+*Two things found while building, fixed here*
+
+- **The server-side `bothSports` still meant "scooter and skate".** T21 changed
+  `SportStats.bothSports` in `@landit/core` to "two or more" and did not sweep the copy in
+  `pocketbase/hooks/lib/stickers.js`, so a rider on scooter and BMX was shown the `both-feet`
+  sticker by the client and refused it by the server. LESSONS §4, one layer down. Now
+  `Object.keys(landedSports).length >= 2`, with an HTTP test that was watched fail against the old
+  line.
+- **The hook's per-sport stats were a literal pair.** `computeStats` built
+  `{ scooter: …, skate: … }`, so `stats['bmx']` was `undefined` and **every BMX-scoped sticker would
+  have been skipped silently** — there are none yet (issue #25), which is the only reason this had
+  not bitten. The scopes are now discovered from the library.
+
+*Deliberately not done*
+
+- Issue #26 (should there be an all-three-sports sticker now `bothSports` means two or more) is an
+  open product question and stays open.
+- The word "gnarly" appears both as a sticker name and as `TIERS_LABEL[3]`, and #82 flags it as the
+  likeliest word in the product to get a kid teased. Left alone: the tier label is merged shared
+  copy read by several screens, and after `upside` was retired `gnarly` is the *only* recognition
+  for difficulty-5 riding, so renaming it in the same PR that changed what it awards is two changes
+  at once. Raised to the owner in the closing summary.
+
 **T11 · Crew + rider profiles.** Real crews: create, invite (the 1080×1080 canvas share card with
 `navigator.share` fallbacks), join, board, activity feed; rider profile with the three-way privacy
 gating driven by the §3 access rules (the "viewing as" toggle from the prototype becomes real
