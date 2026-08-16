@@ -175,6 +175,19 @@ they silently became *seven-week* and *thirty-week* stickers, names intact (issu
 rule's unit or basis changes, grep the seed data, the copy and the sticker conditions for the
 old unit before you call the change done.
 
+**A vendor's name in a code comment is a thing you will have to sweep.** The transactional-email
+provider changed from Resend to MailerSend the day after T6 shipped — a decision that cost *nothing*
+in code, because PocketBase sends over plain SMTP and no file imports a provider SDK. It still
+touched thirteen files, because the old name was written into hook comments, a test's reasoning, a
+`.env.example` heading and a JSDoc block: "Resend is not provisioned yet" in four places that meant
+"no SMTP is configured yet". Comments naming a vendor go stale exactly like data quoting a rule
+does, and they are worse, because nothing fails when they do.
+
+The rule that came out of it: **the vendor belongs in the plan and in `infrastructure.md`, where the
+decision lives and where it is dated; code says what the code depends on.** `consent_mail.js` needs
+to say that sending is best-effort when the mailer is unavailable — which is true of every provider
+and was true before one was picked.
+
 **A derived number that a client can write is not derived.** `users.streak` was client-writable,
 so a rider could PATCH it to 9999 and the award hook would believe it — forging two stickers, in
 a product whose plan says achievements are never for sale (issue #8). If a value feeds an award,

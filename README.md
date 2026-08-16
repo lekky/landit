@@ -79,5 +79,5 @@ pnpm e2e
 ## Stack (settled — see plan §1 before proposing changes)
 
 Next.js (pnpm monorepo) · PocketBase (self-hosted, one instance per product) · Coolify on a
-shared VPS · Cloudflare R2 (backups + clips) · Stripe · Resend · Mapbox · PostHog EU +
+shared VPS · Cloudflare R2 (backups + clips) · Stripe · MailerSend · Mapbox · PostHog EU +
 Cloudflare Analytics · Sentry.

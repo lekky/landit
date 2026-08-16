@@ -26,7 +26,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Staff portal placement | **Route group in the web app**, hard role gate, full audit log | Handoff prefers a separate app; see §6.10. |
 | Error reporting | **Sentry** | Already connected; PII scrubbed. See §2.5. |
 | Analytics | **PostHog EU (free tier) + Cloudflare Web Analytics** | PostHog for product events (onboarding funnel, upgrades), Cloudflare beacon for traffic. Both cookie-less, no ad identifiers. |
-| Transactional email | **Resend** | Confirmed 2026-08-15. PocketBase sends auth, reset and guardian-consent email through Resend's SMTP on the product domain. |
+| Transactional email | **MailerSend** | **Changed 2026-08-16 (Rachid); was Resend, confirmed 2026-08-15.** Resend is already in use on another product and its free tier carries one sending domain, so Land It would have meant paying before launch for a service sending dozens of emails a month. MailerSend's free tier (500/month, one domain) covers launch volume many times over, and it is EU-based — the same reason PostHog EU and R2 EU were chosen (§6.5). **Nothing in the codebase names a provider:** PocketBase sends over plain SMTP, so this is five environment values and no code change, and switching again costs the same. Rolling our own on box1 was considered and rejected — a cold shared IP that also carries the other products, and the guardian-consent email is the one that must not land in spam. |
 | Pricing | **Rookie free; Shredder £3.99/mo · £39.99/yr; Legend £6.99/mo · £69.99/yr** | Confirmed 2026-08-15. Yearly ≈ 2 months free. Crew Pass dropped, replaced by the single-rider Legend tier — see §2.4. |
 
 ---
@@ -548,8 +548,12 @@ None of this is agent-session work, and none of it blocks a build session. All o
 - **A named accountable individual** for OSA compliance, and the controller entity settled (sole
   trader or limited company). **Open — the owner has not decided.** It gates ICO registration and
   determines where liability sits, so it is the first of these to answer.
-- **Processor list, Article 28 contracts and a ROPA** for Resend, PostHog, Sentry, Cloudflare and
-  Mapbox. PostHog EU and R2 EU already keep transfers simple — that call was right.
+- **Processor list, Article 28 contracts and a ROPA** for MailerSend, PostHog, Sentry, Cloudflare
+  and Mapbox. PostHog EU and R2 EU already keep transfers simple — that call was right, and
+  MailerSend (Lithuania) was picked partly to keep it that way, so check its DPA carries the
+  Article 28 terms rather than assuming an EU address settles it. The processor here handles a
+  **guardian's email address**, which is a third party's personal data collected from a child, so
+  it is the entry on this list to get right first.
 - **A published complaints procedure** and a reporting route that works for people who are not
   signed-up riders. The `reports` collection covers the data; the route and the promised response
   time need a human behind them.
@@ -805,8 +809,8 @@ has a third entry.
 
 ### Wave 3 — one session
 
-**T6 · Auth + onboarding + consent.** PocketBase auth (email/password + reset, mail through
-Resend SMTP), profile fields on `users`, handle generation, the four onboarding steps, avatar
+**T6 · Auth + onboarding + consent.** PocketBase auth (email/password + reset, mail over SMTP —
+§1 names the provider), profile fields on `users`, handle generation, the four onboarding steps, avatar
 picker, timezone capture. Sign-up captures country and an age band computed in the browser from a
 date of birth that is then discarded (§3) — no minimum age is stated anywhere. Riders below their
 country's threshold enter the guardian consent flow — guardian email, approval link, account
@@ -837,7 +841,7 @@ decisions rather than details:**
   `pocketbase/tests/helpers.ts` defaults them to an adult in the UK.
 - **The consent routes are PocketBase's, not Next's.** `POST /api/landit/consent/{request,preview,
   approve,revoke}` join the two routes in §3, because §1 puts guardian-consent mail on PocketBase's
-  Resend SMTP and that is where the credentials are. The approval link in the email opens a page
+  SMTP and that is where the credentials are. The approval link in the email opens a page
   that *asks*; the decision is a form POST. A link that acted on its own would be actioned by every
   mail scanner that follows links in an inbox.
 - **No new field, and no `consent_lapses_on`.** The first design stored the day consent lapses.

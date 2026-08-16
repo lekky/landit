@@ -10,10 +10,10 @@ import { expect, test, type Page } from '@playwright/test';
  * leaves the browser**. Everything else here could be re-derived from the unit
  * and API tests; that one can only be observed where the form actually is.
  *
- * What is deliberately *not* tested: the emails. Resend has no account and no
- * sending domain yet (`docs/infrastructure.md`), so nothing can be delivered,
- * and a test that asserted on a message nobody can send would be asserting on a
- * mock of our own making.
+ * What is deliberately *not* tested: the emails. There is no mail account and no
+ * verified sending domain yet (`docs/infrastructure.md`), so nothing can be
+ * delivered, and a test that asserted on a message nobody can send would be
+ * asserting on a mock of our own making.
  */
 
 const password = 'a-long-local-test-password';
@@ -156,7 +156,7 @@ test('a younger rider arrives at an account that says what it is waiting for', a
   await page.getByLabel(/parent or carer/i).fill('guardian@landit.invalid');
   await page.getByRole('button', { name: 'Ask them' }).click();
   await expect(page.getByText(/We have written to guardian@landit.invalid/)).toBeVisible();
-  // Resend is not provisioned, and the screen says so rather than pretending.
+  // No mail provider is configured, and the screen says so rather than pretending.
   await expect(page.getByText(/not switched on until launch/i)).toBeVisible();
 });
 
