@@ -54,6 +54,20 @@ export {
   type SignupOutcome,
 } from './consent';
 export {
+  TRICK_SORTS,
+  TRICK_STATUS_FILTERS,
+  activeFilterCount,
+  filterTricks,
+  prereqTricks,
+  sortTricks,
+  trickMatchesSearch,
+  trickMatchesStatus,
+  tricksUnlockedBy,
+  type LibraryQuery,
+  type TrickSort,
+  type TrickStatusFilter,
+} from './library';
+export {
   firstLanded,
   landedByMonth,
   latestLanded,

@@ -88,6 +88,7 @@ export {
   riderSnapshot,
   trickLogEntries,
   trickProgressById,
+  tricksFromRecords,
   type TrickFilter,
 } from './queries';
 

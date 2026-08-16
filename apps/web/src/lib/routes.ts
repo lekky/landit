@@ -28,9 +28,17 @@ export const ROUTES = {
   resetPassword: '/reset-password',
   onboarding: '/onboarding',
   account: '/account',
+  library: '/library',
 } as const satisfies Record<string, Route>;
 
 export const legalHref = (doc: LegalDocId): Route => `/legal/${doc}`;
+
+/**
+ * One trick, by its **slug** — the canonical data's `id`, not the database id.
+ * A URL a rider can read is worth having, and the slug survives a reseed while
+ * a record id does not (`tricksFromRecords`).
+ */
+export const trickHref = (slug: string): Route => `/library/${encodeURIComponent(slug)}`;
 
 /** A guardian's link from the consent email (plan §6.2). */
 export const consentHref = (action: 'approve' | 'revoke', token: string): Route =>
