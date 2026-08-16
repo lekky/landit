@@ -42,6 +42,27 @@ nothing in CI will tell you.
 **Two sessions sharing one checkout share its HEAD.** Use a worktree per session, always. Check
 `git branch --show-current` immediately before committing, not only at the start.
 
+**A worktree does not isolate port 3000, and `pnpm e2e` will happily test another session's
+code.** Playwright's `webServer` sets `reuseExistingServer: !process.env.CI`, and the dev script
+hard-codes `--port 3000`. T21 ran the suite locally to reproduce a CI failure and got two
+*different* failures, because another session's dev server was already on 3000 and Playwright
+attached to it — so the assertions ran against that worktree's older `packages/core`, which still
+had two sports. Half an hour nearly went into "fixing" code that was already correct.
+
+The failing direction is the cheap one. The dangerous direction is the same mechanism producing a
+**pass**: a green local e2e run proves nothing if the bytes came from someone else's branch. Before
+believing a local `pnpm e2e`, check what is on the port — on Windows,
+`Get-NetTCPConnection -State Listen -LocalPort 3000` — and if anything is, start your own on a free
+one and point the run at it, which also skips the `webServer` block entirely:
+
+```
+pnpm exec next dev --port 3987          # from apps/web, in your worktree
+PLAYWRIGHT_BASE_URL=http://localhost:3987 pnpm e2e
+```
+
+CI is unaffected: `reuseExistingServer` is false there and every run gets its own server. This is
+purely a local-parallel-sessions trap, which is why it is here and not in §2.
+
 ## 2. Gates, merging and cleanup
 
 **Gate on exit codes, never on piped output.** A `| tail` or `| tee` returns the pipe's status,

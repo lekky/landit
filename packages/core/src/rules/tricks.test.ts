@@ -74,15 +74,24 @@ describe('the free / paid split', () => {
     expect(isTrickFree(noOverride)).toBe(true);
   });
 
-  it('splits the shipped library 15 free / 46 paid, on difficulty alone', () => {
-    // No trick in the canonical data carries an override today, so the split is
-    // purely the Rookie and Easy tiers. If this number moves, a tier moved.
+  it('splits the shipped library 29 free / 68 paid', () => {
+    // Read through `Trick`: the canonical data is `as const`, so a trick with
+    // no override has no `free` key in its inferred type at all.
     const library: readonly Trick[] = TRICKS;
-    expect(library.every((t) => t.free === undefined)).toBe(true);
-    const free = TRICKS.filter(isTrickFree);
-    expect(free).toHaveLength(15);
-    expect(TRICKS.filter((t) => !isTrickFree(t))).toHaveLength(46);
-    expect(free.every((t) => t.diff <= FREE_MAX_DIFF)).toBe(true);
+    const free = library.filter(isTrickFree);
+    expect(free).toHaveLength(29);
+    expect(library.filter((t) => !isTrickFree(t))).toHaveLength(68);
+
+    // Exactly one trick overrides difficulty, and it is named here on purpose:
+    // an override is how the free tier silently grows, so a second one appearing
+    // should fail this test and be argued for rather than noticed later.
+    const overridden = library.filter((t) => t.free !== undefined);
+    expect(overridden.map((t) => t.id)).toEqual(['bmx-double-peg']);
+    expect(overridden[0]?.free).toBe(true);
+
+    // Everything else is the Rookie and Easy tiers, nothing more.
+    expect(free.every((t) => t.diff <= FREE_MAX_DIFF || t.free === true)).toBe(true);
+    expect(library.every((t) => t.diff > FREE_MAX_DIFF || isTrickFree(t))).toBe(true);
   });
 });
 
@@ -108,10 +117,10 @@ describe('the paywall', () => {
   });
 
   it('opens the whole library to a paid rider and the free tier to a rookie', () => {
-    expect(openTricks('shredder')).toHaveLength(61);
-    expect(openTricks('legend')).toHaveLength(61);
+    expect(openTricks('shredder')).toHaveLength(97);
+    expect(openTricks('legend')).toHaveLength(97);
     expect(openTricks('rookie').every(isTrickFree)).toBe(true);
-    expect(openTricks('rookie').length).toBeLessThan(61);
+    expect(openTricks('rookie').length).toBeLessThan(97);
   });
 
   it('respects a staff override at the paywall too', () => {
@@ -176,14 +185,16 @@ describe('lookups and scoping', () => {
   it('scopes by sport, and treats no sport as everything', () => {
     expect(tricksFor('scooter')).toHaveLength(30);
     expect(tricksFor('skate')).toHaveLength(31);
-    expect(tricksFor(null)).toHaveLength(61);
-    expect(tricksFor()).toHaveLength(61);
+    expect(tricksFor('bmx')).toHaveLength(36);
+    expect(tricksFor(null)).toHaveLength(97);
+    expect(tricksFor()).toHaveLength(97);
   });
 
   it('scopes by category within a sport', () => {
     expect(tricksInCategory('flat', 'scooter')).toHaveLength(7);
     expect(tricksInCategory('flat', 'skate')).toHaveLength(10);
-    expect(tricksInCategory('flat')).toHaveLength(17);
+    expect(tricksInCategory('flat', 'bmx')).toHaveLength(11);
+    expect(tricksInCategory('flat')).toHaveLength(28);
   });
 });
 

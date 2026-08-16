@@ -140,6 +140,25 @@ export const ICONS = {
       <circle cx="16.5" cy="15.8" r="1.9" />
     </g>
   ),
+  /**
+   * BMX (T21). The one icon in this map with **no path in the handoff** — the
+   * design pack predates the third sport and contains no BMX material, which
+   * plan §7 names as a deliberate divergence from "recreate, don't
+   * reinterpret". Drawn to the same contract as everything around it: 24px
+   * grid, stroke 2.2, round caps and joins, no fills.
+   *
+   * Two equal wheels is the whole silhouette — it is what separates a BMX from
+   * the scooter beside it at 20px, where a frame's detail disappears.
+   */
+  bmx: (
+    <g>
+      <circle cx="5.5" cy="16.5" r="4.5" />
+      <circle cx="18.5" cy="16.5" r="4.5" />
+      <path d="M5.5 16.5 L9.5 8 H16 L18.5 16.5" />
+      <path d="M16 8 V5.5" />
+      <path d="M13.5 5.5 H18.5" />
+    </g>
+  ),
   skull: (
     <g>
       <path d="M12 3a7.5 7.5 0 0 0-7.5 7.5c0 2.8 1.4 4.6 3 5.8V20h9v-3.7c1.6-1.2 3-3 3-5.8A7.5 7.5 0 0 0 12 3z" />

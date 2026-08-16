@@ -18,7 +18,14 @@ describe('which sports a rider tracks', () => {
   });
 
   it('drops anything that is not a real sport', () => {
-    expect(sportsOf({ sports: ['skate', 'bmx' as 'skate'] })).toEqual(['skate']);
+    // `bmx` used to be the fake value here. It is a real sport since T21, so
+    // the test needs one that is genuinely not — otherwise it silently stops
+    // testing anything (LESSONS §4).
+    expect(sportsOf({ sports: ['skate', 'unicycle' as 'skate'] })).toEqual(['skate']);
+  });
+
+  it('keeps every real sport, BMX included', () => {
+    expect(sportsOf({ sports: ['scooter', 'skate', 'bmx'] })).toEqual(['scooter', 'skate', 'bmx']);
   });
 });
 
@@ -60,7 +67,8 @@ describe('stats for one sport', () => {
   it('counts the library totals per sport', () => {
     expect(computeSportStats(snapshot(), 'scooter').total).toBe(30);
     expect(computeSportStats(snapshot(), 'skate').total).toBe(31);
-    expect(computeSportStats(snapshot(), null).total).toBe(61);
+    expect(computeSportStats(snapshot(), 'bmx').total).toBe(36);
+    expect(computeSportStats(snapshot(), null).total).toBe(97);
   });
 
   it('reports landed as a rounded percentage of the tricks in scope', () => {

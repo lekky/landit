@@ -13,24 +13,6 @@ import { useToast } from '@/providers/toast';
  * thing you have to press to check.
  */
 
-/**
- * A third sport, for the layout check only.
- *
- * BMX is a launch sport (plan §1) but `SPORT_IDS` does not include it until
- * T21 loads the owner's trick library. The sub-520px squeeze has to be checked
- * against three tabs before then, so the row below is rendered with a made-up
- * third entry — inside a preview, never as data. Nothing imports it, no seed
- * reads it, and T21 deletes it when the real sport arrives.
- */
-const PREVIEW_THIRD_SPORT: TabItem = {
-  id: 'preview-third',
-  label: 'Third sport',
-  shortLabel: 'Third',
-  icon: 'rotate',
-  color: 'var(--pink)',
-  note: '0 landed',
-};
-
 export function ShellPreview() {
   const { sport, sports } = useSport();
   const { toast } = useToast();
@@ -67,21 +49,23 @@ export function ShellPreview() {
 
         <div style={{ marginTop: 26 }}>
           <div className="lab" style={{ marginBottom: 8, color: 'var(--ink-3)' }}>
-            The same row at three sports (T21)
+            The same row, compact
           </div>
           <p style={{ maxWidth: 640, color: 'var(--ink-2)', margin: '0 0 12px', fontSize: 14.5 }}>
             Narrow the window under 520px: the labels shorten and the notes go, so three tabs still
-            sit on one line. This row is a layout check, not real data.
+            sit on one line. T5 checked this squeeze against a made-up third entry because BMX was
+            not in <code>SPORT_IDS</code> yet; T21 landed the real sport, so this is now the real
+            row.
           </p>
           <Tabs
-            items={[...realTabs, PREVIEW_THIRD_SPORT]}
+            items={realTabs}
             value={sport}
             onChange={() => undefined}
             label="Sport, three-sport layout check"
             compact
           />
           <p className="cond" style={{ fontSize: 12.5, color: 'var(--ink-3)', margin: 0 }}>
-            {SPORT_IDS.length} real sports today
+            {SPORT_IDS.length} sports today
           </p>
         </div>
       </section>

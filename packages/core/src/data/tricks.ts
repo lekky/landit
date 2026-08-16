@@ -1,8 +1,9 @@
 import type { Trick } from '../types';
 
 /**
- * The trick library: 61 tricks (30 scooter, 31 skate), transcribed from
- * `design-handoff/design/landit-data.js`.
+ * The trick library: 97 tricks — 30 scooter and 31 skate transcribed from
+ * `design-handoff/design/landit-data.js`, plus 36 BMX researched in T21 (see
+ * the provenance note above the BMX block, which is not the same standard).
  *
  * `pre` never crosses sports — the same-sport constraint is asserted by this
  * package's tests and enforced server-side by a PocketBase hook (plan §3).
@@ -778,6 +779,507 @@ export const TRICKS = [
     about: 'An inverted one and a half rotation out of a vert ramp. Big consequences, big airtime.',
     tips: 'Only with pads, a big ramp and a lot of backside airs behind you.',
     fact: 'Mike McGill landed the first one in 1984 and it reset what a contest run could contain.',
+    isLive: true,
+  },
+
+  /* ------------------------------------------------------------------ bmx --
+   *
+   * BMX, added by T21. **Read this before changing a `diff` or a `pre`.**
+   *
+   * Unlike the scooter and skate blocks above, these did not come from the
+   * design pack — there was none for BMX. They were researched from published
+   * BMX coaching sources (Ride UK's Basics series, Dan's Comp, BMXtrix, BMX
+   * Union, The-House, a coached flip progression) and the full sourcing,
+   * including where sources disagreed, is in the review document dated
+   * 2026-08-16.
+   *
+   * Two honest caveats, recorded because a later session will otherwise assume
+   * these numbers are as settled as the other two sports':
+   *
+   *  1. **No `diff` here comes from a source that rates difficulty.** No BMX
+   *     source uses a five-point scale; the numbers are a mapping of published
+   *     tiers and tutorial ordering onto ours.
+   *  2. **Nine prerequisite edges are inference, not citation** — chiefly the
+   *     ones hanging off `bmx-air`, plus `bmx-nose-manual` and `bmx-wallride`.
+   *     Sources disagree outright on the grind order (`bmx-feeble` vs
+   *     `bmx-double-peg`) and on where `bmx-disaster` belongs.
+   *
+   * Flatland proper — hang-5, time machine, steamroller — is deliberately
+   * absent: it is a separate discipline on a different bike and needs its own
+   * tree, not a few tricks bolted onto a park and street progression.
+   * Handrails, double flips and brakeless variants were excluded on safety
+   * grounds, since no source gives a graduated path to them for a child.
+   */
+
+  {
+    id: 'bmx-wheelie',
+    name: 'Wheelie',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 1,
+    pre: [],
+    about:
+      'Pedal hard and pull up on the bars so the front wheel lifts, then keep pedalling to hold it there. The whole trick is finding the point where the bike balances and staying on it.',
+    tips: 'Sit down, stay in a low gear and cover your back brake with one finger. A tap of that brake drops the front end back before you loop out.',
+    fact: 'It teaches you where the balance point lives. Manuals and everything built on them start from this feeling.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-pump',
+    name: 'Pump a Ramp',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 1,
+    pre: [],
+    about:
+      'Not a trick, a skill. You push down through the bottom of a transition and lift as you rise, and the ramp gives you speed back. No pedalling needed.',
+    tips: 'Think of a swing. Lean back going up, lean forward coming down, and let your legs do the pushing.',
+    fact: 'Pumping is how park riders hold speed through a whole run. Get it early and every ramp trick after it gets easier.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-track-stand',
+    name: 'Track Stand',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 1,
+    pre: [],
+    about:
+      'Standing still on the bike without putting a foot down. Turn the front wheel slightly across and balance with tiny pushes on the pedals.',
+    tips: 'Find a very slight uphill and rest against it. Look ahead at something still, not down at your front wheel.',
+    fact: 'It is the cheapest balance practice there is, and you can do it while you wait your turn on a ramp.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-curb-drop',
+    name: 'Curb Drop',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 1,
+    pre: [],
+    about:
+      'Roll off a curb or a low ledge and land both wheels without the front end diving. Your first taste of getting the bike off the ground.',
+    tips: 'Keep your weight back over the rear tyre as you go over the edge. Start on a curb, not a set of stairs.',
+    fact: 'Every drop, gap and ledge trick starts here. Get comfortable rolling off small things before you hop onto anything.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-bunny-hop',
+    name: 'Bunny Hop',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 2,
+    pre: [],
+    about:
+      'Both wheels off the ground in one motion. Pull the bars back and up, then push forward over the front and suck your feet up so the back wheel follows.',
+    tips: 'Learn the front wheel lift on its own first, then add the back end. Hop over a stick or a crack before you go near anything with a real edge.',
+    fact: 'This is the trick everything else needs. 180s, grinds, barspins and whips are all a bunny hop with something added.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-manual',
+    name: 'Manual',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 2,
+    pre: [],
+    about:
+      'Rolling along on the back wheel with no pedalling. You shift your hips back behind the seat and hold the bike at its balance point.',
+    tips: 'Push the bike forward underneath you rather than yanking the bars back. Keep a finger on the rear brake so you can tap out if you go too far.',
+    fact: 'Manuals carry you across flat sections without pedalling, and they are the base of nose manuals and every manual out of a grind.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-drop-in',
+    name: 'Drop In',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 2,
+    pre: ['bmx-bunny-hop'],
+    about:
+      'Starting up on the deck with your back wheel on the coping, then committing forward down the ramp. It is over in a second.',
+    tips: 'Small hop off the back wheel so both wheels land flat on the transition, and get your weight forward. Leaning back is the one thing that puts you down.',
+    fact: 'Once you can drop in you can use every ramp in the park instead of riding around them.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-fakie',
+    name: 'Fakie',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 2,
+    pre: ['bmx-drop-in'],
+    about:
+      'Rolling backwards. You ride up a quarter pipe or a wall, run out of speed and come back down the way you came without turning round.',
+    tips: 'Learn it on a small quarter. Look over your shoulder, stay centred and let the bike roll — fighting it is what makes it wobble.',
+    fact: 'You need fakie to roll away from a 180. Sort it early and half the spin tricks stop being scary.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-x-up',
+    name: 'X-Up',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 2,
+    pre: [],
+    about:
+      'Turn the bars a full 180 degrees so your arms cross into an X, then turn them back. You can do it rolling along — no hop needed.',
+    tips: 'Try it standing still holding a wall first. Loosen your grip so your wrists are not fighting the turn.',
+    fact: 'It is the first bar trick most riders get, and it is the doorway to barspins and turndowns.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-nollie',
+    name: 'Nollie',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 2,
+    pre: ['bmx-bunny-hop'],
+    about:
+      'A bunny hop backwards. Your weight goes forward over the front wheel and the back end comes up first.',
+    tips: 'Start by just lifting the back wheel and setting it straight back down. Keep the lift small until it stops feeling like you are about to go over the bars.',
+    fact: 'Nollies teach you to put your weight forward on purpose, which is exactly what nose manuals and front-peg grinds need.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-pull-up-barspin',
+    name: 'Pull-Up Barspin',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 2,
+    pre: ['bmx-x-up'],
+    about:
+      'Lift just the front wheel, let go of the bars and spin them a full turn, then catch them straight before the wheel touches down.',
+    tips: 'Throw with one hand and catch with the other, in the same spot every time. Practise the throw standing over the bike before you roll.',
+    fact: 'This is the stepping stone to spinning bars in a bunny hop. Get the catch automatic here and the hop version is mostly timing.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-180',
+    name: 'Hop 180',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 2,
+    pre: ['bmx-bunny-hop', 'bmx-fakie'],
+    about:
+      'Bunny hop and turn half way round, landing rolling backwards. Wind your shoulders one way first, then unwind them.',
+    tips: 'Look over your shoulder at where you want to land and commit to the whole turn. A half-hearted 90 is how pedals catch.',
+    fact: 'The 180 is the start of every spin. Once it is clean, 360s and 180 barspins are the next two steps.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-footjam',
+    name: 'Footjam',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 2,
+    pre: [],
+    about:
+      'Jam your front foot between the fork and the front tyre so the bike stops dead and the back wheel lifts up behind you.',
+    tips: 'Roll slowly and put the foot in gently the first few times. Wear proper shoes — this one chews them.',
+    fact: 'Footjams are the base of nosepicks and endo tricks, and you can learn one on any flat bit of ground.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-double-peg',
+    name: 'Double Peg Grind',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 3,
+    pre: ['bmx-bunny-hop'],
+    // Free despite being difficulty 3: every BMX street trick descends from
+    // this one, so leaving it paid puts no street content at all in the free
+    // tier — a free rider would see the branch and never be able to enter it.
+    // Feeble, smith, toothpick and icepick all stay paid.
+    free: true,
+    about:
+      'Hop up so both pegs on one side land on a ledge or rail, then slide along it. The grind every other grind is built from.',
+    tips: 'Learn it on a low, waxed ledge long before you go near a rail. Land both pegs at once, stay centred, and ride straight off the end.',
+    fact: 'Also called a 50-50. Feebles, smiths, icepicks and toothpicks are all this trick with one peg taken away.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-feeble',
+    name: 'Feeble Grind',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 3,
+    pre: ['bmx-double-peg'],
+    about:
+      'Your back peg grinds the edge while the front wheel rolls along the top of the ledge, so the bike sits at an angle across it.',
+    tips: 'Come in at a slight angle and get the back peg down first. Low ledges only until the balance stops being a surprise.',
+    fact: 'Feeble is the grind most riders keep for life, and feeble to manual is the first grind combo worth chasing.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-air',
+    name: 'Air Out of a Quarter',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 3,
+    pre: ['bmx-drop-in', 'bmx-pump'],
+    about:
+      'Ride up a quarter pipe, leave the coping with both wheels and come back down into the transition. Land on the deck instead and it is a flyout.',
+    tips: 'Build up an inch at a time. Pull up as you leave the lip and point the front wheel back down the ramp before you land.',
+    fact: 'This is the gate to park riding. Spins, whips, no-handers and flips all begin with getting out of the ramp under control.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-icepick',
+    name: 'Icepick',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 3,
+    pre: ['bmx-double-peg'],
+    about:
+      'Grind or stall on the back peg alone, with the front end lifted up above the coping or the ledge.',
+    tips: 'Approach almost parallel and let the peg glide on — do not slam it down. Your weight has to sit right over the edge; lean in or out and it slips.',
+    fact: 'Steeper ramps make icepicks easier, not harder. It is the natural next step after double pegs on a quarter.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-nose-manual',
+    name: 'Nose Manual',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 3,
+    pre: ['bmx-manual', 'bmx-nollie'],
+    about:
+      'A manual on the front wheel. The back end is up and you roll forward on the front tyre alone.',
+    tips: 'Twitchier than a manual and far less forgiving. Ease your weight forward, never lunge, and bail off the back if it tips.',
+    fact: 'Nose manuals open up nose manual 180s and rolling out of front-peg grinds.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-hop-barspin',
+    name: 'Bunny Hop Barspin',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 3,
+    pre: ['bmx-bunny-hop', 'bmx-pull-up-barspin'],
+    about:
+      'Bunny hop, throw the bars a full spin underneath you and catch them straight before you land.',
+    tips: 'Get your legs straight, back and out of the way so the bars can pass. Hinge at the hips and keep your chest over the bike.',
+    fact: 'A hop barspin turns up on flat, on banks, over gaps and out of grinds. It is one of the most useful tricks in BMX.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-tabletop',
+    name: 'Tabletop',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 3,
+    pre: ['bmx-air'],
+    about:
+      'In the air you turn the bars and lay the bike over to one side so it goes flat like a table top, then bring it back level to land.',
+    tips: 'Learn it off a small jump box where the landing is forgiving. Turn the bars and push the bike over with your legs staying together.',
+    fact: 'Tabletops are the classic style trick over a jump, and they teach you to move the bike around underneath you in the air.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-tuck-no-hander',
+    name: 'Tuck No-Hander',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 3,
+    pre: ['bmx-air'],
+    about:
+      'At the top of a jump you pull the bars into your lap, take both hands off, then grab back on before you come down.',
+    tips: 'Start by just loosening your grip, then one finger off, then one hand. Only let go fully once you are getting real height.',
+    fact: 'No-handers are where most riders start putting their own look into a jump, and they lead straight into turndowns.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-tyre-tap',
+    name: 'Tyre Tap',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 3,
+    pre: ['bmx-air'],
+    about:
+      'Pop out of a quarter pipe, kick the back wheel round onto the deck and tap it there, then come straight back in.',
+    tips: 'Come in almost perpendicular to the ramp and use your back brake as the tyre lands. Learn it with brakes fitted — brakeless is a different trick entirely.',
+    fact: 'It is the basis of a lot of deck tricks. Once you can tap, a whole family of lip tricks opens up.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-disaster',
+    name: 'Disaster',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 3,
+    pre: ['bmx-air'],
+    about:
+      'Ride up the quarter, turn half way round at the top and land with the back wheel on the deck and the front wheel back down in the transition.',
+    tips: 'Mellow, small ramps first. Come in almost straight on with steady speed and let the bike carve round as it drifts to the deck.',
+    fact: 'Disasters are one of the friendliest ways to learn to turn at the top of a ramp, which is what airs and 180s out both need.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-wallride',
+    name: 'Wallride',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 3,
+    pre: ['bmx-bunny-hop'],
+    about:
+      'Ride at a wall, hop onto it and roll along it sideways with both wheels on the wall, then come back down to the ground.',
+    tips: 'Get the bike and your body leaned over, as close to square against the wall as you can. Carry speed, because slow wallrides just slide out.',
+    fact: 'All you need is a bike and a wall. It is the street trick with the least equipment and the biggest payoff.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-360',
+    name: 'Bunny Hop 360',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 4,
+    pre: ['bmx-180'],
+    about:
+      'A full spin, you and the bike together, out of a bunny hop. It is a 180 with a much stronger carve and a committed head turn.',
+    tips: 'Carve into it harder than a 180 but keep it controlled, or the bike jackknifes. Smooth flat ground first, then take it to drops and banks.',
+    fact: '360s are the base of 540s, truckdrivers and every spin combination that comes after them.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-smith',
+    name: 'Smith Grind',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 4,
+    pre: ['bmx-feeble'],
+    about:
+      "The feeble's mirror: the front peg grinds the edge while the back wheel rolls along the top of the ledge.",
+    tips: 'Nose in slightly and keep steady pressure on that front peg. It punishes leaning back, so stay over the front.',
+    fact: 'Feeble and smith together mean you can grind a ledge from either approach, which doubles what any spot is worth.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-toothpick',
+    name: 'Toothpick Grind',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 4,
+    pre: ['bmx-double-peg', 'bmx-nollie'],
+    about: 'Grinding on the front peg only, with the back wheel held up in the air behind you.',
+    tips: 'You have to get the back end up and keep it up for the whole grind. Short ones first — long toothpicks come much later.',
+    fact: 'Toothpick and its variations, like the hangover, are where front-peg riding starts.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-180-barspin',
+    name: '180 Barspin',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 4,
+    pre: ['bmx-hop-barspin', 'bmx-180'],
+    about:
+      'Spin the bars and turn half way round in the same hop, landing fakie with the bars caught straight.',
+    tips: 'Focus on throwing and catching the bars early — the 180 comes round on its own once the spin has started. Begin at about walking pace.',
+    fact: 'If you already catch bars nice and early this one comes quite easily. It is also half of a truckdriver.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-turndown',
+    name: 'Turndown',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 4,
+    pre: ['bmx-x-up', 'bmx-air'],
+    about:
+      'In the air you bring the bike up vertical, straighten your body out and turn the bars right down towards your back foot.',
+    tips: 'X-ups and lookdowns first — they teach the bar turn without the body position. Full turndowns take a long time, so be patient with them.',
+    fact: 'One of the oldest style tricks in BMX and still one of the best-looking. It pairs with a tuck no-hander for the classic combination.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-feeble-manual',
+    name: 'Feeble to Manual',
+    sport: 'bmx',
+    cat: 'hybrid',
+    diff: 4,
+    pre: ['bmx-feeble', 'bmx-manual'],
+    about:
+      'Grind a feeble along the ledge and roll straight out of the end of it into a manual, instead of putting the front wheel down.',
+    tips: 'Be confident with both halves on their own first. A short feeble makes the switch into the manual much easier.',
+    fact: 'Learn it on a flat ledge, then take it to a hubba: feeble the flat part, manual down the slope.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-flyout-tailwhip',
+    name: 'Flyout Tailwhip',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 4,
+    pre: ['bmx-air'],
+    about:
+      'Air out of a quarter onto the deck and kick the frame a full lap around the bars and forks, catching it back under your feet.',
+    tips: 'Any ramp with a big enough deck works, and you get to take it at your own pace. Go easy on the reps — your wrists take a beating on flyout landings.',
+    fact: 'Flyouts are how nearly everyone learns whips. The bunny hop version comes later, once the kick and the catch are automatic.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-hop-tailwhip',
+    name: 'Bunny Hop Tailwhip',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 5,
+    pre: ['bmx-flyout-tailwhip', 'bmx-bunny-hop'],
+    about:
+      'The whole tailwhip out of a bunny hop on flat ground. Kick the frame round with your back foot and land on it as it comes back.',
+    tips: 'Keep your weight over the front end while you kick. A mellow bank first makes this a lot easier than dead flat.',
+    fact: 'Hop whips take a while to master. This one is measured in months, not sessions.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-truckdriver',
+    name: 'Truckdriver',
+    sport: 'bmx',
+    cat: 'hybrid',
+    diff: 5,
+    pre: ['bmx-180-barspin', 'bmx-360'],
+    about:
+      'A 360 and a barspin in the same air. The bike spins a full lap under you while the bars spin a full lap too.',
+    tips: 'Learn it out of a flyout or a bank first, then a flat bank, then a small drop. The extra height buys you the time to get both round.',
+    fact: 'You need a good 180 barspin and a good 360 hop before you start thinking about this one.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-540',
+    name: '540',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 5,
+    pre: ['bmx-360', 'bmx-air'],
+    about: 'A spin and a half out of a quarter pipe, landing back in the transition.',
+    tips: 'Get 360s on ramps dialled first, then take it to a big mellow quarter. Come in faster than you would for a 360, but not so fast you lose control.',
+    fact: 'A bigger transition actually makes the spin easier, which is why most riders land their first 540 on the biggest ramp in the park.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-backflip',
+    name: 'Backflip',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 5,
+    pre: ['bmx-air'],
+    about:
+      'A full backward rotation with the bike, off a foam pit, a resi ramp or a jump box. Total commitment — hesitating halfway is what hurts.',
+    tips: 'Foam pit first and nowhere else. Land ten to fifteen to your wheels in the foam before you go to resi, then ten to fifteen on resi before you go to wood.',
+    fact: 'That foam to resi to wood ladder is how coached riders learn flips. Skipping a rung is the most common way people get badly hurt.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-flair',
+    name: 'Flair',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 5,
+    pre: ['bmx-backflip', 'bmx-180'],
+    about:
+      'A backflip with a half turn built into it, so you land back in the quarter pipe facing the other way.',
+    tips: 'Only once backflips are boring. A bigger quarter, around six foot, gives you both the pop and the transition to spin it.',
+    fact: 'Riders who already flip onto foam, over a box or out of a flyout tend to find flairs come quickly. It is the standard run-ender at a park contest.',
     isLive: true,
   },
 ] as const satisfies readonly Trick[];

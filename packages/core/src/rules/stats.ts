@@ -96,7 +96,10 @@ export function computeSportStats(
     clips: snapshot.clips ?? 0,
     challenges: finishedChallenges,
     crew: !!snapshot.crew,
-    bothSports: SPORT_IDS.every(landedInSport),
+    // "At least two", not "every" — see the field's doc comment. Adding BMX to
+    // `SPORT_IDS` changes what `every` means, and `every` would have quietly
+    // made an earned sticker unearned.
+    bothSports: SPORT_IDS.filter(landedInSport).length >= 2,
     pct: pool.length ? Math.round((landedIds.length / pool.length) * 100) : 0,
   };
 }

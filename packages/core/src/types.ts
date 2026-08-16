@@ -11,21 +11,32 @@
 
 /* ------------------------------------------------------------------ sports */
 
-/** The two sports Land It tracks. */
-export type SportId = 'scooter' | 'skate';
+/** The three sports Land It tracks (plan §1). */
+export type SportId = 'scooter' | 'skate' | 'bmx';
 
 /** Presentation and copy for one sport. */
 export interface Sport {
   readonly id: SportId;
   readonly label: string;
   readonly short: string;
-  /** Hex colour. Scooter is orange, skate is blue. */
+  /** Hex colour. Scooter is orange, skate is blue, BMX is pink. */
   readonly color: string;
   /** Key into the icon map in `@landit/ui-web`. */
   readonly icon: string;
   /** "What you need" copy on a trick page. */
   readonly kit: string;
   readonly blurb: string;
+  /**
+   * Category labels this sport overrides.
+   *
+   * The category *ids* are shared across every sport and always will be — the
+   * stats, the stickers and the skill tree all key off them. What a rider is
+   * shown is another matter: `flat` reads as "flatground" to a scooter or skate
+   * rider, but **Flatland is one of BMX's five named disciplines**, so the bare
+   * word means something specific and different to the audience it is aimed at.
+   * Only the display string moves; nothing keyed off the id changes.
+   */
+  readonly categoryLabels?: Partial<Record<CategoryId, string>>;
 }
 
 /* -------------------------------------------------------------- categories */
@@ -339,7 +350,19 @@ export interface SportStats {
   /** Challenges finished in scope. */
   readonly challenges: number;
   readonly crew: boolean;
-  /** Whether the rider has landed something on both sports. */
+  /**
+   * Whether the rider has landed something on **two or more** sports.
+   *
+   * It was `SPORT_IDS.every(...)` while there were two sports, where "every"
+   * and "at least two" are the same sentence. Adding BMX (T21) split them, and
+   * `every` would have silently redefined the `both-feet` sticker as *all
+   * three* — un-earning it for every rider who had it, without touching the
+   * sticker, its name or its copy. That is LESSONS §4 exactly: when a rule's
+   * basis changes, the data quoting it changes meaning for free.
+   *
+   * "At least two" keeps what riders already earned. Whether a separate
+   * all-three sticker should exist is a product question, not this function's.
+   */
   readonly bothSports: boolean;
   /** Landed as a percentage of tricks in scope, rounded. */
   readonly pct: number;

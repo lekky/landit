@@ -74,7 +74,7 @@ landit/
   pocketbase/
     migrations/          JS migrations defining collections, rules and indexes
     hooks/               pb_hooks — server-side rule enforcement (paywall, stickers, audit)
-    seed/                tricks (61 scooter+skate, BMX added by T21), stickers, plans, spots, events, challenges
+    seed/                tricks (97: scooter, skate and BMX), stickers, plans, spots, events, challenges
   design-handoff/        the received design pack (reference, not compiled)
 ```
 
@@ -379,7 +379,7 @@ Tracked from the handoff's own list, mapped to phases:
 | Admin rider list (mock data) | Real riders | 6 |
 | Moderation (queue for spots only) | Reporting for profiles and clips | 6 |
 | Offline | Service worker cache, then native | 7 |
-| Two sports (scooter, skate) | Three — BMX joins at launch (§1), built by T21 | — (§7) |
+| Two sports (scooter, skate) | Three — BMX joined at launch (§1), built by T21 | — (§7) |
 
 ---
 
@@ -927,6 +927,44 @@ over the `reports` collection. Depends on T16. Inputs: `landit-admin.jsx`, scree
   signature or behaviour changes.
 - Sweep for the two-sport assumptions the type system cannot catch: tab strips and filter rows built
   from literals, seed scripts, and any copy that says "both sports".
+
+**Shipped 2026-08-16, with four things the plan did not anticipate and one still outstanding.**
+
+1. **The trick library is researched, not authored, and the owner ran it that way knowingly.** The
+   content track above says an agent session cannot invent a progression credibly. It did not
+   invent one: 36 tricks were researched from published BMX coaching sources with every claim
+   cited, and the review document dated 2026-08-16 records the sourcing, the seven places sources
+   disagreed, and the nine prerequisite edges that are inference rather than citation. **No `diff`
+   value came from a source that rates difficulty on a five-point scale** — those are a mapping.
+   The owner accepted this on 2026-08-16 in preference to holding the sport back. `tricks.ts`
+   carries the same caveat at the head of the BMX block so a later session does not mistake these
+   numbers for the settled ones the other two sports have.
+2. **`bothSports` had to change meaning, and doing nothing was not an option.** It was
+   `SPORT_IDS.every(...)`, where "every" and "at least two" are the same sentence for two sports.
+   Adding BMX split them, and `every` would have silently redefined the `both-feet` sticker as
+   *all three* — un-earning it for every rider who held it, without touching the sticker. It is now
+   "two or more", which preserves what riders earned, and the sticker copy no longer names the two
+   sports that happened to exist when it was written. Whether a separate all-three sticker should
+   exist is a product question, still open. This is LESSONS §4 repeating exactly.
+3. **`maxSelect` mattered as much as the option list.** The multi-select sport fields were capped
+   at 2 — the number of sports, not a product rule — so a rider who rides all three could pick
+   three and save two. The migration raises the cap with the list, and an HTTP test holds it.
+4. **Category labels can now vary by sport.** Ids stay shared and always will; only the displayed
+   word moves, via `Sport.categoryLabels` and `categoryLabel()`. BMX shows **"Flatland"** where the
+   other two show "Flat", decided by the owner on 2026-08-16. Flagged at the time and worth
+   revisiting once BMX tricks render beside the chip: Flatland is a distinct BMX discipline that
+   this library deliberately excludes, so the label may now over-promise in the other direction —
+   "Flatground" removes the ambiguity both ways, and it is a one-word change.
+
+**Still outstanding, and both need the owner:**
+
+- **The BMX sport colour.** `SPORTS.bmx.color` ships as `#FF3D78` (`--pink`) as a **placeholder**.
+  Every other token has a job; BMX takes `--pink` or the palette gains a colour. Swapping the hex
+  is the whole of the change.
+- **BMX avatars.** The 36 shipped avatars are scooter- and skate-flavoured in places, and no BMX
+  ones exist. New design work, as the content track says. BMX stickers are likewise unbuilt: the
+  shared ones apply, but there are no BMX-scoped stickers, because there is no owner list to
+  build them from.
 
 **This session runs alone in its wave.** Widening `SportId` is a repo-wide edit that touches every
 package at once, so nothing else can share the wave without conflicting. It depends on the BMX
