@@ -7,7 +7,7 @@ argued away by the next session that finds it inconvenient.
 **How to read this file:** §1 before starting any session that runs beside another (which is
 most of them). §2 before your first commit. §3 before touching `packages/core`, `packages/db`,
 `packages/ui-web` or `pocketbase/`. §4 when you change what a rule *means*. §5 before writing
-a test that guards one of the §3 guarantees.
+a test that guards one of the §3 guarantees. §6 before adding a dependency.
 
 Ported from `frontdesk`'s `docs/LESSONS.md`, whose rules were paid for in production. Land It's
 own entries start at Wave 1.
@@ -119,3 +119,36 @@ matters.
 otherwise leave every rule test passing against an empty database. The harness treats an
 `Error:` line as failure and a test asserts every collection exists. Assume any tool may lie
 about its exit code until you have watched it fail.
+
+**Watch a new guarantee test fail before you believe it passes.** T4 tightened the users guard
+so no client can write the streak, and wrote eleven HTTP tests around it. Green proves nothing
+on its own — the tests would also have been green against a guard that did nothing, if they had
+asserted the wrong status or hit the wrong endpoint. Removing the guard and re-running turned
+six of them red, which is what made the green meaningful; the same check on the generated-types
+drift test took one appended line. It costs one command and it is the only way to tell a
+guarantee from a decoration. Do it while the guard is still fresh in your hands, not later.
+
+## 6. Dependencies that break the whole workspace
+
+**A dependency needing `allowBuilds` is not a local decision — it stops every pnpm command
+until it is resolved.** T4's plan named `pocketbase-typegen` for the generated collection types.
+It pulls in `better-sqlite3`, a native module whose install script pnpm blocks by default. From
+the moment it entered `packages/db`, *every* pnpm invocation in the workspace failed with
+`ERR_PNPM_IGNORED_BUILDS` — not just commands in that package, and including
+`pnpm install --frozen-lockfile`, which is how CI starts. pnpm also wrote a placeholder line
+(`better-sqlite3: set this to true or false`) into `pnpm-workspace.yaml`, which is easy to
+commit by accident once the dependency is gone.
+
+Two things follow. Check whether a new dependency wants a build script *before* building on it,
+because the blast radius is the workspace, not the package. And weigh what the native module
+actually buys: here it was reading a SQLite file the repo generates itself, so a generator
+reading the same schema over PocketBase's collections API cost no dependency, no native
+toolchain, and took the schema from the migrations rather than an exported database. `allowBuilds`
+says to keep itself short and to give each entry a reason; "a codegen tool wanted it" is not one.
+
+**Naming a tool in the plan is a suggestion about the job, not a commitment to the tool.** The
+plan is the authority on *what* T4 delivers — generated types that cannot drift from the
+migrations — and that was delivered. Swapping the named tool is still a divergence, so it edits
+`docs/implementation-plan.md` in the same PR (`CLAUDE.md`, "plan first, then code"). Recording
+*why* matters more than recording *what*: without the reason, the next session sees a plan that
+says `pocketbase-typegen` and a repo that does not, and re-litigates it.
