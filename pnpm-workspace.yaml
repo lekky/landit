@@ -1,6 +1,9 @@
 packages:
   - apps/*
   - packages/*
+  # The backend-as-files (migrations, hooks, and the HTTP tests that drive a
+  # throwaway PocketBase against them).
+  - pocketbase
 
 # pnpm blocks dependency install scripts unless they are named here. Keep this
 # list as short as it can be, and say why each one is on it.

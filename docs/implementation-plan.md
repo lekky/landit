@@ -257,10 +257,26 @@ recomputes from what remains.
 
 **Rules execute on the server.** `packages/core` is where the rules are *defined*; the place they
 are *enforced* is `pocketbase/hooks/`: on each `trick_progress` write the hook re-checks the
-paywall and unlock rules, evaluates stickers against fresh stats, and creates `rider_stickers`
-records itself. Clients cannot create `rider_stickers` at all (`createRule: null`) — otherwise
-stickers are forgeable and the paywall is, as below, a suggestion. The client-side copies of the
-same `core` functions exist for instant UI feedback only.
+paywall, evaluates stickers against fresh stats, and creates `rider_stickers` records itself.
+Clients cannot create `rider_stickers` at all (`createRule: null`) — otherwise stickers are
+forgeable and the paywall is, as below, a suggestion. The client-side copies of the same `core`
+functions exist for instant UI feedback only.
+
+**The unlock rule is a display state, not a refusal** (decided in T2, amending "paywall and unlock
+rules" above). A trick whose prerequisites are unlanded still accepts progress. Two reasons: the
+wish list and "start here" both depend on a rider being able to *want* a trick they have not
+unlocked, and the prerequisite graph is our opinion about learning order rather than a fact about a
+rider — a 403 there would call a child a liar about something they actually landed. Unlock stays
+what the prototype makes it: the skill tree's hatched-dashed node, computed in `core`. The paywall
+is the only refusal on that path, and it is absolute.
+
+**Two hook routes exist besides the collections.** `GET /api/landit/crew-board/{crew}` is the
+narrow server-shaped payload guarantee 1 requires — a fixed field list built server-side, which is
+how a private rider appears by name and score without their record being readable. `POST
+/api/landit/crews/join` redeems an invite code, because `crew_members.createRule` is `null`: with
+crews invite-only and undiscoverable (§6.1), there must be no client path into a crew that skips a
+code. T11 builds its UI on both. `plans` carries `unlocks_paid_tricks` alongside the clip cap, so
+the paywall is staff-tunable from the same record and fails closed when a plan is missing.
 
 ### Access rules (the RLS role, in PocketBase terms)
 
