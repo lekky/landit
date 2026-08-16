@@ -19,7 +19,7 @@ import { currentRider } from '@/lib/session';
 export interface GuardianFormState {
   readonly error?: string;
   readonly sentTo?: string;
-  /** Whether the email actually went out. False until Resend is provisioned. */
+  /** Whether the email actually went out. False until SMTP is configured. */
   readonly emailed?: boolean;
 }
 

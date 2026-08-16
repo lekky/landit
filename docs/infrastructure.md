@@ -66,8 +66,21 @@ Set up 2026-08-15. This file records what exists and how to reach it — no secr
 
 - [ ] Land It domain — buy, point at the box, then create the Land It Coolify project
       (Next.js app + PocketBase + preview deploys) and add its DB to litestream.yml.
-- [ ] Resend account + sending-domain DNS (needs the Land It domain first) — required before T6
-      (auth emails) is tested against the hosted instance.
+- [ ] MailerSend account + sending-domain DNS — required before T6 (auth and guardian-consent
+      email) can be tested against the hosted instance. Three things in order, and none of them
+      needs the Land It domain:
+      1. **The dashboard is `accounts.mailersend.com`, not `dashboard.mailerlite.com`.** They are
+         sibling products; MailerLite is the newsletter one and has no SMTP relay.
+      2. **Get out of the trial phase.** A new MailerSend account can only send *100/day to 5
+         recipients* until it is approved — fine for testing against your own inbox, and a hard
+         stop the first time a real parent is on the other end. Clear it early, not on launch day.
+      3. **Verify a domain and take the SMTP credentials** into PocketBase's mail settings
+         (`pocketbase/.env.example` lists the five values). The free tier allows **one** domain, so
+         `hellowebdesign.co.uk` can carry the pre-launch testing and gets swapped for the Land It
+         domain when that is bought — testing on it is fine, launching on it is not, because a
+         child-safety email from an unrelated agency domain reads as phishing to a parent.
+      Also set `LANDIT_APP_URL` on the hosted instance, or the guardian's approval and revocation
+      links point at `http://localhost:3000`.
 - [ ] Uptime Kuma monitors for each deployed site as they appear (plus one for
       https://box1.hellowebdesign.co.uk).
 - [ ] R2 lifecycle rule + clips bucket when T14 (clips) approaches.

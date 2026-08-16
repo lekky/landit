@@ -161,9 +161,9 @@ export interface ConsentRequestResult {
   /**
    * Whether the email actually went out.
    *
-   * `false` is the expected answer until Resend is provisioned
-   * (`docs/infrastructure.md`), and the screen says so rather than claiming a
-   * parent has been written to.
+   * `false` is the expected answer until the hosted instance has SMTP
+   * credentials (`docs/infrastructure.md`), and the screen says so rather than
+   * claiming a parent has been written to.
    */
   readonly emailed: boolean;
 }

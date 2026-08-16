@@ -9,7 +9,7 @@
  * approves, and the one that takes approval back, which works forever (§6.2).
  * A guardian who does nothing has still made a decision, and the email says so.
  *
- * **Sending is best-effort.** Resend is not provisioned yet
+ * **Sending is best-effort.** No mail account is provisioned yet
  * (`docs/infrastructure.md`), so this returns `false` rather than throwing when
  * the mailer is unavailable: a rider waiting on a guardian is a fact worth
  * recording even on a day we cannot deliver the message. The route reports what
@@ -81,8 +81,8 @@ function sendGuardianRequest(app, input) {
     app.newMailClient().send(message);
     return true;
   } catch (err) {
-    // No SMTP is the expected state until the domain is bought and Resend is
-    // set up. Loud enough to find, quiet enough not to fail the request.
+    // No SMTP is the expected state until a sending domain is verified with the
+    // provider. Loud enough to find, quiet enough not to fail the request.
     app.logger().warn('guardian consent email not sent', 'error', String(err));
 
     // Locally there is no inbox at all, so the flow is untestable end to end

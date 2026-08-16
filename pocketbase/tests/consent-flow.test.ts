@@ -163,8 +163,8 @@ describe('asking a guardian', () => {
     });
     expect(asked.status).toBe(200);
     expect(asked.body.guardian_email).toBe('a.guardian@example.com');
-    // Resend is not provisioned (docs/infrastructure.md), so this says false
-    // locally rather than pretending an email went out.
+    // No SMTP is configured locally (docs/infrastructure.md), so this says false
+    // rather than pretending an email went out.
     expect(asked.body).toHaveProperty('emailed');
 
     // The rider is told nothing that would let them approve themselves.

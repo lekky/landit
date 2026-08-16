@@ -20,8 +20,9 @@
  *  3. **Let it lapse.** Consent ends on the rider's own birthday with nobody
  *     doing anything, so the band is advanced whenever the account authenticates.
  *
- * Mail goes through PocketBase's own mailer — Resend's SMTP on the product
- * domain (plan §1) — because that is where the credentials live. **Resend is not
+ * Mail goes through PocketBase's own mailer, over SMTP on the product domain,
+ * because that is where the credentials live. Which provider supplies them is a
+ * plan §1 decision and is deliberately not named here. **No account is
  * provisioned yet** (`docs/infrastructure.md`), so a send failure is logged and
  * swallowed: a parent's inbox being unreachable must not roll back the record
  * that says a rider is waiting for them.
