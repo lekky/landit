@@ -44,18 +44,19 @@ test('the top bar never widens the page, at any width the nav is on show', async
    */
   await page.goto(SHELL);
 
+  // Read through locators rather than `page.evaluate`: this project's e2e
+  // tsconfig has no DOM lib, so `document` and `HTMLElement` are not names here.
+  // An element handed to `locator.evaluate` is typed by Playwright itself, and
+  // `scrollWidth` / `clientWidth` come with it.
+  const root = page.locator('html');
+
   for (const width of [861, 900, 934, 1040, 1041, 1440]) {
     await page.setViewportSize({ width, height: 800 });
 
     await expect
-      .poll(
-        () =>
-          page.evaluate(() => {
-            const d = document.documentElement;
-            return d.scrollWidth - d.clientWidth;
-          }),
-        { message: `the document scrolls sideways at ${width}px` },
-      )
+      .poll(() => root.evaluate((el) => el.scrollWidth - el.clientWidth), {
+        message: `the document scrolls sideways at ${width}px`,
+      })
       .toBe(0);
 
     const nav = page.getByRole('navigation', { name: 'Main', exact: true });
@@ -71,14 +72,9 @@ test('the top bar never widens the page, at any width the nav is on show', async
      * one scrolled out of view as visible.
      */
     await expect
-      .poll(
-        () =>
-          nav.evaluate((el) => {
-            const e = el as HTMLElement;
-            return e.scrollWidth - e.clientWidth;
-          }),
-        { message: `the nav itself scrolls at ${width}px, so an item is out of view` },
-      )
+      .poll(() => nav.evaluate((el) => el.scrollWidth - el.clientWidth), {
+        message: `the nav itself scrolls at ${width}px, so an item is out of view`,
+      })
       .toBe(0);
 
     // Fitting by dropping items would pass both checks and fail the point of
