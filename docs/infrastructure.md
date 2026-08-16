@@ -94,11 +94,12 @@ Records, all to the box (`188.119.155.124`, `2a0f:8f00::c:0:0:2`):
 Two traps:
 
 - **Web and mail live on different servers.** The A records point at the VPS
-  (`188.119.155.124`); the MX will point at the cPanel host (`5.101.173.45`). That split is normal
-  and intended — but **adding an addon domain in cPanel usually rewrites the A record to the shared
-  host**, which silently moves the website off the box. After step 5, come back and check `@`,
-  `www`, `api` and `*` still resolve to `188.119.155.124`. This is the most likely thing in this
-  runbook to go wrong.
+  (`188.119.155.124`); the MX points at whichever cPanel server the Land It account sits on. That
+  split is normal and intended — but **creating the cPanel account in step 5 builds a full DNS zone
+  with every record aimed at that shared server**, which silently moves the website off the box.
+  After step 5, come back and check `@`, `www`, `api` and `*` still resolve to `188.119.155.124`,
+  and that only `MX` (and cPanel's own `mail.`) points elsewhere. This is the most likely thing in
+  this runbook to go wrong.
 - **Without the wildcard there are no preview deploys.** Coolify gives each PR its own subdomain;
   `*` is what makes them resolve.
 
@@ -124,9 +125,14 @@ machine — which fails silently and reads as "the email is broken".
 
 ### 5. Mailboxes in cPanel
 
-Add `landthetrick.com` to the hostmedia cPanel and create `safeguarding@`, `privacy@`, `hello@` and
-`events@`. Point the MX at that host. Real mailboxes or forwards to an inbox somebody reads — either
-is fine; what is not fine is an MX pointing at something that accepts and discards.
+**Its own cPanel account, not an addon domain on the agency's** (2026-08-16). The hostmedia plan
+allows several, and a separate account keeps Land It's mail isolated from HelloWebDesign's:
+separate SPF and DKIM, separate sending reputation, separate suspension risk, and a safeguarding
+inbox that can be handed to whoever is answering it without also handing over the agency's email.
+
+Create `safeguarding@`, `privacy@`, `hello@` and `events@` there and point the MX at that server.
+Real mailboxes or forwards to an inbox somebody reads — either is fine; what is not fine is an MX
+pointing at something that accepts and discards.
 
 All four are published in the terms, the privacy policy, the safeguarding page and the
 guardian-consent email, and `safeguarding@` carries a **one-working-day response promise** the owner
@@ -147,18 +153,20 @@ they get pointed at the wrong server.
    SMTP credentials into PocketBase's mail settings (`pocketbase/.env.example` lists the five
    values).
 
-⚠️ **The SPF trap.** cPanel writes an SPF record of its own the moment a domain is added in step 5 —
-`hellowebdesign.co.uk` carries the same one, `v=spf1 +a +mx +ip4:… include:relay.mailchannels.net
-~all`. MailerSend will then ask for an SPF record too. **A domain may have only one `v=spf1`
-record**: a second is not "two senders allowed", it is a permanent error that fails both, and one of
-the two is a guardian-consent email. Append MailerSend's include to the record cPanel made rather
-than adding another:
+⚠️ **The SPF trap.** cPanel writes an SPF record of its own the moment the account is created in
+step 5 — `hellowebdesign.co.uk` carries the same shape, `v=spf1 +a +mx +ip4:<that server>
+include:relay.mailchannels.net ~all`. MailerSend will then ask for an SPF record too. **A domain may
+have only one `v=spf1` record**: a second is not "two senders allowed", it is a permanent error that
+fails both, and one of the two is a guardian-consent email. Append MailerSend's include to the
+record cPanel made rather than adding another:
 
 ```
-v=spf1 +a +mx +ip4:5.101.173.45 include:relay.mailchannels.net include:_spf.mailersend.net ~all
+v=spf1 +a +mx +ip4:<the Land It cPanel server> include:relay.mailchannels.net include:_spf.mailersend.net ~all
 ```
 
-Use the values the two panels actually show; the shape is the point.
+**Read the IP out of the record cPanel generated for this account** — it is that account's server,
+not `hellowebdesign.co.uk`'s, and the two need not be the same machine. Same for the include: use
+the values the two panels actually show. The shape is the point, not the values.
 
 **DKIM is different — leave cPanel's alone.** A domain may hold as many DKIM keys as it has
 selectors, so cPanel's `default._domainkey` and MailerSend's own selector coexist happily. Deleting
@@ -187,7 +195,7 @@ Steps 1–8 above are the sequence; this is the progress.
 - [ ] Land It Coolify project, both hostnames on HTTPS (runbook 2) — **the late one**
 - [ ] The new PocketBase database in `litestream.yml`, restore rehearsed (runbook 3)
 - [ ] `LANDIT_APP_URL` set on the hosted instance (runbook 4)
-- [ ] The four published mailboxes in cPanel, MX pointed at it, A records re-checked (runbook 5)
+- [ ] Own cPanel account, the four published mailboxes, MX pointed at it, A records re-checked (runbook 5)
 - [ ] MailerSend out of trial, domain verified, SPF merged (runbook 6)
 - [ ] DMARC (runbook 7)
 - [ ] Uptime Kuma monitors, then the email paths by hand — issue #31 (runbook 8)
