@@ -62,10 +62,35 @@ test('a screen that is not built yet is a label, never a broken link', async ({ 
   await page.goto('/');
 
   const footer = page.getByRole('contentinfo');
-  // "Trick library" is T7's. It keeps its place in the footer and stays out of
-  // the tab order until then.
-  await expect(footer.getByText('Trick library', { exact: true })).toBeVisible();
-  await expect(footer.getByRole('link', { name: 'Trick library' })).toHaveCount(0);
+  // "Plans and pricing" is T15's, the furthest out of the footer's remaining
+  // labels. It keeps its place in the footer and stays out of the tab order
+  // until then.
+  //
+  // This exemplar is expected to go stale, and repointing it is the correct
+  // response — not deleting the test. It named "Trick library" until T7 built
+  // `/library`; `chore-wire-wave4-links` moved it here rather than dropping the
+  // guarantee, which is that an unbuilt destination renders as a label. When
+  // T15 lands `/plans`, move it to whatever is still unbuilt; when nothing is,
+  // the pattern has served its purpose and the test can go with it.
+  await expect(footer.getByText('Plans and pricing', { exact: true })).toBeVisible();
+  await expect(footer.getByRole('link', { name: 'Plans and pricing' })).toHaveCount(0);
+});
+
+test('a screen that has been built is a real link', async ({ page }) => {
+  await page.goto('/');
+
+  // The other half of the rule above, and the half that has no compile-time
+  // guard: `typedRoutes` stops the footer pointing at a route that does not
+  // exist, but nothing stops a built screen being left as a dead label for
+  // waves after it shipped — which is exactly what had happened to both of
+  // these until `chore-wire-wave4-links`.
+  const footer = page.getByRole('contentinfo');
+  for (const [name, href] of [
+    ['Trick library', '/library'],
+    ['Progress', '/progress'],
+  ] as const) {
+    await expect(footer.getByRole('link', { name, exact: true })).toHaveAttribute('href', href);
+  }
 });
 
 test('the sport copy is generated, so BMX needs no edit here', async ({ page }) => {
