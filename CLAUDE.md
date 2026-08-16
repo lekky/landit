@@ -1,16 +1,17 @@
 # CLAUDE.md — session orientation
 
-Land It: a trick tracker for scooter and skateboard riders. Pre-launch build, executed as
+Land It: a trick tracker for scooter, skateboard and BMX riders. Pre-launch build, executed as
 parallel agent sessions over the task plan in `docs/implementation-plan.md` §7.
 
 ## Start here
 
 1. **This file.**
 2. **[docs/implementation-plan.md](docs/implementation-plan.md)** — the authority: decisions,
-   architecture, data model, and §7's task list (T0–T20) with ground rules. If the plan
+   architecture, data model, and §7's task list (T0–T21) with ground rules. If the plan
    conflicts with the design prototype, the plan wins. Decisions in §1 were deliberated —
    never silently reverse one (especially: PocketBase not Supabase/Firebase; single-rider
-   plans only; achievements are never for sale). If a decision seems wrong, stop and flag it.
+   plans only; achievements are never for sale; three sports at launch — scooter, skate and
+   BMX). If a decision seems wrong, stop and flag it.
 3. **[design-handoff/README.md](design-handoff/README.md)** — the design contract. Fidelity is
    high: exact tokens, hard offset shadows, zero border radius, the loud visual language.
    Recreate, don't reinterpret. The prototype `.jsx` files are the behavioural spec; check
