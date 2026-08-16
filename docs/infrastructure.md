@@ -158,8 +158,9 @@ Deploy PocketBase first, visit `https://api.landthetrick.com/_/` and create the 
 deploy the web app. Confirm **both** serve HTTPS before going on.
 
 **The web app also takes two runtime variables that decide whether the public sees the product at
-all.** Unlike `NEXT_PUBLIC_POCKETBASE_URL` above, these are ordinary runtime variables — *not*
-build variables — and that difference is the whole point of how they were built:
+all.** Unlike `NEXT_PUBLIC_POCKETBASE_URL` above, which is inlined into the browser bundle while the
+image is built, these are read on the server per request — which is what makes them changeable
+without a rebuild:
 
 | Variable | Value while building | Value at launch |
 | --- | --- | --- |
@@ -168,8 +169,21 @@ build variables — and that difference is the whole point of how they were buil
 
 `LANDIT_SITE_LIVE` decides whether every URL serves the app or the holding page. It is read by
 `apps/web/src/proxy.ts` on each request, so **going live is this variable plus a restart — there is
-no rebuild.** Coolify must therefore *not* mark it "Build Variable"; doing so is the same trap that
-`NEXT_PUBLIC_POCKETBASE_URL` sprang once already, in reverse.
+no rebuild.**
+
+**In Coolify, the setting that matters is Runtime → "Available in the container".** That is the one
+the gate reads. Marking it available at build time as well is harmless — `apps/web/Dockerfile`
+declares no `ARG LANDIT_SITE_LIVE`, so Docker ignores a build argument by that name, and the two
+routes that read the flag (`app/robots.ts` and the holding page) are both `force-dynamic`, so
+nothing about it can be baked into the build. Setting it build-time *instead of* runtime is the
+failure to avoid: the app then sees nothing at request time, the site holds shut for good, and
+Coolify's variable list shows it as set the whole time — which is a miserable thing to debug.
+
+`LANDIT_PREVIEW_KEY` has one Coolify-specific trap of its own: leave **Interpolation** on and a
+value containing `$` is expanded before it reaches the container, so the key arrives altered and the
+preview link simply shows the holding page with nothing to say why. Keep the key alphanumeric — hex
+is ideal — or turn interpolation off. Being a secret, it also has no business being available at
+build time.
 
 It fails **shut**: unset in production means the holding page. A deploy that forgets the variable
 shows a coming-soon page, which costs a restart to fix — the opposite mistake publishes an
