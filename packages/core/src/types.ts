@@ -35,6 +35,13 @@ export interface Sport {
    * rider, but **Flatland is one of BMX's five named disciplines**, so the bare
    * word means something specific and different to the audience it is aimed at.
    * Only the display string moves; nothing keyed off the id changes.
+   *
+   * BMX shows **"Flatground"**, which is the point worth keeping when this is
+   * next edited: it is not a synonym for Flatland but a deliberate avoidance of
+   * it. Land It's `flat` holds bunny hops, manuals and x-ups; Flatland proper —
+   * hang-5, time machine, steamroller — is a separate discipline on a different
+   * bike, and the library does not contain it. "Flat" under-specifies and
+   * "Flatland" over-promises; only the longer word is honest to both readers.
    */
   readonly categoryLabels?: Partial<Record<CategoryId, string>>;
 }
