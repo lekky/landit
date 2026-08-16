@@ -8,8 +8,8 @@ argued away by the next session that finds it inconvenient.
 most of them). §2 before your first commit. §3 before touching `packages/core`, `packages/db`,
 `packages/ui-web` or `pocketbase/`. §3a before building a screen whose neighbours are still a wave
 away, or putting a design-system class on a tag the prototype never used. §4 when you change what a
-rule *means*. §5 before writing a test that guards one of the §3 guarantees. §6 before adding a
-dependency.
+rule *means*. §5 before writing a test that guards one of the §3 guarantees. §5a before putting
+anything you did not type yourself into a shell argument. §6 before adding a dependency.
 
 Ported from `frontdesk`'s `docs/LESSONS.md`, whose rules were paid for in production. Land It's
 own entries start at Wave 1.
@@ -218,6 +218,33 @@ asserted the wrong status or hit the wrong endpoint. Removing the guard and re-r
 six of them red, which is what made the green meaningful; the same check on the generated-types
 drift test took one appended line. It costs one command and it is the only way to tell a
 guarantee from a decoration. Do it while the guard is still fresh in your hands, not later.
+
+**A bug that only exists after bundling needs a build-and-grep control, not a unit test.**
+Issue #44: `createBrowserClient` read its URL as `process.env[name]`, and Next substitutes
+`process.env.NEXT_PUBLIC_*` only where it appears *verbatim*, so the value never reached the
+browser bundle. Under Node the dynamic and literal reads agree, so every runtime test passed
+before and after the fix — the browser is the only place they differ. What actually proved it
+was a throwaway client component built twice against the same env, grepping `.next/static` for
+the value: absent on `origin/main`, present with the fix. Then the probe was deleted. If a
+defect lives in the compiler's output, the control has to read the compiler's output; and run
+the *unfixed* side too, or you have only shown that your probe compiles. (Two false starts
+worth skipping: `apps/web`'s routes are under `src/app`, not `app`, and a directory starting
+with `_` is a private folder Next does not route — a probe in either place builds cleanly and
+proves nothing.)
+
+## 5a. The shell is not a text box
+
+**Backticks inside a double-quoted shell argument execute.** Filing issue #48 — whose subject
+was a flaky `pnpm --filter @landit/db test` — meant putting that command in the title. Written
+as `--title "First \`pnpm --filter @landit/db test\` in a fresh worktree fails…"`, the shell ran
+the command substitution: it executed the test suite **in the shared root checkout**, which the
+protocol forbids, and pasted vitest's output into the issue title. The heredoc body was safely
+quoted (`<<'EOF'`); the title, one argument away, was not.
+
+Two rules. Anything containing backticks, `$` or `!` goes in single quotes or a `--body-file -`
+heredoc quoted as `<<'EOF'` — never a double-quoted argument. And after creating an issue or PR,
+read back what was actually written (`gh issue view N --json title`), because a mangled title is
+invisible from the command that produced it: `gh` printed a normal-looking URL and exit 0.
 
 ## 6. Dependencies that break the whole workspace
 
