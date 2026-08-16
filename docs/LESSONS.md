@@ -99,6 +99,24 @@ anything a browser tells you about your change, prove the server is serving your
 generalises past dev servers — any tool the harness runs on your behalf inherits the session's
 directory, not the one you have been editing in.
 
+**Stop your preview server before running Playwright, and do not read the error it gives you
+literally.** `chore-prewave5-fixes` had a pinned preview on **3007** and ran `playwright test`,
+whose `webServer` starts its own `next dev` on **3000**. The whole run died before a single test
+with `Another next dev server is already running` — Next 16 refuses a second dev server per
+*directory*, not per port. The message then helpfully prints the other server's port and PID, so it
+reads exactly like a port clash on a port nothing was clashing over. Two different ports is not
+enough; the preview has to be stopped.
+
+**A viewport resize in the embedded browser does not reliably re-run the media queries — navigate
+again before you measure.** The same session, fixing a responsive bug, resized to 1041px and read a
+computed `font-size` from a `max-width: 1040px` block that `matchMedia` said in the same breath did
+not match. Half the rules had recomputed and half had not. It is a convincing thing to see: the
+obvious reading is a specificity or import-order problem in the stylesheet, and several minutes went
+into checking one that did not exist. A fresh `navigate` to the same URL settled every reading
+instantly and the numbers were consistent from then on. **Resize, navigate, then measure** — and if
+a computed style and `matchMedia` disagree about the same query, believe neither until you have
+reloaded.
+
 **Your local database is richer than CI's, and that makes a local pass a lie too.** The rule above is
 about a local run reading somebody else's *code*; T9 found the same trap one layer down, in the
 *data*. Its e2e spec asserted on a paywalled node in the skill tree. It passed locally, because the

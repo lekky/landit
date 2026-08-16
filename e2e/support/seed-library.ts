@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 // lockfile change for a single import in a test helper.
 import { buildSeed, createSuperuserClient, seed } from '../../packages/db/src/index';
 
+import { SUPERUSER_EMAIL, SUPERUSER_PASSWORD } from './fixtures';
+
 /**
  * Put the trick library into the e2e PocketBase.
  *
@@ -30,16 +32,15 @@ import { buildSeed, createSuperuserClient, seed } from '../../packages/db/src/in
  *   Provisioning one is also what stops PocketBase treating the next start as a
  *   first run and opening its installer page in whoever's browser is to hand.
  *
- * Idempotent, and skipped entirely when the library is already there, so a
- * second run costs one HTTP request.
+ * **One caller, and it is `global-setup.ts`.** This is idempotent and skips
+ * entirely when the library is already there, so a second run costs one HTTP
+ * request — but idempotent is not the same as concurrency-safe, and the guard
+ * below is a read then a write with a seed in between. Parallel callers all read
+ * zero and all decide to seed (issue #68). Do not call this from a spec.
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '..', '..');
-
-/** The same fixture pair `pocketbase/tests/instance.ts` provisions and authenticates as. */
-const SUPERUSER_EMAIL = 'test-superuser@landit.invalid';
-const SUPERUSER_PASSWORD = 'a-long-local-test-password';
 
 /**
  * Where PocketBase is. The value `playwright.config.ts` hands the web server,

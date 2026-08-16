@@ -48,8 +48,12 @@ import { NextResponse, type NextRequest } from 'next/server';
  *   tells crawlers to index nothing while it is shut. Rewriting it to the
  *   holding page's HTML would leave the site with no robots directives at all,
  *   which is the opposite of what is wanted.
+ * - `/api/health` — the deployment's own status (issue #62). It has to answer
+ *   before launch above all: that is precisely when a missing superuser
+ *   credential is waiting to be found. Gated, it would return the holding page's
+ *   HTML with a 200, and a monitor would call that healthy.
  */
-const ALWAYS_OPEN = ['/legal', '/robots.txt'];
+const ALWAYS_OPEN = ['/legal', '/robots.txt', '/api/health'];
 
 function isAlwaysOpen(pathname: string): boolean {
   return ALWAYS_OPEN.some((open) => pathname === open || pathname.startsWith(`${open}/`));

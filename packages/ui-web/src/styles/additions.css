@@ -108,6 +108,65 @@ a.btn.ink:hover {
 }
 
 /*
+ * The top bar between 861px and 1040px (issue #57).
+ *
+ * The prototype was drawn at one desktop width and never asked what nine nav
+ * items cost. Measured on the real shell: the wordmark, the nine items, the
+ * streak chip and the avatar need 993px of viewport at full size. Below 861px
+ * that does not matter, because `.nav` is hidden and `.mobnav` takes over. In
+ * the band between the two, the row simply did not fit — and because nothing in
+ * it may shrink (a flex item's `min-width` is `auto`, so text sets the floor)
+ * the excess went out of the right-hand edge and gave the **whole document** a
+ * horizontal scrollbar. On every signed-in screen at once: `/home`, `/library`,
+ * `/progress` and `/account` all inherit the shell.
+ *
+ * So in that band the bar tightens, which is what this stylesheet already does
+ * to it below 860px — smaller wordmark, less padding, tighter gaps — carried
+ * one breakpoint up and extended to the nav items themselves. Type stays at a
+ * legible size and no item is dropped: all nine remain readable and clickable,
+ * they just sit closer together for about 180px of width. Outside the band
+ * nothing changes.
+ *
+ * `.nav` also gets `min-width: 0` and its own `overflow-x` at every width above
+ * the mobile breakpoint, which is the part that is a guarantee rather than a
+ * measurement. The numbers below were taken against today's labels in today's
+ * self-hosted fonts; a longer label, a fallback font, or a nav item added by a
+ * later task would push the row over again. With these two, the nav absorbs it
+ * — the bar scrolls its own overflow instead of handing it to the page. The
+ * scrollbar itself is hidden: it would sit across the ink bar, and it is a
+ * safety net rather than a control anyone should be asked to use.
+ */
+.nav {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 861px) and (max-width: 1040px) {
+  .topbar-in {
+    gap: 12px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .topbar-in .logo .wm {
+    font-size: 19px;
+  }
+  .nav {
+    gap: 2px;
+    margin-left: 4px;
+  }
+  .nav a,
+  .nav span[aria-disabled] {
+    font-size: 13px;
+    letter-spacing: 0.075em;
+    padding: 6px 8px;
+  }
+}
+
+/*
  * The sport switch at three sports (T5).
  *
  * The prototype's `.sporttabs` was drawn for two. Below 520px `.sporttab` goes
