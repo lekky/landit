@@ -289,9 +289,16 @@ export interface RiderSnapshot {
   /** Which sports the rider tracks. Empty falls back to scooter. */
   readonly sports?: readonly SportId[];
   /**
-   * The streak in days, **as it stands now**. A value read straight out of
-   * `users.streak` may be stale, so pass it through `currentStreak` first —
+   * The streak **as it stands now** — a value read straight out of
+   * `users.streak` may be stale, so pass it through the streak rule first,
    * otherwise a streak sticker can be earned by a streak that already lapsed.
+   *
+   * **The unit changed and the sticker thresholds have not caught up.** The
+   * streak counts *weeks* since 2026-08-16 (plan §1), so `currentWeeklyStreak`
+   * is what fills this now — but the `week-one` and `month-on` sticker rules
+   * still test it against 7 and 30, which under the new unit means 7 and 30
+   * *weeks* while the sticker names say days. What those two stickers should
+   * award is an owner decision, tracked as an issue; nothing here guesses at it.
    */
   readonly streak?: number;
   /** How many clips the rider has saved. */

@@ -21,6 +21,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Clip storage | **Cloudflare R2 via PocketBase's S3 backend, 2GB cap per rider (5GB Legend)** | Zero egress fees; VPS disk never holds video. See §6.6. |
 | Maps provider | **Mapbox** (provisional) | Store plain `lat`/`lng` so it stays swappable. |
 | Payments | **Stripe on web**; entitlements modelled independently of Stripe; **single-rider plans only — Crew Pass dropped** (2026-08-15) | See §2.4 — entitlement independence is the decision that protects the native option. |
+| Streak shape | **A weekly target, not a consecutive-day count** (2026-08-16). A rider keeps the streak by riding **at least 2 times in a week**; the streak counts consecutive weeks that met the target, and missing a week breaks it. "I rode today" stays a plain button — no spot attached, no location captured | The audience is children who realistically ride at weekends: a daily streak punishes a school week, and is the engagement mechanic §6.4 Standard 13 warns about. Weeks are Monday-to-Sunday — the boundary the weekly challenges already use, so a rider never has two different "this week"s. **Two numbers here are tunable defaults, not deliberated decisions: the target of 2** (a weekend alone reaches it; 3 would force a weekday ride) **and no grace week** (the weekly target is itself the forgiveness — a grace week on top would make the streak nearly unbreakable). Both are constants in `packages/core` (`WEEKLY_RIDE_TARGET`, `WEEKLY_STREAK_GRACE_WEEKS`) and options on every function, so moving either is a one-line change plus this row. This supersedes the daily-streak and grace-period framing throughout: the daily functions in `core` stay exported but deprecated, and T8 wires the weekly ones. Stored shape in §3; that spots never record where a rider has been is §6.4 Standard 10 and T13. |
 | Staff portal placement | **Route group in the web app**, hard role gate, full audit log | Handoff prefers a separate app; see §6.10. |
 | Error reporting | **Sentry** | Already connected; PII scrubbed. See §2.5. |
 | Analytics | **PostHog EU (free tier) + Cloudflare Web Analytics** | PostHog for product events (onboarding funnel, upgrades), Cloudflare beacon for traffic. Both cookie-less, no ad identifiers. |
@@ -197,7 +198,7 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 
 | Collection | Purpose |
 | --- | --- |
-| `users` | PocketBase auth collection, extended with the profile fields: name, handle, town, stance, level, goal, avatar, privacy, `sports`, streak, last_ride, timezone, role, plan-facing fields. Email stays a hidden field |
+| `users` | PocketBase auth collection, extended with the profile fields: name, handle, town, stance, level, goal, avatar, privacy, `sports`, the weekly-streak fields, last_ride, timezone, role, plan-facing fields. Email stays a hidden field |
 | `tricks` | 61 records. `sport`, `cat`, `diff 1..5`, `about`, `tips`, `fact`, nullable `free` override, `is_live` |
 | `trick_prereqs` | Edge collection (`trick`, `prereq`). Same-sport constraint enforced in a hook |
 | `trick_progress` | `(user, trick) → stage`. The `byId` map |
@@ -229,6 +230,14 @@ Additions the handoff implies but never names:
 - **`users.timezone`** (IANA string, captured at onboarding from the browser). Streaks, "rode
   today" and challenge boundaries are computed in the rider's timezone, not UTC — without this the
   streak logic in `core` has nothing to stand on.
+- **The weekly-streak fields on `users`.** The streak is weekly (§1), and a weekly target cannot be
+  reconstructed from a counter and a last ride: it has to know how far into *this* week the rider
+  is. Four fields — `streak` (qualifying weeks in a row), `week_start` (the Monday the ride count
+  belongs to), `week_rides` (rides logged in that week), `streak_week` (the Monday of the last week
+  that met the target) — plus the existing `last_ride`, which keeps "I rode today" to one tap a
+  day. Still no per-day calendar is stored. All of them are derived values the client may show but
+  never the authority: `packages/core` recomputes the streak from them on read, so a stored streak
+  whose last qualifying week has passed reads as zero without a cron job touching it.
 - **`users.handle`**: unique case-insensitively (SQLite `COLLATE NOCASE` unique index),
   format-constrained, with a reserved-word list (admin, staff, landit, api…). Handles appear in
   URLs and share cards.
@@ -345,7 +354,7 @@ Tracked from the handoff's own list, mapped to phases:
 | `localStorage` persistence | PocketBase | 1 |
 | Auth and accounts | Real sign-up, reset, guardian consent | 2 |
 | Legal copy pointing under-13s at "a parent's Crew Pass" | Guardian consent inside sign-up (§6.2) — the Crew Pass no longer exists, so this copy is now wrong, not just draft | 2 |
-| Streaks (a counter) | Date logic, timezones, grace period | 3 |
+| Streaks (a counter) | A weekly target (§1): date logic and timezones, and weeks that can break it | 3 |
 | Crews (one demo crew) | Creation, invites, membership | 4 |
 | Clips (`createObjectURL`, die on refresh) | Upload, R2 storage, token-gated delivery | 4 |
 | The map (one embed at a time) | Mapbox with every spot plotted | 4 |
@@ -500,8 +509,9 @@ Not all fifteen bite equally. These four change what gets built:
   squarely at engagement mechanics pointed at children. A streak that reflects real riding is
   defensible; what is not, and what we therefore do not build: loss-framed notifications ("your
   streak dies in 2 hours"), any notification between 21:00 and 07:00 local, and a paid streak
-  freeze — which would break "achievements are never for sale" anyway. Write the grace period as
-  generosity, not as a lever.
+  freeze — which would break "achievements are never for sale" anyway. The weekly target (§1) is
+  the generosity, and it is written as one: a rider is shown the rides they have made this week,
+  never the streak they are about to lose.
 
 ### 6.5 Compliance artefacts nobody currently owns
 
@@ -686,11 +696,15 @@ screenshots 04–05.
 notes, prerequisite/unlock pills, locked-trick page. Clips panel renders in its locked/upsell state
 only (real clips are T14). Inputs: `landit-screens-a.jsx`, screenshots 08–10.
 
-**T8 · Home + streak + announcements.** Dashboard, stat blocks, seven-day strip, "I rode today",
-streak logic wired to `core` (timezone-aware), announcement banner + dismissal, working-on/start-here,
-wish list, stickers/crew teaser panels. The streak obeys the §6.4 nudge rules: no loss-framed
-copy or notifications, nothing sent between 21:00 and 07:00 local, and the grace period is written
-as generosity rather than as a lever. Inputs: `landit-screens-a.jsx` (Home), screenshots 06.
+**T8 · Home + streak + announcements.** Dashboard, stat blocks, "I rode today", streak logic wired
+to `core` (timezone-aware), announcement banner + dismissal, working-on/start-here, wish list,
+stickers/crew teaser panels. The streak is the **weekly** one (§1): wire `logWeeklyRide`,
+`currentWeeklyStreak` and `weeklyProgress`, not the deprecated daily functions, and "I rode today"
+is a plain button that attaches no spot and captures no location. The prototype's seven-day strip
+counts days and so no longer matches the rule — what replaces it on the card is a design call to
+settle in this session. The streak obeys the §6.4 nudge rules: no loss-framed copy or
+notifications, and nothing sent between 21:00 and 07:00 local. Inputs: `landit-screens-a.jsx`
+(Home), screenshots 06.
 
 **T9 · Progress + skill tree.** By category, by stage, over-time chart with the estimated-dates
 note, skill tree with prerequisite/paywall lock states, printable sheets panel. Also the
