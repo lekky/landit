@@ -246,6 +246,9 @@ export function baseFixtures(): Promise<Fixtures> {
       price_monthly: '£6.99',
       unlocks_paid_tricks: true,
       clip_cap_bytes: 5368709120,
+      // Insights are Legend's, read off the plan record (plan §2.4). Rookie and
+      // Shredder leave it unset, which is `false` — the fail-closed direction.
+      includes_insights: true,
       is_live: true,
     });
 

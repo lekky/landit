@@ -903,6 +903,42 @@ upsell pattern. The panel is profiling under the Children's code (§6.4): off by
 even on Legend, and it never reads anything but the rider's own history. Inputs:
 `landit-screens-b.jsx`, screenshots 11–13.
 
+**Built 2026-08-16. Four things the entry above did not say, recorded here because they are
+decisions rather than details:**
+
+- **The insights entitlement is a field on `plans`, not a plan id in the code.** `includes_insights`
+  joins `unlocks_paid_tricks` and `clip_cap_bytes` on the plan record (§2.4, §6.6), with
+  `Plan.includesInsights` beside it in `packages/core`. Nothing anywhere compares a plan to the
+  string `legend`: staff can move the perk without a deploy, and a missing plan record fails closed
+  rather than open. Additive migration `1787097609_progress_insights.js`, which also writes the
+  value onto the existing Legend record so a seeded database is not left mid-way.
+- **The opt-in is a stored field with a server-side guard, and off is the *server's* default.**
+  `users.insights_opt_in` is forced to `false` on create whatever the sign-up sent, and switching it
+  *on* is refused with a 403 unless the rider's plan record carries the entitlement — while
+  switching it *off* is always accepted, because withdrawing a consent can never be gated on still
+  being entitled to it. Existing riders read `false` without a backfill. `pocketbase/hooks/
+  15_insights.pb.js` plus `guardInsightsOptIn`; ten HTTP tests in
+  `pocketbase/tests/insights-opt-in.test.ts`, four of which were watched turn red with the guard
+  removed (LESSONS §5). The insights themselves are not merely hidden when the rider has not opted
+  in — **they are not computed and not sent**, so the standard-12 promise is a data-flow fact rather
+  than a CSS one.
+- **The printable sheets panel prints.** The prototype's button fires a toast saying a sheet went
+  to the printer, because there is no sheet; this one renders the rider's own tracked list as a
+  print-only A4 layout, four tricks a page with a tick box each, and opens the browser's print
+  dialogue. A deliberate divergence from `landit-screens-b.jsx`: a button that says it prints
+  something should print something. It rides with the paid tiers, read off the same plan record.
+- **Nothing on the screen is locale-derived.** `landedByMonth` names its months with
+  `toLocaleDateString`, which is safe where it is but not on a page that hydrates, so the screen
+  takes month names and dates from a table in `packages/core` (`MONTH_LABELS`, `monthKeyLabel`) and
+  from `toDayKey`. `landedByMonth` itself is untouched and still exports its ICU label — a session
+  that reaches for it on a rendered page should reach for `monthKeyLabel` instead (LESSONS §3a,
+  issue filed).
+
+One cross-route link is deliberately unwired, per LESSONS §3a: the insights upsell states what
+Legend includes without linking `/plans`, which is T15's and does not exist. Skill-tree nodes *are*
+wired — T7 merged first, so `trickHref` was there by the time this rebased, and a node opens its
+trick page the same way the library grid does.
+
 ### Wave 5 — four concurrent sessions (clips may lag)
 
 **T10 · Stickers.** Wall, detail modal, share card; server-side award flow end-to-end (earn a

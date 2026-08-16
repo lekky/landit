@@ -98,6 +98,7 @@ export {
   deleteLogEntry,
   logChallengeEntry,
   saveTrickNote,
+  setInsightsOptIn,
   setTrickStage,
   submitSpot,
   unattendEvent,

@@ -439,6 +439,7 @@ export interface PlansRecord {
   is_live: boolean;
   created: string;
   updated: string;
+  includes_insights: boolean;
 }
 
 /** The shape accepted when creating a `plans` record. */
@@ -457,6 +458,7 @@ export interface PlansCreate {
   unlocks_paid_tricks?: boolean;
   clip_cap_bytes?: number;
   is_live?: boolean;
+  includes_insights?: boolean;
 }
 
 /** The shape accepted when updating a `plans` record. */
@@ -786,6 +788,7 @@ export interface UsersRecord {
   week_start: string;
   rides_this_week: number;
   last_qualifying_week: string;
+  insights_opt_in: boolean;
 }
 
 /** The shape accepted when creating a `users` record. */
@@ -817,6 +820,7 @@ export interface UsersCreate {
   week_start?: string;
   rides_this_week?: number;
   last_qualifying_week?: string;
+  insights_opt_in?: boolean;
 }
 
 /** The shape accepted when updating a `users` record. */

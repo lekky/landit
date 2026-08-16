@@ -18,6 +18,11 @@ const GB = 1024 * 1024 * 1024;
  * record so staff can tune it without a deploy. Rookie is zero: free riders
  * cannot save clips at all.
  *
+ * `includesInsights` is the same idea for the progress insights panel (§2.4):
+ * Legend only, resolved from the plan record rather than from a hard-coded
+ * `plan === 'legend'` anywhere. It is an entitlement, not a consent — an
+ * entitled rider still has to opt in before any profiling happens (§6.4).
+ *
  * Copy is the plan's pitch rendered into the prototype's card shape; T15 owns
  * the final wording of the plans page.
  */
@@ -40,6 +45,7 @@ export const PLANS = [
     priceYearlyPence: 0,
     clipCapBytes: 0,
     unlocksPaidTricks: false,
+    includesInsights: false,
   },
   {
     id: 'shredder',
@@ -60,6 +66,7 @@ export const PLANS = [
     priceYearlyPence: 3999,
     clipCapBytes: 2 * GB,
     unlocksPaidTricks: true,
+    includesInsights: false,
   },
   {
     id: 'legend',
@@ -79,6 +86,7 @@ export const PLANS = [
     priceYearlyPence: 6999,
     clipCapBytes: 5 * GB,
     unlocksPaidTricks: true,
+    includesInsights: true,
   },
 ] as const satisfies readonly Plan[];
 

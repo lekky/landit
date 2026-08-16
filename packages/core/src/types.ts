@@ -153,6 +153,17 @@ export interface Plan {
   readonly clipCapBytes: number;
   /** Whether the plan unlocks the Spicy/Gnarly/Pro tiers. */
   readonly unlocksPaidTricks: boolean;
+  /**
+   * Whether the plan includes the progress insights panel (plan §2.4 — a Legend
+   * perk).
+   *
+   * On the plan record for the same reason the clip cap and the paid-trick
+   * entitlement are: entitlements resolve from our own data, staff can tune
+   * them without a deploy, and a missing plan record fails closed. Being
+   * entitled is only half of it — insights are profiling, so a rider must also
+   * opt in (`users.insights_opt_in`, plan §6.4 standard 12).
+   */
+  readonly includesInsights: boolean;
 }
 
 /* -------------------------------------------------------------- challenges */

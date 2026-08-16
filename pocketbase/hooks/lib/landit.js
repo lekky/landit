@@ -170,6 +170,11 @@ function clipCapBytes(app, userRecord) {
   return plan ? plan.getInt('clip_cap_bytes') : 0;
 }
 
+function planIncludesInsights(app, userRecord) {
+  const plan = planFor(app, userRecord);
+  return !!plan && plan.getBool('includes_insights');
+}
+
 function findAll(app, collection, filter, params) {
   return app.findRecordsByFilter(collection, filter, '', 0, 0, params || {});
 }
@@ -243,6 +248,50 @@ function guardUserWrite(e, isCreate) {
     if (String(record.get(field)) !== String(original.get(field))) {
       throw new ForbiddenError(`"${field}" is not something an account can change about itself.`);
     }
+  }
+}
+
+// ------------------------------------------------------------- insights --
+
+/**
+ * The progress insights opt-in (T9).
+ *
+ * Two rules, and they come from two different places:
+ *
+ * 1. **Off by default, decided by the server.** The insights panel is profiling
+ *    under the Children's code (plan §6.4, standard 12), so a sign-up cannot
+ *    arrive with it already on however the request was shaped. Same treatment
+ *    `USER_PROTECTED_DEFAULTS` gives the four fields worth forging — for a
+ *    different reason, since nobody gains by switching their own profiling on,
+ *    but the standard is about the *default* and a default a client can set is
+ *    not one.
+ * 2. **Switching it on needs the entitlement.** Insights are Legend's
+ *    (plan §2.4), resolved from the plan record rather than a plan id in the
+ *    code, and read on the server rather than claimed by the client. Switching
+ *    it *off* is always allowed: withdrawing consent can never be gated, and a
+ *    rider who drops off Legend must still be able to turn profiling off.
+ *
+ * Request-layer with a superuser bypass, like the rest of the account guard:
+ * staff moving a rider's plan and tidying the flag is a legitimate path, and
+ * the flag is not a refusal a rider could gain anything by defeating — the
+ * panel itself is drawn from the entitlement, server-side, every time.
+ */
+function guardInsightsOptIn(e, isCreate) {
+  if (e.hasSuperuserAuth()) return;
+
+  const record = e.record;
+
+  if (isCreate) {
+    record.set('insights_opt_in', false);
+    return;
+  }
+
+  const before = record.original().getBool('insights_opt_in');
+  const after = record.getBool('insights_opt_in');
+  if (before === after || !after) return;
+
+  if (!planIncludesInsights(e.app, record)) {
+    throw new ForbiddenError('Progress insights are part of the Legend plan.');
   }
 }
 
@@ -411,11 +460,13 @@ module.exports = {
   enforcePaywall,
   enforcePrereqSameSport,
   findAll,
+  guardInsightsOptIn,
   guardUserWrite,
   isConsentLimited,
   isTrickFree,
   normaliseHandle,
   planFor,
+  planIncludesInsights,
   planUnlocksPaidTricks,
   writeAudit,
 };

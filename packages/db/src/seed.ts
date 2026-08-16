@@ -83,6 +83,7 @@ export function buildSeed(): SeedPlan {
           popular: plan.popular === true,
           unlocks_paid_tricks: plan.unlocksPaidTricks,
           clip_cap_bytes: plan.clipCapBytes,
+          includes_insights: plan.includesInsights,
           is_live: true,
         })),
       },
