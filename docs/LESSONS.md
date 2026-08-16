@@ -146,6 +146,24 @@ a "no locked tricks are hidden" check over zero tricks is green and worthless, w
 arriving through the data rather than through the harness. (T7 has since added
 `e2e/support/seed-library.ts`, which is what a content screen should call.)
 
+**Waiting for optimistic copy is waiting for nothing.** T10's e2e helper clicked a stage button and
+then waited for "Logged as sometimes" before navigating to the sticker wall — and the wall was
+empty, intermittently. The text it waited for is the *optimistic* stage note, which `StagePanel`
+renders the instant the button is pressed; the server action, the sticker award inside it and the
+`rider_stickers` row were all still in flight. Half an hour went into the page and the hook before
+the question became "what exactly is that assertion waiting for?". A screen that updates before the
+server answers has, by construction, two states that look the same, and only one of them means the
+write landed. **Wait on something only the server could have produced** — here the toast, which is
+rendered from the action's result. The optimistic path is the feature; it is also the thing that
+makes a test lie.
+
+The same line was already costing CI money elsewhere. T7's "a rookie can open a free trick and log a
+stage that sticks" waited on that same optimistic note and then reloaded, which **aborted the write
+in flight** — the stage genuinely did not save, so the failure was real and the test was the cause of
+it. It had been filed twice as flake (issues #64, #72) and re-run past. An intermittent failure in a
+screen with an optimistic update is worth reading as a race with the write before it is read as
+flake, exactly as an intermittent failure in a form is worth reading as hydration (§3a).
+
 **A sibling that merges mid-flight may have already fixed what you are about to file.** The same
 session filed an issue asking for exactly that seeding helper, twenty minutes before its rebase
 brought the merged helper onto the branch. Cheap to close, but an issue nobody re-checks is a
@@ -248,6 +266,24 @@ from a daily count to a weekly target. Two seeded stickers were called "7 Day St
 they silently became *seven-week* and *thirty-week* stickers, names intact (issue #10). When a
 rule's unit or basis changes, grep the seed data, the copy and the sticker conditions for the
 old unit before you call the change done.
+
+**A rule that re-bases on data somebody else can edit takes achievements away.** Two stickers
+tested `catDone` — "every live trick in this category is landed" — so a staff member adding one
+trick to the library would have un-earned them for every rider who already had them, with nothing in
+the product saying why (issue #78). The same trap lives in any percentage of a growing library. T10
+switched both to counts, and the rule that came out of it now sits on `STICKER_RULES`: **an
+achievement rule must be monotonic in the rider's own riding.** `landed >= n`, `catCount >= n` and
+`landedCount(list) >= n` only ever go up; `catDone` and `pct` move when the catalogue moves. This is
+the §4 problem arriving from the other direction — not a rule changing under fixed data, but data
+changing under a fixed rule.
+
+**A name that quotes a number is a name that goes stale.** The fix for the day/week streak stickers
+(issue #10) could have been "4 Week Streak" and "12 Week Streak", and it would have been wrong for
+the same reason the originals were: the threshold lives on the record so staff can retune it without
+a deploy, so any name repeating it is one admin edit from lying. T10's names carry neither a number
+nor a unit and the condition line carries both, which is the only arrangement where the editable
+thing and the fixed thing cannot disagree. Generalises past stickers: **copy that quotes a value the
+product lets somebody change belongs beside that value, not in a different field.**
 
 **A vendor's name in a code comment is a thing you will have to sweep.** The transactional-email
 provider changed from Resend to MailerSend the day after T6 shipped — a decision that cost *nothing*

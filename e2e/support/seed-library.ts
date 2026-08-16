@@ -101,11 +101,14 @@ export async function seedLibrary(): Promise<void> {
 
   const client = await e2eSuperuser();
 
-  // Only what the library screen reads. Stickers, spots, events and challenges
-  // belong to other tasks' tests, and seeding them here would make this run
-  // slower for nothing. `seed` writes the prerequisite edges either way, which
-  // the trick page's "built on" pills need.
-  const wanted = new Set(['plans', 'tricks']);
+  // What the content screens read. `stickers` joined in T10: the wall reads
+  // that collection and `rider_stickers` is written by a hook that reads it
+  // too, so against an empty one the whole screen renders "0 of 0" and every
+  // assertion on it passes by finding nothing — the failure mode LESSONS §5 is
+  // about. Spots, events and challenges belong to other tasks' tests. `seed`
+  // writes the prerequisite edges either way, which the trick page's "built on"
+  // pills need.
+  const wanted = new Set(['plans', 'tricks', 'stickers']);
   await seed(client, { tables: buildSeed().tables.filter((t) => wanted.has(t.collection)) });
 
   if ((await trickCount()) === 0) throw new Error('The seed ran but the library is still empty.');

@@ -1,11 +1,12 @@
 'use client';
 
 import { STAGE, STAGES, type StageId } from '@landit/core';
-import { Panel, StagePicker } from '@landit/ui-web';
+import { Button, Panel, ShareCard, StagePicker } from '@landit/ui-web';
 import { useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
 
+import { acknowledgeStickersAction } from '../../stickers/actions';
 import { setStageAction } from '../actions';
 import styles from './trick.module.css';
 
@@ -21,12 +22,34 @@ import styles from './trick.module.css';
  *
  * Picking the stage you are already on clears it. That is the untrack path, and
  * it is `StagePicker`'s documented behaviour rather than something added here.
+ *
+ * **Two things T10 added.** The "Share it" button screenshot 09 shows beside the
+ * first-landed date, which T7 deliberately left out so one `ShareCard` would
+ * serve both this page and the sticker wall (issue #51); and the sticker toast,
+ * which is the visible end of the award flow — the hook awards on the write,
+ * this announces what came back, and acknowledging it is what stops it being
+ * announced twice (plan §3, `rider_stickers.seen_at`).
  */
+
+/** Everything the share card shows for this trick. Built on the server. */
+export interface TrickShareView {
+  readonly name: string;
+  readonly categoryLabel: string;
+  readonly sportLabel: string;
+  readonly difficulty: number;
+  readonly hue: string;
+  readonly headline: string;
+  readonly meta: string;
+  readonly dateLabel: string;
+  readonly caption: string;
+}
+
 export function StagePanel({
   trickId,
   slug,
   stage,
   landedLabel,
+  share,
 }: {
   /** The `tricks` record id — what `trick_progress` relates to. */
   trickId: string;
@@ -34,9 +57,12 @@ export function StagePanel({
   stage: StageId | null;
   /** "2 Apr 2026", or "2 Apr 2026 (estimated)". Formatted on the server. */
   landedLabel: string | null;
+  /** Absent for a signed-out visitor, who has nothing to share. */
+  share: TrickShareView | null;
 }) {
   const { toast } = useToast();
   const [current, setCurrent] = useState<StageId | null>(stage);
+  const [sharing, setSharing] = useState(false);
   const [, startTransition] = useTransition();
 
   const pick = (next: string | null) => {
@@ -49,6 +75,13 @@ export function StagePanel({
       if (result.ok) {
         if (value) toast(`Logged as ${STAGE[value].label.toLowerCase()}`, STAGE[value].color);
         else toast('Stopped tracking this one');
+
+        // The award happened server-side inside the write above; this only says
+        // so. Announce first, acknowledge after — a sticker stamped seen on the
+        // way out is one a dropped response silently swallows.
+        const earned = result.earned ?? [];
+        for (const sticker of earned) toast(`Sticker earned: ${sticker.name}`, sticker.hue);
+        if (earned.length) void acknowledgeStickersAction(earned.map((s) => s.id));
         return;
       }
       setCurrent(previous);
@@ -74,9 +107,39 @@ export function StagePanel({
       )}
       {landedLabel && (
         <div className={styles.landed}>
-          <div className="lab">First landed</div>
-          <div className={`cond ${styles.landedDate}`}>{landedLabel}</div>
+          <div>
+            <div className="lab">First landed</div>
+            <div className={`cond ${styles.landedDate}`}>{landedLabel}</div>
+          </div>
+          {share && (
+            <Button size="sm" onClick={() => setSharing(true)}>
+              Share it
+            </Button>
+          )}
         </div>
+      )}
+
+      {sharing && share && (
+        <ShareCard
+          kind="trick"
+          trick={{
+            name: share.name,
+            categoryLabel: share.categoryLabel,
+            sportLabel: share.sportLabel,
+            difficulty: share.difficulty,
+            hue: share.hue,
+          }}
+          headline={share.headline}
+          meta={share.meta}
+          dateLabel={share.dateLabel}
+          caption={share.caption}
+          onCopied={(ok) =>
+            ok
+              ? toast('Caption copied', 'var(--sky)')
+              : toast('Could not copy that — select it and copy by hand.', 'var(--red)')
+          }
+          onClose={() => setSharing(false)}
+        />
       )}
     </Panel>
   );

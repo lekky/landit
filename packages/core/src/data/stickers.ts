@@ -10,6 +10,20 @@ import type { Sticker } from '../types';
  *
  * `sport: null` means the sticker is judged against the rider's combined
  * stats; a sport-scoped sticker is judged against that sport alone.
+ *
+ * **The naming rule, earned in T10 (issue #82).** Names survive when they are
+ * literal, dry, or use words riders actually say. They fail when they are
+ * adult-invented puns ("Flat Tracked", "Ollie Up"), hierarchy words
+ * (club / master / pro), or a word whose first reading is something else
+ * entirely ("Coping Time"). Two more constraints that are not style:
+ *
+ * - **No number and no unit in a name.** `StickerBadge` renders the name and
+ *   `stickerCondition` renders `n` beside the condition, so a name carrying
+ *   either goes stale the moment staff retune the record — which is how
+ *   "7 Day Streak" survived the streak becoming weekly (issue #10).
+ * - **Thirteen characters at the outside.** The name is set on a 30.5-radius
+ *   arc in `StickerBadge`, and the font-size ramp only steps once. The longest
+ *   shipped name is "Ollie Dialled".
  */
 export const STICKERS = [
   {
@@ -43,22 +57,29 @@ export const STICKERS = [
   },
   {
     id: 'week-one',
-    name: '7 Day Streak',
+    // The streak counts qualifying *weeks*, not consecutive days (plan §1,
+    // issue #10). Under the old name this record silently became a seven-*week*
+    // sticker the day the rule changed, which is LESSONS §4 exactly. The name
+    // now carries neither a number nor a unit, so neither a staff retune of `n`
+    // nor a future change to what the streak counts can make it wrong again.
+    name: 'Kept It Up',
     sport: null,
     hue: '#FFC23F',
     ico: 'flame',
-    cond: 'days in a row',
-    n: 7,
+    cond: 'weeks in a row',
+    n: 4,
     isLive: true,
   },
   {
     id: 'month-on',
-    name: '30 Day Streak',
+    // Was "30 Day Streak". Thirty weeks is most of a year; twelve is a season,
+    // and it is the long one of the pair rather than an unreachable one.
+    name: 'Still Rolling',
     sport: null,
     hue: '#E0392B',
     ico: 'crown',
-    cond: 'days in a row',
-    n: 30,
+    cond: 'weeks in a row',
+    n: 12,
     isLive: true,
   },
   {
@@ -94,17 +115,36 @@ export const STICKERS = [
     sport: null,
     hue: '#16140F',
     ico: 'skull',
-    cond: 'Land a difficulty 5 trick',
+    cond: 'difficulty 5 tricks landed',
+    // Was a literal `>= 1` in the rule, the only threshold sticker staff could
+    // not retune (issue #81). One is the shipped bar, so nothing moves today.
+    n: 1,
+    isLive: true,
+  },
+  {
+    id: 'every-time',
+    // The consistency axis. `SportStats.mastered` was computed and read by
+    // nothing (issue #81), which left the sticker set with no achievement for
+    // landing a trick *reliably* — the one shape that cannot function as a
+    // dare, because it rewards repeating what a rider already lands rather than
+    // attempting something new. Named after the app's own stage label
+    // (`STAGES.every`, "Every time") rather than an invented word.
+    name: 'Every Time',
+    sport: null,
+    hue: '#FF3D78',
+    ico: 'star',
+    cond: 'tricks you land every time',
+    n: 3,
     isLive: true,
   },
   {
     id: 'both-feet',
-    name: 'Both Feet',
+    // Was "Both Feet". The rule is "two or more" and has been since T21, but
+    // "both" is a two-sport word in a three-sport product (issue #82).
+    name: 'Crossover',
     sport: null,
     hue: '#2EC4B6',
     ico: 'grid',
-    // Named the two sports that existed when it was written. BMX is a third
-    // (T21), and the rule behind it is "two or more" — see `bothSports`.
     cond: 'Land tricks on two different sports',
     isLive: true,
   },
@@ -132,7 +172,12 @@ export const STICKERS = [
     sport: 'scooter',
     hue: '#2EC4B6',
     ico: 'grid',
-    cond: 'All Flat scooter tricks landed',
+    // Was "all of them", which un-earned itself the moment staff added a trick
+    // to the category (issue #78). Seven is the size of scooter Flat today, so
+    // the bar is unchanged — but it is now a count, which only ever goes up,
+    // and staff can retune it.
+    cond: 'Flat scooter tricks landed',
+    n: 7,
     isLive: true,
   },
   {
@@ -166,16 +211,31 @@ export const STICKERS = [
   },
   {
     id: 'upside',
+    // **Retired, deliberately (issue #77).** It was the only sticker whose
+    // condition named difficulty-5 inversions, in a product for 8–16 year olds
+    // whose own coaching copy says "learn it into a foam pit or a resi ramp
+    // first" (`backflip`) and "foam pit only until it's automatic"
+    // (`frontflip`). A badge on the wall is a reason for a child to skip that
+    // rung. `gnarly` is the acceptable version of the same recognition: any
+    // difficulty-5 trick, no target named.
+    //
+    // The record stays rather than being deleted, because the seed upserts and
+    // never removes — deleting it here would leave a live, unearnable sticker
+    // on the wall of every database already seeded. `isLive: false` retires it
+    // everywhere on the next seed run, and its rule is `() => false` so it
+    // cannot award even if staff switch it back on.
     name: 'Upside Down',
     sport: 'scooter',
     hue: '#FF3D78',
     ico: 'rotate',
-    cond: 'Land a scooter flip trick',
-    isLive: true,
+    cond: 'Retired — see plan §7, T10',
+    isLive: false,
   },
   {
     id: 'ollie-up',
-    name: 'Ollie Up',
+    // Was "Ollie Up", an invented pun (issue #82). "Dialled" is what a rider
+    // actually says about a trick they land every time, which is the rule.
+    name: 'Ollie Dialled',
     sport: 'skate',
     hue: '#FF9F1C',
     ico: 'scoot',
@@ -184,7 +244,9 @@ export const STICKERS = [
   },
   {
     id: 'flip-club',
-    name: 'Flip Club',
+    // Was "Flip Club" — membership framing skate culture mocks, and "club"
+    // collides with the app's own crew concept (issue #82).
+    name: 'Kickflip',
     sport: 'skate',
     hue: '#246BFF',
     ico: 'rotate',
@@ -193,11 +255,16 @@ export const STICKERS = [
   },
   {
     id: 'flat-track',
-    name: 'Flat Tracked',
+    // Was "Flat Tracked", a pun on flat track — a motorcycle discipline
+    // (issue #82). "Flatground" is the word skaters use for this category.
+    name: 'Flatground',
     sport: 'skate',
     hue: '#2EC4B6',
     ico: 'grid',
-    cond: 'All Flat skate tricks landed',
+    // A count, not "all of them" — same reason as `flat-out` (issue #78). Ten
+    // is the size of skate Flat today, so the bar is unchanged.
+    cond: 'Flat skate tricks landed',
+    n: 10,
     isLive: true,
   },
   {
@@ -206,13 +273,21 @@ export const STICKERS = [
     sport: 'skate',
     hue: '#FF5A1F',
     ico: 'rail',
-    cond: 'Street skate tricks landed',
-    n: 3,
+    // Counted the whole `street` category, which includes `sk-gap`, "Stair
+    // Set" — so the app badged stair counts, the classic escalation ladder in
+    // skateboarding (issue #79). It now counts the seven named ledge and rail
+    // tricks. Three of those are difficulty 3, so `n: 3` would have meant "the
+    // three easy ones"; four is the honest rung.
+    cond: 'ledge and rail tricks landed',
+    n: 4,
     isLive: true,
   },
   {
     id: 'bowl-rider',
-    name: 'Bowl Rider',
+    // Was "Bowl Rider", which was simply wrong: skate's `park` category is
+    // drop-in, rock to fakie, axle stall, blunt to fakie and hip transfer —
+    // three of those is a quarter pipe, not a bowl (issue #82).
+    name: 'Ramp Rider',
     sport: 'skate',
     hue: '#3AC0FF',
     ico: 'home',
@@ -226,7 +301,10 @@ export const STICKERS = [
   },
   {
     id: 'coping-time',
-    name: 'Coping Time',
+    // Was "Coping Time". To any adult, teacher or teasing classmate the first
+    // reading of "coping" is emotional coping, not the metal edge of a ramp
+    // (issue #82) — the worst name in the app for a children's product.
+    name: 'Axle Stall',
     sport: 'skate',
     hue: '#9CE05B',
     ico: 'star',
@@ -235,7 +313,9 @@ export const STICKERS = [
   },
   {
     id: 'tre-deep',
-    name: 'Tre Deep',
+    // Was "Tre Deep", which borrowed the `five-deep`/`ten-deep` pattern where
+    // "deep" means a count, so it parsed as "three deep" (issue #82).
+    name: 'Tre Flip',
     sport: 'skate',
     hue: '#FF3D78',
     ico: 'bolt',

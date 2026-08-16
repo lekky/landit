@@ -4,6 +4,8 @@ import {
   SPORTS,
   TIERS_LABEL,
   categoryLabel,
+  computeStats,
+  currentWeeklyStreak,
   firstLanded,
   isTrickLanded,
   isTrickLocked,
@@ -11,8 +13,10 @@ import {
   prereqTricks,
   trickById,
   tricksUnlockedBy,
+  weeklyStreakLabel,
   type PlanId,
   type StageId,
+  type Trick,
 } from '@landit/core';
 import {
   getTrickNote,
@@ -20,15 +24,18 @@ import {
   listTrickPrereqs,
   listTrickProgress,
   listTricks,
+  riderSnapshot,
   trickLogEntries,
   trickProgressById,
   tricksFromRecords,
+  type UsersRecord,
 } from '@landit/db';
 import { Difficulty, Icon, Panel, Slot, SportChip, Tag } from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { shortDate } from '@/lib/dates';
 import { ROUTES, trickHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { anonymousClient, currentRider } from '@/lib/session';
@@ -36,7 +43,7 @@ import { anonymousClient, currentRider } from '@/lib/session';
 import { ClipsPanel } from './ClipsPanel';
 import { LockedTrick } from './LockedTrick';
 import { NotesPanel } from './NotesPanel';
-import { StagePanel } from './StagePanel';
+import { StagePanel, type TrickShareView } from './StagePanel';
 import styles from './trick.module.css';
 
 /**
@@ -80,13 +87,24 @@ async function load(slug: string) {
 
   if (!session) {
     const byId: Record<string, StageId> = {};
-    return { session, client, tricks, trick, record, byId, landedLabel: null, note: '' };
+    return {
+      session,
+      client,
+      tricks,
+      trick,
+      record,
+      byId,
+      landedLabel: null,
+      note: '',
+      share: null,
+    };
   }
 
-  const [progress, log, noteRecord] = await Promise.all([
+  const [progress, log, noteRecord, snapshot] = await Promise.all([
     listTrickProgress(client, session.rider.id),
     listTrickLog(client, session.rider.id),
     getTrickNote(client, session.rider.id, record.id),
+    riderSnapshot(client, session.rider.id),
   ]);
 
   const byId: Record<string, StageId> = trickProgressById(progress, trickRecords);
@@ -104,6 +122,56 @@ async function load(slug: string) {
       ? `${formatDate(landed.at, timezone)}${landed.estimated ? ' (estimated)' : ''}`
       : null,
     note: noteRecord?.body ?? '',
+    share: buildShare(trick, session.rider, snapshot, tricks, timezone),
+  };
+}
+
+/**
+ * Everything the share card needs, formatted on the server (issue #51).
+ *
+ * The card itself is `@landit/ui-web`'s `ShareCard` and it takes a `kind` —
+ * T7 left this button out precisely so the sticker wall and the trick page
+ * would end up sharing one component rather than two (plan §7, T7).
+ *
+ * Every string is built here for the reason the whole file already formats its
+ * dates here: the card renders inside a client component, and a value produced
+ * by ICU on one side of hydration and not the other is a mismatch that throws
+ * the tree away (LESSONS §3a). The streak reads "3 weeks", never "3 days" —
+ * the unit belongs to `weeklyStreakLabel` (plan §1).
+ */
+function buildShare(
+  trick: Trick,
+  rider: UsersRecord,
+  snapshot: Parameters<typeof computeStats>[0],
+  tricks: readonly Trick[],
+  timezone: string,
+): TrickShareView {
+  const landed = computeStats(snapshot, null, { tricks }).landed;
+  const weeks = currentWeeklyStreak(
+    {
+      streak: rider.streak ?? 0,
+      lastQualifyingWeek: rider.last_qualifying_week || null,
+      weekStart: rider.week_start || null,
+      ridesThisWeek: rider.rides_this_week ?? 0,
+      lastRide: rider.last_ride || null,
+    },
+    { timezone },
+  );
+  const name = (rider.name || 'Rider').split(' ')[0] || 'Rider';
+  const sportLabel = SPORTS[trick.sport].label;
+
+  return {
+    name: trick.name,
+    categoryLabel: categoryLabel(trick.cat, trick.sport),
+    sportLabel,
+    difficulty: trick.diff,
+    hue: CATS[trick.cat].color,
+    headline: `Landed the ${trick.name}`,
+    meta: `${name} · ${landed} tricks landed · ${weeklyStreakLabel(weeks)}`,
+    dateLabel: shortDate(new Date(), timezone).replace(/ \d{4}$/, ''),
+    caption:
+      `Landed the ${trick.name} on ${sportLabel.toLowerCase()}. ` +
+      `${landed} tricks down. Tracked on Land It.`,
   };
 }
 
@@ -215,6 +283,7 @@ export default async function TrickPage({ params }: Params) {
                 slug={trick.id}
                 stage={stage}
                 landedLabel={landedLabel}
+                share={data.share}
               />
             ) : (
               <Panel flat className={styles.stagePanel}>

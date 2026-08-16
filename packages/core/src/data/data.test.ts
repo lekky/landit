@@ -157,8 +157,11 @@ describe('sports, categories and stages', () => {
 });
 
 describe('stickers', () => {
-  it('holds all 24 stickers with unique ids', () => {
-    expect(STICKERS).toHaveLength(24);
+  it('holds all 25 stickers with unique ids', () => {
+    // 24 transcribed from the design pack, plus `every-time` (T10, issue #81).
+    // One of the 24 — `upside` — is retired rather than removed, so it is still
+    // a record here; `stickersFor` keeps it off the wall.
+    expect(STICKERS).toHaveLength(25);
     expect(new Set(ids(STICKERS)).size).toBe(STICKERS.length);
   });
 
