@@ -269,6 +269,18 @@ problem before reading it as a rules problem. T13 hit the identical wall the sam
 `62_spots.pb.js`, from the other direction: `lib/landit.js` states the rule for `require()` and it
 reads as being about imports. It is about everything the handler names.
 
+**A JSVM helper that "returns nothing" may throw instead, and the hook takes the blame.**
+`e.findUploadedFiles('file')` reads the request's multipart form; on a request that has no form —
+any ordinary JSON create — it **throws** rather than returning an empty list. `50_clips.pb.js` had
+called it unguarded since T2, so every JSON-bodied create on `clips` came back as the same nameless
+400 the entry above describes, and the message named neither the field nor the cause. Nothing had
+noticed because the only client was a multipart upload; T14 was the first caller to try anything
+else, and spent twenty minutes reading the *collection rules* because a 400 on a create is what a
+failed `createRule` looks like too. Two things. When a hook's 400 carries no field errors, suspect
+the hook before the rule — the generic message is the tell, whatever produced it. And a helper that
+reads part of a request is worth a `try` the first time you call it on a path the request may not
+have.
+
 **A hook that guards "when the client left it empty" is unguarded the day a client exists.**
 `60_ownership.pb.js` minted an invite code `if (!e.record.getString('code'))` under a comment
 saying "with a server-set code". Both were true while nothing created invites; T11 was the first
@@ -443,6 +455,22 @@ the *unfixed* side too, or you have only shown that your probe compiles. (Two fa
 worth skipping: `apps/web`'s routes are under `src/app`, not `app`, and a directory starting
 with `_` is a private folder Next does not route — a probe in either place builds cleanly and
 proves nothing.)
+
+**Test files share one server, so a fixture row one file edits is a fixture row every file edits.**
+The PocketBase suite starts a single instance for the whole run and vitest runs the files in
+parallel against it. `guarantee-2-clips.test.ts` proves the clip cap by shrinking the **`legend`**
+plan's `clip_cap_bytes` to 2KB, with a comment saying legend is used by no other test — true when it
+was written, and exactly the kind of claim the next file quietly breaks. T14 needed a nearly-full
+vault too, and taking the same lever would have made both files depend on which one ran first, in a
+way that fails intermittently and reads as a product bug.
+
+What it did instead is the move worth repeating: **change the rider, not the shared row.** A
+superuser can create a `clips` record that declares a `size` and carries no file, so the vault fills
+in one request against that rider alone, and no `plans` record moves. It is also the sharper test —
+the planted row still goes through the model-layer cap, which is the "including with a superuser
+token" property §5 opens with. When a fixture is global and mutable, look for the per-rider lever
+before you reach for it; and if there genuinely isn't one, say in the *other* file's comment that
+you have taken the lever, because "used by no other test" is a claim that decays.
 
 **A suite that reads a collection only staff can write has to seed it, or it proves nothing.**
 Every e2e test before T7 wrote its own data *through the app* — a sign-up makes its rider — so the

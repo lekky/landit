@@ -1321,6 +1321,40 @@ per-plan cap read from the `plans` record (2GB Shredder / 5GB Legend) enforced i
 the at-cap states from §6.6, delete. Slot anywhere after Wave 4. Inputs: `landit-screens-a.jsx`
 (clips panel), §6.6 clip decision.
 
+**Built 2026-08-17.** Five things the entry above did not settle:
+
+- **A tile is metadata; the bytes arrive on the press.** The prototype's clips were
+  `createObjectURL` blobs, so it could render a live `<video>` preview per tile for nothing. A real
+  one is bytes behind a file token that lives for minutes, so a page that rendered previews would
+  need a token baked into its HTML — dead by the time a rider scrolled to it, and pasteable while it
+  lived. The tile is the ink block, the play or camera mark and the date; clicking it calls a server
+  action that re-checks ownership, mints a fresh token and returns one URL. This is the only
+  deliberate divergence from screenshot 09's panel, and it is the one guarantee 2 asks for.
+- **The cap and the plan name are read from the `plans` collection on every render**, never from
+  `PLAN[id].clipCapBytes`. The constant seeds the record; staff edit the record afterwards (§6.6),
+  and a screen reading the constant would make a retune invisible — the same call T7 made about
+  reading tricks from the collection. The at-cap upsell likewise names **whichever live plan has the
+  next bigger vault**, so no string `legend` appears in the panel and adding a tier moves the offer.
+  At the top of the range there is no upsell, only delete-to-make-room, exactly as §6.6 says.
+- **A clip row with no file is now refused to riders** (`50_clips.pb.js`). It was already refused,
+  but by accident and with the wrong message: PocketBase's `findUploadedFiles` *throws* on a request
+  carrying no multipart form, so every JSON-bodied create on `clips` came back as a bare 400 saying
+  "Something went wrong" (LESSONS §3's generic-400 signature). Reading "no form" as "no files" makes
+  the refusal deliberate, and leaves the fileless path open to a superuser — which is what lets
+  `clip-vault.test.ts` fill a 2GB vault in one request instead of moving two gigabytes, and prove in
+  passing that the cap holds against a superuser token.
+- **`kind` and `at` are decided by the server**, joining `size` and `user`. `kind` is read off the
+  stored file's name rather than the body, so the tile cannot be made to draw a photo as a video;
+  `at` is server time, because a "filmed on" a client chooses is worth nothing to a moderation queue
+  (`reports` takes `clip` as a subject, §3).
+- **R2 is not wired here, by design.** The bucket, its credentials and PocketBase's S3 settings are
+  deploy-time infrastructure (`docs/infrastructure.md`, reference only); this task builds and tests
+  against PocketBase's local file storage, which is the same API either way. `pocketbase/README.md`
+  records what has to be set and where; the bucket itself is filed as an issue.
+
+"See plans" still renders as a label on both the upsell and the at-cap block: `/plans` is T15's, and
+whichever of the two sessions merges second wires it (LESSONS §3a).
+
 ### Wave 6 — three sessions, T15 ∥ T16 then T17
 
 **T15 · Payments.** Stripe Checkout + customer portal, webhook (Next.js route) → `subscriptions`

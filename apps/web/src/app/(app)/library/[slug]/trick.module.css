@@ -229,6 +229,119 @@
   color: var(--ink-3);
 }
 
+/* ---------------------------------------------------------------- clips -- */
+/*
+ * The prototype's two-up grid of ink tiles (T14, `landit-screens-a.jsx`).
+ * Where it differs: a tile is not a live preview. The prototype's clips were
+ * `createObjectURL` blobs that cost nothing to render; a real one is bytes
+ * behind a token that lives for minutes, so the tile is metadata and the press
+ * is what fetches (plan §3, guarantee 2).
+ */
+.clipGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.clipTile {
+  position: relative;
+  border: 2.5px solid var(--ink);
+  background: var(--ink);
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+
+.clipOpen {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--paper);
+}
+
+.clipOpen:disabled {
+  cursor: progress;
+}
+
+.clipDate {
+  position: absolute;
+  bottom: 5px;
+  left: 6px;
+  color: #c9c2b4;
+  font-size: 9px;
+  pointer-events: none;
+}
+
+.clipDelete {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+}
+
+.clipInput {
+  display: none;
+}
+
+.clipAdd {
+  margin-top: 10px;
+}
+
+.clipAddLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.clipUsage {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-3);
+  letter-spacing: 0.03em;
+}
+
+/* The at-cap block. Violet keyline only when there is a plan to point at. */
+.clipFull {
+  margin-top: 10px;
+  border: 2.5px solid var(--wash);
+  background: var(--paper-2);
+  padding: 11px 12px;
+}
+
+.clipFullCopy {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.clipFull > .clipFullCopy:last-child {
+  margin-bottom: 0;
+}
+
+.clipPlayer {
+  display: block;
+  width: 100%;
+  max-height: 78vh;
+  background: var(--ink);
+}
+
 .notes {
   border: 2.5px solid var(--ink);
   padding: 10px;

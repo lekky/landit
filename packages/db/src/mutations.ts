@@ -5,6 +5,7 @@ import { records } from './collections';
 import type {
   AnnouncementDismissalsRecord,
   ChallengeLogRecord,
+  ClipsRecord,
   CrewInvitesCreate,
   CrewInvitesRecord,
   CrewsCreate,
@@ -415,4 +416,80 @@ export async function joinCrew(
  */
 export async function leaveCrew(client: Client, membershipId: string): Promise<void> {
   await records(client, 'crew_members').remove(membershipId);
+}
+
+/* ------------------------------------------------------------------ clips -- */
+
+/**
+ * Save a clip against a trick (T14).
+ *
+ * Multipart, because the bytes go into PocketBase's file field — which is where
+ * guarantee 2 lives: the field is `protected`, the collection's four rules are
+ * owner-only, and the storage behind it is a private bucket. There is no code
+ * path in the product that makes a clip public, and this is the only one that
+ * creates one.
+ *
+ * Three of the fields sent here are overwritten by
+ * `pocketbase/hooks/50_clips.pb.js` before the record is validated — `user`,
+ * `size` and `kind` are all taken from the request and the stored file rather
+ * than from this body. They are sent anyway so a superuser caller (which
+ * bypasses the request hook) still writes a complete row, and so this function
+ * reads as what it is: a client whose claims do not decide anything.
+ *
+ * The cap is not checked here. It is enforced at the model layer on every write
+ * path (plan §6.6), and a check in this file would be a second, weaker copy of
+ * it — the one that goes stale the day staff retune a plan. A refused upload
+ * arrives as a 403 with a sentence on it; see `isForbidden` and
+ * `refusalMessage`.
+ */
+export async function uploadClip(
+  client: Client,
+  input: { userId: string; trickId: string; file: Blob; filename?: string },
+): Promise<ClipsRecord> {
+  const form = new FormData();
+  form.set('user', input.userId);
+  form.set('trick', input.trickId);
+  form.set('kind', input.file.type.startsWith('image/') ? 'photo' : 'video');
+  form.set('size', String(input.file.size));
+  form.set('file', input.file, input.filename ?? fileNameOf(input.file));
+
+  return client.collection('clips').create<ClipsRecord>(form);
+}
+
+/** A name for a `Blob` that arrived without one. Never trusted as a path — PocketBase renames it. */
+function fileNameOf(file: Blob): string {
+  const named = (file as Blob & { name?: string }).name;
+  if (named) return named;
+  return file.type.startsWith('image/') ? 'clip.jpg' : 'clip.mp4';
+}
+
+/**
+ * Delete a clip, and get the space back.
+ *
+ * `deleteRule` is owner-only, so this works for exactly one person. The space
+ * returns by construction rather than by any bookkeeping: the cap is measured
+ * by summing the rows that exist at write time, so removing a row *is* the
+ * refund (plan §6.6, "delete to make room").
+ */
+export async function deleteClip(client: Client, clipId: string): Promise<void> {
+  await records(client, 'clips').remove(clipId);
+}
+
+/**
+ * A short-lived file token for the signed-in rider.
+ *
+ * This is the whole of guarantee 2's delivery half. A clip's bytes are never
+ * reachable from a plain URL: `clips.file` is `protected`, so PocketBase serves
+ * it only against a token minted for an auth record, and only for a request
+ * that still satisfies the collection's view rule. The token expires in
+ * minutes, which is why it is minted per playback rather than baked into a
+ * rendered page — a stale URL in somebody's history is worth nothing.
+ */
+export async function clipFileToken(client: Client): Promise<string> {
+  return client.files.getToken();
+}
+
+/** The URL those bytes come from, for a token `clipFileToken` just minted. */
+export function clipFileUrl(client: Client, clip: ClipsRecord, token: string): string {
+  return client.files.getURL(clip, clip.file, { token });
 }
