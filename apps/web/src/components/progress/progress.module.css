@@ -1,0 +1,421 @@
+/*
+ * Progress (T9), transcribed from `landit-screens-b.jsx` and checked against
+ * screenshots 11–13.
+ *
+ * The prototype writes all of this as inline style objects. It moves here
+ * wholesale rather than being reinterpreted: same gaps, same 2.5px keylines,
+ * same 132px chart, same 800px breakpoint where both two-column grids stack.
+ * Colours and type come from the tokens in `@landit/ui-web`, never from
+ * literals.
+ */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.headHold {
+  display: flex;
+  flex-direction: column;
+}
+
+.head {
+  font-size: clamp(30px, 5vw, 44px);
+  margin: 6px 0 0;
+}
+
+/* ------------------------------------------------ by category / by stage -- */
+
+.topGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.pad {
+  padding: 20px;
+}
+
+.catList {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.catRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.catName {
+  font-size: 14.5px;
+}
+
+.muted {
+  color: var(--ink-3);
+}
+
+.stageList {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.stageRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.stageChip {
+  width: 15px;
+  height: 15px;
+  border: 2.5px solid var(--ink);
+  flex: none;
+}
+
+.spacer {
+  flex: 1;
+  height: 3px;
+  background: var(--wash);
+}
+
+.stageCount {
+  font-size: 20px;
+}
+
+.untouched {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border-top: 2.5px solid var(--ink);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+/* ----------------------------------------------------------- over time -- */
+
+.timeGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 24px;
+}
+
+.timeHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.timeTotal {
+  font-size: 30px;
+}
+
+.timeLede {
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 132px;
+}
+
+.month {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.monthCount {
+  font-size: 15px;
+}
+
+.monthBar {
+  width: 100%;
+  border: 2.5px solid var(--ink);
+}
+
+.estNote {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.03em;
+}
+
+.landList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.landRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.landDot {
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--ink);
+  flex: none;
+}
+
+.landName {
+  font-size: 15px;
+  text-align: left;
+}
+
+.plain {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+
+/* ---------------------------------------------------------- skill tree -- */
+
+.treeLede {
+  margin: -6px 0 16px;
+  color: var(--ink-2);
+  max-width: 620px;
+}
+
+.branchHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.branchBlurb {
+  font-size: 14px;
+  color: var(--ink-3);
+}
+
+.branchCount {
+  margin-left: auto;
+  color: var(--ink-3);
+}
+
+/* ----------------------------------------------------------- insights -- */
+
+.insightsHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.insightsFlag {
+  margin-left: auto;
+  color: var(--violet);
+}
+
+.lockSlot {
+  border-style: solid;
+  border-color: var(--violet);
+  margin-bottom: 10px;
+}
+
+.lockCopy {
+  color: var(--ink-2);
+}
+
+.optIn {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.optInPromises {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-2);
+  font-size: 14.5px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.optInRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.insightsGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.trendList {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.recordGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.record {
+  border: 2.5px solid var(--ink);
+  background: var(--paper-2);
+  padding: 11px 12px;
+}
+
+.recordValue {
+  font-size: 21px;
+  margin-top: 4px;
+  line-height: 1.05;
+}
+
+.nextList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.next {
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  padding: 11px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.nextName {
+  font-size: 16px;
+}
+
+.nextMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.error {
+  margin: 0;
+  color: var(--red);
+  font-family: var(--fc);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------- printable sheets -- */
+
+.sheets {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.sheetsIcon {
+  width: 46px;
+  height: 46px;
+  background: var(--ink);
+  color: var(--paper);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.sheetsBody {
+  min-width: 200px;
+  flex: 1;
+}
+
+.sheetsTitle {
+  font-size: 21px;
+}
+
+.sheetsLede {
+  margin: 5px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+/*
+ * The sheet itself. Off screen until the browser prints, so "Print my sheets"
+ * prints the rider's own list rather than a screenshot of this page — four
+ * tricks a page, as the panel says.
+ */
+.sheet {
+  display: none;
+}
+
+@media print {
+  .sheet {
+    display: block;
+  }
+
+  .screen > *:not(.sheet) {
+    display: none !important;
+  }
+}
+
+.sheetHead {
+  font-size: 26px;
+  margin: 0 0 4px;
+}
+
+.sheetSub {
+  margin: 0 0 18px;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.sheetRow {
+  border: 2.5px solid var(--ink);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  break-inside: avoid;
+}
+
+.sheetRow:nth-child(4n) {
+  break-after: page;
+}
+
+.sheetTick {
+  width: 26px;
+  height: 26px;
+  border: 2.5px solid var(--ink);
+  flex: none;
+  margin-left: auto;
+}
+
+.sheetName {
+  font-size: 19px;
+}
+
+@media (max-width: 800px) {
+  .topGrid,
+  .timeGrid,
+  .insightsGrid {
+    grid-template-columns: 1fr;
+  }
+}

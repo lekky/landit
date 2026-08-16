@@ -167,6 +167,23 @@ export async function updateProfile(
   return records(client, 'users').update(userId, edit);
 }
 
+/**
+ * Turn the progress insights panel on or off for this rider (plan §2.4, §6.4).
+ *
+ * Deliberately not part of `ProfileEdit`: this is a consent to profiling, not a
+ * profile detail, and the two should never be carried by the same form or the
+ * same call. Off is always accepted; on is refused with a 403 unless the
+ * rider's plan record carries the entitlement — the hook decides that, reading
+ * our own `plans` record, and nothing here re-checks it (plan §3).
+ */
+export async function setInsightsOptIn(
+  client: Client,
+  userId: string,
+  optedIn: boolean,
+): Promise<UsersRecord> {
+  return records(client, 'users').update(userId, { insights_opt_in: optedIn });
+}
+
 /* ------------------------------------------------------------ challenges -- */
 
 /** Log one entry against a challenge. Progress is the count of these rows. */

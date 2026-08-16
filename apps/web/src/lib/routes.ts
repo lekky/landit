@@ -29,6 +29,7 @@ export const ROUTES = {
   onboarding: '/onboarding',
   account: '/account',
   library: '/library',
+  progress: '/progress',
 } as const satisfies Record<string, Route>;
 
 export const legalHref = (doc: LegalDocId): Route => `/legal/${doc}`;

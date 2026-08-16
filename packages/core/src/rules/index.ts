@@ -76,6 +76,28 @@ export {
   type LogOptions,
 } from './log';
 export {
+  MONTH_LABELS,
+  insightsVisible,
+  monthKeyLabel,
+  monthKeysBack,
+  planIncludesInsights,
+  progressInsights,
+  skillTree,
+  stageBreakdown,
+  trickDepth,
+  type CategoryTrend,
+  type NextTrickSuggestion,
+  type PersonalRecords,
+  type ProgressInsights,
+  type ProgressInsightsInput,
+  type SkillState,
+  type SkillTreeBranch,
+  type SkillTreeNode,
+  type SkillTreeTier,
+  type StageBreakdown,
+  type StageCount,
+} from './progress';
+export {
   goalLabel,
   goalsFor,
   handleCandidates,
