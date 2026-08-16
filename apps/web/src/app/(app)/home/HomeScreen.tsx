@@ -2,9 +2,11 @@
 
 import type { SportId } from '@landit/core';
 import { Avatar, Bar, Empty, Panel, SectionHead, StickerBadge, TrickCard } from '@landit/ui-web';
+import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 
 import { SportSwitch } from '@/components/shell/SportSwitch';
+import { ROUTES, trickHref } from '@/lib/routes';
 import { useSport } from '@/providers/sport';
 
 import { AnnouncementBanner } from './AnnouncementBanner';
@@ -21,16 +23,19 @@ import styles from './home.module.css';
  * tab is a re-render rather than a fetch, and nothing on the page is produced by
  * ICU on one side of hydration and not the other (LESSONS §3a).
  *
- * **Cross-route links are deliberately absent.** `/library`, `/library/[trick]`,
- * `/progress`, `/stickers` and `/crew` are T7, T9, T10 and T11 — none of them
- * exists on this branch, `typedRoutes` makes a link to one a compile error, and
- * casting a route to make a dead link compile deletes the guard instead of
- * solving the problem (LESSONS §3a). So the section heads drop their "more"
- * link and the trick cards have no click target until the routes land. Every
- * one is listed in this PR for the follow-up that wires them.
+ * **Some cross-route links are still absent, and that is the guard working.**
+ * The library is wired — T7 merged while this was building, so the trick cards
+ * open `/library/[trick]` and the section head goes to `/library`. `/progress`,
+ * `/stickers`, `/crew` and `/challenge` are T9, T10, T11 and T12 and do not
+ * exist yet; `typedRoutes` makes a link to one a compile error, and casting a
+ * route to make a dead link compile deletes the guard instead of solving the
+ * problem (LESSONS §3a). So those section heads simply drop their "more" link,
+ * and the task that lands each screen adds it back in one line. Each is listed
+ * in this PR.
  */
 export function HomeScreen({ view }: { view: HomeView }) {
   const { sport } = useSport();
+  const router = useRouter();
   const current = view.bySport[sport] ?? view.bySport[view.sports[0] as string];
 
   const note = useCallback(
@@ -102,18 +107,22 @@ export function HomeScreen({ view }: { view: HomeView }) {
       </div>
 
       <section>
-        <SectionHead>{working ? 'Working on it' : 'Start here'}</SectionHead>
+        <SectionHead more="Library →" onMore={() => router.push(ROUTES.library)}>
+          {working ? 'Working on it' : 'Start here'}
+        </SectionHead>
         {primary.length ? (
           <div className="grid-tricks">
             {primary.map((t) => (
-              <HomeTrickCard key={t.slug} trick={t} />
+              <HomeTrickCard key={t.slug} trick={t} onOpen={() => router.push(trickHref(t.slug))} />
             ))}
           </div>
         ) : (
           <Empty
             icon="grid"
             title="Nothing to show yet"
-            sub="The trick library lands next. Everything you log there shows up here."
+            sub="Find a trick in the library and mark it as one you are learning."
+            cta="Find a trick"
+            onCta={() => router.push(ROUTES.library)}
           />
         )}
       </section>
@@ -123,7 +132,7 @@ export function HomeScreen({ view }: { view: HomeView }) {
           <SectionHead>On the wish list</SectionHead>
           <div className="grid-tricks">
             {current.wishList.map((t) => (
-              <HomeTrickCard key={t.slug} trick={t} />
+              <HomeTrickCard key={t.slug} trick={t} onOpen={() => router.push(trickHref(t.slug))} />
             ))}
           </div>
         </section>
@@ -151,6 +160,8 @@ export function HomeScreen({ view }: { view: HomeView }) {
               icon="star"
               title="No stickers yet"
               sub="Log your first trick and the first one drops straight away."
+              cta="Find a trick"
+              onCta={() => router.push(ROUTES.library)}
             />
           )}
         </section>
@@ -209,15 +220,8 @@ function StatBlock({ n, label, hue }: { n: number; label: string; hue: string })
   );
 }
 
-/**
- * A trick card with no destination.
- *
- * `/library/[trick]` is T7's and does not exist here, so the card renders
- * without an `onOpen` rather than with a cast route. It keeps its place, its
- * stage colour and its lock state; only the tap is missing, and the follow-up
- * that wires the route adds it in one line.
- */
-function HomeTrickCard({ trick }: { trick: TrickCardView }) {
+/** A trick card that opens the trick page T7 landed. */
+function HomeTrickCard({ trick, onOpen }: { trick: TrickCardView; onOpen: () => void }) {
   return (
     <TrickCard
       name={trick.name}
@@ -226,6 +230,7 @@ function HomeTrickCard({ trick }: { trick: TrickCardView }) {
       sport={trick.sport}
       stage={trick.stage}
       locked={trick.locked}
+      onOpen={onOpen}
       {...(trick.lockTier ? { lockTier: trick.lockTier } : {})}
     />
   );

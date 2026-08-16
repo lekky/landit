@@ -191,3 +191,19 @@ test('the nav points at Home now that Home exists', async ({ page }) => {
   await expect(home).toHaveAttribute('href', '/home');
   await expect(home).toHaveAttribute('aria-current', 'page');
 });
+
+test('the trick cards and the section head open the library (T7)', async ({ page }) => {
+  await arriveAtHome(page, 'Link Rider');
+
+  // T7 merged while T8 was building, so these are wired rather than left as
+  // labels. Everything Home points at that is still unbuilt simply has no link.
+  await page.getByRole('button', { name: 'Library →' }).click();
+  await page.waitForURL('**/library');
+
+  await page.goBack();
+  const card = page.locator('.grid-tricks .tcard').first();
+  const name = await card.locator('.nm').innerText();
+  await card.click();
+  await page.waitForURL(/\/library\/.+/);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(name, { ignoreCase: true });
+});
