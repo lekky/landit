@@ -440,6 +440,7 @@ export interface PlansRecord {
   created: string;
   updated: string;
   includes_insights: boolean;
+  includes_flair: boolean;
 }
 
 /** The shape accepted when creating a `plans` record. */
@@ -459,6 +460,7 @@ export interface PlansCreate {
   clip_cap_bytes?: number;
   is_live?: boolean;
   includes_insights?: boolean;
+  includes_flair?: boolean;
 }
 
 /** The shape accepted when updating a `plans` record. */

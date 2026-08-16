@@ -1,0 +1,243 @@
+/*
+ * The public rider profile (screenshot 16) and the state a closed one shows.
+ *
+ * The header is the design's ink block: paper text on `--ink`, the avatar
+ * ringed in paper, and the tags pushed to the right. Everything below it is
+ * plain panels — hard shadows, zero radius, as everywhere.
+ */
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-3);
+  font-size: 13.5px;
+  margin-bottom: 14px;
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--ink);
+}
+
+.card {
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.banner {
+  background: var(--ink);
+  padding: 24px 22px;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.bannerText {
+  min-width: 0;
+}
+
+.bannerTags {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.name {
+  font-size: clamp(24px, 5vw, 32px);
+  color: var(--paper);
+}
+
+.meta {
+  color: #c9c2b4;
+  margin-top: 6px;
+}
+
+.sports {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
+.stat {
+  padding: 16px 14px;
+  border-top: 3px solid var(--ink);
+  border-right: 2.5px solid var(--ink);
+}
+
+.stat:last-child {
+  border-right: none;
+}
+
+.statValue {
+  font-size: 26px;
+}
+
+.stat .lab {
+  color: var(--ink-3);
+  margin-top: 4px;
+  display: block;
+}
+
+/* --------------------------------------------------------- who sees this -- */
+
+.viewing {
+  padding: 13px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--paper-2);
+}
+
+.viewingBody {
+  font-family: var(--fc);
+  font-size: 13.5px;
+  color: var(--ink-2);
+  letter-spacing: 0.03em;
+  flex: 1;
+  min-width: 200px;
+}
+
+/* ----------------------------------------------------------------- panels -- */
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  gap: 20px;
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  padding: 0;
+}
+
+.panelHead {
+  padding: 13px 16px;
+  border-bottom: 3px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.panelEmpty {
+  margin: 0;
+  padding: 22px;
+  color: var(--ink-2);
+}
+
+.landedList {
+  padding: 6px 0;
+}
+
+.landedRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 16px;
+}
+
+.swatch {
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--ink);
+  flex: none;
+}
+
+.landedName {
+  font-size: 15px;
+  min-width: 0;
+}
+
+.landedRule {
+  flex: 1;
+  height: 3px;
+  background: var(--wash);
+  min-width: 12px;
+}
+
+.landedDate {
+  color: var(--ink-3);
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidePanel {
+  padding: 18px;
+}
+
+.sideBody {
+  margin: 10px 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.stickerGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.stickerCount {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.stickerCount .d {
+  font-size: 30px;
+}
+
+.stickerCount .cond {
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+
+/* -------------------------------------------------------------- refusal -- */
+
+.refusal {
+  max-width: 640px;
+}
+
+.refusalPanel {
+  padding: 26px 24px;
+}
+
+.refusalHead {
+  font-size: clamp(24px, 4.6vw, 34px);
+  margin: 6px 0 0;
+}
+
+.refusalBody {
+  margin: 12px 0 0;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+
+.refusalActions {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}

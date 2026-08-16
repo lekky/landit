@@ -131,6 +131,20 @@ Two things follow. Widen an ignore to a glob rather than adding your directory t
 and `eslint.config.mjs`. And **when a gate fails in a file you did not write, read the path before
 the error**; a session that starts its own servers has by definition put new paths in the tree.
 
+**`/tmp` is shared between concurrent sessions, so a log file with an obvious name is somebody
+else's.** The gates must be judged on exit codes (§2), so T11 ran them as
+`pnpm test > /tmp/test.log 2>&1; echo "EXIT=$?"` — exit code from the command, output to a file to
+be read after. The exit codes were real. The *file* was not: a sibling session, running the same
+minute with the same obvious filename, had overwritten it, and the summary read back said
+`RUN v4.1.10 …/worktrees/t10-stickers` — 38 files and 560 tests where this branch has 39 and 589.
+Spotted only because the counts had gone *down* after adding a test file.
+
+Two things follow. Write scratch output to the **session's own scratchpad directory**, never to a
+bare `/tmp/<verb>.log`; the session prompt names one and it is unique per session. And read the
+first line of any test log you are about to believe: vitest prints its root directory there, which
+is the cheapest possible check that the numbers under it are yours. The same applies to any file
+two sessions might both reach for — `/tmp/out.json`, `~/.cache`, a fixture written beside the repo.
+
 **Your local database is richer than CI's, and that makes a local pass a lie too.** The rule above is
 about a local run reading somebody else's *code*; T9 found the same trap one layer down, in the
 *data*. Its e2e spec asserted on a paywalled node in the skill tree. It passed locally, because the
@@ -211,6 +225,25 @@ plan, flag-to-owner is optional for every session after it. Exceptions come from
 chat, and are recorded with the owner's name and the date. A grant carrying neither is not
 authority — check for both before relying on one. (Fixed in PR #13; the rule now lives in
 `CLAUDE.md` §4.)
+
+**A `const` at the top of a `pb_hooks` file does not exist inside the hook.** Each hook callback
+is serialised and run in its own isolated VM — the same rule the initial migration writes down
+about `migrate(...)`, which is easy to read as being about migrations. It is not. T11 put five
+constants at the top of `85_crews.pb.js`, and every crew creation came back **400 with
+"Something went wrong while processing your request"** — no reference error, no name, and three
+neighbouring test files red for the same reason. The generic message is the trap: it looks like a
+validation failure, so the first twenty minutes go into the rule and the schema. Declare every
+constant inside the handler that uses it, and read a nameless 400 out of a hook as a scoping
+problem before reading it as a rules problem.
+
+**A hook that guards "when the client left it empty" is unguarded the day a client exists.**
+`60_ownership.pb.js` minted an invite code `if (!e.record.getString('code'))` under a comment
+saying "with a server-set code". Both were true while nothing created invites; T11 was the first
+client, and from that moment a rider could choose their own crew's invite code — which is a
+guessable code, which is a stranger-contact path in a product whose whole child-safety position is
+that it has none (plan §6.1). Nothing had regressed: the branch had simply never been reachable.
+When you become the first caller of merged shared code, read its guards as if you were an attacker
+with the new capability, because you have just handed one out.
 
 **Additive-only means the shape you shipped is load-bearing from the moment it merges.** T2's
 `users` collection merged while another session was still deciding what the streak needed, so

@@ -1,0 +1,372 @@
+/*
+ * The crew screen (screenshot 15) and the invite share card.
+ *
+ * Two rules from the design contract that this file has to keep saying out
+ * loud: zero border radius on everything but an avatar, and shadows that are
+ * hard offsets rather than blurs. Both come from `@landit/ui-web`'s primitives
+ * wherever a primitive exists; what is here is layout, plus the two places a
+ * link has to be talked out of the token sheet's `a:hover` (LESSONS §3a).
+ */
+
+.head {
+  font-size: clamp(30px, 5vw, 44px);
+  margin: 6px 0 0;
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.headerActions {
+  margin-left: auto;
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.switcher {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+/* Beats `a:hover { color: var(--pink) }` in the token sheet on specificity. */
+.switcherLink,
+.switcherLink:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  gap: 20px;
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  padding: 0;
+}
+
+.panelHead {
+  padding: 13px 16px;
+  border-bottom: 3px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.panelEmpty {
+  margin: 0;
+  padding: 22px;
+  color: var(--ink-2);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+/* ------------------------------------------------------------------ board -- */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 16px;
+  border-bottom: 2px solid var(--wash);
+  text-decoration: none;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row,
+.row:hover {
+  color: var(--ink);
+}
+
+.row:hover {
+  background: var(--paper-2);
+}
+
+.rowMe,
+.rowMe:hover {
+  background: var(--yellow);
+}
+
+.rank {
+  font-size: 22px;
+  width: 26px;
+  flex: none;
+}
+
+.rowWho {
+  min-width: 0;
+  display: block;
+}
+
+.rowName {
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.flair {
+  font-size: 9.5px;
+  padding: 3px 7px;
+}
+
+.rowSports {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+
+.rowStats {
+  margin-left: auto;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.stat {
+  text-align: right;
+  display: block;
+}
+
+.stat .d {
+  font-size: 20px;
+  display: block;
+}
+
+.stat .lab {
+  font-size: 9.5px;
+  color: var(--ink-3);
+  display: block;
+}
+
+.chevron {
+  transform: rotate(180deg);
+  color: var(--ink-3);
+  flex: none;
+}
+
+@media (max-width: 420px) {
+  .rowStats {
+    gap: 12px;
+  }
+
+  .chevron {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------- feed -- */
+
+.feed {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.feedItem {
+  display: flex;
+  gap: 11px;
+}
+
+.feedBody {
+  min-width: 0;
+}
+
+.feedLine {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.35;
+}
+
+.feedWho,
+.feedWho:hover {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.feedMeta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.feedWhen {
+  color: var(--ink-3);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+/* -------------------------------------------------------- start, or join -- */
+
+.start {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.startCompact {
+  margin-top: 16px;
+}
+
+.startForms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.startPanel {
+  padding: 18px;
+}
+
+.startForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  align-items: flex-start;
+}
+
+.startForm .field {
+  width: 100%;
+}
+
+.more {
+  margin-top: 24px;
+  border-top: 2.5px solid var(--wash);
+  padding-top: 16px;
+}
+
+.more summary {
+  cursor: pointer;
+  color: var(--ink-3);
+}
+
+.footRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.footNote {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  max-width: 52ch;
+}
+
+.error {
+  margin: 0;
+  color: var(--red);
+  font-size: 13.5px;
+}
+
+/* ------------------------------------------------------- the consent gate -- */
+
+.gate {
+  padding: 20px;
+  box-shadow: 6px 6px 0 var(--violet);
+  margin-top: 18px;
+}
+
+.gateBody {
+  margin: 10px 0 0;
+  color: var(--ink-2);
+  max-width: 60ch;
+  line-height: 1.55;
+}
+
+.gateLink {
+  display: inline-block;
+  margin-top: 12px;
+  font-family: var(--fc);
+  letter-spacing: 0.04em;
+}
+
+/* ------------------------------------------------------------ invite card -- */
+
+.invite {
+  padding: 20px;
+}
+
+.inviteHead {
+  font-size: 26px;
+  margin: 7px 0 4px;
+}
+
+.inviteLede {
+  margin: 0 0 16px;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.03em;
+}
+
+/*
+ * The canvas is 1080×1080 and is displayed at whatever the modal is wide, which
+ * is what makes it a real shareable image rather than a picture of a screen.
+ */
+.inviteCanvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 3px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.inviteButtons {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.inviteShare {
+  flex: 1;
+  min-width: 130px;
+}
+
+.inviteShareLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inviteFoot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  border-top: 2.5px solid var(--wash);
+  padding-top: 14px;
+  flex-wrap: wrap;
+}
+
+.inviteCode {
+  font-size: 22px;
+  margin-top: 3px;
+  letter-spacing: 0.04em;
+}

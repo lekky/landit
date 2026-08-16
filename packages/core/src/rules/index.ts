@@ -68,6 +68,27 @@ export {
   type SignupOutcome,
 } from './consent';
 export {
+  CREW_NAME_MAX_LENGTH,
+  CREW_NAME_MIN_LENGTH,
+  INVITE_CODE_ALPHABET,
+  INVITE_CODE_GROUP,
+  INVITE_CODE_LENGTH,
+  INVITE_EXPIRY_DAYS,
+  INVITE_MAX_USES,
+  MAX_OWNED_CREWS,
+  SUPERVISED_MIN_DIFF,
+  crewActivityLine,
+  crewNameProblem,
+  crewSlug,
+  formatInviteCode,
+  isValidInviteCode,
+  normaliseInviteCode,
+  sortCrewActivity,
+  supervisedTricks,
+  type CrewActivityItem,
+  type CrewActivityKind,
+} from './crew';
+export {
   TRICK_SORTS,
   TRICK_STATUS_FILTERS,
   activeFilterCount,

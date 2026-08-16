@@ -5,6 +5,10 @@ import { records } from './collections';
 import type {
   AnnouncementDismissalsRecord,
   ChallengeLogRecord,
+  CrewInvitesCreate,
+  CrewInvitesRecord,
+  CrewsCreate,
+  CrewsRecord,
   EventAttendanceRecord,
   RiderStickersRecord,
   SpotsRecord,
@@ -337,4 +341,78 @@ export async function markStickerSeen(
   return records(client, 'rider_stickers').update(riderStickerId, {
     seen_at: at.toISOString(),
   });
+}
+/* --------------------------------------------------------------- crews ---- */
+
+/**
+ * Start a crew.
+ *
+ * The body carries a name and nothing else. `owner`, `slug` and the owner's own
+ * membership are all the server's — `hooks/60_ownership.pb.js` and
+ * `hooks/85_crews.pb.js` between them — because a client that could choose a
+ * slug could squat every readable name, and a client that could choose an owner
+ * could put a crew in somebody else's account.
+ *
+ * A rider held behind the guardian-consent gate is refused here with a 403
+ * (plan §3 guarantee 4), and so is a rider already running the maximum number
+ * of crews.
+ */
+export async function createCrew(client: Client, name: string): Promise<CrewsRecord> {
+  // `slug` and `owner` are required columns and are deliberately absent from
+  // this body: the create hook fills both before validation runs, so a client
+  // that sent them would only be overridden. The cast is what says that on
+  // purpose rather than by omission.
+  return records(client, 'crews').create({ name: name.trim() } as CrewsCreate);
+}
+
+/**
+ * Mint an invite code for a crew you are in.
+ *
+ * The code is **not** an argument. It is generated on the server from a
+ * deliberately unguessable alphabet, because an invite code is the only thing
+ * between a stranger and a crew of children (plan §6.1) — a code a client could
+ * choose is a code a rider could make guessable, and the prototype's
+ * name-derived code was exactly that.
+ */
+export async function createCrewInvite(client: Client, crewId: string): Promise<CrewInvitesRecord> {
+  // Same shape as `createCrew`: `code` is required and is the hook's, never the
+  // body's.
+  return records(client, 'crew_invites').create({ crew: crewId } as CrewInvitesCreate);
+}
+
+/** Retire an invite. Only the crew's owner may, per the collection rule. */
+export async function deleteCrewInvite(client: Client, inviteId: string): Promise<void> {
+  await records(client, 'crew_invites').remove(inviteId);
+}
+
+/**
+ * Redeem an invite code — the **only** way into a crew.
+ *
+ * `crew_members.createRule` is `null`, so this route is not a convenience over
+ * a collection write; it is the single door, and it is server-side because the
+ * code, the expiry, the use count and the consent gate all have to be checked
+ * where a client cannot reach them (plan §3, §6.1).
+ *
+ * `joined: false` means the rider was already in that crew. That is a success,
+ * not an error: a mate who taps the same link twice should land on the crew.
+ */
+export async function joinCrew(
+  client: Client,
+  code: string,
+): Promise<{ crew: string; joined: boolean }> {
+  return client.send('/api/landit/crews/join', {
+    method: 'POST',
+    body: { code },
+  });
+}
+
+/**
+ * Leave a crew.
+ *
+ * The membership row is the rider's own to delete (`deleteRule: user =
+ * @request.auth.id`), which is the point: getting out never needs anybody's
+ * permission, where getting in always needs a code.
+ */
+export async function leaveCrew(client: Client, membershipId: string): Promise<void> {
+  await records(client, 'crew_members').remove(membershipId);
 }

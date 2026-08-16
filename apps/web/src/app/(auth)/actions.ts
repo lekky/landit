@@ -11,7 +11,7 @@ import {
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-import { ROUTES } from '@/lib/routes';
+import { ROUTES, safeReturnTo } from '@/lib/routes';
 import { SESSION_COOKIE, sessionCookieOptions } from '@/lib/session';
 
 /**
@@ -137,9 +137,12 @@ export async function signInAction(
     return { errors: { form: 'That email and password do not match an account' } };
   }
 
-  // The dashboard, since T8 landed one. `/account` was where a rider went when
-  // it was the only signed-in screen there was.
-  redirect(ROUTES.dashboard);
+  // Back to whatever was being asked for, or the dashboard (issue #66). The
+  // form's hidden field is a value the browser can edit, so it is validated
+  // here as well as where it was written — `safeReturnTo` drops anything that
+  // is not a same-site absolute path rather than letting it become an open
+  // redirect.
+  redirect(safeReturnTo(text(form, 'next')));
 }
 
 export async function signOutAction(): Promise<void> {

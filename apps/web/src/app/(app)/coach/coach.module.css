@@ -1,0 +1,94 @@
+/* The coach / parent view (screenshot 24). Six cards and one list. */
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-3);
+  font-size: 13.5px;
+  margin-bottom: 14px;
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--ink);
+}
+
+.head {
+  font-size: clamp(28px, 5vw, 42px);
+  margin: 6px 0 0;
+}
+
+.lede {
+  margin: 10px 0 18px;
+  color: var(--ink-2);
+  max-width: 62ch;
+  line-height: 1.55;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.card {
+  padding: 16px;
+}
+
+.cardLabel {
+  color: var(--ink-2);
+}
+
+.cardValue {
+  margin-top: 7px;
+  line-height: 1.15;
+}
+
+.working {
+  padding: 20px;
+}
+
+.workingList {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin-top: 12px;
+}
+
+.workingRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.workingName {
+  font-size: 16px;
+}
+
+.rule {
+  flex: 1;
+  height: 3px;
+  background: var(--wash);
+  min-width: 12px;
+}
+
+.supervise {
+  color: var(--red);
+}
+
+.empty {
+  margin: 12px 0 0;
+  color: var(--ink-2);
+}
+
+.note {
+  margin: 18px 0 0;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  line-height: 1.5;
+  border-top: 2.5px solid var(--wash);
+  padding-top: 14px;
+}

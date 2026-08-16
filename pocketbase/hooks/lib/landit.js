@@ -175,6 +175,20 @@ function planIncludesInsights(app, userRecord) {
   return !!plan && plan.getBool('includes_insights');
 }
 
+/**
+ * Legend flair — the cosmetic tag beside a rider's name (plan §2.4, T11).
+ *
+ * Read from the plan record like every other entitlement, so staff can move the
+ * perk without a deploy and nothing compares a plan id to the string `legend`.
+ * It is also what lets the crew board show flair *without* the board payload
+ * carrying a rider's plan: this resolves to a boolean on the server and the
+ * plan itself never crosses to another rider.
+ */
+function planIncludesFlair(app, userRecord) {
+  const plan = planFor(app, userRecord);
+  return !!plan && plan.getBool('includes_flair');
+}
+
 function findAll(app, collection, filter, params) {
   return app.findRecordsByFilter(collection, filter, '', 0, 0, params || {});
 }
@@ -499,6 +513,7 @@ module.exports = {
   isTrickFree,
   normaliseHandle,
   planFor,
+  planIncludesFlair,
   planIncludesInsights,
   planUnlocksPaidTricks,
   writeAudit,

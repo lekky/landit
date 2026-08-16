@@ -23,6 +23,11 @@ const GB = 1024 * 1024 * 1024;
  * `plan === 'legend'` anywhere. It is an entitlement, not a consent — an
  * entitled rider still has to opt in before any profiling happens (§6.4).
  *
+ * `includesFlair` is the third of the same kind (T11): the Legend tag beside a
+ * rider's name on their profile and crew board. Cosmetic by construction — it
+ * decorates a name and touches no score, stage or sticker, which is what keeps
+ * it on the right side of "achievements are never for sale".
+ *
  * Copy is the plan's pitch rendered into the prototype's card shape; T15 owns
  * the final wording of the plans page.
  */
@@ -46,6 +51,7 @@ export const PLANS = [
     clipCapBytes: 0,
     unlocksPaidTricks: false,
     includesInsights: false,
+    includesFlair: false,
   },
   {
     id: 'shredder',
@@ -67,6 +73,7 @@ export const PLANS = [
     clipCapBytes: 2 * GB,
     unlocksPaidTricks: true,
     includesInsights: false,
+    includesFlair: false,
   },
   {
     id: 'legend',
@@ -87,6 +94,7 @@ export const PLANS = [
     clipCapBytes: 5 * GB,
     unlocksPaidTricks: true,
     includesInsights: true,
+    includesFlair: true,
   },
 ] as const satisfies readonly Plan[];
 

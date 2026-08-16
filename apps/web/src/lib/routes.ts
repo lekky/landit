@@ -48,6 +48,8 @@ export const ROUTES = {
   events: '/events',
   /** T10's sticker wall. Same rule as above: the nav entry is wired separately. */
   stickers: '/stickers',
+  crew: '/crew',
+  coach: '/coach',
 } as const satisfies Record<string, Route>;
 
 export const legalHref = (doc: LegalDocId): Route => `/legal/${doc}`;
@@ -62,3 +64,44 @@ export const trickHref = (slug: string): Route => `/library/${encodeURIComponent
 /** A guardian's link from the consent email (plan §6.2). */
 export const consentHref = (action: 'approve' | 'revoke', token: string): Route =>
   `/consent/${action}/${encodeURIComponent(token)}`;
+
+/**
+ * One rider's public profile, by **handle**.
+ *
+ * Handles are unique case-insensitively and are what appear on a share card, so
+ * they are the readable half of a URL a rider might type. Whether the profile
+ * opens is not this function's business: the API rules decide, and a profile
+ * that is private simply does not resolve (plan §3 guarantee 1).
+ */
+export const riderHref = (handle: string): Route => `/riders/${encodeURIComponent(handle)}`;
+
+/** The landing page an invite code opens. The only door into a crew (§6.1). */
+export const joinHref = (code: string): Route => `/join/${encodeURIComponent(code)}`;
+
+/**
+ * Sign in, and come back to where you were sent from.
+ *
+ * Issue #66: every gated link used to land a signed-out visitor on `/home`,
+ * whatever they had clicked — which for an invite link or a friend's profile
+ * means the thing they came for is simply gone. The path is carried as a query
+ * parameter and validated on the way back out (`safeReturnTo`), because a
+ * redirect target a stranger controls is an open redirect.
+ */
+export const signInHref = (returnTo?: string): Route =>
+  returnTo ? `${ROUTES.signIn}?next=${encodeURIComponent(returnTo)}` : ROUTES.signIn;
+
+/**
+ * A `next` parameter, if it is safe to send somebody to.
+ *
+ * Only a same-site absolute path, which means: it starts with one `/`, it does
+ * not start with `//` or `/\` (both of which browsers read as a host), and it
+ * carries no scheme. Anything else is dropped for the dashboard rather than
+ * refused — a rider who followed a mangled link should still get signed in.
+ */
+export function safeReturnTo(value: string | null | undefined): Route {
+  const path = String(value ?? '');
+  if (!path.startsWith('/')) return ROUTES.dashboard;
+  if (path.startsWith('//') || path.startsWith('/\\')) return ROUTES.dashboard;
+  if (/[\s]/.test(path)) return ROUTES.dashboard;
+  return path as Route;
+}

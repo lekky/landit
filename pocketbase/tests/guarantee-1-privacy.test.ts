@@ -216,9 +216,13 @@ describe('guarantee 1 — profile privacy is enforced by the API, not the UI', (
     expect(row!.handle).toBe(privateRider.handle);
     expect(row!.landed).toBeGreaterThanOrEqual(1);
 
-    // The payload is built field by field on the server, so it cannot widen.
+    // The payload is built field by field on the server, so it cannot widen by
+    // accident. `flair` was added on purpose by T11 — the Legend cosmetic tag
+    // from plan §2.4, resolved from the plan record into a boolean *before* it
+    // crosses, which is how the board shows flair without `plan` ever joining
+    // the list. Widening this line is how a session says it meant to.
     expect(Object.keys(row!).sort()).toEqual(
-      ['avatar_key', 'handle', 'id', 'landed', 'name', 'role', 'sports', 'streak'].sort(),
+      ['avatar_key', 'flair', 'handle', 'id', 'landed', 'name', 'role', 'sports', 'streak'].sort(),
     );
   });
 
