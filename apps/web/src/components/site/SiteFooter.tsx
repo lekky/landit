@@ -78,9 +78,20 @@ export type SiteFooterProps = {
    * show a rider the door to the admin app.
    */
   compact?: boolean;
+  /**
+   * Drops the four link columns, leaving the brand and the bottom strip.
+   *
+   * Set by the pre-launch holding page and nothing else. Those columns are a map
+   * of a product that is not open yet — most of them render as plain labels
+   * because the screens do not exist — and listing Events, Spots and Crew
+   * underneath the words "not open just yet" reads as a roadmap nobody asked
+   * for. The bottom strip stays, because that is where Privacy and Terms are,
+   * and those have to remain reachable while the gate is shut.
+   */
+  minimal?: boolean;
 };
 
-export function SiteFooter({ compact = false }: SiteFooterProps) {
+export function SiteFooter({ compact = false, minimal = false }: SiteFooterProps) {
   // Rendered on the server, so on a statically generated page this is the build
   // year. That is what the prototype's client-side `getFullYear()` amounted to
   // as well, and a footer is not worth making the page dynamic for.
@@ -107,16 +118,17 @@ export function SiteFooter({ compact = false }: SiteFooterProps) {
             </div>
           </div>
 
-          {COLUMNS.map((col) => (
-            <div key={col.title}>
-              <div className={`lab ${styles.colTitle}`}>{col.title}</div>
-              <div className={styles.colLinks}>
-                {col.links.map((link) => (
-                  <FooterLinkItem key={link.label} {...link} />
-                ))}
+          {!minimal &&
+            COLUMNS.map((col) => (
+              <div key={col.title}>
+                <div className={`lab ${styles.colTitle}`}>{col.title}</div>
+                <div className={styles.colLinks}>
+                  {col.links.map((link) => (
+                    <FooterLinkItem key={link.label} {...link} />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
 
         <div className={styles.bottom}>

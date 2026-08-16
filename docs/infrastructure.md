@@ -157,6 +157,35 @@ Two settings that are not obvious and cost a rebuild each:
 Deploy PocketBase first, visit `https://api.landthetrick.com/_/` and create the superuser, then
 deploy the web app. Confirm **both** serve HTTPS before going on.
 
+**The web app also takes two runtime variables that decide whether the public sees the product at
+all.** Unlike `NEXT_PUBLIC_POCKETBASE_URL` above, these are ordinary runtime variables — *not*
+build variables — and that difference is the whole point of how they were built:
+
+| Variable | Value while building | Value at launch |
+| --- | --- | --- |
+| `LANDIT_SITE_LIVE` | leave unset, or `false` | `true` |
+| `LANDIT_PREVIEW_KEY` | a long random string | keep it, or clear it |
+
+`LANDIT_SITE_LIVE` decides whether every URL serves the app or the holding page. It is read by
+`apps/web/src/proxy.ts` on each request, so **going live is this variable plus a restart — there is
+no rebuild.** Coolify must therefore *not* mark it "Build Variable"; doing so is the same trap that
+`NEXT_PUBLIC_POCKETBASE_URL` sprang once already, in reverse.
+
+It fails **shut**: unset in production means the holding page. A deploy that forgets the variable
+shows a coming-soon page, which costs a restart to fix — the opposite mistake publishes an
+unfinished product to children and cannot be taken back.
+
+`LANDIT_PREVIEW_KEY` is the way past the holding page while it is up: open
+`https://landthetrick.com/?preview=<key>` once and a 30-day httpOnly cookie lets that browser
+through to the real site. **Leaving it blank switches the bypass off entirely** rather than opening
+it to everyone. It is a shared password for an unreleased site, not a per-person credential — treat
+it as something to rotate rather than something to hand around.
+
+While the gate is shut: `/legal/*` stays reachable (the privacy policy and terms are published
+commitments, not product), `/robots.txt` tells crawlers to index nothing, and every other path —
+including `/signup` — returns the holding page with a **200**, so the Uptime Kuma monitors below
+stay green rather than paging about a launch gate.
+
 Turn on **preview deployments** for the web app. Plan §7 wanted them by the end of Wave 2 so later
 waves could be reviewed on real URLs; Wave 3 has merged without them, so this is the part that is
 actually late. They need the wildcard DNS record from step 1, which is already there.
@@ -261,3 +290,9 @@ Steps 1–8 above are the sequence; this is the progress.
 - [ ] DMARC (runbook 7)
 - [ ] Uptime Kuma monitors, then the email paths by hand — issue #31 (runbook 8)
 - [ ] R2 lifecycle rule + clips bucket when T14 (clips) approaches.
+- [ ] **`LANDIT_SITE_LIVE` and `LANDIT_PREVIEW_KEY` set on the deployed web app** (runbook 2). The
+      code shipped shut-by-default, so the site is already holding — but until `LANDIT_PREVIEW_KEY`
+      is set on the box there is no way to see the real site on the real domain, and nobody can
+      check a deploy before launch day.
+- [ ] **`LANDIT_SITE_LIVE=true`, on launch day.** The last item on this list, deliberately: it is
+      the one that makes everything above it visible to the public.

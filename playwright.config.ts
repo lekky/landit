@@ -63,7 +63,16 @@ export default defineConfig({
           url: BASE_URL,
           reuseExistingServer: !process.env.CI,
           timeout: 120_000,
-          env: { NEXT_PUBLIC_POCKETBASE_URL: POCKETBASE_URL },
+          env: {
+            NEXT_PUBLIC_POCKETBASE_URL: POCKETBASE_URL,
+            // The pre-launch gate (`apps/web/src/proxy.ts`) would serve the
+            // holding page instead of the app. An unset flag already means
+            // "live" outside production, so this is belt and braces — but the
+            // suite should not depend on the default staying that way, and a
+            // whole run failing on "expected the landing page, got Coming soon"
+            // is an expensive way to rediscover a gate.
+            LANDIT_SITE_LIVE: 'true',
+          },
         },
       ],
 });
