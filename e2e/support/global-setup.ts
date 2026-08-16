@@ -1,4 +1,5 @@
 import { seedLibrary } from './seed-library';
+import { seedSpots } from './seed-spots';
 
 /**
  * Seed the e2e database once, before any worker starts.
@@ -25,4 +26,8 @@ import { seedLibrary } from './seed-library';
  */
 export default async function globalSetup(): Promise<void> {
   await seedLibrary();
+  // The spots screen reads a collection with no client path to `live`, so the
+  // same trap applies to it: an unseeded `spots` makes every assertion about
+  // the map and the list pass by finding nothing (T13).
+  await seedSpots();
 }

@@ -140,6 +140,9 @@ export default tseslint.config(
         DateTime: 'readonly',
         DynamicModel: 'readonly',
         MailerMessage: 'readonly',
+        // `ApiError` carries a status the named classes do not cover — 429, for
+        // the spot-submission rate limit (T13).
+        ApiError: 'readonly',
         BadRequestError: 'readonly',
         ForbiddenError: 'readonly',
         NotFoundError: 'readonly',

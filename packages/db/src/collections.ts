@@ -147,6 +147,34 @@ export function isForbidden(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'status' in error && error.status === 403;
 }
 
+/**
+ * Did the server refuse this because it has been asked too often?
+ *
+ * Its own status, and worth telling apart from a 403: the request was well
+ * formed and would have been allowed earlier, so the honest thing to show the
+ * rider is when to come back — not "you are not allowed to do that".
+ * `pocketbase/hooks/lib/ratelimit.js` is what raises it.
+ */
+export function isRateLimited(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'status' in error && error.status === 429;
+}
+
+/**
+ * The sentence the server sent with a refusal, when there is one worth showing.
+ *
+ * Our hooks put a rider-readable message on every refusal they raise — "that is
+ * 3 spots in an hour" — and throwing it away to show a generic apology would
+ * make the limit unguessable. Falls back to null rather than to the SDK's own
+ * wording, which is written for a developer.
+ */
+export function refusalMessage(error: unknown): string | null {
+  if (typeof error !== 'object' || error === null || !('response' in error)) return null;
+  const response = (error as { response?: unknown }).response;
+  if (typeof response !== 'object' || response === null || !('message' in response)) return null;
+  const message = (response as { message?: unknown }).message;
+  return typeof message === 'string' && message.trim().length > 0 ? message : null;
+}
+
 /** The shape `records(client, n).create` accepts, for any collection `n`. */
 export type CollectionCreate<N extends CollectionName> = CollectionCreates[N];
 

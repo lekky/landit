@@ -40,7 +40,7 @@ export {
   STANCES,
 } from './profile';
 export { SPORT_IDS, SPORTS } from './sports';
-export { SPOTS } from './spots';
+export { SPOTS, SPOT_TYPES, type SpotType } from './spots';
 export { LANDED_STAGES, STAGE, STAGE_IDS, STAGES } from './stages';
 export { STICKERS, type StickerId } from './stickers';
 export { TRICK_PREREQS, TRICKS, type TrickId } from './tricks';

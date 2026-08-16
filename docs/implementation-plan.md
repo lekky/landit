@@ -1270,6 +1270,52 @@ default and opt-in per use, there is a visible indicator whenever it is live, it
 across sessions, and the rider's own position is never stored — only the spot's. Inputs:
 `landit-screens-b.jsx`, screenshot 19.
 
+Shipped, with four decisions recorded here because they diverge from the prototype or need the
+owner:
+
+- **The map's style: a quiet base, the design language on top.** The palette is loud — hard
+  offset shadows, zero radius, `--sky` and `--yellow` — and no stock Mapbox style comes close.
+  A matching basemap means authoring one in Mapbox Studio, which needs a Studio account and a
+  designer; that is owner work, not session work. So Mapbox draws the ground (`light-v11`,
+  deliberately low-contrast) and everything Land It renders on it is ours: square markers with a
+  3px ink keyline and a hard offset shadow, the selected pin in `--yellow` and larger, restyled
+  zoom controls, and the panel's own header and footer bars. It reads as Land It, and the road
+  names stay legible under markers that are meant to shout. `MAP_BASE_STYLE` in
+  `apps/web/src/lib/mapbox.ts` is one line: **if the owner later commissions a Studio style, that
+  is the whole change.** Attribution and the Mapbox logo are restyled and never hidden — a
+  condition of the service, not a styling choice.
+- **No token in the repo, and the screen works without one.** There is no Mapbox account yet
+  (`docs/infrastructure.md`), so `NEXT_PUBLIC_MAPBOX_TOKEN` is a blank line in
+  `apps/web/.env.example` and every checkout, every CI run and every preview is tokenless. That
+  is a first-class state, not an error: the list, the search, the sport filter, the selection and
+  the submission form all work, `mapbox-gl` is never even imported, and the map panel says in one
+  line that it is waiting on a key. **The map is not live until the owner supplies a token** —
+  and because `NEXT_PUBLIC_*` is inlined at build time, it has to be a *build argument* on the
+  Coolify application (`apps/web/Dockerfile` takes it the same way it takes the PocketBase URL),
+  not a runtime variable.
+- **A submitted spot must carry coordinates.** The prototype's form accepted a name and a town
+  with no location; this one does not. A spot with no point cannot appear on a map whose whole
+  job is plotting them, and a reviewer handed "Rampworx, Liverpool" has nothing to check but a
+  stranger's typing. Enforced in `pocketbase/hooks/62_spots.pb.js`, which also refuses a `type`
+  outside the three the form offers. The hook's floor is deliberately lower than the form's — the
+  form also insists on a town, the server does not, because a missing town costs a slightly worse
+  queue entry and not a wrong record.
+- **The rate limit: three an hour, ten waiting, per rider.** Both are **tunable defaults, not
+  deliberated decisions**, in the sense §1 gives `WEEKLY_RIDE_TARGET`: constants in
+  `packages/core/src/rules/spots.ts` (so the form can warn) mirrored in the hook (where a
+  submission is actually refused, with a 429), and a test fails if the two drift. The pending cap
+  is the one that matters — an hourly window alone only spreads a flood over more days, and the
+  queue is read by a human (T17). `pocketbase/hooks/lib/ratelimit.js` is deliberately generic:
+  applying it to the guardian-consent request route (issue #32) is a four-line change once the
+  owner has picked how often a parent may be emailed, which T13 did not get to decide.
+
+Standard 10 is implemented as `useHereOnce`: geolocation is asked for only on a press, held in
+component state, announced by a badge that carries its own "turn off", and gone on reload. It is
+`getCurrentPosition` and never `watchPosition` — a watch is a live tracking session held open on a
+child's device. `e2e/spots.spec.ts` replaces `navigator.geolocation` with a counter and asserts it
+is called zero times on load, and that nothing containing the position reaches `localStorage`,
+`sessionStorage` or a cookie.
+
 **T14 · Clips.** Upload through PocketBase's file field backed by R2, token-gated playback,
 per-plan cap read from the `plans` record (2GB Shredder / 5GB Legend) enforced in the upload hook,
 the at-cap states from §6.6, delete. Slot anywhere after Wave 4. Inputs: `landit-screens-a.jsx`

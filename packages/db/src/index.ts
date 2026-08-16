@@ -68,7 +68,9 @@ export {
 export {
   isForbidden,
   isNotFound,
+  isRateLimited,
   records,
+  refusalMessage,
   type CollectionCreate,
   type CollectionUpdate,
   type FilterParams,

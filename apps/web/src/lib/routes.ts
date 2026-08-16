@@ -50,6 +50,8 @@ export const ROUTES = {
   stickers: '/stickers',
   crew: '/crew',
   coach: '/coach',
+  /** T13's spots and map, on the same terms. */
+  spots: '/spots',
 } as const satisfies Record<string, Route>;
 
 export const legalHref = (doc: LegalDocId): Route => `/legal/${doc}`;

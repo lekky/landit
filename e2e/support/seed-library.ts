@@ -60,7 +60,13 @@ async function trickCount(): Promise<number> {
   return body.totalItems ?? 0;
 }
 
-function ensureSuperuser(): void {
+/**
+ * Mint the fixture superuser, if the instance has none.
+ *
+ * Exported because every seed helper needs it and only one of them may own it:
+ * `seed-spots.ts` calls this rather than shelling out a second time.
+ */
+export function ensureSuperuser(): void {
   const result = spawnSync(
     process.execPath,
     [
