@@ -145,7 +145,12 @@ export function CrewScreen({ view }: { view: CrewView }) {
         <NoCrew />
       )}
 
-      {crew && view.crews.length < MAX_OWNED_CREWS ? (
+      {/*
+        Counted on crews *owned*, not crews belonged to: the server's ceiling is
+        on ownership (minting invites is what it limits), and a rider may sit on
+        more boards than they run. Joining with a code is never capped.
+      */}
+      {crew && view.crews.filter((c) => c.isOwner).length < MAX_OWNED_CREWS ? (
         <details className={styles.more}>
           <summary className="lab">Start another crew, or join one with a code</summary>
           <NoCrew compact />
