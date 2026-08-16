@@ -6,8 +6,10 @@ argued away by the next session that finds it inconvenient.
 
 **How to read this file:** §1 before starting any session that runs beside another (which is
 most of them). §2 before your first commit. §3 before touching `packages/core`, `packages/db`,
-`packages/ui-web` or `pocketbase/`. §4 when you change what a rule *means*. §5 before writing
-a test that guards one of the §3 guarantees. §6 before adding a dependency.
+`packages/ui-web` or `pocketbase/`. §3a before building a screen whose neighbours are still a wave
+away, or putting a design-system class on a tag the prototype never used. §4 when you change what a
+rule *means*. §5 before writing a test that guards one of the §3 guarantees. §6 before adding a
+dependency.
 
 Ported from `frontdesk`'s `docs/LESSONS.md`, whose rules were paid for in production. Land It's
 own entries start at Wave 1.
@@ -87,6 +89,31 @@ authority — check for both before relying on one. (Fixed in PR #13; the rule n
 the weekly-streak fields could not be added to the migration — they became issue #9 instead.
 This is the system working, not failing, but it means the cost of a hasty field shape is paid
 by every session after you.
+
+## 3a. Building a screen a wave before its neighbours exist
+
+**A link to a page nobody has built is a compile error, and that is the feature.** `typedRoutes` is
+on, so T5 could not point the nav, the footer or the landing page's calls to action at `/signup`,
+`/library` or `/crew`. The fix that survives is a target with an optional `href`: present with one,
+a plain label without, and the task that lands the screen adds the line. What the config prevented
+was the tempting version — link them all, ship a nav where two thirds of the items 404, and leave
+somebody to find out. If you are about to cast a route to make a dead link compile, you are
+deleting the guard rather than solving the problem.
+
+**The prototype's markup is not the app's markup, and the CSS notices.** `landit-app.jsx` was one
+page with no routes, so `.nav` and `.mobnav` style `button` children. A real app navigates with
+`<a>`, which picks up none of it, and the whole bar renders unstyled. The same shape appears
+wherever the pack styles an element type rather than a class — `.btn` had it too, plus an
+`a:hover` in the token sheet that outranks `.btn` and turns every link-button pink. Check the
+selector, not just the class name, the first time you put a design-system class on a different tag.
+
+**Copy decisions get tests, or they get quietly reverted.** T5's legal documents are a rewrite, not
+a transcription: no minimum age, no Crew Pass, profiles private by default, reporting described as
+the email route that exists rather than the buttons that do not. Each of those is one careless copy
+edit away from coming back, and none of them fails a build on its own. They are asserted in
+`e2e/legal.spec.ts` against the rendered page, with the plan section in the test name — so the
+build says which decision you just undid, and a session that means to change one has to change the
+test on purpose.
 
 ## 4. When a rule changes, sweep what quotes it
 

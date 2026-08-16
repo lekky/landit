@@ -1,0 +1,152 @@
+/*
+ * Chrome shared by the signed-out pages and the app shell: the thin dark bar
+ * and the site footer.
+ *
+ * Why a CSS module and not `@landit/ui-web`: that package holds the tokens and
+ * the primitives, and its stylesheet is a transcription of the prototype's.
+ * The footer was never in that stylesheet — it is inline styles inside
+ * `landit-legal.jsx` — and page furniture is not a primitive. The values below
+ * are those inline styles, unchanged, and every colour that has a token uses
+ * the token.
+ */
+
+/*
+ * The signed-out page frame: the dotted wash the app shell gets from `.app`.
+ * Landing, legal and the not-found page all sit on it, and none of them is
+ * inside the shell.
+ */
+.wash {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--wash);
+  background-image: radial-gradient(rgba(18, 16, 11, 0.07) 1.1px, transparent 1.1px);
+  background-size: 14px 14px;
+}
+
+/* The thin dark bar above the landing page and the legal documents. */
+.bar {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.barEnd {
+  margin-left: auto;
+}
+
+/*
+ * The footer. Its greys are literal rather than tokens: they are a dark-surface
+ * ramp that exists nowhere else in the design, so tokenising them would invent
+ * five tokens used by one component.
+ */
+.footer {
+  background: var(--ink);
+  color: #8d8679;
+  padding: 40px 18px 30px;
+  margin-top: auto;
+}
+.footerIn {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(auto-fit, minmax(130px, 1fr));
+  gap: 28px;
+}
+.brand {
+  max-width: 300px;
+}
+.brandCopy {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #9d968a;
+}
+.social {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.socialTag {
+  border: 2px solid #3a352c;
+  padding: 5px 10px;
+  color: #c9c2b4;
+}
+.colTitle {
+  color: #c9c2b4;
+  margin-bottom: 12px;
+}
+.colLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  align-items: flex-start;
+}
+.link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #8d8679;
+  font-size: 13.5px;
+  letter-spacing: 0.04em;
+  text-align: left;
+  line-height: 1.35;
+}
+a.link:hover {
+  color: var(--paper);
+}
+/*
+ * A destination that has not been built yet (see `lib/routes.ts`). It keeps the
+ * footer's shape without pretending to be a link: no hover, not focusable, and
+ * announced as unavailable.
+ */
+.linkPending {
+  color: #6b6459;
+  cursor: default;
+}
+.bottom {
+  border-top: 2px solid #2a2620;
+  margin-top: 30px;
+  padding-top: 18px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.bottomNote {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+.bottomWarn {
+  color: #6b6459;
+}
+.bottomLinks {
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.bottomLink {
+  color: #8d8679;
+  font-size: 13px;
+}
+/* `a.` so this outranks `a:hover { color: var(--pink) }` in the design system. */
+a.bottomLink:hover {
+  color: var(--paper);
+}
+.staffLink {
+  color: #6b6459;
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+  }
+}

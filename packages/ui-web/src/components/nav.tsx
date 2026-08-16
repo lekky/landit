@@ -16,6 +16,11 @@ import type { SportLook } from './tricks';
 export type TabItem = {
   id: string;
   label: string;
+  /**
+   * Shorter label for narrow screens, e.g. "Skate" for "Skateboard". Only used
+   * when the row is `compact`; without it the full label shows at every width.
+   */
+  shortLabel?: string;
   icon?: IconName;
   /** Colour of the tab when selected. */
   color?: string;
@@ -29,14 +34,35 @@ export type TabsProps = {
   onChange: (id: string) => void;
   /** Accessible name for the tab row. */
   label?: string;
+  /**
+   * Below 520px, show `shortLabel` instead of `label` and hide the note.
+   *
+   * The sport switch sets this: at three sports a 375px phone has about 110px
+   * per tab, which fits an icon and "Skate" but not "Skateboard · 12 landed"
+   * (`additions.css`). Rows of two or three fixed tabs generally do not need it.
+   */
+  compact?: boolean;
   className?: string;
   style?: CSSProperties;
 };
 
 /** One-or-the-other tabs. Hide the row yourself when there is only one item. */
-export function Tabs({ items, value, onChange, label, className, style }: TabsProps) {
+export function Tabs({
+  items,
+  value,
+  onChange,
+  label,
+  compact = false,
+  className,
+  style,
+}: TabsProps) {
   return (
-    <div className={cx('sporttabs', className)} style={style} role="tablist" aria-label={label}>
+    <div
+      className={cx('sporttabs', compact && 'sporttabs-compact', className)}
+      style={style}
+      role="tablist"
+      aria-label={label}
+    >
       {items.map((it) => {
         const on = value === it.id;
         return (
@@ -52,7 +78,14 @@ export function Tabs({ items, value, onChange, label, className, style }: TabsPr
             }
           >
             {it.icon && <Icon name={it.icon} size={17} strokeWidth={2.3} />}
-            {it.label}
+            {it.shortLabel ? (
+              <>
+                <span className="tab-full">{it.label}</span>
+                <span className="tab-short">{it.shortLabel}</span>
+              </>
+            ) : (
+              it.label
+            )}
             {it.note !== undefined && <span className="n">{it.note}</span>}
           </button>
         );
