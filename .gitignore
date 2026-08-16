@@ -40,3 +40,13 @@ Thumbs.db
 # Copied from @landit/ui-web at dev/build time by apps/web/scripts/sync-avatars.mjs.
 # The PNGs live once, in the design system package.
 apps/web/public/avatars/
+
+# The Claude Code preview-server config. Machine-specific by construction — it
+# stores an absolute path to the local pnpm shim (on this box, a corepack path
+# under `C:/Program Files/nodejs/`), so a committed copy would be wrong for
+# everyone else and wrong on any other OS. Same category as `.vscode/`.
+#
+# Ignored by name rather than ignoring `.claude/` wholesale: the directory is
+# also where a shared agent or skill definition would live, and those should be
+# committable. `.claude/worktrees/` is already ignored above.
+.claude/launch.json
