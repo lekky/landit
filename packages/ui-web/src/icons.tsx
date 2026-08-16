@@ -167,6 +167,23 @@ export const ICONS = {
       <path d="M12 13.5v2" />
     </g>
   ),
+  /**
+   * Art pending — a sticker whose glyph has not been drawn yet.
+   *
+   * Deliberately not a trick shape and deliberately ugly: a crossed box reads
+   * as "missing" at any size and can never be mistaken for a real icon. The
+   * `star` fallback in `StickerBadge` cannot do this job — it renders a
+   * plausible sticker, so missing art looks finished and stays missing. Set
+   * `ico: 'placeholder'` on the record instead, and the gap is visible on the
+   * wall until someone fills it.
+   */
+  placeholder: (
+    <g>
+      <rect x="3.5" y="3.5" width="17" height="17" />
+      <path d="M3.5 3.5 L20.5 20.5" />
+      <path d="M20.5 3.5 L3.5 20.5" />
+    </g>
+  ),
 } satisfies Record<string, ReactElement>;
 
 export type IconName = keyof typeof ICONS;
