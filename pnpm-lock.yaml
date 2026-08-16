@@ -99,6 +99,9 @@ importers:
       '@landit/core':
         specifier: workspace:*
         version: link:../core
+      pocketbase:
+        specifier: 0.27.3
+        version: 0.27.3
     devDependencies:
       typescript:
         specifier: 5.9.3
@@ -1884,6 +1887,9 @@ packages:
     resolution: {integrity: sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg==}
     engines: {node: '>=20'}
     hasBin: true
+
+  pocketbase@0.27.3:
+    resolution: {integrity: sha512-n2rtQrg3kTF44066B+2eVvQdiYRGZ+RI7isIZqmAptfElLCSDIZrEKLhSrIQA2k5pvQM29Gx5JqGv5n+gtm6dg==}
 
   possible-typed-array-names@1.1.0:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
@@ -4109,6 +4115,8 @@ snapshots:
       playwright-core: 1.62.1
     optionalDependencies:
       fsevents: 2.3.2
+
+  pocketbase@0.27.3: {}
 
   possible-typed-array-names@1.1.0: {}
 

@@ -7,7 +7,6 @@ backend lives here and is committed.
 | --- | --- |
 | `migrations/` | JS migrations defining every collection, its fields, its API rules and its indexes. The schema's source of truth — T2. |
 | `hooks/` | `pb_hooks` JavaScript: the rules a client must never be trusted with — paywall check on `trick_progress` writes, sticker awards, same-sport prerequisite check, challenge-overlap rejection, clip cap, audit-log writer — T2. |
-| `seed/` | Scripts loading the canonical data (61 tricks and their prerequisite edges, stickers, plans, spots, events, challenges) into a PocketBase instance — T4. |
 | `scripts/` | The local-dev runner. |
 | `tests/` | HTTP tests that start a throwaway PocketBase against the files above and prove the four security guarantees in plan §3 — T2. |
 
@@ -37,6 +36,23 @@ pnpm pb -- --help
 The superuser dashboard is at `http://127.0.0.1:8090/_/`. Create your local superuser with
 the command above — it is a local account on a scratch database and has nothing to do with
 the production box.
+
+## Filling it with data
+
+The schema arrives empty. The trick library, plans, stickers, challenges, spots and events
+come from the canonical data in `@landit/core`, loaded by the seed in **`packages/db`** —
+not from this directory, because the seed needs that package and the JS SDK, and nothing on
+the JSVM side does:
+
+```bash
+pnpm --filter @landit/db seed
+```
+
+It reads `POCKETBASE_SUPERUSER_EMAIL` and `POCKETBASE_SUPERUSER_PASSWORD` from the
+environment (see `apps/web/.env.example`) — the write rules on `tricks` and `plans` are
+`null`, which is the point: the trick library is not something a rider can add to. Seeding
+is idempotent, so re-running it after a data change is how you update a database that
+already has riders on it.
 
 ## The tests
 

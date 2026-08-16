@@ -704,10 +704,35 @@ rendering everything side by side for comparison against the screenshots. Inputs
 ### Wave 2 — two concurrent sessions
 
 **T4 · DB package + seeds.** `packages/db`: PocketBase JS SDK clients (browser + server, plus the
-server-held superuser client for admin actions), generated collection types (`pocketbase-typegen`),
-typed query and mutation functions for every collection, and seed scripts that load T1's canonical
-data into local and hosted PocketBase. Depends on T1 + T2. Seeds iterate the canonical data rather
-than a fixed sport list, so the BMX library seeds itself once T21 adds it.
+server-held superuser client for admin actions), generated collection types, typed query and
+mutation functions for every collection, and seed scripts that load T1's canonical data into local
+and hosted PocketBase. Depends on T1 + T2. Seeds iterate the canonical data rather than a fixed
+sport list, so the BMX library seeds itself once T21 adds it.
+
+**Divergence, 2026-08-16: the generator is ours, not `pocketbase-typegen`.** That package reads
+the schema through `better-sqlite3`, a native module pnpm will not build unless it is added to
+`allowBuilds` — and with it unbuilt *every* pnpm command in the workspace fails, CI's
+`pnpm install --frozen-lockfile` included. Paying for a native toolchain on every machine to read
+a database we generate ourselves was the worse trade, so `packages/db/scripts/generate-types.mjs`
+boots a throwaway PocketBase on the pinned binary, applies `pocketbase/migrations/`, and emits
+types from the collections API. No dependency, no native build, and the source is the migrations
+rather than an exported database. `pnpm --filter @landit/db typegen --check` fails when the
+committed file drifts, and a test runs it.
+
+**Seeds live in `packages/db`, not `pocketbase/seed/`** — they need `@landit/core` and the JS SDK,
+neither of which the JSVM-side package has or should grow. The `pocketbase/seed/` placeholder from
+T0 is gone.
+
+**Authorised additive-only exception (owner: lekky, 2026-08-16, in chat).** T4 folds in issues #8
+and #9, which together need one behaviour change to merged shared code. #9 is additive: the three
+weekly-streak fields `WeeklyStreakState` needs (`week_start`, `rides_this_week`,
+`last_qualifying_week`) arrive in a new migration. #8 is not: the guard in
+`pocketbase/hooks/lib/landit.js` now freezes the whole streak tuple — `streak`, `last_ride` and
+those three — against every client write, where `streak` was previously writable by the account it
+describes. It feeds two sticker rules, so a writable streak was a forgeable achievement in a
+product whose §1 says achievements are never for sale. Consequence for later tasks: **"I rode
+today" cannot be a PATCH from a screen.** It is a server route that runs `logWeeklyRide` and writes
+the result, which T8 owns.
 
 **T5 · Shell, landing, legal.** App shell and routing: top nav, sub-860px five-item bottom bar,
 global sport-switch state, toast host, modal host; the landing page; the five legal documents; the
