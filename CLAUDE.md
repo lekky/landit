@@ -108,4 +108,12 @@ Then, in order:
   context.
 - **Never touch the production box.** `docs/infrastructure.md` is reference only — deployment
   is handled outside build sessions. No SSH, server credentials, or deploy scripts.
+  - **Narrow exception (Rachid, 2026-08-16, in chat).** A session may create and manage **Land
+    It's own Coolify project** on box1 — its two applications, their domains, environment
+    variables and persistent storage, and deploys of them. **Not** the shared `infra` project,
+    **not** ufw/Docker/firewall or any of the security posture, **not** other products, and
+    **never** anyone's credentials: superuser accounts and passwords are set by the owner, in
+    their own browser. The box carries HelloWebDesign's work as well as this, so "Land It is not
+    live yet" is not the same as "the box is not live". A session that wants more than this asks
+    for it in chat; this line is the record of what was granted, not a licence to widen it.
 - **Secrets never enter the repo** — `.env` files are templates only.

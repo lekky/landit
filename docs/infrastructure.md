@@ -46,6 +46,17 @@ Set up 2026-08-15. This file records what exists and how to reach it — no secr
   deploy — app + PocketBase instance + PR previews). Products are isolated; nothing
   product-specific goes in `infra`.
 - Server uuid (for API calls): `lvkalcforx2tdkygp0odsk2a`.
+- Project **landit** (uuid `fx6khydt9jclkaut4dftmrup`, environment `production`
+  `bkdfnev1unlcw0z1fxwr16od`), deployed 2026-08-16:
+
+| | App uuid | Domain | Port | Storage |
+| --- | --- | --- | --- | --- |
+| `landit-web` | `mzphl8yn5yw2i2rd6gx9n1g8` | landthetrick.com + www | 3000 | none |
+| `landit-pocketbase` | `qqsqc1knvhellrcwgebu2enw` | api.landthetrick.com | 8090 | `/pb_data` |
+
+  Both build from this repo's Dockerfiles on every deploy. `landit-web` carries
+  `NEXT_PUBLIC_POCKETBASE_URL` as a **build** variable (Next inlines it) and
+  `landit-pocketbase` carries `LANDIT_APP_URL` at run time.
 
 ## Backups (done 2026-08-15)
 
@@ -242,11 +253,11 @@ the mechanism the child-safety position rests on.
 Steps 1–8 above are the sequence; this is the progress.
 
 - [x] The five DNS records at Namecheap, all pointing at the box (runbook 1) — done 2026-08-16
-- [ ] Land It Coolify project, both hostnames on HTTPS (runbook 2) — **the late one**
+- [x] Land It Coolify project, both hostnames on HTTPS (runbook 2) — done 2026-08-16
 - [ ] The new PocketBase database in `litestream.yml`, restore rehearsed (runbook 3)
-- [ ] `LANDIT_APP_URL` set on the hosted instance (runbook 4)
-- [ ] Own cPanel account, the four published mailboxes, and its MX/DKIM/SPF copied to Namecheap (runbook 5)
-- [ ] MailerSend out of trial, domain verified, SPF merged (runbook 6)
+- [x] `LANDIT_APP_URL` set on the hosted instance (runbook 4) — done 2026-08-16
+- [ ] Mailboxes created 2026-08-16; still to do: Custom MX at Namecheap, and cPanel’s DKIM/SPF copied there (runbook 5)
+- [ ] Domain verified 2026-08-16; still to do: **out of trial phase**, and the SPF merged (runbook 6)
 - [ ] DMARC (runbook 7)
 - [ ] Uptime Kuma monitors, then the email paths by hand — issue #31 (runbook 8)
 - [ ] R2 lifecycle rule + clips bucket when T14 (clips) approaches.
