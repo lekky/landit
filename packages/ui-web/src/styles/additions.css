@@ -1,0 +1,135 @@
+/*
+ * Classes that are NOT in `design-handoff/design/Land It.html`.
+ *
+ * `primitives.css` is a straight transcription and stays diffable against the
+ * prototype's stylesheet — nothing invented goes in there. Anything the build
+ * needs that the prototype never had lands here instead, with the reason it
+ * exists written next to it.
+ *
+ * Additive-only, like the rest of the package: add a class, never repurpose one.
+ */
+
+/*
+ * `.btn` on a link (T5).
+ *
+ * The prototype only ever put `.btn` on a `<button>`, so the primitive needs
+ * two things an `<a>` does not get for free: a block box, since padding on an
+ * inline element does not grow its line, and a colour that survives the
+ * `a:hover { color: var(--pink) }` in `tokens.css` — which outranks `.btn` on
+ * hover and would otherwise turn every link-button's label pink.
+ */
+a.btn,
+a.btn:hover {
+  display: inline-block;
+  color: #fff;
+}
+a.btn.ghost,
+a.btn.ghost:hover {
+  color: var(--ink);
+}
+a.btn.ink,
+a.btn.ink:hover {
+  color: var(--paper);
+}
+
+/*
+ * Navigation as links (T5).
+ *
+ * The prototype was one page with no routes, so `.nav` and `.mobnav` style
+ * `button` children — `landit-app.jsx` navigated by calling `setRoute`. The
+ * real app navigates with `next/link`, which renders an `<a>`, and an item
+ * whose screen does not exist yet renders as a `<span>` (see
+ * `apps/web/src/lib/routes.ts`). Neither picks up a `button` selector.
+ *
+ * These blocks mirror `.nav button` and `.mobnav button` in `primitives.css`
+ * onto those two elements. Values are copied, not re-derived: if the primitive
+ * changes, change these with it. Extending the primitive's own selector would
+ * have been less to maintain, but `primitives.css` is a transcription that
+ * stays diffable against the design pack, and this package is additive-only.
+ */
+.nav a,
+.nav span[aria-disabled] {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: none;
+  border: 2px solid transparent;
+  color: #c9c2b4;
+  padding: 6px 12px;
+  border-radius: 2px;
+  transition: 0.15s;
+}
+.nav a:hover {
+  color: var(--paper);
+  background: #2a2620;
+}
+.nav a.on {
+  background: var(--yellow);
+  color: var(--ink);
+  border-color: var(--paper);
+}
+
+/* A nav item whose screen is not built yet. Present, but plainly not a link. */
+.nav span[aria-disabled],
+.mobnav span[aria-disabled] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+@media (max-width: 860px) {
+  .mobnav a,
+  .mobnav span[aria-disabled] {
+    background: none;
+    border: none;
+    padding: 10px 2px 13px;
+    min-height: 52px;
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    color: #9d968a;
+    font-family: var(--fc);
+    font-weight: 700;
+    font-size: 10.5px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+  .mobnav a svg,
+  .mobnav span[aria-disabled] svg {
+    width: 21px;
+    height: 21px;
+  }
+  .mobnav a.on {
+    color: var(--yellow);
+  }
+}
+
+/*
+ * The sport switch at three sports (T5).
+ *
+ * The prototype's `.sporttabs` was drawn for two. Below 520px `.sporttab` goes
+ * `flex: 1`, and at three tabs a 375px phone has ~110px per tab — enough for an
+ * icon and a short label, not for "Skateboard" plus a "12 landed" note. Both
+ * would wrap the row into two ragged lines.
+ *
+ * So the sport switch opts into `.sporttabs-compact`, which below 520px swaps
+ * the full label for the short one and drops the note. Above 520px, and for
+ * every other `Tabs` caller, nothing changes.
+ */
+.tab-short {
+  display: none;
+}
+@media (max-width: 520px) {
+  .sporttabs-compact .tab-full {
+    display: none;
+  }
+  .sporttabs-compact .tab-short {
+    display: inline;
+  }
+  .sporttabs-compact .n {
+    display: none;
+  }
+}

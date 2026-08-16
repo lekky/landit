@@ -750,9 +750,39 @@ under-13s to "a parent's Crew Pass" and says an adult may hold up to five rider 
 Pass was dropped in §2.4, so the consent mechanism the terms describe does not exist. Rewrite the
 age, consent and safeguarding sections against §6.2 rather than transcribing them, and hold the
 handoff's register: written to be read by a fourteen year old and their parent. Do not invent a
-"13+" minimum — §6.2 says why. Two promises need the owner's sign-off before they ship as written:
-the one-working-day response on `safeguarding@`, and "every profile and clip can be reported" while
-the reporting flow is still T18. Flag rather than quietly soften them.
+"13+" minimum — §6.2 says why.
+
+**Both promises are decided (Rachid, 2026-08-16).** They were flagged before the copy was written,
+and the answers are different from each other on purpose:
+
+- **The one-working-day response on `safeguarding@` ships as written.** It is a commitment the
+  owner is making, not a description of a feature, so there is nothing to build before it is true.
+  It is also the kind of thing the OSA expects to see and be held to (§6.1), and softening it to
+  "as soon as we can" would be worth less than the promise costs.
+- **The reporting claim is softened to what exists.** The pack said "every profile and clip can be
+  reported" while the buttons that would do it are T18. The safeguarding page now describes the
+  email route, says the in-app buttons are on the way, and stops short of claiming them. **T18
+  rewrites that paragraph when it lands the flow** — the page cannot ship at launch describing a
+  button that does nothing (§7, T18), and this softening is what makes the gap survivable in the
+  meantime rather than making it acceptable.
+
+Two further divergences, deliberate and recorded here rather than discovered later:
+
+- **The landing page's calls to action are disabled, not links.** `typedRoutes` makes a link to an
+  unbuilt page a compile error, and `/signup` is T6's. So "Start tracking, free", "I've got an
+  account" and the top bar's Sign in render disabled with a one-line note, behind a single
+  `AUTH_ROUTES_LIVE` constant that T6 deletes. Screenshots 01 and 02 show them live; that is the
+  only fidelity gap on the landing page and it closes in the next wave. The same rule governs the
+  footer and the nav: a destination nobody has built renders as a label, not a link, and the task
+  that lands the screen adds the href.
+- **The footer's "Avatar set" link is dropped.** It pointed at `Land It - Avatars.html` in the
+  design pack, and no task in this section turns that into a route, so there is nothing for it to
+  link to. Filed as an issue instead of quietly pointing it somewhere.
+
+T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
+wave before any screen does, so without it the deliverable has no surface to check and no surface
+to test — that is where the three-sport switch is proved against a 375px phone before `SPORT_IDS`
+has a third entry.
 
 ### Wave 3 — one session
 
@@ -896,6 +926,11 @@ The OSA reporting duties (§6.1) land here too: a route that works for someone w
 signed-up rider, and a complaints path for appealing our own moderation decisions — both writing
 `reports`. This task is a launch blocker in a way the rest of Wave 8 is not; the safeguarding page
 promises it in Phase 2 and cannot ship promising a button that does nothing.
+
+T5 softened that page's reporting paragraph to the email route (owner decision, above), so **this
+task also rewrites it**: `apps/web/src/content/legal.ts`, the safeguarding document's Reporting
+section, plus the assertion in `e2e/legal.spec.ts` that currently holds the softened wording. The
+one-working-day response stays as it is.
 
 **T19 · PWA + offline read cache.** Service worker caching the library and the rider's tracked
 list, install manifest, the "read at the park" story from §2.3.

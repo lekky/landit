@@ -1,0 +1,133 @@
+/*
+ * The legal documents (screenshot 03).
+ *
+ * Values are the inline styles from `design-handoff/design/landit-legal.jsx`.
+ * The 820px collapse was a `<style>` tag there; it is an ordinary rule here.
+ */
+
+.body {
+  max-width: 1000px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 30px 18px 70px;
+  flex: 1;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.index {
+  padding: 14px;
+  position: sticky;
+  top: 20px;
+}
+.indexTitle {
+  margin-bottom: 11px;
+  color: var(--ink-3);
+}
+.indexLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.indexLink {
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  padding: 8px 10px;
+  font-size: 14px;
+}
+/* `a.` so these outrank `a:hover { color: var(--pink) }` in the design system. */
+a.indexLink:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+.indexLinkOn,
+a.indexLinkOn:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.title {
+  font-size: clamp(32px, 5.5vw, 48px);
+  margin: 8px 0 12px;
+}
+.intro {
+  margin: 0 0 8px;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  max-width: 620px;
+  text-wrap: pretty;
+}
+.notice {
+  padding: 11px 14px;
+  background: var(--paper-2);
+  margin: 18px 0 26px;
+}
+.noticeText {
+  color: var(--ink-2);
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+.sectionHead {
+  margin-bottom: 10px;
+}
+.sectionHead h2 {
+  font-family: var(--fd);
+  font-size: 22px;
+  text-transform: uppercase;
+}
+.paragraphs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.paragraph {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  max-width: 640px;
+  text-wrap: pretty;
+}
+
+.contact {
+  padding: 20px;
+  margin-top: 34px;
+  background: var(--paper-2);
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.contactCopy {
+  min-width: 200px;
+  flex: 1;
+}
+.contactTitle {
+  font-size: 20px;
+}
+.contactText {
+  margin: 5px 0 0;
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+
+@media (max-width: 820px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .index {
+    position: static;
+  }
+}
