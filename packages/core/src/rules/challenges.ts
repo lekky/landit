@@ -1,5 +1,6 @@
 import { CHALLENGES } from '../data/challenges';
-import type { Challenge, ChallengeState, SportId } from '../types';
+import { STICKERS } from '../data/stickers';
+import type { Challenge, ChallengeState, SportId, Sticker } from '../types';
 import { riderToday, type RiderClock } from './streak';
 import { compareDayKeys, isDayWithin } from './time';
 
@@ -119,4 +120,32 @@ export function challengeRangeLabel(challenge: Challenge): string {
 /** Is a day inside this challenge's window? Exposed for the hook's date checks. */
 export function isDayInChallenge(challenge: Challenge, day: string): boolean {
   return isDayWithin(day, challenge.starts, challenge.ends);
+}
+
+/**
+ * The sticker a challenge's `reward` names, or `null` when it names none.
+ *
+ * Issue #76: every shipped challenge promised a sticker by name and not one of
+ * those names was a sticker record, so the screen wrote a cheque the award flow
+ * could not cash. The rewards now name `challenger`, and this is the function
+ * that has to keep agreeing with that — it is called by the challenge screen,
+ * which only prints a reward it can resolve, and by the test that asserts every
+ * challenge in `CHALLENGES` resolves. Rename a sticker and the test goes red,
+ * which is the whole point (LESSONS §4: when a name changes, sweep what quotes
+ * it).
+ *
+ * The match is on the sticker's **name**, because that is what the reward copy
+ * carries — with a trailing "sticker" allowed, since "Challenger sticker" is
+ * how a rider reads it and "Challenger" is what the record is called.
+ */
+export function challengeRewardSticker(
+  challenge: Pick<Challenge, 'reward'>,
+  stickers: readonly Sticker[] = STICKERS,
+): Sticker | null {
+  const wanted = challenge.reward
+    .trim()
+    .replace(/\s+sticker$/i, '')
+    .toLowerCase();
+  if (!wanted) return null;
+  return stickers.find((s) => s.name.toLowerCase() === wanted) ?? null;
 }

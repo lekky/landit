@@ -117,6 +117,20 @@ instantly and the numbers were consistent from then on. **Resize, navigate, then
 a computed style and `matchMedia` disagree about the same query, believe neither until you have
 reloaded.
 
+**A scratch directory a session invents is not a directory the tooling ignores.** T12 needed its own
+PocketBase beside three siblings, so it took a free port and a data directory of its own —
+`.pb_t12`, on the pattern of `.pb_data` and `.pb_e2e`. PocketBase writes a 24,000-line generated
+`types.d.ts` into every data directory, and the ignore lists named the two known ones literally, so
+`pnpm lint` came back with **693 errors in a directory nobody had written**. The output is
+convincing in the wrong direction: it is all real ESLint rules against real syntax, and the first
+instinct is to go looking at the config. The tell is the path, which is the one part of that output
+nobody reads.
+
+Two things follow. Widen an ignore to a glob rather than adding your directory to a list —
+`pocketbase/.pb_*/` now covers whatever the next session picks, in `.gitignore`, `.prettierignore`
+and `eslint.config.mjs`. And **when a gate fails in a file you did not write, read the path before
+the error**; a session that starts its own servers has by definition put new paths in the tree.
+
 **Your local database is richer than CI's, and that makes a local pass a lie too.** The rule above is
 about a local run reading somebody else's *code*; T9 found the same trap one layer down, in the
 *data*. Its e2e spec asserted on a paywalled node in the skill tree. It passed locally, because the

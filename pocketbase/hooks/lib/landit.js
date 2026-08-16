@@ -369,10 +369,43 @@ function enforceNoChallengeOverlap(app, record) {
   }
 }
 
+/** `YYYY-MM-DD`, `n` days from the one given. Pure arithmetic — no ICU needed. */
+function shiftDay(day, n) {
+  const ms =
+    Date.UTC(Number(day.slice(0, 4)), Number(day.slice(5, 7)) - 1, Number(day.slice(8, 10))) +
+    n * 86400000;
+  const at = new Date(ms);
+  const pad = (v) => (v < 10 ? '0' + v : String(v));
+  return at.getUTCFullYear() + '-' + pad(at.getUTCMonth() + 1) + '-' + pad(at.getUTCDate());
+}
+
+/**
+ * Is this challenge inside its running window, as far as the server can tell?
+ *
+ * Two things this deliberately does, both fixed in T12:
+ *
+ * **It compares calendar days, not instants.** `starts` and `ends` are stored
+ * as dates, so PocketBase hands them back at midnight — comparing a full
+ * timestamp against `ends` made a challenge unloggable for the whole of its
+ * last day, which is the day a rider is most likely to be finishing it. Both
+ * ends of the range are inclusive days, exactly as `challengeState` in
+ * `@landit/core` reads them.
+ *
+ * **It allows a day either side.** The rider's calendar day is what decides
+ * (plan §1, §3), and the JSVM cannot compute one: `Intl` is absent here and
+ * `toLocaleString` accepts a `timeZone` and ignores it (LESSONS §5), so a
+ * rider-local boundary is not something this file can honestly work out. A day
+ * of tolerance covers every offset from UTC-12 to UTC+14, so a rider whose
+ * Sunday night runs past UTC midnight is not refused a write their own screen
+ * is still offering. The gate's job is to stop a client logging into *last
+ * week*, and a day either side still does that — the precise boundary is the
+ * client's, computed in the rider's own zone.
+ */
 function challengeIsLive(challenge, nowIso) {
-  const starts = challenge.getDateTime('starts').string();
-  const ends = challenge.getDateTime('ends').string();
-  return starts <= nowIso && nowIso <= ends;
+  const today = String(nowIso).slice(0, 10);
+  const from = shiftDay(challenge.getDateTime('starts').string().slice(0, 10), -1);
+  const to = shiftDay(challenge.getDateTime('ends').string().slice(0, 10), 1);
+  return from <= today && today <= to;
 }
 
 // --------------------------------------------------------------- clips ---

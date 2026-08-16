@@ -30,6 +30,7 @@ import {
   type Trick,
 } from '@landit/core';
 import {
+  challengesFromRecords,
   getCrewBoard,
   listAnnouncementDismissals,
   listAnnouncements,
@@ -42,7 +43,6 @@ import {
   riderSnapshot,
   tricksFromRecords,
   type AnnouncementsRecord,
-  type ChallengesRecord,
 } from '@landit/db';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
@@ -175,7 +175,7 @@ export default async function HomePage() {
 
   const sports = sportsOf(snapshot);
   const dismissed = new Set(dismissals.map((d) => d.announcement));
-  const challenges = challengeRecords.map(toChallenge);
+  const challenges = challengesFromRecords(challengeRecords);
   const plan = (rider.plan ?? 'rookie') as PlanId;
   const goal = goalLabel(rider.goal, rider.goal_custom);
   const globalLanded = computeStats(snapshot, null, { tricks }).landed;
@@ -220,33 +220,6 @@ export default async function HomePage() {
 }
 
 /* -------------------------------------------------------------- builders -- */
-
-/**
- * A `challenges` row as `@landit/core` takes it.
- *
- * Kept local rather than promoted into `@landit/db`: the challenge screen is
- * T12's, and it is the task that gets to decide where this belongs once it has
- * more than one caller. `is_live` has no column — every stored challenge is a
- * real one, and whether it is *running* is derived from its dates, never stored
- * (plan §3).
- */
-function toChallenge(record: ChallengesRecord): Challenge {
-  return {
-    id: record.slug,
-    sport: record.sport as SportId,
-    week: record.week,
-    title: record.title,
-    blurb: record.blurb,
-    starts: record.starts.slice(0, 10),
-    ends: record.ends.slice(0, 10),
-    goal: record.goal,
-    reward: record.reward,
-    hue: record.hue,
-    riders: record.riders_copy,
-    verb: record.verb,
-    isLive: true,
-  };
-}
 
 function toCardView(trick: Trick, stage: StageId | undefined, plan: PlanId): TrickCardView {
   const locked = isTrickLocked(trick, plan);

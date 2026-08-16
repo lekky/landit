@@ -39,6 +39,13 @@ export const ROUTES = {
   account: '/account',
   library: '/library',
   progress: '/progress',
+  /**
+   * T12's two screens. Reachable by URL from the moment they merge; the nav
+   * entries that point at them are wired separately, once every Wave 5 screen
+   * exists, so four concurrent sessions do not all edit `components/shell/nav.ts`.
+   */
+  challenge: '/challenge',
+  events: '/events',
 } as const satisfies Record<string, Route>;
 
 export const legalHref = (doc: LegalDocId): Route => `/legal/${doc}`;
