@@ -28,6 +28,65 @@ test('the top bar carries the nav above 860px and hands over to the bottom bar b
   await expect(bottomNav).toBeVisible();
 });
 
+test('the top bar never widens the page, at any width the nav is on show', async ({ page }) => {
+  /*
+   * Issue #57. Between the 860px bottom-bar breakpoint and roughly 1000px the
+   * wordmark, nine nav items, streak chip and avatar did not fit, and because a
+   * flex item's `min-width` is `auto` the excess left the right-hand edge and
+   * gave the *whole document* a horizontal scrollbar — on every signed-in screen
+   * at once, since they all inherit this shell.
+   *
+   * 861 and 1040 are the edges of the band the stylesheet tightens; 934 is the
+   * width the bug was reported at; the outer two prove the untouched sizes are
+   * still untouched. The assertion is the document's own scroll width, which is
+   * the thing a rider would actually see go wrong, rather than any of the
+   * numbers the fix happens to be made of.
+   */
+  await page.goto(SHELL);
+
+  for (const width of [861, 900, 934, 1040, 1041, 1440]) {
+    await page.setViewportSize({ width, height: 800 });
+
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const d = document.documentElement;
+            return d.scrollWidth - d.clientWidth;
+          }),
+        { message: `the document scrolls sideways at ${width}px` },
+      )
+      .toBe(0);
+
+    const nav = page.getByRole('navigation', { name: 'Main', exact: true });
+
+    /*
+     * And the nav does not quietly swallow the overflow either.
+     *
+     * `.nav` carries `min-width: 0` and its own `overflow-x` as a safety net, so
+     * the check above passes on that alone — it did, with the tightening
+     * removed, which is exactly what a net is for and exactly why it cannot be
+     * the whole assertion. This is the half that proves all nine items really
+     * fit: a nav that scrolls has items nobody can see, and Playwright counts
+     * one scrolled out of view as visible.
+     */
+    await expect
+      .poll(
+        () =>
+          nav.evaluate((el) => {
+            const e = el as HTMLElement;
+            return e.scrollWidth - e.clientWidth;
+          }),
+        { message: `the nav itself scrolls at ${width}px, so an item is out of view` },
+      )
+      .toBe(0);
+
+    // Fitting by dropping items would pass both checks and fail the point of
+    // them: all nine stay on show, only closer together.
+    await expect(nav.locator('> *'), `nine nav items at ${width}px`).toHaveCount(9);
+  }
+});
+
 test('the bottom bar is the five the design specifies, in order', async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 800 });
   await page.goto(SHELL);
