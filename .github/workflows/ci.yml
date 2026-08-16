@@ -109,7 +109,12 @@ jobs:
             docker logs landit-web-ci
             exit 1
           fi
-          curl -s http://localhost:3000/ | grep -q 'Every trick' || {
+          # Asserted on the <title>, not on body copy. The footer's brand line
+          # ("Every trick you can do, on a scooter…") appears on *every* page
+          # including the holding page, so a body-text match cannot tell the two
+          # apart — which is exactly how the first version of this check went
+          # green against the wrong page.
+          curl -s http://localhost:3000/ | grep -q 'Every trick you can do, proven' || {
             echo "::error::200, but that is not the landing page"
             docker logs landit-web-ci; exit 1;
           }
@@ -139,26 +144,40 @@ jobs:
             docker logs landit-web-gate
             exit 1
           fi
+          # Every assertion below matches a <title>, never body copy. The
+          # footer's brand line ("Every trick you can do, on a scooter…") is on
+          # *every* page including this one, so "does the body mention tricks"
+          # cannot tell the landing page from the holding page — which is how the
+          # first version of this check failed, on the assertion rather than on
+          # the gate.
           body=$(curl -s http://localhost:3001/)
-          echo "$body" | grep -q 'just yet' || {
+          if ! echo "$body" | grep -q 'Coming soon'; then
             echo "::error::the flag was unset and the site served something other than the holding page"
-            docker logs landit-web-gate; exit 1;
-          }
-          echo "$body" | grep -q 'Every trick' && {
+            docker logs landit-web-gate
+            exit 1
+          fi
+          if echo "$body" | grep -q 'Every trick you can do, proven'; then
             echo "::error::the landing page leaked through the gate"
-            exit 1;
-          }
+            exit 1
+          fi
           # Sign-up is the thing that actually matters: a real child could make a
           # real account here. It must not render while the gate is shut.
           echo "gated /signup: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/signup)"
-          curl -s http://localhost:3001/signup | grep -q 'just yet' || {
-            echo "::error::/signup was reachable behind the gate"; exit 1;
-          }
+          signup=$(curl -s http://localhost:3001/signup)
+          if ! echo "$signup" | grep -q 'Coming soon'; then
+            echo "::error::/signup did not return the holding page"
+            exit 1
+          fi
+          if echo "$signup" | grep -q 'Make an account'; then
+            echo "::error::the sign-up form rendered behind the gate"
+            exit 1
+          fi
           # And crawlers are told to stay out, per app/robots.ts.
-          curl -s http://localhost:3001/robots.txt | grep -qi 'Disallow: /' || {
+          if ! curl -s http://localhost:3001/robots.txt | grep -qi 'Disallow: /'; then
             echo "::error::robots.txt did not disallow while the gate was shut"
-            curl -s http://localhost:3001/robots.txt; exit 1;
-          }
+            curl -s http://localhost:3001/robots.txt
+            exit 1
+          fi
           echo "gate shut: holding page served, /signup covered, crawlers disallowed"
 
       - name: PocketBase
