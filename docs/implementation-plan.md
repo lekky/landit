@@ -169,7 +169,7 @@ Land It **and** other products, managed by Coolify:
 VPS
 └── Coolify            deploys from GitHub, SSL, subdomains, PR preview environments
     ├── landit web     Next.js app
-    ├── landit PB      PocketBase instance (api.<domain>)
+    ├── landit PB      PocketBase instance (api.landthetrick.com)
     ├── Uptime Kuma    monitoring
     └── other products later, same pattern (own app + own PocketBase each)
 ```
