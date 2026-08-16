@@ -40,8 +40,10 @@ export const SPORTS = {
     icon: 'bmx',
     kit: 'BMX bike, helmet, and pads for ramps and rails',
     blurb: 'Bunny hops, grinds, barspins and air',
-    // See `Sport.categoryLabels`: "Flat" reads as flatground to a scooter or
-    // skate rider, but Flatland is a named BMX discipline.
-    categoryLabels: { flat: 'Flatland' },
+    // See `Sport.categoryLabels`. "Flat" reads as flatground to a scooter or
+    // skate rider and as **Flatland** to a BMX one — a named BMX discipline,
+    // and not the one this category holds. "Flatground" says the thing both
+    // readings were reaching for and claims neither.
+    categoryLabels: { flat: 'Flatground' },
   },
 } as const satisfies Record<SportId, Sport>;

@@ -38,9 +38,10 @@ export const CATS = {
  *
  * Category ids are shared and stay shared — stats, stickers and the skill tree
  * all key off them, and nothing here touches that. Only the word on the chip
- * moves, and only where a sport says it should: BMX shows "Flatland" where
- * scooter and skate show "Flat", because Flatland is one of BMX's five named
- * disciplines and the bare word already means something to that rider.
+ * moves, and only where a sport says it should: BMX shows "Flatground" where
+ * scooter and skate show "Flat", because "Flat" alone reads as Flatland to a
+ * BMX rider — one of that sport's five named disciplines, and not what this
+ * category holds.
  *
  * Pass no sport and you get the shared label, which is what every screen that
  * is not looking at one sport should do.

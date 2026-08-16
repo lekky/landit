@@ -125,12 +125,17 @@ describe('sports, categories and stages', () => {
     expect(SPORTS.bmx.color).toBe('#FF3D78');
   });
 
-  it('shows BMX riders "Flatland", where the other two sports say "Flat"', () => {
+  it('shows BMX riders "Flatground", where the other two sports say "Flat"', () => {
     // The id is shared and stays shared — only the word on the chip moves.
     expect(categoryLabel('flat')).toBe('Flat');
     expect(categoryLabel('flat', 'scooter')).toBe('Flat');
     expect(categoryLabel('flat', 'skate')).toBe('Flat');
-    expect(categoryLabel('flat', 'bmx')).toBe('Flatland');
+    expect(categoryLabel('flat', 'bmx')).toBe('Flatground');
+
+    // Not "Flatland": that is a separate BMX discipline on a different bike,
+    // and this category does not hold it. The label avoids the word on purpose,
+    // so a well-meaning "correction" back to it should fail here.
+    expect(categoryLabel('flat', 'bmx')).not.toBe('Flatland');
 
     // Every other category reads the same to everyone.
     for (const sport of SPORT_IDS) {

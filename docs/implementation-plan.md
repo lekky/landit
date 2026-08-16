@@ -950,11 +950,18 @@ over the `reports` collection. Depends on T16. Inputs: `landit-admin.jsx`, scree
    at 2 — the number of sports, not a product rule — so a rider who rides all three could pick
    three and save two. The migration raises the cap with the list, and an HTTP test holds it.
 4. **Category labels can now vary by sport.** Ids stay shared and always will; only the displayed
-   word moves, via `Sport.categoryLabels` and `categoryLabel()`. BMX shows **"Flatland"** where the
-   other two show "Flat", decided by the owner on 2026-08-16. Flagged at the time and worth
-   revisiting once BMX tricks render beside the chip: Flatland is a distinct BMX discipline that
-   this library deliberately excludes, so the label may now over-promise in the other direction —
-   "Flatground" removes the ambiguity both ways, and it is a one-word change.
+   word moves, via `Sport.categoryLabels` and `categoryLabel()`. BMX shows **"Flatground"** where
+   the other two show "Flat".
+
+   The word was settled in two steps, and the reasoning is worth keeping because the obvious
+   "correction" is to undo it. T21 first shipped **"Flatland"** (owner, 2026-08-16), on the finding
+   that a BMX rider reads a bare "Flat" chip as Flatland. That fixed the under-specification and
+   introduced the opposite fault: Flatland is a distinct BMX discipline on a different bike —
+   hang-5, time machine, steamroller — which this library deliberately excludes, so the chip then
+   promised tricks that are not behind it. The owner moved it to **"Flatground"** the same day.
+   "Flat" under-specifies, "Flatland" over-promises, and only the longer word is honest to both
+   readers. A test asserts the label is *not* "Flatland" so the round trip cannot happen by
+   accident.
 
 **Still outstanding, and both need the owner:**
 
