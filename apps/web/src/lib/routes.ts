@@ -46,13 +46,10 @@ export const ROUTES = {
    */
   challenge: '/challenge',
   events: '/events',
-<<<<<<< HEAD
   /** T10's sticker wall. Same rule as above: the nav entry is wired separately. */
   stickers: '/stickers',
-=======
   crew: '/crew',
   coach: '/coach',
->>>>>>> 3227717 (t11-crew-profiles: real crews, real privacy, and one door in)
 } as const satisfies Record<string, Route>;
 
 export const legalHref = (doc: LegalDocId): Route => `/legal/${doc}`;
