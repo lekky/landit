@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { STICKERS } from '../data/stickers';
-import type { RiderSnapshot, StageId, Sticker } from '../types';
+import { TRICKS } from '../data/tricks';
+import type { RiderSnapshot, SportId, StageId, Sticker } from '../types';
 import { computeStats } from './stats';
+import { isTrickFree, tricksInCategory } from './tricks';
 import {
   earnedStickerIds,
   evaluateSticker,
@@ -269,5 +271,56 @@ describe('earning and announcing', () => {
     const stats = statsFor({ byId: byId({ 'bunny-hop': 'every' }) });
     expect(evaluateSticker(stats, invented)).toBe(false);
     expect(earnedStickerIds(stats, [invented])).toEqual([]);
+  });
+});
+
+describe('what a rider on the free tier can reach', () => {
+  /**
+   * Plan §1: achievements are never for sale. The paywall gates *tricks*, so it
+   * reaches the sticker wall sideways — a sticker counting tricks a free rider
+   * cannot log is bought, whatever the record says. These tests pin the free
+   * tier open; they fail if a trick is regraded or a threshold raised past what
+   * the free library can satisfy.
+   */
+  const freeRider = (sport: SportId) => {
+    const landed: Record<string, StageId> = {};
+    for (const trick of TRICKS) {
+      if (trick.sport === sport && trick.isLive && isTrickFree(trick)) landed[trick.id] = 'every';
+    }
+    return computeStats({ byId: landed, sports: [sport] });
+  };
+
+  const freeIn = (sport: SportId, cat: 'flat' | 'street' | 'park') =>
+    tricksInCategory(cat, sport).filter((t) => t.isLive && isTrickFree(t));
+
+  it('lets a free rider in every sport earn the entry stickers', () => {
+    for (const sport of ['scooter', 'skate', 'bmx'] as const) {
+      const earned = earnedStickerIds(freeRider(sport));
+      expect(earned, sport).toContain('first-land');
+      expect(earned, sport).toContain('five-deep');
+    }
+  });
+
+  it('gives skate free street content, so the branch can be entered at all', () => {
+    // `sk-50-50` carries a `free: true` override for the same reason
+    // `bmx-double-peg` does. Without it skate street is entirely paid and a free
+    // rider sees the branch without being able to step onto it.
+    expect(freeIn('skate', 'street').map((t) => t.id)).toContain('sk-50-50');
+    for (const sport of ['scooter', 'skate', 'bmx'] as const) {
+      expect(freeIn(sport, 'street'), sport).not.toHaveLength(0);
+    }
+  });
+
+  it('keeps bowl-rider inside the free tier it was missing by one trick', () => {
+    // Skate park has exactly two free tricks, so the threshold cannot exceed 2.
+    expect(freeIn('skate', 'park')).toHaveLength(2);
+    expect(earnedStickerIds(freeRider('skate'))).toContain('bowl-rider');
+  });
+
+  it('earns the free scooter stickers without a paid trick', () => {
+    const earned = earnedStickerIds(freeRider('scooter'));
+    expect(earned).toContain('hop-master');
+    expect(earned).toContain('street-cred');
+    expect(earned).toContain('grind-time');
   });
 });

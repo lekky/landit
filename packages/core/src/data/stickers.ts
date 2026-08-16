@@ -217,7 +217,11 @@ export const STICKERS = [
     hue: '#3AC0FF',
     ico: 'home',
     cond: 'Park skate tricks landed',
-    n: 3,
+    // Two, not three: skate's park category has exactly two free tricks
+    // (`sk-drop-in`, `sk-rock-to-fakie`), so a threshold of three missed the
+    // free tier by a single trick and put the sticker behind the paywall by
+    // accident rather than by decision.
+    n: 2,
     isLive: true,
   },
   {

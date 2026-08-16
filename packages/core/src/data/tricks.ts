@@ -530,6 +530,11 @@ export const TRICKS = [
     cat: 'street',
     diff: 3,
     pre: ['sk-ollie'],
+    // Free despite being difficulty 3, for the same reason as `bmx-double-peg`:
+    // every skate ledge and rail trick descends from this one, so leaving it
+    // paid puts no street content at all in the free tier. Boardslide,
+    // noseslide, 5-0, nosegrind, crooked and tailslide all stay paid.
+    free: true,
     about: 'Both trucks lock onto a ledge or rail and you grind along it dead straight.',
     tips: 'Ollie level with the ledge, land on both trucks at once and stay centred. Wax makes a huge difference.',
     fact: 'Skate 50-50s came from roller skating and BMX pegs before they became the base of every ledge trick.',
