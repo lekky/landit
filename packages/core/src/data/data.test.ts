@@ -5,7 +5,7 @@ import { CATEGORY_IDS, TIERS_LABEL } from './categories';
 import { CHALLENGES } from './challenges';
 import { EVENTS } from './events';
 import { PLAN, PLANS } from './plans';
-import { GOALS, LEVELS, PRIVACY, STANCES } from './profile';
+import { DEFAULT_PRIVACY, GOALS, LEVELS, PRIVACY, STANCES } from './profile';
 import { SPORTS, SPORT_IDS } from './sports';
 import { SPOTS } from './spots';
 import { STAGES } from './stages';
@@ -248,6 +248,24 @@ describe('spots, events and profile options', () => {
     expect(ids(STANCES)).toEqual(['regular', 'goofy', 'switch']);
     expect(ids(PRIVACY)).toEqual(['public', 'members', 'private']);
     expect(LEVELS).toHaveLength(4);
+  });
+
+  it('starts a new account private (Children’s code standard 7, plan §6.4)', () => {
+    // Not "anything but public": `members` opens a child's profile to every
+    // signed-in stranger, and the privacy policy T5 shipped says in writing
+    // that new accounts start private. Owner-authorised change from `members`
+    // (Rachid, 2026-08-16) — changing it back is a decision, not a tidy-up.
+    expect(DEFAULT_PRIVACY).toBe('private');
+  });
+
+  it('never advertises a privacy setting as the default in its own copy', () => {
+    // LESSONS §4: the `members` blurb called itself the sensible default and
+    // silently became wrong when the default moved. The copy describes what a
+    // setting does; `DEFAULT_PRIVACY` is the only place that says which is default.
+    for (const level of PRIVACY) {
+      expect(level.blurb).not.toMatch(/default/i);
+      expect(level.other).not.toMatch(/default/i);
+    }
   });
 
   it('offers goals for both sports plus shared ones', () => {

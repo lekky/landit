@@ -26,8 +26,10 @@ export const PRIVACY = [
     id: 'members',
     label: 'Riders only',
     short: 'Riders',
-    blurb:
-      'Only people signed in to Land It can open your profile. Sensible default for younger riders.',
+    // "Sensible default for younger riders" until 2026-08-16, which stopped
+    // being true the moment the default moved to `private` (LESSONS §4: when a
+    // rule changes, sweep what quotes it).
+    blurb: 'Only people signed in to Land It can open your profile.',
     other: 'This rider only shows their profile to people signed in to Land It.',
   },
   {
@@ -40,8 +42,25 @@ export const PRIVACY = [
   },
 ] as const satisfies readonly Privacy[];
 
-/** The default for a new account: the safer of the two visible settings. */
-export const DEFAULT_PRIVACY = 'members' as const satisfies PrivacyId;
+/**
+ * The default for a new account: **private**, not merely not-public.
+ *
+ * Children's code standard 7 (plan §6.4) and §3 guarantee 1. This was `members`
+ * until 2026-08-16 — a reading of "default to private, not public" on which
+ * "riders only" also clears the bar. It does not: `members` still opens a
+ * child's profile to every signed-in stranger on the service, and the point of
+ * the standard is that being visible is a choice a rider makes rather than the
+ * setting they are handed. The privacy policy and the safeguarding page both
+ * say "new accounts start private" (T5), so this is also what the product
+ * promises in writing.
+ *
+ * Changing it was a behaviour change to shared code — **owner-authorised
+ * exception to additive-only (Rachid, 2026-08-16)**, recorded in plan §7.
+ *
+ * `members` remains a setting a rider can choose. It is no longer one we choose
+ * for them.
+ */
+export const DEFAULT_PRIVACY = 'private' as const satisfies PrivacyId;
 
 /** Riding level, onboarding step 2. */
 export const LEVELS = [

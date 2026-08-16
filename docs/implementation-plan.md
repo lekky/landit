@@ -515,7 +515,12 @@ rather than building COPPA consent.
 Not all fifteen bite equally. These four change what gets built:
 
 - **Standard 7, default settings.** High privacy by default for everyone. New profiles default to
-  `private`, not `public` — check this against the prototype, which does not.
+  **`private`** — literally that value, not merely "anything other than `public`". `members` does
+  not clear this bar: it opens a child's profile to every signed-in stranger on the service, and
+  the standard is about visibility being a choice the rider makes rather than the setting they are
+  handed. The prototype defaults to `members`, and so did `DEFAULT_PRIVACY` in `packages/core`
+  until 2026-08-16 (issue #20) — both read this sentence as satisfied by "not public". It is not.
+  `members` stays a setting a rider may choose.
 - **Standard 10, geolocation.** Spots carry `lat`/`lng`. Location is off by default, there is a
   visible indicator whenever it is on, and it never persists across sessions. We store the spot's
   location, never the rider's.
@@ -659,6 +664,17 @@ widening existing shared ones.
   stop and flag it instead. Exceptions come from the owner and are recorded here naming the owner
   and the date — a session never authorises its own (`CLAUDE.md` §4).
 
+**Exceptions granted so far.** Two, both from the owner in chat. Each names who and when, because
+a grant carrying neither is not authority (LESSONS §3):
+
+- **Rachid, 2026-08-16 — `DEFAULT_PRIVACY` moved from `members` to `private`** in
+  `packages/core/src/data/profile.ts` (issue #20). A behaviour change to an export T1 shipped, not
+  an addition. The constant disagreed with §6.4 and with the privacy policy T5 had already
+  published; T6 is the first thing to read it, so it was settled before sign-up was built rather
+  than after riders existed. The sweep that came with it: the `members` blurb no longer calls
+  itself the sensible default (LESSONS §4), and two tests in `packages/core` now pin both.
+- **Rachid, 2026-08-16 — T21 may reword two category blurbs.** See T21 below.
+
 ### Wave 0 — one session, serial
 
 **T0 · Scaffold.** pnpm workspace, Next.js App Router app in `apps/web`, empty `packages/core`,
@@ -777,7 +793,10 @@ Two further divergences, deliberate and recorded here rather than discovered lat
   that lands the screen adds the href.
 - **The footer's "Avatar set" link is dropped.** It pointed at `Land It - Avatars.html` in the
   design pack, and no task in this section turns that into a route, so there is nothing for it to
-  link to. Filed as an issue instead of quietly pointing it somewhere.
+  link to. **Settled (Rachid, 2026-08-16): there is no public avatar showcase.** The set stays
+  internal reference material, the footer keeps the shape it has, and the link does not come back
+  — a session that wants to add one is proposing a new page, not restoring a missing one
+  (issue #22, closed).
 
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
