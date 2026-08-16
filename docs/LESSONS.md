@@ -184,6 +184,37 @@ brought the merged helper onto the branch. Cheap to close, but an issue nobody r
 backlog item that sends the next session to build a thing twice. After a rebase that pulls in a
 sibling's work, re-read the issues you filed against the state of `main` you no longer have.
 
+**The one file that decides whether a screen is reachable is not a file N concurrent sessions
+should each edit.** Wave 5 ran four sessions that each landed a screen, and every one of them
+wanted a line in `apps/web/src/components/shell/nav.ts`. Four sessions appending to one array is
+four rebase conflicts in the file where "resolve toward origin" (above) does its most damage:
+taking origin wholesale there silently drops your own line, and the failure is invisible — a
+merged, tested, working screen that simply has no way in. Nothing in CI notices, because the
+screen still passes every test it has.
+
+The answer used in Wave 5, and the one to repeat: each session adds its path to `ROUTES` — where
+the entries are independent and a lost line is a compile error, not a silent gap — and **stops
+there**. The nav and footer are wired once, afterwards, by a `chore-wire-wave{n}-links` session
+that runs when every screen in the wave exists. It is a five-minute follow-up and it converts four
+conflicts into none. `chore-wire-wave4-links` (PR #65) established it; Wave 5 planned for it from
+the brief.
+
+Two conditions make the deferral safe rather than a way to lose a screen for good. The wiring
+session is scheduled **before** the wave starts, not remembered afterwards — an unwired screen is
+exactly the kind of thing everyone assumes somebody else did. And the wiring is **pinned by a
+test** (`e2e/landing.spec.ts` and `e2e/shell.spec.ts` both assert that a built screen is a real
+link), because `typedRoutes` catches a link to a route that does not exist and nothing at all
+catches a route that exists with no link to it. That asymmetry is the whole trap: the compiler
+guards the direction that fails loudly and ignores the direction that fails silently.
+
+**A screen can also be reachable and still blank the nav.** The same wiring session found that a
+rider profile at `/riders/{handle}` matched no nav item, so the bar emptied on it — the prefix rule
+folds `/library/{slug}` into Tricks for free, and there is no equivalent for a screen that does not
+live under its own entry. It had been promised in that file's own doc comment since T5 and was
+never true. When you land a screen whose path does not start with its nav item's path, say so
+explicitly (`alsoActiveFor`); the bar going empty reads to a rider as having left the app, and it
+does it on the screens most often reached from somebody else's link.
+
 ## 2. Gates, merging and cleanup
 
 **Gate on exit codes, never on piped output.** A `| tail` or `| tee` returns the pipe's status,

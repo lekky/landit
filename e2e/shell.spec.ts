@@ -92,6 +92,35 @@ test('the bottom bar is the five the design specifies, in order', async ({ page 
   await expect(items).toHaveText([/Home/, /Tricks/, /Progress/, /Stickers/, /Crew/]);
 });
 
+test('every nav item whose screen exists is a real link', async ({ page }) => {
+  await page.goto(SHELL);
+
+  // The nav's half of `landing.spec.ts`'s "a built screen is a real link".
+  // Wave 5's four sessions each shipped a screen reachable by URL and left
+  // `components/shell/nav.ts` alone, so that four concurrent rebases could not
+  // drop a sibling's line from the one file that decides whether a screen has a
+  // way in. `chore-wire-wave5-links` wired all five afterwards; this is what
+  // stops one going missing.
+  const nav = page.getByRole('navigation', { name: 'Main', exact: true });
+  for (const [name, href] of [
+    ['Home', '/home'],
+    ['Tricks', '/library'],
+    ['Progress', '/progress'],
+    ['Stickers', '/stickers'],
+    ['Crew', '/crew'],
+    ['Challenge', '/challenge'],
+    ['Events', '/events'],
+    ['Spots', '/spots'],
+  ] as const) {
+    await expect(nav.getByRole('link', { name, exact: true })).toHaveAttribute('href', href);
+  }
+
+  // Plans is T15's and stays a label. Same exemplar as the footer test, and it
+  // goes stale the same way — repoint it when `/plans` lands, do not delete it.
+  await expect(nav.getByText('Plans', { exact: true })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Plans', exact: true })).toHaveCount(0);
+});
+
 test('the sport switch offers one tab per sport', async ({ page }) => {
   await page.goto(SHELL);
   const tabs = page.getByRole('tablist', { name: 'Sport', exact: true }).getByRole('tab');
