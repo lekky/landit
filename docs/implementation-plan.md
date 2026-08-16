@@ -813,6 +813,8 @@ padding and gaps and the wordmark to 19px — the same treatment this stylesheet
 bar below 860px, one breakpoint up. All nine items stay visible and clickable; nothing changes
 outside the band. **T20 should read this before "fixing" the band back to match a screenshot**:
 the captures were taken wide, and at a 934px viewport they do not show what the built app did.
+`e2e/shell.spec.ts` holds the line at six widths — it fails if the document scrolls sideways *or*
+if the nav does, the second because the first passes on the safety net alone.
 
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
