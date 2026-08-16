@@ -37,6 +37,15 @@ export {
 } from './clients';
 
 export {
+  checkHealth,
+  HEALTH_DETAIL,
+  superuserCredentialsPresent,
+  type HealthOptions,
+  type HealthReport,
+  type SuperuserHealth,
+} from './health';
+
+export {
   approveConsent,
   claimHandle,
   confirmPasswordReset,

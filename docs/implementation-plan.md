@@ -802,6 +802,18 @@ Two further divergences, deliberate and recorded here rather than discovered lat
   — a session that wants to add one is proposing a new page, not restoring a missing one
   (issue #22, closed).
 
+**A third divergence, added 2026-08-16 (issue #57): the top bar tightens between 861px and
+1040px.** The prototype was drawn at one desktop width and never asked what nine nav items cost.
+Measured on the built shell they cost 993px of viewport — wordmark, nine items, streak chip and
+avatar — so in the band between the 860px bottom-bar breakpoint and roughly 1000px the row did not
+fit, and because nothing in a flex row shrinks below its text the excess left the right-hand edge
+and gave the **whole document** a horizontal scrollbar, on every signed-in screen at once. Inside
+that band only, `packages/ui-web/src/styles/additions.css` drops the nav to 13px with tighter
+padding and gaps and the wordmark to 19px — the same treatment this stylesheet already gives the
+bar below 860px, one breakpoint up. All nine items stay visible and clickable; nothing changes
+outside the band. **T20 should read this before "fixing" the band back to match a screenshot**:
+the captures were taken wide, and at a 934px viewport they do not show what the built app did.
+
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
 to test — that is where the three-sport switch is proved against a 375px phone before `SPORT_IDS`
@@ -927,8 +939,19 @@ notifications, and nothing sent between 21:00 and 07:00 local. Inputs: `landit-s
   `pocketbase/tests/streak-is-server-owned.test.ts` still proves it over HTTP. What moved is only
   which server runs the arithmetic. Consequence: `apps/web` needs `POCKETBASE_SUPERUSER_EMAIL` and
   `POCKETBASE_SUPERUSER_PASSWORD` set wherever it is deployed, or "I rode today" fails softly and
-  the rider is told to try again (issue filed). Revisit if PocketBase ever gains a real timezone
+  the rider is told to try again (issue #62). Revisit if PocketBase ever gains a real timezone
   database in the JSVM.
+
+  **That silence now has a witness (2026-08-16, issue #62).** `GET /api/health` authenticates with
+  those credentials on demand and answers **503** when it cannot, distinguishing `missing` (nobody
+  set them) from `rejected` (set and refused) from `unreachable` (PocketBase is not answering) —
+  three states that used to arrive as one sentence to a rider. The server also warns once at
+  startup when the variables are absent (`apps/web/src/instrumentation.ts`). It is reachable while
+  the pre-launch gate is shut, which is deliberate: before launch is exactly when a missing
+  credential is waiting to be found. **Setting the variables is still a deploy-side act and remains
+  open** — the check reports the problem, it does not fix it. The same credentials are wanted by
+  T15's Stripe webhook and T16's admin actions, which is why the check lives in `@landit/db` rather
+  than beside the button.
 
 **T9 · Progress + skill tree.** By category, by stage, over-time chart with the estimated-dates
 note, skill tree with prerequisite/paywall lock states, printable sheets panel. Also the

@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { SUPERUSER_EMAIL, SUPERUSER_PASSWORD } from './e2e/support/fixtures';
+
 const PORT = 3000;
 // `localhost`, not `127.0.0.1`: Next's dev server treats a different host as a
 // cross-origin request and blocks its own dev resources.
@@ -30,6 +32,13 @@ const POCKETBASE_URL = `http://127.0.0.1:${POCKETBASE_PORT}`;
 
 export default defineConfig({
   testDir: './e2e',
+  /*
+   * The trick library goes in once, here, rather than in each spec's
+   * `beforeAll` — three of them raced each other on a fresh database and made
+   * the first run in a new worktree fail for reasons no session had caused
+   * (issue #68). `e2e/support/global-setup.ts` has the full account.
+   */
+  globalSetup: './e2e/support/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -65,6 +74,15 @@ export default defineConfig({
           timeout: 120_000,
           env: {
             NEXT_PUBLIC_POCKETBASE_URL: POCKETBASE_URL,
+            // T8's "I rode today" is a server action holding the superuser
+            // client, so without these it fails softly and its two tests fail
+            // on a button that never turns green (issue #62). CI has set them
+            // since T8; locally nobody had, which made two more of a fresh
+            // worktree's first-run failures nothing to do with the change under
+            // test — the same complaint as issue #68, arriving by a different
+            // route. The seed provisions exactly this pair in `.pb_e2e`.
+            POCKETBASE_SUPERUSER_EMAIL: SUPERUSER_EMAIL,
+            POCKETBASE_SUPERUSER_PASSWORD: SUPERUSER_PASSWORD,
             // The pre-launch gate (`apps/web/src/proxy.ts`) would serve the
             // holding page instead of the app. An unset flag already means
             // "live" outside production, so this is belt and braces — but the

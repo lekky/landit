@@ -1,8 +1,6 @@
 import { SPORTS, SPORT_IDS, TIERS_LABEL, TRICKS, isTrickLocked, tricksFor } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
-import { seedLibrary } from './support/seed-library';
-
 /**
  * The trick library, the trick page and the locked trick (T7; screenshots
  * 08–10).
@@ -39,15 +37,18 @@ const lockedTrick = scooterTricks.find((t) => isTrickLocked(t, 'rookie') && dist
 /** One trick card in the grid, found by the name it shows. */
 const card = (page: Page, name: string) => page.locator('.tcard').filter({ hasText: name });
 
-// Tests in this file share one seeded library and run in order in a single
-// worker, so the seed happens once. `fullyParallel` would otherwise split them
-// across workers and race the seed against itself.
+/*
+ * Tests in this file run in order in a single worker rather than one per core.
+ *
+ * The original reason was the seed: `fullyParallel` split the file across
+ * workers and raced the `beforeAll` against itself. That reason is gone — the
+ * seed is `playwright.config.ts`'s `globalSetup` since issue #68 — but the
+ * setting stays for now. Issues #64 and #72 are open against a test in this
+ * file, and changing how many of its sign-ups run at once, in the same commit
+ * that moves the seed, would muddy whichever of the two gets investigated next.
+ * Removing this line belongs to that fix, not to this one.
+ */
 test.describe.configure({ mode: 'default' });
-
-test.beforeAll(async () => {
-  test.setTimeout(180_000);
-  await seedLibrary();
-});
 
 /** A brand new rider, on the free plan, through the real sign-up. */
 async function signUpRookie(page: Page): Promise<void> {

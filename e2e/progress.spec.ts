@@ -1,8 +1,6 @@
 import { SPORTS, SPORT_IDS } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
-import { seedLibrary } from './support/seed-library';
-
 /**
  * Progress and the skill tree (T9), for a rider on the free plan.
  *
@@ -20,22 +18,20 @@ import { seedLibrary } from './support/seed-library';
  * - **The printable-sheets panel names its plan rather than offering a button
  *   that would not work.**
  *
- * `seedLibrary()` is not optional furniture here, and the reason is worth
+ * The seeded library is not optional furniture here, and the reason is worth
  * keeping. The e2e PocketBase starts from the migrations with nothing in it, so
  * without a seed the tree renders empty and every assertion about a node passes
  * or fails for the wrong reason. The first version of this file learnt that the
  * expensive way: it passed locally against an instance that happened to be
  * seeded and failed in CI against one that was not — LESSONS §1's "a green
  * local run proves nothing if the bytes came from somewhere else", arriving
- * from the other direction. T7 built the seeding helper; this file uses it.
+ * from the other direction. T7 built the seeding helper; since issue #68 it runs
+ * once from `playwright.config.ts`'s `globalSetup` rather than from a `beforeAll`
+ * in this file and two others, which raced each other on a fresh database.
  *
  * The Legend side of the gate is not tested here: putting a rider on a plan
  * needs a superuser, which is the HTTP suite's job, not a browser's.
  */
-
-test.beforeAll(async () => {
-  await seedLibrary();
-});
 
 const password = 'a-long-local-test-password';
 const unique = () => Math.random().toString(36).slice(2, 10);

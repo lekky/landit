@@ -24,6 +24,13 @@ award) deliberately do **not** exempt it, so it is not a way round those.
 There is no module-level singleton on purpose. A shared server client is a shared auth store,
 and a shared auth store is one request answering with another rider's data.
 
+`checkHealth()` (`health.ts`) answers whether the superuser credentials are actually usable, and
+distinguishes **missing** (unset) from **rejected** (set and refused) from **unreachable** (no
+PocketBase answering). It reports rather than throws, and it never puts the email, the password or
+the URL in its result — it is served over HTTP by `apps/web`'s `/api/health`. `apps/web` also calls
+`superuserCredentialsPresent()` at startup, which is the same question without a round trip. Both
+exist because a deployment missing these fails *quietly*: see issue #62 and plan §7, T8.
+
 ## Reading and writing
 
 Named functions first — `listTricks`, `riderSnapshot`, `setTrickStage` — and
