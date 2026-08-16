@@ -74,7 +74,7 @@ describe('the free / paid split', () => {
     expect(isTrickFree(noOverride)).toBe(true);
   });
 
-  it('splits the shipped library 29 free / 68 paid', () => {
+  it('splits the shipped library 30 free / 67 paid, ten free per sport', () => {
     // Read through `Trick`: the canonical data is `as const`, so a trick with
     // no override has no `free` key in its inferred type at all.
     const library: readonly Trick[] = TRICKS;
@@ -82,20 +82,74 @@ describe('the free / paid split', () => {
     expect(free).toHaveLength(30);
     expect(library.filter((t) => !isTrickFree(t))).toHaveLength(67);
 
-    // Two tricks override difficulty, and they are named here on purpose: an
-    // override is how the free tier silently grows, so a third one appearing
+    // Ten free tricks per sport, deliberately equal. Difficulty alone does not
+    // produce that — the three libraries were graded separately and disagree
+    // about what an early trick is worth — so the overrides below are what hold
+    // the three free tiers level.
+    for (const sport of ['scooter', 'skate', 'bmx'] as const) {
+      expect(
+        free.filter((t) => t.sport === sport),
+        sport,
+      ).toHaveLength(10);
+    }
+
+    // Ten tricks override difficulty, and they are named here on purpose: an
+    // override is how the free tier silently moves, so an eleventh appearing
     // should fail this test and be argued for rather than noticed later.
     //
-    // Both exist for the same reason — each is the trick its sport's entire
-    // street branch descends from, so leaving it paid puts no street content at
-    // all in that sport's free tier (issue #75).
+    // Six are pulled in, to keep the sticker wall earnable without paying (#75):
+    //
+    // - `sk-50-50` and `bmx-double-peg` are the tricks their sport's entire
+    //   street branch descends from. Paid, they leave that sport with no free
+    //   street content at all — a branch you can see and never enter.
+    // - `sk-pop-shuvit`, `sk-180` and `sk-kickflip` are the beginner flatground
+    //   ladder, graded 3 in skate where scooter and BMX grade the same rungs 2.
+    // - `tailwhip` and `sk-kickflip` are their sports' rites of passage, and a
+    //   milestone behind the paywall is an achievement for sale (plan §1).
+    //
+    // Four are pushed out, because BMX's grading gave it fourteen free tricks
+    // where the others had ten. They are flatground flourishes, not foundations
+    // or branch entries, and no difficulty-1 trick is paid in any sport.
     const overridden = library.filter((t) => t.free !== undefined);
-    expect(overridden.map((t) => t.id)).toEqual(['sk-50-50', 'bmx-double-peg']);
-    expect(overridden.every((t) => t.free === true)).toBe(true);
+    expect(overridden.map((t) => t.id)).toEqual([
+      'tailwhip',
+      'sk-pop-shuvit',
+      'sk-180',
+      'sk-kickflip',
+      'sk-50-50',
+      'bmx-x-up',
+      'bmx-nollie',
+      'bmx-pull-up-barspin',
+      'bmx-footjam',
+      'bmx-double-peg',
+    ]);
+    expect(overridden.filter((t) => t.free === false).map((t) => t.sport)).toEqual([
+      'bmx',
+      'bmx',
+      'bmx',
+      'bmx',
+    ]);
 
-    // Everything else is the Rookie and Easy tiers, nothing more.
+    // The Rookie tier still means "the easiest tricks": nothing at difficulty 1
+    // is ever paid, in any sport.
+    expect(library.filter((t) => t.diff === 1).every(isTrickFree)).toBe(true);
+
+    // Everything free is the Rookie and Easy tiers, or an override pulling a
+    // harder trick in.
     expect(free.every((t) => t.diff <= FREE_MAX_DIFF || t.free === true)).toBe(true);
-    expect(library.every((t) => t.diff > FREE_MAX_DIFF || isTrickFree(t))).toBe(true);
+
+    // The converse used to hold too — every difficulty-2 trick was free — but
+    // an override can push an easy trick out as well as pull a hard one in, and
+    // `isTrickFree` has always said so. The BMX levelling is the first data to
+    // exercise that direction, so the rule is now: difficulty decides, unless
+    // an override says otherwise, and the overrides are the list above.
+    const easyButPaid = library.filter((t) => t.diff <= FREE_MAX_DIFF && !isTrickFree(t));
+    expect(easyButPaid.map((t) => t.id)).toEqual([
+      'bmx-x-up',
+      'bmx-nollie',
+      'bmx-pull-up-barspin',
+      'bmx-footjam',
+    ]);
   });
 });
 
@@ -166,11 +220,15 @@ describe('prerequisite unlocks', () => {
   });
 
   it('keeps the paywall and the prerequisite lock independent', () => {
-    // A rookie who has landed a bunny hop has *unlocked* the tailwhip and is
+    // A rookie who has landed a bunny hop has *unlocked* the bar spin and is
     // still *locked out* of it. The skill tree draws these differently.
-    const tailwhip = trickById('tailwhip')!;
-    expect(isTrickUnlocked(tailwhip, { 'bunny-hop': 'every' })).toBe(true);
-    expect(isTrickLocked(tailwhip, 'rookie')).toBe(true);
+    //
+    // This used to be written with the tailwhip, which is now free (#75). The
+    // bar spin is the same shape — difficulty 3, park, bunny hop prerequisite —
+    // and still paid, so the two locks stay genuinely independent here.
+    const barSpin = trickById('bar-spin')!;
+    expect(isTrickUnlocked(barSpin, { 'bunny-hop': 'every' })).toBe(true);
+    expect(isTrickLocked(barSpin, 'rookie')).toBe(true);
   });
 });
 
@@ -214,14 +272,17 @@ describe('what to try next', () => {
     const suggested = suggestions.map((t) => t.id);
     expect(suggested).not.toContain('bunny-hop'); // already landed
     expect(suggested).toContain('manual'); // diff 2, prerequisite met
-    expect(suggested).not.toContain('tailwhip'); // diff 3, behind the paywall
+    expect(suggested).toContain('tailwhip'); // diff 3 but freed — see #75
+    expect(suggested).not.toContain('bar-spin'); // diff 3, behind the paywall
   });
 
   it('offers the paid rider the tricks the rookie could not have', () => {
     const suggested = suggestedNextTricks({ 'bunny-hop': 'some' }, 'shredder', 'scooter').map(
       (t) => t.id,
     );
-    expect(suggested).toContain('tailwhip');
+    // Was the tailwhip, which is now free and so proved nothing about the paid
+    // tier any more (#75). The bar spin is the same shape and still paid.
+    expect(suggested).toContain('bar-spin');
   });
 
   it('ignores hidden tricks', () => {

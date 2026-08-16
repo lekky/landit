@@ -199,6 +199,13 @@ export const TRICKS = [
     cat: 'park',
     diff: 3,
     pre: ['bunny-hop'],
+    // Free despite being difficulty 3, and the only scooter park trick that is:
+    // park had no free content at all, so a free rider could see the branch and
+    // never enter it. It is also the sport's rite of passage — the trick riders
+    // themselves treat as the milestone — and a milestone behind a paywall is an
+    // achievement for sale (issue #75). Bar spin, no-footer, toboggan, 360 and
+    // everything above them stay paid.
+    free: true,
     about:
       'The signature scooter move. Hop up, kick the deck through a full 360° loop around the headtube, then stomp it back under your feet mid-air.',
     tips: 'Kick with your front foot and keep the bars dead still. Spot the grip tape coming back round before you stamp down.',
@@ -453,6 +460,11 @@ export const TRICKS = [
     cat: 'flat',
     diff: 3,
     pre: ['sk-ollie', 'sk-shuvit'],
+    // One of three flatground rungs freed together. Skate is graded harder than
+    // the other two libraries — scooter and BMX put the equivalent early tricks
+    // at difficulty 2 — which left a free skate rider six tricks where a scooter
+    // rider had nine and a BMX rider fourteen (issue #75).
+    free: true,
     about:
       'A shuvit with an ollie pop in it, so the board spins in the air rather than on the ground.',
     tips: 'Pop and scoop in the same motion. Front foot goes up and slightly out to leave room for the spin.',
@@ -466,6 +478,10 @@ export const TRICKS = [
     cat: 'flat',
     diff: 3,
     pre: ['sk-ollie'],
+    // Second of the three freed flatground rungs — see `sk-pop-shuvit`. This is
+    // also the gateway to riding fakie, so leaving it paid closed off a whole
+    // direction of the library rather than one trick.
+    free: true,
     about:
       'You and the board turn a half rotation together and roll away fakie, with your chest opening towards the direction of travel.',
     tips: 'Wind your shoulders the opposite way first, then unwind. Turn your head and the rest follows.',
@@ -491,6 +507,10 @@ export const TRICKS = [
     cat: 'flat',
     diff: 3,
     pre: ['sk-ollie'],
+    // Third of the three freed flatground rungs, and skate's rite of passage —
+    // the same argument that frees the scooter `tailwhip`. Heelflip, tre flip,
+    // hardflip and the rest of the flip family stay paid.
+    free: true,
     about:
       'Ollie up and flick the edge of the nose with your toes so the board spins a full barrel roll under you, then catch it with your feet.',
     tips: 'Ollie first, flick second. Keep your shoulders square and catch it with the back foot before you look for the ground.',
@@ -927,6 +947,19 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: [],
+    // Paid despite being difficulty 2. BMX's library grades its early tricks
+    // more generously than the other two, which left it with fourteen free
+    // tricks against ten each for scooter and skate — the free tier was
+    // lopsided by grading accident rather than by decision. Four flatground
+    // flourishes move behind the paywall to level it: this, `bmx-nollie`,
+    // `bmx-pull-up-barspin` and `bmx-footjam`.
+    //
+    // The line held while choosing them: no difficulty-1 trick is ever paid, so
+    // the Rookie tier still means "the easiest tricks", and every foundation
+    // (bunny hop, manual) and branch entry (`bmx-double-peg` for street,
+    // `bmx-pump` and `bmx-drop-in` for park) stays free. Nothing still free
+    // depends on any of the four.
+    free: false,
     about:
       'Turn the bars a full 180 degrees so your arms cross into an X, then turn them back. You can do it rolling along — no hop needed.',
     tips: 'Try it standing still holding a wall first. Loosen your grip so your wrists are not fighting the turn.',
@@ -940,6 +973,8 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['bmx-bunny-hop'],
+    // Paid to level BMX's free tier with the other two sports — see `bmx-x-up`.
+    free: false,
     about:
       'A bunny hop backwards. Your weight goes forward over the front wheel and the back end comes up first.',
     tips: 'Start by just lifting the back wheel and setting it straight back down. Keep the lift small until it stops feeling like you are about to go over the bars.',
@@ -953,6 +988,9 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['bmx-x-up'],
+    // Paid to level BMX's free tier with the other two sports — see `bmx-x-up`,
+    // which is also its prerequisite, so the two move together either way.
+    free: false,
     about:
       'Lift just the front wheel, let go of the bars and spin them a full turn, then catch them straight before the wheel touches down.',
     tips: 'Throw with one hand and catch with the other, in the same spot every time. Practise the throw standing over the bike before you roll.',
@@ -979,6 +1017,8 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: [],
+    // Paid to level BMX's free tier with the other two sports — see `bmx-x-up`.
+    free: false,
     about:
       'Jam your front foot between the fork and the front tyre so the bike stops dead and the back wheel lifts up behind you.',
     tips: 'Roll slowly and put the foot in gently the first few times. Wear proper shoes — this one chews them.',

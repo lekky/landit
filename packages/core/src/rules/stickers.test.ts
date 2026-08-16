@@ -317,6 +317,30 @@ describe('what a rider on the free tier can reach', () => {
     expect(earnedStickerIds(freeRider('skate'))).toContain('bowl-rider');
   });
 
+  it('reaches every shared volume sticker in every sport, on the free tier', () => {
+    // The owner's requirement, kept as a test rather than as an intention:
+    // `ten-deep` must be earnable by a free rider who only does one sport. It
+    // needs ten landed tricks, so each sport's free library has to hold at
+    // least ten — a rule that no threshold tuning can fake.
+    for (const sport of ['scooter', 'skate', 'bmx'] as const) {
+      const stats = freeRider(sport);
+      expect(stats.global.landed, sport).toBeGreaterThanOrEqual(10);
+      expect(earnedStickerIds(stats), sport).toContain('ten-deep');
+    }
+  });
+
+  it('puts each sport rite of passage inside the free tier', () => {
+    // A milestone behind the paywall is an achievement for sale (plan §1).
+    expect(earnedStickerIds(freeRider('scooter'))).toContain('whip-club');
+    expect(earnedStickerIds(freeRider('skate'))).toContain('flip-club');
+  });
+
+  it('keeps the stair set out of the free tier', () => {
+    // `sk-gap` is Stair Set. Freeing tricks must never quietly make it cheaper
+    // to chase stair counts — see the ledge-rat issue.
+    expect(freeIn('skate', 'street').map((t) => t.id)).not.toContain('sk-gap');
+  });
+
   it('earns the free scooter stickers without a paid trick', () => {
     const earned = earnedStickerIds(freeRider('scooter'));
     expect(earned).toContain('hop-master');
