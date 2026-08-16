@@ -47,6 +47,35 @@ function readEnv(name: string): string | undefined {
   return value && value.length > 0 ? value : undefined;
 }
 
+/**
+ * The public URL, read **literally**, because that is the only form a bundler
+ * can see.
+ *
+ * Next replaces `process.env.NEXT_PUBLIC_FOO` with a string constant wherever
+ * it appears verbatim in the source. `readEnv('NEXT_PUBLIC_FOO')` reads the
+ * same to a person and is invisible to the compiler: the dynamic key is never
+ * substituted, `process.env` in the browser is an empty object, and the client
+ * throws `MissingPocketBaseUrl` while the variable is plainly set and visibly
+ * correct in the container, in the dashboard and under `printenv` alike.
+ *
+ * Only the public variable gets this treatment. `POCKETBASE_URL` and the
+ * superuser credentials keep the dynamic read *on purpose* — inlining those
+ * would ship them in the browser bundle. That asymmetry is the whole reason
+ * this is a deliberate second reader rather than a cleverer `readEnv`.
+ *
+ * The `try` covers the third case: no bundler substituted anything and there is
+ * no `process` either, so the bare reference would throw. React Native and a
+ * plain `<script>` both land there.
+ */
+function readPublicUrlLiteral(): string | undefined {
+  try {
+    const value = process.env.NEXT_PUBLIC_POCKETBASE_URL;
+    return value && value.length > 0 ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function resolveUrl(options: ClientOptions, variables: readonly string[]): string {
   const url = options.url ?? variables.map(readEnv).find(Boolean);
   if (!url) throw new MissingPocketBaseUrl(variables);
@@ -65,9 +94,16 @@ const SERVER_URL = ['POCKETBASE_URL', 'NEXT_PUBLIC_POCKETBASE_URL'] as const;
 /**
  * The browser client. One per browser session; the SDK keeps the rider's token
  * in its own auth store and refreshes it.
+ *
+ * The URL comes from the inlined literal first and the dynamic read second.
+ * The fallback is not dead code: on the server both paths see the same value,
+ * and under a test runner or a bundler that does no substitution only the
+ * dynamic one does.
  */
 export function createBrowserClient(options: ClientOptions = {}): Client {
-  return new PocketBase(resolveUrl(options, PUBLIC_URL));
+  const url = options.url ?? readPublicUrlLiteral() ?? readEnv(PUBLIC_URL[0]);
+  if (!url) throw new MissingPocketBaseUrl(PUBLIC_URL);
+  return new PocketBase(url);
 }
 
 export interface ServerClientOptions extends ClientOptions {
