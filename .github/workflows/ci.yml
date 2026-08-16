@@ -74,7 +74,10 @@ jobs:
         with:
           context: .
           file: apps/web/Dockerfile
-          push: false
+          # Loaded into the daemon, because the next step runs it. A built image
+          # is not a working one — that distinction cost two failed deploys.
+          load: true
+          tags: landit-web:ci
           # The browser bundle inlines this at build time, so the build has to be
           # given one. The value is irrelevant to whether it compiles; that it is
           # *required* is the thing worth not discovering on the box.
@@ -83,14 +86,51 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # The gap this closes: `docker build` proves an image builds. It says
+      # nothing about whether `node server.js` finds its modules, which is a
+      # runtime question and was answered — twice — by a crash loop on the box
+      # rather than by CI. Starting it and asking for a page is the whole test.
+      - name: Web app starts and serves
+        run: |
+          docker run -d --name landit-web-ci -p 3000:3000 landit-web:ci
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/ || true)
+            [ "$code" = "200" ] && echo "served 200 after ${i}s" && exit 0
+            sleep 1
+          done
+          echo "::error::the web image never served a 200"
+          docker logs landit-web-ci
+          exit 1
+
       - name: PocketBase
         uses: docker/build-push-action@v6
         with:
           context: .
           file: pocketbase/Dockerfile
-          push: false
+          load: true
+          tags: landit-pocketbase:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Also proves the migrations run: PocketBase applies them at boot, and a
+      # migration that throws leaves the API up but the schema empty, so the
+      # collection check is the part that matters (LESSONS §5).
+      - name: PocketBase starts, migrates and serves
+        run: |
+          docker run -d --name landit-pb-ci -p 8090:8090 landit-pocketbase:ci
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/api/health || true)
+            [ "$code" = "200" ] && break
+            sleep 1
+          done
+          curl -sf http://localhost:8090/api/health > /dev/null || {
+            echo "::error::PocketBase never became healthy"; docker logs landit-pb-ci; exit 1;
+          }
+          curl -sf "http://localhost:8090/api/collections/tricks/records?perPage=1" > /dev/null || {
+            echo "::error::the tricks collection is missing — migrations did not run"
+            docker logs landit-pb-ci; exit 1;
+          }
+          echo "healthy, and the schema is there"
 
   e2e:
     name: e2e

@@ -46,7 +46,18 @@ COPY pocketbase/package.json pocketbase/
 
 # `--frozen-lockfile` is the point: a deploy must never quietly resolve a
 # different dependency tree from the one CI tested.
-RUN pnpm install --frozen-lockfile
+#
+# **`node-linker=hoisted` is what makes the standalone trace work.** pnpm's
+# default symlinked store leaves Next's file tracer unable to follow some of its
+# own transitive dependencies — `@swc/helpers` in particular — so the image
+# builds perfectly and then crash-loops on a missing module. Worse, the store's
+# directory names differ between platforms (pnpm shortens them on Windows), so
+# the traced tree on a developer's machine is not the tree in the image and the
+# fault cannot be reproduced locally at all. A flat `node_modules` removes the
+# whole class: the tracer resolves exactly as it would under npm.
+#
+# The lockfile still decides *what* is installed. This only changes the layout.
+RUN pnpm install --frozen-lockfile --config.node-linker=hoisted
 
 # --------------------------------------------------------------- builder --
 FROM base AS builder
