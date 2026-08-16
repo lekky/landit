@@ -15,7 +15,7 @@
 
 const FREE_MAX_DIFF = 2;
 const LANDED_STAGES = ['some', 'most', 'every'];
-const SPORTS = ['scooter', 'skate'];
+const SPORTS = ['scooter', 'skate', 'bmx'];
 const CATEGORIES = ['flat', 'street', 'park', 'hybrid', 'air'];
 
 /**

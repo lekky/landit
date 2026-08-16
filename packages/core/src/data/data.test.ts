@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { AVATARS, AVATAR_GROUPS } from './avatars';
-import { CATEGORY_IDS, TIERS_LABEL } from './categories';
+import { CATEGORY_IDS, CATS, TIERS_LABEL, categoryLabel } from './categories';
 import { CHALLENGES } from './challenges';
 import { EVENTS } from './events';
 import { PLAN, PLANS } from './plans';
@@ -33,10 +33,20 @@ const allPlans: readonly Plan[] = PLANS;
 const ids = <T extends { id: string }>(records: readonly T[]): string[] => records.map((r) => r.id);
 
 describe('the trick library', () => {
-  it('holds all 61 tricks, 30 scooter and 31 skate', () => {
-    expect(TRICKS).toHaveLength(61);
+  it('holds all 97 tricks: 30 scooter, 31 skate and 36 BMX', () => {
+    expect(TRICKS).toHaveLength(97);
     expect(TRICKS.filter((t) => t.sport === 'scooter')).toHaveLength(30);
     expect(TRICKS.filter((t) => t.sport === 'skate')).toHaveLength(31);
+    expect(TRICKS.filter((t) => t.sport === 'bmx')).toHaveLength(36);
+  });
+
+  it('gives every sport a library, so none is a tab with nothing behind it', () => {
+    // The count above is a fact about today. This is the invariant: a sport in
+    // `SPORT_IDS` with no tricks would render an empty library, and T21 is the
+    // task that would have shipped one.
+    for (const sport of SPORT_IDS) {
+      expect(TRICKS.filter((t) => t.sport === sport).length, sport).toBeGreaterThan(0);
+    }
   });
 
   it('has unique ids', () => {
@@ -107,10 +117,27 @@ describe('the trick library', () => {
 });
 
 describe('sports, categories and stages', () => {
-  it('names both sports with their design colours', () => {
-    expect(SPORT_IDS).toEqual(['scooter', 'skate']);
+  it('names the three launch sports with their design colours', () => {
+    expect(SPORT_IDS).toEqual(['scooter', 'skate', 'bmx']);
     expect(SPORTS.scooter.color).toBe('#FF5A1F');
     expect(SPORTS.skate.color).toBe('#246BFF');
+    // BMX's is a placeholder until the owner picks (plan §7, T21).
+    expect(SPORTS.bmx.color).toBe('#FF3D78');
+  });
+
+  it('shows BMX riders "Flatland", where the other two sports say "Flat"', () => {
+    // The id is shared and stays shared — only the word on the chip moves.
+    expect(categoryLabel('flat')).toBe('Flat');
+    expect(categoryLabel('flat', 'scooter')).toBe('Flat');
+    expect(categoryLabel('flat', 'skate')).toBe('Flat');
+    expect(categoryLabel('flat', 'bmx')).toBe('Flatland');
+
+    // Every other category reads the same to everyone.
+    for (const sport of SPORT_IDS) {
+      for (const cat of CATEGORY_IDS.filter((c) => c !== 'flat')) {
+        expect(categoryLabel(cat, sport), `${cat}/${sport}`).toBe(CATS[cat].label);
+      }
+    }
   });
 
   it('has five categories and five named difficulty tiers', () => {

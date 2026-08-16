@@ -103,7 +103,9 @@ export const STICKERS = [
     sport: null,
     hue: '#2EC4B6',
     ico: 'grid',
-    cond: 'Land tricks on both scooter and board',
+    // Named the two sports that existed when it was written. BMX is a third
+    // (T21), and the rule behind it is "two or more" — see `bothSports`.
+    cond: 'Land tricks on two different sports',
     isLive: true,
   },
   {
