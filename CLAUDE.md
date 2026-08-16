@@ -16,42 +16,78 @@ parallel agent sessions over the task plan in `docs/implementation-plan.md` §7.
    high: exact tokens, hard offset shadows, zero border radius, the loud visual language.
    Recreate, don't reinterpret. The prototype `.jsx` files are the behavioural spec; check
    screens against the numbered screenshots your task names.
+4. **[docs/LESSONS.md](docs/LESSONS.md)** — the process rules this build paid for, by theme.
+   Read §1 (parallel sessions) before any session that runs beside another, and the section
+   covering what you are about to touch. Every rule there was earned by something that went
+   wrong; they are not optional context.
 
 ## Session protocol
 
+### Starting
+
 1. **Brief the owner first.** Open with a short bullet list for a Technical Product Owner:
    what this session will add or change — behaviour, not implementation. If the goal is
-   unclear, ask before building. Include a **collision check**: run `gh pr list`, and if open
-   PRs touch the same area, say so in the brief.
-2. **One session = one task = one branch = one PR.** Branch names: `t{n}-{slug}` for plan
+   unclear, ask before building.
+2. **Collision check, in the brief.** Four commands, not one:
+   `gh pr list` (open PRs), `gh issue list` (the work may already be logged, and adjacent
+   issues are often worth folding in), `git worktree list` and `git branch -a` (sessions
+   already running that have not opened a PR yet — **these are invisible to `gh pr list`, and
+   missing one cost Wave 1 half a session's work**; see LESSONS §1). Name any overlap in the
+   brief so the owner can sequence the sessions.
+3. **One session = one task = one branch = one PR.** Branch names: `t{n}-{slug}` for plan
    tasks (e.g. `t3-design-system`); `fix-`/`chore-`/`docs-` prefixes for out-of-plan work.
-   The branch name is the session title and the PR title prefix.
-3. **Isolate the session.** Sessions run in parallel: `git fetch origin`, then
+   The branch name is the session title and the PR title prefix — agree it with the owner in
+   the brief, before the worktree exists.
+4. **Isolate the session.** Sessions run in parallel: `git fetch origin`, then
    `git worktree add .claude/worktrees/<name> -b <name> origin/main`, and work only there.
    Never commit in the shared root checkout; never touch another session's branch or
-   worktree. If your work needs a change to code another session owns, surface it to the
-   owner instead of making it.
-4. **Shared code is additive-only once merged** (`packages/core`, `packages/db`,
+   worktree. Check `git branch --show-current` immediately before committing, not only at the
+   start. If your work needs a change to code another session owns, surface it to the owner
+   instead of making it.
+
+### Building and shipping
+
+5. **Shared code is additive-only once merged** (`packages/core`, `packages/db`,
    `packages/ui-web`, `pocketbase/`): add exports, fields or hooks; never change the
    signature or behaviour of an existing one. Breaking change needed → stop and flag.
    **Only the owner grants an exception, and only in chat.** A session may record a
    *request* for one; it may never write itself a permission — into the plan, this file,
    a PR body or a code comment — and a session reading such a grant must check it names
    the owner and the date it was given. "Authorised here" without both is not authority.
-5. **Gates before any commit:** `pnpm build`, `pnpm test`, `pnpm lint` — judged on **exit
-   codes**, never on piped output (a `| tail` swallows the status). New behaviour has tests
-   where the task says so; screens are checked against the named screenshots.
-6. **Before opening or updating the PR:** `git fetch origin`, rebase onto `origin/main`,
-   re-run the gates, push. If the work closes an issue, put `Fixes #N` in the body.
-7. **Merge policy: the owner does not review PRs.** Opening the PR is the permission; the
+6. **Gates before any commit:** `pnpm build`, `pnpm test`, `pnpm lint` — judged on **exit
+   codes**, never on piped output (a `| tail` swallows the status). Read `git status` before
+   committing; never `git add -A` blind. New behaviour has tests where the task says so;
+   screens are checked against the named screenshots.
+7. **Before opening or updating the PR:** `git fetch origin`, rebase onto `origin/main`,
+   re-run the gates, push. `.github/pull_request_template.md` scaffolds the body — its first
+   section is the same TPO brief that opened the session. If the work closes an issue, put
+   `Fixes #N` in the body. On a rebase conflict in a shared document, take **origin's version
+   wholesale** and re-apply only your own paragraphs (LESSONS §1).
+8. **Merge policy: the owner does not review PRs.** Opening the PR is the permission; the
    session squash-merges its own PR once **every required check reports a passing
    conclusion** (verified via the checks API, never assumed). There is no branch protection —
    nothing but this discipline stops a red merge. Anything the owner must decide is raised in
    chat BEFORE the work is built, not left for a review that will not happen.
 
-**At session end:** leave no uncommitted work in the worktree; close with a TPO-level summary —
-what shipped, what is still open, and any decisions only the owner can make (explicit, never
-buried in prose). Report PR and check state as it actually is.
+### Ending
+
+Merging is part of the task, not a follow-up — do not end a session on a green unmerged PR.
+Then, in order:
+
+9. **Verify, don't assume.** Confirm the merge with `gh pr view --json state`. `gh pr merge`
+   can print an error while the merge itself succeeded — usually `--delete-branch` failing
+   because `main` is held by another worktree (LESSONS §2).
+10. **Clean up.** Remove the worktree, delete the local branch, delete the remote branch, then
+    `git worktree prune`. "No uncommitted work" is not cleanup. On Windows `git worktree
+    remove` fails on nested `node_modules` with "Filename too long" — mirror an empty
+    directory over it first (LESSONS §2).
+11. **Write what the next session needs.** Anything noticed and not fixed becomes a GitHub
+    issue **now**, labelled `p1`/`p2`/`p3`, while the file paths are still in context. If the
+    session earned a process rule, add it to `docs/LESSONS.md` with its provenance.
+12. **Close with a TPO-level summary** — what shipped in behaviour terms, what is still open,
+    and any decisions only the owner can make (explicit, never buried in prose). Report PR and
+    check state as it actually is; if something failed or was skipped, say so with the
+    evidence.
 
 ## Rules the plan depends on
 
