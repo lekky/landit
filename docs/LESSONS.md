@@ -234,7 +234,9 @@ constants at the top of `85_crews.pb.js`, and every crew creation came back **40
 neighbouring test files red for the same reason. The generic message is the trap: it looks like a
 validation failure, so the first twenty minutes go into the rule and the schema. Declare every
 constant inside the handler that uses it, and read a nameless 400 out of a hook as a scoping
-problem before reading it as a rules problem.
+problem before reading it as a rules problem. T13 hit the identical wall the same afternoon in
+`62_spots.pb.js`, from the other direction: `lib/landit.js` states the rule for `require()` and it
+reads as being about imports. It is about everything the handler names.
 
 **A hook that guards "when the client left it empty" is unguarded the day a client exists.**
 `60_ownership.pb.js` minted an invite code `if (!e.record.getString('code'))` under a comment
@@ -244,6 +246,16 @@ guessable code, which is a stranger-contact path in a product whose whole child-
 that it has none (plan §6.1). Nothing had regressed: the branch had simply never been reachable.
 When you become the first caller of merged shared code, read its guards as if you were an attacker
 with the new capability, because you have just handed one out.
+
+**A hook that tightens an existing collection breaks the tests that predate it, and that is the
+sweep, not a failure.** T13 added validation to `spots` create and turned four untouched test files
+red — `bmx-third-sport`, `consent-flow`, `guarantee-4-consent`, `schema-and-hooks` — each of which
+submitted a spot with only the fields *its own* subject needed. Two things came out of it. The fix
+for a test whose subject is something else is one line plus a comment saying which rule moved (§4's
+sweep, arriving through a hook rather than through seed data). And the failures are a map of how
+strict the new rule really is: three of the four wanted only a coordinate pair, and the fourth was
+insisting on a `type` that nothing else in the product required — which is how that hook's floor
+ended up deliberately lower than the submission form's.
 
 **Additive-only means the shape you shipped is load-bearing from the moment it merges.** T2's
 `users` collection merged while another session was still deciding what the streak needed, so
@@ -282,6 +294,19 @@ ordering from `localeCompare`, dates from `toLocaleString`. If it renders on bot
 come from data, not from ICU. And **an intermittent e2e failure in a form is worth reading as a
 hydration problem** before it is read as flake — the dev server's error overlay had said so all
 along, and the failing assertion pointed somewhere else entirely.
+
+**A fallback that swaps a class on the same element keeps the library's DOM.** T13's map falls back
+to a placeholder when Mapbox refuses the token. Both branches returned a `<div>` in the same
+position, so React reconciled them as one element and only changed its class — and mapbox-gl's
+injected children came through the switch untouched. The result, with a bad token, was a hatched
+"the map would not load" panel with markers, zoom buttons and a Mapbox logo floating on top of it: a
+broken map that was still unmistakably a map, which is exactly what a graceful degradation is
+supposed not to look like. It was found by running the screen with a deliberately invalid token,
+because a *missing* token takes a different path and never showed it. Two rules: **a degraded state
+is worth looking at with the failure actually happening**, not only with the dependency absent; and
+when the two branches wrap an element a third-party library has written into, tear the library down
+in an effect *and* give the branches different `key`s, so React removes the node rather than
+reusing it.
 
 **Copy decisions get tests, or they get quietly reverted.** T5's legal documents are a rewrite, not
 a transcription: no minimum age, no Crew Pass, profiles private by default, reporting described as

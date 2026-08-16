@@ -48,7 +48,17 @@ describe('the schema accepts BMX', () => {
     const rider = await makeRider();
     const created = await call<{ sports: string[] }>('POST', '/api/collections/spots/records', {
       token: rider.token,
-      body: { name: 'Three Sport Park', sports: ['scooter', 'skate', 'bmx'], status: 'pending' },
+      // The coordinates joined this body in T13: a submitted spot has to be
+      // somewhere, or it can never go on the map (`62_spots.pb.js`). What this
+      // test is about is the sports enum, which is unchanged.
+      body: {
+        name: 'Three Sport Park',
+        town: 'Corby',
+        lat: 52.493,
+        lng: -0.689,
+        sports: ['scooter', 'skate', 'bmx'],
+        status: 'pending',
+      },
     });
 
     expect(created.status).toBe(200);

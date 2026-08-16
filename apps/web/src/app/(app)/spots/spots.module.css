@@ -1,0 +1,383 @@
+/*
+ * The spots screen's own layout, and the Land It surfaces that sit on top of a
+ * third-party map (screenshot 19).
+ *
+ * Everything with a look — the panel, the pills, the search box, the tags — is
+ * the design system's. What is here is the spacing between them, plus the three
+ * things the design system has no primitive for because they are drawn into a
+ * map canvas rather than into React: the pin, the selected pin, and the dot for
+ * wherever the rider says they are.
+ */
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+
+.title {
+  font-size: clamp(30px, 5vw, 44px);
+  margin-top: 6px;
+}
+
+.search {
+  margin-bottom: 12px;
+}
+
+.clear {
+  background: none;
+  border: none;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------------------------------------------- the location indicator -- */
+
+/*
+ * Standard 10's "visible indicator" (plan §6.4). Loud on purpose: a child
+ * should be able to see that their location is in use without going looking for
+ * it, and the way to switch it off is inside the same badge.
+ */
+.locationOn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 11px;
+  border: 2.5px solid var(--ink);
+  background: var(--lime);
+  box-shadow: var(--sh-sm);
+}
+
+.locationDot {
+  width: 10px;
+  height: 10px;
+  background: var(--ink);
+  border-radius: 50%;
+  flex: none;
+}
+
+.locationOff {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12.5px;
+  letter-spacing: 0.05em;
+  text-decoration: underline;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.locating {
+  font-size: 13px;
+  color: var(--ink-3);
+  max-width: 42ch;
+}
+
+/* --------------------------------------------------------- the two panes -- */
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.count {
+  color: var(--ink-3);
+}
+
+.card {
+  padding: 15px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+/* The selected card: paper-2 and the full 5px shadow, as the prototype had it. */
+.cardOn {
+  background: var(--paper-2);
+  box-shadow: var(--sh);
+}
+
+.cardPending {
+  opacity: 0.85;
+}
+
+.cardIcon {
+  width: 40px;
+  height: 40px;
+  background: var(--sky);
+  border: 2.5px solid var(--ink);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.cardIconPending {
+  background: var(--paper-2);
+}
+
+.cardBody {
+  min-width: 0;
+  flex: 1;
+}
+
+.cardMeta {
+  color: var(--ink-3);
+  margin: 4px 0 8px;
+}
+
+.cardTags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.cardActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.directions {
+  font-size: 13px;
+  letter-spacing: 0.05em;
+}
+
+.pendingNote {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+/* ------------------------------------------------------------- the form -- */
+
+.form {
+  padding: 15px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.input {
+  padding: 9px 12px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  font: inherit;
+  font-size: 16px;
+}
+
+.sportPills {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.fieldError {
+  font-size: 13px;
+  color: var(--red);
+}
+
+.fieldOk {
+  font-size: 13px;
+  color: var(--green);
+}
+
+.formError {
+  margin: 0;
+  padding: 9px 12px;
+  border: 2.5px solid var(--ink);
+  background: var(--yellow);
+  font-size: 14px;
+}
+
+.formNote {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+/* -------------------------------------------------------------- the map -- */
+
+.mapColumn {
+  min-width: 0;
+}
+
+.mapPanel {
+  padding: 0;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 84px;
+}
+
+.mapHead {
+  padding: 11px 16px;
+  border-bottom: 3px solid var(--ink);
+  background: var(--paper-2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mapName {
+  font-size: 14px;
+}
+
+.mapLink {
+  margin-left: auto;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+}
+
+.mapCanvas {
+  flex: 1;
+  min-height: 320px;
+  width: 100%;
+}
+
+.mapPlaceholder {
+  flex: 1;
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 9px,
+      color-mix(in srgb, var(--ink-3) 14%, transparent) 9px 10px
+    ),
+    var(--paper-2);
+}
+
+.mapPlaceholderText {
+  margin: 0;
+  max-width: 34ch;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  letter-spacing: 0.03em;
+}
+
+.mapFoot {
+  padding: 10px 14px;
+  border-top: 3px solid var(--ink);
+}
+
+.mapNote {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.03em;
+}
+
+/*
+ * The pin. Mapbox draws the ground; this is the design language on top of it —
+ * a square, a 3px ink keyline, a hard offset shadow, zero radius. Selected
+ * turns yellow and grows its shadow, the same move the cards make.
+ */
+.pin {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 3px solid var(--ink);
+  background: var(--sky);
+  box-shadow: 3px 3px 0 var(--ink);
+  cursor: pointer;
+  display: block;
+}
+
+.pin:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.pin:focus-visible {
+  outline: 3px solid var(--violet);
+  outline-offset: 2px;
+}
+
+.pinOn {
+  background: var(--yellow);
+  width: 28px;
+  height: 28px;
+  box-shadow: 5px 5px 0 var(--ink);
+  z-index: 2;
+}
+
+/* Where the rider is, while they are sharing it. Never stored, never sent. */
+.hereDot {
+  width: 16px;
+  height: 16px;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  background: var(--lime);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--lime) 45%, transparent);
+}
+
+/*
+ * Mapbox's own furniture, pulled into the palette. Attribution and the Mapbox
+ * logo are a condition of using the service — they are restyled here, never
+ * hidden.
+ */
+.mapCanvas :global(.mapboxgl-ctrl-group) {
+  border: 2.5px solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--sh-sm);
+  background: var(--paper);
+}
+
+.mapCanvas :global(.mapboxgl-ctrl-group button + button) {
+  border-top: 2.5px solid var(--ink);
+}
+
+.mapCanvas :global(.mapboxgl-ctrl-attrib),
+.mapCanvas :global(.mapboxgl-ctrl-attrib a) {
+  border-radius: 0;
+  font-family: var(--fc);
+  color: var(--ink-2);
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mapPanel {
+    position: static;
+  }
+}

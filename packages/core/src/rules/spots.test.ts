@@ -1,7 +1,26 @@
 import { describe, expect, it } from 'vitest';
 
-import { SPOTS } from '../data/spots';
-import { distanceMiles, isValidLatLng, parseCoords } from './spots';
+import { SPOTS, SPOT_TYPES } from '../data/spots';
+import type { SportId } from '../types';
+import {
+  SPOT_MAX_TAGS,
+  distanceLabel,
+  distanceMiles,
+  filterSpots,
+  hasCoords,
+  isValidLatLng,
+  mapsLink,
+  parseCoords,
+  parseSpotLocation,
+  readSpotSubmission,
+  sortSpotsByDistance,
+  spotLatLng,
+  spotMatchesSearch,
+  spotMatchesSport,
+  spotSubmissionProblems,
+  splitSpotTags,
+  type SpotSubmissionDraft,
+} from './spots';
 
 describe('parsing a pasted spot', () => {
   it('reads a plain coordinate pair', () => {
@@ -69,5 +88,191 @@ describe('distance', () => {
       expect(spot).not.toHaveProperty('dist');
       expect(distanceMiles({ lat: spot.lat, lng: spot.lng }, spot)).toBe(0);
     }
+  });
+
+  it('labels near distances finely and far ones roundly', () => {
+    const here = { lat: 53.4695, lng: -2.9877 };
+    expect(distanceLabel(here, { lat: 53.4695, lng: -2.9877 })).toBe('0.0 mi');
+    expect(distanceLabel(here, { lat: 53.4779, lng: -2.25 })).toMatch(/^\d+ mi$/);
+    expect(distanceLabel(here, { lat: 0, lng: 0 })).toBeNull();
+  });
+});
+
+describe('telling the rider why a paste failed', () => {
+  it('reads a good one', () => {
+    expect(parseSpotLocation(' 53.4084, -2.9916 ')).toEqual({
+      ok: true,
+      value: { lat: 53.4084, lng: -2.9916 },
+    });
+  });
+
+  it('separates a short link from gibberish, because the fix is different', () => {
+    // A Maps share sheet hands out a link with no coordinates in it. We do not
+    // follow it — the server fetching a URL a rider chose is a forgery surface —
+    // so the rider is told to open it and copy the full one.
+    expect(parseSpotLocation('https://maps.app.goo.gl/AbCdEf123')).toEqual({
+      ok: false,
+      reason: 'short-link',
+    });
+    expect(parseSpotLocation('behind the co-op')).toEqual({ ok: false, reason: 'unreadable' });
+    expect(parseSpotLocation('   ')).toEqual({ ok: false, reason: 'empty' });
+  });
+});
+
+describe('a spot’s point', () => {
+  it('does not believe PocketBase’s empty number field', () => {
+    // An unset number field comes back as 0, so a spot submitted with no
+    // location reads as {0, 0} — a real point in the Gulf of Guinea. Plotting
+    // it would put a Liverpool skatepark in the Atlantic.
+    expect(hasCoords({ lat: 0, lng: 0 })).toBe(false);
+    expect(spotLatLng({ lat: 0, lng: 0 })).toBeNull();
+    expect(mapsLink({ lat: 0, lng: 0 })).toBe('');
+  });
+
+  it('accepts a real one, including a zero on one axis only', () => {
+    expect(hasCoords({ lat: 53.4695, lng: -2.9877 })).toBe(true);
+    expect(hasCoords({ lat: 51.4779, lng: 0 })).toBe(true);
+    expect(hasCoords({})).toBe(false);
+  });
+
+  it('links to the spot and never to the rider', () => {
+    const link = mapsLink({ lat: 53.4695, lng: -2.9877 });
+    expect(link).toBe('https://www.google.com/maps/search/?api=1&query=53.4695,-2.9877');
+    // No `saddr`, no `origin`, nothing that would carry where the rider is
+    // (plan §6.4, standard 10).
+    expect(link).not.toMatch(/saddr|origin|dir/);
+  });
+});
+
+describe('narrowing the list', () => {
+  const spots = [
+    { name: 'Rampworx', town: 'Liverpool', tags: ['Foam pit'], sports: ['scooter', 'skate'] },
+    { name: 'Southbank', town: 'London', tags: ['Flat', 'Banks'], sports: ['skate'] },
+    { name: 'Untagged', town: 'Corby', tags: [], sports: [] },
+  ];
+
+  it('searches the name, the town and the features', () => {
+    expect(spotMatchesSearch(spots[0]!, 'ramp')).toBe(true);
+    expect(spotMatchesSearch(spots[0]!, 'liverpool')).toBe(true);
+    expect(spotMatchesSearch(spots[0]!, 'foam')).toBe(true);
+    expect(spotMatchesSearch(spots[0]!, 'bowl')).toBe(false);
+    expect(spotMatchesSearch(spots[0]!, '   ')).toBe(true);
+  });
+
+  it('treats an untagged spot as good for everyone', () => {
+    // Not a scooter-only park — a park nobody has tagged yet.
+    expect(spotMatchesSport(spots[2]!, 'bmx')).toBe(true);
+    expect(spotMatchesSport(spots[1]!, 'bmx')).toBe(false);
+    expect(spotMatchesSport(spots[1]!, null)).toBe(true);
+  });
+
+  it('combines the search box and the sport pill', () => {
+    expect(filterSpots(spots, { sport: 'skate' }).map((s) => s.name)).toEqual([
+      'Rampworx',
+      'Southbank',
+      'Untagged',
+    ]);
+    expect(filterSpots(spots, { search: 'london', sport: 'skate' }).map((s) => s.name)).toEqual([
+      'Southbank',
+    ]);
+    expect(filterSpots(spots, {}).length).toBe(3);
+  });
+});
+
+describe('nearest first', () => {
+  const spots = [
+    { name: 'Southbank', lat: 51.506, lng: -0.116 },
+    { name: 'No location', lat: 0, lng: 0 },
+    { name: 'Rampworx', lat: 53.4695, lng: -2.9877 },
+    { name: 'Deansgate', lat: 53.4779, lng: -2.25 },
+  ];
+
+  it('orders by distance from wherever the rider says they are', () => {
+    const fromLiverpool = sortSpotsByDistance(spots, { lat: 53.4084, lng: -2.9916 });
+    expect(fromLiverpool.map((s) => s.name)).toEqual([
+      'Rampworx',
+      'Deansgate',
+      'Southbank',
+      'No location',
+    ]);
+
+    const fromLondon = sortSpotsByDistance(spots, { lat: 51.5, lng: -0.12 });
+    expect(fromLondon[0]!.name).toBe('Southbank');
+    // A spot with no point cannot be near anything, wherever you stand.
+    expect(fromLondon.at(-1)!.name).toBe('No location');
+  });
+
+  it('leaves the input alone', () => {
+    const before = spots.map((s) => s.name);
+    sortSpotsByDistance(spots, { lat: 51.5, lng: -0.12 });
+    expect(spots.map((s) => s.name)).toEqual(before);
+  });
+});
+
+describe('reading a submission', () => {
+  const good: SpotSubmissionDraft = {
+    name: '  Bramley Bowl  ',
+    town: ' Leeds ',
+    type: 'Concrete',
+    coords: 'https://www.google.com/maps/@53.7997,-1.5492,17z',
+    sports: ['scooter'] as SportId[],
+    tags: 'Bowl, ledges ,Bowl,,',
+  };
+
+  it('turns a filled-in form into the record spots stores', () => {
+    const read = readSpotSubmission(good);
+    expect(read).toEqual({
+      ok: true,
+      value: {
+        name: 'Bramley Bowl',
+        town: 'Leeds',
+        type: 'Concrete',
+        lat: 53.7997,
+        lng: -1.5492,
+        sports: ['scooter'],
+        tags: ['Bowl', 'ledges'],
+      },
+    });
+  });
+
+  it('insists on a location, which the prototype’s form did not', () => {
+    // A spot with no point cannot be plotted on a map whose job is plotting
+    // them, and a reviewer handed a name and a town has nothing to check.
+    const problems = spotSubmissionProblems({ ...good, coords: '' });
+    expect(problems.coords).toBeTruthy();
+    expect(readSpotSubmission({ ...good, coords: '' }).ok).toBe(false);
+  });
+
+  it('names every other thing that is missing, one message per field', () => {
+    const problems = spotSubmissionProblems({
+      name: '   ',
+      town: '',
+      type: 'Rooftop',
+      coords: 'nowhere',
+      sports: [],
+      tags: '',
+    });
+    expect(Object.keys(problems).sort()).toEqual(['coords', 'name', 'sports', 'town', 'type']);
+  });
+
+  it('accepts every type the form offers and nothing else', () => {
+    for (const type of SPOT_TYPES) {
+      expect(spotSubmissionProblems({ ...good, type }).type).toBeUndefined();
+    }
+    expect(spotSubmissionProblems({ ...good, type: 'Skatepark' }).type).toBeTruthy();
+  });
+
+  it('refuses names and towns longer than the collection stores', () => {
+    expect(spotSubmissionProblems({ ...good, name: 'x'.repeat(81) }).name).toBeTruthy();
+    expect(spotSubmissionProblems({ ...good, town: 'x'.repeat(61) }).town).toBeTruthy();
+  });
+
+  it('tidies the tag field rather than refusing it', () => {
+    expect(splitSpotTags(' Bowl , bowl , Ledges ')).toEqual(['Bowl', 'Ledges']);
+    expect(splitSpotTags('')).toEqual([]);
+    expect(splitSpotTags(Array.from({ length: 20 }, (_, i) => `tag${i}`).join(','))).toHaveLength(
+      SPOT_MAX_TAGS,
+    );
+    expect(splitSpotTags('x'.repeat(40))[0]).toHaveLength(24);
   });
 });

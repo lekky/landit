@@ -8,6 +8,18 @@ import type { Spot } from '../types';
  * spot, so it is not stored: use `distanceMiles` from `../rules/spots.ts`.
  * Every seeded spot is `live`; rider submissions land as `pending` (plan §3).
  */
+/**
+ * What kind of place a spot is — the three options on the prototype's submission
+ * form, in its order, and the only values `spots.type` is expected to hold.
+ *
+ * A list rather than free text because it is a filter and a facet, not a
+ * description: "Concrete" and "concrete park" and "outdoor concrete" would be
+ * three types in a queue a human reads.
+ */
+export const SPOT_TYPES = ['Street spot', 'Indoor park', 'Concrete'] as const;
+
+export type SpotType = (typeof SPOT_TYPES)[number];
+
 export const SPOTS = [
   {
     name: 'Rampworx',

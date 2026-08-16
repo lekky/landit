@@ -252,7 +252,9 @@ describe('a guardian with no account approves', () => {
     // writes the one field the refusal reads.
     const after = await call('POST', '/api/collections/spots/records', {
       token: rider.token,
-      body: { name: 'After Consent', town: 'Leeds' },
+      // Coordinates since T13: a spot has to be somewhere (`62_spots.pb.js`).
+      // What is being tested here is the consent gate opening, not the spot.
+      body: { name: 'After Consent', town: 'Leeds', lat: 53.7997, lng: -1.5492 },
     });
     expect(after.status).toBe(200);
   });
