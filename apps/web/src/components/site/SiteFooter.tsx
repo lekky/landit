@@ -1,7 +1,7 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 
-import { legalHref } from '@/lib/routes';
+import { ROUTES, legalHref } from '@/lib/routes';
 import { sportsWithArticles } from '@/lib/sports';
 
 import { Wordmark } from './Wordmark';
@@ -13,7 +13,16 @@ import styles from './site.module.css';
  *
  * Columns whose destination has not been built yet render as plain labels —
  * see `lib/routes.ts` for why, and for the one line that turns each back into a
- * link. The prototype's "Avatar set" link is not here at all: it pointed at
+ * link. Stickers, Events, Spots, Crew, the weekly challenge and plans are still
+ * labels; T10 to T15 land those routes and each fills in its own line.
+ *
+ * The footer is shared with the signed-out pages, and Progress is a signed-in
+ * screen that bounces a visitor to `/signin`. That is deliberate rather than
+ * overlooked: `components/shell/nav.ts` already links it for signed-out
+ * visitors on `/library` — which is readable without an account — so leaving
+ * the footer a label while the top bar links it would be the odd choice.
+ *
+ * The prototype's "Avatar set" link is not here at all: it pointed at
  * `Land It - Avatars.html`, a page of the design pack that no task in §7 turns
  * into a route, so there is nothing for it to become. Filed as an issue rather
  * than guessed at.
@@ -26,8 +35,8 @@ const COLUMNS: readonly FooterColumn[] = [
   {
     title: 'The app',
     links: [
-      { label: 'Trick library' },
-      { label: 'Progress' },
+      { label: 'Trick library', href: ROUTES.library },
+      { label: 'Progress', href: ROUTES.progress },
       { label: 'Stickers' },
       { label: 'Events' },
       { label: 'Spots' },
