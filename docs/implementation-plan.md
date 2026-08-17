@@ -11,7 +11,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | --- | --- | --- |
 | Platform | **Web first (Next.js), native later** | One repo, shared logic. See §2. |
 | Sports at launch | **Three: scooter, skateboard and BMX** | Decided 2026-08-16. BMX ships at launch, not as a fast-follow. Sport is already a dimension in the code, so the engineering is small; the BMX trick library and its visual assets have no source and are the owner's to author — see the BMX track in §7. |
-| Offline level | **Read-only cache** on web; full local-first deferred to the native app | Departs from the handoff's recommendation — see §2.3. |
+| Offline level | **Read-only cache** on web; full local-first deferred to the native app | Departs from the handoff's recommendation — see §2.3. Built in T19; confirmed acceptable for launch 2026-08-17, which also settles `useOffline` as off. |
 | Backend | **PocketBase** (self-hosted on the VPS, one instance per product) | SQLite + auth + file storage + API rules in one binary. Replaced Supabase 2026-08-15 — see §2.6 for why and what it demands. |
 | Hosting | **VPS (hostmedia.uk, Coventry) + Coolify** | 4GB/2vCPU, £16.80/mo flat for all products. Coolify does deploys, SSL, subdomains and PR previews. Replaced Railway 2026-08-15. |
 | Backups | **Litestream → Cloudflare R2**, continuous | Non-negotiable for self-hosting children's data. Restore rehearsed before launch. See §2.6. |
@@ -105,9 +105,24 @@ The plan is therefore a service-worker read-only cache on web (library and the r
 readable at the park, logging needs signal), with full local-first arriving in the native app where
 the tooling actually supports it.
 
-This is a real cost of web-first, not a free choice. It is worth confirming that "you can read your
-tricks but not log them offline" is acceptable for launch. If it is not, that argues for bringing
-the native app forward rather than for building a sync engine in the browser.
+This is a real cost of web-first, not a free choice.
+
+**Confirmed acceptable for launch (Rachid, 2026-08-17, in chat).** "You can read your tricks but not
+log them offline" is what Land It ships. This paragraph used to ask for that confirmation and it is
+no longer an open question — a session reading it should build to the line above, not re-raise the
+trade.
+
+Two things the confirmation deliberately does **not** do. It does not close off the native app: full
+local-first is still where this goes, and if riders tell us that logging at a park matters more than
+we think, §2.3's original reasoning stands — that argues for bringing the native app forward, not
+for building a sync engine in a browser. And it does not settle it forever: the evidence that would
+reopen it is a rider landing a trick at a park, finding the stage will not take, and not coming back
+to it later. Nobody has watched that happen yet, because there are no riders yet.
+
+It also decides the smaller version of the same question. Next 16 ships an experimental
+`useOffline` flag that would hold a failed Server Action pending and retry it when the connection
+returns — logging at a park, landing later. It is **off**, and off deliberately rather than for want
+of trying it: queuing writes is the thing this decision declines to do (T19, issue #144).
 
 ### 2.4 Payments — model entitlements yourself
 
