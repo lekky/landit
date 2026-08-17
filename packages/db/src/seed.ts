@@ -7,6 +7,7 @@ import {
   STICKERS,
   TRICKS,
   TRICK_PREREQS,
+  formatPricePence,
   type Plan,
   type Sticker,
   type Trick,
@@ -51,11 +52,15 @@ export interface SeedPlan {
   readonly tables: readonly SeedTable[];
 }
 
-/** Money is stored in pence and displayed as text, so the seed formats it once. */
-function money(pence: number): string {
-  if (pence <= 0) return 'Free';
-  return `£${(pence / 100).toFixed(2)}`;
-}
+/**
+ * Money is stored in pence and displayed as text, so the seed formats it once.
+ *
+ * `formatPricePence` from `@landit/core` rather than a local copy (T15): the
+ * plans page renders the same figures, and two formatters that agree today are
+ * two formatters that can stop agreeing — the shape of the trap §4 of
+ * `docs/LESSONS.md` describes.
+ */
+const money = formatPricePence;
 
 /**
  * The canonical data as records, ready to write. Pure — no client, no I/O — so

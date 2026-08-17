@@ -111,14 +111,14 @@ test('every nav item whose screen exists is a real link', async ({ page }) => {
     ['Challenge', '/challenge'],
     ['Events', '/events'],
     ['Spots', '/spots'],
+    // T15's, and the last one. Every item in `components/shell/nav.ts` is now a
+    // real link, so the "a screen that is not built yet is a label" half of this
+    // rule no longer has an exemplar in the nav — it still has one in
+    // `landing.spec.ts` while any footer entry is unbuilt.
+    ['Plans', '/plans'],
   ] as const) {
     await expect(nav.getByRole('link', { name, exact: true })).toHaveAttribute('href', href);
   }
-
-  // Plans is T15's and stays a label. Same exemplar as the footer test, and it
-  // goes stale the same way — repoint it when `/plans` lands, do not delete it.
-  await expect(nav.getByText('Plans', { exact: true })).toBeVisible();
-  await expect(nav.getByRole('link', { name: 'Plans', exact: true })).toHaveCount(0);
 });
 
 test('the sport switch offers one tab per sport', async ({ page }) => {

@@ -1,5 +1,5 @@
 import { CATS, TIERS_LABEL, categoryLabel, type Trick } from '@landit/core';
-import { Button, Difficulty, Icon, Panel, SportChip, Tag } from '@landit/ui-web';
+import { Difficulty, Icon, Panel, SportChip, Tag } from '@landit/ui-web';
 import Link from 'next/link';
 
 import { ROUTES, trickHref } from '@/lib/routes';
@@ -74,16 +74,18 @@ export function LockedTrick({
           </p>
           <div className={styles.lockActions}>
             {/*
-              `/plans` is a later task, and `typedRoutes` makes a link to a page
-              nobody has built a compile error. The button keeps its place and
-              loses its href rather than 404ing a rider (LESSONS §3a).
+              T15 landed `/plans`, so the button that had lost its href to
+              `typedRoutes` has it back (LESSONS §3a). It is a link rather than a
+              button because it navigates, and a rider should be able to open it
+              in a new tab (issue #53's shape).
             */}
-            <Button disabled>See plans</Button>
+            <Link className="btn" href={ROUTES.plans}>
+              See plans
+            </Link>
             <Link className="btn ghost" href={ROUTES.library}>
               Back to the library
             </Link>
           </div>
-          <span className={`cond ${styles.lockNote}`}>Upgrading is not switched on yet.</span>
 
           {prereqs.length > 0 && (
             <div className={styles.lockPrereqs}>

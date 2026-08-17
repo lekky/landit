@@ -85,7 +85,9 @@ export {
   challengesFromRecords,
   clipCapBytes,
   clipVaultUsage,
+  emailGuardianUpgrade,
   eventsFromRecords,
+  getActiveSubscription,
   getClip,
   getCrew,
   getCrewBoard,
@@ -108,6 +110,7 @@ export {
   listRiderStickers,
   listSpots,
   listStickers,
+  listSubscriptions,
   listTrickLog,
   listTrickPrereqs,
   listTrickProgress,
@@ -147,8 +150,10 @@ export {
   unattendEvent,
   updateProfile,
   uploadClip,
+  upsertSubscription,
   type ProfileEdit,
   type StageChange,
+  type SubscriptionWrite,
   type WeeklyStreakWrite,
 } from './mutations';
 

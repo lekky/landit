@@ -1,4 +1,4 @@
-import type { StageId } from '@landit/core';
+import type { PayerKind, StageId } from '@landit/core';
 
 import type { Client } from './clients';
 import { records } from './collections';
@@ -13,6 +13,10 @@ import type {
   EventAttendanceRecord,
   RiderStickersRecord,
   SpotsRecord,
+  SubscriptionsCreate,
+  SubscriptionsRecord,
+  SubscriptionsSource,
+  SubscriptionsStatus,
   TrickLogRecord,
   TrickNotesRecord,
   TrickProgressRecord,
@@ -492,4 +496,79 @@ export async function clipFileToken(client: Client): Promise<string> {
 /** The URL those bytes come from, for a token `clipFileToken` just minted. */
 export function clipFileUrl(client: Client, clip: ClipsRecord, token: string): string {
   return client.files.getURL(clip, clip.file, { token });
+
+/* --------------------------------------------------------- subscriptions -- */
+
+/**
+ * T15's block. One function, and it is **not a rider's write**: `subscriptions`
+ * has no create, update or delete rule at all, so the only caller is server
+ * code holding the superuser client — the Stripe webhook.
+ *
+ * It is here rather than in the route so that the write has one shape wherever
+ * it is made, and so the route stays what it should be: signature check,
+ * translate, hand over.
+ */
+
+export interface SubscriptionWrite {
+  /** The Land It rider this entitles. From the Checkout session's metadata. */
+  readonly userId: string;
+  /** A `plans` record id — never a slug, and never a Stripe price id. */
+  readonly planId: string;
+  readonly source: SubscriptionsSource;
+  readonly status: SubscriptionsStatus;
+  /** The provider's subscription id. The idempotency key on redelivery. */
+  readonly externalId: string;
+  /** The Checkout Session id, for matching the first event to its session. */
+  readonly checkoutRef?: string;
+  /** When the paid-up period ends, ISO. Empty while unknown. */
+  readonly periodEnd?: string;
+  readonly payerKind: PayerKind;
+  /** Whether the payer confirmed they are 18 or over (plan §6.2). */
+  readonly payerAdultConfirmed: boolean;
+}
+
+/**
+ * File what the provider said, and let the hook decide what it means.
+ *
+ * **Idempotent by `external_id`.** Stripe retries any event it does not get a
+ * 2xx for and will deliver the same one more than once by design; without a key
+ * to match on, a redelivered `checkout.session.completed` is a second
+ * subscription row for the same subscription. A partial unique index on the
+ * column backs this up at the database, so the race between two deliveries
+ * arriving at once fails loudly rather than quietly duplicating.
+ *
+ * **It grants nothing.** `users.plan` is not touched here. The hook resolves it
+ * from these rows after the write succeeds (plan §2.4), which is what keeps the
+ * entitlement a function of our own database rather than of whichever provider
+ * spoke last — and what will let Apple and Google arrive as two more `source`
+ * values instead of two more places the answer lives.
+ *
+ * **It is not the authorisation either.** Consent, the 18+ confirmation and the
+ * under-16 guardian rule are all refused by
+ * `pocketbase/hooks/55_subscriptions.pb.js` at the model layer, so a forged
+ * event that got past the signature check still cannot grant a plan. A `403`
+ * out of this function is that working.
+ */
+export async function upsertSubscription(
+  client: Client,
+  input: SubscriptionWrite,
+): Promise<SubscriptionsRecord> {
+  const body = {
+    user: input.userId,
+    plan: input.planId,
+    source: input.source,
+    status: input.status,
+    external_id: input.externalId,
+    checkout_ref: input.checkoutRef ?? '',
+    period_end: input.periodEnd ?? '',
+    payer_kind: input.payerKind,
+    payer_adult_confirmed: input.payerAdultConfirmed,
+  } satisfies SubscriptionsCreate;
+
+  const existing = input.externalId
+    ? await records(client, 'subscriptions').first('external_id = {:id}', { id: input.externalId })
+    : null;
+
+  if (existing) return records(client, 'subscriptions').update(existing.id, body);
+  return records(client, 'subscriptions').create(body);
 }

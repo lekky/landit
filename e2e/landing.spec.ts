@@ -58,23 +58,24 @@ test('the footer links to every legal document', async ({ page }) => {
   }
 });
 
-test('a screen that is not built yet is a label, never a broken link', async ({ page }) => {
-  await page.goto('/');
-
-  const footer = page.getByRole('contentinfo');
-  // "Plans and pricing" is T15's, the furthest out of the footer's remaining
-  // labels. It keeps its place in the footer and stays out of the tab order
-  // until then.
-  //
-  // This exemplar is expected to go stale, and repointing it is the correct
-  // response — not deleting the test. It named "Trick library" until T7 built
-  // `/library`; `chore-wire-wave4-links` moved it here rather than dropping the
-  // guarantee, which is that an unbuilt destination renders as a label. When
-  // T15 lands `/plans`, move it to whatever is still unbuilt; when nothing is,
-  // the pattern has served its purpose and the test can go with it.
-  await expect(footer.getByText('Plans and pricing', { exact: true })).toBeVisible();
-  await expect(footer.getByRole('link', { name: 'Plans and pricing' })).toHaveCount(0);
-});
+/*
+ * "A screen that is not built yet is a label, never a broken link" used to be a
+ * test here, and it is gone because T15 landed the last unbuilt destination the
+ * footer had.
+ *
+ * That is what its own comment asked for. It named "Trick library" until T7
+ * built `/library` and "Plans and pricing" until T15 built `/plans`, and it
+ * said: when nothing is unbuilt, the pattern has served its purpose and the
+ * test can go with it. Every entry in `components/site/SiteFooter.tsx` now
+ * carries an `href`.
+ *
+ * The *mechanism* survives and is still the right one: `FooterLink.href` is
+ * optional, and an entry without one renders as plain text outside the tab
+ * order rather than as a dead link (LESSONS §3a). A future session that adds a
+ * destination before its screen exists should bring this test back, pointed at
+ * whatever it added — that is cheaper than rediscovering why the field is
+ * optional.
+ */
 
 test('a screen that has been built is a real link', async ({ page }) => {
   await page.goto('/');
@@ -97,6 +98,9 @@ test('a screen that has been built is a real link', async ({ page }) => {
     ['Spots', '/spots'],
     ['Crew', '/crew'],
     ['Weekly challenge', '/challenge'],
+    // T15's. The footer is where a person deciding whether to sign up looks for
+    // the price, so this is the one app screen that also reads signed out.
+    ['Plans and pricing', '/plans'],
   ] as const) {
     await expect(footer.getByRole('link', { name, exact: true })).toHaveAttribute('href', href);
   }

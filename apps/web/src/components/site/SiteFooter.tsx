@@ -47,7 +47,7 @@ const COLUMNS: readonly FooterColumn[] = [
     links: [
       { label: 'Crew', href: ROUTES.crew },
       { label: 'Weekly challenge', href: ROUTES.challenge },
-      { label: 'Plans and pricing' },
+      { label: 'Plans and pricing', href: ROUTES.plans },
     ],
   },
   {

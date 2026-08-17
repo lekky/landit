@@ -53,6 +53,7 @@ export type ReportsSubjectType = 'profile' | 'clip' | 'spot' | 'other';
 export type SpotsSports = 'scooter' | 'skate' | 'bmx';
 export type SpotsStatus = 'pending' | 'live' | 'rejected';
 export type StickersSport = 'scooter' | 'skate' | 'bmx';
+export type SubscriptionsPayerKind = 'rider' | 'guardian';
 export type SubscriptionsSource = 'stripe' | 'apple' | 'google' | 'staff';
 export type SubscriptionsStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'expired';
 export type TrickLogStage = 'want' | 'trying' | 'some' | 'most' | 'every';
@@ -609,6 +610,9 @@ export interface SubscriptionsRecord {
   period_end: string;
   created: string;
   updated: string;
+  payer_kind: SubscriptionsPayerKind;
+  payer_adult_confirmed: boolean;
+  checkout_ref: string;
 }
 
 /** The shape accepted when creating a `subscriptions` record. */
@@ -620,6 +624,9 @@ export interface SubscriptionsCreate {
   status?: SubscriptionsStatus;
   external_id?: string;
   period_end?: string;
+  payer_kind?: SubscriptionsPayerKind;
+  payer_adult_confirmed?: boolean;
+  checkout_ref?: string;
 }
 
 /** The shape accepted when updating a `subscriptions` record. */

@@ -53,6 +53,12 @@ export const ROUTES = {
   /** T13's spots and map, on the same terms. */
   spots: '/spots',
   /**
+   * Membership (T15). The one screen in the app group that reads signed out:
+   * the site footer links it, and a person deciding whether to sign up should
+   * not have to sign up to find out what it costs.
+   */
+  plans: '/plans',
+  /**
    * The staff portal (T16), and the one route here that is not for riders.
    *
    * Deliberately **not** wired into `components/shell/nav.ts`. Partly for the

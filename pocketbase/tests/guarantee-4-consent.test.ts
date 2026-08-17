@@ -291,6 +291,14 @@ describe('guarantee 4 — the guardian-consent gate is enforced by the API', () 
         plan: plans.body.items[0]!.id,
         source: 'stripe',
         status: 'active',
+        // T15 added two more conditions to holding a subscription (plan §6.2,
+        // `55_subscriptions.pb.js`): the payer confirms they are 18 or over,
+        // and an under-16 rider's is bought by their guardian. `granted` is an
+        // under-13, so both apply. This test's subject is the consent gate, not
+        // the payer rule — the two lines are here so it can still get past the
+        // rule that moved (LESSONS §3).
+        payer_kind: 'guardian',
+        payer_adult_confirmed: true,
       },
     });
     expect(allowed.status).toBe(200);
