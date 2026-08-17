@@ -37,11 +37,22 @@ import { countWord, sportsList } from '@/lib/sports';
  *   they sit in is private", which described a clip vault that has been removed
  *   (plan §1, §6.6, §3 guarantee 2). It was replaced rather than softened:
  *   there is no upload, so a sentence about how carefully the uploads are kept
- *   would be true only because it is vacuous. When `t15b-video-links` lands,
- *   riders will paste **YouTube links** and these documents will need a
- *   paragraph about what a link means — the video is on YouTube, under
- *   YouTube's terms, and its Land It visibility is capped by profile privacy.
- *   Do not pre-write that here; it is not built yet.
+ *   would be true only because it is vacuous.
+ * - **The video-link paragraphs are written and the claim is still "we do not
+ *   host video"** — added by T15b, 2026-08-17. A rider adds a **link** to a
+ *   video they put on YouTube; we keep the YouTube reference and nothing else,
+ *   not a copy and not a thumbnail. Three facts in that copy are the ones that
+ *   must not drift, because each is enforced by a rule rather than by good
+ *   intentions (plan §3 guarantee 2, `pocketbase/tests/video-links.test.ts`):
+ *   every video starts **private**; there is **no public setting** for one, so
+ *   nobody who is not signed in can ever reach it; and a **private profile caps
+ *   its videos**, whatever the rider set on them. If any of those three changes,
+ *   this copy is a published promise that has stopped being true.
+ *
+ *   The "player only loads when you press play" sentence is likewise a fact
+ *   about the code (`VideoEmbed`, click-to-play, `youtube-nocookie`) and the
+ *   reason the cookie policy still has nothing to declare for YouTube. It is
+ *   asserted in `e2e/video-links.spec.ts`.
  *
  * Anything the owner has not decided is absent rather than invented: there is
  * no data-controller section and no named accountable individual here, because
@@ -113,6 +124,10 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         h: 'Video',
         p: [
           'Land It does not host video. There is no upload, and no clip of yours is stored on our servers.',
+          'What you can do is add a link to a video you have already put on YouTube. We keep the video’s YouTube reference and nothing else — not a copy, not a thumbnail, not a still.',
+          'The video itself stays on YouTube, under YouTube’s terms and their control, and it keeps whatever setting you gave it there. Removing it from Land It does not remove it from YouTube, and removing it from YouTube makes it stop working here.',
+          'Every video you add starts private. You choose whether to open it to riders signed in to Land It, and a video is never visible to anyone who is not signed in — there is no public setting for one. If your profile is private, your videos stay private too, whatever you set on them: your profile is the limit and a video can only ever be more closed than it, never more open.',
+          'The player only loads when you press play. Until then nothing on the page talks to YouTube or to Google.',
           'Delete your account and everything we hold about you goes with it.',
         ],
       },
@@ -163,6 +178,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         h: 'What you post',
         p: [
           'You own your notes and everything you track. You give us permission to store them and show them back to you inside the app.',
+          'A video you link to has to be yours to share. We do not hold the video, so we cannot take it down — only the link here. If a link points at something that should not be on Land It we will remove the link and, where it matters, the account.',
           'Nothing illegal, nothing abusive, nothing that puts other riders at risk. We will remove content and close accounts that break this.',
         ],
       },
@@ -172,6 +188,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
           'Paid plans renew monthly or yearly until you cancel. Cancel any time and you keep access until the period ends.',
           'Whoever pays has to be 18 or over. Riders under 16 cannot buy a plan inside the app — the upgrade goes to a parent or guardian by email instead.',
           'Your tracked tricks and stickers stay yours if you drop back to the free plan. Tricks above the free tier become read only rather than being deleted.',
+          'Adding video links is part of the paid plans, and each plan says how many. Links you already added stay where they are if you drop back to the free plan — you just cannot add another until you are back on a paid one.',
           'Stickers and stages are earned, never sold. No plan will ever buy you an achievement.',
         ],
       },
@@ -195,7 +212,8 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         p: [
           'New profiles are private. Being visible to other riders is a choice a rider makes, not the setting they are given.',
           'Surnames and email addresses never appear on a public profile.',
-          'Land It does not host video. There is no upload anywhere in the app, so there is no rider footage here to be seen by anybody.',
+          'Land It does not host video. There is no upload anywhere in the app, so there is no rider footage on our servers.',
+          'A rider can add a link to a video they have put on YouTube. Every one starts private, a video is never visible to anyone who is not signed in, and a rider whose profile is private has videos nobody else can see whatever they set on them. There is no public setting for a video, deliberately: it is the one thing on Land It a stranger could otherwise reach.',
         ],
       },
       {
@@ -251,6 +269,14 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         p: [
           'We count how many people open each page, so we know which parts of the app to improve.',
           'It is set up without cookies and without advertising identifiers, and the counts are not attached to you. There is no per-rider analytics profile here — not one to look at, not one to switch off, and not one to ask us for.',
+        ],
+      },
+      {
+        h: 'Videos, and the one thing that is up to you',
+        p: [
+          'Riders can add a link to a video on YouTube. A page with one on it shows a still panel and a play button, and nothing on it talks to YouTube or to Google until you press play. Not a thumbnail, not a hidden player, nothing.',
+          'Press play and YouTube’s player loads, from a version of their address built for this, and from then on YouTube can set storage of its own on your device — that part is theirs, not ours. If you would rather it did not, do not press play, or open the video on YouTube where you can decide with everything else in front of you.',
+          'This is why Land It has no cookie pop-up: nothing third-party runs here unless you ask for it.',
         ],
       },
       {

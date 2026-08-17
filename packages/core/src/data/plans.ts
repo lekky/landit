@@ -1,4 +1,5 @@
-import type { Plan, PlanId } from '../types';
+import { SHREDDER_VIDEO_LINK_CAP, videoLinkAllowanceLabel } from '../rules/video';
+import type { Plan, PlanId, VideoLinkAllowance } from '../types';
 
 /** One gigabyte. Only `clipCapBytes` uses it, and that field is dormant — see below. */
 const GB = 1024 * 1024 * 1024;
@@ -24,8 +25,18 @@ const GB = 1024 * 1024 * 1024;
  * to rise with price. Zeroing it would collapse that ordering; replacing it
  * needs an explicit rank column, which is issue territory rather than this PR's
  * (see the §6.6 note in the plan). **Do not read it as a vault size, and do not
- * put a number derived from it on a screen.** `t15b-video-links` decides
- * whether any per-plan video limit exists at all.
+ * put a number derived from it on a screen.** The per-plan video limit that
+ * replaced it is `videoLinkCap`/`videoLinksUnlimited` below — a **count of
+ * links**, not bytes, because we do not hold the bytes.
+ *
+ * `videoLinkCap` and `videoLinksUnlimited` are the video-link allowance (§6.6,
+ * owner's decision 2026-08-17: Rookie none, Shredder a limited number, Legend
+ * unlimited). Two fields rather than one number with a sentinel in it —
+ * `videoLinkAllowance` in `rules/video.ts` records why, and why that is also the
+ * fail-closed direction in the database. **Shredder's number is a tunable
+ * default, not a deliberated decision** (`SHREDDER_VIDEO_LINK_CAP`, plan §1
+ * alongside `WEEKLY_RIDE_TARGET`); Rookie's zero and Legend's unlimited are the
+ * owner's.
  *
  * `includesInsights` is the same idea for the progress insights panel (§2.4):
  * Legend only, resolved from the plan record rather than from a hard-coded
@@ -40,6 +51,20 @@ const GB = 1024 * 1024 * 1024;
  * Copy is the plan's pitch rendered into the prototype's card shape; T15 owns
  * the final wording of the plans page.
  */
+/**
+ * The allowance each plan grants, and the one place the numbers live.
+ *
+ * The perk lines below are *rendered* from these through
+ * `videoLinkAllowanceLabel`, rather than being typed out beside them, so a card
+ * cannot advertise a number the hook does not enforce. Moving Shredder's cap is
+ * `SHREDDER_VIDEO_LINK_CAP` and nothing else.
+ */
+const VIDEO_LINKS = {
+  rookie: { cap: 0, unlimited: false },
+  shredder: { cap: SHREDDER_VIDEO_LINK_CAP, unlimited: false },
+  legend: { cap: 0, unlimited: true },
+} as const satisfies Record<PlanId, VideoLinkAllowance>;
+
 export const PLANS = [
   {
     id: 'rookie',
@@ -54,13 +79,19 @@ export const PLANS = [
       "This week's challenge",
       'Spots map and your crew',
     ],
-    missing: ['Spicy, Gnarly and Pro tricks', 'Progress insights'],
+    missing: [
+      'Spicy, Gnarly and Pro tricks',
+      'Progress insights',
+      videoLinkAllowanceLabel(VIDEO_LINKS.rookie),
+    ],
     priceMonthlyPence: 0,
     priceYearlyPence: 0,
     clipCapBytes: 0,
     unlocksPaidTricks: false,
     includesInsights: false,
     includesFlair: false,
+    videoLinkCap: VIDEO_LINKS.rookie.cap,
+    videoLinksUnlimited: VIDEO_LINKS.rookie.unlimited,
   },
   {
     id: 'shredder',
@@ -74,6 +105,7 @@ export const PLANS = [
       'Spicy, Gnarly and Pro unlocked',
       'Challenge history + progress stats',
       'Custom printable sheets',
+      `${videoLinkAllowanceLabel(VIDEO_LINKS.shredder)}, private until you say otherwise`,
     ],
     missing: ['Legend flair', 'Progress insights'],
     priceMonthlyPence: 399,
@@ -82,6 +114,8 @@ export const PLANS = [
     unlocksPaidTricks: true,
     includesInsights: false,
     includesFlair: false,
+    videoLinkCap: VIDEO_LINKS.shredder.cap,
+    videoLinksUnlimited: VIDEO_LINKS.shredder.unlimited,
   },
   {
     id: 'legend',
@@ -94,6 +128,7 @@ export const PLANS = [
       'Exclusive avatar drops',
       'Progress insights: per-category trends and personal records',
       'Next-trick suggestions from the skill tree',
+      videoLinkAllowanceLabel(VIDEO_LINKS.legend),
     ],
     missing: [],
     priceMonthlyPence: 699,
@@ -102,6 +137,8 @@ export const PLANS = [
     unlocksPaidTricks: true,
     includesInsights: true,
     includesFlair: true,
+    videoLinkCap: VIDEO_LINKS.legend.cap,
+    videoLinksUnlimited: VIDEO_LINKS.legend.unlimited,
   },
 ] as const satisfies readonly Plan[];
 

@@ -1,0 +1,250 @@
+/*
+ * Video links — the panel, the poster and the row (T15b).
+ *
+ * The design contract holds throughout: zero border radius, 2.5px/3px ink
+ * borders, hard offset shadows that are never blurred. The layout is the
+ * prototype's clips panel (`landit-screens-a.jsx`, screenshot 09) — a two-up
+ * grid of 16:10 tiles inside the side column — reused as a *layout* reference
+ * only, since its upload behaviour is void (plan §7, T14).
+ */
+
+.panel {
+  padding: 15px;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.count {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+@media (max-width: 520px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* -------------------------------------------------------------- one tile -- */
+
+.tile {
+  border: 2.5px solid var(--ink);
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+}
+
+.frame {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: var(--ink);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+/*
+ * The poster. Drawn, never fetched — see `VideoEmbed.tsx`: YouTube's own
+ * thumbnail is a request to Google on page load, which is the thing the
+ * click-to-play gate exists to prevent.
+ */
+.poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgb(255 255 255 / 4%) 0 10px,
+      rgb(255 255 255 / 0%) 10px 20px
+    ),
+    var(--ink);
+}
+
+.playMark {
+  width: 46px;
+  height: 46px;
+  border: 3px solid var(--paper);
+  background: var(--orange);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  box-shadow: 4px 4px 0 var(--paper);
+  transition:
+    transform 0.08s,
+    box-shadow 0.08s;
+}
+
+.poster:hover .playMark {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--paper);
+}
+
+.poster:active .playMark {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--paper);
+}
+
+.posterLabel {
+  color: var(--paper);
+  font-size: 10.5px;
+}
+
+.posterOut {
+  position: absolute;
+  right: 5px;
+  bottom: 4px;
+  font-size: 11px;
+  color: var(--paper);
+  text-decoration: underline;
+  opacity: 0.72;
+  z-index: 1;
+}
+
+.posterOut:hover {
+  color: var(--paper);
+  opacity: 1;
+}
+
+/* ------------------------------------------------------ the tile's feet -- */
+
+.tileFoot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  background: var(--paper-2);
+  border-top: 2.5px solid var(--ink);
+}
+
+.visibility {
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--fb);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.remove {
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink-2);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-family: var(--fb);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex: none;
+}
+
+.remove:hover {
+  background: var(--red);
+  color: #fff;
+}
+
+.remove:disabled,
+.visibility:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Who can see it, on somebody else's profile — read only, no control. */
+.seenBy {
+  padding: 5px 7px;
+  background: var(--paper-2);
+  border-top: 2.5px solid var(--ink);
+  font-family: var(--fb);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ------------------------------------------------------------- the form -- */
+
+.form {
+  display: flex;
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.input {
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: var(--fb);
+  flex: 1;
+  min-width: 0;
+}
+
+.input:disabled {
+  background: var(--wash);
+}
+
+.hint {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+.problem {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--red);
+}
+
+.locked {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+/* ------------------------------------------------- the profile section -- */
+
+.profileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}

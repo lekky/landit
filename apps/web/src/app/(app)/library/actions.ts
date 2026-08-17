@@ -1,7 +1,15 @@
 'use server';
 
-import type { StageId } from '@landit/core';
-import { clearTrickStage, isForbidden, saveTrickNote, setTrickStage } from '@landit/db';
+import type { StageId, VideoVisibilityId } from '@landit/core';
+import {
+  addVideoLink,
+  clearTrickStage,
+  isForbidden,
+  removeVideoLink,
+  saveTrickNote,
+  setTrickStage,
+  setVideoLinkVisibility,
+} from '@landit/db';
 import { revalidatePath } from 'next/cache';
 
 import { ROUTES, trickHref } from '@/lib/routes';
@@ -79,6 +87,113 @@ export async function setStageAction(input: {
   revalidatePath(ROUTES.library);
   revalidatePath(ROUTES.stickers);
   return { ok: true, earned };
+}
+
+/* ----------------------------------------------------------- video links -- */
+
+export type VideoLinkActionResult =
+  { readonly ok: true } | { readonly ok: false; readonly message: string };
+
+/**
+ * Add a video link to one trick (T15b, plan §6.6).
+ *
+ * **Nothing is validated here and nothing is capped here**, on exactly the same
+ * reasoning the two actions above do not check the paywall.
+ * `pocketbase/hooks/45_video_links.pb.js` parses the link and counts the
+ * allowance at the model layer, so a check in this file would be a second,
+ * weaker copy of both — and the copy that goes stale the day the cap moves. What
+ * this does with a refusal is *translate* it: the hook's 400 and its two 403s
+ * become sentences a fourteen year old can read.
+ *
+ * The raw paste is what travels. `VideosPanel` runs `parseYouTubeVideoId` before
+ * calling this, purely so a wrong link is refused without a round trip; the
+ * value sent is still what the rider typed, and the id that gets stored is the
+ * one the server parsed.
+ */
+export async function addVideoLinkAction(input: {
+  trickId: string;
+  slug: string;
+  link: string;
+  visibility: VideoVisibilityId;
+}): Promise<VideoLinkActionResult> {
+  const session = await currentRider();
+  if (!session) return { ok: false, message: 'Sign in to add a video.' };
+
+  try {
+    await addVideoLink(session.client, {
+      userId: session.rider.id,
+      link: input.link,
+      trickId: input.trickId,
+      visibility: input.visibility,
+    });
+  } catch (error) {
+    // The hook's own message is the useful one here — it distinguishes "that is
+    // not a YouTube link" from "that is all ten of your video links", and the
+    // rider needs to know which. Passed through when it is one of ours and
+    // replaced when it is not, so a stack trace never reaches a screen.
+    const message = refusalMessage(error);
+    return { ok: false, message };
+  }
+
+  revalidatePath(trickHref(input.slug));
+  return { ok: true };
+}
+
+/** Change who can see one video. The only thing about a link that moves. */
+export async function setVideoLinkVisibilityAction(input: {
+  videoLinkId: string;
+  slug: string;
+  visibility: VideoVisibilityId;
+}): Promise<VideoLinkActionResult> {
+  const session = await currentRider();
+  if (!session) return { ok: false, message: 'Sign in to change that.' };
+
+  try {
+    await setVideoLinkVisibility(session.client, input.videoLinkId, input.visibility);
+  } catch (error) {
+    return { ok: false, message: refusalMessage(error) };
+  }
+
+  revalidatePath(trickHref(input.slug));
+  return { ok: true };
+}
+
+/** Remove a video link. The video stays on YouTube; only our row goes. */
+export async function removeVideoLinkAction(input: {
+  videoLinkId: string;
+  slug: string;
+}): Promise<VideoLinkActionResult> {
+  const session = await currentRider();
+  if (!session) return { ok: false, message: 'Sign in to remove that.' };
+
+  try {
+    await removeVideoLink(session.client, input.videoLinkId);
+  } catch (error) {
+    return { ok: false, message: refusalMessage(error) };
+  }
+
+  revalidatePath(trickHref(input.slug));
+  return { ok: true };
+}
+
+/**
+ * The hook's refusal, or a sentence when it was not one.
+ *
+ * PocketBase puts a hook's `ForbiddenError`/`BadRequestError` message on
+ * `error.response.message`. Only a short, printable string is passed through —
+ * anything else becomes the generic line, so a stack trace or an internal path
+ * cannot reach a rider's screen through this door.
+ */
+function refusalMessage(error: unknown): string {
+  const response = (error as { response?: { message?: unknown } } | null)?.response;
+  const message = typeof response?.message === 'string' ? response.message.trim() : '';
+  if (message && message.length <= 200 && !message.includes('\n')) {
+    // PocketBase's own generic wrapper says nothing a rider can act on.
+    if (!/^failed to (create|update|delete) record/i.test(message)) return message;
+  }
+  return isForbidden(error)
+    ? 'That is not allowed on your plan.'
+    : 'That did not save. Check the link and try again.';
 }
 
 /** A rider's private notebook on one trick. Nobody else can ever read it (plan §6.1). */

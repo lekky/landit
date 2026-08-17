@@ -328,6 +328,109 @@ function enforcePaywall(app, record) {
   );
 }
 
+// --------------------------------------------------------- video links --
+
+/**
+ * What a rider's plan grants, as `{ cap, unlimited }` — **and `null` grants
+ * nothing.**
+ *
+ * Read off the plan record like `planUnlocksPaidTricks` and
+ * `planIncludesInsights` before it (plan §2.4), so staff can move the number
+ * without a deploy and **nothing compares the plan slug to `shredder` or
+ * `legend`**. Fails closed twice over: `planFor` returns `null` for an unknown
+ * slug or an unseeded collection, and even on a record that predates
+ * `1787356800`, `getInt` reads `0` and `getBool` reads `false` — which is no
+ * links, not unlimited ones. That is the whole reason the allowance is a count
+ * *plus* a boolean rather than one number with a sentinel in it (see
+ * `videoLinkAllowance` in `@landit/core`).
+ */
+function planVideoLinkAllowance(app, userRecord) {
+  const plan = planFor(app, userRecord);
+  if (!plan) return { cap: 0, unlimited: false };
+  const cap = plan.getInt('video_link_cap');
+  return {
+    cap: cap > 0 ? cap : 0,
+    unlimited: plan.getBool('video_links_unlimited'),
+  };
+}
+
+/**
+ * Guarantee 2's link half, and the only place any of it is enforced.
+ *
+ * **Model layer, no superuser bypass**, for the same reason the paywall has
+ * none: there is no legitimate way for a rider to hold a link that is not a
+ * YouTube id, and no legitimate way to hold more than the plan bought. Admin
+ * writes go through server actions holding a superuser client (plan §3), so a
+ * request-layer check would leave the cap defeatable by our own code — which is
+ * exactly the property T14's byte cap had, and it is not being given up because
+ * the unit changed from bytes to a count.
+ *
+ * Four things happen here, in this order, and each is a refusal a rule cannot
+ * make:
+ *
+ * 1. **The link is parsed and the field is overwritten with the id.** Whatever
+ *    the client sent — a `watch?v=` URL, a Shorts link, markup, a
+ *    `javascript:` URL — what gets stored is eleven characters or the write
+ *    fails. Nothing attacker-controlled is persisted, so nothing can be
+ *    replayed out of the database into a browser later.
+ * 2. **Visibility is normalised, never trusted.** Anything that is not exactly
+ *    `members` is written as `private`. The fail-closed direction, and it means
+ *    a create that names no visibility at all gets the default the Children's
+ *    code asks for (plan §6.4 standard 7) rather than whatever an empty select
+ *    happens to mean.
+ * 3. **On update, `user`, `trick` and `video_id` are frozen.** A rider may
+ *    re-decide who sees a video (owner's decision 4) and may delete it. Swapping
+ *    the video behind an existing row would put content into the database that
+ *    the create path never saw, and would move a row between riders or tricks
+ *    without either of them being asked.
+ * 4. **On create, the cap.** Counted from the rider's own rows at the moment of
+ *    the write, so two requests racing cannot both pass a stale count.
+ */
+function enforceVideoLink(app, record, isCreate) {
+  const video = require(`${__hooks}/lib/video.js`);
+
+  const parsed = video.parseYouTubeVideoId(record.getString('video_id'));
+  if (!parsed) {
+    throw new BadRequestError(
+      'That is not a YouTube link. Paste the address from the video — youtube.com/watch, youtu.be or a Shorts link.',
+    );
+  }
+  record.set('video_id', parsed);
+  record.set('visibility', video.normaliseVideoVisibility(record.getString('visibility')));
+
+  if (!isCreate) {
+    const before = record.original();
+    if (before.getString('video_id') !== parsed) {
+      throw new ForbiddenError(
+        'The video on a link cannot be swapped. Remove this one and add the new video.',
+      );
+    }
+    if (before.getString('user') !== record.getString('user')) {
+      throw new ForbiddenError('A video link cannot be moved to another rider.');
+    }
+    if (before.getString('trick') !== record.getString('trick')) {
+      throw new ForbiddenError('A video link cannot be moved to another trick.');
+    }
+    return;
+  }
+
+  const userId = record.getString('user');
+  if (!userId) throw new BadRequestError('A video link needs a rider.');
+
+  const user = app.findRecordById('users', userId);
+  const allowance = planVideoLinkAllowance(app, user);
+  if (allowance.unlimited) return;
+
+  const held = findAll(app, 'clips', 'user = {:user}', { user: userId }).length;
+  if (held < allowance.cap) return;
+
+  throw new ForbiddenError(
+    allowance.cap === 0
+      ? 'Adding a video is part of the paid plans.'
+      : `That is all ${allowance.cap} of your video links. Remove one to add another.`,
+  );
+}
+
 // ------------------------------------------------------------- prereqs ---
 
 /** Prerequisites never cross sports (handoff data model, plan §3). */
@@ -709,6 +812,7 @@ module.exports = {
   enforcePaywall,
   enforcePrereqSameSport,
   enforceSubscriptionEligibility,
+  enforceVideoLink,
   findAll,
   guardInsightsOptIn,
   guardUserWrite,
@@ -719,6 +823,7 @@ module.exports = {
   planIncludesFlair,
   planIncludesInsights,
   planUnlocksPaidTricks,
+  planVideoLinkAllowance,
   recordStaffPlanOverride,
   resolvePlanFromSubscriptions,
   resolvedPlanSlug,

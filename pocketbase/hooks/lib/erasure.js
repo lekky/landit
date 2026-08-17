@@ -283,7 +283,14 @@ function exportFor(app, rider) {
     trick_progress: rows('trick_progress', ['trick', 'stage', 'updated']),
     trick_log: rows('trick_log', ['trick', 'stage', 'at', 'estimated', 'created']),
     trick_notes: rows('trick_notes', ['trick', 'body', 'updated']),
-    clips: rows('clips', ['trick', 'kind', 'size', 'created']),
+    // T15b: `video_id` and `visibility` are what a `clips` row now holds, and
+    // `kind`/`size` are field names that stopped existing when the file field was
+    // removed on 2026-08-17 (`1787270400_clips_no_hosting.js`) — `row.get` was
+    // returning undefined for both. Named explicitly, per this function's own
+    // rule that each list names its fields *so that* a new one is a decision
+    // rather than an accident: a rider's download has to include the videos they
+    // linked, or it is not everything we hold about them.
+    clips: rows('clips', ['trick', 'video_id', 'visibility', 'at', 'created']),
     rider_stickers: rows('rider_stickers', ['sticker', 'earned_at', 'seen_at']),
     crew_members: rows('crew_members', ['crew', 'role', 'joined']),
     challenge_log: rows('challenge_log', ['challenge', 'created']),

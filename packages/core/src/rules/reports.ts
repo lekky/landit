@@ -29,15 +29,18 @@ export const REPORT_SUBJECTS = [
     blurb: 'A skatepark or street spot that is wrong, gone, or not safe to ride.',
   },
   {
-    // Kept because `reports.subject_type` has the value and a form that offered
-    // fewer options than the schema accepts is a report nobody can file. There
-    // is **no video surface at all** today — the clip vault was removed on
-    // 2026-08-17 and the YouTube-link replacement is not built — so a screen
-    // shows this one unavailable and says so, rather than hiding it and quietly
-    // deciding video is unreportable.
+    // **Live since T15b (2026-08-17).** T18 shipped this subject deliberately
+    // *unavailable*, with the blurb "There is no video on Land It yet", because
+    // the clip vault had been removed that morning and nothing had replaced it.
+    // `t15b-video-links` replaced it hours later: riders now add YouTube links,
+    // so both the blurb and the disabled radio behind it had become false — and a
+    // video surface whose report route is switched off is the one combination the
+    // safeguarding page (and the OSA duty in plan §6.1) cannot have. T18's
+    // reasoning was right for the day it was written; this is the same reasoning
+    // applied to the day after.
     id: 'clip',
     label: 'A video',
-    blurb: 'There is no video on Land It yet. When there is, this is where you report one.',
+    blurb: 'A video somebody has linked on their profile or on a trick.',
   },
   {
     id: 'other',

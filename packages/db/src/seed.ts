@@ -90,6 +90,13 @@ export function buildSeed(): SeedPlan {
           clip_cap_bytes: plan.clipCapBytes,
           includes_insights: plan.includesInsights,
           includes_flair: plan.includesFlair,
+          // The video-link allowance (T15b, plan §6.6). A count of links, not
+          // bytes — we hold no bytes. The numbers come from `@landit/core`,
+          // where Shredder's is a tunable constant; `1787356800_video_links.js`
+          // writes the same values so an already-seeded database is not left with
+          // an entitlement nobody set.
+          video_link_cap: plan.videoLinkCap,
+          video_links_unlimited: plan.videoLinksUnlimited,
           is_live: true,
         })),
       },

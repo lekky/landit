@@ -1,11 +1,13 @@
-import type {
-  Challenge,
-  LandItEvent,
-  RiderSnapshot,
-  SportId,
-  StageId,
-  Trick,
-  TrickLogEntry,
+import {
+  normaliseVideoVisibility,
+  type Challenge,
+  type LandItEvent,
+  type RiderSnapshot,
+  type SportId,
+  type StageId,
+  type Trick,
+  type TrickLogEntry,
+  type VideoLink,
 } from '@landit/core';
 
 import type { Client } from './clients';
@@ -15,6 +17,7 @@ import type {
   AnnouncementsRecord,
   ChallengeLogRecord,
   ChallengesRecord,
+  ClipsRecord,
   CrewInvitesRecord,
   CrewMembersRecord,
   EventAttendanceRecord,
@@ -282,6 +285,74 @@ export async function riderSnapshot(
     crew: crews.length > 0,
     challengeLogged,
   };
+}
+
+/* ----------------------------------------------------------- video links -- */
+
+/**
+ * The video links a caller is **allowed to see** for one rider (T15b).
+ *
+ * Like everything else in this file, it checks nothing. The `clips` list rule
+ * decides, and it decides two things at once: the video's own visibility and the
+ * ceiling its owner's profile privacy puts on that (plan §3 guarantee 2). So the
+ * same call returns every row to the owner, only the `members` rows to a
+ * signed-in consented rider looking at a `public` or `members` profile, and
+ * **nothing at all** to a signed-out visitor — because there is no `public`
+ * video visibility for an anonymous request to match.
+ *
+ * That is why there is no `visibility` filter here and must not be one: a filter
+ * would be a second copy of the rule, and the copy that goes stale. What comes
+ * back is what the caller may have.
+ *
+ * Newest first, on the server-set `at`.
+ */
+export async function listVideoLinks(
+  client: Client,
+  input: { userId: string; trickId?: string },
+): Promise<ClipsRecord[]> {
+  const filter = input.trickId ? 'user = {:user} && trick = {:trick}' : 'user = {:user}';
+  return records(client, 'clips').list({
+    filter,
+    params: input.trickId ? { user: input.userId, trick: input.trickId } : { user: input.userId },
+    sort: '-at',
+  });
+}
+
+/**
+ * How many links this rider holds — the number the cap is counted against.
+ *
+ * Reads the rider's *own* rows, so it is only meaningful for the signed-in
+ * rider's own client; another rider's client sees only what the rule allows and
+ * would undercount. Used to draw the "3 of 10" line and to disable the form, not
+ * to decide anything: `45_video_links.pb.js` counts again at the moment of the
+ * write, which is what makes two racing requests unable to both pass a stale
+ * count.
+ */
+export async function countVideoLinks(client: Client, userId: string): Promise<number> {
+  const rows = await records(client, 'clips').list({
+    filter: 'user = {:user}',
+    params: { user: userId },
+    fields: 'id',
+  });
+  return rows.length;
+}
+
+/**
+ * `ClipsRecord` rows as `@landit/core`'s `VideoLink`.
+ *
+ * The visibility is normalised on the way through rather than cast: a row whose
+ * `visibility` is empty — one written before `1787356800`, or by a path that
+ * somehow skipped the hook — reads as `private`, which is the fail-closed
+ * direction and the same direction the view rule is written in.
+ */
+export function videoLinksFromRecords(rows: readonly ClipsRecord[]): VideoLink[] {
+  return rows.map((row) => ({
+    id: row.id,
+    videoId: row.video_id,
+    trickId: row.trick || null,
+    visibility: normaliseVideoVisibility(row.visibility),
+    at: row.at || '',
+  }));
 }
 
 /* ------------------------------------------------------------- catalogue -- */

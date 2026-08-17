@@ -1,6 +1,7 @@
 import {
   CATS,
   DEFAULT_TIMEZONE,
+  NO_VIDEO_LINKS,
   SPORTS,
   TIERS_LABEL,
   categoryLabel,
@@ -13,13 +14,17 @@ import {
   prereqTricks,
   trickById,
   tricksUnlockedBy,
+  videoLinkAllowance,
   weeklyStreakLabel,
+  type Plan,
   type PlanId,
   type StageId,
   type Trick,
 } from '@landit/core';
 import {
+  countVideoLinks,
   getTrickNote,
+  listPlans,
   listTrickLog,
   listTrickPrereqs,
   listTrickProgress,
@@ -28,6 +33,9 @@ import {
   trickLogEntries,
   trickProgressById,
   tricksFromRecords,
+  videoLinksFromRecords,
+  listVideoLinks,
+  type PlansRecord,
   type UsersRecord,
 } from '@landit/db';
 import { Difficulty, Icon, Panel, Slot, SportChip, Tag } from '@landit/ui-web';
@@ -43,6 +51,7 @@ import { anonymousClient, currentRider } from '@/lib/session';
 import { LockedTrick } from './LockedTrick';
 import { NotesPanel } from './NotesPanel';
 import { StagePanel, type TrickShareView } from './StagePanel';
+import { VideosPanel } from './VideosPanel';
 import styles from './trick.module.css';
 
 /**
@@ -96,14 +105,28 @@ async function load(slug: string) {
       landedLabel: null,
       note: '',
       share: null,
+      // A signed-out visitor gets no video surface at all, and it is worth being
+      // precise about why: not because this branch chooses to hide one, but
+      // because there is nothing for it to show. The `clips` view rule has no arm
+      // an anonymous request can match (plan §3 guarantee 2) — a video is
+      // `private` or `members` and never `public` — so a guest asking for any
+      // rider's videos gets an empty list from the API, whatever this page does.
+      videos: [],
+      heldTotal: 0,
+      allowance: NO_VIDEO_LINKS,
     };
   }
 
-  const [progress, log, noteRecord, snapshot] = await Promise.all([
+  const [progress, log, noteRecord, snapshot, videoRecords, heldTotal, plans] = await Promise.all([
     listTrickProgress(client, session.rider.id),
     listTrickLog(client, session.rider.id),
     getTrickNote(client, session.rider.id, record.id),
     riderSnapshot(client, session.rider.id),
+    listVideoLinks(client, { userId: session.rider.id, trickId: record.id }),
+    // Across every trick, because the cap is per rider and not per trick — the
+    // same number `45_video_links.pb.js` counts before it refuses a write.
+    countVideoLinks(client, session.rider.id),
+    listPlans(client),
   ]);
 
   const byId: Record<string, StageId> = trickProgressById(progress, trickRecords);
@@ -122,6 +145,44 @@ async function load(slug: string) {
       : null,
     note: noteRecord?.body ?? '',
     share: buildShare(trick, session.rider, snapshot, tricks, timezone),
+    videos: videoLinksFromRecords(videoRecords),
+    heldTotal,
+    // The allowance from **our own plan record** (plan §2.4), matched by slug —
+    // never `plan === 'legend'`. A plan the list does not carry resolves to
+    // `undefined` and `videoLinkAllowance` reads that as no links, which is the
+    // same fail-closed answer the hook gives.
+    allowance: videoLinkAllowance(
+      planFromRecord(plans.find((row) => row.slug === session.rider.plan)),
+    ),
+  };
+}
+
+/**
+ * A `plans` record as `@landit/core`'s `Plan`, for the two fields the allowance
+ * needs.
+ *
+ * Narrow on purpose: this exists so `videoLinkAllowance` can be the single
+ * definition of "what does this plan grant", rather than the page reading two
+ * columns and deciding for itself. Everything else on `Plan` is padded with
+ * values nothing here reads.
+ */
+function planFromRecord(record: PlansRecord | undefined): Plan | null {
+  if (!record) return null;
+  return {
+    id: record.slug as PlanId,
+    name: record.name,
+    hue: record.hue,
+    pitch: record.pitch,
+    perks: [],
+    missing: [],
+    priceMonthlyPence: 0,
+    priceYearlyPence: 0,
+    clipCapBytes: record.clip_cap_bytes,
+    unlocksPaidTricks: record.unlocks_paid_tricks,
+    includesInsights: record.includes_insights,
+    includesFlair: record.includes_flair,
+    videoLinkCap: record.video_link_cap,
+    videoLinksUnlimited: record.video_links_unlimited,
   };
 }
 
@@ -292,6 +353,23 @@ export default async function TrickPage({ params }: Params) {
                   land is kept, and only you can see it.
                 </p>
               </Panel>
+            )}
+
+            {/*
+              Video links (T15b). Signed-in only: `clips` has no rule arm a
+              guest can match, so there is nothing to draw for one and no
+              "sign in to see videos" tease either — the trick page never
+              suggests a rider has videos on it.
+            */}
+            {session && (
+              <VideosPanel
+                trickId={record.id}
+                slug={trick.id}
+                trickName={trick.name}
+                initial={data.videos}
+                allowance={data.allowance}
+                heldTotal={data.heldTotal}
+              />
             )}
 
             {session && <NotesPanel trickId={record.id} slug={trick.id} initial={note} />}

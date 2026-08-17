@@ -192,6 +192,11 @@ export function baseFixtures(): Promise<Fixtures> {
       price_monthly: 'Free',
       unlocks_paid_tricks: false,
       clip_cap_bytes: 0,
+      // Video links are a paid perk (T15b, plan §6.6). Rookie's zero is written
+      // out rather than left unset, because "0 means none" is the property the
+      // encoding rests on and a fixture should assert it, not rely on it.
+      video_link_cap: 0,
+      video_links_unlimited: false,
       is_live: true,
     });
     await ensureRecord('plans', "slug = 'shredder'", {
@@ -200,6 +205,14 @@ export function baseFixtures(): Promise<Fixtures> {
       price_monthly: '£3.99',
       unlocks_paid_tricks: true,
       clip_cap_bytes: 2147483648,
+      // Mirrors `SHREDDER_VIDEO_LINK_CAP` in `@landit/core`, which this package
+      // cannot import. **No test assumes this number**: `video-links.test.ts`
+      // reads the cap back off the record and fills exactly that many, so a
+      // drift here cannot make the cap test pass for the wrong reason. That the
+      // number itself matches core and the migration is checked separately, by
+      // `video-link-parser.test.ts`.
+      video_link_cap: 10,
+      video_links_unlimited: false,
       is_live: true,
     });
     await ensureRecord('plans', "slug = 'legend'", {
@@ -211,6 +224,10 @@ export function baseFixtures(): Promise<Fixtures> {
       // Insights are Legend's, read off the plan record (plan §2.4). Rookie and
       // Shredder leave it unset, which is `false` — the fail-closed direction.
       includes_insights: true,
+      // Unlimited is a boolean rather than a large number, so there is no
+      // sentinel here for a later `count < cap` to compare against literally.
+      video_link_cap: 0,
+      video_links_unlimited: true,
       is_live: true,
     });
 

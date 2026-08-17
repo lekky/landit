@@ -19,7 +19,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Minimum age | **None stated.** The terms do not say "13+" | Stating a minimum age creates an Ofcom duty to enforce it with highly effective age assurance, and a tick-box does not qualify. 13+ is the *audience*, not a gate — see §6.2. |
 | Launch markets | **Global sign-up, UK-first product** | Anyone can sign up; the consent threshold follows the rider's country. One refusal: US under-13, which needs COPPA verifiable parental consent we are not building at launch. See §6.3. |
 | Regulatory scope | **UK Online Safety Act (Part 3, user-to-user) + ICO Children's code, applied to every rider** | Added 2026-08-16 — the plan previously missed the OSA entirely. Children's code standards are the baseline for *all* users, not only declared children. See §6.1. |
-| Rider video | **Land It does not host video. Riders paste a YouTube link and the app embeds it** | **Reversed 2026-08-17 (Rachid, in chat).** Was "Cloudflare R2 via PocketBase's S3 backend, 2GB cap per rider (5GB Legend)", decided 2026-08-15 and built as T14. Hosting other people's children's video is the single heaviest thing this product could take on — moderation duty, storage cost, takedown obligations and a private-bucket promise to keep — and the rider benefit is a video they have usually already uploaded to YouTube. Per-video visibility follows the same three-way `public \| members \| private` model as profile privacy, defaulting to private. T14 is reverted (see §7); the link feature is **`t15b-video-links`** and is not built yet. See §6.6. |
+| Rider video | **Land It does not host video. Riders paste a YouTube link and the app embeds it** | **Reversed 2026-08-17 (Rachid, in chat).** Was "Cloudflare R2 via PocketBase's S3 backend, 2GB cap per rider (5GB Legend)", decided 2026-08-15 and built as T14. Hosting other people's children's video is the single heaviest thing this product could take on — moderation duty, storage cost, takedown obligations and a private-bucket promise to keep — and the rider benefit is a video they have usually already uploaded to YouTube. **Built as `t15b-video-links`, 2026-08-17.** Four owner's decisions govern it (Rachid, 2026-08-17, in chat): a YouTube link the app embeds; per-video visibility **`private \| members` with no `public` state at all** — which supersedes the three-way framing this row carried for a few hours, because a signed-out visitor must never reach a rider's video and deleting the state is what makes that true rather than defended; **a paid perk capped per plan** (Rookie none, Shredder a limited number, Legend unlimited — the specific numbers are tunable, see §2.4); and a rider can add, re-decide visibility, and remove. T14 is reverted (see §7). See §6.6 and §3 guarantee 2. |
 | Maps provider | **Mapbox** (provisional) | Store plain `lat`/`lng` so it stays swappable. |
 | Payments | **Stripe on web**; entitlements modelled independently of Stripe; **single-rider plans only — Crew Pass dropped** (2026-08-15) | See §2.4 — entitlement independence is the decision that protects the native option. |
 | Streak shape | **A weekly target, not a consecutive-day count** (2026-08-16). A rider keeps the streak by riding **at least 2 times in a week**; the streak counts consecutive weeks that met the target, and missing a week breaks it. "I rode today" stays a plain button — no spot attached, no location captured | The audience is children who realistically ride at weekends: a daily streak punishes a school week, and is the engagement mechanic §6.4 Standard 13 warns about. Weeks are Monday-to-Sunday — the boundary the weekly challenges already use, so a rider never has two different "this week"s. **Two numbers here are tunable defaults, not deliberated decisions: the target of 2** (a weekend alone reaches it; 3 would force a weekday ride) **and no grace week** (the weekly target is itself the forgiveness — a grace week on top would make the streak nearly unbreakable). Both are constants in `packages/core` (`WEEKLY_RIDE_TARGET`, `WEEKLY_STREAK_GRACE_WEEKS`) and options on every function, so moving either is a one-line change plus this row. This supersedes the daily-streak and grace-period framing throughout: the daily functions in `core` stay exported but deprecated, and T8 wires the weekly ones. Stored shape in §3; that spots never record where a rider has been is §6.4 Standard 10 and T13. |
@@ -155,10 +155,30 @@ the plans page, the guardian upgrade email and the legal documents, because leav
 a feature the product does not have is the one outcome worse than a thin card. **Nothing was
 invented in their place**: what a paid tier is worth is a pricing decision, reserved for the owner,
 and it is filed as an issue. As it stands Shredder sells "everything unlocked" and Legend sells
-flair, insights and printable sheets — accurate, and arguably not £3 a month apart. Whether the
-video-link feature (`t15b-video-links`) is a paid perk at all, or free on every tier, is part of the
-same unmade decision. `plans.clip_cap_bytes` and `Plan.clipCapBytes` survive as dormant data — see
-§6.6 for why they were not deleted.
+flair, insights and printable sheets — accurate, and arguably not £3 a month apart.
+`plans.clip_cap_bytes` and `Plan.clipCapBytes` survive as dormant data — see §6.6 for why they were
+not deleted.
+
+**Video links are a paid perk, decided 2026-08-17 (Rachid, in chat) and shipped as
+`t15b-video-links`.** Rookie gets none, Shredder a capped number, Legend unlimited. That answers the
+"is it a paid perk at all" half of the question above and **does not answer the pricing half** — it
+adds one line to each paid card, which is not a re-pitch, and issue #129 stays open. Two fields on
+the `plans` record carry it, resolved like every other entitlement (nothing compares a plan slug to
+`shredder` or `legend`):
+
+- **`video_link_cap`** — a **count of links**, not bytes, because we hold no bytes. `0` means none
+  and means only that.
+- **`video_links_unlimited`** — a boolean, so "unlimited" is not a number and there is no sentinel
+  for a later `count < cap` to compare against literally. It is also the fail-closed direction: a
+  freshly migrated or half-seeded database reads `0`/`false` on every row, which is **no links**.
+
+**The numbers are tunable defaults, not deliberated decisions** — the same standing as
+`WEEKLY_RIDE_TARGET` in §1. Rookie's zero and Legend's unlimited are the owner's; **Shredder's ten**
+is `SHREDDER_VIDEO_LINK_CAP` in `packages/core/src/rules/video.ts`, chosen because it is more than a
+rider filming a season will meet and few enough that the number means something on a card. Moving it
+is that constant plus this paragraph: the plan cards *render* their perk line from it, and
+`pocketbase/tests/video-link-parser.test.ts` fails if the migration or the test fixture disagrees
+with it.
 
 One principle governs what Legend may ever contain: **achievements are never for sale**. Stickers and
 stages are earned-only on every plan; paid tiers sell capacity, cosmetics and insight. Crews the
@@ -231,7 +251,7 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 | `trick_progress` | `(user, trick) → stage`. The `byId` map |
 | `trick_log` | Append-only. `(user, trick, stage, at, estimated)`. Drives every date in the app |
 | `trick_notes` | Per-rider session notes |
-| `clips` | **No file field since 2026-08-17** (§6.6). `user`, `trick`, `at` only, and `createRule: null` — server code can write it, riders cannot. The row-per-video skeleton `t15b-video-links` extends with `url` and `visibility` |
+| `clips` | **No file field since 2026-08-17** (§6.6) — Land It stores no video. Extended by `t15b-video-links` the same day into the video-link row it always was going to be: `user`, `trick`, `at`, plus **`video_id`** (the parsed 11-character YouTube id, never a URL) and **`visibility`** (`private \| members`, no `public`). `createRule` reopened to the owner-and-consented rule with the cap enforced in a hook; `updateRule` allows a visibility change and nothing else. **Kept its name deliberately** — renaming a merged collection would break the five things that read it (sticker hook, `riderSnapshot`, the staff rider sheet, `reports`' `clip` subject) to improve a word (§6.6) |
 | `stickers` | Name, hue, icon, condition copy, editable threshold `n`, `is_live`. Rules stay in code |
 | `rider_stickers` | `earned_at` plus `seen_at`, so a sticker is never re-announced |
 | `plans`, `subscriptions` | See §2.4. No seat collection — Crew Pass dropped. `plans` still carries `clip_cap_bytes`, dormant since 2026-08-17 and kept only because `listPlans` orders the plan cards by it (§6.6) |
@@ -336,28 +356,62 @@ not by reading the rule text:
    `trick_progress` and `rider_stickers`. A private rider still appears on the crew board by name
    and score, so the crew board reads a narrow server-shaped payload (a hook route or filtered
    fields), never the full record.
-2. **Land It stores no rider video.** **Rewritten 2026-08-17; authorised by the owner (Rachid,
-   2026-08-17, in chat).** This guarantee used to read: *"Clips are never public. The `clips` file
-   field is protected: delivery only via short-lived file tokens minted for the owner, no rule path
-   that exposes a clip to another rider, R2 bucket private."* That was true of what T14 built, and
-   it is not a rule that has been dropped — the thing it protected has been removed, so the
-   guarantee now states the stronger fact in its place: **there is no upload anywhere in the
-   product, and no rider video on our servers.** It is enforced by the schema, not by the UI —
-   `pocketbase/migrations/1787270400_clips_no_hosting.js` removes the `file`, `size` and `kind`
-   fields from `clips` and sets its `createRule` to `null`, so there is no field for bytes to land
-   in and no rider write path to the collection at all. A session that wants to add a file field to
-   any collection is reversing a guarantee and must stop and flag it.
+2. **Land It stores no rider video, and a rider's video link is never more visible than the rider.**
+   **Rewritten twice on 2026-08-17, both times authorised by the owner (Rachid, in chat).** It
+   originally read: *"Clips are never public. The `clips` file field is protected: delivery only via
+   short-lived file tokens minted for the owner, no rule path that exposes a clip to another rider,
+   R2 bucket private."* That was true of what T14 built. `chore-revert-clips` replaced it with the
+   no-hosting half; `t15b-video-links` wrote the second half, which that session recorded as its job
+   and deliberately did not attempt. Both halves are now live and each is a property of observed API
+   behaviour, proven over HTTP rather than by reading rule text:
 
-   **This guarantee does not yet cover the replacement, and must not be read as if it does.** The
-   incoming feature (`t15b-video-links`) has riders paste a **YouTube link**, and a link carries a
-   different risk: not "can a stranger fetch these bytes" but "who can see that this rider posted
-   this". That needs its own guarantee, about **per-video visibility defaults and the
-   profile-privacy ceiling** — visibility is `public | members | private` on the same model as §6.4,
-   it **defaults to private**, and a video must never be visible more widely than the profile it
-   hangs off, enforced in rules rather than computed in a component. **That guarantee is
-   `t15b-video-links`' to write, with tests, and is deliberately not written here** — this session
-   reverted a feature and does not get to specify the next one. Until it lands, there are four
-   guarantees and this is the one with a gap in it.
+   **(a) There is no upload anywhere in the product, and no rider video on our servers.** Enforced
+   by the schema, not the UI: `pocketbase/migrations/1787270400_clips_no_hosting.js` removes the
+   `file`, `size` and `kind` fields from `clips`, so there is no field for bytes to land in. What a
+   rider stores instead is an **eleven-character YouTube video id** — not a URL. The id is parsed
+   from whatever they pasted by a hook at the **model layer**
+   (`pocketbase/hooks/45_video_links.pb.js`, using a pure parser in `packages/core` that
+   `pocketbase/hooks/lib/video.js` transcribes), so no write path stores anything else and **no
+   attacker-supplied query string, fragment or redirect target is ever persisted to be replayed
+   later**. Observed: a hostile link is refused with a 400 *including when it arrives with a
+   superuser token*, and a good link arriving with one is normalised rather than trusted. A session
+   that wants to add a file field to any collection is reversing a guarantee and must stop and flag
+   it.
+
+   **(b) Visibility defaults to private, has no public state, and is capped by profile privacy.**
+   Three observable facts, in the order they matter:
+
+   - **A signed-out request sees no rider video. Ever.** Not "unless", not "by default". Per-video
+     visibility is `private | members` — **there is no `public`**, unlike profile privacy, which
+     stays three-way. Removing the state removes the surface rather than defending it: an
+     anonymous-reachable page of rider-supplied third-party video is the moderation duty the
+     hosting reversal existed to avoid. The `clips` view rule therefore has **no third clause** —
+     `privacyRule`'s signed-out arm is absent, not narrowed — so there is nothing for an
+     unauthenticated request to match. Observed on the most open case there is: a `public` profile
+     with a video its owner deliberately opened still 404s to a guest.
+   - **New videos are `private` — the value, not merely "not public"** (§6.4 standard 7). The hook
+     writes it on every create, and anything it does not recognise (empty, misspelt, a client still
+     sending `public`) is normalised *to* `private`, so the unset state is the closed one.
+   - **Profile privacy is a ceiling, not a default.** A video may be more private than its owner's
+     profile and never more public: the rule's `members` clause requires the video to say `members`
+     **and** the profile to say `public` or `members`. So a `members` video belonging to a `private`
+     rider is invisible to everyone but its owner. It is one conjunction inside the rule, extending
+     `privacyRule`'s pattern rather than inventing a new one, because a ceiling computed in a
+     component is not a boundary.
+
+   A **consent-limited or suspended** rider's videos surface to nobody, on the same mechanism as
+   guarantee 4, and being crewed with a rider buys no extra access — a crewmate sees exactly what
+   any other signed-in rider sees. The full matrix (owner, signed-in stranger, crewmate,
+   consent-limited, signed-out × `public`/`members`/`private` profiles) is
+   `pocketbase/tests/video-links.test.ts`, whose header records which test fails when which clause
+   is removed.
+
+   Two further properties belong to this guarantee because losing either would make it a claim about
+   the UI: the **per-plan cap is enforced in the same model-layer hook**, so a server action holding
+   a superuser client cannot exceed it (the property T14's byte cap had); and the embed is
+   **`youtube-nocookie.com` behind click-to-play**, so no request reaches Google on page load and
+   §6.8's no-consent-banner position stays honest — asserted by counting requests in
+   `e2e/video-links.spec.ts`, since the absence of a call cannot be proven by reading a component.
 3. **The paywall is a data-layer rule, not a UI rule.** The `trick_progress` create hook rejects a
    paid trick for a rookie-plan rider, whatever the client sends. If the paywall only lives in the
    client it is a suggestion.
@@ -418,11 +472,11 @@ Tracked from the handoff's own list, mapped to phases:
 | Legal copy pointing under-13s at "a parent's Crew Pass" | Guardian consent inside sign-up (§6.2) — the Crew Pass no longer exists, so this copy is now wrong, not just draft | 2 |
 | Streaks (a counter) | A weekly target (§1): date logic and timezones, and weeks that can break it | 3 |
 | Crews (one demo crew) | Creation, invites, membership | 4 |
-| Clips (`createObjectURL`, die on refresh) | ~~Upload, R2 storage, token-gated delivery~~ — **no longer a gap.** Land It hosts no video (§6.6, reversed 2026-08-17). The prototype's clips panel has no counterpart in the product; embedded YouTube links are `t15b-video-links` | 4 |
+| Clips (`createObjectURL`, die on refresh) | ~~Upload, R2 storage, token-gated delivery~~ — Land It hosts no video (§6.6, reversed 2026-08-17). **Closed a different way on 2026-08-17:** the prototype's panel is replaced by embedded **YouTube links** a rider pastes, private by default and never public (`t15b-video-links`, §3 guarantee 2) | 4 (T15b) |
 | The map (one embed at a time) | Mapbox with every spot plotted | 4 |
 | Payments (instant and free) | Stripe + entitlements | 5 |
 | Admin rider list (mock data) | Real riders | 6 |
-| Moderation (queue for spots only) | Reporting for profiles (and for video links once `t15b` lands) | 6 |
+| Moderation (queue for spots only) | Reporting for profiles and for video links — the `clip` report subject has a real subject since T15b (§6.6) | 6 |
 | Offline | Service worker cache, then native | 7 |
 | Two sports (scooter, skate) | Three — BMX joined at launch (§1), built by T21 | — (§7) |
 
@@ -607,9 +661,18 @@ None of this is agent-session work, and none of it blocks a build session. All o
 
 **Reversed 2026-08-17 (Rachid, in chat).** Land It hosts no video. There is no upload anywhere in
 the product, no clip vault, no per-plan byte cap and no object storage for rider footage. Riders
-will instead **paste a YouTube link** which the app embeds, with **per-video visibility on the same
-three-way `public | members | private` model as profile privacy, defaulting to private**. That
-feature is **`t15b-video-links`** and is not built; this section describes only the reversal.
+**paste a YouTube link** which the app embeds — built the same day as **`t15b-video-links`**, and
+described at the bottom of this section.
+
+**One thing in this row changed within hours of being written and the correction is the load-bearing
+part: per-video visibility is `private | members`, and there is no `public` state.** The reversal
+note said "the same three-way `public | members | private` model as profile privacy, defaulting to
+private", and the owner narrowed it before the feature was built. A public rider-supplied
+*third-party* video is not the same object as a public profile: it would be crawlable, shareable and
+reachable by anyone who guessed a handle, over content we do not host and cannot check — which is
+precisely the moderation duty this whole reversal existed to shed. Copying profile privacy's shape
+would have re-imported it through the back door. The state does not exist, so the surface does not
+exist.
 
 The previous decision, for the record, was: *2GB on Shredder and 5GB on Legend, enforced
 server-side in the clips hook with the cap read from the `plans` record; clips on Cloudflare R2
@@ -648,8 +711,81 @@ or put one on a screen.** Whether any per-plan video limit exists at all — and
 links rather than bytes — is `t15b`'s to decide.
 
 **Retention, restated for the new shape:** account deletion still removes everything we hold,
-which now includes no video because there is none. Nothing survives a downgrade differently,
-because there is nothing stored to survive.
+which now includes no video because there is none — a `clips` row cascades with the rider, and the
+video on YouTube was never ours to delete. **Links a rider already added survive a downgrade** and
+stay exactly as visible as they were; what a free plan withholds is *adding another*. That falls out
+of the cap being enforced on create rather than being a promise made on top of it, and the terms say
+so in as many words.
+
+#### The link feature, as built (`t15b-video-links`, 2026-08-17)
+
+**The collection is `clips`, extended, not replaced.** §3's data-model row said it would be, and the
+reasoning survived contact: five things read that collection — the sticker award hook,
+`riderSnapshot`, the staff rider sheet's count and `reports`' `clip` subject — and reusing the row
+keeps all five coherent while making two of them *true* again (the rider sheet's tile stops reading a
+permanent zero, and the `clip` report subject gets a subject that exists, which is what T18's report
+button needs). A new collection would have meant repointing all five and leaving an empty table
+nothing writes and nothing may drop. The cost is accepted openly: **the name now reads as a
+leftover**, and renaming a merged collection is a breaking change that would break those five readers
+to improve a word. The fields carry the honest names.
+
+**What is stored is an eleven-character YouTube id, never a URL.** The hook parses whatever the rider
+pasted — `watch?v=`, `youtu.be/`, `/shorts/`, `/embed/`, or the bare id — and writes only the id, at
+the **model layer**, so no path stores anything else and none of a query string, fragment or redirect
+target can be persisted and replayed. The parser is a pure function in `packages/core` with a shared
+case table; `pocketbase/hooks/lib/video.js` transcribes it, and
+`pocketbase/tests/video-link-parser.test.ts` loads **both copies** and runs them side by side over
+that table plus a deterministic fuzz — behaviour compared, not files compared as text, because two
+implementations can share a constant and still disagree on a hostile host.
+
+**The cap is enforced in the same hook, with no superuser bypass.** Read off the `plans` record
+(§2.4), counted at the moment of the write, so two racing requests cannot both pass a stale count and
+a server action holding a superuser client cannot exceed it either. That is the property T14's byte
+cap had and it is not lost with the change of unit.
+
+**The embed is `youtube-nocookie.com` behind click-to-play, and the poster is drawn rather than
+fetched.** No request reaches Google on page load. §6.8 deliberately runs with no consent banner
+given the audience, and an autoloading iframe would put one back on the roadmap — as would YouTube's
+own `img.youtube.com` thumbnail, which is the obvious poster and is exactly the page-load ping being
+avoided. What a rider sees before pressing play is a hard-shadowed ink panel with a play mark on it.
+
+**Surfaces.** The trick page (where the clips panel used to be — layout borrowed, behaviour new) and
+the rider profile, which shows exactly what the viewer is allowed to see and renders nothing when
+that is nothing. §6.1 is untouched: adding a video writes one row, raises no notification, enters no
+feed and reaches no stranger. A rider's video reaches another rider only by that rider opening the
+profile or the trick page it hangs off.
+
+**Not done, deliberately.** "Caught On Cam" is **still `isLive: false`** — re-arming it on a video
+link is the owner's call (issue #131), and `lib/stickers.js` skips a sticker whose record is not live,
+so reopening `clips` create awards nothing by accident. There is **no rate limit** on adding links
+beyond the cap, and no duplicate check: an unlimited-plan rider could hold many rows or the same video
+twice, which reaches no stranger and costs no storage. Both are filed rather than guessed at.
+
+**Two things T18 had switched off because video did not exist, switched back on.** T18 merged hours
+before this did, on the morning the clip vault was removed, and it made two correct decisions that
+this feature falsifies. Recorded here because a later session reading either file will find a comment
+that argues the opposite:
+
+- **The `clip` report subject was deliberately *unavailable*** — the radio disabled, the blurb
+  reading "There is no video on Land It yet". Riders can now link a video, and a video surface whose
+  report route is switched off is precisely the combination the safeguarding page and §6.1's OSA duty
+  cannot have. The option is live and the blurb describes the real thing. T18's reasoning was right
+  for the day it was written; this is the same reasoning applied to the day after.
+- **The GDPR data export named `clips` fields that had stopped existing** (`kind`, `size`, removed
+  with the file field) and could not name the ones that now do. `exportFor` lists each collection's
+  fields explicitly *so that* a new field is a decision rather than an accident — this is that
+  decision: a download that omitted the videos a rider linked would not be "everything we hold about
+  you", which is what the privacy policy promises. Asserted in
+  `pocketbase/tests/video-links.test.ts`, beside the row it is about.
+
+**T17's plans editor needs no change, and that is by its own design.** T17 shipped the staff plans tab
+as **copy and pricing only**, explicitly keeping `unlocks_paid_tricks` off the form so "a screen whose
+job is wording should not be able to hand every rider the paid library by accident".
+`video_link_cap` and `video_links_unlimited` are entitlements of exactly that kind, so they belong off
+that form too and are moved from the superuser dashboard like the paywall's. One consequence is worth
+knowing: staff **can** freely edit the `perks` copy that quotes the cap, so a card could come to
+advertise a number the hook does not enforce. Filed rather than fixed — the seeded copy is rendered
+from the enforced number, and policing staff prose is a different feature.
 
 ### 6.7 Pricing
 
@@ -969,8 +1105,9 @@ decisions rather than details:**
 **T7 · Library + trick detail + locked trick.** Filters, search, rookie banner, stage picker,
 notes, prerequisite/unlock pills, locked-trick page. Clips panel renders in its locked/upsell state
 only (real clips are T14). Inputs: `landit-screens-a.jsx`, screenshots 08–10.
-(**Superseded 2026-08-17:** the clips panel no longer exists in any state — T14 was reverted and
-Land It hosts no video, §6.6. The rest of T7 stands.)
+(**Superseded twice on 2026-08-17:** the clips panel was deleted with T14's reversal — Land It hosts
+no video, §6.6 — and the side column then gained a **video-links panel** in its place (T15b), which
+borrows the prototype clips panel's layout and none of its behaviour. The rest of T7 stands.)
 
 **Built 2026-08-16. Four decisions the entry above did not settle:**
 
@@ -1441,6 +1578,26 @@ defaults and the profile-privacy ceiling, and that `t15b` writes it.
 Inputs, for `t15b`: `landit-screens-a.jsx` (clips panel — as a layout reference only; its behaviour
 is void), §6.6.
 
+**T15b · Video links. Built 2026-08-17 (`t15b-video-links`).** The replacement for T14, and the
+session that closed §3 guarantee 2's gap. Riders paste a YouTube link, choose `private` or `members`,
+and remove. Owner's four decisions are the §1 row; the behaviour and the reasoning are §6.6's
+"as built" subsection and guarantee 2 in §3. Three things a later session should not have to
+rediscover:
+
+- **`clips` was extended rather than replaced**, and the collection keeps its now-misleading name on
+  purpose. §6.6 records why, including what would break.
+- **The allowance is two fields on `plans`, not one number with a sentinel.** §2.4 records the
+  encoding and that Shredder's ten is tunable in `packages/core`. Nothing anywhere compares a plan
+  slug to `shredder` or `legend`.
+- **Every guard was watched failing before it was believed** (LESSONS §5). The header of
+  `pocketbase/tests/video-links.test.ts` carries the table of which guard's removal turns which
+  tests red — including the two tests that are green through a *different* door than their name
+  suggests, which is the part worth reading before tightening either mechanism.
+
+Left for the owner: whether "Caught On Cam" is re-armed on a video link (issue #131), and the
+paid-tier pricing question this deliberately did not answer (issue #129 — one cap line per card is
+not a re-pitch).
+
 ### Wave 6 — three sessions, T15 ∥ T16 then T17
 
 **T15 · Payments.** Stripe Checkout + customer portal, webhook (Next.js route) → `subscriptions`
@@ -1753,8 +1910,9 @@ placed here, late, because the content is the risk and this maximises the runway
 
 ### Wave 8 — three concurrent sessions
 
-**T18 · Hardening.** Reporting flows in the rider app (profile report buttons — and video-link
-report buttons if `t15b-video-links` has landed by then; there are no clips to report, §6.6), account
+**T18 · Hardening.** Reporting flows in the rider app (profile report buttons — and **video-link
+report buttons, which `t15b-video-links` landed on 2026-08-17, so the `reports` collection's `clip`
+subject now has a subject that exists**: a row in `clips` carrying a YouTube id, §6.6), account
 deletion + data export (GDPR — the privacy policy promises both), rate limits on submissions and
 handle checks, Sentry verification, then run a full security review pass over the branch history.
 The OSA reporting duties (§6.1) land here too: a route that works for someone who is not a
