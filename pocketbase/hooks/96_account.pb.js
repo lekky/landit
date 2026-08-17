@@ -55,7 +55,9 @@ onRecordUpdateRequest((e) => {
   const before = e.record.original().getDateTime('anonymised_at').string();
   const after = e.record.getDateTime('anonymised_at').string();
   if (before !== after) {
-    throw new ForbiddenError('"anonymised_at" is not something an account can change about itself.');
+    throw new ForbiddenError(
+      '"anonymised_at" is not something an account can change about itself.',
+    );
   }
 
   e.next();

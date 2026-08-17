@@ -114,9 +114,7 @@ export function ReportForm({ signedIn, about, subjectId, appealOf }: ReportFormP
                     />
                     <span>
                       <strong>{subject.label}</strong>
-                      <span className={`cond ${styles.choiceBlurb}`}>
-                        {subject.blurb}
-                      </span>
+                      <span className={`cond ${styles.choiceBlurb}`}>{subject.blurb}</span>
                     </span>
                   </label>
                 );
