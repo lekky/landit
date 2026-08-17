@@ -243,22 +243,68 @@ export type DistanceUnits = 'miles' | 'km';
 const MILES_COUNTRIES: readonly string[] = Object.freeze(['GB', 'US', 'LR', 'MM']);
 
 /**
- * Which units to draw distances in, from the country a rider gave at sign-up
- * (plan §1: global, and §6.3).
+ * Which units to draw distances in, from a country code (plan §1: global, and §6.3).
  *
- * **An unknown country reads kilometres**, and that is the deliberate half.
- * Most of the planet is metric, so metric is what "we do not know" should mean
- * on a global product. The alternative — reading `navigator.language` — is
- * closed to us anyway: nothing on a screen that hydrates may be locale-derived
- * (LESSONS §5), because the server and the browser will disagree and React will
- * blame the markup.
+ * **An unknown country reads kilometres.** Most of the planet is metric, so
+ * metric is what "we do not know" should mean on a global product.
  *
- * This is why signed-out visitors see kilometres: the spots screen is readable
- * signed out, and a visitor with no account has no country to read.
+ * A signed-in rider's country comes from sign-up. A signed-out visitor has no
+ * account, so the code comes from `regionFromAcceptLanguage` below — which is
+ * why that function exists rather than a `navigator.language` read in the
+ * browser.
  */
 export function unitsForCountry(country: string | null | undefined): DistanceUnits {
   const code = countryOf(country ?? '');
   return MILES_COUNTRIES.includes(code) ? 'miles' : 'km';
+}
+
+/**
+ * The region a browser's `Accept-Language` header claims, as an alpha-2 code —
+ * `en-GB` → `GB`, `de-DE` → `DE`, `zh-Hans-CN` → `CN` — or `''` when it says
+ * nothing usable.
+ *
+ * **Why a header and not `navigator.language`.** Both describe the same
+ * preference, but only one can be read before the markup exists. Nothing on a
+ * screen that hydrates may be locale-derived (LESSONS §5): the server renders
+ * one string, the browser renders another, and React blames the markup. The
+ * header arrives with the request, so the answer is settled server-side and
+ * there is only ever one string.
+ *
+ * **What it is not.** It is a browser *setting*, not a location: a British
+ * rider whose laptop is set to US English reads miles, and that is the honest
+ * limit of the signal. A signed-in rider's declared country is better evidence
+ * and takes precedence over this — see the spots page.
+ *
+ * Nothing is stored. It is read from the request, used to pick a suffix, and
+ * dropped.
+ */
+export function regionFromAcceptLanguage(header: string | null | undefined): string {
+  if (!header) return '';
+
+  const tags = header
+    .split(',')
+    .map((part, index) => {
+      const [tag = '', ...params] = part.trim().split(';');
+      const weight = params
+        .map((param) => /^\s*q=([\d.]+)\s*$/i.exec(param))
+        .find((match): match is RegExpExecArray => match !== null);
+      return { tag: tag.trim(), q: weight ? Number.parseFloat(weight[1]!) : 1, index };
+    })
+    // `*` is "anything", and `q=0` is an explicit refusal. Neither names a place.
+    .filter((entry) => entry.tag && entry.tag !== '*' && Number.isFinite(entry.q) && entry.q > 0)
+    // Most-preferred first; ties keep the order the browser sent them in.
+    .sort((a, b) => b.q - a.q || a.index - b.index);
+
+  for (const { tag } of tags) {
+    // The region is the two-letter subtag, which is not always the second one:
+    // `zh-Hans-CN` puts a four-letter script in between. Numeric UN M.49 regions
+    // (`es-419`) name a continent rather than a country and are skipped.
+    for (const subtag of tag.split('-').slice(1)) {
+      if (/^[A-Za-z]{2}$/.test(subtag)) return subtag.toUpperCase();
+    }
+  }
+
+  return '';
 }
 
 /** Statute miles to kilometres, exactly. */
