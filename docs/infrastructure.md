@@ -66,11 +66,28 @@ Set up 2026-08-15. This file records what exists and how to reach it — no secr
   `EnvironmentFile=/root/.litestream-r2.env`). Replicates continuously, 7-day retention.
 - A **canary database** (`/var/lib/litestream-canary/canary.db`) replicates at all times so the
   pipeline proves itself even before/between real databases.
-- **Restore rehearsal passed 2026-08-15**: replicate → delete local → `litestream restore` →
-  content verified. Re-rehearse after adding each real database.
-- **When a PocketBase instance is deployed**: add its `pb_data/data.db` path as a new entry in
+- **Land The Trick's PocketBase is replicated — added 2026-08-17** (issue #167), to bucket path
+  `landit`. Its database is the Docker volume, **not** the `<product>/pb_data/data.db` shape the
+  config's own template comment suggests:
+  `/var/lib/docker/volumes/qqsqc1knvhellrcwgebu2enw-pb-data/_data/data.db`. Find it on any box with
+  `docker inspect <container> --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}'`
+  — the container is named for the app uuid, so grepping for "pocketbase" finds nothing.
+  **`data.db` only: `auxiliary.db` beside it is PocketBase's log database and is deliberately not
+  replicated.** Riders, `guardian_consents` and `audit_log` are all in `data.db`.
+- **Restore rehearsals passed 2026-08-15** (canary: replicate → delete local → `litestream restore`
+  → content verified) **and 2026-08-17** (the PocketBase database, restored from the replica to a
+  scratch path and verified there by the owner). Re-rehearse after adding each real database — and
+  restore to `/tmp`, never over the live file.
+- **When a PocketBase instance is deployed**: add its `data.db` path as a new entry in
   `/etc/litestream.yml` (template comment inside) and `systemctl restart litestream`. A PocketBase
   whose database is not in that file is NOT backed up.
+- **Checking a backup by hand fails with `NoCredentialProviders` and that is not a fault.**
+  `/root/.litestream-r2.env` is loaded by systemd's `EnvironmentFile`, so an interactive shell has
+  none of it and `${R2_ACCESS_KEY_ID}` expands to nothing — `litestream generations` and
+  `litestream restore` then report no valid credentials while the *service* is replicating
+  perfectly. Either read the service's own view (`journalctl -u litestream -n 40`, which needs no
+  credentials and is the better check anyway), or load the file first:
+  `set -a && . /root/.litestream-r2.env && set +a && litestream …`.
 
 ## Bringing `landthetrick.com` up (runbook)
 
@@ -253,11 +270,18 @@ rollover the old container answers `"superuser":"rejected"` and the proxy briefl
 settles on its own. `rejected` while *steady* is the password; `rejected` for ninety seconds after a
 deploy is the rollover.
 
-### 3. Litestream
+### 3. Litestream — **done 2026-08-17**
 
-Add the new PocketBase `pb_data/data.db` to `/etc/litestream.yml` and
-`systemctl restart litestream`. **A PocketBase whose database is not in that file is not backed
-up** — see Backups above — and re-run the restore rehearsal afterwards.
+Add the new PocketBase `data.db` to `/etc/litestream.yml` and `systemctl restart litestream`.
+**A PocketBase whose database is not in that file is not backed up** — see Backups above — and
+re-run the restore rehearsal afterwards.
+
+Done for `landit-pocketbase` on 2026-08-17, closing issue #167: the instance had been serving since
+2026-08-16 with no replication at all, which plan §2.6 calls a prerequisite for any hosted
+environment rather than a launch-week task. It cost nothing only because there were no riders yet.
+The entry, the real volume path, the `auxiliary.db` decision and the credentials trap are all in
+Backups above. **The next PocketBase on this box needs the same four steps**, and the thing to check
+is not `systemctl status` but the journal line reading `replicating to … path=<product>`.
 
 ### 4. `LANDIT_APP_URL`
 
@@ -369,7 +393,9 @@ Steps 1–8 above are the sequence; this is the progress.
 
 - [x] The five DNS records at Namecheap, all pointing at the box (runbook 1) — done 2026-08-16
 - [x] Land The Trick Coolify project, both hostnames on HTTPS (runbook 2) — done 2026-08-16
-- [ ] The new PocketBase database in `litestream.yml`, restore rehearsed (runbook 3)
+- [x] The new PocketBase database in `litestream.yml`, restore rehearsed (runbook 3) — done
+      2026-08-17, issue #167. Replicating continuously to bucket path `landit`; restore verified
+      from the replica, not just assumed from a clean service start.
 - [x] `LANDIT_APP_URL` set on the hosted instance (runbook 4) — done 2026-08-16
 - [ ] Mailboxes created 2026-08-16; still to do: Custom MX at Namecheap, and cPanel’s DKIM/SPF copied there (runbook 5)
 - [ ] Domain verified 2026-08-16; still to do: **out of trial phase**, and the SPF merged (runbook 6)
