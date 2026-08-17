@@ -285,6 +285,23 @@ never true. When you land a screen whose path does not start with its nav item's
 explicitly (`alsoActiveFor`); the bar going empty reads to a rider as having left the app, and it
 does it on the screens most often reached from somebody else's link.
 
+**Two sessions can collide in a filename neither of them shares, and git will not notice.** T18 and
+`t15b-video-links` each added a PocketBase migration on the same afternoon, and each derived its
+timestamp from the date the way every session before them had: `1787356800_account_erasure.js` and
+`1787356800_video_links.js`. Different filenames, disjoint collections, so git merges both cleanly,
+every gate is green on both branches and green again on `main`. What is left is two migrations
+sharing one **ordering key**, resolved by whatever order the filesystem hands them back — which
+differs between a developer's Windows box and the Linux container that runs the deploy. Nothing in
+this repo would have said so; it was caught because the orchestrator was reading both branches.
+
+The general shape is worth more than the instance: **a merge conflict is a collision git can see,
+and the dangerous collisions are the ones it cannot.** Anything where two sessions independently
+choose a value out of the same small space — a migration timestamp, a port, a fixture handle, a
+cache key, a CSS custom property name — collides silently and lands green. Before picking one, look
+at what is already on `origin/main` *and* at what the other live worktrees have added; `git worktree
+list` is as much a part of that check as it is of the branch check above. T18 renumbered to
+`1787443200` on a day's spacing, which is the cheap fix once you know.
+
 ## 2. Gates, merging and cleanup
 
 **Gate on exit codes, never on piped output.** A `| tail` or `| tee` returns the pipe's status,
@@ -671,6 +688,25 @@ as a first run and **opening its installer page in whoever's browser is to hand*
 sibling session's instance did to the owner mid-wave. And the file sets
 `test.describe.configure({ mode: 'default' })`, because `fullyParallel` splits a file across workers
 and would race the seed against itself.
+
+**In the PocketBase JSVM every field reads truthy, so `if (record.get(x))` is not the question you
+think you are asking.** T18's account-deletion route began with what looked like an idempotency
+guard: `if (rider.get('anonymised_at')) return { deleted: true }` — already erased, nothing to do.
+An unset `date` field does not hand back `null` or `''`; it hands back a `DateTime` holding the zero
+time, and a `DateTime` is an object, and every object is truthy. So the branch fired on **every**
+account, the route wiped nothing, and it answered `200 {deleted: true}`. The client then cleared the
+session cookie and redirected, exactly as a successful deletion does.
+
+That is the worst shape a bug can take: a right-to-erasure request that reports success and does
+nothing, on a path nobody looks at twice because the screen said it worked. It cost nothing to find
+only because the tests asserted the *state afterwards* — the handle, the wiped name, the deleted
+notes — rather than the response body. A test that had checked `deleted === true` would have passed
+for the entire life of the defect.
+
+Two rules. **Read a PocketBase field with the accessor that matches its type** and compare a value:
+`getDateTime(f).isZero()`, `getString(f) === ''`, `getInt(f) === 0`. And when a route can succeed by
+doing nothing, **assert the world changed, never the response** — `{ok: true}` is the one thing
+every version of the code agrees on.
 
 ## 5a. The shell is not a text box
 
