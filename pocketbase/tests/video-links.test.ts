@@ -498,6 +498,32 @@ describe('guarantee 2 — only a parsed YouTube id is ever stored', () => {
     );
   });
 
+  it('puts a rider’s video links in their data export', async () => {
+    // T18 shipped `POST /api/landit/account/export` naming each collection's
+    // fields explicitly, so that a field added later is a decision rather than an
+    // accident. This is that decision being made: a download that omitted the
+    // videos a rider linked would not be "everything we hold about you", which is
+    // what the privacy policy promises. Asserted here rather than in
+    // `account-erasure.test.ts` because the row is this feature's, not that one's.
+    const owner = await makeRider(
+      { privacy: 'public' },
+      { plan: 'legend', consent_state: 'not_required' },
+    );
+    const added = await addLink(owner, { video_id: VIDEO, trick, visibility: 'members' });
+    expect(added.status).toBe(200);
+
+    const exported = await call<{ clips?: { video_id?: string; visibility?: string }[] }>(
+      'POST',
+      '/api/landit/account/export',
+      { token: owner.token, body: {} },
+    );
+    expect(exported.status).toBe(200);
+    const rows = exported.body.clips ?? [];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.video_id).toBe(VIDEO);
+    expect(rows[0]!.visibility).toBe('members');
+  });
+
   it('stores eleven characters, whatever shape the link arrived in', async () => {
     const shapes = [
       `https://www.youtube.com/watch?v=${VIDEO}&t=42s&list=PLnope`,

@@ -761,6 +761,32 @@ so reopening `clips` create awards nothing by accident. There is **no rate limit
 beyond the cap, and no duplicate check: an unlimited-plan rider could hold many rows or the same video
 twice, which reaches no stranger and costs no storage. Both are filed rather than guessed at.
 
+**Two things T18 had switched off because video did not exist, switched back on.** T18 merged hours
+before this did, on the morning the clip vault was removed, and it made two correct decisions that
+this feature falsifies. Recorded here because a later session reading either file will find a comment
+that argues the opposite:
+
+- **The `clip` report subject was deliberately *unavailable*** — the radio disabled, the blurb
+  reading "There is no video on Land It yet". Riders can now link a video, and a video surface whose
+  report route is switched off is precisely the combination the safeguarding page and §6.1's OSA duty
+  cannot have. The option is live and the blurb describes the real thing. T18's reasoning was right
+  for the day it was written; this is the same reasoning applied to the day after.
+- **The GDPR data export named `clips` fields that had stopped existing** (`kind`, `size`, removed
+  with the file field) and could not name the ones that now do. `exportFor` lists each collection's
+  fields explicitly *so that* a new field is a decision rather than an accident — this is that
+  decision: a download that omitted the videos a rider linked would not be "everything we hold about
+  you", which is what the privacy policy promises. Asserted in
+  `pocketbase/tests/video-links.test.ts`, beside the row it is about.
+
+**T17's plans editor needs no change, and that is by its own design.** T17 shipped the staff plans tab
+as **copy and pricing only**, explicitly keeping `unlocks_paid_tricks` off the form so "a screen whose
+job is wording should not be able to hand every rider the paid library by accident".
+`video_link_cap` and `video_links_unlimited` are entitlements of exactly that kind, so they belong off
+that form too and are moved from the superuser dashboard like the paywall's. One consequence is worth
+knowing: staff **can** freely edit the `perks` copy that quotes the cap, so a card could come to
+advertise a number the hook does not enforce. Filed rather than fixed — the seeded copy is rendered
+from the enforced number, and policing staff prose is a different feature.
+
 ### 6.7 Pricing
 
 **Confirmed** (2026-08-15): Rookie free; Shredder £3.99/mo or £39.99/yr; Legend

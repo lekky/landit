@@ -94,31 +94,30 @@ export function ReportForm({ signedIn, about, subjectId, appealOf }: ReportFormP
             </>
           ) : (
             <div className={styles.choices}>
-              {REPORT_SUBJECTS.map((subject) => {
-                // Video is the one subject with no surface behind it: the clip
-                // vault was removed on 2026-08-17 and the YouTube-link
-                // replacement is not built. The option stays, unavailable and
-                // explained.
-                const unavailable = subject.id === 'clip';
-                return (
-                  <label
-                    key={subject.id}
-                    className={`${styles.choice} ${unavailable ? styles.choiceOff : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name="subject_type"
-                      value={subject.id}
-                      defaultChecked={about ? about === subject.id : subject.id === 'profile'}
-                      disabled={unavailable}
-                    />
-                    <span>
-                      <strong>{subject.label}</strong>
-                      <span className={`cond ${styles.choiceBlurb}`}>{subject.blurb}</span>
-                    </span>
-                  </label>
-                );
-              })}
+              {/*
+                Every subject is available. Video was the one exception until
+                `t15b-video-links` landed on 2026-08-17 — T18 built this form the
+                same morning the clip vault was removed, so it disabled the video
+                radio and said why. Riders can now link a YouTube video, which
+                makes a disabled video option a report nobody can file about
+                content that exists: the exact outcome T18's comment said it was
+                avoiding. `styles.choiceOff` is left in the stylesheet for the
+                next subject that ships ahead of its surface.
+              */}
+              {REPORT_SUBJECTS.map((subject) => (
+                <label key={subject.id} className={styles.choice}>
+                  <input
+                    type="radio"
+                    name="subject_type"
+                    value={subject.id}
+                    defaultChecked={about ? about === subject.id : subject.id === 'profile'}
+                  />
+                  <span>
+                    <strong>{subject.label}</strong>
+                    <span className={`cond ${styles.choiceBlurb}`}>{subject.blurb}</span>
+                  </span>
+                </label>
+              ))}
             </div>
           )}
         </fieldset>
