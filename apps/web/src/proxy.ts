@@ -123,8 +123,18 @@ export function proxy(request: NextRequest): NextResponse {
    * for "not launched yet" and is the thing to revisit if this page ever stands
    * for longer than a few weeks; `robots.ts` carries the no-index in the
    * meantime, which is what actually keeps the half-built site out of search.
+   *
+   * **The header is for the service worker** (T19). A rewrite keeps the URL the
+   * visitor asked for, so a 200 at `/library` here is the holding page wearing
+   * the library's address — exactly the thing an offline cache must not keep. The
+   * worker refuses any response carrying this, so the worst case is a rider with
+   * no cached library rather than a rider whose cached library says "Coming
+   * soon". Registration already only happens inside the app shell, which the
+   * holding page does not render; this is the second lock on the same door.
    */
-  return NextResponse.rewrite(new URL(HOLDING_PATH, request.url));
+  const gated = NextResponse.rewrite(new URL(HOLDING_PATH, request.url));
+  gated.headers.set('x-landit-gated', '1');
+  return gated;
 }
 
 export const config = {

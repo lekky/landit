@@ -31,3 +31,7 @@ export * from './rules';
 // Neither data nor a game rule: the pure decision behind the pre-launch holding
 // page, shared by the web proxy and `robots.ts` so the two cannot disagree.
 export * from './launch';
+
+// Also a policy rather than a rule: which URLs may be kept on a rider's device
+// for reading with no signal (plan §2.3, T19). Read by the service worker.
+export * from './offline';

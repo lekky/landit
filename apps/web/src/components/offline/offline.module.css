@@ -1,0 +1,54 @@
+/*
+ * The no-signal bar and the offline page.
+ *
+ * Yellow on ink with a hard bottom rule and no radius, the same as every other
+ * loud surface in the product (`design-handoff/README.md`). Nothing here blurs a
+ * shadow or rounds a corner.
+ */
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: var(--yellow);
+  color: var(--ink);
+  border-bottom: var(--bd);
+  font-size: 15px;
+  line-height: 1.35;
+}
+.banner strong {
+  font-size: 17px;
+  letter-spacing: 0.01em;
+  margin-right: 4px;
+}
+
+/* The page a rider gets when there is no signal and no cached copy. */
+.body {
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 60px 18px 90px;
+  flex: 1;
+}
+.title {
+  font-size: clamp(40px, 7vw, 72px);
+  margin: 10px 0 0;
+  line-height: 1.02;
+}
+.signal {
+  color: var(--yellow);
+  text-shadow: 4px 4px 0 var(--ink);
+}
+.copy {
+  font-size: 17px;
+  line-height: 1.5;
+  max-width: 470px;
+  margin: 18px 0 24px;
+  color: var(--ink-2);
+}
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}

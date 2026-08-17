@@ -670,3 +670,45 @@ migrations — and that was delivered. Swapping the named tool is still a diverg
 `docs/implementation-plan.md` in the same PR (`CLAUDE.md`, "plan first, then code"). Recording
 *why* matters more than recording *what*: without the reason, the next session sees a plan that
 says `pocketbase-typegen` and a repo that does not, and re-litigates it.
+
+## 7. The browser as a runtime you cannot see into
+
+T19 put a service worker in front of every page. Three things it paid for, none of which any gate
+would have caught.
+
+**The Cache API stores a body decoded and the headers that described it encoded, and only a
+*navigation* notices.** `next start` gzips HTML, so a page cached by the worker kept
+`content-encoding: gzip` over a body the browser had already inflated. Every way of inspecting that
+entry said it was perfect — `caches.match()` found it, `response.text()` returned 27KB of real HTML,
+the status was 200. Handing the same response to a navigation gave the rider Chromium's **"This page
+couldn't load"** behind a 200 that came from our own worker: the network stack believed the header
+and tried to gunzip plain text. The fix is four lines (`storable`, in `service-worker.ts`) —
+rebuild the response without `content-encoding` or `content-length` before putting it in a cache.
+The rule is the shape of it: **anything you replay to the browser has to be checked by replaying it,
+because a response can read perfectly from JavaScript and still be undeliverable.** It also only
+appeared in one order — read a cached page first, *then* ask for an uncached one — so the e2e test
+now walks that order deliberately.
+
+**The Browser pane cannot register a service worker at all**, and neither can a `next dev` server
+prove one. `navigator.serviceWorker.register()` fails there for every script, including an existing
+Next chunk, with `An unknown error occurred when fetching the script` — which reads exactly like a
+bug in your worker. The environment that answers the question is `next build && next start` driven
+by Playwright, which is also what Next's own offline guide says. **Before spending time on why a
+browser feature does not work, check that the browser you are looking at supports it**: registering a
+file you did not write is a ten-second control.
+
+**Playwright's `setOffline` does not touch `navigator.onLine`.** It stops requests and leaves the
+flag saying `true`, so the `online`/`offline` events never fire. Half a component built on that flag
+looked broken when it was correct, and — more usefully — this is the *same* blind spot a park's
+captive wifi has. It is why the offline banner asks the service worker whether the page came off
+disk rather than trusting the browser's own flag, and why the test that stages a disconnection sets
+`navigator.onLine` as well as dispatching the event. **An emulation that is wrong in the same
+direction as reality is worth building for, not working around.**
+
+**A local e2e database accumulates, so the second run of a suite is not the first.** The full suite
+was 99/99 green, then failed on `events.spec.ts` — two "I'm going" buttons where the spec's comment
+says there is one — because an extra `events` row had appeared in `pocketbase/.pb_e2e` between runs.
+CI never sees this: it provisions the data directory fresh. Deleting the directory and re-running
+returned 99/99 and settled it in three minutes. **A local suite failure that a re-run does not
+reproduce is a question about the database, not about the change** — reset it before reading the
+failure as yours.

@@ -18,6 +18,27 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(here, '..', '..'),
 
   typedRoutes: true,
+
+  /**
+   * The service worker is bundled from `src/sw/service-worker.ts`, so the
+   * browser fetches it from `/_next/static/…` — and a worker is only allowed to
+   * control the directory it was served from and below. Without this header a
+   * worker asking for `scope: '/'` is refused outright, and the offline cache
+   * silently never installs (T19).
+   *
+   * It is scoped to the bundler's own output, which is content-hashed and
+   * same-origin. The alternative — shipping the worker as a static
+   * `public/sw.js` — would mean it could not import the cache policy from
+   * `@landit/core` and would carry a second copy of the allowlist instead.
+   */
+  async headers() {
+    return [
+      {
+        source: '/_next/static/:path*',
+        headers: [{ key: 'Service-Worker-Allowed', value: '/' }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
