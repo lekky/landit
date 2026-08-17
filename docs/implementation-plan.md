@@ -648,10 +648,34 @@ None of this is agent-session work, and none of it blocks a build session. All o
 - **A DPIA.** Mandatory under the Children's code and under UK GDPR for children's data. It has to
   exist before processing starts, which means before the first real rider.
 - **The three OSA assessments** from §6.1, written and retained.
-- **ICO registration and the data protection fee** — £52/yr, £47 by direct debit, tier 1.
-- **A named accountable individual** for OSA compliance, and the controller entity settled (sole
-  trader or limited company). **Open — the owner has not decided.** It gates ICO registration and
-  determines where liability sits, so it is the first of these to answer.
+- **ICO registration and the data protection fee** — £52/yr, £47 by direct debit, tier 1. No
+  longer blocked: the two items below were the ones that gated it.
+- **The controller entity: Fennec Consulting Ltd.** **Decided 2026-08-17.** The owner's existing
+  company, chosen over the two alternatives for reasons worth keeping, because the question comes
+  back the first time anyone considers restructuring:
+  - *Not a sole trader.* A children's service carries ICO and OSA exposure with no ceiling, and as
+    a sole trader that lands on a person's own assets. Fennec supplies a liability ceiling at no
+    cost, and declining a free ceiling on this particular risk was the easy half of the decision.
+  - *Not a fresh Land The Trick Ltd*, which is the textbook answer and stays the right answer
+    later. A second set of company accounts costs more per year than the VAT and ring-fencing it
+    saves below roughly a hundred subscribers. Revisit on real revenue, on outside investment, or
+    on any intent to sell — carving a product out of a consulting company afterwards is an asset
+    transfer and possibly a taxable event, and it means a **new Stripe account**, new price ids
+    and migrating live subscriptions (§6.7).
+  - Consequences already true: legal pages read "Fennec Consulting Ltd trading as Land The Trick";
+    the Stripe account is the company's, not the owner's personally; and Fennec is
+    **VAT-registered**, which changes the pricing arithmetic — see §6.7.
+  - Two things for the accountant, neither of which an agent session can settle: Fennec's
+    professional indemnity cover almost certainly excludes a consumer app's data breach, and if
+    Fennec is already on the ICO register then this is a new processing **purpose** to add rather
+    than a second registration.
+- **The named accountable individual for OSA compliance: Rachid Otsmane.** **Decided 2026-08-17.**
+- **EU VAT registration.** UK VAT registration does not cover B2C digital sales into the EU, which
+  attract VAT **from the first sale with no threshold** — normally handled through the Non-Union
+  OSS scheme. §6.3 opens sign-up globally, so this blocks **taking EU money**, not launching:
+  the product can ship to a UK-only paying audience while it is outstanding. Stripe Tax can
+  calculate the VAT but does not file it. Needs the accountant, and it is the one item here whose
+  answer might change what the upgrade flow is allowed to offer and to whom.
 - **Processor list, Article 28 contracts and a ROPA** for MailerSend, PostHog, Sentry, Cloudflare
   and Mapbox. PostHog EU and R2 EU already keep transfers simple — that call was right, and
   MailerSend (Lithuania) was picked partly to keep it that way, so check its DPA carries the
@@ -798,10 +822,38 @@ from the enforced number, and policing staff prose is a different feature.
 £6.99/mo or £69.99/yr — Legend replaces the dropped Crew Pass as a single-rider tier (§2.4).
 Yearly ≈ two months free throughout. Cost sanity (checked 2026-08-15, VPS stack): fixed base is
 ~£18/mo flat — the VPS at £16.80 plus pennies of R2 for **database backups** (§2.6), shared across
-every product on the box — so break-even is **~5 Shredders**. Per paying rider, Stripe takes ~26p
-of £3.99 and there is no storage or egress cost at all: since 2026-08-17 Land The Trick hosts no video
-(§6.6), so the per-rider marginal cost of a paid plan is Stripe's fee and nothing else. Native apps
-will later take a 15% store cut, which the yearly price should anticipate.
+every product on the box. Per paying rider, Stripe takes ~26p of £3.99 and there is no storage or
+egress cost at all: since 2026-08-17 Land The Trick hosts no video (§6.6), so the only per-rider
+deductions are VAT and Stripe's fee. Native apps will later take a 15% store cut, which the yearly
+price should anticipate.
+
+**VAT is the largest deduction, and it was missing from the sums above until 2026-08-17.** The
+controller entity is **VAT-registered** (§6.5), so every price is VAT-inclusive from the first
+sale — there is no threshold to grow into, and a consumer price cannot be advertised ex-VAT. What
+actually reaches the company, at Stripe's UK card rate of 1.5% + 20p:
+
+| | Rider pays | VAT | Stripe | Net |
+| --- | --- | --- | --- | --- |
+| Shredder monthly | £3.99 | £0.67 | £0.26 | **£3.06** |
+| Shredder yearly | £39.99 | £6.67 | £0.80 | **£32.52** |
+| Legend monthly | £6.99 | £1.17 | £0.31 | **£5.52** |
+| Legend yearly | £69.99 | £11.67 | £1.25 | **£57.07** |
+
+So VAT takes about 17%, roughly **2.5× what Stripe takes**, and break-even moves from ~5 Shredders
+to **~6**. Input VAT on the VPS and the other tooling is now reclaimable, which claws a little of
+the fixed base back. Anyone sanity-checking a price should start from the Net column: the earlier
+text read as though Stripe's fee were the only deduction and understated it about threefold.
+
+**Decided 2026-08-17: absorb the VAT rather than reprice.** £3.99 → £4.79 to preserve the net is a
+real jump on a price a parent pays for a child, and the alternative costs one extra subscriber at
+break-even. The §1 prices stand.
+
+**In Stripe this means `tax_behavior` must be inclusive**, set by the account default in Tax
+settings to **Automatic** — which resolves to inclusive for GBP and exclusive for USD/CAD, so it
+stays right if the product is ever priced in dollars. Set it on the **account**, not on each price:
+a price's `tax_behavior` **can never be changed once it is inclusive or exclusive**, whereas the
+account default can. EU sales are a separate registration and are not covered by any of this
+(§6.5).
 
 **The prices above are confirmed; what they buy is not.** The clip vault was the headline perk on
 both paid cards and it was withdrawn on 2026-08-17 without a replacement (§2.4). Legend at £6.99
