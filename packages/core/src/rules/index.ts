@@ -276,6 +276,22 @@ export {
   weeksBetween,
 } from './time';
 export {
+  DEFAULT_VIDEO_VISIBILITY,
+  NO_VIDEO_LINKS,
+  SHREDDER_VIDEO_LINK_CAP,
+  VIDEO_VISIBILITIES,
+  VIDEO_VISIBILITY_IDS,
+  YOUTUBE_ID_PATTERN,
+  canAddVideoLink,
+  normaliseVideoVisibility,
+  parseYouTubeVideoId,
+  videoLinkAllowance,
+  videoLinkAllowanceLabel,
+  videoLinksRemaining,
+  youtubeEmbedUrl,
+  youtubeWatchUrl,
+} from './video';
+export {
   FREE_MAX_DIFF,
   isLandedStage,
   isTrickFree,

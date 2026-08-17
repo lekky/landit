@@ -1,10 +1,12 @@
-import type { PayerKind, StageId } from '@landit/core';
+import type { PayerKind, StageId, VideoVisibilityId } from '@landit/core';
 
 import type { Client } from './clients';
 import { records } from './collections';
 import type {
   AnnouncementDismissalsRecord,
   ChallengeLogRecord,
+  ClipsCreate,
+  ClipsRecord,
   CrewInvitesCreate,
   CrewInvitesRecord,
   CrewsCreate,
@@ -140,6 +142,78 @@ export async function saveTrickNote(
         trick: input.trickId,
         body: input.body,
       });
+}
+
+/* ----------------------------------------------------------- video links -- */
+
+/**
+ * Add a video link (T15b, plan §6.6).
+ *
+ * **`link` is sent raw and on purpose.** The rider's pasted text goes to the
+ * server as it is, and `pocketbase/hooks/45_video_links.pb.js` parses it and
+ * stores the eleven-character id — so the value in the database has been through
+ * the boundary rather than through a browser. Pre-parsing here with
+ * `parseYouTubeVideoId` would look tidier and would move the decision to the
+ * client, which is exactly where guarantee 2 says it must not live. The web app
+ * does call the parser, but only to tell a rider their link is wrong before they
+ * wait for a round trip.
+ *
+ * Three refusals can come back, all of them the hook's: the link is not a
+ * YouTube link (400), the plan's allowance is full (403), or the account is
+ * waiting on a guardian (403). `isForbidden` and the caller's copy translate
+ * them; none of them is checked here.
+ *
+ * **`userId` is sent and then overwritten, which is not redundant.** The `clips`
+ * create rule is evaluated against the submitted body, so a body naming another
+ * rider is refused there (`user = @request.auth.id`) — and
+ * `45_video_links.pb.js` sets `user` from the token anyway, so a body that lies
+ * cannot land even on a path where the rule did not catch it. Same shape as
+ * `attendEvent` and `saveTrickNote`: the caller states whose row it is, and the
+ * server does not take its word for it. `at` is the server's alone.
+ */
+export async function addVideoLink(
+  client: Client,
+  input: {
+    userId: string;
+    /** Whatever the rider pasted. Parsed server-side; never trusted here. */
+    link: string;
+    /** The trick it hangs off, or omitted for one added outside a trick. */
+    trickId?: string;
+    visibility?: VideoVisibilityId;
+  },
+): Promise<ClipsRecord> {
+  return records(client, 'clips').create({
+    user: input.userId,
+    video_id: input.link,
+    ...(input.trickId ? { trick: input.trickId } : {}),
+    // Absent means private: the hook writes `private` for anything that is not
+    // exactly `members`, so omitting this is the default rather than a gap.
+    visibility: input.visibility ?? 'private',
+  } as ClipsCreate);
+}
+
+/**
+ * Change who can see one video — the only thing about an existing link that
+ * moves (owner's decision, 2026-08-17).
+ *
+ * The hook freezes `video_id`, `user` and `trick` on update, so this cannot
+ * become a way to swap the video behind a row. Note what this function does
+ * *not* promise: setting `members` does not make a video visible to other
+ * riders on its own. Profile privacy is a ceiling — a `members` video on a
+ * `private` profile stays invisible to everyone but its owner, and that is the
+ * `clips` view rule's decision, not this call's.
+ */
+export async function setVideoLinkVisibility(
+  client: Client,
+  videoLinkId: string,
+  visibility: VideoVisibilityId,
+): Promise<ClipsRecord> {
+  return records(client, 'clips').update(videoLinkId, { visibility });
+}
+
+/** Remove a video link. The video itself is on YouTube and is untouched. */
+export async function removeVideoLink(client: Client, videoLinkId: string): Promise<void> {
+  await records(client, 'clips').remove(videoLinkId);
 }
 
 /* --------------------------------------------------------------- profile -- */

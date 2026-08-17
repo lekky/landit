@@ -181,6 +181,61 @@ export interface Plan {
    * a sticker or a place on the board.
    */
   readonly includesFlair: boolean;
+  /**
+   * How many **video links** this plan buys (plan §6.6, owner's decision
+   * 2026-08-17). `0` means none, and means it unambiguously — see
+   * `videoLinkAllowance` in `rules/video.ts` for why the allowance is a count
+   * plus a boolean rather than one number with a sentinel in it.
+   *
+   * Read from the `plans` record by `pocketbase/hooks/45_video_links.pb.js`
+   * before the write commits, like the paywall and the insights entitlement
+   * before it, so the number is staff-tunable without a deploy and a missing
+   * plan record grants nothing.
+   */
+  readonly videoLinkCap: number;
+  /** Whether the cap above does not apply at all. Legend's, at launch. */
+  readonly videoLinksUnlimited: boolean;
+}
+
+/* ------------------------------------------------------------ video links */
+
+/**
+ * Per-video visibility (plan §3 guarantee 2). **Two states, not three** — a
+ * rider-supplied video is never `public`, so a signed-out visitor can never
+ * reach one. Owner's decision (Rachid, 2026-08-17, in chat).
+ *
+ * Deliberately a separate union from `PrivacyId` rather than a narrowing of it:
+ * they are different decisions about different things, and a shared type would
+ * invite a component to hand a profile's `public` to a video's setter.
+ */
+export type VideoVisibilityId = 'private' | 'members';
+
+/**
+ * What a plan grants. See `videoLinkAllowance` for the encoding and why `0` and
+ * "unlimited" are two fields.
+ */
+export interface VideoLinkAllowance {
+  /** Maximum links, where `0` means none. Ignored when `unlimited` is true. */
+  readonly cap: number;
+  readonly unlimited: boolean;
+}
+
+/**
+ * One rider's video link, as the surfaces render it.
+ *
+ * `videoId` is always the 11-character YouTube id — never a URL. The hook parses
+ * whatever a rider pasted and stores only the id, so nothing downstream is ever
+ * holding an attacker-controlled query string, fragment or redirect (plan §3
+ * guarantee 2).
+ */
+export interface VideoLink {
+  readonly id: string;
+  readonly videoId: string;
+  /** The trick this video hangs off, or `null` for one added outside a trick. */
+  readonly trickId: string | null;
+  readonly visibility: VideoVisibilityId;
+  /** ISO date string as PocketBase returns it, or `''`. */
+  readonly at: string;
 }
 
 /* -------------------------------------------------------------- challenges */

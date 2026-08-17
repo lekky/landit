@@ -22,12 +22,15 @@ import {
   listTrickLog,
   listTrickProgress,
   listTricks,
+  listVideoLinks,
   trickLogEntries,
+  videoLinksFromRecords,
 } from '@landit/db';
 import { Avatar, Panel, SportChip, StickerBadge, Tag } from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { VideoWall } from '@/components/video/VideoWall';
 import { shortDate } from '@/lib/dates';
 import { ROUTES, reportHref, riderHref, signInHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
@@ -83,14 +86,20 @@ export default async function RiderProfilePage({
   const isSelf = session?.rider.id === rider.id;
   const timezone = session?.rider.timezone || DEFAULT_TIMEZONE;
 
-  const [trickRecords, progress, log, earned, stickerRecords, plans] = await Promise.all([
-    listTricks(client),
-    listTrickProgress(client, rider.id),
-    listTrickLog(client, rider.id),
-    listRiderStickers(client, rider.id),
-    listStickers(client),
-    listPlans(client),
-  ]);
+  const [trickRecords, progress, log, earned, stickerRecords, plans, videoRecords] =
+    await Promise.all([
+      listTricks(client),
+      listTrickProgress(client, rider.id),
+      listTrickLog(client, rider.id),
+      listRiderStickers(client, rider.id),
+      listStickers(client),
+      listPlans(client),
+      // Read with the **viewer's** client, so what comes back is what the `clips`
+      // rule allows them — the profile-privacy ceiling included. A signed-out
+      // visitor gets an empty list from the API, not a filtered one from here.
+      // This page does not filter the result and must not start (guarantee 2).
+      listVideoLinks(client, { userId: rider.id }),
+    ]);
 
   const trickById = new Map(trickRecords.map((t) => [t.id, t]));
   const stickerById = new Map(stickerRecords.map((s) => [s.id, s]));
@@ -319,6 +328,17 @@ export default async function RiderProfilePage({
           )}
         </div>
       </div>
+
+      {/*
+        Videos (T15b). Full width below the grid, and it draws itself only if the
+        API returned something — a panel saying "this rider has videos you cannot
+        see" would be information about a choice they made not to share.
+      */}
+      <VideoWall
+        videos={videoLinksFromRecords(videoRecords)}
+        isSelf={isSelf}
+        firstName={firstName}
+      />
     </div>
   );
 }

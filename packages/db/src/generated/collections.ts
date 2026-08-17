@@ -42,6 +42,7 @@ export type AnnouncementsAudiencePlan = 'rookie' | 'shredder' | 'legend';
 export type AnnouncementsAudienceSport = 'scooter' | 'skate' | 'bmx';
 export type AuditLogActorKind = 'rider' | 'staff' | 'superuser' | 'guest' | 'system';
 export type ChallengesSport = 'scooter' | 'skate' | 'bmx';
+export type ClipsVisibility = 'private' | 'members';
 export type CrewMembersRole = 'owner' | 'member';
 export type EventsKind = 'Comp' | 'Session' | 'Class' | 'Jam';
 export type EventsSports = 'scooter' | 'skate' | 'bmx';
@@ -231,6 +232,8 @@ export interface ClipsRecord {
   at: string;
   created: string;
   updated: string;
+  video_id: string;
+  visibility: ClipsVisibility;
 }
 
 /** The shape accepted when creating a `clips` record. */
@@ -239,6 +242,8 @@ export interface ClipsCreate {
   user: string;
   trick?: string;
   at?: string;
+  video_id?: string;
+  visibility?: ClipsVisibility;
 }
 
 /** The shape accepted when updating a `clips` record. */
@@ -435,6 +440,8 @@ export interface PlansRecord {
   updated: string;
   includes_insights: boolean;
   includes_flair: boolean;
+  video_link_cap: number;
+  video_links_unlimited: boolean;
 }
 
 /** The shape accepted when creating a `plans` record. */
@@ -455,6 +462,8 @@ export interface PlansCreate {
   is_live?: boolean;
   includes_insights?: boolean;
   includes_flair?: boolean;
+  video_link_cap?: number;
+  video_links_unlimited?: boolean;
 }
 
 /** The shape accepted when updating a `plans` record. */
