@@ -34,7 +34,6 @@ const DENIED_COPY: Record<(typeof CONSENT_LIMITED_DENIES)[number], string> = {
   receive_crew_invite: 'Be invited to a crew',
   submit_spot: 'Add a skatepark or spot',
   attend_event: 'Say you are going to an event',
-  upload_clip: 'Save clips',
   hold_subscription: 'Pay for anything',
 };
 

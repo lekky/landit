@@ -132,7 +132,7 @@ export default async function AccountPage() {
       <Panel flat className={styles.later}>
         <div className="lab">Still on its way</div>
         <ul className={styles.laterList}>
-          <li>Clips, spots, events and the weekly challenge</li>
+          <li>Spots, events and the weekly challenge</li>
           <li>Editing your name, avatar, stance and goal</li>
         </ul>
         <p className={`cond ${styles.handle}`} style={{ marginTop: 10 }}>

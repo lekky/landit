@@ -303,7 +303,12 @@ Steps 1–8 above are the sequence; this is the progress.
 - [ ] Domain verified 2026-08-16; still to do: **out of trial phase**, and the SPF merged (runbook 6)
 - [ ] DMARC (runbook 7)
 - [ ] Uptime Kuma monitors, then the email paths by hand — issue #31 (runbook 8)
-- [ ] R2 lifecycle rule + clips bucket when T14 (clips) approaches.
+- ~~[ ] R2 lifecycle rule + clips bucket when T14 (clips) approaches.~~ **Dropped 2026-08-17.** The
+      owner reversed clip hosting (plan §1, §6.6): Land It stores no rider video, so there is no
+      clips bucket to create, no PocketBase S3 settings to fill in, and no lifecycle rule to write.
+      `box1-backups` above is unaffected — that is Litestream's database replication and has nothing
+      to do with clips. Issue #113 closed as obsolete. **Nothing here is ever provisioned by a build
+      session in any case** — this file is reference only.
 - [ ] **`LANDIT_SITE_LIVE` and `LANDIT_PREVIEW_KEY` set on the deployed web app** (runbook 2). The
       code shipped shut-by-default, so the site is already holding — but until `LANDIT_PREVIEW_KEY`
       is set on the box there is no way to see the real site on the real domain, and nobody can

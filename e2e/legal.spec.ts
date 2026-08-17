@@ -67,6 +67,38 @@ test('the Crew Pass is gone from every document (plan §2.4)', async ({ page }) 
   }
 });
 
+test('no document promises a clip vault, or private storage for uploads', async ({ page }) => {
+  // The owner reversed clip hosting on 2026-08-17 (plan §1, §6.6, §3 guarantee
+  // 2). Until then the privacy policy said "Clips you upload are yours, and only
+  // you can watch them… the storage they sit in is private", and the terms said
+  // saved clips stayed watchable after a downgrade. Both described a vault that
+  // no longer exists, and a promise about how carefully nothing is stored is
+  // worse than no promise: it tells a parent this product holds their child's
+  // video. These are published documents, so the absence is asserted rather than
+  // trusted. `t15b-video-links` adds copy about *pasted links* — a video on
+  // YouTube, not here — and will need its own assertions, not a loosening of
+  // these.
+  // Note these are the *promises*, not the word "upload" — the replacement copy
+  // uses it to deny hosting ("There is no upload, and no clip of yours is stored
+  // on our servers"), which is the sentence this test exists to protect.
+  for (const [slug] of DOCS) {
+    await page.goto(`/legal/${slug}`);
+    const body = await page.locator('body').innerText();
+    expect(body).not.toMatch(/vault/i);
+    expect(body).not.toMatch(/\d\s*GB\b/i);
+    expect(body).not.toMatch(/clips you upload/i);
+    expect(body).not.toMatch(/storage they sit in/i);
+    expect(body).not.toMatch(/stay watchable/i);
+    // No document may describe uploading as something a rider can do here.
+    expect(body).not.toMatch(/(can|may|you)\s+upload/i);
+  }
+});
+
+test('the privacy policy states plainly that Land It hosts no video', async ({ page }) => {
+  await page.goto('/legal/privacy');
+  await expect(page.locator('body')).toContainText('We do not host video');
+});
+
 test('the privacy policy says new accounts start private (plan §6.4)', async ({ page }) => {
   await page.goto('/legal/privacy');
   await expect(page.locator('body')).toContainText('New accounts start private');
@@ -92,7 +124,8 @@ test('safeguarding keeps the one-working-day promise and claims only email repor
   expect(body).toContain(CONTACT.safeguarding);
 
   // Softened until T18 builds the flow — same decision. The pack promised
-  // "Every profile and clip can be reported" while no button existed.
+  // "Every profile and clip can be reported" while no button existed. There are
+  // no clips at all now (2026-08-17), so the claim is doubly gone.
   expect(body).not.toMatch(/every profile and clip can be reported/i);
 });
 

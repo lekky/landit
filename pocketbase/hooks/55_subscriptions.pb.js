@@ -22,9 +22,11 @@
  * which is what lets Apple and Google join later as two more `source` values
  * rather than as two more places the answer lives.
  *
- * Registered as `55_` so it loads after the clips cap (`50_`) and before the
- * ownership defaults (`60_`); the number carries no dependency, only the
- * reading order of the directory.
+ * Registered as `55_` so it loads before the ownership defaults (`60_`); the
+ * number carries no dependency, only the reading order of the directory. `50_`
+ * was the clip cap, deleted when clip hosting was reversed on 2026-08-17 (plan
+ * §1, §6.6) — the gap is left rather than closed, so the numbering keeps
+ * meaning the same thing.
  */
 
 onRecordCreate((e) => {

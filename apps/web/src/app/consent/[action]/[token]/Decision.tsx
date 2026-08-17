@@ -101,7 +101,7 @@ export function Decision({
                   <li>Be visible to other riders</li>
                   <li>Join a crew they are invited to</li>
                   <li>Add a spot or attend an event</li>
-                  <li>Save clips, or hold a paid plan</li>
+                  <li>Hold a paid plan</li>
                 </ul>
               </div>
             </div>
@@ -112,8 +112,8 @@ export function Decision({
           </>
         ) : (
           <p>
-            {name} goes back to an account only they can see: no crew, no clips, not visible to
-            other riders. Nothing they have logged is deleted, and they can ask you again later.
+            {name} goes back to an account only they can see: no crew, not visible to other riders.
+            Nothing they have logged is deleted, and they can ask you again later.
           </p>
         )}
       </div>

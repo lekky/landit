@@ -11,7 +11,7 @@ import { buildPlansView } from './view';
 export const metadata: Metadata = {
   title: 'Plans · Land It',
   description:
-    'Rookie is free forever. Shredder unlocks every trick; Legend adds a bigger clip vault, flair and progress insights.',
+    'Rookie is free forever. Shredder unlocks every trick; Legend adds flair and progress insights.',
 };
 
 /**
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
  * agreeing with the admin the first time somebody edits one.
  *
  * **Nothing on this page is the paywall.** What a plan unlocks is decided by
- * `plans.unlocks_paid_tricks`, `clip_cap_bytes`, `includes_insights` and
+ * `plans.unlocks_paid_tricks`, `includes_insights` and
  * `includes_flair` on the server, and what a rider is entitled to is resolved
  * from their own `subscriptions` rows by the hook. This screen sells; it does
  * not grant.

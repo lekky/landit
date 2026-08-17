@@ -6,7 +6,6 @@ import {
   ensureRecord,
   makeRider,
   superuser,
-  uploadClip,
   type Fixtures,
   type Rider,
 } from './helpers';
@@ -17,8 +16,14 @@ import {
  * A rider whose `consent_state` is `pending` or `revoked` may read and write
  * only their own data. Everything that makes them visible, reachable or
  * billable refuses them: `crews`, `crew_members`, `crew_invites`, `spots`
- * create, `event_attendance`, `clips`, `subscriptions`, and any view rule that
- * would surface their profile to another rider.
+ * create, `event_attendance`, `subscriptions`, and any view rule that would
+ * surface their profile to another rider.
+ *
+ * `clips` was on that list until 2026-08-17, when the owner reversed the
+ * clip-hosting decision (plan §1, §6.6): the collection's `createRule` is now
+ * `null`, so it refuses *every* rider rather than a consent-limited one, and an
+ * assertion here would pass for the wrong reason. The video-link feature
+ * (`t15b-video-links`) brings its own capability and its own arm in this file.
  *
  * "A client-side consent gate protects nobody, and this one is a promise made
  * to a parent." Every refusal below is therefore observed over HTTP.
@@ -259,11 +264,6 @@ describe('guarantee 4 — the guardian-consent gate is enforced by the API', () 
       body: { user: granted.id, event: event.id },
     });
     expect(allowed.status).toBe(200);
-  });
-
-  it('refuses to let a pending rider save a clip, even on a paid plan', async () => {
-    const attempt = await uploadClip(pending, fixtures.freeTrick, 256);
-    expect([400, 403]).toContain(attempt.status);
   });
 
   it('refuses to let a pending rider hold a subscription, even server-side', async () => {

@@ -22,7 +22,7 @@ import type { AgeBand, ConsentState } from './consent';
  * the same class of bug as a client-side paywall.
  *
  * Nothing here decides what a plan *contains*. Entitlements are resolved from
- * the `plans` record — `unlocks_paid_tricks`, `clip_cap_bytes`,
+ * the `plans` record — `unlocks_paid_tricks`,
  * `includes_insights`, `includes_flair` — never by comparing a plan id to the
  * string `legend`. See `planUnlocksPaidTricks` in `./tricks` and
  * `planIncludesInsights` in `./progress` for the same arrangement.

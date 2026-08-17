@@ -89,7 +89,16 @@ export const STICKERS = [
     hue: '#C46BFF',
     ico: 'cam',
     cond: 'Upload your first clip',
-    isLive: true,
+    // **Off the wall, not deleted** (plan §6.6, reversed by the owner
+    // 2026-08-17). Its condition is a clip upload, and there is no upload any
+    // more, so it cannot be earned by anybody — and a wall that shows a rider an
+    // achievement telling them to do something the app cannot do is the same
+    // false promise the rest of this PR removes. It is kept rather than dropped
+    // because `t15b-video-links` is the obvious place to re-arm it ("add your
+    // first video"), and deleting an achievement is the owner's call, not a
+    // session's. Whether it comes back, and under what condition and copy, is
+    // filed as an issue.
+    isLive: false,
   },
   {
     id: 'challenger',
