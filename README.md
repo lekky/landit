@@ -8,7 +8,7 @@ riders of all ages — safeguarding is a feature, not a checkbox.
 
 | Doc | What it is |
 | --- | --- |
-| [docs/implementation-plan.md](docs/implementation-plan.md) | **The authority.** Stack decisions, architecture, data model, and §7: the session-by-session build plan (T0–T20). |
+| [docs/implementation-plan.md](docs/implementation-plan.md) | **The authority.** Stack decisions, architecture, data model, and §7: the session-by-session build plan (T0–T21). |
 | [design-handoff/README.md](design-handoff/README.md) | The design contract: tokens, screens, behaviour, data shapes. The prototype in `design-handoff/design/` is the behavioural spec; screenshots in `design-handoff/screenshots/`. |
 | [docs/infrastructure.md](docs/infrastructure.md) | The live server (box1): URLs, access patterns, security posture, backups. Build sessions never need this box. |
 | [CLAUDE.md](CLAUDE.md) | Standing instructions for agent sessions. |
@@ -69,7 +69,7 @@ pnpm e2e
 
 | Path | What lives there |
 | --- | --- |
-| `apps/web` | The Next.js App Router app — rider app, marketing, legal, and later the `/admin` route group. |
+| `apps/web` | The Next.js App Router app — rider app, marketing, legal, and the `/admin` route group. |
 | `packages/core` | Pure TypeScript game rules. Never imports React, Next, or anything DOM — ESLint enforces it. |
 | `packages/db` | PocketBase clients, collection types, typed queries. |
 | `packages/ui-web` | The design system: tokens, primitives, icons. |
@@ -79,5 +79,5 @@ pnpm e2e
 ## Stack (settled — see plan §1 before proposing changes)
 
 Next.js (pnpm monorepo) · PocketBase (self-hosted, one instance per product) · Coolify on a
-shared VPS · Cloudflare R2 (backups + clips) · Stripe · MailerSend · Mapbox · PostHog EU +
-Cloudflare Analytics · Sentry.
+shared VPS · Cloudflare R2 (database backups only — Land The Trick hosts no rider video, §6.6) ·
+Stripe · MailerSend · Mapbox · PostHog EU + Cloudflare Analytics · Sentry.

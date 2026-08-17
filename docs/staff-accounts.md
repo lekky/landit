@@ -4,7 +4,7 @@ How somebody gets into `/admin`, and why it is deliberately awkward.
 
 ## The short version
 
-Staff are a **role on an ordinary rider account** (plan §5). There is no staff login, no staff
+Staff are a **role on an ordinary rider account** (plan §3). There is no staff login, no staff
 password, no second app. Somebody who works on Land The Trick signs in the way every rider does, and
 `users.role = 'staff'` is what makes `/admin` exist for them.
 
@@ -73,4 +73,6 @@ missing the script says so and tells you the command, rather than surprising you
 Then sign up in the app and set your own `role` to `staff` in the dashboard.
 
 On the deployed box those two variables are Coolify environment variables and are the owner's to
-set; see issue #62, which is the same requirement arriving from the "I rode today" path.
+set. **Done 2026-08-17** — set on `landit-web` against a dedicated `app@landthetrick.com` superuser
+and verified green through `/api/health` (issue #62, closed; `docs/infrastructure.md` runbook 2b has
+the settings and the rollover behaviour worth expecting).

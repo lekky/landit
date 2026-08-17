@@ -42,9 +42,8 @@ Set up 2026-08-15. This file records what exists and how to reach it — no secr
 
 - Project **infra** — shared box services. Currently: `uptime-kuma`
   (service uuid `5cxwcyvdozkz70erdus5ck0z`).
-- One Coolify **project per product** (Land The Trick's gets created when there is something to
-  deploy — app + PocketBase instance + PR previews). Products are isolated; nothing
-  product-specific goes in `infra`.
+- One Coolify **project per product** — app + PocketBase instance + PR previews. Products are
+  isolated; nothing product-specific goes in `infra`.
 - Server uuid (for API calls): `lvkalcforx2tdkygp0odsk2a`.
 - Project **landit** (uuid `fx6khydt9jclkaut4dftmrup`, environment `production`
   `bkdfnev1unlcw0z1fxwr16od`), deployed 2026-08-16:
@@ -126,8 +125,9 @@ Three things about this screen:
 
 ### 2. Coolify project
 
-The project exists (Rachid, 2026-08-16); the two services inside it do not. Both deploy **from this
-repository's Dockerfiles** — Nixpacks cannot be trusted with a pnpm workspace whose app compiles
+**Done 2026-08-16 — both services are live on HTTPS** (their uuids and domains are in Layout above).
+This section stays as the runbook: it is what was done, and what a rebuild or a second environment
+would repeat. Both deploy **from this repository's Dockerfiles** — Nixpacks cannot be trusted with a pnpm workspace whose app compiles
 three sibling packages from source, and PocketBase has no image that would carry *our* migrations
 and hooks. Both are built on every PR by CI's `docker images` job, so what Coolify builds here is
 what was already proven green.
@@ -211,15 +211,16 @@ including `/signup` — returns the holding page with a **200**, so the Uptime K
 stay green rather than paging about a launch gate.
 
 Turn on **preview deployments** for the web app. Plan §7 wanted them by the end of Wave 2 so later
-waves could be reviewed on real URLs; Wave 3 has merged without them, so this is the part that is
-actually late. They need the wildcard DNS record from step 1, which is already there.
+waves could be reviewed on real URLs; **every wave has now merged without them**, so no wave was
+ever reviewed on a preview URL. They need the wildcard DNS record from step 1, which is already
+there — the reason they are still off is the paragraph below, not the DNS.
 
 **The Preview environment does not carry the superuser pair** (see below), so the day previews are
 switched on, every PR preview serves a red `/api/health` and a "I rode today" that fails softly —
 and it will look like the PR caused it. It also points at the *production* PocketBase, so a preview
 deploy writes into the live database: riders, consent records, audit log. Harmless while there is no
 real data in there and genuinely awkward afterwards. Both halves are one decision — what a preview
-deploy is allowed to touch — and it is open.
+deploy is allowed to touch — and it is open: **issue #164**, the owner's.
 
 ### 2b. The superuser pair — **done 2026-08-17**
 
@@ -388,7 +389,8 @@ Steps 1–8 above are the sequence; this is the progress.
 - [x] **`LANDIT_PREVIEW_KEY` set on the deployed web app** (runbook 2) — done 2026-08-17. The real
       site on the real domain can now be opened behind the holding page, which is what makes a
       deploy checkable before launch day.
-- [ ] **Preview deployments turned on, and what a preview may touch decided** (runbook 2). The
-      Preview environment has no superuser pair and points at the production PocketBase.
+- [ ] **Preview deployments turned on, and what a preview may touch decided** (runbook 2) —
+      **issue #164**. The Preview environment has no superuser pair and points at the production
+      PocketBase. Every wave merged without previews, so this was never actually used.
 - [ ] **`LANDIT_SITE_LIVE=true`, on launch day.** The last item on this list, deliberately: it is
       the one that makes everything above it visible to the public.
