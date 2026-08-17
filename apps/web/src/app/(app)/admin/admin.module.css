@@ -1,0 +1,336 @@
+/*
+ * The staff portal's layout.
+ *
+ * Everything that *looks* like Land It — the panels, the pills, the tags, the
+ * hard offset shadows, `.arow` — comes from `@landit/ui-web/styles.css`, which
+ * already carries the admin table row the design pack specifies. This file is
+ * only the arrangement: grids, gaps and the two surfaces the portal adds.
+ */
+
+.portal {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.header {
+  padding: 16px 20px;
+  background: var(--ink);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.who {
+  min-width: 0;
+}
+
+.back {
+  margin-left: auto;
+}
+
+/* ------------------------------------------------------------------ tabs -- */
+
+.tabs {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+/*
+ * `.pill` is written for a `button` in the design pack, and the token sheet has
+ * an `a:hover` that outranks it — the trap that rendered the whole rider nav
+ * unstyled and pink (LESSONS §3a). An anchor wearing `.pill` therefore has to
+ * restate the two properties a link brings with it.
+ */
+.tab,
+.tab:hover,
+.tabSoon {
+  text-decoration: none;
+}
+
+.tab:not(:global(.on)) {
+  color: var(--ink);
+}
+
+/* A tab whose screen T17 has not built. A label, not a dead link. */
+.tabSoon {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ---------------------------------------------------------------- shared -- */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.footnote {
+  margin: 0;
+  font-family: var(--fc);
+  font-size: 12.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
+.quiet {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+.muted {
+  font-family: var(--fc);
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+/* Whatever is loading keeps its place and goes quiet, rather than blanking. */
+.busy {
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+
+/* -------------------------------------------------------------- overview -- */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.cardSub {
+  font-family: var(--fc);
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-top: 4px;
+  letter-spacing: 0.03em;
+  line-height: 1.4;
+}
+
+/* The revenue figure, which does not exist until billing does (T15). */
+.pending {
+  color: var(--ink-3);
+}
+
+.panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.barHead {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.barNote {
+  font-family: var(--fc);
+  font-size: 13.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.03em;
+  margin-top: 2px;
+}
+
+.attention {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.attentionRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  flex: none;
+}
+
+.dotOn {
+  background: var(--orange);
+}
+
+/* ------------------------------------------------------------- activity -- */
+
+.activity {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.activityRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.activityRule {
+  flex: 1;
+  min-width: 20px;
+  height: 3px;
+  background: var(--wash);
+}
+
+/* --------------------------------------------------------------- riders -- */
+
+.filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.riderCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.handle {
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.sportCell {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.accountCell {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.planSelect {
+  border: 2.5px solid var(--ink);
+  border-radius: 0;
+  background: var(--paper);
+  padding: 6px 8px;
+  font-size: 13.5px;
+  font-family: var(--fc);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.planSelect:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.noRows {
+  padding: 26px;
+  text-align: center;
+  font-family: var(--fc);
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+
+.tableFoot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+.pager {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ---------------------------------------------------------- rider sheet -- */
+
+.sheetHead {
+  background: var(--ink);
+  padding: 20px 22px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.sheetStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+}
+
+.sheetStat {
+  padding: 14px;
+  border-top: 3px solid var(--ink);
+  border-bottom: 3px solid var(--ink);
+  border-right: 2.5px solid var(--ink);
+}
+
+.sheetStat:last-child {
+  border-right: none;
+}
+
+.sheetBody {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tracked {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.trackedRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trackedRule {
+  flex: 1;
+  height: 3px;
+  background: var(--wash);
+}
+
+.sheetActions {
+  border-top: 2.5px solid var(--wash);
+  padding-top: 16px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}

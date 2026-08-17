@@ -52,6 +52,24 @@ export const ROUTES = {
   coach: '/coach',
   /** T13's spots and map, on the same terms. */
   spots: '/spots',
+  /**
+   * The staff portal (T16), and the one route here that is not for riders.
+   *
+   * Deliberately **not** wired into `components/shell/nav.ts`. Partly for the
+   * reason that file records — Wave 6 runs two concurrent sessions and one
+   * shared array is one rebase conflict in the file that decides whether a
+   * screen is reachable — and partly because a staff entry in the rider nav is
+   * a design question nobody has answered: the prototype's app had no routes,
+   * so it could show the tab to everyone and let the gate refuse. A real bar
+   * would have to render conditionally on `role`, on every page, for a link
+   * two people use.
+   *
+   * So the portal is reached by typing the address, which is what the plan's
+   * "role gate" implies and what staff will do anyway. The nav entry, if it is
+   * wanted, is a wave-6 wiring chore alongside T15's `plans` line.
+   */
+  admin: '/admin',
+  adminRiders: '/admin/riders',
 } as const satisfies Record<string, Route>;
 
 export const legalHref = (doc: LegalDocId): Route => `/legal/${doc}`;
