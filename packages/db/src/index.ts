@@ -66,6 +66,15 @@ export {
 } from './auth';
 
 export {
+  deleteAccount,
+  exportAccountData,
+  fileReport,
+  type AccountDeletionResult,
+  type AccountExport,
+  type ReportInput,
+} from './account';
+
+export {
   isForbidden,
   isNotFound,
   isRateLimited,

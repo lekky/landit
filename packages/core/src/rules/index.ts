@@ -163,6 +163,25 @@ export {
   normaliseHandle,
 } from './profile';
 export {
+  REPORT_DETAIL_MAX,
+  REPORT_MAX_OPEN,
+  REPORT_MAX_PER_WINDOW,
+  REPORT_REASONS,
+  REPORT_REASON_IDS,
+  REPORT_SUBJECTS,
+  REPORT_SUBJECT_IDS,
+  REPORT_WINDOW_MINUTES,
+  isEmailish,
+  isReportReason,
+  isReportSubject,
+  reportProblems,
+  reportReasonLabel,
+  reportSubjectLabel,
+  type ReportDraft,
+  type ReportReasonId,
+  type ReportSubjectId,
+} from './reports';
+export {
   SPOT_MAX_TAGS,
   SPOT_NAME_MAX_LENGTH,
   SPOT_SUBMISSION_MAX_PENDING,

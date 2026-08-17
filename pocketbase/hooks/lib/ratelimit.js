@@ -21,11 +21,19 @@
  * be reset, expired or kept in sync. At the volumes this guards — single digits
  * per rider — that is cheaper than the bookkeeping would be.
  *
- * Issue #32 wants the same treatment for `POST /api/landit/consent/request`,
- * which writes one `guardian_consents` row per call: `assertUnderRateLimit` with
- * `collection: 'guardian_consents'`, `filter: 'user = {:user}'` is the whole
- * change, once the owner has picked the numbers. Left alone here on purpose —
- * T13 does not get to decide how often a parent may be emailed.
+ * Issue #32 wanted the same treatment for `POST /api/landit/consent/request`.
+ * T18 did it, and the numbers stayed where this file says they belong — at the
+ * call site in `90_consent.pb.js`, with the note that they are tunable defaults
+ * rather than decisions. The one thing that turned out to matter more than the
+ * per-rider count is the second limit there: **per guardian address, across
+ * every rider**, because the person being emailed has no account here and no
+ * way to say no.
+ *
+ * T18 also added three more callers — `95_reports.pb.js`, `96_account.pb.js`
+ * and `12_handles.pb.js`. Two of them count rows in `audit_log` rather than in
+ * a collection of their own, which is the pattern to reach for when the thing
+ * being limited is an *attempt* rather than a record: an attempt that fails
+ * leaves nothing to count, and an audit row is the honest place to leave one.
  */
 
 /** PocketBase's stored datetime format, N minutes ago. */

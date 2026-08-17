@@ -29,7 +29,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { shortDate } from '@/lib/dates';
-import { ROUTES, riderHref, signInHref } from '@/lib/routes';
+import { ROUTES, reportHref, riderHref, signInHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { anonymousClient, currentRider } from '@/lib/session';
 
@@ -301,6 +301,20 @@ export default async function RiderProfilePage({
                 There is no messaging on Land It — not here and not anywhere. If something about{' '}
                 {firstName}&rsquo;s profile is wrong, tell us and a person will look at it.
               </p>
+              {/*
+                T18. This paragraph promised a route and did not have one until
+                now. It is a plain link rather than a modal so it works from any
+                profile, signed in or not, which is the OSA duty (plan §6.1) —
+                and it goes to us, never to the rider, which is what keeps the
+                no-stranger-contact position intact.
+              */}
+              <Link
+                className="btn sm ghost"
+                href={reportHref({ type: 'profile', id: rider.id })}
+                prefetch={false}
+              >
+                Report this profile
+              </Link>
             </Panel>
           )}
         </div>

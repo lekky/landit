@@ -8,6 +8,14 @@ packages:
 # pnpm blocks dependency install scripts unless they are named here. Keep this
 # list as short as it can be, and say why each one is on it.
 allowBuilds:
+  # Arrives with `@sentry/nextjs` (T18). Its install step downloads a platform
+  # binary whose only job is uploading source maps to a Sentry project at build
+  # time — which we do not do: there is no Sentry organisation, no auth token,
+  # and secrets never enter the repo (plan §6.5 lists Sentry among the
+  # processors nobody has contracted with yet). Reporting itself needs none of
+  # it, so this stays `false` and CI does not fetch a binary it will not run.
+  # Turn it on in the same change that adds an auth token, not before.
+  '@sentry/cli': false
   # Native resolver behind eslint-import-resolver-typescript (via
   # eslint-config-next). Without its install step ESLint cannot resolve imports.
   unrs-resolver: true
