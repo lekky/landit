@@ -5,6 +5,8 @@ import type { ReactNode } from 'react';
 import { ROUTES } from '@/lib/routes';
 import { requireStaff } from '@/lib/staff';
 
+import { signOutAction } from '../../(auth)/actions';
+
 import { AdminTabs } from './AdminTabs';
 
 import styles from './admin.module.css';
@@ -19,9 +21,11 @@ import styles from './admin.module.css';
  * the *only* check: every server action re-checks, because a layout guards a
  * render and an action is a separate request that no render has to precede.
  *
- * There is no admin screenshot to check this against. 25, 26 and 27 in the
- * design pack are byte-identical copies of `06-home.png` (28–30 copy
- * `08-library.png`), so `landit-admin.jsx` is the whole spec — see issue #95.
+ * T16 shipped with no screenshot to check against — 25, 26 and 27 in the pack
+ * are byte-identical copies of `06-home.png` — so `landit-admin.jsx` was the
+ * whole spec. Real captures have since been supplied and the three screens
+ * match them; issue #95 tracks getting the files into the pack. Check the
+ * numbered captures once they are there, not the prototype alone.
  */
 /**
  * The metadata deliberately lives on the **pages**, not here.
@@ -48,9 +52,25 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             {staff.rider.name || staff.rider.handle} · @{staff.rider.handle}
           </div>
         </div>
-        <Link href={ROUTES.dashboard} className={`btn sm ghost ${styles.back}`}>
-          Back to the app
-        </Link>
+        <div className={styles.headerActions}>
+          <Link href={ROUTES.dashboard} className="btn sm ghost">
+            Back to the app
+          </Link>
+          {/*
+           * The design's violet Sign out, doing what the word says (owner's
+           * call, 2026-08-17). In the prototype it cleared a passcode session
+           * that only the portal had; with a role gate there is no portal
+           * session to end, so the only honest reading of the button is the
+           * whole account — the same `signOutAction` the account screen uses.
+           * "Back to the app" beside it is the non-destructive way out, which is
+           * why both are here rather than one.
+           */}
+          <form action={signOutAction}>
+            <button type="submit" className="btn sm" style={{ background: 'var(--violet)' }}>
+              Sign out
+            </button>
+          </form>
+        </div>
       </Panel>
 
       <AdminTabs />

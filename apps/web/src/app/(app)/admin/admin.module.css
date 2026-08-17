@@ -27,8 +27,13 @@
   min-width: 0;
 }
 
-.back {
+/* Both ways out of the portal, pushed to the right of the header. */
+.headerActions {
   margin-left: auto;
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 /* ------------------------------------------------------------------ tabs -- */
