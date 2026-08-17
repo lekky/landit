@@ -2,9 +2,11 @@
 
 import { clipUploadProblem, clipVault, formatBytes } from '@landit/core';
 import { Button, Icon, Modal, Panel, Slot } from '@landit/ui-web';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, useTransition } from 'react';
 
+import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/providers/toast';
 
 import { clipPlaybackAction, deleteClipAction, uploadClipAction } from './clip-actions';
@@ -212,10 +214,13 @@ export function ClipsPanel({
                   Your {formatBytes(vault.capBytes)} vault is full. {upgrade.name} comes with{' '}
                   {upgrade.capLabel}, or delete a clip to make room.
                 </p>
-                <Button size="sm" wide disabled style={{ background: 'var(--violet)' }}>
+                <Link
+                  className="btn sm wide"
+                  href={ROUTES.plans}
+                  style={{ background: 'var(--violet)' }}
+                >
                   See plans
-                </Button>
-                <p className={`cond ${styles.clipNote}`}>Upgrading is not switched on yet.</p>
+                </Link>
               </div>
             ) : (
               <div className={styles.clipFull}>
@@ -233,14 +238,14 @@ export function ClipsPanel({
               Filming your attempts is part of {upgrade?.name ?? 'Shredder'}
             </span>
           </div>
-          <Button size="sm" wide disabled style={{ background: 'var(--violet)' }}>
+          <Link className="btn sm wide" href={ROUTES.plans} style={{ background: 'var(--violet)' }}>
             See plans
-          </Button>
-          <p className={`cond ${styles.clipNote}`} style={{ marginTop: 10 }}>
-            {clips.length > 0
-              ? 'Clips you already saved stay yours to watch. New ones need a paid plan.'
-              : 'Upgrading is not switched on yet.'}
-          </p>
+          </Link>
+          {clips.length > 0 && (
+            <p className={`cond ${styles.clipNote}`} style={{ marginTop: 10 }}>
+              Clips you already saved stay yours to watch. New ones need a paid plan.
+            </p>
+          )}
         </>
       )}
 

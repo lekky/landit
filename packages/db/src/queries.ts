@@ -25,6 +25,8 @@ import type {
   RiderStickersRecord,
   SpotsRecord,
   StickersRecord,
+  SubscriptionsRecord,
+  SubscriptionsSource,
   TrickLogRecord,
   TrickNotesRecord,
   TrickPrereqsRecord,
@@ -686,4 +688,76 @@ export async function clipCapBytes(client: Client, planSlug: string): Promise<nu
  */
 export function nextClipPlan(plans: readonly PlansRecord[], capBytes: number): PlansRecord | null {
   return plans.filter((plan) => (plan.clip_cap_bytes ?? 0) > capBytes)[0] ?? null;
+}
+
+/* --------------------------------------------------------- subscriptions -- */
+
+/**
+ * T15's block. `subscriptions` has `listRule`/`viewRule` of
+ * `user = @request.auth.id` and no write rules at all, so a rider reads only
+ * their own and writes none: the Stripe webhook is the writer, holding the
+ * superuser client, and `pocketbase/hooks/55_subscriptions.pb.js` decides what
+ * it is allowed to write.
+ *
+ * There is deliberately no `planFor(rider)` here. What a plan *grants* is read
+ * off the `plans` record (`unlocks_paid_tricks`, `clip_cap_bytes`,
+ * `includes_insights`, `includes_flair`), and `users.plan` is resolved from
+ * these rows by the hook — a third place computing an entitlement is exactly
+ * what plan §2.4 says not to build.
+ */
+
+/** Every subscription row a rider has ever held, newest first. */
+export async function listSubscriptions(
+  client: Client,
+  userId: string,
+): Promise<SubscriptionsRecord[]> {
+  return records(client, 'subscriptions').list({
+    filter: 'user = {:user}',
+    params: { user: userId },
+    sort: '-created',
+  });
+}
+
+/**
+ * The subscription a rider's plan currently rests on, or `null`.
+ *
+ * `active` and `trialing` only — the same two `statusEntitles` names in
+ * `@landit/core`, and the same two the hook resolves the plan from. This is the
+ * read behind "Manage billing" and the "Your plan" state on the plans page; it
+ * is not what decides what the rider may *do*, which is `users.plan` and the
+ * `plans` record behind it.
+ *
+ * `source` narrows it, and the plans page passes `'stripe'`. A staff comp is
+ * also a row here now (`source: 'staff'` — see the §7 T15 note on precedence),
+ * and there is no billing behind one: no customer, no card, nothing for the
+ * portal to open. Offering "Manage billing" for a comp would be a dead end.
+ */
+export async function getActiveSubscription(
+  client: Client,
+  userId: string,
+  source?: SubscriptionsSource,
+): Promise<SubscriptionsRecord | null> {
+  const filter = source
+    ? 'user = {:user} && source = {:source} && (status = "active" || status = "trialing")'
+    : 'user = {:user} && (status = "active" || status = "trialing")';
+  return records(client, 'subscriptions').first(filter, { user: userId, source: source ?? '' });
+}
+
+/**
+ * The guardian-upgrade email for a rider under 16 (plan §6.2).
+ *
+ * A hook route rather than a collection write, for two reasons the route's own
+ * comment expands on: the guardian's address is read server-side from
+ * `guardian_consents` and never crosses the wire, and the checkout link is
+ * checked against Stripe's own host before anything is sent. The reply says
+ * only whether a message went out — no address, masked or otherwise.
+ */
+export async function emailGuardianUpgrade(
+  client: Client,
+  input: { readonly checkoutUrl: string; readonly planName: string },
+): Promise<{ sent: boolean }> {
+  return client.send('/api/landit/plans/guardian-upgrade', {
+    method: 'POST',
+    body: { url: input.checkoutUrl, plan: input.planName },
+  });
 }

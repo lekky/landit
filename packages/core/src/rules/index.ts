@@ -9,6 +9,26 @@
  */
 
 export {
+  BILLING_PERIODS,
+  ENTITLING_SUBSCRIPTION_STATUSES,
+  GUARDIAN_ONLY_AGE_BANDS,
+  formatPricePence,
+  isBillingPeriod,
+  isPaidPlan,
+  planPeriodLabel,
+  planPricePence,
+  requiredPayerKind,
+  requiresGuardianPayer,
+  statusEntitles,
+  subscriptionRefusal,
+  upgradeRouteFor,
+  yearlySavingLabel,
+  yearlySavingMonths,
+  type BillingPeriod,
+  type PayerKind,
+  type UpgradeRoute,
+} from './billing';
+export {
   canLogChallenge,
   challengeProgress,
   challengeRangeLabel,

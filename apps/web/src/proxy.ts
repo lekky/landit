@@ -52,8 +52,14 @@ import { NextResponse, type NextRequest } from 'next/server';
  *   before launch above all: that is precisely when a missing superuser
  *   credential is waiting to be found. Gated, it would return the holding page's
  *   HTML with a 200, and a monitor would call that healthy.
+ * - `/api/stripe/webhook` — the same trap with money behind it (T15). Stripe
+ *   retries anything that is not a 2xx and gives up after a few days; a gated
+ *   webhook would answer 200 with the holding page's HTML, so Stripe would call
+ *   every payment delivered and no subscription would ever be written. The
+ *   route verifies a signature before it does anything, so opening it exposes
+ *   nothing the gate was protecting.
  */
-const ALWAYS_OPEN = ['/legal', '/robots.txt', '/api/health'];
+const ALWAYS_OPEN = ['/legal', '/robots.txt', '/api/health', '/api/stripe/webhook'];
 
 function isAlwaysOpen(pathname: string): boolean {
   return ALWAYS_OPEN.some((open) => pathname === open || pathname.startsWith(`${open}/`));

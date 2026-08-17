@@ -120,6 +120,25 @@ rather than a place you leave the shell standing. The same fact underlies the pr
 above: the directory a tool inherits is the session's, not the one you have been editing in, and
 that is true of the shell you type into as much as of the server the harness starts for you.
 
+**Writing that entry into your worktree does not help, and there is a way round it.** T15 created
+`.claude/launch.json` in its own worktree and `preview_start` refused the name outright, listing
+two entries it had never heard of (`landit-web`, `t16-admin-web`) — the root checkout's file, which
+is the only one that tool reads, and which two sibling sessions were also using. Editing a shared
+machine-local file mid-wave to look at your own screen is a poor trade. Start the server yourself
+instead, backgrounded and pinned, and hand the browser a URL rather than a name:
+
+```
+pnpm exec next dev --port 3988          # backgrounded, from apps/web in your worktree
+preview_start({ url: 'http://localhost:3988/<route>' })
+```
+
+Two checks make that trustworthy, and both are one line. Next prints `- Environments: .env.local`
+only when it actually loaded one, so its **absence** after you write an env file means the server
+is older than the file and needs restarting — which is also the shape of Next 16's refusal to run
+a second dev server per *directory*, so kill the first by port before starting the second. And the
+stack trace of any server error names absolute paths: read them, and you know which checkout
+answered.
+
 **Stop your preview server before running Playwright, and do not read the error it gives you
 literally.** `chore-prewave5-fixes` had a pinned preview on **3007** and ran `playwright test`,
 whose `webServer` starts its own `next dev` on **3000**. The whole run died before a single test
@@ -386,6 +405,28 @@ is worth looking at with the failure actually happening**, not only with the dep
 when the two branches wrap an element a third-party library has written into, tear the library down
 in an effect *and* give the branches different `key`s, so React removes the node rather than
 reusing it.
+
+**A default that falls back to a real value makes a signed-out screen lie.** T15's plans page is
+the one screen in the app group that renders without a rider, and its view took
+`currentPlanSlug` with a fallback of `'rookie'` — which is correct for a signed-in rider whose
+record has no plan yet, and wrong for a visitor, because `rookie` is also the name of a card. The
+free card greeted a stranger with **"Your plan"**. Nothing failed: the build was green, 715 unit
+tests were green, and eight new Playwright assertions about that page were green, because every one
+of them had been written against what the code did rather than against what a visitor should see.
+It was found by opening the page.
+
+The fix is one clause (`signedIn && slug === current`), and the rule is the general shape of it:
+**a screen that renders in two authentication states takes "is anybody signed in" as its own input,
+never as a fallback that happens to name something real.** The dangerous fallbacks are the
+plausible ones — `'rookie'`, `0`, `'guest'` — because they render, and a fallback that rendered is
+a fallback nobody looks at twice.
+
+Two things follow for the checking, not just the code. **Look at a screen in every state it has**,
+which for anything signed-out-capable is at least two and was here four (visitor, adult, under-16,
+consent-pending); each of the other three was right, so three-quarters correct is what this class
+of bug looks like from the inside. And **write the assertion as a count, not as a `.first()`**: the
+spec asked whether *a* sign-up link existed and found two of three, where `toHaveCount(3)` would
+have failed on the same page that was already in front of it.
 
 **Copy decisions get tests, or they get quietly reverted.** T5's legal documents are a rewrite, not
 a transcription: no minimum age, no Crew Pass, profiles private by default, reporting described as

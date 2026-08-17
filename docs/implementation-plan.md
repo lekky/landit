@@ -1370,6 +1370,105 @@ subscription at all (§3 guarantee 4), and for riders under 16 the upgrade route
 email rather than being purchasable in-app by the child. Test that refusal at the hook layer beside
 the upgrade test. Inputs: `landit-screens-c.jsx`, §2.4, §6.2, screenshot 20.
 
+**Built 2026-08-17.** The screen is a transcription of screenshot 20; the *model* underneath it is
+where the decisions are, and they are written down here because the owner does not review PRs.
+
+*What the entitlement actually is*
+
+- **`users.plan` is resolved, never set.** `pocketbase/hooks/55_subscriptions.pb.js` recomputes it
+  from the rider's own `subscriptions` rows after every write and every delete, and nothing else
+  writes it outside the superuser dashboard. The webhook files evidence; the hook decides what it
+  means. That is §2.4's "resolve plan access from our own database" as a mechanism rather than an
+  intention, and it is what lets Apple and Google arrive later as two more `source` values instead
+  of two more places the answer lives.
+- **`active` and `trialing` entitle; everything else, `past_due` included, falls back to Rookie.**
+  A failed payment is a billing problem to sort out, not a reason to keep serving a paid tier to a
+  child's account, and Stripe's own retries move a genuinely temporary failure back on their own.
+- **A missing plan record still fails closed**, as it did before. Nothing compares a plan id to the
+  string `legend` anywhere.
+
+*A staff override beats the provider, and here is why* (decided 2026-08-17, reconciling T16)
+
+T16 merged first and shipped `setRiderPlan`, which patches `users.plan` directly — a comp, or a fix
+for a payment that went wrong. T15 then made `users.plan` a *derived* value. Both are reasonable and
+together they were incoherent, in the quietest possible way: an override would have survived until
+Stripe next sent any routine event about that rider, and then vanished with nothing anywhere saying
+why. Somebody would have re-comped the same rider twice and called it a Stripe bug.
+
+The rule, and it is a product decision the owner may want to revisit:
+
+- **A staff patch that disagrees with the rider's subscriptions is recorded as a `subscriptions` row
+  of its own, `source: 'staff'`** — the enum value the schema has carried unused since T2. Written by
+  a `users` after-update hook in `55_subscriptions.pb.js`; **nothing about `setRiderPlan` changes**,
+  which is what keeps this additive.
+- **A staff row outranks every provider row, always.** Staff are a person deciding after the fact; a
+  provider is a system reporting a payment. So the override survives a later cancellation, a later
+  renewal, and a downgrade staff applied on top of a subscription the rider is genuinely paying for.
+  Recency would have been the other candidate and it is the wrong one: it makes the override's
+  lifetime depend on how chatty Stripe happens to be about that account.
+- **`users.plan` therefore still has exactly one writer** — the resolution — and the reason a rider
+  is on a plan is a row somebody can read rather than a field with no explanation behind it.
+- **Releasing an override means deleting that row.** Setting the plan back to what Stripe says
+  updates the staff row to match rather than removing it, so the rider is right but still overridden.
+  Today that is a superuser-dashboard delete; a button belongs in T17's plans/riders work, filed as
+  an issue.
+- **The consent gate still refuses staff.** An account waiting on a guardian may not be moved onto a
+  paid plan by anybody. `users.plan` moves (that is T16's write, untouched), but no subscription is
+  recorded — so the §3 guarantee-4 refusal holds and the override does not become durable.
+- **The two §6.2 payer refusals do not apply to a staff row**, because nobody paid. Requiring one
+  would mean staff ticking an 18-plus box on a child's behalf, which is the sort of hollow
+  confirmation §6.2 exists to avoid. `source` is unreachable from any client — the collection has no
+  write rules and the webhook hard-codes `stripe` — so this is not a lever an attacker has.
+
+Proved in `pocketbase/tests/subscriptions.test.ts`; without the reconciliation hook those four tests
+go red, which is the only way the silent failure above would ever be noticed.
+
+*Three fields on `subscriptions`, and why they are not billing detail* (migration
+`1787184100_subscription_payer.js`, additive)
+
+- **`payer_kind`** (`rider` | `guardian`) and **`payer_adult_confirmed`** turn §6.2's two
+  safeguarding sentences into facts the server can re-read. The hook refuses a subscription without
+  the 18+ confirmation, and refuses one recorded as bought by the *rider* when that rider's age band
+  is under 16. A rule checked only in a form is a rule that lived in the client; both travel to
+  Stripe as Checkout metadata and are checked again on the way back, so the checkout route could be
+  edited away and the refusal would still hold. **No superuser bypass**, on the same reasoning as
+  the paywall: there is no legitimate way for either to be false.
+- **`checkout_ref`** plus a partial unique index on `external_id` make the webhook idempotent.
+  Stripe retries anything that is not a 2xx and documents duplicate delivery as normal; without a
+  key to match on, a redelivered `checkout.session.completed` is a second subscription.
+
+*Deliberate divergences, recorded here rather than discovered later*
+
+- **The third card is Legend, not screenshot 20's Crew Pass.** Decided in §2.4 on 2026-08-15; this
+  is the session that makes the screenshot visibly out of date, so it is named. Layout, the raised
+  "Most riders" card, the toggle and the badge are the screenshot's exactly.
+- **The FAQ is a rewrite.** Two of the prototype's four answers sell Crew Pass and one promises
+  die-cut vinyl "posted every season", which nobody has decided to post (issue #101 — the same
+  panel T10 dropped from the sticker wall). What replaces them says the two things this product
+  cannot be vague about: achievements are not for sale, and an adult is the one who pays. Pinned in
+  `e2e/plans.spec.ts` against the rendered page, so a careless copy edit fails a build.
+- **`/plans` reads signed out**, unlike every other screen in the `(app)` group. The site footer
+  links it and a person deciding whether to sign up should not have to sign up to find out what it
+  costs. `plans.listRule` is already `is_live = true`, so this needed no rule change.
+- **Downgrading is cancelling, and it happens in Stripe's hosted portal.** Card details and
+  invoices are the two things this product should never be in the path of. The customer id is not
+  stored on our side either — it is read back off the subscription Stripe already knows about.
+- **`apps/web` now has a Vitest project**, narrowed to `src/lib`. Screens stay Playwright's; the
+  webhook's signature check is an assertion about a digest that no browser can make. The test signs
+  payloads with `node:crypto` from Stripe's published scheme, so it and the SDK are two independent
+  readings of the same specification rather than the library agreeing with itself.
+- **`stripe@22.5.0` is a new dependency of `apps/web`.** Pure JS, no install script, so none of
+  LESSONS §6's blast radius applies.
+
+*Not done here, and it is the owner's*
+
+**There is no Stripe account.** No key has ever been in this repo, every variable is a blank in
+`apps/web/.env.example`, and nothing in the session touched a live Stripe endpoint. Until the owner
+creates the account, its two products and its four prices, `/plans` renders in full with the real
+prices from our own records and says upgrading is not switched on; the webhook answers 503 so a
+misconfigured deployment reads as failing rather than as delivered. The exact variables and products
+are one issue.
+
 **T16 · Admin: shell + riders + audit.** `/admin` route group behind the role gate, admin nav,
 Overview, Riders (search, plan override, rider sheet, suspend), and the audit-log plumbing every
 later admin write uses — every mutation lands as a server action using the superuser client that

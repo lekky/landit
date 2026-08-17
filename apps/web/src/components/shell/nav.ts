@@ -10,11 +10,11 @@ import type { Route } from 'next';
  * bar and five is what fits.
  *
  * An `href` is present once the screen behind it exists: Home, Tricks and
- * Progress landed in T7 to T9, and Wave 5 filled in the remaining five —
- * Stickers (T10), Crew (T11), Challenge and Events (T12), Spots (T13). Only
- * Plans is still a bare label; T15 fills in its line. One edit is all it takes:
- * the top bar, the bottom bar and the active-state highlighting all read this
- * list.
+ * Progress landed in T7 to T9, Wave 5 filled in the next five — Stickers (T10),
+ * Crew (T11), Challenge and Events (T12), Spots (T13) — and T15 landed the
+ * last one, Plans. Every item in this list is now a real link. One edit is all
+ * it takes: the top bar, the bottom bar and the active-state highlighting all
+ * read this list.
  *
  * Wave 5's four sessions did **not** each wire their own entry, and the reason
  * is worth keeping. Four concurrent sessions editing one array is four rebase
@@ -64,7 +64,7 @@ export const EXTRA_NAV: readonly NavItem[] = [
   { id: 'challenge', label: 'Challenge', icon: 'bolt', href: '/challenge' },
   { id: 'events', label: 'Events', icon: 'flag', href: '/events' },
   { id: 'spots', label: 'Spots', icon: 'map', href: '/spots' },
-  { id: 'plans', label: 'Plans', icon: 'crown' },
+  { id: 'plans', label: 'Plans', icon: 'crown', href: '/plans' },
 ];
 
 export const TOP_NAV: readonly NavItem[] = [...NAV, ...EXTRA_NAV];

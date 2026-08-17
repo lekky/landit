@@ -8,11 +8,13 @@ import { defineConfig } from 'vitest/config';
  * `pocketbase` owns one too: its tests start the pinned PocketBase binary and
  * drive it over HTTP.
  *
- * `apps/web` is deliberately absent: screens are covered by Playwright
- * (`playwright.config.ts`), not by unit tests.
+ * `apps/web` joined in T15 with an `include` narrowed to `src/lib`. Screens are
+ * still covered by Playwright (`playwright.config.ts`) and not by unit tests;
+ * what the browser cannot reach is the Stripe webhook's signature check, which
+ * is an assertion about a digest. See `apps/web/vitest.config.ts`.
  */
 export default defineConfig({
   test: {
-    projects: ['packages/*', 'pocketbase'],
+    projects: ['packages/*', 'pocketbase', 'apps/web'],
   },
 });

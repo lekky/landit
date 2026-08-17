@@ -1,10 +1,12 @@
 'use client';
 
 import { Bar, Button, Difficulty, Icon, Panel, Slot, Tag } from '@landit/ui-web';
+import Link from 'next/link';
 import { useActionState } from 'react';
 
 import { setInsightsAction, type InsightsFormState } from '@/app/(app)/progress/actions';
 import type { InsightsView } from '@/app/(app)/progress/view';
+import { ROUTES } from '@/lib/routes';
 
 import styles from './progress.module.css';
 
@@ -15,8 +17,8 @@ import styles from './progress.module.css';
  * Three states, and the middle one is the important one:
  *
  * 1. **Not entitled.** The clips-panel upsell pattern: violet flag, violet
- *    slot, the plain sentence about what it is. No `/plans` link, because
- *    `/plans` is T15's route and does not exist yet (LESSONS §3a).
+ *    slot, the plain sentence about what it is, and — since T15 landed the
+ *    route — a way to go and read what Legend costs.
  * 2. **Entitled, not opted in.** An invitation, not a panel. Insights are
  *    profiling under the Children's code (plan §6.4, standard 12), so they are
  *    off by default *even on Legend* — paying for a feature is not asking for
@@ -65,6 +67,9 @@ export function InsightsPanel({ insights, entitled, optedIn }: InsightsPanelProp
           landing lately, their own records, and which trick the skill tree says is closest. It is
           always their choice, and always only their own tricks.
         </p>
+        <Link className="btn ghost sm" href={ROUTES.plans}>
+          See plans
+        </Link>
       </Panel>
     );
   }

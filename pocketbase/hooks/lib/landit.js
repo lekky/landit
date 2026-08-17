@@ -458,6 +458,251 @@ function enforceClipCap(app, record) {
   }
 }
 
+// ------------------------------------------------------- subscriptions ---
+
+/**
+ * Who may hold a subscription (T15; plan §6.2, and §3 guarantee 4).
+ *
+ * Three refusals, in the order they are worth making, all at the **model
+ * layer** so they hold on every write path — the Stripe webhook's superuser
+ * client included. The webhook is server code we wrote, which is exactly why it
+ * is not trusted here: a webhook is a URL a stranger can POST to, and the only
+ * thing standing between a forged event and a granted plan is what this
+ * function refuses.
+ *
+ *  1. **Consent.** §3 guarantee 4 lists "hold a subscription" among the things
+ *     a `pending` or `revoked` account cannot do. Nothing about paying changes
+ *     that; if anything, taking a child's money while their guardian has not
+ *     answered is the worst version of it. `60_ownership.pb.js` already refuses
+ *     this on **create** and has since T2 — this is deliberately a second copy,
+ *     because it also runs on **update**, and consent can be revoked after a
+ *     subscription exists. Without the update half, a revoked rider's dormant
+ *     row could be patched back to `active`.
+ *  2. **The payer is an adult.** §6.2 requires the payer to confirm they are 18
+ *     or over. A confirmation collected in a form and never checked again is a
+ *     client-side rule, so it is stored on the record and re-read here.
+ *  3. **A child does not buy their own subscription.** For a rider under 16 the
+ *     upgrade routes to their guardian, so a subscription for that rider that
+ *     records the *rider* as the payer did not come down the route the plan
+ *     describes, whatever the checkout screen believed.
+ *
+ * **Refusals 2 and 3 do not apply to `source: 'staff'`**, because nobody paid.
+ * A staff override is a comp recorded by `recordStaffPlanOverride` below, and
+ * asking it to name an adult payer would be asking a question with no answer —
+ * it would also make staff tick an 18-plus box on a child's behalf, which is
+ * the sort of hollow confirmation section 6.2 exists to avoid. The consent
+ * refusal still applies in full: an account waiting on a guardian may not be
+ * moved onto a paid plan by anybody, staff included. Nothing outside server
+ * code can set `source` at all — the collection has no write rules and the
+ * Stripe webhook hard-codes its own value — so this is not a lever a client
+ * can reach.
+ *
+ * The age band is read from the rider's record, never from the subscription:
+ * `age_band` is set once at sign-up and frozen from the client
+ * (`USER_AGE_FIELDS`), which is what makes it worth basing a refusal on.
+ *
+ * Deliberately **no superuser bypass**, on the same reasoning as
+ * `enforcePaywall`: there is no legitimate way for any of these three to be
+ * false, so there is nothing for a bypass to enable except a mistake.
+ */
+function enforceSubscriptionEligibility(app, record) {
+  // Every constant lives inside the function: this module is `require()`d from
+  // inside a handler that runs in its own isolated VM (see the file header).
+  const GUARDIAN_ONLY_BANDS = ['under_13', '13_15'];
+
+  const userId = record.getString('user');
+  if (!userId) return;
+  const user = app.findRecordById('users', userId);
+
+  if (isConsentLimited(user)) {
+    throw new ForbiddenError(
+      'This account is waiting on a guardian’s approval and cannot hold a subscription.',
+    );
+  }
+
+  // A comp has no payer. See the note above.
+  if (record.getString('source') === 'staff') return;
+
+  if (!record.getBool('payer_adult_confirmed')) {
+    throw new ForbiddenError('Whoever pays has to confirm they are 18 or over.');
+  }
+
+  // A missing band reads as under 16, the over-protecting direction — the same
+  // fail-safe the consent table takes. `packages/core`'s `requiresGuardianPayer`
+  // is the client-side copy of this line; when one changes, both change.
+  const band = user.getString('age_band');
+  const guardianOnly = !band || GUARDIAN_ONLY_BANDS.indexOf(band) !== -1;
+
+  if (guardianOnly && record.getString('payer_kind') !== 'guardian') {
+    throw new ForbiddenError(
+      'A rider under 16 is upgraded by their parent or carer, not in the app.',
+    );
+  }
+}
+
+/**
+ * Resolve `users.plan` from **our own** `subscriptions` rows (plan §2.4).
+ *
+ * The entitlement is never "what Stripe last said". Stripe is one of three
+ * eventual sources — Apple and Google arrive with native apps — so the record
+ * in this database is the answer and the webhook only files evidence for it.
+ * Running the resolution here rather than in the webhook means a staff edit in
+ * the superuser dashboard, a refund, an expiry written by a cron, and a Stripe
+ * event all reach the rider's plan by the same path.
+ *
+ * `active` and `trialing` entitle; everything else, `past_due` included, falls
+ * back to `rookie`.
+ *
+ * **A `staff` row outranks a provider row, always** (decided T15; plan §2.4 and
+ * the §7 T15 entry). Two writers of entitlement exist after T16: this
+ * resolution, and `setRiderPlan`, which patches `users.plan` directly to comp a
+ * rider or to fix a botched payment. Without a precedence rule the two fight,
+ * and they fight *silently* — a rider comped by staff would lose it the next
+ * time Stripe sent any routine subscription event, with nothing anywhere saying
+ * why. Staff are a person deciding after the fact; a provider is a system
+ * reporting a payment, so the person wins. `recordStaffPlanOverride` turns that
+ * patch into a row this function can see, which is what keeps **one** writer of
+ * `users.plan`.
+ *
+ * Among rows of equal rank the most recently created wins. Plans are
+ * single-rider (§2.4), so that is the whole of the arbitration — no ranking of
+ * tiers, which would be another place a plan id could get compared to a string.
+ *
+ * Fails **closed**: a subscription pointing at a plan record that no longer
+ * exists leaves the rider on `rookie` rather than on whatever it used to grant.
+ */
+function resolvedPlanSlug(app, userId) {
+  const ENTITLING = ['active', 'trialing'];
+  const FREE_PLAN = 'rookie';
+
+  const rows = findAll(app, 'subscriptions', 'user = {:user}', { user: userId });
+
+  let best = null;
+  let bestIsStaff = false;
+  for (const row of rows) {
+    if (ENTITLING.indexOf(row.getString('status')) === -1) continue;
+
+    const isStaff = row.getString('source') === 'staff';
+    if (best && bestIsStaff && !isStaff) continue;
+
+    const outranks =
+      !best ||
+      (isStaff && !bestIsStaff) ||
+      row.getDateTime('created').string() > best.getDateTime('created').string();
+
+    if (outranks) {
+      best = row;
+      bestIsStaff = isStaff;
+    }
+  }
+
+  if (!best) return FREE_PLAN;
+  try {
+    return app.findRecordById('plans', best.getString('plan')).getString('slug') || FREE_PLAN;
+  } catch {
+    return FREE_PLAN;
+  }
+}
+
+function resolvePlanFromSubscriptions(app, userId) {
+  if (!userId) return;
+
+  let user;
+  try {
+    user = app.findRecordById('users', userId);
+  } catch {
+    return; // The rider went away; the cascade delete has already tidied up.
+  }
+
+  const slug = resolvedPlanSlug(app, userId);
+
+  if (user.getString('plan') === slug) return;
+
+  const before = user.getString('plan');
+  user.set('plan', slug);
+  app.save(user);
+
+  writeAudit(app, {
+    actorKind: 'system',
+    action: 'plan_resolved',
+    entity: 'users',
+    entityId: userId,
+    before: { plan: before },
+    after: { plan: slug },
+  });
+}
+
+/**
+ * Turn a staff plan override into a `subscriptions` row (T15, reconciling T16).
+ *
+ * `setRiderPlan` writes `users.plan` directly — deliberately, so an override
+ * takes effect on the rider's next request rather than at a sync boundary. T15
+ * then made `users.plan` a *derived* value, resolved from `subscriptions`. Both
+ * are reasonable; together they are incoherent, because the next subscription
+ * event of any kind would quietly undo the override.
+ *
+ * This is the reconciliation, and it is **additive** — nothing about
+ * `setRiderPlan` changes. A staff patch that disagrees with what the rider's
+ * subscriptions resolve to is recorded as a row of its own, `source: 'staff'`,
+ * which `resolvedPlanSlug` ranks above any provider row. The override then
+ * survives every later Stripe event, it is visible in the data rather than
+ * implied by a field nothing else can explain, and `users.plan` keeps exactly
+ * one writer.
+ *
+ * **It terminates.** The resolution writes `users.plan`, which fires the same
+ * `users` hook this runs on; the guard is that a plan already equal to what the
+ * subscriptions resolve to writes nothing at all. A staff patch produces one
+ * row and one resolution; a resolution produces neither.
+ *
+ * **One row per rider**, keyed `staff:<user id>` in `external_id`, so repeated
+ * overrides update rather than pile up — and the partial unique index on that
+ * column makes the database agree.
+ *
+ * **A refusal is logged, not thrown.** This runs after the `users` write has
+ * committed, so throwing would report a failure for something that succeeded.
+ * The one refusal that can happen is the consent gate, and it is the correct
+ * one: an account waiting on a guardian may not be moved onto a paid plan.
+ */
+function recordStaffPlanOverride(app, userRecord) {
+  const userId = userRecord.id;
+  const wanted = userRecord.getString('plan') || 'rookie';
+
+  // Already what the subscriptions say — a Stripe event, or a staff patch that
+  // agreed with one. Nothing to record, and this is the branch that stops the
+  // resolution feeding itself.
+  if (resolvedPlanSlug(app, userId) === wanted) return;
+
+  let plan;
+  try {
+    plan = app.findFirstRecordByFilter('plans', 'slug = {:slug}', { slug: wanted });
+  } catch {
+    // A plan slug with no record behind it. The resolution reads that as
+    // `rookie` anyway; say so rather than writing a row pointing at nothing.
+    app.logger().warn('staff plan override names no plan record', 'user', userId, 'plan', wanted);
+    return;
+  }
+
+  const key = 'staff:' + userId;
+  let row;
+  try {
+    row = app.findFirstRecordByFilter('subscriptions', 'external_id = {:id}', { id: key });
+  } catch {
+    row = new Record(app.findCollectionByNameOrId('subscriptions'));
+    row.set('user', userId);
+    row.set('external_id', key);
+    row.set('source', 'staff');
+  }
+
+  row.set('plan', plan.id);
+  row.set('status', 'active');
+
+  try {
+    app.save(row);
+  } catch (err) {
+    app.logger().warn('staff plan override not recorded', 'user', userId, 'error', String(err));
+  }
+}
+
 // --------------------------------------------------------------- audit ---
 
 function writeAudit(app, entry) {
@@ -506,6 +751,7 @@ module.exports = {
   enforceNoChallengeOverlap,
   enforcePaywall,
   enforcePrereqSameSport,
+  enforceSubscriptionEligibility,
   findAll,
   guardInsightsOptIn,
   guardUserWrite,
@@ -516,5 +762,8 @@ module.exports = {
   planIncludesFlair,
   planIncludesInsights,
   planUnlocksPaidTricks,
+  recordStaffPlanOverride,
+  resolvePlanFromSubscriptions,
+  resolvedPlanSlug,
   writeAudit,
 };
