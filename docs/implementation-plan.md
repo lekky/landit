@@ -1634,7 +1634,12 @@ written:
   hosting was reversed the same day (PR #128) and the column survives only as `listPlans`' sort
   key, so both an editor field and a displayed number would be a quantity that no longer means
   anything — `packages/core/src/data/plans.ts` asks for exactly that. The staff cards are ordered
-  by it anyway, because the rider's plans page is.
+  by it anyway, because the rider's plans page is. **The plans schema was mid-flight when this
+  merged**: `t15b-video-links` had a per-plan cap on YouTube links (`video_link_cap`,
+  `video_links_unlimited`) uncommitted in its worktree, on no branch and in no PR, so nothing here
+  was built against those names. Exposing them is a follow-up of one entry in the tab's `fields`
+  array and one key on `PlanForm` — `StaffEditor` takes its form as data precisely so a new column
+  is a line rather than a screen.
 - **Screenshot 31 is not an admin screen either, so T17 also built against the prototype alone.**
   T16's note above says 25–30 are duplicates and "only 31 is a real admin screen" — 31 is in fact
   the rider-facing spots screen, nav bar and all. There is no capture of any admin content tab in
