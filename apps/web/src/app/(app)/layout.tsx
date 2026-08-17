@@ -53,6 +53,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             }
           : undefined
       }
+      riderId={rider?.id}
       sports={rider?.sports?.length ? (rider.sports as SportId[]) : undefined}
     >
       {children}
