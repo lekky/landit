@@ -339,3 +339,301 @@
   align-items: center;
   flex-wrap: wrap;
 }
+
+/* ------------------------------------------------------- content tabs -- */
+
+/*
+ * T17's seven content tabs, the moderation queue, and the editor they share.
+ * Same rule as the block above: the loud parts are `@landit/ui-web`'s classes
+ * and this file is the arrangement.
+ */
+
+/* The row above a table: filter pills, a search box, and the add button. */
+.toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.toolbarEnd {
+  margin-left: auto;
+}
+
+/* The prototype's hairline between two groups of pills in one row. */
+.toolbarSplit {
+  width: 1px;
+  height: 26px;
+  background: var(--ink);
+  opacity: 0.2;
+}
+
+.table {
+  padding: 0;
+  overflow: hidden;
+}
+
+.tableRow {
+  border-bottom: 2.5px solid var(--wash);
+}
+
+.tableHead {
+  background: var(--paper-2);
+  border-bottom: 2.5px solid var(--wash);
+}
+
+/* Two or three buttons at the right of a row. */
+.rowActions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rowTitle {
+  min-width: 0;
+}
+
+.rowId {
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* The colour bar down the left of a challenge row. */
+.rowStripe {
+  width: 10px;
+  height: 34px;
+  border: 2.5px solid var(--ink);
+  flex: none;
+}
+
+.chipRow {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+/* A record staff have taken down. Present, quiet, and never hidden from staff. */
+.hiddenRow {
+  opacity: 0.5;
+}
+
+/* --------------------------------------------------------- inline forms -- */
+
+.addPanel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.wide {
+  grid-column: 1/-1;
+}
+
+.fieldHint {
+  font-family: var(--fc);
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--ink-3);
+  line-height: 1.4;
+}
+
+/* -------------------------------------------------------------- editor -- */
+
+.editor {
+  padding: 22px;
+}
+
+.editorTitle {
+  font-size: 26px;
+  margin: 7px 0 18px;
+}
+
+.editorGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.editorChoices {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.swatch {
+  width: 34px;
+  height: 34px;
+  border-style: solid;
+  border-color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+}
+
+.editorError {
+  margin: 14px 0 0;
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--red);
+  line-height: 1.5;
+}
+
+.editorActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* ------------------------------------------------------- announcements -- */
+
+.split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+}
+
+.noticeCard {
+  padding: 14px 16px;
+}
+
+.noticeHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.noticeBody {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* --------------------------------------------------------------- plans -- */
+
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.planCard {
+  padding: 0;
+  overflow: hidden;
+}
+
+.planHead {
+  padding: 16px 18px;
+  border-bottom: 3px solid var(--ink);
+}
+
+.planName {
+  font-size: 24px;
+  color: #fff;
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.planPrice {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.planBody {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.planPitch {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+/* ---------------------------------------------------------- moderation -- */
+
+.reportCard {
+  padding: 0;
+  overflow: hidden;
+}
+
+.reportHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 13px 16px;
+  border-bottom: 2.5px solid var(--wash);
+  background: var(--paper-2);
+}
+
+.reportBody {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/*
+ * A stranger's typing, boxed so it cannot be mistaken for the product speaking.
+ * `pre-wrap` keeps the line breaks somebody typed; `overflow-wrap` stops one
+ * long unbroken string pushing the panel off the screen.
+ */
+.reportDetail {
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--wash);
+  border-left: 4px solid var(--ink-3);
+  font-size: 14.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.reportMeta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-family: var(--fc);
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
+.triage {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.triageField {
+  flex: 1;
+  min-width: 220px;
+}

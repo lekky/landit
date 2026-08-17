@@ -1588,6 +1588,68 @@ with no script.
 announcements composer, plans editor — all on T16's action/audit pattern. Also the moderation view
 over the `reports` collection. Depends on T16. Inputs: `landit-admin.jsx`, screenshots 28–31.
 
+Shipped, with six things recorded here because they diverge from the prototype or from the task as
+written:
+
+- **Nothing in the portal deletes a record a rider's history points at, except one thing that
+  must.** This is the largest departure from `landit-admin.jsx` and it comes straight out of the
+  schema: `trick_progress`, `trick_log`, `rider_stickers`, `event_attendance` and
+  `announcement_dismissals` all have `cascadeDelete: true` on their parent. The prototype's
+  "Remove" was a `localStorage` splice and cost nothing; the same button against the database
+  would destroy every rider's record of landing that trick, un-earn a sticker from everyone
+  holding it, or erase who was going to a cancelled comp — silently, with no way back. Tricks,
+  stickers, events and announcements therefore **hide** (`is_live = false`), which is what
+  "Remove" means to the person clicking it, and restoring one returns the rider rows with it.
+  Spots move between `pending`/`live`/`rejected` and are never destroyed either, because the row
+  *is* the record that a human reviewed a stranger's submission.
+  **Challenges are the single exception and it is forced.** `challenges` has no live column and
+  must not gain one — whether a week is running is derived from its dates and never stored (§2.2,
+  §3), so a stored flag could only be a second answer able to disagree. That leaves delete as the
+  only way to take back a week booked in error, which staff genuinely need because the
+  one-live-challenge-per-sport rule otherwise blocks that sport's calendar for the whole range.
+  `challenge_log` does cascade, so the confirm asks the server how many entries that is and puts
+  the number in the sentence before asking.
+- **The trick tier chip has three states, not the prototype's two.** `tricks.free_override` is a
+  nullable select — `free`, `paid`, or empty meaning "inherit from `diff`" — and empty is the
+  state the entire seeded library ships in. A two-way toggle would have written an explicit value
+  onto every trick it touched, quietly pinning tricks that were following the default and making a
+  later change to `FREE_MAX_DIFF` a no-op on them. The chip cycles free → paid → inherit and shows
+  what the default resolves to while it is inheriting.
+- **A tenth tab, Moderation, which the prototype has no counterpart for.** `landit-admin.jsx`
+  predates the `reports` collection; the queue over it is this task's own line above. It reads and
+  triages reports (status, outcome, the `complaint_of` appeal link) and deliberately **does not
+  act on the subject** — a report carries an id and a type, never a resolved account, and marking
+  something actioned records what staff decided rather than suspending anybody. Wiring the two
+  together would put a stranger's accusation one click from a child's account. Suspension stays on
+  Riders and taking a spot down stays on Spots, each done by somebody who has looked.
+- **Prerequisites are shown, not edited.** `trick_prereqs` is edges with a same-sport invariant
+  enforced in a hook, not a field on a trick, so editing the graph is a screen of its own rather
+  than a column in a table. The prototype could not edit them either. Unscheduled.
+- **The plans editor writes display strings only.** Copy, the two prices and the perk lists —
+  exactly what the prototype's own footnote promises. `unlocks_paid_tricks` is shown and is not
+  editable, because it is the entitlement the paywall hook resolves and a screen whose job is
+  wording should not be one slip from handing everybody the paid library. What is actually charged
+  lives in Stripe, so an edit here can disagree with checkout — issue #123, filed by T15, still
+  open and now surfaced on the screen. **`clip_cap_bytes` is not on the screen at all**: clip
+  hosting was reversed the same day (PR #128) and the column survives only as `listPlans`' sort
+  key, so both an editor field and a displayed number would be a quantity that no longer means
+  anything — `packages/core/src/data/plans.ts` asks for exactly that. The staff cards are ordered
+  by it anyway, because the rider's plans page is. **The plans schema was mid-flight when this
+  merged**: `t15b-video-links` had a per-plan cap on YouTube links (`video_link_cap`,
+  `video_links_unlimited`) uncommitted in its worktree, on no branch and in no PR, so nothing here
+  was built against those names. Exposing them is a follow-up of one entry in the tab's `fields`
+  array and one key on `PlanForm` — `StaffEditor` takes its form as data precisely so a new column
+  is a line rather than a screen.
+- **Screenshot 31 is not an admin screen either, so T17 also built against the prototype alone.**
+  T16's note above says 25–30 are duplicates and "only 31 is a real admin screen" — 31 is in fact
+  the rider-facing spots screen, nav bar and all. There is no capture of any admin content tab in
+  the pack. Recorded on issue #95.
+
+Issue #103 — a lowered sticker threshold not reaching riders who already qualify until their next
+write — is **not** fixed here and was not within reach: the award runs in `pocketbase/hooks`, which
+`t18-hardening` owned for the length of this session. The Stickers tab says so on the screen and in
+the toast after an edit rather than leaving it to be discovered from a support ticket.
+
 ### Wave 7 — one session, alone
 
 **T21 · BMX as a third sport.** Turns the decision in §1 into a shipped sport:

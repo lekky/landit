@@ -15,8 +15,9 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { ROUTES, legalHref, riderHref } from '@/lib/routes';
-import { SPORT_LOOKS } from '@/lib/sports';
 import { currentRider } from '@/lib/session';
+import { SPORT_LOOKS } from '@/lib/sports';
+import { isStaff } from '@/lib/staff';
 
 import { signOutAction } from '../../(auth)/actions';
 
@@ -128,6 +129,34 @@ export default async function AccountPage() {
           grown-up. It is not shared with anyone and there is no separate login for it.
         </p>
       </Panel>
+
+      {/*
+        The only door into the staff portal, and the one place it makes sense
+        (issue #118). `/admin` had no link anywhere: T16 left it out of the
+        rider nav on purpose — a staff-only item in a five-slot bar built for
+        riders, rendered conditionally on every page, for a link two people use
+        — and "staff type the address" is a thing nobody writes down. This is
+        the middle option that issue offered: one conditional on a screen that
+        already loads the rider record, and no change to the nav types.
+
+        `isStaff` is the same predicate `requireStaff` gates the portal with, so
+        a link cannot appear for somebody the portal would 404. The reverse — a
+        staff member with no link — is the state this replaces.
+      */}
+      {isStaff(rider) && (
+        <Panel flat className={styles.later}>
+          <div className="lab">Staff</div>
+          <div className={styles.profileLinks}>
+            <Link className="btn sm ghost" href={ROUTES.admin}>
+              Open the staff portal
+            </Link>
+          </div>
+          <p className={`cond ${styles.handle}`} style={{ marginTop: 10 }}>
+            Riders, the trick library, the spot queue and moderation. Everything you change there is
+            logged against your account.
+          </p>
+        </Panel>
+      )}
 
       <Panel flat className={styles.later}>
         <div className="lab">Still on its way</div>

@@ -76,6 +76,23 @@ export const ROUTES = {
    */
   admin: '/admin',
   adminRiders: '/admin/riders',
+  /**
+   * T17's content tabs, one path each, in `admin/nav.ts`'s order.
+   *
+   * Entries here rather than one array of tabs for the reason the head of this
+   * file gives: a lost line in `ROUTES` is a compile error, and a lost line in
+   * a tab array is a screen with no way in that nothing notices (LESSONS §1).
+   * `moderation` is the one that has no prototype tab behind it — the reports
+   * queue is plan §7's, not `landit-admin.jsx`'s.
+   */
+  adminTricks: '/admin/tricks',
+  adminStickers: '/admin/stickers',
+  adminSpots: '/admin/spots',
+  adminEvents: '/admin/events',
+  adminChallenges: '/admin/challenges',
+  adminNotices: '/admin/notices',
+  adminPlans: '/admin/plans',
+  adminModeration: '/admin/moderation',
 } as const satisfies Record<string, Route>;
 
 export const legalHref = (doc: LegalDocId): Route => `/legal/${doc}`;

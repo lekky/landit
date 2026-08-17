@@ -10,12 +10,12 @@ import styles from './admin.module.css';
 /**
  * The tab row.
  *
- * A client component only because the highlight follows the URL, and the
- * unbuilt tabs are `<span>`s rather than disabled buttons: there is no
- * interaction to disable, they are labels for screens T17 will land. Marked
- * `aria-disabled` so a screen reader is told the same thing sighted staff are
- * told by the fade, and left out of the tab order so keyboard focus does not
- * stop on seven dead stops before reaching Riders.
+ * A client component only because the highlight follows the URL. Every tab has
+ * a screen behind it since T17, but the unbuilt branch stays: a tab with no
+ * `href` renders as a `<span>` rather than a disabled button, because there is
+ * no interaction to disable — it is a label for a screen nobody has landed.
+ * Marked `aria-disabled` so a screen reader is told what the fade tells sighted
+ * staff, and left out of the tab order so keyboard focus does not stop on it.
  *
  * `.pill` styles a `button` in the design pack, so putting it on an `<a>` needs
  * the class to carry its own look — LESSONS §3a, the trap that rendered the

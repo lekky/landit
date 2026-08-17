@@ -7,9 +7,17 @@ import {
   type Page,
 } from './collections';
 import type {
+  AnnouncementsRecord,
   AuditLogRecord,
   CollectionName,
   CollectionRecords,
+  EventsRecord,
+  PlansRecord,
+  ReportsRecord,
+  ReportsStatus,
+  SpotsRecord,
+  SpotsStatus,
+  StickersRecord,
   UsersPlan,
   UsersRecord,
 } from './generated/collections';
@@ -428,5 +436,173 @@ export async function setRiderSuspended(
     id: userId,
     action: suspended ? 'admin.suspend' : 'admin.restore',
     patch: { suspended },
+  });
+}
+
+// -------------------------------------------------------------- catalogue --
+
+/**
+ * The content tabs' reads (plan §7, T17).
+ *
+ * Every one of these is a **staff** view of a collection the rider-facing
+ * `queries.ts` already reads, and the difference is always the same one:
+ * `listStickers`, `listPlans`, `listEvents` and `listAnnouncements` all filter
+ * `is_live = true`, because that is what a rider may see. A staff editor that
+ * inherited that filter would show a tab from which every hidden record had
+ * vanished — including the ones staff hid, which are precisely the ones they
+ * come here to switch back on. Hiding something would make it unreachable.
+ *
+ * They live here rather than beside their rider-facing twins for the reason the
+ * head of this file gives: they only answer honestly to a superuser client, and
+ * keeping them in one file makes that a property of the module rather than of
+ * whoever remembered.
+ */
+
+/** Every sticker, hidden ones included, in the canonical order staff read them in. */
+export async function listAdminStickers(client: Client): Promise<StickersRecord[]> {
+  return records(client, 'stickers').list({ sort: 'sport,name' });
+}
+
+/**
+ * Every plan, including ones taken off sale, in the same order the rider's plans
+ * page shows them.
+ *
+ * The sort key is `listPlans`' and is deliberately copied rather than improved
+ * on: `clip_cap_bytes` is the collection's only numeric column and it happens to
+ * rise with price, so it is what every plan-card surface is ordered by. It stopped
+ * meaning anything when clip hosting was reversed (PR #128) and
+ * `packages/core/src/data/plans.ts` records why it was kept anyway. Sorting this
+ * read differently would put the staff cards in a different order from the page
+ * they describe; a real rank column is issue territory.
+ */
+export async function listAdminPlans(client: Client): Promise<PlansRecord[]> {
+  return records(client, 'plans').list({ sort: 'clip_cap_bytes' });
+}
+
+/** Every event, including ones taken off the calendar. Soonest first. */
+export async function listAdminEvents(client: Client): Promise<EventsRecord[]> {
+  return records(client, 'events').list({ sort: 'date' });
+}
+
+/** Every announcement ever posted, newest first — pulled ones included. */
+export async function listAdminAnnouncements(client: Client): Promise<AnnouncementsRecord[]> {
+  return records(client, 'announcements').list({ sort: '-created' });
+}
+
+/**
+ * Spots at any status, newest first.
+ *
+ * The rider-facing `listSpots` cannot do this job at all: `spots` is filtered by
+ * an API rule to `status = 'live'` or your own submissions, so the queue a staff
+ * member reviews is invisible to every client but this one.
+ */
+export async function listAdminSpots(client: Client, status?: SpotsStatus): Promise<SpotsRecord[]> {
+  return records(client, 'spots').list({
+    filter: status ? 'status = {:status}' : undefined,
+    params: status ? { status } : undefined,
+    sort: '-created',
+  });
+}
+
+/**
+ * Move a spot through the review queue, and log it.
+ *
+ * The whole point of the collection's `status` field (plan §6.1): a rider
+ * submission reaches nobody until a human moves it to `live`. Rejection is a
+ * status too, not a delete — the row is the record that somebody looked at it.
+ */
+export async function setSpotStatus(
+  client: Client,
+  actor: StaffActor,
+  spotId: string,
+  status: SpotsStatus,
+): Promise<SpotsRecord> {
+  return applyStaffChange(client, {
+    actor,
+    collection: 'spots',
+    id: spotId,
+    action: `admin.spot_${status}`,
+    patch: { status },
+  });
+}
+
+// ------------------------------------------------------------- moderation --
+
+/** How many reports sit at each status. Keyed by status, so a new one needs no code. */
+export type ReportCounts = Readonly<Record<string, number>>;
+
+/**
+ * One page of reports, newest first (plan §7, T17).
+ *
+ * `reports` is `listRule: reporter = @request.auth.id` — a rider sees their own
+ * and nothing else — so this is another read that only answers to the superuser
+ * client. It is paged for the same reason the riders table is: the collection
+ * anyone on the internet can write to is the one with no upper bound on it, and
+ * a queue screen built on `getFullList` gets slower every time somebody reports
+ * something.
+ */
+export async function listReports(
+  client: Client,
+  filter: { readonly status?: ReportsStatus } = {},
+  page: { readonly page?: number; readonly perPage?: number } = {},
+): Promise<Page<ReportsRecord>> {
+  return records(client, 'reports').page({
+    filter: filter.status ? 'status = {:status}' : undefined,
+    params: filter.status ? { status: filter.status } : undefined,
+    sort: '-created',
+    page: page.page ?? 1,
+    perPage: page.perPage ?? 25,
+  });
+}
+
+/** One report by id, or `null` if it has gone. */
+export async function getReport(client: Client, id: string): Promise<ReportsRecord | null> {
+  return records(client, 'reports').first('id = {:id}', { id });
+}
+
+/** How many reports sit at each of the statuses asked for. One small request each. */
+export async function reportCounts(
+  client: Client,
+  statuses: readonly ReportsStatus[],
+): Promise<ReportCounts> {
+  const pages = await Promise.all(
+    statuses.map((status) =>
+      records(client, 'reports').page({
+        filter: 'status = {:status}',
+        params: { status },
+        perPage: 1,
+      }),
+    ),
+  );
+
+  const counts: Record<string, number> = {};
+  statuses.forEach((status, i) => {
+    counts[status] = pages[i]?.totalItems ?? 0;
+  });
+  return counts;
+}
+
+/**
+ * Triage one report, and log it.
+ *
+ * `status` and `outcome` are the two fields the collection refuses to every
+ * client — `updateRule: null`, and the create hook pins them — so this is the
+ * only way either of them moves. The outcome is written by staff and read by
+ * nobody but staff and, if they appeal, the person who filed it; it is stored
+ * as typed rather than summarised, because a moderation decision that gets
+ * paraphrased on its way into the record is not evidence of anything.
+ */
+export async function setReportTriage(
+  client: Client,
+  actor: StaffActor,
+  reportId: string,
+  triage: { readonly status: ReportsStatus; readonly outcome?: string },
+): Promise<ReportsRecord> {
+  return applyStaffChange(client, {
+    actor,
+    collection: 'reports',
+    id: reportId,
+    action: `admin.report_${triage.status}`,
+    patch: { status: triage.status, outcome: triage.outcome ?? '' },
   });
 }
