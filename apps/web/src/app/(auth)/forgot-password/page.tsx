@@ -8,7 +8,7 @@ import { AuthCard } from '../AuthCard';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
 
 export const metadata: Metadata = {
-  title: 'Forgotten password · Land It',
+  title: 'Forgotten password · Land The Trick',
   description: 'We will email you a link to set a new one.',
 };
 

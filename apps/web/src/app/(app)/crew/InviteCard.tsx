@@ -53,7 +53,7 @@ export function InviteCard({ code, crewName, firstName, sportsLine, onClose }: I
 
   const pretty = formatInviteCode(code);
   const url = `${SITE_URL}${joinHref(normaliseInviteCode(code))}`;
-  const text = `${firstName} wants you on ${crewName} in Land It. ${sportsLine} tricks, tracked properly. Join with code ${pretty}.`;
+  const text = `${firstName} wants you on ${crewName} in Land The Trick. ${sportsLine} tricks, tracked properly. Join with code ${pretty}.`;
 
   useEffect(() => {
     let dead = false;
@@ -86,9 +86,9 @@ export function InviteCard({ code, crewName, firstName, sportsLine, onClose }: I
       const blob = await toBlob();
       const file = blob ? new File([blob], 'land-it-invite.png', { type: 'image/png' }) : null;
       if (file && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'Land It', text, url });
+        await navigator.share({ files: [file], title: 'Land The Trick', text, url });
       } else if (navigator.share) {
-        await navigator.share({ title: 'Land It', text, url });
+        await navigator.share({ title: 'Land The Trick', text, url });
       } else {
         await navigator.clipboard.writeText(`${text} ${url}`);
         toast('No share sheet here. Link copied instead', 'var(--sky)');
@@ -188,7 +188,7 @@ function family(variable: string, fallback: string): string {
 /**
  * Draws the square. A direct port of `drawInvite` in `landit-screens-d.jsx`,
  * with one deliberate change: the sports line is passed in rather than being
- * the prototype's hard-coded "SCOOTER AND SKATEBOARD", because Land It ships
+ * the prototype's hard-coded "SCOOTER AND SKATEBOARD", because Land The Trick ships
  * three sports and the plan forbids a screen that assumes a pair (§7).
  */
 function drawInvite(

@@ -7,7 +7,7 @@ import { anonymousClient, currentRider } from '@/lib/session';
 import { SpotsScreen, type SpotView } from './SpotsScreen';
 
 export const metadata: Metadata = {
-  title: 'Spots · Land It',
+  title: 'Spots · Land The Trick',
   description: 'Parks, street spots and bowls riders have put on the map.',
 };
 

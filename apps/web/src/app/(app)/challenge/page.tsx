@@ -23,7 +23,7 @@ import { ChallengeScreen } from './ChallengeScreen';
 import { buildChallengeView } from './view';
 
 export const metadata: Metadata = {
-  title: 'Challenge · Land It',
+  title: 'Challenge · Land The Trick',
   description: 'This week’s challenge for every sport you ride, and how the last few went.',
 };
 

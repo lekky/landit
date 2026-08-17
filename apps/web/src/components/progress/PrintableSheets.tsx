@@ -65,7 +65,7 @@ export function PrintableSheets({ plan, sportLabel, rows, landed, total }: Print
 
       {included && rows.length > 0 && (
         <div className={styles.sheet} aria-hidden="true">
-          <h2 className={`d ${styles.sheetHead}`}>Land It — {sportLabel} tracker</h2>
+          <h2 className={`d ${styles.sheetHead}`}>Land The Trick — {sportLabel} tracker</h2>
           <p className={styles.sheetSub}>
             {landed} of {total} landed. Tick one off when it is yours.
           </p>

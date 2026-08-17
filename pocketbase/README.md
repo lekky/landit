@@ -1,6 +1,6 @@
 # pocketbase/
 
-The backend, as files. PocketBase is one binary; everything that makes it *Land It's*
+The backend, as files. PocketBase is one binary; everything that makes it *Land The Trick's*
 backend lives here and is committed.
 
 | Directory | Holds |

@@ -16,7 +16,7 @@ const DOCS = [
   ['terms', 'Terms of use'],
   ['safeguarding', 'Safeguarding'],
   ['cookies', 'Cookies'],
-  ['about', 'About Land It'],
+  ['about', 'About Land The Trick'],
 ] as const;
 
 test('every document has its own URL and its own heading', async ({ page }) => {
@@ -94,7 +94,7 @@ test('no document promises a clip vault, or private storage for uploads', async 
   }
 });
 
-test('the privacy policy states plainly that Land It hosts no video', async ({ page }) => {
+test('the privacy policy states plainly that Land The Trick hosts no video', async ({ page }) => {
   await page.goto('/legal/privacy');
   await expect(page.locator('body')).toContainText('We do not host video');
 });

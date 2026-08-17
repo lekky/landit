@@ -1,7 +1,7 @@
 /// <reference path="../../.pb_data/types.d.ts" />
 
 /**
- * The second email Land It sends to somebody who is not a rider (T15, §6.2).
+ * The second email Land The Trick sends to somebody who is not a rider (T15, §6.2).
  *
  * A rider under 16 cannot be sold to in the app. When they ask to upgrade, this
  * goes to the parent or carer already on record from the consent flow, carrying
@@ -50,7 +50,7 @@ function body(input) {
 
   return `<div style="font-family:system-ui,sans-serif;font-size:16px;line-height:1.5;color:#12100B">
 <p>Hello,</p>
-<p><strong>${name}</strong> uses Land It, a trick tracker for scooter, skateboard and BMX riders,
+<p><strong>${name}</strong> uses Land The Trick, a trick tracker for scooter, skateboard and BMX riders,
 and has asked to move onto <strong>${plan}</strong>.</p>
 <p>Because they are under 16, we do not take payment from them. If you would like them to have it,
 this link is where it happens — and pressing it means you are the adult paying.</p>
@@ -62,7 +62,7 @@ this link is where it happens — and pressing it means you are the adult paying
 there are progress insights and a tag beside their name.</p>
 <p><strong>What it does not change:</strong> stickers and stages are earned by riding and are never
 for sale, on any plan. Their profile stays private unless they change it, there is no messaging
-between riders on Land It, and nothing about this makes them visible to anyone.</p>
+between riders on Land The Trick, and nothing about this makes them visible to anyone.</p>
 <p style="font-size:14px;color:#5B554A">It is one subscription for one rider, and you can cancel it
 whenever you like — everything ${name} has tracked stays exactly where it is.</p>
 <p style="font-size:14px;color:#5B554A">If you were not expecting this, ignore it and nothing
@@ -79,7 +79,7 @@ function sendGuardianUpgrade(app, input) {
       name: settings.meta.senderName,
     },
     to: [{ address: input.guardianEmail }],
-    subject: `${input.riderName} has asked about a Land It plan`,
+    subject: `${input.riderName} has asked about a Land The Trick plan`,
     html: body(input),
   });
 

@@ -120,7 +120,7 @@ test('the detail modal says what a sticker needs, and offers the share card once
   await modal.getByRole('button', { name: 'Share it' }).click();
   const card = page.getByRole('dialog');
   await expect(card.getByText('Share it')).toBeVisible();
-  await expect(card.getByText(/sticker earned on Land It\./)).toBeVisible();
+  await expect(card.getByText(/sticker earned on Land The Trick\./)).toBeVisible();
   // The share card's meta line counts weeks, because the streak does (plan §1).
   await expect(card).not.toContainText(/\d+ days? streak/i);
   await expect(card.getByRole('button', { name: 'Copy caption' })).toBeVisible();
@@ -170,6 +170,6 @@ test('the trick page has its Share it button now the card exists (issue #51)', a
 
   const card = page.getByRole('dialog');
   await expect(card.getByText(`Landed the ${name}`, { exact: false }).first()).toBeVisible();
-  await expect(card.getByText(/Tracked on Land It\./)).toBeVisible();
+  await expect(card.getByText(/Tracked on Land The Trick\./)).toBeVisible();
   await expect(card).not.toContainText(/\d+ days? streak/i);
 });

@@ -1,6 +1,6 @@
 # Infrastructure — box1
 
-The shared VPS that hosts Land It and other products (see implementation-plan.md §2.6).
+The shared VPS that hosts Land The Trick and other products (see implementation-plan.md §2.6).
 Set up 2026-08-15. This file records what exists and how to reach it — no secrets live here.
 
 ## The box
@@ -42,7 +42,7 @@ Set up 2026-08-15. This file records what exists and how to reach it — no secr
 
 - Project **infra** — shared box services. Currently: `uptime-kuma`
   (service uuid `5cxwcyvdozkz70erdus5ck0z`).
-- One Coolify **project per product** (Land It's gets created when there is something to
+- One Coolify **project per product** (Land The Trick's gets created when there is something to
   deploy — app + PocketBase instance + PR previews). Products are isolated; nothing
   product-specific goes in `infra`.
 - Server uuid (for API calls): `lvkalcforx2tdkygp0odsk2a`.
@@ -81,10 +81,11 @@ checklist in the next section is the live progress.
 **Order matters.** Certificates need DNS and Coolify needs certificates. Steps 5 and 6 both touch
 the same SPF record, and that is where the one mistake in this list gets made.
 
-The brand is **Land It** and the domain does not match it. That is fine and deliberate. `landit.app`
-was written into published copy before anyone owned it — it belongs to someone else and its
-registration has expired — which is where the rule came from: **never publish an address on a domain
-that is not yet registered to us.**
+The brand is **Land The Trick** and the domain matches it. It did not always: the brand was **Land
+It** until 2026-08-17, when the owner renamed it to close the gap this section used to record as
+"fine and deliberate". The reason the gap existed is still the reason the rule exists — `landit.app`
+was written into published copy before anyone owned it, it belongs to someone else and its
+registration has expired: **never publish an address on a domain that is not yet registered to us.**
 
 ### 1. DNS at Namecheap — **done 2026-08-16**
 
@@ -219,7 +220,7 @@ machine — which fails silently and reads as "the email is broken".
 ### 5. Mailboxes in cPanel
 
 **Its own cPanel account, not an addon domain on the agency's** (2026-08-16). The hostmedia plan
-allows several, and a separate account keeps Land It's mail isolated from HelloWebDesign's:
+allows several, and a separate account keeps Land The Trick's mail isolated from HelloWebDesign's:
 separate SPF and DKIM, separate sending reputation, separate suspension risk, and a safeguarding
 inbox that can be handed to whoever is answering it without also handing over the agency's email.
 
@@ -265,7 +266,7 @@ allowed", it is a permanent error that fails both, and one of the two is a guard
 Edit the record already at Namecheap to append MailerSend's include rather than adding a second:
 
 ```
-v=spf1 +a +mx +ip4:<the Land It cPanel server> include:relay.mailchannels.net include:_spf.mailersend.net ~all
+v=spf1 +a +mx +ip4:<the Land The Trick cPanel server> include:relay.mailchannels.net include:_spf.mailersend.net ~all
 ```
 
 **Read the IP out of the record cPanel generated for this account** — it is that account's server,
@@ -296,7 +297,7 @@ the mechanism the child-safety position rests on.
 Steps 1–8 above are the sequence; this is the progress.
 
 - [x] The five DNS records at Namecheap, all pointing at the box (runbook 1) — done 2026-08-16
-- [x] Land It Coolify project, both hostnames on HTTPS (runbook 2) — done 2026-08-16
+- [x] Land The Trick Coolify project, both hostnames on HTTPS (runbook 2) — done 2026-08-16
 - [ ] The new PocketBase database in `litestream.yml`, restore rehearsed (runbook 3)
 - [x] `LANDIT_APP_URL` set on the hosted instance (runbook 4) — done 2026-08-16
 - [ ] Mailboxes created 2026-08-16; still to do: Custom MX at Namecheap, and cPanel’s DKIM/SPF copied there (runbook 5)
@@ -304,7 +305,7 @@ Steps 1–8 above are the sequence; this is the progress.
 - [ ] DMARC (runbook 7)
 - [ ] Uptime Kuma monitors, then the email paths by hand — issue #31 (runbook 8)
 - ~~[ ] R2 lifecycle rule + clips bucket when T14 (clips) approaches.~~ **Dropped 2026-08-17.** The
-      owner reversed clip hosting (plan §1, §6.6): Land It stores no rider video, so there is no
+      owner reversed clip hosting (plan §1, §6.6): Land The Trick stores no rider video, so there is no
       clips bucket to create, no PocketBase S3 settings to fill in, and no lifecycle rule to write.
       `box1-backups` above is unaffected — that is Litestream's database replication and has nothing
       to do with clips. Issue #113 closed as obsolete. **Nothing here is ever provisioned by a build

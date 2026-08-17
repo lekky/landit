@@ -39,7 +39,7 @@ export const AVATARS = [
   },
   {
     id: 'helmet-land',
-    name: 'Land It Lid',
+    name: 'Land The Trick Lid',
     group: 'Lids',
     hue: '#C9C6BE',
     file: 'helmet-land.png',

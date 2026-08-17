@@ -27,8 +27,8 @@ import { GuardianPanel } from './GuardianPanel';
 import { PrivacyPanel } from './PrivacyPanel';
 
 export const metadata: Metadata = {
-  title: 'Your account · Land It',
-  description: 'Who you are on Land It, and what you have set up.',
+  title: 'Your account · Land The Trick',
+  description: 'Who you are on Land The Trick, and what you have set up.',
 };
 
 /**

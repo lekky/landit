@@ -4,7 +4,7 @@ import type { IconName, SportLook } from '@landit/ui-web';
 /**
  * Sport presentation for the web app, and the copy that has to count them.
  *
- * Land It ships three sports (plan §1), and T21 is what widens `SPORT_IDS` from
+ * Land The Trick ships three sports (plan §1), and T21 is what widens `SPORT_IDS` from
  * two to three. Nothing here may hard-code a scooter/skate pair: every list and
  * every sentence that mentions the sports is generated from `SPORT_IDS`, so the
  * day BMX lands the landing page, the metadata and the sport switch all pick it

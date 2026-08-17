@@ -21,7 +21,7 @@ interface Plottable {
  *
  * **How the design language survives a third-party map.** Mapbox draws the
  * ground and nothing else: a quiet `light-v11` base (see `@/lib/mapbox`), with
- * every Land It surface on this panel drawn by us — square markers with a 3px
+ * every Land The Trick surface on this panel drawn by us — square markers with a 3px
  * ink keyline and a hard offset shadow, our own zoom controls, and the panel's
  * own header and footer bars. A basemap in the palette would need a style
  * authored in Mapbox Studio, which needs a Studio account and a designer; this

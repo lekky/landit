@@ -1,7 +1,7 @@
 /// <reference path="../../.pb_data/types.d.ts" />
 
 /**
- * Land It — server-side rules, the enforcement copy.
+ * Land The Trick — server-side rules, the enforcement copy.
  *
  * `packages/core` is where the game rules are *defined* for the client; this is
  * where they are *enforced* (plan §3). The two are deliberately separate
@@ -20,7 +20,7 @@ const CATEGORIES = ['flat', 'street', 'park', 'hybrid', 'air'];
 
 /**
  * Handles appear in URLs and on share cards, so these can never belong to a
- * rider. Kept deliberately blunt: a name that could be read as Land It talking
+ * rider. Kept deliberately blunt: a name that could be read as Land The Trick talking
  * to you, or as a route, is out.
  */
 const RESERVED_HANDLES = [

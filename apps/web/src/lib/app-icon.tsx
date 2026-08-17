@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 
 /**
- * The Land It app icon, drawn once for every size that needs one.
+ * The Land The Trick app icon, drawn once for every size that needs one.
  *
  * **Where it comes from.** The repo has no icon artwork — 36 avatars and
  * nothing else — so the icon is the mark that is already in the top bar
@@ -11,10 +11,11 @@ import type { ReactElement } from 'react';
  * A purpose-drawn launch icon is worth having and is an open issue; this is what
  * a rider gets on their home screen until there is one.
  *
- * **No wordmark.** At 48px on a home screen "LAND IT" in Anton is four
- * unreadable strokes, and rendering text here would mean shipping the font file
- * to the image renderer for a result nobody can read. The glyph alone is the
- * part of the mark that survives being small.
+ * **No wordmark.** At 48px on a home screen "LAND THE TRICK" in Anton is a
+ * smear, and rendering text here would mean shipping the font file to the image
+ * renderer for a result nobody can read. The glyph alone is the part of the mark
+ * that survives being small — more so since the 2026-08-17 rename made the
+ * wordmark three words long.
  *
  * The values are the design system's, copied rather than imported: this renders
  * through Satori, which resolves no CSS custom properties and knows nothing of a

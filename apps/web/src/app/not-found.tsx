@@ -13,14 +13,14 @@ import styles from './not-found.module.css';
  *
  * Part of the shell rather than a nicety: through most of the build the app has
  * more navigation than it has screens, and a mistyped or bookmarked URL should
- * land on something that looks like Land It rather than Next's default page.
+ * land on something that looks like Land The Trick rather than Next's default page.
  *
  * The copy says nothing about what is or is not built yet. Riders will read
  * this after launch too, when the honest answer is simply that the page is not
  * there.
  */
 export const metadata: Metadata = {
-  title: 'Page not found · Land It',
+  title: 'Page not found · Land The Trick',
   robots: { index: false, follow: false },
 };
 
@@ -43,10 +43,10 @@ export default function NotFound() {
         </p>
         <div className={styles.actions}>
           <Link className="btn" href={ROUTES.home}>
-            Back to Land It
+            Back to Land The Trick
           </Link>
           <Link className="btn ghost" href={legalHref('about')}>
-            About Land It
+            About Land The Trick
           </Link>
         </div>
       </div>

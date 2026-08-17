@@ -161,8 +161,9 @@ export function SignUpForm() {
         <div className={styles.notice}>
           <strong>A grown-up will need to say yes</strong>
           Where you live, a parent or carer has to approve accounts under {consentAge(country)} — so{' '}
-          {countryName(country)} means we will ask you for their email next. You can use Land It
-          while you wait: the whole trick library, your own tricks, your notes and your streak.
+          {countryName(country)} means we will ask you for their email next. You can use Land The
+          Trick while you wait: the whole trick library, your own tricks, your notes and your
+          streak.
         </div>
       ) : null}
 

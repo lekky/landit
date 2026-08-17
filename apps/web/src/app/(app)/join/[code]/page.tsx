@@ -17,7 +17,7 @@ import { JoinButton } from './JoinButton';
 import styles from './join.module.css';
 
 export const metadata: Metadata = {
-  title: 'Join a crew · Land It',
+  title: 'Join a crew · Land The Trick',
   description: 'Somebody sent you an invite.',
   // An invite link is not a page for a search engine to hold on to.
   robots: { index: false, follow: false },
@@ -95,7 +95,7 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
       </Panel>
 
       <p className={styles.foot}>
-        <Link href={ROUTES.crew}>Your crew</Link> · There is no messaging on Land It, here or
+        <Link href={ROUTES.crew}>Your crew</Link> · There is no messaging on Land The Trick, here or
         anywhere.
       </p>
     </div>

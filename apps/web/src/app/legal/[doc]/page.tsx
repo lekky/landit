@@ -31,7 +31,7 @@ export async function generateMetadata(props: PageProps<'/legal/[doc]'>): Promis
   const { doc: id } = await props.params;
   const doc = legalDoc(id);
   if (!doc) return {};
-  return { title: `${doc.title} · Land It`, description: doc.intro };
+  return { title: `${doc.title} · Land The Trick`, description: doc.intro };
 }
 
 export default async function LegalDocPage(props: PageProps<'/legal/[doc]'>) {
@@ -70,7 +70,7 @@ export default async function LegalDocPage(props: PageProps<'/legal/[doc]'>) {
           </Panel>
 
           <div>
-            <span className="eyebrow">Land It · {doc.updated}</span>
+            <span className="eyebrow">Land The Trick · {doc.updated}</span>
             <h1 className={`d ${styles.title}`}>{doc.title}</h1>
             <p className={styles.intro}>{doc.intro}</p>
 
@@ -113,7 +113,7 @@ export default async function LegalDocPage(props: PageProps<'/legal/[doc]'>) {
                 Report something
               </Link>
               <Link className="btn ghost" href={ROUTES.home}>
-                Back to Land It
+                Back to Land The Trick
               </Link>
             </Panel>
           </div>

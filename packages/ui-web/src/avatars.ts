@@ -31,7 +31,7 @@ export const AVATARS = [
   { id: 'helmet-white', name: 'White Lid', group: 'Lids', hue: '#F3B84E' },
   { id: 'beanie-purple', name: 'Beanie', group: 'Lids', hue: '#C4B5E8' },
   { id: 'snapback-pink', name: 'Snapback', group: 'Lids', hue: '#F5B8C8' },
-  { id: 'helmet-land', name: 'Land It Lid', group: 'Lids', hue: '#C9C6BE' },
+  { id: 'helmet-land', name: 'Land The Trick Lid', group: 'Lids', hue: '#C9C6BE' },
   { id: 'bucket-tan', name: 'Bucket Hat', group: 'Lids', hue: '#CFC2AC' },
   { id: 'goggles', name: 'Shades + Lid', group: 'Lids', hue: '#F3B84E' },
   { id: 'helmet-ld', name: 'LD Lid', group: 'Lids', hue: '#F5B8C8' },

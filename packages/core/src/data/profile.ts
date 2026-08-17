@@ -29,8 +29,8 @@ export const PRIVACY = [
     // "Sensible default for younger riders" until 2026-08-16, which stopped
     // being true the moment the default moved to `private` (LESSONS §4: when a
     // rule changes, sweep what quotes it).
-    blurb: 'Only people signed in to Land It can open your profile.',
-    other: 'This rider only shows their profile to people signed in to Land It.',
+    blurb: 'Only people signed in to Land The Trick can open your profile.',
+    other: 'This rider only shows their profile to people signed in to Land The Trick.',
   },
   {
     id: 'private',
@@ -111,7 +111,7 @@ export const HANDLE_PATTERN = /^[a-z0-9][a-z0-9_]{0,18}[a-z0-9]$/;
 
 /**
  * Handles nobody may hold. They appear in URLs and on share cards, so a name
- * that could be read as Land It talking to you, or as a route, is out.
+ * that could be read as Land The Trick talking to you, or as a route, is out.
  *
  * Mirrors `RESERVED_HANDLES` in `pocketbase/hooks/lib/landit.js`, which is the
  * copy that actually refuses the write. A test pins the two together.

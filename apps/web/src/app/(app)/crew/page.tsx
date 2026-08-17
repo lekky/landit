@@ -30,7 +30,7 @@ import type {
 } from './view';
 
 export const metadata: Metadata = {
-  title: 'Crew · Land It',
+  title: 'Crew · Land The Trick',
   description: 'Your crew board and what your mates have been landing.',
 };
 

@@ -1,5 +1,5 @@
 /**
- * `@landit/ui-web` — the Land It design system.
+ * `@landit/ui-web` — the Land The Trick design system.
  *
  * Two halves:
  * - `@landit/ui-web/styles.css`, every token and class transcribed from

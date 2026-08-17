@@ -53,7 +53,7 @@ const COLUMNS: readonly FooterColumn[] = [
   {
     title: 'Company',
     links: [
-      { label: 'About Land It', href: legalHref('about') },
+      { label: 'About Land The Trick', href: legalHref('about') },
       { label: 'Contact', href: legalHref('about') },
       { label: 'Safeguarding', href: legalHref('safeguarding') },
       // T18. "Easy" is what the OSA codes actually ask for, and a route nobody
@@ -150,7 +150,7 @@ export function SiteFooter({ compact = false, minimal = false }: SiteFooterProps
 
         <div className={styles.bottom}>
           <span className={`cond ${styles.bottomNote}`}>
-            © {year} Land It. Made in the north of England.
+            © {year} Land The Trick. Made in the north of England.
           </span>
           <span className={`lab ${styles.bottomWarn}`}>
             Ride within your ability. Wear a helmet.

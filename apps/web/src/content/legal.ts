@@ -105,17 +105,17 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
       {
         h: 'What we never do',
         p: [
-          'We do not sell your data, and we do not share it with advertisers. There are no ads in Land It.',
+          'We do not sell your data, and we do not share it with advertisers. There are no ads in Land The Trick.',
           'We do not show your surname or email address on any public profile.',
-          'We do not host video. There is nowhere in Land It to upload a clip, and no video of yours sits on our servers.',
+          'We do not host video. There is nowhere in Land The Trick to upload a clip, and no video of yours sits on our servers.',
           'We do not track you across other websites.',
-          'Nothing you see in Land It is chosen for you by an algorithm. There is no feed, and no guessing at what would keep you here longer.',
+          'Nothing you see in Land The Trick is chosen for you by an algorithm. There is no feed, and no guessing at what would keep you here longer.',
         ],
       },
       {
         h: 'Who can see your profile',
         p: [
-          'You choose. Public means anyone with the link sees your tricks, stickers and streak. Riders only means people signed in to Land It. Private means nobody but you.',
+          'You choose. Public means anyone with the link sees your tricks, stickers and streak. Riders only means people signed in to Land The Trick. Private means nobody but you.',
           'New accounts start private. Being visible is a choice you make, not the setting you are handed.',
           'Your crew sees your name and score on the crew board whichever setting you pick, and nothing else of yours goes on the board.',
         ],
@@ -123,10 +123,10 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
       {
         h: 'Video',
         p: [
-          'Land It does not host video. There is no upload, and no clip of yours is stored on our servers.',
+          'Land The Trick does not host video. There is no upload, and no clip of yours is stored on our servers.',
           'What you can do is add a link to a video you have already put on YouTube. We keep the video’s YouTube reference and nothing else — not a copy, not a thumbnail, not a still.',
-          'The video itself stays on YouTube, under YouTube’s terms and their control, and it keeps whatever setting you gave it there. Removing it from Land It does not remove it from YouTube, and removing it from YouTube makes it stop working here.',
-          'Every video you add starts private. You choose whether to open it to riders signed in to Land It, and a video is never visible to anyone who is not signed in — there is no public setting for one. If your profile is private, your videos stay private too, whatever you set on them: your profile is the limit and a video can only ever be more closed than it, never more open.',
+          'The video itself stays on YouTube, under YouTube’s terms and their control, and it keeps whatever setting you gave it there. Removing it from Land The Trick does not remove it from YouTube, and removing it from YouTube makes it stop working here.',
+          'Every video you add starts private. You choose whether to open it to riders signed in to Land The Trick, and a video is never visible to anyone who is not signed in — there is no public setting for one. If your profile is private, your videos stay private too, whatever you set on them: your profile is the limit and a video can only ever be more closed than it, never more open.',
           'The player only loads when you press play. Until then nothing on the page talks to YouTube or to Google.',
           'Delete your account and everything we hold about you goes with it.',
         ],
@@ -134,10 +134,10 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
       {
         h: 'Younger riders, and their parents',
         p: [
-          'There is no minimum age on Land It. Younger riders are welcome, with a parent or guardian who says yes.',
+          'There is no minimum age on Land The Trick. Younger riders are welcome, with a parent or guardian who says yes.',
           'Whether that permission is needed depends on where you are: the United Kingdom sets the line at 13, most of the EEA sets it at 16, and elsewhere we use 13. Your country picks the line and we apply it when you sign up.',
           'If you are below the line we ask for a parent or guardian email address and send them a link to approve the account. Until they do, you can browse the library, track your tricks, write notes and build a streak. You are not visible to any other rider, and you cannot join a crew, submit a spot, mark yourself down for an event or pay for anything.',
-          'The same email carries a link that withdraws permission. It works forever, it needs no Land It account, and using it puts the rider back to tracking on their own. It does not delete a single trick they have logged.',
+          'The same email carries a link that withdraws permission. It works forever, it needs no Land The Trick account, and using it puts the rider back to tracking on their own. It does not delete a single trick they have logged.',
           'Permission stops being needed on the birthday your country says it stops being needed. That happens on its own — nobody has to remember to do it.',
           'If you are in the United States and under 13, we will not sign you up. The rules there ask for a much heavier kind of parental consent than an approval email, and we would rather turn you away honestly than pretend we have built it.',
         ],
@@ -169,7 +169,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
       {
         h: 'Riding is the risky part, not the app',
         p: [
-          'Land It describes tricks. It does not teach you to do them safely and it cannot judge whether you are ready for one.',
+          'Land The Trick describes tricks. It does not teach you to do them safely and it cannot judge whether you are ready for one.',
           'Wear a helmet. Learn the difficulty 4 and 5 tricks into foam or resi, with someone watching.',
           'You ride at your own risk. Skate parks and street spots have their own rules and you have to follow those.',
         ],
@@ -178,7 +178,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         h: 'What you post',
         p: [
           'You own your notes and everything you track. You give us permission to store them and show them back to you inside the app.',
-          'A video you link to has to be yours to share. We do not hold the video, so we cannot take it down — only the link here. If a link points at something that should not be on Land It we will remove the link and, where it matters, the account.',
+          'A video you link to has to be yours to share. We do not hold the video, so we cannot take it down — only the link here. If a link points at something that should not be on Land The Trick we will remove the link and, where it matters, the account.',
           'Nothing illegal, nothing abusive, nothing that puts other riders at risk. We will remove content and close accounts that break this.',
         ],
       },
@@ -212,15 +212,15 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         p: [
           'New profiles are private. Being visible to other riders is a choice a rider makes, not the setting they are given.',
           'Surnames and email addresses never appear on a public profile.',
-          'Land It does not host video. There is no upload anywhere in the app, so there is no rider footage on our servers.',
-          'A rider can add a link to a video they have put on YouTube. Every one starts private, a video is never visible to anyone who is not signed in, and a rider whose profile is private has videos nobody else can see whatever they set on them. There is no public setting for a video, deliberately: it is the one thing on Land It a stranger could otherwise reach.',
+          'Land The Trick does not host video. There is no upload anywhere in the app, so there is no rider footage on our servers.',
+          'A rider can add a link to a video they have put on YouTube. Every one starts private, a video is never visible to anyone who is not signed in, and a rider whose profile is private has videos nobody else can see whatever they set on them. There is no public setting for a video, deliberately: it is the one thing on Land The Trick a stranger could otherwise reach.',
         ],
       },
       {
         h: 'There is nowhere for a stranger to reach a rider',
         p: [
           'Crews are invite only. You get in because someone already in one invites you. There is no directory of riders to browse and no way to search for a rider you are not already crewed with.',
-          'There is no private messaging in Land It, between riders or otherwise. That is not a feature we have left for later. It is a thing this app does not do.',
+          'There is no private messaging in Land The Trick, between riders or otherwise. That is not a feature we have left for later. It is a thing this app does not do.',
           'There is no feed of strangers. A crew board is a leaderboard, a crew activity list is in the order things happened, and neither is picked for you by an algorithm.',
           'Spots that riders submit reach nobody until a person here has read them and approved them.',
         ],
@@ -239,7 +239,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         p: [
           'Where a rider needed permission to be here, the parent or guardian who gave it keeps a link that withdraws it. That link never expires and needs no account of their own.',
           'Withdrawing permission puts the account back to tracking alone: the rider keeps everything they have logged and stops being visible to anybody else.',
-          'If you want to know what a rider is doing here, ask them to show you. Everything Land It holds about a rider is on the rider’s own screens. There is nothing kept back from them, and nothing a parent can see that they cannot.',
+          'If you want to know what a rider is doing here, ask them to show you. Everything Land The Trick holds about a rider is on the rider’s own screens. There is nothing kept back from them, and nothing a parent can see that they cannot.',
         ],
       },
       {
@@ -276,7 +276,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         p: [
           'Riders can add a link to a video on YouTube. A page with one on it shows a still panel and a play button, and nothing on it talks to YouTube or to Google until you press play. Not a thumbnail, not a hidden player, nothing.',
           'Press play and YouTube’s player loads, from a version of their address built for this, and from then on YouTube can set storage of its own on your device — that part is theirs, not ours. If you would rather it did not, do not press play, or open the video on YouTube where you can decide with everything else in front of you.',
-          'This is why Land It has no cookie pop-up: nothing third-party runs here unless you ask for it.',
+          'This is why Land The Trick has no cookie pop-up: nothing third-party runs here unless you ask for it.',
         ],
       },
       {
@@ -287,7 +287,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
   },
   {
     id: 'about',
-    title: 'About Land It',
+    title: 'About Land The Trick',
     updated: 'August 2026',
     intro: `A trick tracker for ${sportsList()} riders, built because a paper checklist on a fridge worked better than any app we could find.`,
     sections: [

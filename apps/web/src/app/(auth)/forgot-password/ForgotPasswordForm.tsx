@@ -22,8 +22,8 @@ export function ForgotPasswordForm() {
     return (
       <div className={styles.notice}>
         <strong>Check your email</strong>
-        If that address has a Land It account, a link to set a new password is on its way. It is
-        good for a couple of hours.
+        If that address has a Land The Trick account, a link to set a new password is on its way. It
+        is good for a couple of hours.
       </div>
     );
   }

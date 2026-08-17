@@ -10,7 +10,7 @@
  * write, which is what `*Create` and `*Update` describe.
  */
 
-/** Every collection Land It defines. PocketBase's own `_`-prefixed ones are not here. */
+/** Every collection Land The Trick defines. PocketBase's own `_`-prefixed ones are not here. */
 export type CollectionName =
   | 'announcement_dismissals'
   | 'announcements'

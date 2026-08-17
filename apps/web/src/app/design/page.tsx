@@ -10,8 +10,8 @@ import { Gallery } from './gallery';
  * screen, not in the navigation, and deliberately kept out of search results.
  */
 export const metadata: Metadata = {
-  title: 'Design system · Land It',
-  description: 'Every Land It primitive, side by side.',
+  title: 'Design system · Land The Trick',
+  description: 'Every Land The Trick primitive, side by side.',
   robots: { index: false, follow: false },
 };
 

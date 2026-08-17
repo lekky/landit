@@ -231,16 +231,16 @@ function buildShare(
     dateLabel: shortDate(new Date(), timezone).replace(/ \d{4}$/, ''),
     caption:
       `Landed the ${trick.name} on ${sportLabel.toLowerCase()}. ` +
-      `${landed} tricks down. Tracked on Land It.`,
+      `${landed} tricks down. Tracked on Land The Trick.`,
   };
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const data = await load(slug);
-  if (!data) return { title: 'Trick not found · Land It' };
+  if (!data) return { title: 'Trick not found · Land The Trick' };
   return {
-    title: `${data.trick.name} · Land It`,
+    title: `${data.trick.name} · Land The Trick`,
     description: `${categoryLabel(data.trick.cat, data.trick.sport)} · ${SPORTS[data.trick.sport].label} · difficulty ${TIERS_LABEL[data.trick.diff - 1]}.`,
   };
 }

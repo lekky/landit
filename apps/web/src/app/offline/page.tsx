@@ -25,7 +25,7 @@ import { ROUTES } from '@/lib/routes';
  * render with no server cannot ask the server who is looking at it.
  */
 export const metadata: Metadata = {
-  title: 'No signal · Land It',
+  title: 'No signal · Land The Trick',
   robots: { index: false, follow: false },
 };
 
@@ -53,7 +53,7 @@ export default function OfflinePage() {
             Your trick library
           </Link>
           <Link className="btn ghost" href={ROUTES.home}>
-            Back to Land It
+            Back to Land The Trick
           </Link>
         </div>
       </div>

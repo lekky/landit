@@ -1,7 +1,7 @@
 /*
  * The staff portal's layout.
  *
- * Everything that *looks* like Land It — the panels, the pills, the tags, the
+ * Everything that *looks* like Land The Trick — the panels, the pills, the tags, the
  * hard offset shadows, `.arow` — comes from `@landit/ui-web/styles.css`, which
  * already carries the admin table row the design pack specifies. This file is
  * only the arrangement: grids, gaps and the two surfaces the portal adds.

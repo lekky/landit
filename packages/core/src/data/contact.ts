@@ -1,5 +1,5 @@
 /**
- * Where Land It can be reached, and the domain it lives on.
+ * Where Land The Trick can be reached, and the domain it lives on.
  *
  * **One place, because these are promises.** The safeguarding address is
  * published in the terms and on the safeguarding page with a one-working-day
@@ -23,7 +23,7 @@
  * safeguarding promise.
  */
 
-/** The product's domain. Not the brand — the brand is Land It. */
+/** The product's domain, and since the 2026-08-17 rename, the brand as well. */
 export const DOMAIN = 'landthetrick.com' as const;
 
 /** The public web address, for copy and for links out of an email. */

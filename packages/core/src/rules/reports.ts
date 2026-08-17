@@ -21,7 +21,7 @@ export const REPORT_SUBJECTS = [
   {
     id: 'profile',
     label: 'A rider',
-    blurb: 'Something on somebody’s profile, or the way they are using Land It.',
+    blurb: 'Something on somebody’s profile, or the way they are using Land The Trick.',
   },
   {
     id: 'spot',
@@ -30,7 +30,7 @@ export const REPORT_SUBJECTS = [
   },
   {
     // **Live since T15b (2026-08-17).** T18 shipped this subject deliberately
-    // *unavailable*, with the blurb "There is no video on Land It yet", because
+    // *unavailable*, with the blurb "There is no video on Land The Trick yet", because
     // the clip vault had been removed that morning and nothing had replaced it.
     // `t15b-video-links` replaced it hours later: riders now add YouTube links,
     // so both the blurb and the disabled radio behind it had become false — and a
@@ -45,7 +45,7 @@ export const REPORT_SUBJECTS = [
   {
     id: 'other',
     label: 'Something else',
-    blurb: 'Anything about Land It itself, or something that does not fit above.',
+    blurb: 'Anything about Land The Trick itself, or something that does not fit above.',
   },
 ] as const;
 

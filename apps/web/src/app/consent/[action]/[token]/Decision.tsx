@@ -81,9 +81,9 @@ export function Decision({
         {approving ? (
           <>
             <p>
-              Land It is a trick tracker for scooter, skateboard and BMX riders. {name} has made an
-              account and given us your email as their parent or carer. Because of their age, we
-              need your say-so before it is a normal account.
+              Land The Trick is a trick tracker for scooter, skateboard and BMX riders. {name} has
+              made an account and given us your email as their parent or carer. Because of their
+              age, we need your say-so before it is a normal account.
             </p>
             <div className={styles.lists}>
               <div>
@@ -106,7 +106,7 @@ export function Decision({
               </div>
             </div>
             <p>
-              There is no messaging between riders on Land It, no public feed, and crews are
+              There is no messaging between riders on Land The Trick, no public feed, and crews are
               invite-only. Their profile stays private unless they change it themselves.
             </p>
           </>

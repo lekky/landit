@@ -1,6 +1,6 @@
 # CLAUDE.md — session orientation
 
-Land It: a trick tracker for scooter, skateboard and BMX riders. Pre-launch build, executed as
+Land The Trick: a trick tracker for scooter, skateboard and BMX riders. Pre-launch build, executed as
 parallel agent sessions over the task plan in `docs/implementation-plan.md` §7.
 
 ## Start here
@@ -113,7 +113,7 @@ Then, in order:
     variables and persistent storage, and deploys of them. **Not** the shared `infra` project,
     **not** ufw/Docker/firewall or any of the security posture, **not** other products, and
     **never** anyone's credentials: superuser accounts and passwords are set by the owner, in
-    their own browser. The box carries HelloWebDesign's work as well as this, so "Land It is not
+    their own browser. The box carries HelloWebDesign's work as well as this, so "Land The Trick is not
     live yet" is not the same as "the box is not live". A session that wants more than this asks
     for it in chat; this line is the record of what was granted, not a licence to widen it.
 - **Secrets never enter the repo** — `.env` files are templates only.
