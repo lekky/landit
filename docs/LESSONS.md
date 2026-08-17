@@ -63,6 +63,36 @@ PLAYWRIGHT_BASE_URL=http://localhost:3987 pnpm e2e
 CI is unaffected: `reuseExistingServer` is false there and every run gets its own server. This is
 purely a local-parallel-sessions trap, which is why it is here and not in §2.
 
+**3987 is not a free port any more, and neither is any number this file names.** T17 followed the
+two lines above exactly — checked port 3000, found it clear, started `next dev --port 3987` — and
+got `EADDRINUSE`. A sibling session had read the same paragraph and taken the same port, and the
+*next* command still returned `200` from `http://localhost:3987`, because their server was
+answering. Had the bind not failed first, every screenshot taken that afternoon would have been of
+somebody else's branch. A port written into shared instructions becomes the *most* contended port
+in the repo, not the least. Check the port you are about to take rather than the one the last
+session took — `Get-NetTCPConnection -State Listen -LocalPort <n>` — and pick something nobody
+would guess. And read the dev server's own startup output before believing a `200`: it prints the
+port it bound, and a failure to bind is the only difference between "my worktree" and "theirs".
+
+**A spec that sets `NEXT_PUBLIC_POCKETBASE_URL` itself outranks the shell that started it, and
+reaches into a sibling's database.** The same session drove its screens from a throwaway
+Playwright spec, ran it with `NEXT_PUBLIC_POCKETBASE_URL=http://127.0.0.1:8097` (its own
+PocketBase, its own data directory), and inside the spec wrote
+`process.env.NEXT_PUBLIC_POCKETBASE_URL = 'http://127.0.0.1:8091'` — a leftover from copying the
+default out of `playwright.config.ts`. The assignment wins: `createSuperuserClient()` is called
+after it, so every write went to **8091, which belonged to another session**. It promoted one of
+their riders to staff and created a challenge, an event, an announcement and a report in their
+`.pb_e2e`.
+
+What makes it worth a rule is how it presented. The browser talked to the right server, so the app
+behaved normally; the writes returned `200`; and the symptoms were "the role did not apply" and
+"the records are not on the screen" — which read as product bugs in the code under test, not as a
+misdirected client. Twenty minutes went into the gate and the hooks. Two things follow. **A test
+process should read its target from the environment and never write it**, because a config default
+copied into a spec is a default that outranks the run. And when a write says it succeeded and the
+read cannot find it, **ask which server answered before asking what the code did** — query the
+instance you believe you are using and count the rows, which settles it in one command.
+
 **A second server is a second copy of that trap, and a database makes it worse.** T6's e2e run needs
 a PocketBase as well as a web server. The obvious wiring — start it on 8090, the port `pnpm pb:dev`
 uses, with `reuseExistingServer` — would have pointed the suite at whatever instance a developer
@@ -429,6 +459,16 @@ consent-pending); each of the other three was right, so three-quarters correct i
 of bug looks like from the inside. And **write the assertion as a count, not as a `.first()`**: the
 spec asked whether *a* sign-up link existed and found two of three, where `toHaveCount(3)` would
 have failed on the same page that was already in front of it.
+
+**A selector that grabs the wrong control has found a screen two people can misread.** T17's
+moderation queue had a filter row reading Open / Reviewing / Actioned / Dismissed, and each report
+card carried buttons with the same four words. `getByRole('button', { name: 'Dismissed' })` matched
+both, took the filter, and navigated instead of writing — which looked exactly like a broken server
+action, and the assertion after it passed anyway because the word was still on the page. The fix was
+not a better locator: the triage buttons now read **"Mark dismissed"**, which is what they do. A
+Playwright name is the accessible name, so a locator that cannot tell two controls apart is a
+statement that a screen reader cannot either, and that a moderator scanning a long queue at speed
+will eventually get wrong. Rename the control before you narrow the selector.
 
 **Copy decisions get tests, or they get quietly reverted.** T5's legal documents are a rewrite, not
 a transcription: no minimum age, no Crew Pass, profiles private by default, reporting described as
