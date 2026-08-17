@@ -4,8 +4,17 @@ import {
   applyStaffChange,
   deleteStaffRecord,
   landedCountsFor,
+  listAdminAnnouncements,
+  listAdminEvents,
+  listAdminPlans,
+  listAdminSpots,
+  listAdminStickers,
+  listReports,
+  reportCounts,
+  setReportTriage,
   setRiderPlan,
   setRiderSuspended,
+  setSpotStatus,
   type StaffActor,
 } from './admin';
 import type { Client } from './clients';
@@ -32,9 +41,9 @@ interface Call {
 /**
  * A PocketBase double, recording what was asked of it.
  *
- * Only the four methods this module uses. Anything else throws rather than
- * silently returning `undefined`, so a future signature change surfaces here
- * instead of producing an empty audit row nobody notices.
+ * Only the methods this module uses, and each one records what it was asked so
+ * a test can assert on the filter rather than on the answer — which is the
+ * point for T17's reads, where the *absence* of a filter is the behaviour.
  */
 function fakeClient(records: Record<string, Record<string, unknown>> = {}) {
   const calls: Call[] = [];
@@ -71,11 +80,20 @@ function fakeClient(records: Record<string, Record<string, unknown>> = {}) {
           calls.push({ collection: name, method: 'getFullList', args: [options] });
           return records[`${name}:list`] ?? [];
         },
-        async getList() {
-          throw new Error('getList is not stubbed');
+        // Paged reads answer from the same `:list` bucket as `getFullList`, so a
+        // test seeds one collection one way whichever read it is exercising.
+        // `totalItems` is what the counters read, so it is the length rather
+        // than a fixed number.
+        async getList(page: number, perPage: number, options: Record<string, unknown>) {
+          calls.push({ collection: name, method: 'getList', args: [page, perPage, options] });
+          const items = (records[`${name}:list`] ?? []) as unknown as Record<string, unknown>[];
+          return { items, page, perPage, totalItems: items.length, totalPages: 1 };
         },
-        async getFirstListItem() {
-          throw new Error('getFirstListItem is not stubbed');
+        async getFirstListItem(filter: string, options: Record<string, unknown>) {
+          calls.push({ collection: name, method: 'getFirstListItem', args: [filter, options] });
+          const items = (records[`${name}:list`] ?? []) as unknown as Record<string, unknown>[];
+          if (!items.length) throw Object.assign(new Error('not found'), { status: 404 });
+          return items[0];
         },
       };
     },
@@ -246,5 +264,130 @@ describe('landedCountsFor', () => {
     // An empty `or` chain is `()`, which is a filter syntax error rather than
     // an empty result — the early return is load-bearing, not a micro-optimisation.
     expect(calls).toHaveLength(0);
+  });
+});
+
+/**
+ * T17's content-tab reads and the two writes it adds.
+ *
+ * The theme of the reads is one thing and it is worth a test each: they must
+ * **not** carry the `is_live = true` filter their rider-facing twins carry. A
+ * staff editor that inherited it would lose every record staff had hidden —
+ * including the one they had just hidden, which would then be unreachable from
+ * the product and only restorable from the PocketBase dashboard. The failure is
+ * silent and looks exactly like "the record was deleted", which is why the
+ * absence of a filter is asserted rather than assumed.
+ */
+describe('the content-tab reads', () => {
+  const optionsOf = (calls: readonly Call[], method: string) =>
+    (calls.find((c) => c.method === method)?.args.at(-1) ?? {}) as {
+      filter?: string;
+      params?: Record<string, unknown>;
+      sort?: string;
+    };
+
+  it('reads stickers, plans, events and announcements without the live filter', async () => {
+    for (const [read, collection] of [
+      [listAdminStickers, 'stickers'],
+      [listAdminPlans, 'plans'],
+      [listAdminEvents, 'events'],
+      [listAdminAnnouncements, 'announcements'],
+    ] as const) {
+      const { client, calls } = fakeClient();
+      await read(client);
+      const options = optionsOf(calls, 'getFullList');
+      expect(options.filter, `${collection} must not filter on is_live`).toBeUndefined();
+    }
+  });
+
+  it('reads every spot, and binds a status filter as a parameter when given one', async () => {
+    const { client: all, calls: allCalls } = fakeClient();
+    await listAdminSpots(all);
+    // No filter at all: the queue screen shows pending, live and rejected in
+    // three sections, and the API rule that hides pending spots from riders is
+    // exactly what this read exists to see past.
+    expect(optionsOf(allCalls, 'getFullList').filter).toBeUndefined();
+
+    const { client, calls } = fakeClient();
+    await listAdminSpots(client, 'pending');
+    // The status reaches the filter as a placeholder, never concatenated in —
+    // the same rule `landedCountsFor` is held to above, and for the same reason:
+    // the privacy rules are written in this filter language.
+    expect(optionsOf(calls, 'getFullList').filter).toBe('status = {:status}');
+  });
+
+  it('pages reports rather than listing them', async () => {
+    const { client, calls } = fakeClient();
+    await listReports(client, { status: 'open' }, { page: 2, perPage: 10 });
+
+    // `reports` has an open create rule — anyone on the internet can add a row —
+    // so a screen built on `getFullList` gets slower every time somebody reports
+    // something. Paging is the point, not a preference.
+    const call = calls.find((c) => c.method === 'getList');
+    expect(call?.args[0]).toBe(2);
+    expect(call?.args[1]).toBe(10);
+    expect(optionsOf(calls, 'getList').filter).toBe('status = {:status}');
+  });
+
+  it('counts one status at a time, and names them all in the result', async () => {
+    const { client } = fakeClient({
+      'reports:list': [{ id: 'r1' }, { id: 'r2' }] as unknown as Record<string, unknown>,
+    });
+
+    const counts = await reportCounts(client, ['open', 'reviewing', 'actioned', 'dismissed']);
+
+    // Every status is a key, including the ones with nothing at them: a filter
+    // pill that vanished when its queue emptied would read as a broken screen.
+    expect(Object.keys(counts)).toEqual(['open', 'reviewing', 'actioned', 'dismissed']);
+    expect(counts.open).toBe(2);
+  });
+});
+
+describe('the content-tab writes', () => {
+  it('tells the three spot decisions apart in the log', async () => {
+    const { client, calls } = fakeClient({ 'spots:s1': { id: 's1', status: 'pending' } });
+
+    await setSpotStatus(client, actor, 's1', 'live');
+    await setSpotStatus(client, actor, 's1', 'rejected');
+    await setSpotStatus(client, actor, 's1', 'pending');
+
+    // "Changed a spot" three times would not say whether it is on the map now,
+    // which is the only question the log gets asked about the queue.
+    expect(auditRows(calls).map((r) => r.action)).toEqual([
+      'admin.spot_live',
+      'admin.spot_rejected',
+      'admin.spot_pending',
+    ]);
+  });
+
+  it('writes a report’s status and outcome together, and logs both', async () => {
+    const { client, calls } = fakeClient({
+      'reports:r1': { id: 'r1', status: 'open', outcome: '' },
+    });
+
+    await setReportTriage(client, actor, 'r1', {
+      status: 'actioned',
+      outcome: 'Clip removed and the account warned.',
+    });
+
+    const [row] = auditRows(calls);
+    expect(row?.action).toBe('admin.report_actioned');
+    expect(row?.before).toEqual({ status: 'open', outcome: '' });
+    expect(row?.after).toEqual({
+      status: 'actioned',
+      outcome: 'Clip removed and the account warned.',
+    });
+  });
+
+  it('clears the outcome rather than leaving a stale one behind', async () => {
+    const { client, records } = fakeClient({
+      'reports:r1': { id: 'r1', status: 'actioned', outcome: 'Removed.' },
+    });
+
+    await setReportTriage(client, actor, 'r1', { status: 'dismissed' });
+
+    // A decision reversed with the old sentence still attached is a record that
+    // says two different things about the same report.
+    expect(records['reports:r1']?.outcome).toBe('');
   });
 });

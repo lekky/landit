@@ -107,3 +107,174 @@ export interface AdminActivityRow {
   /** "16 Aug, 14:02". */
   readonly when: string;
 }
+
+/* ------------------------------------------------------- content tabs -- */
+
+/**
+ * T17's seven content tabs and the moderation queue.
+ *
+ * Same rule as the rider rows above, and it bites hardest on the last one: a
+ * report carries a stranger's typing and, when they left one, their email
+ * address. `AdminReportRow` therefore ships the email — a moderator has to be
+ * able to reply to a complaint, which is the whole point of the OSA route
+ * (plan §6.1/§6.5) — and nothing else about anybody. The *subject* of a report
+ * is an id and a type, never a resolved profile: staff open the rider from the
+ * Riders tab if they need one, so a moderation screen cannot become a way to
+ * read a child's account by reporting them.
+ */
+
+/** Which tier a trick sits on, and whether staff said so or the difficulty did. */
+export type TrickTier = 'free' | 'paid' | 'inherit';
+
+export interface AdminTrickRow {
+  readonly id: string;
+  readonly slug: string;
+  readonly name: string;
+  readonly sport: string;
+  readonly cat: string;
+  readonly catLabel: string;
+  readonly catColor: string;
+  readonly diff: number;
+  readonly tierLabel: string;
+  /** Prerequisite trick names, already resolved. "Nothing" when there are none. */
+  readonly buildsOn: string;
+  /** `free_override`, as the three states the column actually has. */
+  readonly tier: TrickTier;
+  /** What the paywall makes of it once the default is applied. */
+  readonly effectivelyFree: boolean;
+  readonly isLive: boolean;
+  readonly about: string;
+  readonly tips: string;
+}
+
+export interface AdminStickerRow {
+  readonly id: string;
+  readonly slug: string;
+  readonly name: string;
+  readonly hue: string;
+  readonly sport: SportLook | null;
+  /** The condition line with the threshold folded in. */
+  readonly condition: string;
+  readonly cond: string;
+  /** `null` where the rule counts nothing and there is no threshold to tune. */
+  readonly threshold: number | null;
+  readonly isLive: boolean;
+  /**
+   * False when no rule in `@landit/core` is keyed to this slug — the record
+   * exists, and no rider can ever earn it.
+   */
+  readonly hasRule: boolean;
+}
+
+export type AdminSpotStatus = 'pending' | 'live' | 'rejected';
+
+export interface AdminSpotRow {
+  readonly id: string;
+  readonly name: string;
+  readonly town: string;
+  readonly type: string;
+  readonly tags: readonly string[];
+  readonly sports: readonly string[];
+  readonly sportLooks: readonly SportLook[];
+  readonly status: AdminSpotStatus;
+  readonly lat: number;
+  readonly lng: number;
+  /** Empty when nobody submitted it — a staff-published spot has no submitter. */
+  readonly submittedBy: string;
+  readonly submitted: string;
+}
+
+export interface AdminEventRow {
+  readonly id: string;
+  readonly slug: string;
+  readonly name: string;
+  readonly kind: string;
+  readonly kindColor: string;
+  /** "5 Sep". */
+  readonly when: string;
+  /** `YYYY-MM-DD`, for the editor. */
+  readonly date: string;
+  readonly town: string;
+  readonly venue: string;
+  readonly level: string;
+  readonly price: string;
+  readonly spotsCopy: string;
+  readonly blurb: string;
+  readonly sports: readonly string[];
+  readonly sportLooks: readonly SportLook[];
+  readonly isLive: boolean;
+  readonly attending: number;
+}
+
+export type AdminChallengeState = 'live' | 'upcoming' | 'past';
+
+export interface AdminChallengeRow {
+  readonly id: string;
+  readonly slug: string;
+  readonly sport: string;
+  readonly week: string;
+  readonly title: string;
+  readonly blurb: string;
+  /** "7–13 Sep". */
+  readonly range: string;
+  readonly starts: string;
+  readonly ends: string;
+  readonly goal: number;
+  readonly reward: string;
+  readonly hue: string;
+  readonly ridersCopy: string;
+  readonly verb: string;
+  readonly state: AdminChallengeState;
+  /** How many rider log entries a delete would take with it. */
+  readonly logged: number;
+}
+
+export interface AdminNoticeRow {
+  readonly id: string;
+  readonly title: string;
+  readonly body: string;
+  readonly label: string;
+  readonly hue: string;
+  /** "Everyone", "Scooter riders", "Shredder". */
+  readonly audienceLabel: string;
+  readonly isLive: boolean;
+  readonly posted: string;
+  readonly dismissals: number;
+}
+
+export interface AdminPlanCard {
+  readonly id: string;
+  readonly slug: string;
+  readonly name: string;
+  readonly hue: string;
+  readonly priceMonthly: string;
+  readonly priceYearly: string;
+  readonly per: string;
+  readonly pitch: string;
+  readonly perks: readonly string[];
+  readonly missing: readonly string[];
+  readonly isLive: boolean;
+  readonly unlocksPaidTricks: boolean;
+  readonly riders: number;
+}
+
+export type AdminReportStatus = 'open' | 'reviewing' | 'actioned' | 'dismissed';
+
+export interface AdminReportRow {
+  readonly id: string;
+  readonly status: AdminReportStatus;
+  readonly subjectType: string;
+  readonly subjectId: string;
+  readonly reason: string;
+  readonly reasonLabel: string;
+  readonly detail: string;
+  readonly outcome: string;
+  /** Empty when the report came from a signed-in rider with no address given. */
+  readonly reporterEmail: string;
+  /** True when a signed-in rider filed it, without saying which one. */
+  readonly fromRider: boolean;
+  /** The report this one appeals, if any. */
+  readonly complaintOf: string;
+  readonly filed: string;
+  readonly updated: string;
+}
