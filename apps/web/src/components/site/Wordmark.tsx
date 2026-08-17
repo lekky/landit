@@ -7,9 +7,14 @@ import Link from 'next/link';
  *
  * The prototype drew this as `LAND` + `IT`, and the 2026-08-17 rename kept the
  * shape rather than the words: the accent still falls on the back half of the
- * name, which is the part that carries it. The name is three words now and the
- * mark is correspondingly wider — `.logo` in the design system does not clamp
- * it, so a narrower top bar is the thing to check when this changes again.
+ * name, which is the part that carries it.
+ *
+ * **It is 14 glyphs where it was 6, and that has a cost the top bar pays.** The
+ * mark, nine nav items, the streak chip and the avatar stopped fitting between
+ * 861px and roughly 1065px, which `e2e/shell.spec.ts` caught. The band in
+ * `packages/ui-web/src/styles/additions.css` absorbs it by dropping this to
+ * 15px there. Anything that makes the name longer again lands in the same
+ * place — that band, not this file.
  *
  * `onPaper` is the variant the auth card uses (screenshot 04), where the mark
  * sits on paper instead of ink: the glyph's ring turns ink, `LAND THE` turns ink
