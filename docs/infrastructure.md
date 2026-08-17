@@ -186,6 +186,15 @@ preview link simply shows the holding page with nothing to say why. Keep the key
 is ideal — or turn interpolation off. Being a secret, it also has no business being available at
 build time.
 
+**The general rule, since that trap is not specific to this variable: tick Coolify's "Literal"
+column on anything random or secret, and leave it off for values typed by hand.** Literal is
+interpolation off. A hand-typed value — `true`, an https URL — has no `$` in it to expand and never
+will; a generated one might, and a secret is precisely where nobody can tell by looking that it
+arrived truncated. That covers the superuser password today and `STRIPE_SECRET_KEY`,
+`STRIPE_WEBHOOK_SECRET` and `NEXT_PUBLIC_MAPBOX_TOKEN` when they exist. None of those formats
+normally contains a `$` — and a Stripe key that silently arrives wrong fails somewhere far more
+expensive than a preview link does.
+
 It fails **shut**: unset in production means the holding page. A deploy that forgets the variable
 shows a coming-soon page, which costs a restart to fix — the opposite mistake publishes an
 unfinished product to children and cannot be taken back.
@@ -204,6 +213,44 @@ stay green rather than paging about a launch gate.
 Turn on **preview deployments** for the web app. Plan §7 wanted them by the end of Wave 2 so later
 waves could be reviewed on real URLs; Wave 3 has merged without them, so this is the part that is
 actually late. They need the wildcard DNS record from step 1, which is already there.
+
+**The Preview environment does not carry the superuser pair** (see below), so the day previews are
+switched on, every PR preview serves a red `/api/health` and a "I rode today" that fails softly —
+and it will look like the PR caused it. It also points at the *production* PocketBase, so a preview
+deploy writes into the live database: riders, consent records, audit log. Harmless while there is no
+real data in there and genuinely awkward afterwards. Both halves are one decision — what a preview
+deploy is allowed to touch — and it is open.
+
+### 2b. The superuser pair — **done 2026-08-17**
+
+The web app holds PocketBase superuser credentials because some writes are server-owned and may not
+go through a rider's token: the weekly-streak tuple behind "I rode today", the Stripe webhook, and
+every write the staff portal makes. Without them each of those fails *softly* — the rider is told to
+try again in a moment, forever (issue #62).
+
+| | |
+| --- | --- |
+| Superuser | `app@landthetrick.com`, created 2026-08-16 — **a second account, not the owner's own login** |
+| Set on | `landit-web`, as `POCKETBASE_SUPERUSER_EMAIL` and `POCKETBASE_SUPERUSER_PASSWORD` |
+| Coolify settings | Runtime → "Available in the container"; **not** a build variable; **Literal** ticked |
+| Verified | `GET /api/health` returned `{"ok":true,...}` on three consecutive calls, and the streak write was confirmed by hand |
+
+Two reasons the app gets its own superuser rather than reusing the owner's. The password sits in
+Coolify's environment where anyone with dashboard access can read it; and the owner's account is
+what grants `role = 'staff'` (`docs/staff-accounts.md`), so either credential must be rotatable
+without locking the other out.
+
+**Verify it after any deploy that touches these, and read the code rather than the dashboard.**
+`GET /api/health` authenticates with the pair and answers **503** when it cannot, distinguishing
+`missing` (unset in the container — almost always "Available in the container" left unticked) from
+`rejected` (set and refused: wrong password, or the `$` interpolation trap above) from `unreachable`
+(PocketBase itself). It carries the diagnosis and none of the material — no email, password or URL —
+because it is reachable without authentication by design.
+
+One thing observed while verifying, worth expecting rather than debugging: **during a Coolify
+rollover the old container answers `"superuser":"rejected"` and the proxy briefly returns 502.** It
+settles on its own. `rejected` while *steady* is the password; `rejected` for ninety seconds after a
+deploy is the rollover.
 
 ### 3. Litestream
 
@@ -285,7 +332,30 @@ getting `landit.app`.
 
 ### 8. Uptime Kuma, then the email paths
 
-Monitors for `https://landthetrick.com` and `https://api.landthetrick.com`.
+**Monitors — done 2026-08-17.** Three, at https://status.hellowebdesign.co.uk:
+
+| Monitor | Target | Checks |
+| --- | --- | --- |
+| web health | `https://landthetrick.com/api/health` | 200, and `ok` is `true` |
+| PocketBase | `https://api.landthetrick.com/api/health` | PocketBase answering at all |
+| site | `https://landthetrick.com` | the proxy and the certificate |
+
+Between them a red light says *which* of the three layers broke. The health path needs no preview
+key — `apps/web/src/proxy.ts` lists it in `ALWAYS_OPEN` — and the site monitor stays green behind
+the holding page, which is deliberate: it watches the proxy, not the launch gate.
+
+**Set retries to about three minutes' worth before saving a monitor.** A Coolify rollover produces a
+brief 502 and a `rejected` health response from the old container; at zero retries every deploy
+pages you, and a monitor that pages on every deploy is muted within a week.
+
+Alerts go to the owner's Gmail over SMTP (`smtp.gmail.com:465`, a Google App Password, not the
+account password). Deliberately **not** MailerSend: it is still in trial and unverified (#31), and
+an alert about a broken deployment that cannot itself be delivered is worse than none.
+
+**What this does not cover, and cannot:** Uptime Kuma runs on box1 and watches services on box1. If
+the host goes, Kuma goes with it and nothing is sent — the dashboard is green because nothing is
+left to say otherwise. Closing that needs one check hosted somewhere box1 does not own; tracked in
+**issue #160**, and it belongs before `LANDIT_SITE_LIVE=true` rather than after.
 
 Then walk the guardian-consent email, the password reset and the verification email by hand
 (**issue #31**). Nothing that sends email has ever been observed working, and the guardian email is
@@ -303,16 +373,22 @@ Steps 1–8 above are the sequence; this is the progress.
 - [ ] Mailboxes created 2026-08-16; still to do: Custom MX at Namecheap, and cPanel’s DKIM/SPF copied there (runbook 5)
 - [ ] Domain verified 2026-08-16; still to do: **out of trial phase**, and the SPF merged (runbook 6)
 - [ ] DMARC (runbook 7)
-- [ ] Uptime Kuma monitors, then the email paths by hand — issue #31 (runbook 8)
+- [x] Uptime Kuma monitors, three of them, alerting to Gmail (runbook 8) — done 2026-08-17.
+      **Kuma cannot report its own host dying — issue #160.**
+- [ ] The email paths walked by hand — issue #31 (runbook 8)
+- [x] **The superuser pair set on `landit-web` and verified green** (runbook 2b) — done 2026-08-17,
+      issue #62. Server-owned writes work: "I rode today", and later the Stripe webhook and the
+      staff portal.
 - ~~[ ] R2 lifecycle rule + clips bucket when T14 (clips) approaches.~~ **Dropped 2026-08-17.** The
       owner reversed clip hosting (plan §1, §6.6): Land The Trick stores no rider video, so there is no
       clips bucket to create, no PocketBase S3 settings to fill in, and no lifecycle rule to write.
       `box1-backups` above is unaffected — that is Litestream's database replication and has nothing
       to do with clips. Issue #113 closed as obsolete. **Nothing here is ever provisioned by a build
       session in any case** — this file is reference only.
-- [ ] **`LANDIT_SITE_LIVE` and `LANDIT_PREVIEW_KEY` set on the deployed web app** (runbook 2). The
-      code shipped shut-by-default, so the site is already holding — but until `LANDIT_PREVIEW_KEY`
-      is set on the box there is no way to see the real site on the real domain, and nobody can
-      check a deploy before launch day.
+- [x] **`LANDIT_PREVIEW_KEY` set on the deployed web app** (runbook 2) — done 2026-08-17. The real
+      site on the real domain can now be opened behind the holding page, which is what makes a
+      deploy checkable before launch day.
+- [ ] **Preview deployments turned on, and what a preview may touch decided** (runbook 2). The
+      Preview environment has no superuser pair and points at the production PocketBase.
 - [ ] **`LANDIT_SITE_LIVE=true`, on launch day.** The last item on this list, deliberately: it is
       the one that makes everything above it visible to the public.
