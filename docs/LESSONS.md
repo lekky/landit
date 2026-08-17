@@ -99,6 +99,27 @@ anything a browser tells you about your change, prove the server is serving your
 generalises past dev servers — any tool the harness runs on your behalf inherits the session's
 directory, not the one you have been editing in.
 
+**Your shell's working directory persists between calls, so one `cd` to the root checkout redirects
+every command after it — including the gates.** T16 ran `cd <root> && git check-ignore …` to settle
+one question about a gitignored file, and never came back. Twenty minutes later `pnpm build`,
+`pnpm test` and `pnpm lint` all ran **on `main` in the shared root checkout**. They reported
+`BUILD: 0`, `TEST: 0` — a clean pass of somebody else's code — and a `LINT: 1` with **2,875 errors**
+from the orphaned sibling worktrees the root still had lying about (issue #47). Every one of those
+numbers is wrong about the branch, and two of them are wrong in the reassuring direction.
+
+The tell was the test count. The run said `43 files, 661 tests`, which was exactly what it had said
+before the session added two test files and seventeen tests. **A gate that does not move when you
+have just given it more to do is not testing what you think.** Watch that number the way you would
+watch a diff; it is the cheapest cross-check available and it costs nothing to read.
+
+Two habits follow, and the second is the one that scales. Put `pwd && git branch --show-current`
+in front of any command whose answer you intend to act on — gates especially, since `git commit`
+already has that check in the protocol and the gates do not. And treat `cd` to anywhere outside
+your worktree as something you undo in the same command (`(cd <elsewhere> && …)` in a subshell),
+rather than a place you leave the shell standing. The same fact underlies the preview-server rule
+above: the directory a tool inherits is the session's, not the one you have been editing in, and
+that is true of the shell you type into as much as of the server the harness starts for you.
+
 **Stop your preview server before running Playwright, and do not read the error it gives you
 literally.** `chore-prewave5-fixes` had a pinned preview on **3007** and ran `playwright test`,
 whose `webServer` starts its own `next dev` on **3000**. The whole run died before a single test
@@ -323,6 +344,21 @@ wherever the pack styles an element type rather than a class — `.btn` had it t
 `a:hover` in the token sheet that outranks `.btn` and turns every link-button pink. Check the
 selector, not just the class name, the first time you put a design-system class on a different tag.
 
+**A layout's `metadata` is resolved before the layout runs, so it survives the gate the layout
+contains.** T16 put `requireStaff()` in `app/(app)/admin/layout.tsx` — the right place, since it
+covers every screen T17 adds without anyone remembering to — and a `metadata` export beside it
+reading `title: 'Staff portal · Land It'`. A rider who guessed `/admin` got the ordinary 404 page,
+correctly, **with "Staff portal · Land It" in the browser tab**. The gate had answered 404
+specifically so that a probing rider learns nothing about whether a portal exists, and the tab
+title handed it over.
+
+Nothing about the rendered page was wrong, which is why this survives a code review and dies the
+first time somebody looks at the screen while signed in as the wrong person. The fix is to put
+`metadata` on the pages rather than the layout, so it is never resolved for a request the gate
+refuses. The general form: **`notFound()` and `redirect()` control what renders, not what has
+already been computed around it** — anything a layout exports statically is outside the guard, so
+a gate and a title should not live in the same file.
+
 **A hydration mismatch does not just warn — it throws away what the user typed.** T6's sign-up form
 listed 249 countries and named them with `Intl.DisplayNames`, so the list came out of the runtime
 rather than a table that could go stale. Node and Chromium disagree about a handful of names, React
@@ -442,6 +478,22 @@ asserted the wrong status or hit the wrong endpoint. Removing the guard and re-r
 six of them red, which is what made the green meaningful; the same check on the generated-types
 drift test took one appended line. It costs one command and it is the only way to tell a
 guarantee from a decoration. Do it while the guard is still fresh in your hands, not later.
+
+**And read *which* tests went red, because that is the part that tells you what is actually
+protecting you.** T16 wrote four tests that a staff role buys no write power, disabled
+`guardUserWrite`, and expected four failures. **One** moved: the staff member editing their own
+row. The other three — staff changing another rider's plan, suspending them, promoting them — were
+never the guard's to refuse at all. `users.updateRule` is `id = @request.auth.id`, so another
+rider's record 404s before a hook runs, and those three would have passed against a guard that had
+been deleted entirely.
+
+They were not wrong, they were **green through a different door**, and the comment above them
+claiming otherwise was the actual defect: a future session tightening or loosening the guard would
+have read three tests as covering it. They now assert the 404 as well as the unchanged field, so
+each one breaks if either mechanism is widened, and the file says which door each test is standing
+in. The generalisation: a passing test tells you an outcome held, never why. Breaking the thing you
+think is responsible is how you find out whether it is — and when fewer tests go red than you
+expected, the surplus green is information, not luck.
 
 **A bug that only exists after bundling needs a build-and-grep control, not a unit test.**
 Issue #44: `createBrowserClient` read its URL as `process.env[name]`, and Next substitutes
