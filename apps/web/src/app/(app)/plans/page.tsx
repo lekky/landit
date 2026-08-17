@@ -44,8 +44,12 @@ export default async function PlansPage() {
   // line rather than a second code path.
   const plans = await listPlans(session?.client ?? anonymousClient());
 
+  // **Stripe-sourced only.** A staff comp is also a `subscriptions` row now
+  // (`source: 'staff'`, see the §7 T15 note on precedence), and there is no
+  // billing behind one — no customer, no card, nothing for the portal to open.
+  // Offering "Manage billing" for a comp would be a dead end.
   const subscription =
-    session && rider ? await getActiveSubscription(session.client, rider.id) : null;
+    session && rider ? await getActiveSubscription(session.client, rider.id, 'stripe') : null;
 
   const view = buildPlansView({
     plans,

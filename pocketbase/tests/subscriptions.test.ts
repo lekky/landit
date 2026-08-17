@@ -176,6 +176,148 @@ describe('a rookie → shredder upgrade unlocks a paid trick', () => {
   });
 });
 
+/**
+ * Two writers of entitlement exist after T16, and this is the precedence rule
+ * between them (plan §7, T15).
+ *
+ * `setRiderPlan` patches `users.plan` directly; T15 makes `users.plan` derived
+ * from `subscriptions`. The reconciliation records the staff patch as a row of
+ * its own and ranks it above any provider row, so an override survives every
+ * later Stripe event instead of vanishing at the next one. These tests are the
+ * only thing that would notice if that stopped being true — and the failure
+ * mode without them is silent, which is why they are here rather than in a
+ * comment.
+ */
+describe('a staff override outranks what the provider says', () => {
+  let plans: PlanIds;
+
+  beforeAll(async () => {
+    await baseFixtures();
+    plans = await planIds();
+  });
+
+  /** What `setRiderPlan` does: a superuser PATCH of `users.plan`. */
+  async function staffSetPlan(rider: Rider, plan: string) {
+    const result = await call('PATCH', `/api/collections/users/records/${rider.id}`, {
+      token: await superuser(),
+      body: { plan },
+    });
+    expect(result.status).toBe(200);
+  }
+
+  async function staffRowOf(rider: Rider) {
+    const rows = await call<{ items: { id: string; source: string; plan: string }[] }>(
+      'GET',
+      '/api/collections/subscriptions/records',
+      { token: await superuser(), query: { filter: `external_id='staff:${rider.id}'` } },
+    );
+    return rows.body.items?.[0] ?? null;
+  }
+
+  it('comps a rider who has never paid, and records it as a row rather than a bare field', async () => {
+    const rider = await makeRider({}, { consent_state: 'not_required' });
+    await staffSetPlan(rider, 'legend');
+
+    expect(await planOf(rider)).toBe('legend');
+    const row = await staffRowOf(rider);
+    expect(row?.source).toBe('staff');
+    expect(row?.plan).toBe(plans.legend);
+  });
+
+  it('survives a Stripe cancellation arriving afterwards', async () => {
+    const rider = await makeRider({}, { consent_state: 'not_required' });
+    const token = await superuser();
+
+    // A real, paid Shredder subscription.
+    const stripe = await call<{ id: string }>('POST', '/api/collections/subscriptions/records', {
+      token,
+      body: subscriptionBody(rider, plans.shredder),
+    });
+    expect(await planOf(rider)).toBe('shredder');
+
+    // Staff move them up by hand — a comp, or an apology.
+    await staffSetPlan(rider, 'legend');
+    expect(await planOf(rider)).toBe('legend');
+
+    // Stripe then cancels the thing they actually paid for. Before this rule,
+    // the resolution would have read the remaining rows and dropped them to
+    // rookie, undoing a decision a person made.
+    const cancelled = await call(
+      'PATCH',
+      `/api/collections/subscriptions/records/${stripe.body.id}`,
+      {
+        token,
+        body: { status: 'canceled' },
+      },
+    );
+    expect(cancelled.status).toBe(200);
+    expect(await planOf(rider)).toBe('legend');
+  });
+
+  it('lets staff take it away again, and lets them take it below what Stripe pays for', async () => {
+    const rider = await makeRider({}, { consent_state: 'not_required' });
+    const token = await superuser();
+
+    await call('POST', '/api/collections/subscriptions/records', {
+      token,
+      body: subscriptionBody(rider, plans.legend),
+    });
+    expect(await planOf(rider)).toBe('legend');
+
+    await staffSetPlan(rider, 'rookie');
+    expect(await planOf(rider)).toBe('rookie');
+
+    // And it stays there through another provider event, which is the whole
+    // point of the precedence going this way.
+    const again = await call('POST', '/api/collections/subscriptions/records', {
+      token,
+      body: subscriptionBody(rider, plans.legend, { external_id: `sub_second_${rider.id}` }),
+    });
+    expect(again.status).toBe(200);
+    expect(await planOf(rider)).toBe('rookie');
+  });
+
+  it('writes no staff row when the override agrees with the subscription', async () => {
+    const rider = await makeRider({}, { consent_state: 'not_required' });
+    await call('POST', '/api/collections/subscriptions/records', {
+      token: await superuser(),
+      body: subscriptionBody(rider, plans.shredder),
+    });
+    expect(await planOf(rider)).toBe('shredder');
+
+    // Staff "set" the plan it already is. Nothing to override, so nothing is
+    // recorded — and this is also the branch that stops the resolution writing
+    // a staff row every time it moves a plan itself.
+    await staffSetPlan(rider, 'shredder');
+    expect(await staffRowOf(rider)).toBeNull();
+  });
+
+  it('records no staff row at all for a rider waiting on a guardian', async () => {
+    // The consent gate still refuses, and it refuses staff too. `users.plan`
+    // moves because that is T16's write and T15 does not change it; what does
+    // not happen is a subscription for an account that may not hold one.
+    const waiting = await makeRider(
+      { country: 'GB', age_band: 'under_13' },
+      { consent_state: 'pending' },
+    );
+    await staffSetPlan(waiting, 'legend');
+    expect(await staffRowOf(waiting)).toBeNull();
+  });
+
+  it('needs no payer confirmation, because a comp has no payer', async () => {
+    // A staff row is exempt from the two §6.2 payer refusals and from nothing
+    // else. An under-16 rider can be comped without anybody ticking an 18-plus
+    // box on their behalf.
+    const child = await makeRider(
+      { country: 'GB', age_band: '13_15' },
+      { consent_state: 'granted' },
+    );
+    await staffSetPlan(child, 'shredder');
+    expect(await planOf(child)).toBe('shredder');
+    expect((await staffRowOf(child))?.source).toBe('staff');
+  });
+});
+
 describe('who may hold a subscription at all (plan §6.2, §3 guarantee 4)', () => {
   let plans: PlanIds;
 

@@ -496,6 +496,7 @@ export async function clipFileToken(client: Client): Promise<string> {
 /** The URL those bytes come from, for a token `clipFileToken` just minted. */
 export function clipFileUrl(client: Client, clip: ClipsRecord, token: string): string {
   return client.files.getURL(clip, clip.file, { token });
+}
 
 /* --------------------------------------------------------- subscriptions -- */
 

@@ -173,7 +173,7 @@ export async function openBillingPortalAction(): Promise<{ error?: string }> {
   const config = stripeConfig();
   if (!config) return { error: 'Billing is not switched on yet.' };
 
-  const subscription = await getActiveSubscription(session.client, session.rider.id);
+  const subscription = await getActiveSubscription(session.client, session.rider.id, 'stripe');
   if (!subscription?.external_id) {
     return { error: 'There is no subscription on this account to manage.' };
   }

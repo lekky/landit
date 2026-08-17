@@ -64,6 +64,41 @@ onRecordAfterUpdateSuccess(resolvePlan, 'subscriptions');
 onRecordAfterDeleteSuccess(resolvePlan, 'subscriptions');
 
 /**
+ * The other writer of entitlement, reconciled (T15, against T16).
+ *
+ * `setRiderPlan` in `packages/db/src/admin.ts` patches `users.plan` directly —
+ * a staff comp, or a fix for a payment that went wrong. Above, this file makes
+ * `users.plan` a *derived* value. Left alone, the two would fight in the
+ * quietest possible way: the comp would survive until Stripe next sent any
+ * routine event about that rider, and then vanish with nothing saying why.
+ *
+ * So a staff patch that disagrees with the rider's subscriptions is recorded as
+ * a row of its own with `source: 'staff'`, which the resolution ranks above any
+ * provider row. Staff win, permanently, until staff say otherwise — and
+ * `users.plan` still has exactly one writer.
+ *
+ * Nothing about `setRiderPlan` changes; this is additive on both sides.
+ *
+ * **After the write succeeds, and only when `plan` actually moved.** Every
+ * profile edit and every streak write updates `users`, and none of them is a
+ * plan override.
+ */
+onRecordAfterUpdateSuccess((e) => {
+  const before = e.record.original().getString('plan');
+  const after = e.record.getString('plan');
+  e.next();
+
+  if (before === after) return;
+  try {
+    require(`${__hooks}/lib/landit.js`).recordStaffPlanOverride(e.app, e.record);
+  } catch (err) {
+    $app
+      .logger()
+      .error('staff plan override not reconciled', 'user', e.record.id, 'error', String(err));
+  }
+}, 'users');
+
+/**
  * `POST /api/landit/plans/guardian-upgrade` — the under-16 route (plan §6.2).
  *
  * "For riders under 16 the upgrade routes to a guardian by email rather than

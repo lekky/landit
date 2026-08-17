@@ -1387,6 +1387,42 @@ where the decisions are, and they are written down here because the owner does n
 - **A missing plan record still fails closed**, as it did before. Nothing compares a plan id to the
   string `legend` anywhere.
 
+*A staff override beats the provider, and here is why* (decided 2026-08-17, reconciling T16)
+
+T16 merged first and shipped `setRiderPlan`, which patches `users.plan` directly — a comp, or a fix
+for a payment that went wrong. T15 then made `users.plan` a *derived* value. Both are reasonable and
+together they were incoherent, in the quietest possible way: an override would have survived until
+Stripe next sent any routine event about that rider, and then vanished with nothing anywhere saying
+why. Somebody would have re-comped the same rider twice and called it a Stripe bug.
+
+The rule, and it is a product decision the owner may want to revisit:
+
+- **A staff patch that disagrees with the rider's subscriptions is recorded as a `subscriptions` row
+  of its own, `source: 'staff'`** — the enum value the schema has carried unused since T2. Written by
+  a `users` after-update hook in `55_subscriptions.pb.js`; **nothing about `setRiderPlan` changes**,
+  which is what keeps this additive.
+- **A staff row outranks every provider row, always.** Staff are a person deciding after the fact; a
+  provider is a system reporting a payment. So the override survives a later cancellation, a later
+  renewal, and a downgrade staff applied on top of a subscription the rider is genuinely paying for.
+  Recency would have been the other candidate and it is the wrong one: it makes the override's
+  lifetime depend on how chatty Stripe happens to be about that account.
+- **`users.plan` therefore still has exactly one writer** — the resolution — and the reason a rider
+  is on a plan is a row somebody can read rather than a field with no explanation behind it.
+- **Releasing an override means deleting that row.** Setting the plan back to what Stripe says
+  updates the staff row to match rather than removing it, so the rider is right but still overridden.
+  Today that is a superuser-dashboard delete; a button belongs in T17's plans/riders work, filed as
+  an issue.
+- **The consent gate still refuses staff.** An account waiting on a guardian may not be moved onto a
+  paid plan by anybody. `users.plan` moves (that is T16's write, untouched), but no subscription is
+  recorded — so the §3 guarantee-4 refusal holds and the override does not become durable.
+- **The two §6.2 payer refusals do not apply to a staff row**, because nobody paid. Requiring one
+  would mean staff ticking an 18-plus box on a child's behalf, which is the sort of hollow
+  confirmation §6.2 exists to avoid. `source` is unreachable from any client — the collection has no
+  write rules and the webhook hard-codes `stripe` — so this is not a lever an attacker has.
+
+Proved in `pocketbase/tests/subscriptions.test.ts`; without the reconciliation hook those four tests
+go red, which is the only way the silent failure above would ever be noticed.
+
 *Three fields on `subscriptions`, and why they are not billing detail* (migration
 `1787184100_subscription_payer.js`, additive)
 
