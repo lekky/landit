@@ -302,6 +302,31 @@ at what is already on `origin/main` *and* at what the other live worktrees have 
 list` is as much a part of that check as it is of the branch check above. T18 renumbered to
 `1787443200` on a day's spacing, which is the cheap fix once you know.
 
+**A sibling session's *correct* decision can be false by the time you merge, and it will be written
+down as a comment arguing for itself.** T18 shipped the report form on the morning the clip vault was
+reverted, and did the careful thing: it kept the `clip` report subject rather than hiding it, disabled
+the radio, and wrote a blurb reading "There is no video on Land It yet" plus a comment explaining that
+hiding the option would "quietly decide video is unreportable". Every word of that was right when it
+was written. T15b landed video links **hours later**, and all of it became false — leaving a live
+video surface whose report route was switched off, which is the one combination §6.1's OSA duty
+cannot have.
+
+Nothing failed. No test asserted the disabled state, the copy read as deliberate, and the comment
+beside it argued persuasively for the wrong thing. It was found by grepping the merged siblings for
+`clips` before trusting a clean rebase — which also turned up the GDPR export naming two `clips`
+fields that had stopped existing and unable to name the two that now did.
+
+So: **after rebasing onto a session that merged while you were building, grep its work for the thing
+you just made true.** Search for your collection, your route, your feature's noun — not for
+conflicts, which git already showed you. What you are looking for is code and copy that *assumed your
+feature absent*, and the tell is prose: a comment that explains why something is switched off is a
+dated assertion about the product, and the date may have passed. A clean rebase means the two
+branches did not touch the same lines; it says nothing about whether they still agree.
+
+The reverse duty holds too, and it is cheaper: **when you ship a feature in a disabled state because
+its surface does not exist yet, say in the comment which task will make it live** — T18's did, which
+is exactly why the search for it took a minute rather than an afternoon.
+
 ## 2. Gates, merging and cleanup
 
 **Gate on exit codes, never on piped output.** A `| tail` or `| tee` returns the pipe's status,
@@ -623,6 +648,29 @@ each one breaks if either mechanism is widened, and the file says which door eac
 in. The generalisation: a passing test tells you an outcome held, never why. Breaking the thing you
 think is responsible is how you find out whether it is — and when fewer tests go red than you
 expected, the surplus green is information, not luck.
+
+**A red that names the wrong thing is barely better than a green. Order the assertions so the one
+that names the defect runs first.** T15b's video panel embeds YouTube behind a click-to-play gate,
+because §6.8 keeps Land It free of a consent banner and an iframe rendered on load would contact
+Google before a child had chosen anything. The e2e test for it counted requests to Google hosts on a
+cold page load and asserted zero — then the gate was removed to watch it fail, per the rule above.
+
+It failed. It failed on `expect(Play button).toBeVisible()`, thirty seconds of timeout, in the
+*setup* — because with the gate gone there is no Play button to wait for. The request counter never
+ran. Anybody reading that failure would go looking for a CSS or hydration problem, and the assertion
+that actually protects the guarantee had not executed. Reordered so the two network assertions come
+first and the setup waits on the tile instead of the poster, the same probe fails with the real
+thing: **26 requests to youtube-nocookie, googlevideo, ytimg and gstatic**, listed in the message.
+
+Two habits. **Wait on something that exists in both the guarded and unguarded worlds** — here the
+page's `<h1>`, not the control the guard creates. And **put the assertion that is the point of the
+test above any convenience assertion**, because a test that cannot reach its own subject when the
+subject is broken is testing its own scaffolding. The same trap is why the earlier entry above says
+to read *which* tests went red: this is the version where the count is right and the reason is not.
+
+**A probe is also a chance to check the message a stranger will read.** Include the offending values
+in the failure (`expect(reached, \`page load contacted Google: ${reached.join(', ')}\`)`), and the
+next person to break it is told what leaked rather than that a number was not zero.
 
 **A bug that only exists after bundling needs a build-and-grep control, not a unit test.**
 Issue #44: `createBrowserClient` read its URL as `process.env[name]`, and Next substitutes
