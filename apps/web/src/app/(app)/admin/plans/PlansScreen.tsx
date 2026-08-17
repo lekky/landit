@@ -79,8 +79,7 @@ export function PlansScreen({ cards }: { cards: readonly AdminPlanCard[] }) {
 
       <p className={styles.footnote}>
         Copy and pricing only. Which tricks a plan unlocks is set per trick in the library, and the
-        clip cap and the paid-trick entitlement are not editable from here — they are what the
-        paywall reads.
+        paid-trick entitlement itself is not editable from here — it is what the paywall reads.
       </p>
       <p className={styles.footnote}>
         The prices on this screen are the ones riders are <em>shown</em>. What is actually charged

@@ -10,12 +10,19 @@ import { PlansScreen } from './PlansScreen';
 /**
  * The Plans tab (`landit-admin.jsx`, `AdminPlans`).
  *
- * Copy and pricing only, exactly as the prototype's own footnote says. The two
- * fields that decide what a plan *gives* — `unlocks_paid_tricks` and
- * `clip_cap_bytes` — are read here and shown, and are not editable from this
- * screen: they are the entitlements the paywall hook resolves, and a screen
- * whose job is wording should not be one slip from handing the paid library to
- * everybody (plan §3 guarantee 3).
+ * Copy and pricing only, exactly as the prototype's own footnote says. The
+ * fields that decide what a plan *gives* are read and shown here and are not
+ * editable from this screen — `unlocks_paid_tricks` is the entitlement the
+ * paywall hook resolves, and a screen whose job is wording should not be one
+ * slip from handing the paid library to everybody (plan §3 guarantee 3).
+ *
+ * **`clip_cap_bytes` is deliberately not on this screen at all.** It survives on
+ * the record as `listPlans`' sort key and nothing else: the owner reversed clip
+ * hosting on 2026-08-17 (PR #128, plan §1/§6.6) and the hook that read it as a
+ * vault size is gone. `packages/core/src/data/plans.ts` says not to put a number
+ * derived from it in front of anybody, so this tab does not — which also means
+ * an editor field for it would be a control over a quantity that no longer means
+ * anything. Whether a per-plan video limit exists at all is `t15b-video-links`'.
  *
  * The rider count per plan comes from the same counter the Overview uses, so
  * the number staff see beside a price is the number they saw on the front page.

@@ -1626,11 +1626,15 @@ written:
   enforced in a hook, not a field on a trick, so editing the graph is a screen of its own rather
   than a column in a table. The prototype could not edit them either. Unscheduled.
 - **The plans editor writes display strings only.** Copy, the two prices and the perk lists —
-  exactly what the prototype's own footnote promises. `unlocks_paid_tricks` and `clip_cap_bytes`
-  are shown and are not editable, because they are the entitlements the paywall hook resolves and
-  a screen whose job is wording should not be one slip from handing everybody the paid library.
-  What is actually charged lives in Stripe, so an edit here can disagree with checkout — issue
-  #123, filed by T15, still open and now surfaced on the screen.
+  exactly what the prototype's own footnote promises. `unlocks_paid_tricks` is shown and is not
+  editable, because it is the entitlement the paywall hook resolves and a screen whose job is
+  wording should not be one slip from handing everybody the paid library. What is actually charged
+  lives in Stripe, so an edit here can disagree with checkout — issue #123, filed by T15, still
+  open and now surfaced on the screen. **`clip_cap_bytes` is not on the screen at all**: clip
+  hosting was reversed the same day (PR #128) and the column survives only as `listPlans`' sort
+  key, so both an editor field and a displayed number would be a quantity that no longer means
+  anything — `packages/core/src/data/plans.ts` asks for exactly that. The staff cards are ordered
+  by it anyway, because the rider's plans page is.
 - **Screenshot 31 is not an admin screen either, so T17 also built against the prototype alone.**
   T16's note above says 25–30 are duplicates and "only 31 is a real admin screen" — 31 is in fact
   the rider-facing spots screen, nav bar and all. There is no capture of any admin content tab in

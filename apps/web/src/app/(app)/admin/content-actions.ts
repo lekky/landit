@@ -755,11 +755,13 @@ const lines = (text: string): string[] =>
 /**
  * Edit a plan's copy and its displayed prices.
  *
- * **Copy and pricing only**, exactly as the prototype's footnote says: which
- * tricks a plan unlocks is `unlocks_paid_tricks` and is not on this form, and
- * the clip cap is not either. Both are entitlements the paywall hook reads, and
- * a screen whose job is wording should not be able to hand every rider the paid
- * library by accident.
+ * **Copy and pricing only**, exactly as the prototype's footnote says.
+ * `unlocks_paid_tricks` is not on this form: it is the entitlement the paywall
+ * hook reads, and a screen whose job is wording should not be able to hand every
+ * rider the paid library by accident. `clip_cap_bytes` is not on it either, for
+ * a different reason — clip hosting was reversed (PR #128) and that column
+ * survives only as `listPlans`' sort key, so an editor for it would be a control
+ * over a number that no longer means anything.
  *
  * The prices here are **display strings**. Stripe holds the numbers that are
  * charged, so editing this does not change anybody's bill and can disagree with

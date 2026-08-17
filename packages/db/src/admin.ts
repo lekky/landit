@@ -463,7 +463,18 @@ export async function listAdminStickers(client: Client): Promise<StickersRecord[
   return records(client, 'stickers').list({ sort: 'sport,name' });
 }
 
-/** Every plan, including ones taken off sale. Cheapest first, as on the rider page. */
+/**
+ * Every plan, including ones taken off sale, in the same order the rider's plans
+ * page shows them.
+ *
+ * The sort key is `listPlans`' and is deliberately copied rather than improved
+ * on: `clip_cap_bytes` is the collection's only numeric column and it happens to
+ * rise with price, so it is what every plan-card surface is ordered by. It stopped
+ * meaning anything when clip hosting was reversed (PR #128) and
+ * `packages/core/src/data/plans.ts` records why it was kept anyway. Sorting this
+ * read differently would put the staff cards in a different order from the page
+ * they describe; a real rank column is issue territory.
+ */
 export async function listAdminPlans(client: Client): Promise<PlansRecord[]> {
   return records(client, 'plans').list({ sort: 'clip_cap_bytes' });
 }
