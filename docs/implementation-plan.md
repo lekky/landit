@@ -628,11 +628,20 @@ What changed with it:
   kilometres everywhere else — and the spots screen resolves it **on the server**, from the country
   given at sign-up. `distanceLabel` is unchanged and still miles-only, because `packages/core` is
   additive-only; `distanceLabelIn` is the one that asks.
-- **A signed-out visitor reads kilometres.** They have no account and therefore no country, and
-  metric is what "we do not know" should mean on a global product. The obvious alternative —
-  `navigator.language` — is closed to us regardless: nothing on a screen that hydrates may be
-  locale-derived (LESSONS §5). This is a visible change for signed-out UK visitors and is a
-  one-line reversal in `unitsForCountry` if it proves wrong.
+- **A signed-out visitor is read from `Accept-Language`** (added 2026-08-17, at the owner's
+  prompting — the first cut gave every signed-out visitor kilometres, which made a UK visitor read
+  metric on a mostly-UK spot list). `regionFromAcceptLanguage` takes the region subtag of the
+  most-preferred tag — `en-GB` → `GB`, `zh-Hans-CN` → `CN` — and feeds the same `unitsForCountry`.
+  A header naming no region still falls back to kilometres.
+
+  **The header, not `navigator.language`.** They describe the same preference, but only one can be
+  read before the markup exists: nothing on a screen that hydrates may be locale-derived (LESSONS
+  §5). The header arrives with the request, so there is only ever one string.
+
+  **A declared country always beats a browser setting.** `Accept-Language` describes how somebody
+  configured their laptop, not where they are, so a British rider on US English reads miles. That
+  is the honest limit of the signal, and it is why a signed-in rider's own country takes precedence
+  and the header is consulted only when there is no account to ask. Nothing about it is stored.
 
 What deliberately did **not** change, so a later session does not read it as drift and "fix" it:
 

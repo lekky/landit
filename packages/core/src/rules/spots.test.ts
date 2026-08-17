@@ -15,6 +15,7 @@ import {
   parseCoords,
   parseSpotLocation,
   readSpotSubmission,
+  regionFromAcceptLanguage,
   sortSpotsByDistance,
   spotLatLng,
   spotMatchesSearch,
@@ -117,6 +118,7 @@ describe('the units a rider reads distance in', () => {
   });
 
   it('is kilometres when there is no country to read', () => {
+    // Metric is what "we do not know" means on a global product.
     // A signed-out visitor has no account and therefore no country. Metric is
     // what "we do not know" means on a global product, and it is settled on the
     // server because nothing that hydrates may be locale-derived (LESSONS §5).
@@ -124,6 +126,60 @@ describe('the units a rider reads distance in', () => {
     expect(unitsForCountry(null)).toBe('km');
     expect(unitsForCountry(undefined)).toBe('km');
     expect(unitsForCountry('ZZ')).toBe('km');
+  });
+});
+
+describe('the region a browser claims in Accept-Language', () => {
+  it('reads the region subtag out of the preferred tag', () => {
+    expect(regionFromAcceptLanguage('en-GB')).toBe('GB');
+    expect(regionFromAcceptLanguage('en-GB,en;q=0.9')).toBe('GB');
+    expect(regionFromAcceptLanguage('de-DE,de;q=0.9,en;q=0.8')).toBe('DE');
+    expect(regionFromAcceptLanguage('en-us')).toBe('US');
+  });
+
+  it('skips a script subtag to find the region behind it', () => {
+    expect(regionFromAcceptLanguage('zh-Hans-CN')).toBe('CN');
+    expect(regionFromAcceptLanguage('sr-Latn-RS,sr;q=0.9')).toBe('RS');
+  });
+
+  it('honours q-weights rather than document order', () => {
+    // The browser's own order is not always preference order.
+    expect(regionFromAcceptLanguage('en;q=0.5,fr-FR;q=0.9')).toBe('FR');
+    expect(regionFromAcceptLanguage('en-US;q=0.2,en-GB;q=0.8')).toBe('GB');
+  });
+
+  it('falls through a language with no region to one that has it', () => {
+    expect(regionFromAcceptLanguage('en,fr-CA;q=0.8')).toBe('CA');
+    expect(regionFromAcceptLanguage('en')).toBe('');
+  });
+
+  it('ignores what names no place at all', () => {
+    expect(regionFromAcceptLanguage('*')).toBe('');
+    expect(regionFromAcceptLanguage('en-GB;q=0')).toBe('');
+    // UN M.49 regions name a continent, not a country.
+    expect(regionFromAcceptLanguage('es-419')).toBe('');
+    expect(regionFromAcceptLanguage('')).toBe('');
+    expect(regionFromAcceptLanguage(null)).toBe('');
+    expect(regionFromAcceptLanguage(undefined)).toBe('');
+  });
+
+  it('survives a header that is nonsense without throwing', () => {
+    for (const header of [';;;', ',,,', 'en-GB;q=abc', '  ', '-', 'en-']) {
+      expect(() => regionFromAcceptLanguage(header), header).not.toThrow();
+    }
+    // An unreadable weight is ignored rather than fatal: the tag still says
+    // `GB`, and the default weight of 1 is what RFC 9110 gives an absent one.
+    expect(regionFromAcceptLanguage('en-GB;q=abc')).toBe('GB');
+    expect(regionFromAcceptLanguage(';;;')).toBe('');
+  });
+
+  it('feeds the units decision, which is the only reason it exists', () => {
+    expect(unitsForCountry(regionFromAcceptLanguage('en-GB,en;q=0.9'))).toBe('miles');
+    expect(unitsForCountry(regionFromAcceptLanguage('en-US'))).toBe('miles');
+    expect(unitsForCountry(regionFromAcceptLanguage('de-DE'))).toBe('km');
+    expect(unitsForCountry(regionFromAcceptLanguage('en-CA'))).toBe('km');
+    // No usable header is the same as no country: kilometres.
+    expect(unitsForCountry(regionFromAcceptLanguage(null))).toBe('km');
   });
 });
 

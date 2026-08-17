@@ -200,6 +200,7 @@ export {
   parseCoords,
   parseSpotLocation,
   readSpotSubmission,
+  regionFromAcceptLanguage,
   sortSpotsByDistance,
   spotLatLng,
   spotLocationMessage,
