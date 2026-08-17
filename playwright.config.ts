@@ -65,6 +65,18 @@ export default defineConfig({
           env: {
             POCKETBASE_ADDR: `127.0.0.1:${POCKETBASE_PORT}`,
             POCKETBASE_DATA_DIR: '.pb_e2e',
+            // The fixture pair, so the wrapper can provision the superuser
+            // *before* the server starts. `.pb_e2e` is fresh in every new
+            // worktree, and PocketBase opens its installer page in whatever
+            // browser is to hand when it starts against a data directory that
+            // has none — with no flag to stop it. That is how a sibling
+            // session's instance hijacked the owner's browser mid-wave
+            // (LESSONS §5); `pnpm e2e` on a clean checkout was the same trap
+            // waiting. The seed still upserts this pair against the running
+            // server, which is now belt to this braces rather than the only
+            // thing standing between a first run and the installer.
+            POCKETBASE_SUPERUSER_EMAIL: SUPERUSER_EMAIL,
+            POCKETBASE_SUPERUSER_PASSWORD: SUPERUSER_PASSWORD,
           },
         },
         {

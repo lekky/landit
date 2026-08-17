@@ -53,16 +53,24 @@ serious event; losing a staff session is a containable one.
 ## The local development instance
 
 `pnpm pb:dev` serves a scratch database from `pocketbase/.pb_data`, which starts with no superuser
-at all. To get a working portal locally:
+at all. **Set the pair in `apps/web/.env.local` first and the rest is automatic:**
 
-```bash
-pnpm pb -- superuser upsert you@example.invalid a-long-local-password
+```
+POCKETBASE_SUPERUSER_EMAIL=you@example.invalid
+POCKETBASE_SUPERUSER_PASSWORD=a-long-local-password
 ```
 
-Then sign up in the app, set your own `role` to `staff` in the dashboard, and set
-`POCKETBASE_SUPERUSER_EMAIL` and `POCKETBASE_SUPERUSER_PASSWORD` in `apps/web/.env.local` to the
-pair you just created — the portal's reads and writes need them, and without them `/admin`
-throws `SuperuserUnavailable` rather than rendering.
+`pocketbase/scripts/pocketbase.mjs` upserts that superuser into the data directory before the
+server starts, so it exists on the first run. The same two variables are what the portal's own
+reads and writes use; without them `/admin` throws `SuperuserUnavailable` rather than rendering,
+so there is one pair to set, not two.
+
+Doing it in that order also stops PocketBase **opening its installer page in your browser**, which
+is what it does on any data directory with no superuser in it — there is no flag to turn that off,
+and `POCKETBASE_DATA_DIR` means fresh directories are routine rather than a one-off. If the pair is
+missing the script says so and tells you the command, rather than surprising you.
+
+Then sign up in the app and set your own `role` to `staff` in the dashboard.
 
 On the deployed box those two variables are Coolify environment variables and are the owner's to
 set; see issue #62, which is the same requirement arriving from the "I rode today" path.
