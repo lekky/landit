@@ -11,7 +11,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | --- | --- | --- |
 | Product name | **Land The Trick** | **Renamed 2026-08-17 (Rachid, in chat); was "Land It".** The domain `landthetrick.com` was registered on 2026-08-16 because `landit.app` was owned by someone else, and `docs/infrastructure.md` recorded the brand/domain mismatch as deliberate. This closes it. Scope of the rename was the owner's call and was deliberately narrow: **every string a person reads** — app copy, page titles, share text, the two guardian emails, legal copy, the wordmark, and the docs — and **nothing else**. The package scope `@landit/*`, the `LandItEvent` type, `pocketbase/hooks/lib/landit.js`, the `landit_auth` cookie, the `landit.sport` storage key, the `x-landit-gated` header, the `LANDIT_*` environment variables and the `landit_*` Stripe metadata keys all keep their names — renaming them buys nothing a rider can see and costs a coordinated env change and a forced sign-out. The `design-handoff/design/` prototype is frozen and still reads "Land It" throughout, including the filenames `Land It.html` and `Land It - Avatars.html` that this plan and the design README cite. |
 | Platform | **Web first (Next.js), native later** | One repo, shared logic. See §2. |
-| Sports at launch | **Three: scooter, skateboard and BMX** | Decided 2026-08-16. BMX ships at launch, not as a fast-follow. Sport is already a dimension in the code, so the engineering is small; the BMX trick library and its visual assets have no source and are the owner's to author — see the BMX track in §7. |
+| Sports at launch | **Three: scooter, skateboard and BMX** | Decided 2026-08-16. BMX ships at launch, not as a fast-follow. Sport is already a dimension in the code, so the engineering was small, and T21 shipped it the same day. The trick library had no source in the design pack and was **researched from cited coaching sources, not authored** — the owner accepted that in preference to holding the sport back (see T21 in §7). What is still unsourced and still the owner's: BMX avatars and BMX-scoped stickers (issue #25). |
 | Offline level | **Read-only cache** on web; full local-first deferred to the native app | Departs from the handoff's recommendation — see §2.3. Built in T19; confirmed acceptable for launch 2026-08-17, which also settles `useOffline` as off. |
 | Backend | **PocketBase** (self-hosted on the VPS, one instance per product) | SQLite + auth + file storage + API rules in one binary. Replaced Supabase 2026-08-15 — see §2.6 for why and what it demands. |
 | Hosting | **VPS (hostmedia.uk, Coventry) + Coolify** | 4GB/2vCPU, £16.80/mo flat for all products. Coolify does deploys, SSL, subdomains and PR previews. Replaced Railway 2026-08-15. |
@@ -70,12 +70,15 @@ landit/
     mobile/              Expo — Phase 7, not now
   packages/
     core/                types, trick graph, stage + sticker + stats + streak logic. Pure TS.
-    db/                  PocketBase client wrappers, generated collection types, query functions
+                         also the canonical data: tricks (97 — 30 scooter, 31 skate, 36 BMX),
+                         stickers, plans, spots, events, challenges
+    db/                  PocketBase client wrappers, generated collection types, query functions,
+                         and the seed scripts that load core's canonical data (see T4)
     ui-web/              design system: tokens, primitives, icons, StickerBadge
   pocketbase/
     migrations/          JS migrations defining collections, rules and indexes
     hooks/               pb_hooks — server-side rule enforcement (paywall, stickers, audit)
-    seed/                tricks (97: scooter, skate and BMX), stickers, plans, spots, events, challenges
+    tests/               HTTP tests proving the §3 guarantees against a real instance
   design-handoff/        the received design pack (reference, not compiled)
 ```
 
@@ -247,7 +250,7 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 | Collection | Purpose |
 | --- | --- |
 | `users` | PocketBase auth collection, extended with the profile fields: name, handle, town, stance, level, goal, avatar, privacy, `sports`, the weekly-streak fields, last_ride, timezone, role, plan-facing fields. Email stays a hidden field |
-| `tricks` | 61 records for scooter and skate, plus the BMX library when it is authored (§7). `sport`, `cat`, `diff 1..5`, `about`, `tips`, `fact`, nullable `free` override, `is_live` |
+| `tricks` | 97 records — 30 scooter, 31 skate, 36 BMX (the BMX block researched and shipped by T21, 2026-08-16). `sport`, `cat`, `diff 1..5`, `about`, `tips`, `fact`, nullable `free` override, `is_live` |
 | `trick_prereqs` | Edge collection (`trick`, `prereq`). Same-sport constraint enforced in a hook |
 | `trick_progress` | `(user, trick) → stage`. The `byId` map |
 | `trick_log` | Append-only. `(user, trick, stage, at, estimated)`. Drives every date in the app |
@@ -446,7 +449,8 @@ challenge, events, spots + map.
 
 **Phase 5 — Money.** Plans page, Stripe, entitlement resolution.
 
-**Phase 6 — Staff.** Admin portal (nine tabs) and the audit log.
+**Phase 6 — Staff.** Admin portal (ten tabs — the prototype's nine plus Moderation, which it has no
+counterpart for; see T17) and the audit log.
 
 **Phase 7 — Reach.** PWA and offline cache, then the Expo app on top of `core` and `db`.
 
@@ -817,8 +821,16 @@ no session recording without revisiting consent, given the audience.
 
 **Decided and live** (2026-08-15, replacing the earlier Railway decision). The box is
 set up, hardened, monitored and backed up — see `docs/infrastructure.md` for current state.
-Coventry datacentre keeps rider data in the UK. Coolify's preview deployments stand in for per-PR
-environments; they get wired to the Land The Trick repo once there is something to deploy (after Wave 2).
+Coventry datacentre keeps rider data in the UK. Both applications have been deployed on
+`landthetrick.com` and `api.landthetrick.com` since 2026-08-16, behind the `LANDIT_SITE_LIVE`
+holding page.
+
+**Preview deployments are still off, and that is now a decision rather than a schedule slip.** This
+section wanted them wired after Wave 2; every wave has since merged without them. The reason they
+were not simply switched on is that the Preview environment carries no superuser pair (so every
+preview serves a red `/api/health`) and points at the **production** PocketBase, so a preview deploy
+writes riders, consent records and audit rows into the live database. Both halves are one question —
+what a preview deploy is allowed to touch — and it is the owner's: **issue #164**.
 
 ### 6.10 Staff portal placement — worth revisiting
 
@@ -850,7 +862,17 @@ children's risk assessment should be drafted before Wave 5 builds crews and spot
 findings are cheaper as design input than as rework.
 
 **The BMX track runs beside them as well, and it is also the owner's.** BMX ships at launch (§1),
-and two of its three parts cannot be produced by an agent session:
+and two of its three parts cannot be produced by an agent session.
+
+> **Status, 2026-08-16: the long pole below is closed, and not the way this paragraph expected.**
+> T21 shipped a 36-trick BMX library **researched from published coaching sources with every claim
+> cited**, plus a review document recording the sourcing, the seven places sources disagreed and
+> the nine prerequisite edges that are inference rather than citation. The owner accepted it in
+> preference to holding the sport back. It blocks nothing now. The reasoning below is kept because
+> it is still the standard: researched-and-cited with the owner's acceptance on the record is the
+> bar that was cleared, and "plausible-looking" remains the thing an agent session may not ship.
+> **Still open and still unsourced: the visual assets in the second bullet, and BMX-scoped
+> stickers** (issue #25).
 
 - **The BMX trick library and its prerequisite graph — the long pole.** Scooter and skate got
   61 tricks, difficulty tiers, prerequisite edges and per-trick copy from the design pack. BMX has
@@ -890,7 +912,7 @@ widening existing shared ones.
   has merged: a screen session may add a new export, collection field or hook it needs, but must
   not change the signature or behaviour of an existing one. If a breaking change seems necessary,
   stop and flag it instead. Exceptions come from the owner and are recorded here naming the owner
-  and the date — a session never authorises its own (`CLAUDE.md` §4).
+  and the date — a session never authorises its own (`CLAUDE.md`, Building and shipping, rule 5).
 
 **Exceptions granted so far.** Two, both from the owner in chat. Each names who and when, because
 a grant carrying neither is not authority (LESSONS §3):
@@ -1568,16 +1590,26 @@ are yours, and only you can watch them… the storage they sit in is private"), 
 cannot be left standing next to a feature nobody can use. The reversal removed the claims as well as
 the code; the §6.6 note lists what went.
 
-**What replaces it, and what does not.** The trick page now has **no video surface at all** — the
-clips panel was deleted rather than returned to T7's locked state, because a locked panel advertises
-a vault that is not coming back. The replacement is **`t15b-video-links`**: riders paste a YouTube
-link, visibility per video on the `public | members | private` model, private by default. That task
-is not built, and this reversal deliberately built none of it — no collection fields, no URL
-parsing, no UI. §3 guarantee 2 records that the new feature needs its own guarantee about visibility
-defaults and the profile-privacy ceiling, and that `t15b` writes it.
+**What replaces it, and what does not.** The trick page has **no upload surface at all** — the clips
+panel was deleted rather than returned to T7's locked state, because a locked panel advertises a
+vault that is not coming back. The replacement is **`t15b-video-links`**, which the reversal itself
+deliberately built none of (no collection fields, no URL parsing, no UI) and which then **shipped
+the same day** — see T15b below.
 
-Inputs, for `t15b`: `landit-screens-a.jsx` (clips panel — as a layout reference only; its behaviour
-is void), §6.6.
+**Two sentences in this entry were true for about four hours and are corrected here, because this
+is the entry a session reads first when it goes looking for the video story.** As written, it said
+the replacement carried "visibility per video on the `public | members | private` model, private by
+default", and that the task "is not built". Both are false:
+
+- **There is no `public` state and there never was one in the shipped feature.** The owner narrowed
+  visibility to **`private | members`** before `t15b` was built (§1, §6.6) — the migration's
+  `values: ['private', 'members']` is the whole set, and the `clips` view rule has no signed-out
+  arm for a `public` value to key off. Copying profile privacy's three-way shape is precisely the
+  moderation duty the reversal existed to shed, so **a session reading this paragraph as a to-do
+  list would be reversing §3 guarantee 2.** Profile privacy stays three-way; per-video visibility
+  does not.
+- **It is built.** `t15b-video-links` merged 2026-08-17 (PR #150). §3 guarantee 2 is written and
+  proven over HTTP, not outstanding.
 
 **T15b · Video links. Built 2026-08-17 (`t15b-video-links`).** The replacement for T14, and the
 session that closed §3 guarantee 2's gap. Riders paste a YouTube link, choose `private` or `members`,
@@ -1988,12 +2020,11 @@ steps end to end. The infra track (§2.6) runs alongside and needs to be live by
 T21 also depends on the BMX content track above, which is not on this graph because no session
 produces it.
 
-**What BMX at launch costs, honestly.** The engineering is one session and it is mechanical, because
-sport was already a dimension (§3) — nothing is dropped or deferred to make room for T21, and no
-existing wave gets longer. The cost is the content: a BMX library with the depth of the other two
-(scooter and skate ship 61 tricks between them) is a real body of authoring work, and it is the
-owner's, not a session's. So the launch date moves **only** if the BMX library and assets are not
-finished by the time the build reaches Wave 7 — and on a build with this many sequential waves in
-front of it, that is a runway measured in waves, not days. If the content slips anyway, the choice
-is to hold launch or to launch on two sports and add BMX behind it; both are the owner's call, and
-neither is a decision a session may take on its own.
+**What BMX at launch cost, in the end.** The engineering was one session and it was mechanical,
+because sport was already a dimension (§3) — nothing was dropped or deferred to make room for T21
+and no existing wave got longer. The content was the risk, and it did not slip: scooter and skate
+ship 61 tricks between them, and BMX's 36 were researched and cited rather than authored, which is
+how a body of work this paragraph budgeted waves for landed inside T21 itself (2026-08-16). The
+contingency it described — hold launch, or launch on two sports and add BMX behind it — was never
+needed and is recorded only so the reasoning is not re-derived. **What is left of the BMX content
+track is the assets: avatars and BMX-scoped stickers, unsourced and the owner's (issue #25).**

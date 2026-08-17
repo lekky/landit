@@ -9,7 +9,8 @@ most of them). §2 before your first commit. §3 before touching `packages/core`
 `packages/ui-web` or `pocketbase/`. §3a before building a screen whose neighbours are still a wave
 away, or putting a design-system class on a tag the prototype never used. §4 when you change what a
 rule *means*. §5 before writing a test that guards one of the §3 guarantees. §5a before putting
-anything you did not type yourself into a shell argument. §6 before adding a dependency.
+anything you did not type yourself into a shell argument. §6 before adding a dependency. §7 before
+anything that runs in the browser rather than in Node — service workers, caching, offline states.
 
 Ported from `frontdesk`'s `docs/LESSONS.md`, whose rules were paid for in production. Land The Trick's
 own entries start at Wave 1.
@@ -367,7 +368,7 @@ BMX ships); the mechanism was not. If a session can write "authorised, do not fl
 plan, flag-to-owner is optional for every session after it. Exceptions come from the owner, in
 chat, and are recorded with the owner's name and the date. A grant carrying neither is not
 authority — check for both before relying on one. (Fixed in PR #13; the rule now lives in
-`CLAUDE.md` §4.)
+`CLAUDE.md`, Building and shipping, rule 5.)
 
 **A `const` at the top of a `pb_hooks` file does not exist inside the hook.** Each hook callback
 is serialised and run in its own isolated VM — the same rule the initial migration writes down

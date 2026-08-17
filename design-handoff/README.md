@@ -2,6 +2,8 @@
 
 A trick tracker for scooter and skateboard riders. Riders log every trick they can do through five honesty-based stages, earn stickers, follow a weekly challenge, find spots and events, and compare with a crew. Staff run the whole thing from an in-app admin portal.
 
+> **The pack predates BMX.** The product ships with **three** sports — scooter, skateboard and BMX — decided 2026-08-16 and built by T21. Everything in `design/` and every screenshot shows two, because they were drawn before that decision. Per plan §7, a sport tab strip, filter row or onboarding grid showing three where a capture shows two is a **known and intended** divergence, not a fidelity failure — do not "fix" it back. BMX's own visuals (icon, avatars, `--pink` sport colour) have no capture to compare against at all; judge them against the design language in this document.
+
 Built for riders of all ages, so the safeguarding defaults and the parent/coach view matter as much as the tracking.
 
 > **Start with Step 0: decide the stack, below.** Do not begin implementing screens until those decisions are made and recorded. Several of them (platform, offline, payments, minimum age) change what gets built and are expensive to reverse.
@@ -292,6 +294,8 @@ Five, in order: `want` (Want to learn), `trying` (Learning), `some` (Sometimes),
 ### Admin portal
 
 Reached from the footer's "Staff" link or the Profile panel. Gate takes a staff email and passcode (prototype: `miles@landit.app` / `ramp`), held in `sessionStorage`. Nine tabs:
+
+> **Two things about this section did not survive the build, both deliberately (plan §3, §6.10, T16, T17).** The email-plus-passcode gate is gone: staff sign in as ordinary riders and `users.role = 'staff'` is the whole difference, granted only from the PocketBase superuser dashboard — see `docs/staff-accounts.md`. And the portal ships **ten** tabs, not nine: T17 added **Moderation** over the `reports` collection, which this pack predates. There are also no usable admin screenshots — 25–30 duplicate rider screens and 31 is the rider spots screen (issue #95) — so `landit-admin.jsx` and the tab list below were the entire spec for both admin sessions.
 
 1. **Overview** — rider count, paying count, MRR, tricks live, spots live; riders by plan and by sport; a "needs a human" list.
 2. **Riders** — search and plan filter, table with sports, landed, joined, last active, a plan-override select and an Open button. Open shows a rider sheet with their tracked list, stages, dates, plan override and suspend.

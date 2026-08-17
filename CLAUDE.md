@@ -84,6 +84,13 @@ Then, in order:
 11. **Write what the next session needs.** Anything noticed and not fixed becomes a GitHub
     issue **now**, labelled `p1`/`p2`/`p3`, while the file paths are still in context. If the
     session earned a process rule, add it to `docs/LESSONS.md` with its provenance.
+    **If writing the issue would take longer than the fix, fix it.** The issue exists so a
+    correction survives the session that found it; when the correction is a few lines and you
+    are already in the file, filing instead of fixing spends more effort, leaves the defect in
+    place, and adds a backlog item somebody has to read and close. Judge it on the work, not on
+    whether the fix is strictly in scope — a one-line correction in a file you have open is not
+    scope creep. What still gets an issue: anything needing a decision only the owner can make,
+    anything touching code another session owns, and anything you cannot verify before merging.
 12. **Close with a TPO-level summary** — what shipped in behaviour terms, what is still open,
     and any decisions only the owner can make (explicit, never buried in prose). Report PR and
     check state as it actually is; if something failed or was skipped, say so with the
@@ -109,7 +116,7 @@ Then, in order:
 - **Never touch the production box.** `docs/infrastructure.md` is reference only — deployment
   is handled outside build sessions. No SSH, server credentials, or deploy scripts.
   - **Narrow exception (Rachid, 2026-08-16, in chat).** A session may create and manage **Land
-    It's own Coolify project** on box1 — its two applications, their domains, environment
+    The Trick's own Coolify project** on box1 — its two applications, their domains, environment
     variables and persistent storage, and deploys of them. **Not** the shared `infra` project,
     **not** ufw/Docker/firewall or any of the security posture, **not** other products, and
     **never** anyone's credentials: superuser accounts and passwords are set by the owner, in
