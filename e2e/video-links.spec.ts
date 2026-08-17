@@ -45,8 +45,19 @@ const GOOGLE =
 
 test.describe.configure({ mode: 'default' });
 
-/** Sign up, then put the rider on a paid plan the way only the server can. */
-async function signUpPaid(page: Page): Promise<void> {
+/**
+ * A brand new rider, through the real sign-up and the real onboarding.
+ *
+ * The onboarding steps are walked explicitly rather than by looping on "Next",
+ * because **"Next" is disabled until the step has been answered** — a loop that
+ * clicks it hangs for thirty seconds and reports a timeout, which reads like a
+ * broken page and is not. The sequence below is `library.spec.ts`', kept
+ * verbatim: step 1 arrives with the first sport already chosen, so clicking one
+ * would *deselect* it.
+ *
+ * Returns the email, so a caller can find the rider server-side.
+ */
+async function signUp(page: Page, name: string): Promise<string> {
   const now = new Date();
   const dob = new Date(Date.UTC(now.getUTCFullYear() - 24, now.getUTCMonth(), now.getUTCDate()))
     .toISOString()
@@ -54,30 +65,33 @@ async function signUpPaid(page: Page): Promise<void> {
   const email = `e2e-video-${unique()}@landit.invalid`;
 
   await page.goto('/signup');
-  await page.getByLabel('Your name').fill('Video Rider');
+  await page.getByLabel('Your name').fill(name);
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password').fill(password);
   await page.getByLabel('Where you live').selectOption('GB');
   await page.getByLabel('Date of birth').fill(dob);
   await page.getByRole('button', { name: 'Create account' }).click();
-  await page.waitForURL('**/onboarding');
-  await page
-    .getByRole('button', { name: /^(Next|Done|Finish)/ })
-    .first()
-    .click();
-  await page.waitForURL(/\/(home|onboarding)/);
-  while (new URL(page.url()).pathname === '/onboarding') {
-    await page
-      .getByRole('button', { name: /^(Next|Done|Finish)/ })
-      .first()
-      .click();
-    await page.waitForTimeout(150);
-  }
 
-  // `users.plan` is server-owned (`guardUserWrite` refuses a client that moves
-  // it), so the only way onto a paid plan without a Stripe account is the
-  // superuser client — the same door `docs/staff-accounts.md` describes. This is
-  // the fixture, not a path the product offers.
+  await page.waitForURL('**/onboarding');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: /Just started/ }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Land my first trick' }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: "Let's go" }).click();
+  await page.waitForURL('**/home');
+
+  return email;
+}
+
+/** Sign up, then put the rider on a paid plan the way only the server can. */
+async function signUpPaid(page: Page): Promise<void> {
+  const email = await signUp(page, 'Video Rider');
+
+  // `users.plan` is server-owned — `guardUserWrite` refuses a client that moves
+  // it — so the only way onto a paid plan without a Stripe account is the
+  // superuser client. That is the fixture, not a path the product offers, and it
+  // is deliberately the same door `pocketbase/tests/helpers.ts` uses.
   const admin = await e2eSuperuser();
   const rider = await admin
     .collection('users')
@@ -86,26 +100,7 @@ async function signUpPaid(page: Page): Promise<void> {
 }
 
 async function signUpRookie(page: Page): Promise<void> {
-  const now = new Date();
-  const dob = new Date(Date.UTC(now.getUTCFullYear() - 24, now.getUTCMonth(), now.getUTCDate()))
-    .toISOString()
-    .slice(0, 10);
-
-  await page.goto('/signup');
-  await page.getByLabel('Your name').fill('Rookie Rider');
-  await page.getByLabel('Email').fill(`e2e-video-r-${unique()}@landit.invalid`);
-  await page.getByLabel('Password').fill(password);
-  await page.getByLabel('Where you live').selectOption('GB');
-  await page.getByLabel('Date of birth').fill(dob);
-  await page.getByRole('button', { name: 'Create account' }).click();
-  await page.waitForURL('**/onboarding');
-  while (new URL(page.url()).pathname === '/onboarding') {
-    await page
-      .getByRole('button', { name: /^(Next|Done|Finish)/ })
-      .first()
-      .click();
-    await page.waitForTimeout(150);
-  }
+  await signUp(page, 'Rookie Rider');
 }
 
 const trickUrl = `/library/${freeTrick.id}`;
@@ -130,7 +125,10 @@ test('NOTHING reaches Google until the rider presses play', async ({ page }) => 
   await page.goto(trickUrl);
   await page.getByLabel('YouTube link').fill(`https://youtu.be/${VIDEO}`);
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.getByRole('button', { name: /^Play / })).toBeVisible();
+  // Setup waits on the *tile*, not on the Play button, for the reason spelled out
+  // below: with the click-to-play gate removed there is no Play button, and this
+  // test must reach its network assertion to be worth having.
+  await expect(page.getByLabel('Who can see this video')).toHaveCount(1);
 
   // Count from a cold load of the page that *has* the video on it, which is the
   // state the guarantee is about.
@@ -141,13 +139,23 @@ test('NOTHING reaches Google until the rider presses play', async ({ page }) => 
   });
 
   await page.goto(trickUrl);
-  await expect(page.getByRole('button', { name: /^Play / })).toBeVisible();
-  // Give anything lazy a chance to fire before believing the absence.
+  //
+  // **The two network assertions come before anything about the Play button, and
+  // that order is deliberate.** Removing the click-to-play gate was tried, and
+  // with the gate gone there *is* no Play button — so a test that waited for one
+  // first failed on a missing locator and never ran the counter at all. Red
+  // either way, but red about the wrong thing: the next session would have read
+  // "element not visible" and gone looking for a CSS problem. Asserted in this
+  // order, the failure names the actual defect (LESSONS §5).
+  //
+  // Wait on the page being ready by something that exists in both worlds, then
+  // let anything lazy fire before believing an absence.
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(freeTrick.name);
   await page.waitForLoadState('networkidle');
 
   expect(reached, `page load contacted Google: ${reached.join(', ')}`).toEqual([]);
-  // And no frame at all — a hidden iframe still loads, so the absence of the
-  // element is the assertion, not its visibility.
+  // And no frame at all — a *hidden* iframe still loads, so the absence of the
+  // element is the assertion, never its visibility.
   await expect(page.locator('iframe')).toHaveCount(0);
 
   // Then the click, which is the consent. The frame appears, pointed at the
