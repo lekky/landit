@@ -2,11 +2,12 @@
 
 import {
   SPORTS,
-  distanceLabel,
+  distanceLabelIn,
   filterSpots,
   hasCoords,
   mapsLink,
   sortSpotsByDistance,
+  type DistanceUnits,
   type SportId,
 } from '@landit/core';
 import { Button, Empty, Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web';
@@ -54,9 +55,12 @@ export interface SpotView {
 export function SpotsScreen({
   spots,
   signedIn,
+  units,
 }: {
   readonly spots: readonly SpotView[];
   readonly signedIn: boolean;
+  /** Miles or kilometres, settled on the server from the rider's country. */
+  readonly units: DistanceUnits;
 }) {
   const { sports, sport, setSport } = useSport();
 
@@ -195,7 +199,7 @@ export function SpotsScreen({
           {list.map((spot) => {
             const on = spot.id === selected?.id;
             const plottable = hasCoords(spot);
-            const distance = here.point ? distanceLabel(here.point, spot) : null;
+            const distance = here.point ? distanceLabelIn(here.point, spot, units) : null;
             return (
               <div
                 key={spot.id}

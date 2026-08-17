@@ -4,7 +4,9 @@ import { SPOTS, SPOT_TYPES } from '../data/spots';
 import type { SportId } from '../types';
 import {
   SPOT_MAX_TAGS,
+  distanceKm,
   distanceLabel,
+  distanceLabelIn,
   distanceMiles,
   filterSpots,
   hasCoords,
@@ -19,6 +21,7 @@ import {
   spotMatchesSport,
   spotSubmissionProblems,
   splitSpotTags,
+  unitsForCountry,
   type SpotSubmissionDraft,
 } from './spots';
 
@@ -95,6 +98,61 @@ describe('distance', () => {
     expect(distanceLabel(here, { lat: 53.4695, lng: -2.9877 })).toBe('0.0 mi');
     expect(distanceLabel(here, { lat: 53.4779, lng: -2.25 })).toMatch(/^\d+ mi$/);
     expect(distanceLabel(here, { lat: 0, lng: 0 })).toBeNull();
+  });
+});
+
+describe('the units a rider reads distance in', () => {
+  it('is miles in the four countries that use them, and a subdivision counts', () => {
+    for (const country of ['GB', 'US', 'LR', 'MM']) {
+      expect(unitsForCountry(country), country).toBe('miles');
+    }
+    expect(unitsForCountry('GB-SCT')).toBe('miles');
+    expect(unitsForCountry('gb-sct')).toBe('miles');
+  });
+
+  it('is kilometres everywhere else', () => {
+    for (const country of ['DE', 'FR', 'AU', 'JP', 'CA', 'IE', 'ZA']) {
+      expect(unitsForCountry(country), country).toBe('km');
+    }
+  });
+
+  it('is kilometres when there is no country to read', () => {
+    // A signed-out visitor has no account and therefore no country. Metric is
+    // what "we do not know" means on a global product, and it is settled on the
+    // server because nothing that hydrates may be locale-derived (LESSONS §5).
+    expect(unitsForCountry('')).toBe('km');
+    expect(unitsForCountry(null)).toBe('km');
+    expect(unitsForCountry(undefined)).toBe('km');
+    expect(unitsForCountry('ZZ')).toBe('km');
+  });
+});
+
+describe('a distance label in the reader’s units', () => {
+  const here = { lat: 53.4695, lng: -2.9877 };
+  const manchester = { lat: 53.4779, lng: -2.25 };
+
+  it('reads the same as the miles-only label when the units are miles', () => {
+    expect(distanceLabelIn(here, manchester, 'miles')).toBe(distanceLabel(here, manchester));
+    expect(distanceLabelIn(here, { lat: 53.4695, lng: -2.9877 }, 'miles')).toBe('0.0 mi');
+  });
+
+  it('converts to kilometres, which are always the larger number', () => {
+    expect(distanceLabelIn(here, manchester, 'km')).toMatch(/^\d+ km$/);
+    const miles = distanceMiles(here, manchester);
+    expect(distanceKm(here, manchester)).toBeCloseTo(miles * 1.609344, 6);
+    expect(distanceKm(here, manchester)).toBeGreaterThan(miles);
+  });
+
+  it('keeps one decimal place under ten in both units', () => {
+    // 5 km away is ~3.1 mi: one decimal in miles, one in km.
+    const near = { lat: 53.5145, lng: -2.9877 };
+    expect(distanceLabelIn(here, near, 'miles')).toMatch(/^\d\.\d mi$/);
+    expect(distanceLabelIn(here, near, 'km')).toMatch(/^\d\.\d km$/);
+  });
+
+  it('has nothing to say about a spot with no coordinates', () => {
+    expect(distanceLabelIn(here, { lat: 0, lng: 0 }, 'km')).toBeNull();
+    expect(distanceLabelIn(here, { lat: 0, lng: 0 }, 'miles')).toBeNull();
   });
 });
 

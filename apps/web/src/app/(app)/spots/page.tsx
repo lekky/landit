@@ -1,4 +1,4 @@
-import type { SportId } from '@landit/core';
+import { unitsForCountry, type SportId } from '@landit/core';
 import { listSpots } from '@landit/db';
 import type { Metadata } from 'next';
 
@@ -26,6 +26,11 @@ export const metadata: Metadata = {
  * HTTP in `pocketbase/tests/spot-submission.test.ts`). The split below is
  * presentation — which card gets the "waiting to be checked" treatment — never
  * a privacy boundary.
+ *
+ * **Distances are in the rider's units, resolved here.** `unitsForCountry`
+ * reads the country given at sign-up; a signed-out visitor has none and gets
+ * kilometres. It is settled on the server precisely because it must not be
+ * locale-derived in the browser (LESSONS §5).
  */
 export default async function SpotsPage() {
   const session = await currentRider();
@@ -44,5 +49,11 @@ export default async function SpotsPage() {
     status: record.status,
   }));
 
-  return <SpotsScreen spots={spots} signedIn={!!session} />;
+  return (
+    <SpotsScreen
+      spots={spots}
+      signedIn={!!session}
+      units={unitsForCountry(session?.rider.country)}
+    />
+  );
 }
