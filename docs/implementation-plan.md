@@ -18,7 +18,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Backups | **Litestream → Cloudflare R2**, continuous | Non-negotiable for self-hosting children's data. Restore rehearsed before launch. See §2.6. |
 | Auth and consent | **Age band captured at sign-up for everyone; guardian consent required below the rider's country threshold** | Threshold 13 in the UK, resolved per country elsewhere. Mechanics decided 2026-08-16 — see §6.2. |
 | Minimum age | **None stated.** The terms do not say "13+" | Stating a minimum age creates an Ofcom duty to enforce it with highly effective age assurance, and a tick-box does not qualify. 13+ is the *audience*, not a gate — see §6.2. |
-| Launch markets | **Global sign-up, UK-first product** | Anyone can sign up; the consent threshold follows the rider's country. One refusal: US under-13, which needs COPPA verifiable parental consent we are not building at launch. See §6.3. |
+| Launch markets | **Global product, global sign-up** | **"UK-first" dropped 2026-08-17 (Rachid, in chat)** — was "Global sign-up, UK-first product". Anyone can sign up, and the product is not written for one country: the consent threshold follows the rider's country, and distances are shown in the rider's own units (`unitsForCountry`, §6.3). One refusal: US under-13, which needs COPPA verifiable parental consent we are not building at launch. Two things stay UK-shaped on purpose and are *not* drift — **prices are GBP only** (issue #170) and the spots map's default centre is the UK, which is only ever seen with zero spots on screen. See §6.3. |
 | Regulatory scope | **UK Online Safety Act (Part 3, user-to-user) + ICO Children's code, applied to every rider** | Added 2026-08-16 — the plan previously missed the OSA entirely. Children's code standards are the baseline for *all* users, not only declared children. See §6.1. |
 | Rider video | **Land The Trick does not host video. Riders paste a YouTube link and the app embeds it** | **Reversed 2026-08-17 (Rachid, in chat).** Was "Cloudflare R2 via PocketBase's S3 backend, 2GB cap per rider (5GB Legend)", decided 2026-08-15 and built as T14. Hosting other people's children's video is the single heaviest thing this product could take on — moderation duty, storage cost, takedown obligations and a private-bucket promise to keep — and the rider benefit is a video they have usually already uploaded to YouTube. **Built as `t15b-video-links`, 2026-08-17.** Four owner's decisions govern it (Rachid, 2026-08-17, in chat): a YouTube link the app embeds; per-video visibility **`private \| members` with no `public` state at all** — which supersedes the three-way framing this row carried for a few hours, because a signed-out visitor must never reach a rider's video and deleting the state is what makes that true rather than defended; **a paid perk capped per plan** (Rookie none, Shredder a limited number, Legend unlimited — the specific numbers are tunable, see §2.4); and a rider can add, re-decide visibility, and remove. T14 is reverted (see §7). See §6.6 and §3 guarantee 2. |
 | Maps provider | **Mapbox** (provisional) | Store plain `lat`/`lng` so it stays swappable. |
@@ -613,6 +613,36 @@ lookup in `packages/core`:
 
 **Needs counsel:** confirm the EEA table's values, and confirm the US refusal is the right posture
 rather than building COPPA consent.
+
+#### "UK-first" dropped (Rachid, 2026-08-17, in chat)
+
+§1's launch-markets row read **"Global sign-up, UK-first product"** until 2026-08-17. The sign-up
+half was always honest — the country list is the full ISO set precisely because country selects a
+legal threshold rather than a market — but "UK-first" had leaked into the product as presentation
+that assumed a British reader. The row now reads **global product, global sign-up**.
+
+What changed with it:
+
+- **Distance is shown in the rider's units.** `unitsForCountry` in `packages/core/src/rules/spots.ts`
+  maps a country to miles or kilometres — miles in the four countries that use them (GB, US, LR, MM),
+  kilometres everywhere else — and the spots screen resolves it **on the server**, from the country
+  given at sign-up. `distanceLabel` is unchanged and still miles-only, because `packages/core` is
+  additive-only; `distanceLabelIn` is the one that asks.
+- **A signed-out visitor reads kilometres.** They have no account and therefore no country, and
+  metric is what "we do not know" should mean on a global product. The obvious alternative —
+  `navigator.language` — is closed to us regardless: nothing on a screen that hydrates may be
+  locale-derived (LESSONS §5). This is a visible change for signed-out UK visitors and is a
+  one-line reversal in `unitsForCountry` if it proves wrong.
+
+What deliberately did **not** change, so a later session does not read it as drift and "fix" it:
+
+- **Prices stay GBP-only** — issue #170 carries the reasoning and the revisit trigger. Multi-currency
+  is a tax position, not a formatting change.
+- **The spots map still opens over the UK** (`MAP_DEFAULT_CENTRE`). It is only ever seen when there
+  are *no* spots to fit; with any spot on screen the map fits bounds to the real data. Centring per
+  rider needs a country-centroid table that is not worth carrying for the empty case.
+- **The seeded spots are all UK.** They are real places, not a market statement, and they are
+  replaced by rider submissions. Issue #106 already covers the gap that actually bites (no BMX spot).
 
 ### 6.4 The Children's code standards with teeth here
 

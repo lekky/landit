@@ -1,5 +1,6 @@
 import { SPOT_TYPES } from '../data/spots';
 import type { LatLng, SportId } from '../types';
+import { countryOf } from './consent';
 
 /**
  * Spot geometry and the coordinate parsing behind spot submission.
@@ -212,12 +213,79 @@ export function sortSpotsByDistance<T extends SpotLike>(spots: readonly T[], fro
     .map((entry) => entry.spot);
 }
 
-/** "2.4 mi", the way the prototype's hard-coded string read — computed, from the viewer. */
+/**
+ * "2.4 mi", the way the prototype's hard-coded string read — computed, from the viewer.
+ *
+ * **Miles, always.** Kept exactly as it was because `packages/core` is
+ * additive-only (`CLAUDE.md`); `distanceLabelIn` below is the one that asks
+ * which units the reader wants, and it is what the spots screen calls.
+ */
 export function distanceLabel(from: LatLng, spot: Pick<SpotLike, 'lat' | 'lng'>): string | null {
   const point = spotLatLng(spot);
   if (!point) return null;
   const miles = distanceMiles(from, point);
   return `${miles < 10 ? miles.toFixed(1) : Math.round(miles)} mi`;
+}
+
+/* ------------------------------------------------------------------ units -- */
+
+/** What a rider reads distance in. */
+export type DistanceUnits = 'miles' | 'km';
+
+/**
+ * The countries that measure road distance in miles: the UK, the US, Liberia
+ * and Myanmar. Everywhere else is kilometres, which is why this is a list of
+ * four rather than a table of two hundred and forty.
+ *
+ * `GB` covers all four UK nations — the road signs are in miles in every one of
+ * them — so a `GB-SCT` sign-up reads miles like the rest, via `countryOf`.
+ */
+const MILES_COUNTRIES: readonly string[] = Object.freeze(['GB', 'US', 'LR', 'MM']);
+
+/**
+ * Which units to draw distances in, from the country a rider gave at sign-up
+ * (plan §1: global, and §6.3).
+ *
+ * **An unknown country reads kilometres**, and that is the deliberate half.
+ * Most of the planet is metric, so metric is what "we do not know" should mean
+ * on a global product. The alternative — reading `navigator.language` — is
+ * closed to us anyway: nothing on a screen that hydrates may be locale-derived
+ * (LESSONS §5), because the server and the browser will disagree and React will
+ * blame the markup.
+ *
+ * This is why signed-out visitors see kilometres: the spots screen is readable
+ * signed out, and a visitor with no account has no country to read.
+ */
+export function unitsForCountry(country: string | null | undefined): DistanceUnits {
+  const code = countryOf(country ?? '');
+  return MILES_COUNTRIES.includes(code) ? 'miles' : 'km';
+}
+
+/** Statute miles to kilometres, exactly. */
+const KM_PER_MILE = 1.609344;
+
+/** Great-circle distance in kilometres. */
+export function distanceKm(from: LatLng, to: LatLng): number {
+  return distanceMiles(from, to) * KM_PER_MILE;
+}
+
+/**
+ * "2.4 mi" or "3.9 km" — the same label as `distanceLabel`, in the units the
+ * reader actually uses.
+ *
+ * One decimal place under ten and a whole number above it, in both units: the
+ * precision a rider needs is "can I get there", and `12.4 km` reads as false
+ * precision on a great-circle distance that ignores every road in between.
+ */
+export function distanceLabelIn(
+  from: LatLng,
+  spot: Pick<SpotLike, 'lat' | 'lng'>,
+  units: DistanceUnits,
+): string | null {
+  const point = spotLatLng(spot);
+  if (!point) return null;
+  const value = units === 'miles' ? distanceMiles(from, point) : distanceKm(from, point);
+  return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units === 'miles' ? 'mi' : 'km'}`;
 }
 
 /* -------------------------------------------------------------- submission -- */
