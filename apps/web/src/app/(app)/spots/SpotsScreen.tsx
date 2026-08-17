@@ -10,8 +10,10 @@ import {
   type SportId,
 } from '@landit/core';
 import { Button, Empty, Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web';
+import Link from 'next/link';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
+import { reportHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { useSport } from '@/providers/sport';
 
@@ -223,26 +225,40 @@ export function SpotsScreen({
                       <SportChip key={id} sport={SPORT_LOOKS[id]} small />
                     ))}
                   </div>
-                  {plottable && (
-                    <div className={styles.cardActions}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => select(spot.id)}
-                        aria-pressed={on}
-                      >
-                        {on ? 'On the map' : 'Show on map'}
-                      </Button>
-                      <a
-                        className={`cond ${styles.directions}`}
-                        href={mapsLink(spot)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Directions
-                      </a>
-                    </div>
-                  )}
+                  <div className={styles.cardActions}>
+                    {plottable && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => select(spot.id)}
+                          aria-pressed={on}
+                        >
+                          {on ? 'On the map' : 'Show on map'}
+                        </Button>
+                        <a
+                          className={`cond ${styles.directions}`}
+                          href={mapsLink(spot)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Directions
+                        </a>
+                      </>
+                    )}
+                    {/*
+                      T18. A spot is rider-submitted content in a public place,
+                      so "this is wrong, gone, or not safe" needs somewhere to
+                      go from the spot itself — an ordinary link, so it works
+                      signed out, which is the OSA duty (plan §6.1).
+                    */}
+                    <Link
+                      className={`cond ${styles.directions}`}
+                      href={reportHref({ type: 'spot', id: spot.id })}
+                    >
+                      Report this spot
+                    </Link>
+                  </div>
                 </div>
               </div>
             );

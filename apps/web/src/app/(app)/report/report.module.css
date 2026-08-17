@@ -1,0 +1,133 @@
+/*
+ * The reporting screen.
+ *
+ * Deliberately plain. Everything with a look — the panel, the button, the field
+ * — is the design system's; what is here is spacing and the radio rows, which
+ * are drawn big enough to hit on a phone by somebody who is upset.
+ */
+
+.page {
+  max-width: 62ch;
+}
+
+.head {
+  font-size: clamp(30px, 5.4vw, 44px);
+  margin: 6px 0 0;
+}
+
+.lede {
+  color: var(--ink-2);
+  margin: 10px 0 20px;
+}
+
+.promise {
+  padding: 16px 18px;
+  margin-bottom: 18px;
+}
+
+.promiseList {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.block {
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+
+.fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.choices,
+.reasons {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.choice:hover,
+.choice:focus-within {
+  border-color: var(--ink-1);
+}
+
+.choice input {
+  margin-top: 3px;
+  flex: none;
+}
+
+.choiceOff {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.choiceBlurb {
+  display: block;
+  color: var(--ink-3);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.count {
+  display: block;
+  color: var(--ink-3);
+  font-size: 12.5px;
+  margin-top: 6px;
+}
+
+.appealNote {
+  color: var(--ink-2);
+  margin: 10px 0 0;
+}
+
+.problems {
+  margin: 0 0 12px;
+  padding-left: 18px;
+}
+
+.submit {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.footNote {
+  color: var(--ink-3);
+  font-size: 12.5px;
+  margin-top: 22px;
+}
+
+.done {
+  padding: 22px;
+}
+
+.doneHead {
+  font-size: 26px;
+  margin: 8px 0 12px;
+}
+
+.doneBody {
+  color: var(--ink-2);
+  margin: 0 0 10px;
+}
+
+.doneNote {
+  color: var(--ink-3);
+  font-size: 12.5px;
+  margin: 0 0 16px;
+}

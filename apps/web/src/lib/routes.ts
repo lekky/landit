@@ -53,6 +53,17 @@ export const ROUTES = {
   /** T13's spots and map, on the same terms. */
   spots: '/spots',
   /**
+   * Telling us something is wrong (T18).
+   *
+   * **Reachable signed out, deliberately.** The OSA's Protection of Children
+   * Codes want a reporting route that works for somebody who is not a
+   * signed-up rider — a parent who has been shown a screenshot, a park owner,
+   * a teacher — and a route behind a sign-in wall is not that (plan §6.1,
+   * §6.5). It sits inside the `(app)` group because it wants the shell, not
+   * because it wants a session; `/plans` is signed-out for the same reason.
+   */
+  report: '/report',
+  /**
    * Membership (T15). The one screen in the app group that reads signed out:
    * the site footer links it, and a person deciding whether to sign up should
    * not have to sign up to find out what it costs.
@@ -120,6 +131,28 @@ export const riderHref = (handle: string): Route => `/riders/${encodeURIComponen
 
 /** The landing page an invite code opens. The only door into a crew (§6.1). */
 export const joinHref = (code: string): Route => `/join/${encodeURIComponent(code)}`;
+
+/**
+ * The report form, pointed at something.
+ *
+ * The subject travels in the query string so a "Report this" control anywhere
+ * can be an ordinary link — no client state, no modal that has to exist on
+ * every screen, and it still works for somebody who arrived signed out. What
+ * lands in `subject_id` is only ever a record id the caller could already see;
+ * the hook does not read the profile or spot it names, and staff resolve it.
+ */
+export const reportHref = (subject?: { type: string; id?: string }): Route => {
+  if (!subject) return ROUTES.report;
+  const query = new URLSearchParams({ about: subject.type });
+  if (subject.id) query.set('id', subject.id);
+  return `${ROUTES.report}?${query.toString()}`;
+};
+
+/** The appeal form, for a complaint about how we handled a report. */
+export const appealHref = (reportId?: string): Route =>
+  reportId
+    ? `${ROUTES.report}?appeal=${encodeURIComponent(reportId)}`
+    : (`${ROUTES.report}?appeal=` as Route);
 
 /**
  * Sign in, and come back to where you were sent from.

@@ -56,6 +56,10 @@ const COLUMNS: readonly FooterColumn[] = [
       { label: 'About Land It', href: legalHref('about') },
       { label: 'Contact', href: legalHref('about') },
       { label: 'Safeguarding', href: legalHref('safeguarding') },
+      // T18. "Easy" is what the OSA codes actually ask for, and a route nobody
+      // can find is not easy. It is in the footer of every page, and it works
+      // without an account (plan §6.1).
+      { label: 'Report something', href: ROUTES.report },
     ],
   },
   {

@@ -113,7 +113,7 @@ test('the privacy policy explains the age band and the discarded birth date', as
   expect(body).toMatch(/United States and under 13/);
 });
 
-test('safeguarding keeps the one-working-day promise and claims only email reporting', async ({
+test('safeguarding keeps the one-working-day promise and describes the route that exists', async ({
   page,
 }) => {
   await page.goto('/legal/safeguarding');
@@ -123,10 +123,41 @@ test('safeguarding keeps the one-working-day promise and claims only email repor
   expect(body).toContain('within one working day');
   expect(body).toContain(CONTACT.safeguarding);
 
-  // Softened until T18 builds the flow — same decision. The pack promised
-  // "Every profile and clip can be reported" while no button existed. There are
-  // no clips at all now (2026-08-17), so the claim is doubly gone.
+  // T5 softened this paragraph to email only, because the buttons it described
+  // did not exist. T18 built them, so the page names them again — and the test
+  // now holds the *opposite* assertion: every promise here has to be a control
+  // somebody can find. The two surfaces with a report link are profiles and
+  // spots; the signed-out form is the OSA duty (plan §6.1).
+  expect(body).toMatch(/report control/i);
+  expect(body).toMatch(/\/report/);
+  expect(body).toMatch(/do not need an account/i);
+  // The complaints procedure the codes ask for, in the copy as well as the code.
+  expect(body).toMatch(/look again/i);
+
+  // The pack promised "every profile and clip can be reported" while no button
+  // existed; there are no clips at all now (2026-08-17), so the page must not
+  // claim one in either direction.
   expect(body).not.toMatch(/every profile and clip can be reported/i);
+  expect(body).not.toMatch(/clip/i);
+});
+
+test('the reporting route works without an account (plan §6.1)', async ({ page }) => {
+  // The OSA duty is a route for somebody who is not a signed-up rider, so the
+  // assertion that matters is that a signed-out browser reaches the form and is
+  // asked for a reply address rather than a sign-in.
+  await page.goto('/report');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('not right');
+  await expect(page.getByLabel('Your email')).toBeVisible();
+  await expect(page.getByRole('button', { name: /send this to a person/i })).toBeVisible();
+});
+
+test('the safeguarding page links the form it promises', async ({ page }) => {
+  await page.goto('/legal/safeguarding');
+  await page
+    .getByRole('link', { name: /report/i })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/report/);
 });
 
 test('safeguarding states the no-stranger-contact position (plan §6.1)', async ({ page }) => {

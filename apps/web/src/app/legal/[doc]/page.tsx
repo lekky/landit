@@ -104,7 +104,15 @@ export default async function LegalDocPage(props: PageProps<'/legal/[doc]'>) {
                   about a rider&rsquo;s safety.
                 </p>
               </div>
-              <Link className="btn" href={ROUTES.home}>
+              {/*
+                T18. The reporting route has to be *easy* to be the one the OSA
+                codes ask for, and the legal pages are where somebody looking for
+                it ends up. No account needed on the other side of this link.
+              */}
+              <Link className="btn" href={ROUTES.report}>
+                Report something
+              </Link>
+              <Link className="btn ghost" href={ROUTES.home}>
                 Back to Land It
               </Link>
             </Panel>

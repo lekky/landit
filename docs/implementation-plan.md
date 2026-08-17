@@ -857,6 +857,12 @@ and the answers are different from each other on purpose:
   rewrites that paragraph when it lands the flow** — the page cannot ship at launch describing a
   button that does nothing (§7, T18), and this softening is what makes the gap survivable in the
   meantime rather than making it acceptable.
+  - **Done (T18, 2026-08-17).** Profiles and spots carry a report control, `/report` takes one from
+    somebody with no account, and the same form takes an appeal against a decision we made. The
+    paragraph names all three and the e2e assertion was inverted to hold the new claim rather than
+    the old absence. **Clips are still described as coming**, because the clip surface is being
+    rewritten (YouTube links, `chore-revert-clips`) and has no control yet — that one sentence is
+    now the whole of the softening, and it has an issue behind it.
 
 Two further divergences, deliberate and recorded here rather than discovered later:
 
@@ -1745,6 +1751,40 @@ T5 softened that page's reporting paragraph to the email route (owner decision, 
 task also rewrites it**: `apps/web/src/content/legal.ts`, the safeguarding document's Reporting
 section, plus the assertion in `e2e/legal.spec.ts` that currently holds the softened wording. The
 one-working-day response stays as it is.
+
+**Two decisions taken while building it, both by the owner in chat on 2026-08-17:**
+
+- **Deletion is anonymise-and-retain, not a hard delete.** A rider who closes their account has
+  their identifying fields wiped and everything they generated removed — progress, log, notes,
+  clips, stickers, crew memberships, event and challenge participation — and the account is made
+  unusable. What stays is the trail: `audit_log`, `guardian_consents` (§6.2 already said that
+  record is evidence and is never hard-deleted) and any `reports` filed by or about them, with the
+  identity reduced to a **stable pseudonym** (`exrider_<8 hex>` of the account id) that replaces
+  the handle everywhere a retained record spelled it out. The reasoning is the §6.1 position: a
+  service whose moderation record can be erased on request by the person it is about has no
+  moderation record. The rule lives in `pocketbase/hooks/lib/erasure.js` and is proven over HTTP in
+  `pocketbase/tests/account-erasure.test.ts`, both halves — what must be gone, and what must still
+  be there. Schema cost: one nullable `users.anonymised_at`, deliberately not a reuse of
+  `suspended`, which is a moderation decision about a rider who is still here.
+- **No video report control in this task.** The clip vault was removed the same day
+  (`chore-revert-clips`) and the YouTube-link replacement is not built, so there is no video
+  surface to attach a control to. `subject_type` keeps its `clip` value and the report form shows
+  the option **disabled with the reason on it** rather than hiding it — a form that silently
+  offered fewer options than the schema accepts would decide video is unreportable without saying
+  so. The safeguarding page says nothing about video at all, which is the honest state: whoever
+  builds the link feature adds the control and the sentence together. A `p2` issue names the files.
+
+**What T18 shipped beyond the entry above.** Rate limits landed on four routes, not two: reports
+(per account, or per reply address for somebody signed out — never a shared ceiling, because one
+flood must not close the OSA reporting route for everybody), the guardian-consent request
+(issue #32 — including a limit **per guardian address across every rider**, since the person being
+emailed has no account here and no way to decline), the data export, and **handle claims**, which
+were the only remaining oracle for "does this rider exist": a claim answers 400 when a handle is
+taken and 200 when it is free, so the *attempts* are counted in `audit_log` and capped at twenty an
+hour. Sentry is wired, off without a DSN, with `sendDefaultPii` off, no replay, no profiling and
+query strings stripped from every URL an event carries — and verified by a test that points the SDK
+at a local listener and asserts an envelope arrives, because "there is a config file" is not a
+verification.
 
 **T19 · PWA + offline read cache.** Service worker caching the library and the rider's tracked
 list, install manifest, the "read at the park" story from §2.3.

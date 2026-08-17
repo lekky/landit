@@ -141,13 +141,42 @@ onRecordAuthRequest((e) => {
  * approves and expires, one that revokes and never does — and stores only their
  * hashes. A fresh request writes a **new** record rather than overwriting the
  * last: `guardian_consents` is evidence, and evidence is not edited in place.
+ *
+ * **Rate-limited since T18** (issue #32). Two counts, because there are two
+ * people who can be hurt by an unbounded one and only one of them has an
+ * account here:
+ *
+ *  - **Per rider.** Every call writes a row and sends an email. Without a
+ *    ceiling, the endpoint a child uses to ask for permission is also a way to
+ *    fill the evidence table.
+ *  - **Per guardian address, across all riders.** This is the one that matters.
+ *    The address is typed by a child and belongs to somebody with no account,
+ *    no way to say no in advance, and no relationship with us — so an
+ *    unlimited version is a mail cannon aimed at a stranger's inbox, pointed by
+ *    anyone who can sign up. It counts every rider's requests to that address,
+ *    not just this rider's, which is the whole point: two accounts would
+ *    otherwise be twice the mail.
+ *
+ * The numbers are **tunable defaults, not deliberated decisions** — the owner
+ * had not picked any when this landed, and `lib/ratelimit.js` was deliberately
+ * left generic so they live at the call site. A parent needs one email, needs a
+ * second when it lands in spam, and does not need a sixth.
  */
 routerAdd(
   'POST',
   '/api/landit/consent/request',
   (e) => {
+    // Declared inside the handler: it runs in its own isolated VM and cannot
+    // see this file's scope (`lib/landit.js` header).
+    const CONSENT_WINDOW_MINUTES = 60;
+    const CONSENT_MAX_PER_WINDOW = 3;
+    const CONSENT_DAY_MINUTES = 1440;
+    const CONSENT_MAX_PER_DAY = 10;
+    const GUARDIAN_MAX_PER_DAY = 5;
+
     const consent = require(`${__hooks}/lib/consent.js`);
     const lib = require(`${__hooks}/lib/landit.js`);
+    const limits = require(`${__hooks}/lib/ratelimit.js`);
     const rider = e.auth;
 
     const state = rider.getString('consent_state');
@@ -169,6 +198,38 @@ routerAdd(
       // but the one case obvious enough to be worth refusing out loud.
       throw new BadRequestError('Use a grown-up’s email address, not your own.');
     }
+
+    limits.assertUnderRateLimit(e.app, {
+      collection: 'guardian_consents',
+      filter: 'user = {:user}',
+      params: { user: rider.id },
+      windowMinutes: CONSENT_WINDOW_MINUTES,
+      max: CONSENT_MAX_PER_WINDOW,
+      message: 'We have just sent that. Give it a few minutes and check the spam folder.',
+    });
+
+    limits.assertUnderRateLimit(e.app, {
+      collection: 'guardian_consents',
+      filter: 'user = {:user}',
+      params: { user: rider.id },
+      windowMinutes: CONSENT_DAY_MINUTES,
+      max: CONSENT_MAX_PER_DAY,
+      message:
+        'That is a lot of emails for one day. The last link we sent still works — or email us and a person will sort it out.',
+    });
+
+    limits.assertUnderRateLimit(e.app, {
+      collection: 'guardian_consents',
+      filter: 'guardian_email = {:email}',
+      params: { email: guardianEmail },
+      windowMinutes: CONSENT_DAY_MINUTES,
+      max: GUARDIAN_MAX_PER_DAY,
+      // Says nothing about who else has asked. The count is across riders, and
+      // telling this one that somebody else typed the same address would leak
+      // the existence of another account to whoever is holding this phone.
+      message:
+        'That address has had a lot of these lately. The last link still works — or email us and a person will sort it out.',
+    });
 
     const approval = consent.mintToken();
     const revocation = consent.mintToken();

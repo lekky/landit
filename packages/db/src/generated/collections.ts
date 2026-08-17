@@ -791,6 +791,7 @@ export interface UsersRecord {
   rides_this_week: number;
   last_qualifying_week: string;
   insights_opt_in: boolean;
+  anonymised_at: string;
 }
 
 /** The shape accepted when creating a `users` record. */
@@ -823,6 +824,7 @@ export interface UsersCreate {
   rides_this_week?: number;
   last_qualifying_week?: string;
   insights_opt_in?: boolean;
+  anonymised_at?: string;
 }
 
 /** The shape accepted when updating a `users` record. */

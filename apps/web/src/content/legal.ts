@@ -21,10 +21,16 @@ import { countWord, sportsList } from '@/lib/sports';
  * - **Profiles are described as starting private** (§6.4 standard 7, §3
  *   guarantee 1). `DEFAULT_PRIVACY` in `@landit/core` currently says `members`;
  *   that disagreement is filed as an issue, and the plan is the authority.
- * - **The reporting paragraph describes email only** — decided by the owner
- *   (Rachid, 2026-08-16). The in-app report buttons are T18 and this copy stops
- *   promising them until they exist. The one-working-day response on
- *   `safeguarding@` ships as written, same decision.
+ * - **The reporting paragraph named email only until T18 built the buttons.**
+ *   T5 softened it on the owner's decision (Rachid, 2026-08-16) because the
+ *   controls it described did not exist; T18 is what made them exist, so the
+ *   softening is gone and the paragraph now names the profile and spot controls,
+ *   the signed-out form at `/report`, and the appeal route against our own
+ *   decisions — the OSA complaints procedure in §6.1. It says nothing about
+ *   clips, because after the reversal below there is no video surface to report;
+ *   when `t15b-video-links` lands, whoever builds it adds the control and the
+ *   sentence together, not one without the other. The one-working-day response
+ *   on `safeguarding@` ships as written, same decision as before.
  * - **"We do not host video" is a statement of fact, not a promise about
  *   storage** — decided by the owner (Rachid, 2026-08-17). Until then this file
  *   said "Clips you upload are yours, and only you can watch them… the storage
@@ -204,9 +210,10 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
       {
         h: 'Reporting',
         p: [
-          `Email ${CONTACT.safeguarding} with a link, a rider name or a description, and we will look at it. It reaches a human, not a queue nobody reads.`,
+          'Every rider profile and every spot has a report control on it, and there is a form at /report you can open from anywhere. You do not need an account to use it, and you do not need to be the person it happened to.',
+          `Or email ${CONTACT.safeguarding} with a link, a rider name or a description. It reaches the same person — a human, not a queue nobody reads.`,
           'We will respond within one working day.',
-          'Report buttons on profiles are being built. Until they are live, email is the route, and it reaches the same person.',
+          'If you think we got a decision wrong, ask us to look again: every report we take gives you a reference, and the same form takes an appeal against what we did with it. Somebody who has not already decided reads it.',
         ],
       },
       {

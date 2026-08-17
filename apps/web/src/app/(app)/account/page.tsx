@@ -22,6 +22,7 @@ import { isStaff } from '@/lib/staff';
 import { signOutAction } from '../../(auth)/actions';
 
 import styles from './account.module.css';
+import { DataPanel } from './DataPanel';
 import { GuardianPanel } from './GuardianPanel';
 import { PrivacyPanel } from './PrivacyPanel';
 
@@ -168,6 +169,9 @@ export default async function AccountPage() {
           Everything you log now is kept and will be there when they land.
         </p>
       </Panel>
+
+      {/* T18: the two things the privacy policy promises and had no control for. */}
+      <DataPanel />
 
       <div className={styles.signOut}>
         <form action={signOutAction}>
