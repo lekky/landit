@@ -357,6 +357,15 @@ robocopy <empty-dir> <worktree-path> /MIR ; Remove-Item <worktree-path> -Recurse
 
 Then `git worktree prune`. Two separate sessions hit this and each rediscovered the fix.
 
+**And `git worktree remove` exits 0 when that delete fails.** It prints `error: failed to delete
+... Filename too long`, deregisters the worktree, returns success, and leaves the directory and its
+`node_modules` on disk. A session that trusts the exit code — or that only checks `git worktree
+list`, which is now clean — reports cleanup done and is wrong. Eighteen dead worktree directories
+accumulated this way before anyone counted them (issue #172, 2026-08-17).
+
+**Verify the directory is gone, not the command's status.** `ls .claude/worktrees/` after removing
+costs nothing and is the only check that distinguishes "removed" from "deregistered and abandoned".
+
 ## 3. Shared code and who may change it
 
 **A session never authorises its own exception to additive-only.** The BMX planning session
