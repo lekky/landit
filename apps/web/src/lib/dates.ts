@@ -20,6 +20,37 @@ export function shortDate(instant: Instant, timezone?: string): string {
   return `${day} ${month} ${key.slice(0, 4)}`;
 }
 
+/** "Mar 2026" — a joining date, where the day is noise. Same no-ICU rule. */
+export function monthYear(instant: Instant, timezone?: string): string {
+  const key = toDayKey(instant, timezone);
+  const month = MONTH_LABELS[Number(key.slice(5, 7)) - 1] ?? '';
+  return `${month} ${key.slice(0, 4)}`;
+}
+
+/**
+ * "16 Aug, 23:53" — an audit row's timestamp, where the minute is the point.
+ *
+ * **Entirely UTC**, date and clock together, and the caller labels it so. The
+ * audit log is the server's record of when a change landed; rendering it in a
+ * reader's zone would give two staff members in two countries different answers
+ * about the same row.
+ *
+ * The first version of this took the date from `toDayKey` and the time from
+ * `getUTC*`, which is two zones in one string: at 00:53 in London on 17 August
+ * it rendered "17 Aug, 23:53" — the London date beside the UTC clock, an hour
+ * and a day apart, and entirely plausible-looking. It was caught by reading a
+ * row on screen against the row in the database. Hence the UTC getters
+ * throughout, and no `timezone` parameter at all: there is no zone to pass.
+ */
+export function shortDateTime(instant: Instant): string {
+  const at = new Date(instant);
+  if (Number.isNaN(at.getTime())) return '';
+  const month = MONTH_LABELS[at.getUTCMonth()] ?? '';
+  const hh = String(at.getUTCHours()).padStart(2, '0');
+  const mm = String(at.getUTCMinutes()).padStart(2, '0');
+  return `${at.getUTCDate()} ${month}, ${hh}:${mm}`;
+}
+
 /**
  * "20 min ago", "Yesterday", "1 Jun 2026" — the crew feed's timestamps.
  *

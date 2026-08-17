@@ -1376,6 +1376,48 @@ later admin write uses — every mutation lands as a server action using the sup
 writes `audit_log` in the same transaction. Runs concurrently with T15. Inputs: `landit-admin.jsx`,
 screenshots 25–27.
 
+Shipped, with five things recorded here because they diverge from the task as written, from the
+prototype, or need the owner:
+
+- **There are no admin screenshots, so the prototype was the whole spec.** 25, 26 and 27 are
+  byte-identical copies of `06-home.png`, and 28–30 are copies of `08-library.png` — only 31 is a
+  real admin screen, and it is T17's. `landit-admin.jsx` was the only reference T16 had, and T17
+  should expect the same (issue #95 widened to record it). Nothing here was checked against a
+  picture, which is worth knowing before reading the fidelity as verified.
+- **"In the same transaction" is not achievable from a server action, and what ships is better
+  than it sounds.** A Next.js action talks to PocketBase over HTTP; no transaction spans that.
+  What actually happens is two rows per audited change. `pocketbase/hooks/70_audit.pb.js` fires
+  *inside* the write's own transaction and records the actor it can see — `superuser`, because
+  that is the client the action holds; then `applyStaffChange` writes a second, staff-attributed
+  row naming the human, narrowed to the fields that moved. So the floor is genuinely
+  transactional and an admin write cannot leave nothing behind; what the second call can lose is
+  *who*, not *what*. Reading the log for accountability means filtering `actor_kind = 'staff'`;
+  reading it for completeness means not filtering. The alternative — logging first, mutating
+  second — was rejected because it invents changes that did not happen.
+- **The Monthly revenue card ships blank (owner's call, 2026-08-17).** The prototype multiplies a
+  plan count by a list price, which ignores yearly billing, cancellations and the staff overrides
+  counted in the card beside it. With no checkout until T15 that is a figure precise enough to be
+  quoted and wrong by an unknown margin — the same objection as the invented participation copy in
+  issue #89. The card keeps its place in the five-card grid showing an em dash and "Lands with
+  billing", so the layout does not move when T17 sums it over `subscriptions`. The neighbouring
+  card is labelled "On a paid plan", not "Paying", for the same reason.
+- **A "Recent staff activity" panel on Overview, which the prototype does not have (owner's call,
+  2026-08-17).** Without it the audit log is write-only until somebody opens the database, which
+  makes it very hard to tell a working audit trail from a broken one. It lists the last eight
+  staff-attributed rows as sentences the product writes from the row's own fields, and renders
+  verbs it does not recognise rather than dropping them, so T17's new `admin.*` actions appear
+  without a change here.
+- **Staff may not act on their own row, which the prototype allowed.** The prototype's note —
+  "changing your own row switches the app you're signed into" — is a prototype convenience; here
+  it is a staff member granting themselves a paid plan in the one collection whose guard exists to
+  prevent exactly that. Suspension is refused for a blunter reason: `users.authRule` is
+  `suspended = false`, so suspending yourself locks you out of the portal with only the superuser
+  dashboard able to undo it. Both refusals are in the server actions, not only in the disabled
+  control.
+
+How an account becomes staff is `docs/staff-accounts.md` — superuser dashboard only, deliberately
+with no script.
+
 **T17 · Admin: content tabs.** Trick library editing, stickers, spots queue, events, challenges,
 announcements composer, plans editor — all on T16's action/audit pattern. Also the moderation view
 over the `reports` collection. Depends on T16. Inputs: `landit-admin.jsx`, screenshots 28–31.

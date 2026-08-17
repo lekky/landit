@@ -152,4 +152,22 @@ export {
   type WeeklyStreakWrite,
 } from './mutations';
 
+export {
+  adminRiderCounts,
+  applyStaffChange,
+  createStaffRecord,
+  deleteStaffRecord,
+  landedCountsFor,
+  listAdminRiders,
+  listStaffAudit,
+  setRiderPlan,
+  setRiderSuspended,
+  writeStaffAudit,
+  type AdminRiderCounts,
+  type AdminRiderFilter,
+  type StaffActor,
+  type StaffAuditEntry,
+  type StaffChange,
+} from './admin';
+
 export { buildSeed, seed, type SeedPlan, type SeedResult } from './seed';
