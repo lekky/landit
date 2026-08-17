@@ -30,10 +30,10 @@ import {
  *
  * **What it deliberately does not do.** It does not touch a non-GET request, so
  * no Server Function is ever served from disk and no write is ever replayed. It
- * does not touch another origin, so PocketBase — and therefore every clip, which
- * guarantee 2 says is never public — is not something this worker can see. And
- * it does not cache a redirect, so the sign-in bounce a signed-out rider gets
- * from `/progress` cannot be frozen into the cache as if it were the screen.
+ * does not touch another origin, so nothing PocketBase serves against a rider's
+ * own token is something this worker can see. And it does not cache a redirect,
+ * so the sign-in bounce a signed-out rider gets from `/progress` cannot be
+ * frozen into the cache as if it were the screen.
  */
 
 /* --------------------------------------------------- the worker's globals -- */

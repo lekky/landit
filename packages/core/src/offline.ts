@@ -80,9 +80,12 @@ export function isCacheablePage(pathname: string): boolean {
  * - the manifest, which the browser re-reads on its own schedule.
  *
  * Deliberately **not** `/_next/image` (it takes a query it would have to be
- * trusted to normalise) and never a PocketBase URL: clips and files live on the
- * API's origin behind a token, and guarantee 2 says they are never public. A
- * worker on this origin does not see them and must not go looking.
+ * trusted to normalise), and nothing on PocketBase's origin: a rider's records
+ * are served from there against their own token, and a worker on this origin
+ * neither sees them nor should go looking. Nothing a rider owns is written to
+ * disk by an *asset* rule — the only rider-shaped thing this worker keeps is
+ * rendered HTML, under `isCacheablePage`, and that is thrown away when the
+ * signed-in rider changes.
  */
 export function isCacheableAsset(pathname: string): boolean {
   const path = normalise(pathname);
