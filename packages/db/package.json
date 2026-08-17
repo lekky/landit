@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "typegen": "node scripts/generate-types.mjs",
-    "seed": "node --experimental-strip-types scripts/seed.mts"
+    "seed": "node --experimental-strip-types --import ./scripts/register-ts-resolve.mjs scripts/seed.mts"
   },
   "dependencies": {
     "@landit/core": "workspace:*",
