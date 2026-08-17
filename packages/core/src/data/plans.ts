@@ -1,6 +1,6 @@
 import type { Plan, PlanId } from '../types';
 
-/** One gigabyte, as the clip caps are quoted in GB (plan §6). */
+/** One gigabyte. Only `clipCapBytes` uses it, and that field is dormant — see below. */
 const GB = 1024 * 1024 * 1024;
 
 /**
@@ -14,9 +14,18 @@ const GB = 1024 * 1024 * 1024;
  * tiers sell capacity, cosmetics and insight. Nothing in `perks` below may be a
  * sticker, a stage or a shortcut to one.
  *
- * `clipCapBytes` is the number the upload hook enforces, read from the plan
- * record so staff can tune it without a deploy. Rookie is zero: free riders
- * cannot save clips at all.
+ * `clipCapBytes` is **dormant, and is not an entitlement any more.** It was the
+ * per-rider clip-vault cap; the owner reversed clip hosting on 2026-08-17 (plan
+ * §1, §6.6) and the hook that enforced it is gone, so nothing reads this number
+ * to decide what a rider may do. It is kept, unchanged, for one reason only:
+ * `listPlans` in `@landit/db` orders every plan-card surface — the plans page,
+ * the staff plan bars, the staff plan dropdown — by `plans.clip_cap_bytes`
+ * ascending, because it is that collection's only numeric column and happened
+ * to rise with price. Zeroing it would collapse that ordering; replacing it
+ * needs an explicit rank column, which is issue territory rather than this PR's
+ * (see the §6.6 note in the plan). **Do not read it as a vault size, and do not
+ * put a number derived from it on a screen.** `t15b-video-links` decides
+ * whether any per-plan video limit exists at all.
  *
  * `includesInsights` is the same idea for the progress insights panel (§2.4):
  * Legend only, resolved from the plan record rather than from a hard-coded
@@ -45,7 +54,7 @@ export const PLANS = [
       "This week's challenge",
       'Spots map and your crew',
     ],
-    missing: ['Spicy, Gnarly and Pro tricks', 'Saving clips', 'Progress insights'],
+    missing: ['Spicy, Gnarly and Pro tricks', 'Progress insights'],
     priceMonthlyPence: 0,
     priceYearlyPence: 0,
     clipCapBytes: 0,
@@ -63,11 +72,10 @@ export const PLANS = [
       'Everything in Rookie',
       'Every trick, both sports',
       'Spicy, Gnarly and Pro unlocked',
-      '2GB clip vault',
       'Challenge history + progress stats',
       'Custom printable sheets',
     ],
-    missing: ['5GB clip vault', 'Legend flair', 'Progress insights'],
+    missing: ['Legend flair', 'Progress insights'],
     priceMonthlyPence: 399,
     priceYearlyPence: 3999,
     clipCapBytes: 2 * GB,
@@ -79,10 +87,9 @@ export const PLANS = [
     id: 'legend',
     name: 'Legend',
     hue: '#8A3BE0',
-    pitch: 'Everything unlocked, a bigger vault, and the numbers behind your riding.',
+    pitch: 'Everything unlocked, plus the numbers behind your riding.',
     perks: [
       'Everything in Shredder',
-      '5GB clip vault',
       'Legend flair on your profile and crew board',
       'Exclusive avatar drops',
       'Progress insights: per-category trends and personal records',

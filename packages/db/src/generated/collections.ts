@@ -42,7 +42,6 @@ export type AnnouncementsAudiencePlan = 'rookie' | 'shredder' | 'legend';
 export type AnnouncementsAudienceSport = 'scooter' | 'skate' | 'bmx';
 export type AuditLogActorKind = 'rider' | 'staff' | 'superuser' | 'guest' | 'system';
 export type ChallengesSport = 'scooter' | 'skate' | 'bmx';
-export type ClipsKind = 'video' | 'photo';
 export type CrewMembersRole = 'owner' | 'member';
 export type EventsKind = 'Comp' | 'Session' | 'Class' | 'Jam';
 export type EventsSports = 'scooter' | 'skate' | 'bmx';
@@ -229,9 +228,6 @@ export interface ClipsRecord {
   id: string;
   user: string;
   trick: string;
-  file: string;
-  kind: ClipsKind;
-  size: number;
   at: string;
   created: string;
   updated: string;
@@ -242,9 +238,6 @@ export interface ClipsCreate {
   id?: string;
   user: string;
   trick?: string;
-  file?: string;
-  kind?: ClipsKind;
-  size?: number;
   at?: string;
 }
 

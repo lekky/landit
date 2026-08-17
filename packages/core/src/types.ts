@@ -147,8 +147,10 @@ export interface Plan {
   readonly priceMonthlyPence: number;
   readonly priceYearlyPence: number;
   /**
-   * Clip vault size in bytes; zero means clips cannot be saved at all. Read
-   * from the plan record so staff can tune it without a deploy (plan §6).
+   * **Dormant.** Was the clip-vault size in bytes. Clip hosting was reversed by
+   * the owner on 2026-08-17 (plan §1, §6.6) and nothing enforces this number any
+   * more — it survives only because `listPlans` orders the plan cards by
+   * `plans.clip_cap_bytes`. Never render it, and never treat it as a grant.
    */
   readonly clipCapBytes: number;
   /** Whether the plan unlocks the Spicy/Gnarly/Pro tiers. */
@@ -157,8 +159,8 @@ export interface Plan {
    * Whether the plan includes the progress insights panel (plan §2.4 — a Legend
    * perk).
    *
-   * On the plan record for the same reason the clip cap and the paid-trick
-   * entitlement are: entitlements resolve from our own data, staff can tune
+   * On the plan record for the same reason the paid-trick entitlement is:
+   * entitlements resolve from our own data, staff can tune
    * them without a deploy, and a missing plan record fails closed. Being
    * entitled is only half of it — insights are profiling, so a rider must also
    * opt in (`users.insights_opt_in`, plan §6.4 standard 12).
@@ -345,7 +347,15 @@ export interface RiderSnapshot {
    * award is an owner decision, tracked as an issue; nothing here guesses at it.
    */
   readonly streak?: number;
-  /** How many clips the rider has saved. */
+  /**
+   * Rows in the `clips` collection for this rider.
+   *
+   * **Always zero since 2026-08-17**, when the owner reversed clip hosting
+   * (plan §1, §6.6): there is no upload, and the collection's `createRule` is
+   * `null`. It is kept because the `first-clip` sticker rule reads it and
+   * `t15b-video-links` is the task that gives it values again. Nothing should
+   * put this number on a screen until then.
+   */
   readonly clips?: number;
   /** Whether the rider is in a crew. */
   readonly crew?: boolean;

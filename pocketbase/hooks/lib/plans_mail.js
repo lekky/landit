@@ -58,8 +58,8 @@ this link is where it happens — and pressing it means you are the adult paying
   <a href="${url}" style="background:#FF5A1F;border:2.5px solid #12100B;color:#fff;
   padding:14px 22px;text-decoration:none;font-weight:700;display:inline-block">Set up ${name}’s ${plan} plan</a>
 </p>
-<p><strong>What a paid plan changes:</strong> the harder tricks in the library open up, clips can be
-saved, and on Legend there are progress insights and a tag beside their name.</p>
+<p><strong>What a paid plan changes:</strong> the harder tricks in the library open up, and on Legend
+there are progress insights and a tag beside their name.</p>
 <p><strong>What it does not change:</strong> stickers and stages are earned by riding and are never
 for sale, on any plan. Their profile stays private unless they change it, there is no messaging
 between riders on Land It, and nothing about this makes them visible to anyone.</p>

@@ -207,10 +207,22 @@ describe('plans (implementation plan §2.4)', () => {
     expect(PLAN.legend.priceYearlyPence).toBe(6999);
   });
 
-  it('caps the clip vault at 2GB on Shredder and 5GB on Legend, with none on Rookie', () => {
-    expect(PLAN.rookie.clipCapBytes).toBe(0);
-    expect(PLAN.shredder.clipCapBytes).toBe(2 * 1024 ** 3);
-    expect(PLAN.legend.clipCapBytes).toBe(5 * 1024 ** 3);
+  // `clipCapBytes` stopped being an entitlement on 2026-08-17 (plan §1, §6.6).
+  // What is asserted now is not a vault size — it is that the three values stay
+  // strictly ascending, because `listPlans` orders every plan-card surface by
+  // this column and equal values would make the card order arbitrary. If a rank
+  // column ever replaces it, delete this test with the field.
+  it('keeps the dormant clipCapBytes values ascending, which is what orders the plan cards', () => {
+    expect(PLAN.rookie.clipCapBytes).toBeLessThan(PLAN.shredder.clipCapBytes);
+    expect(PLAN.shredder.clipCapBytes).toBeLessThan(PLAN.legend.clipCapBytes);
+  });
+
+  it('advertises no clip vault on any plan, and no video at all', () => {
+    for (const plan of allPlans) {
+      for (const line of [...plan.perks, ...plan.missing, plan.pitch]) {
+        expect(line).not.toMatch(/vault|clip|\bGB\b/i);
+      }
+    }
   });
 
   it('unlocks the paid tiers on both paid plans and neither on Rookie', () => {

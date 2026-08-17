@@ -605,7 +605,7 @@ export function Gallery() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9, maxWidth: 420 }}>
             <Toast color="#2EC4B6">Tailwhip · Most times</Toast>
             <Toast color="#FFC23F">Sticker unlocked · 7 Day Streak</Toast>
-            <Toast color="var(--violet)">Saving clips is on Shredder</Toast>
+            <Toast color="var(--violet)">Progress insights are on Legend</Toast>
           </div>
           <div style={{ marginTop: 16 }}>
             <Button onClick={() => setModal(true)}>Open a modal</Button>

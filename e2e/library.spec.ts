@@ -181,12 +181,23 @@ test('a rookie can open a free trick and log a stage that sticks', async ({ page
   await expect(card(page, freeTrick.name)).toContainText('Sometimes');
 });
 
-test('clips render as an upsell, never as an upload, on the free plan', async ({ page }) => {
+// Until 2026-08-17 this asserted the clips panel rendered as an upsell. The
+// owner reversed clip hosting that day (plan §1, §6.6): Land It hosts no video,
+// so the trick page offers none and advertises none. What is asserted now is the
+// absence — this is the test that notices if a clips panel, or vault copy,
+// reappears on this page by accident. The video-link feature
+// (`t15b-video-links`) will replace it with assertions about a pasted link.
+test('a trick page neither offers video nor advertises a clip vault', async ({ page }) => {
   await signUpRookie(page);
   await page.goto(`/library/${freeTrick.id}`);
 
-  await expect(page.getByText('Filming your attempts is part of Shredder')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(freeTrick.name);
+
+  const body = await page.locator('body').innerText();
+  expect(body).not.toMatch(/vault/i);
+  expect(body).not.toMatch(/\bclips?\b/i);
   await expect(page.getByRole('button', { name: /add a clip/i })).toHaveCount(0);
+  await expect(page.locator('input[type="file"]')).toHaveCount(0);
 });
 
 test('a signed-out visitor can read a trick but not track it', async ({ page }) => {

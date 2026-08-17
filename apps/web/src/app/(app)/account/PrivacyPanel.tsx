@@ -29,8 +29,8 @@ export function PrivacyPanel({ value }: { value: PrivacyId }) {
     <Panel flat className={styles.privacy}>
       <div className="lab">Who can see your profile</div>
       <p className={styles.privacyLede}>
-        Your tricks, stickers and streak. Never your email, your clips or your surname. New accounts
-        start private.
+        Your tricks, stickers and streak. Never your email or your surname. New accounts start
+        private.
       </p>
 
       <form action={save} className={styles.privacyForm}>

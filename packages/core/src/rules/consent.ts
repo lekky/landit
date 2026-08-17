@@ -364,7 +364,6 @@ export type RiderCapability =
   | 'receive_crew_invite'
   | 'submit_spot'
   | 'attend_event'
-  | 'upload_clip'
   | 'hold_subscription';
 
 /** Everything that touches only the rider's own data (§6.2). */
@@ -392,7 +391,6 @@ export const CONSENT_LIMITED_DENIES = [
   'receive_crew_invite',
   'submit_spot',
   'attend_event',
-  'upload_clip',
   'hold_subscription',
 ] as const satisfies readonly RiderCapability[];
 

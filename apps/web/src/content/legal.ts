@@ -25,6 +25,17 @@ import { countWord, sportsList } from '@/lib/sports';
  *   (Rachid, 2026-08-16). The in-app report buttons are T18 and this copy stops
  *   promising them until they exist. The one-working-day response on
  *   `safeguarding@` ships as written, same decision.
+ * - **"We do not host video" is a statement of fact, not a promise about
+ *   storage** — decided by the owner (Rachid, 2026-08-17). Until then this file
+ *   said "Clips you upload are yours, and only you can watch them… the storage
+ *   they sit in is private", which described a clip vault that has been removed
+ *   (plan §1, §6.6, §3 guarantee 2). It was replaced rather than softened:
+ *   there is no upload, so a sentence about how carefully the uploads are kept
+ *   would be true only because it is vacuous. When `t15b-video-links` lands,
+ *   riders will paste **YouTube links** and these documents will need a
+ *   paragraph about what a link means — the video is on YouTube, under
+ *   YouTube's terms, and its Land It visibility is capped by profile privacy.
+ *   Do not pre-write that here; it is not built yet.
  *
  * Anything the owner has not decided is absent rather than invented: there is
  * no data-controller section and no named accountable individual here, because
@@ -68,7 +79,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         p: [
           'An email address and a display name so you can sign in. Nothing else is required.',
           'Your country, and an age band: under 13, 13 to 15, 16 to 17, or adult. Signing up asks for your date of birth, works the band out on your own device, and then throws the date away. It is never sent to us, so there is no birth date here to lose.',
-          'The tricks you track, the stages you set, your streak, your stickers and any notes or clips you add. This is the point of the app.',
+          'The tricks you track, the stages you set, your streak, your stickers and any notes you add. This is the point of the app.',
           'Optional details you choose to add: your picture, stance, riding level, goal and the events you mark yourself down for.',
           'Basic technical data every website gets: device type, browser and rough region, used to keep the service running and secure.',
           'If you are young enough to need a parent or guardian to approve the account, their email address, so we can ask them. See Younger riders below.',
@@ -78,7 +89,8 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         h: 'What we never do',
         p: [
           'We do not sell your data, and we do not share it with advertisers. There are no ads in Land It.',
-          'We do not show your surname, email address or clips on any public profile.',
+          'We do not show your surname or email address on any public profile.',
+          'We do not host video. There is nowhere in Land It to upload a clip, and no video of yours sits on our servers.',
           'We do not track you across other websites.',
           'Nothing you see in Land It is chosen for you by an algorithm. There is no feed, and no guessing at what would keep you here longer.',
         ],
@@ -92,10 +104,10 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         ],
       },
       {
-        h: 'Clips and photos',
+        h: 'Video',
         p: [
-          'Clips you upload are yours, and only you can watch them. There is no link that shows one to somebody else, and the storage they sit in is private.',
-          'Delete a clip and it goes. Delete your account and they all go with it.',
+          'Land It does not host video. There is no upload, and no clip of yours is stored on our servers.',
+          'Delete your account and everything we hold about you goes with it.',
         ],
       },
       {
@@ -103,7 +115,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         p: [
           'There is no minimum age on Land It. Younger riders are welcome, with a parent or guardian who says yes.',
           'Whether that permission is needed depends on where you are: the United Kingdom sets the line at 13, most of the EEA sets it at 16, and elsewhere we use 13. Your country picks the line and we apply it when you sign up.',
-          'If you are below the line we ask for a parent or guardian email address and send them a link to approve the account. Until they do, you can browse the library, track your tricks, write notes and build a streak. You are not visible to any other rider, and you cannot join a crew, submit a spot, mark yourself down for an event, upload a clip or pay for anything.',
+          'If you are below the line we ask for a parent or guardian email address and send them a link to approve the account. Until they do, you can browse the library, track your tricks, write notes and build a streak. You are not visible to any other rider, and you cannot join a crew, submit a spot, mark yourself down for an event or pay for anything.',
           'The same email carries a link that withdraws permission. It works forever, it needs no Land It account, and using it puts the rider back to tracking on their own. It does not delete a single trick they have logged.',
           'Permission stops being needed on the birthday your country says it stops being needed. That happens on its own — nobody has to remember to do it.',
           'If you are in the United States and under 13, we will not sign you up. The rules there ask for a much heavier kind of parental consent than an approval email, and we would rather turn you away honestly than pretend we have built it.',
@@ -144,7 +156,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
       {
         h: 'What you post',
         p: [
-          'You own your clips, photos and notes. You give us permission to store and show them back to you inside the app.',
+          'You own your notes and everything you track. You give us permission to store them and show them back to you inside the app.',
           'Nothing illegal, nothing abusive, nothing that puts other riders at risk. We will remove content and close accounts that break this.',
         ],
       },
@@ -153,7 +165,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         p: [
           'Paid plans renew monthly or yearly until you cancel. Cancel any time and you keep access until the period ends.',
           'Whoever pays has to be 18 or over. Riders under 16 cannot buy a plan inside the app — the upgrade goes to a parent or guardian by email instead.',
-          'Your tracked tricks and stickers stay yours if you drop back to the free plan. Tricks above the free tier become read only rather than being deleted, and clips you have already saved stay watchable — you just cannot add new ones.',
+          'Your tracked tricks and stickers stay yours if you drop back to the free plan. Tricks above the free tier become read only rather than being deleted.',
           'Stickers and stages are earned, never sold. No plan will ever buy you an achievement.',
         ],
       },
@@ -176,7 +188,8 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         h: 'Defaults are private',
         p: [
           'New profiles are private. Being visible to other riders is a choice a rider makes, not the setting they are given.',
-          'Surnames, emails and clips never appear on a public profile.',
+          'Surnames and email addresses never appear on a public profile.',
+          'Land It does not host video. There is no upload anywhere in the app, so there is no rider footage here to be seen by anybody.',
         ],
       },
       {
@@ -193,7 +206,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         p: [
           `Email ${CONTACT.safeguarding} with a link, a rider name or a description, and we will look at it. It reaches a human, not a queue nobody reads.`,
           'We will respond within one working day.',
-          'Report buttons on profiles and clips are being built. Until they are live, email is the route, and it reaches the same person.',
+          'Report buttons on profiles are being built. Until they are live, email is the route, and it reaches the same person.',
         ],
       },
       {

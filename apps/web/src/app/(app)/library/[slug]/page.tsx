@@ -7,7 +7,6 @@ import {
   computeStats,
   currentWeeklyStreak,
   firstLanded,
-  formatBytes,
   isTrickLanded,
   isTrickLocked,
   isTrickUnlocked,
@@ -20,15 +19,11 @@ import {
   type Trick,
 } from '@landit/core';
 import {
-  clipVaultUsage,
   getTrickNote,
-  listClips,
-  listPlans,
   listTrickLog,
   listTrickPrereqs,
   listTrickProgress,
   listTricks,
-  nextClipPlan,
   riderSnapshot,
   trickLogEntries,
   trickProgressById,
@@ -45,7 +40,6 @@ import { ROUTES, trickHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { anonymousClient, currentRider } from '@/lib/session';
 
-import { ClipsPanel, type ClipView } from './ClipsPanel';
 import { LockedTrick } from './LockedTrick';
 import { NotesPanel } from './NotesPanel';
 import { StagePanel, type TrickShareView } from './StagePanel';
@@ -102,43 +96,19 @@ async function load(slug: string) {
       landedLabel: null,
       note: '',
       share: null,
-      // A visitor has no vault and no clips, and the panel says what filming
-      // costs — the same statement a rookie gets, which is the only thing on
-      // this page that reads the same signed out (plan §7, T7).
-      vault: { clips: [], usedBytes: 0, capBytes: 0, planName: 'Rookie', upgrade: null },
     };
   }
 
-  const [progress, log, noteRecord, snapshot, clips, usage, plans] = await Promise.all([
+  const [progress, log, noteRecord, snapshot] = await Promise.all([
     listTrickProgress(client, session.rider.id),
     listTrickLog(client, session.rider.id),
     getTrickNote(client, session.rider.id, record.id),
     riderSnapshot(client, session.rider.id),
-    listClips(client, session.rider.id, { trickId: record.id }),
-    clipVaultUsage(client, session.rider.id),
-    listPlans(client),
   ]);
 
   const byId: Record<string, StageId> = trickProgressById(progress, trickRecords);
   const landed = firstLanded(trickLogEntries(log, trickRecords))[slug];
   const timezone = session.rider.timezone || DEFAULT_TIMEZONE;
-
-  /*
-   * The clip vault, entirely from the `plans` collection (plan §6.6).
-   *
-   * Not from `PLAN[id].clipCapBytes`: that constant seeds the record, and the
-   * record is what staff edit afterwards, so a screen reading the constant
-   * would make a staff retune invisible — the same reason the library reads
-   * tricks from the collection rather than from `@landit/core` (plan §7, T7).
-   * Both numbers here are also the ones the upload hook enforces, so the panel
-   * and the refusal cannot tell a rider different stories.
-   *
-   * A rider on a plan that is no longer live resolves to no vault at all, which
-   * is the fail-closed direction and matches `planFor` in the hook.
-   */
-  const ownPlan = plans.find((row) => row.slug === session.rider.plan) ?? null;
-  const capBytes = ownPlan?.clip_cap_bytes ?? 0;
-  const upgrade = nextClipPlan(plans, capBytes);
 
   return {
     session,
@@ -152,22 +122,6 @@ async function load(slug: string) {
       : null,
     note: noteRecord?.body ?? '',
     share: buildShare(trick, session.rider, snapshot, tricks, timezone),
-    vault: {
-      clips: clips.map((clip): ClipView => ({
-        id: clip.id,
-        kind: clip.kind === 'photo' ? 'photo' : 'video',
-        // Formatted here, like every other date on this page: an ICU string
-        // produced on one side of hydration and not the other throws the tree
-        // away (LESSONS §3a).
-        dateLabel: formatDate(Date.parse(clip.at || clip.created), timezone),
-      })),
-      usedBytes: usage.bytes,
-      capBytes,
-      planName: ownPlan?.name ?? 'Rookie',
-      upgrade: upgrade
-        ? { name: upgrade.name, capLabel: formatBytes(upgrade.clip_cap_bytes ?? 0) }
-        : null,
-    },
   };
 }
 
@@ -339,16 +293,6 @@ export default async function TrickPage({ params }: Params) {
                 </p>
               </Panel>
             )}
-
-            <ClipsPanel
-              trickId={record.id}
-              slug={trick.id}
-              clips={data.vault.clips}
-              usedBytes={data.vault.usedBytes}
-              capBytes={data.vault.capBytes}
-              planName={data.vault.planName}
-              upgrade={data.vault.upgrade}
-            />
 
             {session && <NotesPanel trickId={record.id} slug={trick.id} initial={note} />}
 

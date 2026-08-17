@@ -300,7 +300,6 @@ describe('what a limited account may do (plan §6.2)', () => {
       'receive_crew_invite',
       'submit_spot',
       'attend_event',
-      'upload_clip',
       'hold_subscription',
     ] as const) {
       expect(canWhileConsentLimited(capability)).toBe(false);
@@ -312,13 +311,13 @@ describe('what a limited account may do (plan §6.2)', () => {
     // decision, and one in both is a contradiction nobody would notice.
     const all: RiderCapability[] = [...CONSENT_LIMITED_ALLOWS, ...CONSENT_LIMITED_DENIES];
     expect(new Set(all).size).toBe(all.length);
-    expect(all).toHaveLength(15);
+    expect(all).toHaveLength(14);
   });
 
   it('lifts the whole list once consent is granted', () => {
-    expect(canWithConsent('granted', 'upload_clip')).toBe(true);
+    expect(canWithConsent('granted', 'attend_event')).toBe(true);
     expect(canWithConsent('not_required', 'join_or_create_crew')).toBe(true);
-    expect(canWithConsent('pending', 'upload_clip')).toBe(false);
+    expect(canWithConsent('pending', 'attend_event')).toBe(false);
     expect(canWithConsent('revoked', 'join_or_create_crew')).toBe(false);
     expect(canWithConsent('revoked', 'log_trick')).toBe(true);
   });

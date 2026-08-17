@@ -56,7 +56,7 @@ skateboard and BMX riders, and has given us your email address as their parent o
 library, log the tricks they are working on, keep their own notes and build their riding streak.
 All of that is private to them.</p>
 <p><strong>They cannot:</strong> be seen by any other rider, join a crew, be invited to one, submit
-a skatepark or spot, say they are going to an event, upload a clip, or pay us for anything.
+a skatepark or spot, say they are going to an event, or pay us for anything.
 There is no messaging between riders on Land It at all, and there never will be.</p>
 <p><strong>If you approve</strong>, the second list becomes available to them. Their profile still
 starts private, and they choose if that ever changes.</p>

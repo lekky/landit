@@ -19,7 +19,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Minimum age | **None stated.** The terms do not say "13+" | Stating a minimum age creates an Ofcom duty to enforce it with highly effective age assurance, and a tick-box does not qualify. 13+ is the *audience*, not a gate — see §6.2. |
 | Launch markets | **Global sign-up, UK-first product** | Anyone can sign up; the consent threshold follows the rider's country. One refusal: US under-13, which needs COPPA verifiable parental consent we are not building at launch. See §6.3. |
 | Regulatory scope | **UK Online Safety Act (Part 3, user-to-user) + ICO Children's code, applied to every rider** | Added 2026-08-16 — the plan previously missed the OSA entirely. Children's code standards are the baseline for *all* users, not only declared children. See §6.1. |
-| Clip storage | **Cloudflare R2 via PocketBase's S3 backend, 2GB cap per rider (5GB Legend)** | Zero egress fees; VPS disk never holds video. See §6.6. |
+| Rider video | **Land It does not host video. Riders paste a YouTube link and the app embeds it** | **Reversed 2026-08-17 (Rachid, in chat).** Was "Cloudflare R2 via PocketBase's S3 backend, 2GB cap per rider (5GB Legend)", decided 2026-08-15 and built as T14. Hosting other people's children's video is the single heaviest thing this product could take on — moderation duty, storage cost, takedown obligations and a private-bucket promise to keep — and the rider benefit is a video they have usually already uploaded to YouTube. Per-video visibility follows the same three-way `public \| members \| private` model as profile privacy, defaulting to private. T14 is reverted (see §7); the link feature is **`t15b-video-links`** and is not built yet. See §6.6. |
 | Maps provider | **Mapbox** (provisional) | Store plain `lat`/`lng` so it stays swappable. |
 | Payments | **Stripe on web**; entitlements modelled independently of Stripe; **single-rider plans only — Crew Pass dropped** (2026-08-15) | See §2.4 — entitlement independence is the decision that protects the native option. |
 | Streak shape | **A weekly target, not a consecutive-day count** (2026-08-16). A rider keeps the streak by riding **at least 2 times in a week**; the streak counts consecutive weeks that met the target, and missing a week breaks it. "I rode today" stays a plain button — no spot attached, no location captured | The audience is children who realistically ride at weekends: a daily streak punishes a school week, and is the engagement mechanic §6.4 Standard 13 warns about. Weeks are Monday-to-Sunday — the boundary the weekly challenges already use, so a rider never has two different "this week"s. **Two numbers here are tunable defaults, not deliberated decisions: the target of 2** (a weekend alone reaches it; 3 would force a weekday ride) **and no grace week** (the weekly target is itself the forgiveness — a grace week on top would make the streak nearly unbreakable). Both are constants in `packages/core` (`WEEKLY_RIDE_TARGET`, `WEEKLY_STREAK_GRACE_WEEKS`) and options on every function, so moving either is a one-line change plus this row. This supersedes the daily-streak and grace-period framing throughout: the daily functions in `core` stay exported but deprecated, and T8 wires the weekly ones. Stored shape in §3; that spots never record where a rider has been is §6.4 Standard 10 and T13. |
@@ -127,12 +127,23 @@ subscription, so billing stays one rider / one subscription throughout. (Not "Pr
 names the top difficulty tier, and a Shredder-plan rider working on Pro-difficulty tricks would
 make the word mean two things at once.) Launch plans, plan ids `rookie | shredder | legend`:
 
-- **Rookie** — free. Tricks up to the free cut-off, no clips.
-- **Shredder** — £3.99/mo · £39.99/yr. Everything unlocked, 2GB clip vault.
-- **Legend** — £6.99/mo · £69.99/yr. Everything in Shredder plus a **5GB clip
-  vault**, **Legend flair** (profile/crew-board tag, exclusive avatar drops) and **progress
-  insights** (per-category trends, personal records, next-trick suggestions derived from the
-  skill tree).
+- **Rookie** — free. Tricks up to the free cut-off.
+- **Shredder** — £3.99/mo · £39.99/yr. Everything unlocked.
+- **Legend** — £6.99/mo · £69.99/yr. Everything in Shredder plus **Legend flair**
+  (profile/crew-board tag, exclusive avatar drops) and **progress insights** (per-category
+  trends, personal records, next-trick suggestions derived from the skill tree).
+
+**Both paid cards lost a perk on 2026-08-17 and nothing has replaced it.** The clip vault — 2GB on
+Shredder, 5GB on Legend — was the headline on both, and Legend's whole pitch was "a bigger vault".
+Clip hosting was reversed that day (§1, §6.6) and the vault lines were removed from the plan cards,
+the plans page, the guardian upgrade email and the legal documents, because leaving copy that sells
+a feature the product does not have is the one outcome worse than a thin card. **Nothing was
+invented in their place**: what a paid tier is worth is a pricing decision, reserved for the owner,
+and it is filed as an issue. As it stands Shredder sells "everything unlocked" and Legend sells
+flair, insights and printable sheets — accurate, and arguably not £3 a month apart. Whether the
+video-link feature (`t15b-video-links`) is a paid perk at all, or free on every tier, is part of the
+same unmade decision. `plans.clip_cap_bytes` and `Plan.clipCapBytes` survive as dormant data — see
+§6.6 for why they were not deleted.
 
 One principle governs what Legend may ever contain: **achievements are never for sale**. Stickers and
 stages are earned-only on every plan; paid tiers sell capacity, cosmetics and insight. Crews the
@@ -205,10 +216,10 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 | `trick_progress` | `(user, trick) → stage`. The `byId` map |
 | `trick_log` | Append-only. `(user, trick, stage, at, estimated)`. Drives every date in the app |
 | `trick_notes` | Per-rider session notes |
-| `clips` | File field backed by R2; protected, token-gated delivery, never public |
+| `clips` | **No file field since 2026-08-17** (§6.6). `user`, `trick`, `at` only, and `createRule: null` — server code can write it, riders cannot. The row-per-video skeleton `t15b-video-links` extends with `url` and `visibility` |
 | `stickers` | Name, hue, icon, condition copy, editable threshold `n`, `is_live`. Rules stay in code |
 | `rider_stickers` | `earned_at` plus `seen_at`, so a sticker is never re-announced |
-| `plans`, `subscriptions` | See §2.4. No seat collection — Crew Pass dropped. `plans` carries the per-plan clip cap |
+| `plans`, `subscriptions` | See §2.4. No seat collection — Crew Pass dropped. `plans` still carries `clip_cap_bytes`, dormant since 2026-08-17 and kept only because `listPlans` orders the plan cards by it (§6.6) |
 | `guardian_consents` | Rider, guardian email, hashed approval token + expiry, requested/granted/revoked timestamps, `method` (`email_approval` at launch). Backs the sign-up consent flow (§6.2). Revocation is a state, not a delete — the record is the evidence |
 | `crews`, `crew_members`, `crew_invites` | Real crews — the prototype has one demo crew |
 | `challenges`, `challenge_log` | Per sport per week. State derived from dates |
@@ -297,7 +308,7 @@ narrow server-shaped payload guarantee 1 requires — a fixed field list built s
 how a private rider appears by name and score without their record being readable. `POST
 /api/landit/crews/join` redeems an invite code, because `crew_members.createRule` is `null`: with
 crews invite-only and undiscoverable (§6.1), there must be no client path into a crew that skips a
-code. T11 builds its UI on both. `plans` carries `unlocks_paid_tricks` alongside the clip cap, so
+code. T11 builds its UI on both. `plans` carries `unlocks_paid_tricks` alongside the dormant clip cap, so
 the paywall is staff-tunable from the same record and fails closed when a plan is missing.
 
 ### Access rules (the RLS role, in PocketBase terms)
@@ -310,9 +321,28 @@ not by reading the rule text:
    `trick_progress` and `rider_stickers`. A private rider still appears on the crew board by name
    and score, so the crew board reads a narrow server-shaped payload (a hook route or filtered
    fields), never the full record.
-2. **Clips are never public.** The `clips` file field is protected: delivery only via short-lived
-   file tokens minted for the owner, no rule path that exposes a clip to another rider, R2 bucket
-   private. The privacy policy in the handoff promises this.
+2. **Land It stores no rider video.** **Rewritten 2026-08-17; authorised by the owner (Rachid,
+   2026-08-17, in chat).** This guarantee used to read: *"Clips are never public. The `clips` file
+   field is protected: delivery only via short-lived file tokens minted for the owner, no rule path
+   that exposes a clip to another rider, R2 bucket private."* That was true of what T14 built, and
+   it is not a rule that has been dropped — the thing it protected has been removed, so the
+   guarantee now states the stronger fact in its place: **there is no upload anywhere in the
+   product, and no rider video on our servers.** It is enforced by the schema, not by the UI —
+   `pocketbase/migrations/1787270400_clips_no_hosting.js` removes the `file`, `size` and `kind`
+   fields from `clips` and sets its `createRule` to `null`, so there is no field for bytes to land
+   in and no rider write path to the collection at all. A session that wants to add a file field to
+   any collection is reversing a guarantee and must stop and flag it.
+
+   **This guarantee does not yet cover the replacement, and must not be read as if it does.** The
+   incoming feature (`t15b-video-links`) has riders paste a **YouTube link**, and a link carries a
+   different risk: not "can a stranger fetch these bytes" but "who can see that this rider posted
+   this". That needs its own guarantee, about **per-video visibility defaults and the
+   profile-privacy ceiling** — visibility is `public | members | private` on the same model as §6.4,
+   it **defaults to private**, and a video must never be visible more widely than the profile it
+   hangs off, enforced in rules rather than computed in a component. **That guarantee is
+   `t15b-video-links`' to write, with tests, and is deliberately not written here** — this session
+   reverted a feature and does not get to specify the next one. Until it lands, there are four
+   guarantees and this is the one with a gap in it.
 3. **The paywall is a data-layer rule, not a UI rule.** The `trick_progress` create hook rejects a
    paid trick for a rookie-plan rider, whatever the client sends. If the paywall only lives in the
    client it is a suggestion.
@@ -320,7 +350,7 @@ not by reading the rule text:
    `pending` or `revoked` may read and write only their own data — tricks, stages, notes,
    streaks, progress. Every collection that makes a rider visible, reachable or billable rejects
    them at the rule or hook layer: `crews`, `crew_members`, `crew_invites`, `spots` create,
-   `event_attendance`, `clips`, `subscriptions`, and any view rule that would surface their
+   `event_attendance`, `subscriptions`, and any view rule that would surface their
    profile to another rider (they read as `private` regardless of their own setting, and they do
    not appear on a crew board). The same list is in §6.2 as behaviour; this is where it is
    enforced. A client-side consent gate protects nobody, and this one is a promise made to a
@@ -373,11 +403,11 @@ Tracked from the handoff's own list, mapped to phases:
 | Legal copy pointing under-13s at "a parent's Crew Pass" | Guardian consent inside sign-up (§6.2) — the Crew Pass no longer exists, so this copy is now wrong, not just draft | 2 |
 | Streaks (a counter) | A weekly target (§1): date logic and timezones, and weeks that can break it | 3 |
 | Crews (one demo crew) | Creation, invites, membership | 4 |
-| Clips (`createObjectURL`, die on refresh) | Upload, R2 storage, token-gated delivery | 4 |
+| Clips (`createObjectURL`, die on refresh) | ~~Upload, R2 storage, token-gated delivery~~ — **no longer a gap.** Land It hosts no video (§6.6, reversed 2026-08-17). The prototype's clips panel has no counterpart in the product; embedded YouTube links are `t15b-video-links` | 4 |
 | The map (one embed at a time) | Mapbox with every spot plotted | 4 |
 | Payments (instant and free) | Stripe + entitlements | 5 |
 | Admin rider list (mock data) | Real riders | 6 |
-| Moderation (queue for spots only) | Reporting for profiles and clips | 6 |
+| Moderation (queue for spots only) | Reporting for profiles (and for video links once `t15b` lands) | 6 |
 | Offline | Service worker cache, then native | 7 |
 | Two sports (scooter, skate) | Three — BMX joined at launch (§1), built by T21 | — (§7) |
 
@@ -474,7 +504,7 @@ notes, build a streak, see their own progress. Everything that touches only thei
 
 **What it cannot do:** be visible to any other rider (they read as `private` regardless of setting,
 and do not appear on a crew board), join or create or be invited to a crew, submit a spot, attend
-an event, upload a clip, or hold a subscription. Enforced in rules and hooks as the fourth
+an event, or hold a subscription. Enforced in rules and hooks as the fourth
 guarantee in §3 — not in the client.
 
 **Consent can be revoked, by a guardian who has no account.** Every consent email carries a
@@ -558,28 +588,70 @@ None of this is agent-session work, and none of it blocks a build session. All o
   signed-up riders. The `reports` collection covers the data; the route and the promised response
   time need a human behind them.
 
-### 6.6 Clips
+### 6.6 Rider video — we do not host it
 
-**Decided** (2026-08-15). **2GB on Shredder, 5GB on Legend**, enforced server-side at
-upload in the clips hook, with the cap read from the `plans` record so staff can tune it. Clips
-live on Cloudflare R2 through PocketBase's S3 storage backend — zero egress fees, so the
-watch-cost concern managed hosting had is gone by construction, and the VPS disk never holds
-video. Clips are the paid plans' headline upsell; free riders cannot save clips at all. At the
-Shredder cap the UI shows usage and offers Legend; at the Legend cap it offers delete-to-make-room,
-not an upsell. Cost at cap: ~2.5p (Shredder) to ~6p (Legend) per rider/month in R2 storage.
-Retention defaults, flagged as defaults not law: account deletion hard-deletes clips with
-everything else; downgrade to Rookie keeps existing clips viewable but blocks new saves. The
-privacy-policy promise stands: clips are never public and delivery is always token-gated.
+**Reversed 2026-08-17 (Rachid, in chat).** Land It hosts no video. There is no upload anywhere in
+the product, no clip vault, no per-plan byte cap and no object storage for rider footage. Riders
+will instead **paste a YouTube link** which the app embeds, with **per-video visibility on the same
+three-way `public | members | private` model as profile privacy, defaulting to private**. That
+feature is **`t15b-video-links`** and is not built; this section describes only the reversal.
+
+The previous decision, for the record, was: *2GB on Shredder and 5GB on Legend, enforced
+server-side in the clips hook with the cap read from the `plans` record; clips on Cloudflare R2
+through PocketBase's S3 backend; clips as the paid plans' headline upsell; delete-to-make-room at
+the top of the range.* It was decided 2026-08-15, built as T14 and shipped in PR #112. What it
+asked of a pre-launch product aimed at children was a moderation duty over uploaded video, a
+takedown process, a storage bill that scales with the thing riders are most enthusiastic about, and
+a private-bucket promise printed in the privacy policy — in exchange for hosting a video most
+riders have already put on YouTube. An embed keeps the feature and moves all four to somebody
+else's problem.
+
+**What the reversal removed, in behaviour terms:** the trick page's clips panel (upload, tile,
+playback, delete, usage line and at-cap upsell) is gone entirely rather than reduced to a locked
+state, because a locked panel advertises a feature that is not coming back in that shape. The
+`clips` collection survives with `user`, `trick` and `at` as the row-per-video skeleton `t15b`
+fills in; its `file`, `size` and `kind` fields are removed and its `createRule` is `null`, so
+nothing but server code can write it (`pocketbase/migrations/1787270400_clips_no_hosting.js`, which
+records the owner's grant because it is a breaking change to a merged collection). The `upload_clip`
+guardian-consent capability is gone from `@landit/core` — `t15b` adds its own. The `first-clip`
+("Caught On Cam") sticker is set `isLive: false` rather than deleted: its condition is a clip
+upload, so nobody can earn it, and a wall showing an unearnable achievement is the same false
+promise as vault copy on a plan card. Whether `t15b` re-arms it is an owner decision, filed as an
+issue.
+
+**`plans.clip_cap_bytes` and `Plan.clipCapBytes` are kept, dormant, and this is deliberate.**
+Nothing enforces them — the hook that read them is deleted — so they grant nobody anything. They
+survive for one reason: `listPlans` in `@landit/db` orders **every** plan-card surface (the plans
+page, the staff plan bars, the staff plan dropdown) by `plans.clip_cap_bytes` ascending, because it
+is that collection's only numeric column and happened to rise with price. `price_monthly` is text
+("£3.99"), so it cannot replace it without breaking the day a plan costs £10. Zeroing the caps
+would collapse the ordering; deleting the column needs an explicit rank field, which is a new field
+on a merged collection and therefore somebody's deliberate decision rather than a side effect of a
+reversal. It is filed as an issue, and a `@landit/core` test keeps the three values strictly
+ascending so the ordering cannot silently break. **Nothing may read these numbers as a vault size
+or put one on a screen.** Whether any per-plan video limit exists at all — and if so, a *count* of
+links rather than bytes — is `t15b`'s to decide.
+
+**Retention, restated for the new shape:** account deletion still removes everything we hold,
+which now includes no video because there is none. Nothing survives a downgrade differently,
+because there is nothing stored to survive.
 
 ### 6.7 Pricing
 
 **Confirmed** (2026-08-15): Rookie free; Shredder £3.99/mo or £39.99/yr; Legend
 £6.99/mo or £69.99/yr — Legend replaces the dropped Crew Pass as a single-rider tier (§2.4).
 Yearly ≈ two months free throughout. Cost sanity (checked 2026-08-15, VPS stack): fixed base is
-~£18/mo flat — the VPS at £16.80 plus pennies of R2, shared across every product on the box —
-so break-even is **~5 Shredders**. Per paying rider, Stripe takes ~26p of £3.99 and clip storage
-is the pennies above; there is no egress bill (R2). Native apps will later take a 15% store cut,
-which the yearly price should anticipate.
+~£18/mo flat — the VPS at £16.80 plus pennies of R2 for **database backups** (§2.6), shared across
+every product on the box — so break-even is **~5 Shredders**. Per paying rider, Stripe takes ~26p
+of £3.99 and there is no storage or egress cost at all: since 2026-08-17 Land It hosts no video
+(§6.6), so the per-rider marginal cost of a paid plan is Stripe's fee and nothing else. Native apps
+will later take a 15% store cut, which the yearly price should anticipate.
+
+**The prices above are confirmed; what they buy is not.** The clip vault was the headline perk on
+both paid cards and it was withdrawn on 2026-08-17 without a replacement (§2.4). Legend at £6.99
+now differs from Shredder at £3.99 by flair, insights and printable sheets alone. **Re-pitching the
+paid tiers, and deciding whether the video-link feature is a paid perk or free on every tier, is an
+open owner decision** — filed as an issue, not resolved here.
 
 ### 6.8 Analytics
 
@@ -701,15 +773,15 @@ fixtures. Inputs: `landit-data.js`, `landit-ui.jsx` (stats, sticker evaluation, 
 **T2 · Collections, rules and hooks.** PocketBase JS migrations for every collection in §3
 including the additions (role, timezone, handle index + reserved words, reports, audit_log), all
 collection API rules, and the hooks: paywall check on `trick_progress` writes, sticker award,
-same-sport prereq check, challenge-overlap rejection, clip-cap skeleton, audit-log writer. Tests
+same-sport prereq check, challenge-overlap rejection, clip-cap skeleton (removed 2026-08-17, §6.6), audit-log writer. Tests
 run against a throwaway local PocketBase over HTTP and must prove the four §3 guarantees —
-privacy gating, clips never public, paywall enforced on create — as observed API behaviour. Uses a
+privacy gating, clips never public (superseded — see §3 guarantee 2, rewritten 2026-08-17), paywall enforced on create — as observed API behaviour. Uses a
 handful of handwritten fixture records; real seeds come in T4. Inputs: §3 of this plan, handoff
 data model section, PocketBase JS hooks + migrations docs.
 
 Scope note added 2026-08-16: this is now **four** guarantees, not three. The consent gate (§3
 guarantee 4) needs the `users` age/consent fields, the `guardian_consents` shape and the rules that
-reject a `pending` rider from crews, spots, events, clips and subscriptions — with tests that prove
+reject a `pending` rider from crews, spots, events and subscriptions — with tests that prove
 each refusal over HTTP. Profile view rules default to `private`, not `public`.
 
 **T3 · Design system.** `packages/ui-web`: every token from `Land It.html` as CSS custom
@@ -876,6 +948,8 @@ decisions rather than details:**
 **T7 · Library + trick detail + locked trick.** Filters, search, rookie banner, stage picker,
 notes, prerequisite/unlock pills, locked-trick page. Clips panel renders in its locked/upsell state
 only (real clips are T14). Inputs: `landit-screens-a.jsx`, screenshots 08–10.
+(**Superseded 2026-08-17:** the clips panel no longer exists in any state — T14 was reverted and
+Land It hosts no video, §6.6. The rest of T7 stands.)
 
 **Built 2026-08-16. Four decisions the entry above did not settle:**
 
@@ -883,7 +957,7 @@ only (real clips are T14). Inputs: `landit-screens-a.jsx`, screenshots 08–10.
   listable without a token by their own API rules, and `@landit/db` already described the library
   as readable signed out, so a visitor gets the grid and the lowdown, with the paid tiers drawn as
   locked and a sign-in prompt where the stage picker goes. Nothing rider-shaped is on the page for
-  them: no status filters with anything in them, no notes, no clips.
+  them: no status filters with anything in them, and no notes.
 - **The tricks are read from the collection, never from `@landit/core`'s constants.** The canonical
   data seeds the collection and the collection is what staff edit (T17), so a screen reading the
   constants would make a staff edit invisible. What comes from `core` is the rules applied to those
@@ -892,7 +966,9 @@ only (real clips are T14). Inputs: `landit-screens-a.jsx`, screenshots 08–10.
   worth not getting wrong.
 - **"See plans" renders disabled, on both the rookie banner and the clips panel.** `/plans` is T15
   and `typedRoutes` makes a link to it a compile error; this is T5's established answer to that
-  (§7, T5). Each carries one line saying upgrading is not switched on yet.
+  (§7, T5). Each carries one line saying upgrading is not switched on yet. (**Superseded:** T15 made
+  `/plans` real and wired both links; the clips panel was then deleted altogether on 2026-08-17,
+  §6.6. Only the rookie banner's link remains.)
 - **The "Share it" button on a landed trick is not built.** Screenshot 09 shows one, and the share
   card it opens is a component T10 builds for stickers and tricks together (`landit-ui.jsx`'s
   `ShareCard` takes a `kind`). Building a second one here would be the thing to delete in Wave 5.
@@ -958,7 +1034,7 @@ notifications, and nothing sent between 21:00 and 07:00 local. Inputs: `landit-s
 **T9 · Progress + skill tree.** By category, by stage, over-time chart with the estimated-dates
 note, skill tree with prerequisite/paywall lock states, printable sheets panel. Also the
 Legend-gated **insights panel** (§2.4): per-category trends, personal records, next-trick
-suggestions derived from the skill tree — locked state on lower plans mirrors the clips-panel
+suggestions derived from the skill tree — locked state on lower plans mirrors the (since removed) clips-panel
 upsell pattern. The panel is profiling under the Children's code (§6.4): off by default, opt-in
 even on Legend, and it never reads anything but the rider's own history. Inputs:
 `landit-screens-b.jsx`, screenshots 11–13.
@@ -967,7 +1043,7 @@ even on Legend, and it never reads anything but the rider's own history. Inputs:
 decisions rather than details:**
 
 - **The insights entitlement is a field on `plans`, not a plan id in the code.** `includes_insights`
-  joins `unlocks_paid_tricks` and `clip_cap_bytes` on the plan record (§2.4, §6.6), with
+  joins `unlocks_paid_tricks` on the plan record (§2.4, §6.6), with
   `Plan.includesInsights` beside it in `packages/core`. Nothing anywhere compares a plan to the
   string `legend`: staff can move the perk without a deploy, and a missing plan record fails closed
   rather than open. Additive migration `1787097609_progress_insights.js`, which also writes the
@@ -999,7 +1075,7 @@ Legend includes without linking `/plans`, which is T15's and does not exist. Ski
 wired — T7 merged first, so `trickHref` was there by the time this rebased, and a node opens its
 trick page the same way the library grid does.
 
-### Wave 5 — four concurrent sessions (clips may lag)
+### Wave 5 — four concurrent sessions
 
 **T10 · Stickers.** Wall, detail modal, share card; server-side award flow end-to-end (earn a
 sticker by tracking, see the toast once, never re-announced). Inputs: `landit-screens-b.jsx`,
@@ -1316,44 +1392,33 @@ child's device. `e2e/spots.spec.ts` replaces `navigator.geolocation` with a coun
 is called zero times on load, and that nothing containing the position reaches `localStorage`,
 `sessionStorage` or a cookie.
 
-**T14 · Clips.** Upload through PocketBase's file field backed by R2, token-gated playback,
-per-plan cap read from the `plans` record (2GB Shredder / 5GB Legend) enforced in the upload hook,
-the at-cap states from §6.6, delete. Slot anywhere after Wave 4. Inputs: `landit-screens-a.jsx`
-(clips panel), §6.6 clip decision.
+**T14 · Clips. ~~Built 2026-08-17 (PR #112).~~ REVERTED 2026-08-17 (PR: `chore-revert-clips`).**
 
-**Built 2026-08-17.** Five things the entry above did not settle:
+The task was: upload through PocketBase's file field backed by R2, token-gated playback, per-plan
+cap read from the `plans` record (2GB Shredder / 5GB Legend) enforced in the upload hook, the at-cap
+states from §6.6, delete. It was built, tested and merged, and then **the decision underneath it was
+reversed by the owner (Rachid, 2026-08-17, in chat): Land It will not host rider video.** See the
+§1 decision row and §6.6. T14 is not "unfinished" and it did not fail — the feature worked; the
+product changed its mind about wanting it.
 
-- **A tile is metadata; the bytes arrive on the press.** The prototype's clips were
-  `createObjectURL` blobs, so it could render a live `<video>` preview per tile for nothing. A real
-  one is bytes behind a file token that lives for minutes, so a page that rendered previews would
-  need a token baked into its HTML — dead by the time a rider scrolled to it, and pasteable while it
-  lived. The tile is the ink block, the play or camera mark and the date; clicking it calls a server
-  action that re-checks ownership, mints a fresh token and returns one URL. This is the only
-  deliberate divergence from screenshot 09's panel, and it is the one guarantee 2 asks for.
-- **The cap and the plan name are read from the `plans` collection on every render**, never from
-  `PLAN[id].clipCapBytes`. The constant seeds the record; staff edit the record afterwards (§6.6),
-  and a screen reading the constant would make a retune invisible — the same call T7 made about
-  reading tricks from the collection. The at-cap upsell likewise names **whichever live plan has the
-  next bigger vault**, so no string `legend` appears in the panel and adding a tier moves the offer.
-  At the top of the range there is no upsell, only delete-to-make-room, exactly as §6.6 says.
-- **A clip row with no file is now refused to riders** (`50_clips.pb.js`). It was already refused,
-  but by accident and with the wrong message: PocketBase's `findUploadedFiles` *throws* on a request
-  carrying no multipart form, so every JSON-bodied create on `clips` came back as a bare 400 saying
-  "Something went wrong" (LESSONS §3's generic-400 signature). Reading "no form" as "no files" makes
-  the refusal deliberate, and leaves the fileless path open to a superuser — which is what lets
-  `clip-vault.test.ts` fill a 2GB vault in one request instead of moving two gigabytes, and prove in
-  passing that the cap holds against a superuser token.
-- **`kind` and `at` are decided by the server**, joining `size` and `user`. `kind` is read off the
-  stored file's name rather than the body, so the tile cannot be made to draw a photo as a video;
-  `at` is server time, because a "filmed on" a client chooses is worth nothing to a moderation queue
-  (`reports` takes `clip` as a subject, §3).
-- **R2 is not wired here, by design.** The bucket, its credentials and PocketBase's S3 settings are
-  deploy-time infrastructure (`docs/infrastructure.md`, reference only); this task builds and tests
-  against PocketBase's local file storage, which is the same API either way. `pocketbase/README.md`
-  records what has to be set and where; the bucket itself is filed as an issue.
+**Why it was reverted rather than left dormant.** T14's code was the only thing standing between
+this product and a moderation duty over uploaded children's video, and dormant code is not a
+boundary — the collection's file field would still have accepted 200MB uploads. More immediately,
+the published privacy policy and terms had been written to *promise* the vault ("Clips you upload
+are yours, and only you can watch them… the storage they sit in is private"), and those promises
+cannot be left standing next to a feature nobody can use. The reversal removed the claims as well as
+the code; the §6.6 note lists what went.
 
-"See plans" still renders as a label on both the upsell and the at-cap block: `/plans` is T15's, and
-whichever of the two sessions merges second wires it (LESSONS §3a).
+**What replaces it, and what does not.** The trick page now has **no video surface at all** — the
+clips panel was deleted rather than returned to T7's locked state, because a locked panel advertises
+a vault that is not coming back. The replacement is **`t15b-video-links`**: riders paste a YouTube
+link, visibility per video on the `public | members | private` model, private by default. That task
+is not built, and this reversal deliberately built none of it — no collection fields, no URL
+parsing, no UI. §3 guarantee 2 records that the new feature needs its own guarantee about visibility
+defaults and the profile-privacy ceiling, and that `t15b` writes it.
+
+Inputs, for `t15b`: `landit-screens-a.jsx` (clips panel — as a layout reference only; its behaviour
+is void), §6.6.
 
 ### Wave 6 — three sessions, T15 ∥ T16 then T17
 
@@ -1363,6 +1428,8 @@ page with monthly/yearly toggle and FAQ, and an end-to-end test that a rookie �
 actually unlocks a paid trick at the hook layer. Three plan cards as designed, but the top card is
 **Legend** (single rider, §2.4), not the prototype's Crew Pass — rewrite its pitch, perks and FAQ
 copy around the 5GB vault, flair and insights; Shredder stays the raised "Most riders" card.
+(**Superseded 2026-08-17:** the vault copy was removed with the clip-hosting reversal — §2.4, §6.6.
+Legend's pitch is flair and insights alone until the owner re-pitches the tiers.)
 Legend flair itself (profile/crew-board tag, exclusive avatars) is applied where those surfaces
 live — coordinate the tag rendering with what T11 built. **The payer must be an adult** (§6.2):
 checkout requires an 18+ confirmation, a rider whose `consent_state` is not `granted` cannot hold a
@@ -1603,7 +1670,8 @@ placed here, late, because the content is the risk and this maximises the runway
 
 ### Wave 8 — three concurrent sessions
 
-**T18 · Hardening.** Reporting flows in the rider app (profile/clip report buttons), account
+**T18 · Hardening.** Reporting flows in the rider app (profile report buttons — and video-link
+report buttons if `t15b-video-links` has landed by then; there are no clips to report, §6.6), account
 deletion + data export (GDPR — the privacy policy promises both), rate limits on submissions and
 handle checks, Sentry verification, then run a full security review pass over the branch history.
 The OSA reporting duties (§6.1) land here too: a route that works for someone who is not a

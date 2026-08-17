@@ -21,9 +21,16 @@ import styles from './plans.module.css';
  * (plan §2.4) because its seat model was the fiddliest part of payments and its
  * other job — being the parental-consent mechanism — is done properly by the
  * consent flow instead. The third card is **Legend**, still one rider, and its
- * pitch is the 5GB vault, the flair and the progress insights. The layout, the
- * raised "Most riders" card and the toggle are the screenshot's exactly; only
- * that card's contents diverge, and the plan records why.
+ * pitch is the flair and the progress insights. The layout, the raised "Most
+ * riders" card and the toggle are the screenshot's exactly; only that card's
+ * contents diverge, and the plan records why.
+ *
+ * **Legend has lost its headline perk.** Until 2026-08-17 the card led on a 5GB
+ * clip vault against Shredder's 2GB; the owner reversed clip hosting that day
+ * (plan §1, §6.6) and the vault lines are gone from `PLANS` in `@landit/core`.
+ * Nothing was invented to replace them — what a paid tier is *worth* is a
+ * pricing decision the owner reserved, and it is filed as an issue. So these
+ * cards are currently accurate and thin, which is the right way round.
  *
  * **The FAQ is a rewrite, not a transcription**, for the reason T5's legal
  * pages were: two of the prototype's four answers sell Crew Pass and one
@@ -49,11 +56,11 @@ const FAQ: readonly { readonly q: string; readonly a: string }[] = [
   },
   {
     q: 'Do stickers come faster on a paid plan?',
-    a: 'No. Stickers and stages are earned by riding, on every plan, and none of them is ever for sale. Paying opens the harder tricks, a bigger clip vault and the progress insights.',
+    a: 'No. Stickers and stages are earned by riding, on every plan, and none of them is ever for sale. Paying opens the harder tricks and the progress insights.',
   },
   {
     q: 'Can I cancel?',
-    a: 'Whenever you like. Your tricks, your stickers and your streak stay exactly where they are, and clips you have already saved stay watchable.',
+    a: 'Whenever you like. Your tricks, your stickers and your streak stay exactly where they are.',
   },
 ];
 
@@ -71,8 +78,7 @@ export function PlansScreen({ view }: { view: PlansView }) {
         <h1 className={`d ${styles.title}`}>A free tier that isn&rsquo;t a trial</h1>
         <p className={styles.lede}>
           Both libraries up to the Easy tier, full tracking and the sticker wall cost nothing,
-          forever. Paying opens the harder tiers, saves your clips, and shows you the numbers behind
-          your riding.
+          forever. Paying opens the harder tiers and shows you the numbers behind your riding.
         </p>
 
         <div className={styles.toggleRow}>

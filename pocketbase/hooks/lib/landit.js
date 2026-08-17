@@ -165,11 +165,6 @@ function planUnlocksPaidTricks(app, userRecord) {
   return !!plan && plan.getBool('unlocks_paid_tricks');
 }
 
-function clipCapBytes(app, userRecord) {
-  const plan = planFor(app, userRecord);
-  return plan ? plan.getInt('clip_cap_bytes') : 0;
-}
-
 function planIncludesInsights(app, userRecord) {
   const plan = planFor(app, userRecord);
   return !!plan && plan.getBool('includes_insights');
@@ -420,42 +415,6 @@ function challengeIsLive(challenge, nowIso) {
   const from = shiftDay(challenge.getDateTime('starts').string().slice(0, 10), -1);
   const to = shiftDay(challenge.getDateTime('ends').string().slice(0, 10), 1);
   return from <= today && today <= to;
-}
-
-// --------------------------------------------------------------- clips ---
-
-/**
- * Guarantee 2's write half and the §6.6 cap. Free riders cannot save clips at
- * all; paid riders are held to the cap on their *plan record*, so staff can
- * tune it without a deploy.
- */
-function enforceClipCap(app, record) {
-  const userId = record.getString('user');
-  if (!userId) return;
-  const user = app.findRecordById('users', userId);
-
-  if (isConsentLimited(user)) {
-    throw new ForbiddenError(
-      'This account is waiting on a guardian’s approval and cannot save clips.',
-    );
-  }
-
-  const cap = clipCapBytes(app, user);
-  if (cap <= 0) {
-    throw new ForbiddenError('Saving clips is part of the paid plans.');
-  }
-
-  const size = record.getInt('size');
-  let used = 0;
-  for (const clip of findAll(app, 'clips', 'user = {:user}', { user: userId })) {
-    if (clip.id !== record.id) used += clip.getInt('size');
-  }
-
-  if (used + size > cap) {
-    throw new ForbiddenError(
-      `That would take this account past its ${Math.round(cap / 1073741824)}GB clip vault.`,
-    );
-  }
 }
 
 // ------------------------------------------------------- subscriptions ---
@@ -746,8 +705,6 @@ module.exports = {
   actorOf,
   assertHandleAllowed,
   challengeIsLive,
-  clipCapBytes,
-  enforceClipCap,
   enforceNoChallengeOverlap,
   enforcePaywall,
   enforcePrereqSameSport,

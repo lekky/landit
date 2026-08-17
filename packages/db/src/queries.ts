@@ -15,7 +15,6 @@ import type {
   AnnouncementsRecord,
   ChallengeLogRecord,
   ChallengesRecord,
-  ClipsRecord,
   CrewInvitesRecord,
   CrewMembersRecord,
   EventAttendanceRecord,
@@ -287,7 +286,23 @@ export async function riderSnapshot(
 
 /* ------------------------------------------------------------- catalogue -- */
 
-/** The live plans, cheapest first. The paywall reads its numbers off these records. */
+/**
+ * The live plans, cheapest first. The paywall reads its numbers off these records.
+ *
+ * **The sort key is load-bearing and it is the wrong column.** Card order on the
+ * plans page, the staff plan bars and the staff plan dropdown all come straight
+ * from this list, and it is ordered by `clip_cap_bytes` — which was never a
+ * price, only a number that happened to rise with one. Clip hosting was reversed
+ * on 2026-08-17 (plan §1, §6.6) and that column is now dormant: nothing enforces
+ * it, and it survives *because* this sort depends on it. Its three values are
+ * kept strictly ascending by a test in `@landit/core`.
+ *
+ * `plans` has no numeric price column to sort on instead (`price_monthly` is text
+ * like "£3.99", and text-sorting money breaks the day a plan costs £10). Giving
+ * the collection an explicit rank field is the fix and it is filed as an issue —
+ * not done here, because this PR is a reversal and a new field on a merged
+ * collection is somebody's deliberate decision, not a side effect of one.
+ */
 export async function listPlans(client: Client): Promise<PlansRecord[]> {
   return records(client, 'plans').list({ filter: 'is_live = true', sort: 'clip_cap_bytes' });
 }
@@ -597,99 +612,6 @@ export async function getCrewFeed(
 ): Promise<{ crew: string; items: CrewFeedItem[] }> {
   return client.send(`/api/landit/crew-feed/${encodeURIComponent(crewId)}`, { method: 'GET' });
 }
-
-/* ------------------------------------------------------------------ clips -- */
-
-/**
- * A rider's clips (T14).
- *
- * Every read below carries the rider's own token and the `clips` rules are
- * owner-only on all four verbs, so "their clips" is enforced by the collection
- * and merely *expressed* by this filter. A caller that passed somebody else's
- * id would get an empty list, not their videos (plan §3, guarantee 2).
- *
- * Newest first: the tile a rider wants is almost always the one they just
- * filmed.
- */
-export async function listClips(
-  client: Client,
-  userId: string,
-  options: { readonly trickId?: string } = {},
-): Promise<ClipsRecord[]> {
-  const filter = options.trickId ? 'user = {:user} && trick = {:trick}' : 'user = {:user}';
-  return records(client, 'clips').list({
-    filter,
-    params: options.trickId ? { user: userId, trick: options.trickId } : { user: userId },
-    sort: '-at,-created',
-  });
-}
-
-/**
- * One clip, or `null`.
- *
- * `null` covers both "no such clip" and "not yours", and the two are
- * deliberately indistinguishable — the collection's owner-only view rule is
- * what makes them so, and a caller that could tell them apart would be a way to
- * probe for other riders' clips (plan §3, guarantee 2).
- */
-export async function getClip(client: Client, clipId: string): Promise<ClipsRecord | null> {
-  return records(client, 'clips').first('id = {:id}', { id: clipId });
-}
-
-export interface ClipVaultUsage {
-  /** Bytes stored across every trick, not just the one on screen. */
-  readonly bytes: number;
-  readonly count: number;
-}
-
-/**
- * How full a rider's vault is, summed the same way the upload hook sums it.
- *
- * The hook is the authority — it adds the rider's stored rows at write time and
- * refuses past the cap on its own count (plan §6.6). This exists so the panel
- * can say "1.9GB of 2GB" without asking the server to refuse something first,
- * and it is deliberately the *same* sum so the two never tell a rider different
- * stories.
- */
-export async function clipVaultUsage(client: Client, userId: string): Promise<ClipVaultUsage> {
-  const clips = await listClips(client, userId);
-  return {
-    bytes: clips.reduce((total, clip) => total + (clip.size || 0), 0),
-    count: clips.length,
-  };
-}
-
-/**
- * The cap on a rider's plan, in bytes, from the `plans` record.
- *
- * Fails **closed**, exactly as `clipCapBytes` does in the hook: an unknown plan
- * slug, or a `plans` collection nobody has seeded, resolves to no vault rather
- * than to an unlimited one. Never `PLAN[id].clipCapBytes` — that constant seeds
- * the record and staff edit the record afterwards (plan §6.6).
- */
-export async function clipCapBytes(client: Client, planSlug: string): Promise<number> {
-  const plan = await records(client, 'plans').first('slug = {:slug} && is_live = true', {
-    slug: planSlug || 'rookie',
-  });
-  return plan?.clip_cap_bytes ?? 0;
-}
-
-/**
- * The cheapest live plan with a bigger vault than the one given, or `null`.
- *
- * This is what decides whether the at-cap panel offers an upgrade or offers
- * delete-to-make-room (plan §6.6): at the Shredder cap there is a Legend to
- * point at, at the Legend cap there is not, and neither of those sentences
- * names a plan id. Staff adding a tier, or moving a cap, moves the offer with
- * it.
- *
- * Takes the plans it was already given rather than fetching them, so a screen
- * that has read `listPlans` for the rider's own record does not read it twice.
- */
-export function nextClipPlan(plans: readonly PlansRecord[], capBytes: number): PlansRecord | null {
-  return plans.filter((plan) => (plan.clip_cap_bytes ?? 0) > capBytes)[0] ?? null;
-}
-
 /* --------------------------------------------------------- subscriptions -- */
 
 /**
@@ -700,8 +622,8 @@ export function nextClipPlan(plans: readonly PlansRecord[], capBytes: number): P
  * it is allowed to write.
  *
  * There is deliberately no `planFor(rider)` here. What a plan *grants* is read
- * off the `plans` record (`unlocks_paid_tricks`, `clip_cap_bytes`,
- * `includes_insights`, `includes_flair`), and `users.plan` is resolved from
+ * off the `plans` record (`unlocks_paid_tricks`, `includes_insights`,
+ * `includes_flair`), and `users.plan` is resolved from
  * these rows by the hook — a third place computing an entitlement is exactly
  * what plan §2.4 says not to build.
  */

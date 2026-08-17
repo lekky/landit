@@ -18,9 +18,9 @@ export const PRIVACY = [
     label: 'Public',
     short: 'Public',
     blurb:
-      'Anyone with the link sees your tricks, stickers and streak. Your surname, email and clips are never shown.',
+      'Anyone with the link sees your tricks, stickers and streak. Your surname and email are never shown.',
     other:
-      "Anyone with the link can see this rider's tricks, stickers and streak. Surnames, emails and clips are never shown.",
+      "Anyone with the link can see this rider's tricks, stickers and streak. Surnames and emails are never shown.",
   },
   {
     id: 'members',

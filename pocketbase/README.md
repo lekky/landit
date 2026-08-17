@@ -6,7 +6,7 @@ backend lives here and is committed.
 | Directory | Holds |
 | --- | --- |
 | `migrations/` | JS migrations defining every collection, its fields, its API rules and its indexes. The schema's source of truth — T2. |
-| `hooks/` | `pb_hooks` JavaScript: the rules a client must never be trusted with — paywall check on `trick_progress` writes, sticker awards, same-sport prerequisite check, challenge-overlap rejection, clip cap, audit-log writer — T2. |
+| `hooks/` | `pb_hooks` JavaScript: the rules a client must never be trusted with — paywall check on `trick_progress` writes, sticker awards, same-sport prerequisite check, challenge-overlap rejection, subscription eligibility, audit-log writer — T2. |
 | `scripts/` | The local-dev runner. |
 | `tests/` | HTTP tests that start a throwaway PocketBase against the files above and prove the four security guarantees in plan §3 — T2. |
 
@@ -53,29 +53,6 @@ environment (see `apps/web/.env.example`) — the write rules on `tricks` and `p
 `null`, which is the point: the trick library is not something a rider can add to. Seeding
 is idempotent, so re-running it after a data change is how you update a database that
 already has riders on it.
-
-## Clip storage (R2), and why nothing here configures it
-
-Clips live on **Cloudflare R2 through PocketBase's own S3 backend** (plan §1, §6.6) — zero egress
-fees, and the VPS disk never holds video. That is a *setting on the running instance*, not a file in
-this repo: PocketBase stores it under **Settings → Files storage** in the superuser dashboard, and
-it takes five values.
-
-| Setting | Value |
-| --- | --- |
-| Endpoint | `https://<account-id>.r2.cloudflarestorage.com` |
-| Bucket | the Land It clips bucket, **private** — no public access, no custom public domain |
-| Region | `auto` |
-| Access key / secret | an R2 API token scoped to that one bucket, object read+write |
-| Force path-style | on |
-
-Two things follow, and they are the reason this is documentation rather than a `.env` entry. **The
-credentials never enter the repo** — they are typed into the dashboard by the owner, like the
-superuser account (`CLAUDE.md`, the box1 exception). And **nothing in the app changes when they are
-set**: uploads, the owner-only rules and the `protected` file field behave identically against local
-disk and against R2, which is why T14 was built and tested with local storage. What R2 must never
-be is a bucket with public access — guarantee 2 says a clip is reachable only against a short-lived
-file token, and a public bucket is a second door past every rule in `migrations/`.
 
 ## The tests
 

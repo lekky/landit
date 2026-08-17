@@ -16,9 +16,11 @@ import styles from './progress.module.css';
  *
  * Three states, and the middle one is the important one:
  *
- * 1. **Not entitled.** The clips-panel upsell pattern: violet flag, violet
- *    slot, the plain sentence about what it is, and — since T15 landed the
- *    route — a way to go and read what Legend costs.
+ * 1. **Not entitled.** The house upsell pattern: violet flag, violet slot, the
+ *    plain sentence about what it is, and — since T15 landed the route — a way
+ *    to go and read what Legend costs. (This pattern was set by the clips panel,
+ *    which was removed when clip hosting was reversed on 2026-08-17; this is now
+ *    the only screen that uses it.)
  * 2. **Entitled, not opted in.** An invitation, not a panel. Insights are
  *    profiling under the Children's code (plan §6.4, standard 12), so they are
  *    off by default *even on Legend* — paying for a feature is not asking for

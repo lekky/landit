@@ -311,15 +311,17 @@ reads as being about imports. It is about everything the handler names.
 
 **A JSVM helper that "returns nothing" may throw instead, and the hook takes the blame.**
 `e.findUploadedFiles('file')` reads the request's multipart form; on a request that has no form —
-any ordinary JSON create — it **throws** rather than returning an empty list. `50_clips.pb.js` had
-called it unguarded since T2, so every JSON-bodied create on `clips` came back as the same nameless
-400 the entry above describes, and the message named neither the field nor the cause. Nothing had
-noticed because the only client was a multipart upload; T14 was the first caller to try anything
-else, and spent twenty minutes reading the *collection rules* because a 400 on a create is what a
-failed `createRule` looks like too. Two things. When a hook's 400 carries no field errors, suspect
-the hook before the rule — the generic message is the tell, whatever produced it. And a helper that
-reads part of a request is worth a `try` the first time you call it on a path the request may not
-have.
+any ordinary JSON create — it **throws** rather than returning an empty list. The clips hook had
+called it unguarded since T2, so every JSON-bodied create on that collection came back as the same
+nameless 400 the entry above describes, and the message named neither the field nor the cause.
+Nothing had noticed because the only client was a multipart upload; T14 was the first caller to try
+anything else, and spent twenty minutes reading the *collection rules* because a 400 on a create is
+what a failed `createRule` looks like too. Two things. When a hook's 400 carries no field errors,
+suspect the hook before the rule — the generic message is the tell, whatever produced it. And a
+helper that reads part of a request is worth a `try` the first time you call it on a path the
+request may not have. (The hook itself is gone — clip hosting was reversed on 2026-08-17 — but the
+JSVM behaviour is PocketBase's, not ours, and the next session to call a request-reading helper
+will meet it again. Kept for that reason, not for the file.)
 
 **A hook that guards "when the client left it empty" is unguarded the day a client exists.**
 `60_ownership.pb.js` minted an invite code `if (!e.record.getString('code'))` under a comment
@@ -481,6 +483,35 @@ so a rider could PATCH it to 9999 and the award hook would believe it — forgin
 a product whose plan says achievements are never for sale (issue #8). If a value feeds an award,
 either the server owns the field outright or the hook recomputes it from the log.
 
+**Reverting a feature is not `git revert`: the code comes out in one command and the promises do
+not.** T14 built clip hosting; the owner reversed the decision the next day
+(`chore-revert-clips`, 2026-08-17). The revert itself was twenty minutes of conflict resolution.
+Everything that took longer was a *claim* the feature had left somewhere it could outlive the code:
+two published legal documents promising that "the storage they sit in is private", a privacy blurb
+in `@landit/core`, a plan card's headline perk, a guardian-consent capability list, the guardian
+upgrade **email**, an "Upload your first clip" sticker nobody could earn any more, and an e2e test
+asserting the upsell was visible. None of them import anything from the deleted code, so none of
+them appear in a compiler error, a failing test, or the revert's diff.
+
+The rule: **when a feature dies, grep for what it promised, not for what it imported.** Search the
+nouns a rider would recognise — the feature's name, its units, its numbers ("vault", "clip", "GB")
+— across copy, legal text, seed data, email templates, achievement conditions and test assertions,
+and do it *before* claiming the revert is done. Then leave a test behind that asserts the **absence**
+(`e2e/legal.spec.ts` now fails if any document says "vault" or "upload"), because the next session
+to touch that copy will not know the feature ever existed. A promise made to a parent about how
+carefully their child's video is stored is worse than useless once no video is stored: it is still
+telling them we hold it.
+
+**A field nobody enforces can still be load-bearing.** `plans.clip_cap_bytes` looked like pure dead
+weight after the reversal — the only hook that read it was deleted in the same PR. It could not be
+removed: `listPlans` sorts the plan cards by it, because it was the collection's only numeric column
+and happened to rise with price, so deleting it would have silently scrambled the card order on the
+plans page and in two staff screens. **Before deleting a "dead" column, grep for it in `sort`, index
+and filter strings, not just in the code that reads its value** — an ordering dependency has no call
+site and no type error. It survives as documented dormant data, with a test pinning the three values
+ascending, and the real fix (an explicit rank column) is filed rather than improvised inside a
+reversal.
+
 ## 5. Tests that cannot silently pass
 
 **Prove a guarantee as observed behaviour, not as rule text.** T2's four §3 guarantees are
@@ -551,19 +582,38 @@ proves nothing.)
 
 **Test files share one server, so a fixture row one file edits is a fixture row every file edits.**
 The PocketBase suite starts a single instance for the whole run and vitest runs the files in
-parallel against it. `guarantee-2-clips.test.ts` proves the clip cap by shrinking the **`legend`**
-plan's `clip_cap_bytes` to 2KB, with a comment saying legend is used by no other test — true when it
-was written, and exactly the kind of claim the next file quietly breaks. T14 needed a nearly-full
-vault too, and taking the same lever would have made both files depend on which one ran first, in a
-way that fails intermittently and reads as a product bug.
+parallel against it. One guarantee test proved the clip cap by shrinking the **`legend`** plan's
+`clip_cap_bytes` to 2KB, with a comment saying legend was used by no other test — true when it was
+written, and exactly the kind of claim the next file quietly breaks. T14 needed a nearly-full vault
+too, and taking the same lever would have made both files depend on which one ran first, in a way
+that fails intermittently and reads as a product bug.
 
-What it did instead is the move worth repeating: **change the rider, not the shared row.** A
-superuser can create a `clips` record that declares a `size` and carries no file, so the vault fills
-in one request against that rider alone, and no `plans` record moves. It is also the sharper test —
-the planted row still goes through the model-layer cap, which is the "including with a superuser
-token" property §5 opens with. When a fixture is global and mutable, look for the per-rider lever
-before you reach for it; and if there genuinely isn't one, say in the *other* file's comment that
-you have taken the lever, because "used by no other test" is a claim that decays.
+What it did instead is the move worth repeating: **change the rider, not the shared row.** Fill the
+per-rider thing being measured, in one request, against a rider that file created — and leave every
+shared catalogue record alone. It is also the sharper test, because the planted row still goes
+through the model-layer rule, which is the "including with a superuser token" property this section
+opens with. When a fixture is global and mutable, look for the per-rider lever before you reach for
+it; and if there genuinely isn't one, say in the *other* file's comment that you have taken the
+lever, because "used by no other test" is a claim that decays. (Both clip test files are gone —
+hosting was reversed on 2026-08-17 — but the suite still shares one instance and `plans`,
+`stickers`, `tricks` and `challenges` are still global mutable fixtures.)
+
+**`pnpm build` before `pnpm e2e` makes dynamic routes 404, and it looks exactly like a data bug.**
+Found in `chore-revert-clips`, 2026-08-17. The gates were run, then e2e: **every `/library/[slug]`
+page rendered "That page isn't here"** — ten specs across `library`, `progress`, `stickers`, `home`
+and `auth`, all of them a trick-detail navigation. The library *grid* passed in the same run, so
+`tricks` was plainly seeded and readable; the obvious reading is that the seed half-finished, and
+the next twenty minutes go into `seed-library.ts` and the `.pb_e2e` database. Both are innocent.
+`pnpm build` writes a production build into `apps/web/.next`, and the `next dev` server Playwright
+then starts reuses that directory — the mismatched cache resolves the static routes and drops the
+dynamic ones. Deleting `pocketbase/.pb_e2e` alone changes nothing and confirms the wrong theory;
+deleting `apps/web/.next` fixes it completely.
+
+Two rules. **`rm -rf apps/web/.next` between a build gate and an e2e run** — the gates and the e2e
+suite do not share a working directory safely, and the same run order happens on every session that
+follows the protocol in order. And **when a whole *route* fails while its sibling routes pass,
+suspect the build cache before the database**: a data problem takes out everything that reads the
+collection, not one route shape.
 
 **A suite that reads a collection only staff can write has to seed it, or it proves nothing.**
 Every e2e test before T7 wrote its own data *through the app* — a sign-up makes its rider — so the
