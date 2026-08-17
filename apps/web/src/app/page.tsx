@@ -24,7 +24,7 @@ import styles from './landing.module.css';
  */
 
 export const metadata: Metadata = {
-  title: 'Land It · Every trick you can do, proven',
+  title: 'Land The Trick · Every trick you can do, proven',
   description: `A trick tracker for ${sportsList()} riders. Log what you're learning, what you want next, and how well you have actually got it.`,
 };
 

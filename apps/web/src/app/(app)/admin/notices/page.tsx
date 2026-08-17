@@ -50,7 +50,7 @@ export default async function AdminNoticesPage() {
     id: record.id,
     title: record.title,
     body: record.body,
-    label: record.label || 'Land It',
+    label: record.label || 'Land The Trick',
     hue: record.hue || '#FFC23F',
     audienceLabel:
       record.audience === 'plan' && record.audience_plan

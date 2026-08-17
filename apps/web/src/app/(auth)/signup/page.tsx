@@ -10,7 +10,7 @@ import { AuthCard } from '../AuthCard';
 import { SignUpForm } from './SignUpForm';
 
 export const metadata: Metadata = {
-  title: 'Make an account · Land It',
+  title: 'Make an account · Land The Trick',
   description: 'Free tier, no card, keeps everything.',
 };
 

@@ -52,7 +52,7 @@ test('the footer links to every legal document', async ({ page }) => {
     ['Terms of use', '/legal/terms'],
     ['Cookies', '/legal/cookies'],
     ['Safeguarding', '/legal/safeguarding'],
-    ['About Land It', '/legal/about'],
+    ['About Land The Trick', '/legal/about'],
   ] as const) {
     await expect(footer.getByRole('link', { name, exact: true })).toHaveAttribute('href', href);
   }

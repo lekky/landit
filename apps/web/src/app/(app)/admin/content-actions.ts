@@ -689,7 +689,7 @@ export async function postNoticeAction(form: NoticeForm): Promise<StaffWriteResu
       data: {
         title: form.title.trim(),
         body: form.body.trim(),
-        label: form.label.trim() || 'Land It',
+        label: form.label.trim() || 'Land The Trick',
         hue: form.hue,
         audience: (plan ? 'plan' : sport ? 'sport' : 'all') as AnnouncementsAudience,
         audience_plan: selectOrEmpty(plan as AnnouncementsAudiencePlan | ''),

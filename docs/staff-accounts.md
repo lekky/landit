@@ -5,7 +5,7 @@ How somebody gets into `/admin`, and why it is deliberately awkward.
 ## The short version
 
 Staff are a **role on an ordinary rider account** (plan §5). There is no staff login, no staff
-password, no second app. Somebody who works on Land It signs in the way every rider does, and
+password, no second app. Somebody who works on Land The Trick signs in the way every rider does, and
 `users.role = 'staff'` is what makes `/admin` exist for them.
 
 The role can only be granted from the **PocketBase superuser dashboard**. There is no API path,

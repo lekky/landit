@@ -10,7 +10,7 @@ import { EventsScreen } from './EventsScreen';
 import { buildEventsView } from './view';
 
 export const metadata: Metadata = {
-  title: 'Events · Land It',
+  title: 'Events · Land The Trick',
   description: 'Comps, coached sessions, classes and jams that staff have put on the calendar.',
 };
 

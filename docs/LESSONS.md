@@ -11,7 +11,7 @@ away, or putting a design-system class on a tag the prototype never used. §4 wh
 rule *means*. §5 before writing a test that guards one of the §3 guarantees. §5a before putting
 anything you did not type yourself into a shell argument. §6 before adding a dependency.
 
-Ported from `frontdesk`'s `docs/LESSONS.md`, whose rules were paid for in production. Land It's
+Ported from `frontdesk`'s `docs/LESSONS.md`, whose rules were paid for in production. Land The Trick's
 own entries start at Wave 1.
 
 ---
@@ -305,7 +305,7 @@ list` is as much a part of that check as it is of the branch check above. T18 re
 **A sibling session's *correct* decision can be false by the time you merge, and it will be written
 down as a comment arguing for itself.** T18 shipped the report form on the morning the clip vault was
 reverted, and did the careful thing: it kept the `clip` report subject rather than hiding it, disabled
-the radio, and wrote a blurb reading "There is no video on Land It yet" plus a comment explaining that
+the radio, and wrote a blurb reading "There is no video on Land The Trick yet" plus a comment explaining that
 hiding the option would "quietly decide video is unreportable". Every word of that was right when it
 was written. T15b landed video links **hours later**, and all of it became false — leaving a live
 video surface whose report route was switched off, which is the one combination §6.1's OSA duty
@@ -440,8 +440,8 @@ selector, not just the class name, the first time you put a design-system class 
 **A layout's `metadata` is resolved before the layout runs, so it survives the gate the layout
 contains.** T16 put `requireStaff()` in `app/(app)/admin/layout.tsx` — the right place, since it
 covers every screen T17 adds without anyone remembering to — and a `metadata` export beside it
-reading `title: 'Staff portal · Land It'`. A rider who guessed `/admin` got the ordinary 404 page,
-correctly, **with "Staff portal · Land It" in the browser tab**. The gate had answered 404
+reading `title: 'Staff portal · Land The Trick'`. A rider who guessed `/admin` got the ordinary 404 page,
+correctly, **with "Staff portal · Land The Trick" in the browser tab**. The gate had answered 404
 specifically so that a probing rider learns nothing about whether a portal exists, and the tab
 title handed it over.
 
@@ -651,7 +651,7 @@ expected, the surplus green is information, not luck.
 
 **A red that names the wrong thing is barely better than a green. Order the assertions so the one
 that names the defect runs first.** T15b's video panel embeds YouTube behind a click-to-play gate,
-because §6.8 keeps Land It free of a consent banner and an iframe rendered on load would contact
+because §6.8 keeps Land The Trick free of a consent banner and an iframe rendered on load would contact
 Google before a child had chosen anything. The e2e test for it counted requests to Google hosts on a
 cold page load and asserted zero — then the gate was removed to watch it fail, per the rule above.
 

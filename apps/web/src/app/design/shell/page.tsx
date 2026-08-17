@@ -17,7 +17,7 @@ import { ShellPreview } from './preview';
  * checked. There is no auth here — T6 supplies the real one.
  */
 export const metadata: Metadata = {
-  title: 'App shell · Land It',
+  title: 'App shell · Land The Trick',
   description: 'The rider app frame, with the toast and modal hosts live.',
   robots: { index: false, follow: false },
 };

@@ -9,7 +9,7 @@ import { e2eSuperuser } from './support/seed-library';
  * **What this file exists for, and it is one thing above the others: proving
  * that nothing on the page talks to Google until the rider presses play.**
  *
- * Plan §6.8 runs Land It with **no consent banner** — cookie-less analytics,
+ * Plan §6.8 runs Land The Trick with **no consent banner** — cookie-less analytics,
  * self-hosted fonts, no cross-site anything — and that position is only honest
  * while no third party is contacted without the rider asking. An `<iframe>`
  * rendered on load, or a `img.youtube.com` thumbnail used as a poster, would put

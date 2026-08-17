@@ -10,7 +10,7 @@ import styles from './video.module.css';
  * One rider's video: a poster we draw, and an iframe that appears when asked.
  *
  * **Nothing here contacts Google until the rider clicks.** That is a
- * requirement, not a nicety. Plan §6.8 deliberately runs Land It with **no
+ * requirement, not a nicety. Plan §6.8 deliberately runs Land The Trick with **no
  * consent banner** — cookie-less analytics, self-hosted fonts, no cross-site
  * anything — because the audience is children and a cookie wall is the wrong
  * thing to put in front of them. An `<iframe>` rendered on page load would send

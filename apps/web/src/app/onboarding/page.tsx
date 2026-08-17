@@ -9,7 +9,7 @@ import { currentRider } from '@/lib/session';
 import { Onboarding, type OnboardingTrick } from './Onboarding';
 
 export const metadata: Metadata = {
-  title: 'Getting set up · Land It',
+  title: 'Getting set up · Land The Trick',
   description: 'Four steps and you are riding.',
 };
 

@@ -1,7 +1,7 @@
 /// <reference path="../.pb_data/types.d.ts" />
 
 /**
- * Land It — the whole schema, as one initial migration.
+ * Land The Trick — the whole schema, as one initial migration.
  *
  * Plan §3 is the authority for what exists here and why. Two things about this
  * file are load-bearing and easy to break by accident:

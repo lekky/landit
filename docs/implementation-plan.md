@@ -1,4 +1,4 @@
-# Land It — implementation plan
+# Land The Trick — implementation plan
 
 Written against `design-handoff/README.md`. That document is the design contract; this one records
 what we decided, how the code is arranged, and what order it gets built in.
@@ -9,6 +9,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 
 | Decision | Chosen | Notes |
 | --- | --- | --- |
+| Product name | **Land The Trick** | **Renamed 2026-08-17 (Rachid, in chat); was "Land It".** The domain `landthetrick.com` was registered on 2026-08-16 because `landit.app` was owned by someone else, and `docs/infrastructure.md` recorded the brand/domain mismatch as deliberate. This closes it. Scope of the rename was the owner's call and was deliberately narrow: **every string a person reads** — app copy, page titles, share text, the two guardian emails, legal copy, the wordmark, and the docs — and **nothing else**. The package scope `@landit/*`, the `LandItEvent` type, `pocketbase/hooks/lib/landit.js`, the `landit_auth` cookie, the `landit.sport` storage key, the `x-landit-gated` header, the `LANDIT_*` environment variables and the `landit_*` Stripe metadata keys all keep their names — renaming them buys nothing a rider can see and costs a coordinated env change and a forced sign-out. The `design-handoff/design/` prototype is frozen and still reads "Land It" throughout, including the filenames `Land It.html` and `Land It - Avatars.html` that this plan and the design README cite. |
 | Platform | **Web first (Next.js), native later** | One repo, shared logic. See §2. |
 | Sports at launch | **Three: scooter, skateboard and BMX** | Decided 2026-08-16. BMX ships at launch, not as a fast-follow. Sport is already a dimension in the code, so the engineering is small; the BMX trick library and its visual assets have no source and are the owner's to author — see the BMX track in §7. |
 | Offline level | **Read-only cache** on web; full local-first deferred to the native app | Departs from the handoff's recommendation — see §2.3. Built in T19; confirmed acceptable for launch 2026-08-17, which also settles `useOffline` as off. |
@@ -19,14 +20,14 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Minimum age | **None stated.** The terms do not say "13+" | Stating a minimum age creates an Ofcom duty to enforce it with highly effective age assurance, and a tick-box does not qualify. 13+ is the *audience*, not a gate — see §6.2. |
 | Launch markets | **Global sign-up, UK-first product** | Anyone can sign up; the consent threshold follows the rider's country. One refusal: US under-13, which needs COPPA verifiable parental consent we are not building at launch. See §6.3. |
 | Regulatory scope | **UK Online Safety Act (Part 3, user-to-user) + ICO Children's code, applied to every rider** | Added 2026-08-16 — the plan previously missed the OSA entirely. Children's code standards are the baseline for *all* users, not only declared children. See §6.1. |
-| Rider video | **Land It does not host video. Riders paste a YouTube link and the app embeds it** | **Reversed 2026-08-17 (Rachid, in chat).** Was "Cloudflare R2 via PocketBase's S3 backend, 2GB cap per rider (5GB Legend)", decided 2026-08-15 and built as T14. Hosting other people's children's video is the single heaviest thing this product could take on — moderation duty, storage cost, takedown obligations and a private-bucket promise to keep — and the rider benefit is a video they have usually already uploaded to YouTube. **Built as `t15b-video-links`, 2026-08-17.** Four owner's decisions govern it (Rachid, 2026-08-17, in chat): a YouTube link the app embeds; per-video visibility **`private \| members` with no `public` state at all** — which supersedes the three-way framing this row carried for a few hours, because a signed-out visitor must never reach a rider's video and deleting the state is what makes that true rather than defended; **a paid perk capped per plan** (Rookie none, Shredder a limited number, Legend unlimited — the specific numbers are tunable, see §2.4); and a rider can add, re-decide visibility, and remove. T14 is reverted (see §7). See §6.6 and §3 guarantee 2. |
+| Rider video | **Land The Trick does not host video. Riders paste a YouTube link and the app embeds it** | **Reversed 2026-08-17 (Rachid, in chat).** Was "Cloudflare R2 via PocketBase's S3 backend, 2GB cap per rider (5GB Legend)", decided 2026-08-15 and built as T14. Hosting other people's children's video is the single heaviest thing this product could take on — moderation duty, storage cost, takedown obligations and a private-bucket promise to keep — and the rider benefit is a video they have usually already uploaded to YouTube. **Built as `t15b-video-links`, 2026-08-17.** Four owner's decisions govern it (Rachid, 2026-08-17, in chat): a YouTube link the app embeds; per-video visibility **`private \| members` with no `public` state at all** — which supersedes the three-way framing this row carried for a few hours, because a signed-out visitor must never reach a rider's video and deleting the state is what makes that true rather than defended; **a paid perk capped per plan** (Rookie none, Shredder a limited number, Legend unlimited — the specific numbers are tunable, see §2.4); and a rider can add, re-decide visibility, and remove. T14 is reverted (see §7). See §6.6 and §3 guarantee 2. |
 | Maps provider | **Mapbox** (provisional) | Store plain `lat`/`lng` so it stays swappable. |
 | Payments | **Stripe on web**; entitlements modelled independently of Stripe; **single-rider plans only — Crew Pass dropped** (2026-08-15) | See §2.4 — entitlement independence is the decision that protects the native option. |
 | Streak shape | **A weekly target, not a consecutive-day count** (2026-08-16). A rider keeps the streak by riding **at least 2 times in a week**; the streak counts consecutive weeks that met the target, and missing a week breaks it. "I rode today" stays a plain button — no spot attached, no location captured | The audience is children who realistically ride at weekends: a daily streak punishes a school week, and is the engagement mechanic §6.4 Standard 13 warns about. Weeks are Monday-to-Sunday — the boundary the weekly challenges already use, so a rider never has two different "this week"s. **Two numbers here are tunable defaults, not deliberated decisions: the target of 2** (a weekend alone reaches it; 3 would force a weekday ride) **and no grace week** (the weekly target is itself the forgiveness — a grace week on top would make the streak nearly unbreakable). Both are constants in `packages/core` (`WEEKLY_RIDE_TARGET`, `WEEKLY_STREAK_GRACE_WEEKS`) and options on every function, so moving either is a one-line change plus this row. This supersedes the daily-streak and grace-period framing throughout: the daily functions in `core` stay exported but deprecated, and T8 wires the weekly ones. Stored shape in §3; that spots never record where a rider has been is §6.4 Standard 10 and T13. |
 | Staff portal placement | **Route group in the web app**, hard role gate, full audit log | Handoff prefers a separate app; see §6.10. |
 | Error reporting | **Sentry** | Already connected; PII scrubbed. See §2.5. |
 | Analytics | **PostHog EU (free tier) + Cloudflare Web Analytics** | PostHog for product events (onboarding funnel, upgrades), Cloudflare beacon for traffic. Both cookie-less, no ad identifiers. |
-| Transactional email | **MailerSend** | **Changed 2026-08-16 (Rachid); was Resend, confirmed 2026-08-15.** Resend is already in use on another product and its free tier carries one sending domain, so Land It would have meant paying before launch for a service sending dozens of emails a month. MailerSend's free tier (500/month, one domain) covers launch volume many times over, and it is EU-based — the same reason PostHog EU and R2 EU were chosen (§6.5). **Nothing in the codebase names a provider:** PocketBase sends over plain SMTP, so this is five environment values and no code change, and switching again costs the same. Rolling our own on box1 was considered and rejected — a cold shared IP that also carries the other products, and the guardian-consent email is the one that must not land in spam. |
+| Transactional email | **MailerSend** | **Changed 2026-08-16 (Rachid); was Resend, confirmed 2026-08-15.** Resend is already in use on another product and its free tier carries one sending domain, so Land The Trick would have meant paying before launch for a service sending dozens of emails a month. MailerSend's free tier (500/month, one domain) covers launch volume many times over, and it is EU-based — the same reason PostHog EU and R2 EU were chosen (§6.5). **Nothing in the codebase names a provider:** PocketBase sends over plain SMTP, so this is five environment values and no code change, and switching again costs the same. Rolling our own on box1 was considered and rejected — a cold shared IP that also carries the other products, and the guardian-consent email is the one that must not land in spam. |
 | Pricing | **Rookie free; Shredder £3.99/mo · £39.99/yr; Legend £6.99/mo · £69.99/yr** | Confirmed 2026-08-15. Yearly ≈ 2 months free. Crew Pass dropped, replaced by the single-rider Legend tier — see §2.4. |
 
 ---
@@ -41,7 +42,7 @@ challenge state, and the data access layer. This is unambiguously worth doing, a
 real cost of a second platform lives.
 
 **Sharing the UI** — one set of screen components rendering on web and native, via Expo +
-react-native-web. This is the version most people mean, and for Land It specifically it is the
+react-native-web. This is the version most people mean, and for Land The Trick specifically it is the
 wrong trade.
 
 ### 2.1 Why not share the UI
@@ -108,7 +109,7 @@ the tooling actually supports it.
 This is a real cost of web-first, not a free choice.
 
 **Confirmed acceptable for launch (Rachid, 2026-08-17, in chat).** "You can read your tricks but not
-log them offline" is what Land It ships. This paragraph used to ask for that confirmation and it is
+log them offline" is what Land The Trick ships. This paragraph used to ask for that confirmation and it is
 no longer an open question — a session reading it should build to the line above, not re-raise the
 trade.
 
@@ -209,7 +210,7 @@ closes that door.
 ### 2.6 Infrastructure (the box)
 
 One VPS — hostmedia.uk, Coventry (UK data residency), 4GB/2vCPU, £16.80/mo — runs everything for
-Land It **and** other products, managed by Coolify:
+Land The Trick **and** other products, managed by Coolify:
 
 ```
 VPS
@@ -251,7 +252,7 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 | `trick_progress` | `(user, trick) → stage`. The `byId` map |
 | `trick_log` | Append-only. `(user, trick, stage, at, estimated)`. Drives every date in the app |
 | `trick_notes` | Per-rider session notes |
-| `clips` | **No file field since 2026-08-17** (§6.6) — Land It stores no video. Extended by `t15b-video-links` the same day into the video-link row it always was going to be: `user`, `trick`, `at`, plus **`video_id`** (the parsed 11-character YouTube id, never a URL) and **`visibility`** (`private \| members`, no `public`). `createRule` reopened to the owner-and-consented rule with the cap enforced in a hook; `updateRule` allows a visibility change and nothing else. **Kept its name deliberately** — renaming a merged collection would break the five things that read it (sticker hook, `riderSnapshot`, the staff rider sheet, `reports`' `clip` subject) to improve a word (§6.6) |
+| `clips` | **No file field since 2026-08-17** (§6.6) — Land The Trick stores no video. Extended by `t15b-video-links` the same day into the video-link row it always was going to be: `user`, `trick`, `at`, plus **`video_id`** (the parsed 11-character YouTube id, never a URL) and **`visibility`** (`private \| members`, no `public`). `createRule` reopened to the owner-and-consented rule with the cap enforced in a hook; `updateRule` allows a visibility change and nothing else. **Kept its name deliberately** — renaming a merged collection would break the five things that read it (sticker hook, `riderSnapshot`, the staff rider sheet, `reports`' `clip` subject) to improve a word (§6.6) |
 | `stickers` | Name, hue, icon, condition copy, editable threshold `n`, `is_live`. Rules stay in code |
 | `rider_stickers` | `earned_at` plus `seen_at`, so a sticker is never re-announced |
 | `plans`, `subscriptions` | See §2.4. No seat collection — Crew Pass dropped. `plans` still carries `clip_cap_bytes`, dormant since 2026-08-17 and kept only because `listPlans` orders the plan cards by it (§6.6) |
@@ -356,7 +357,7 @@ not by reading the rule text:
    `trick_progress` and `rider_stickers`. A private rider still appears on the crew board by name
    and score, so the crew board reads a narrow server-shaped payload (a hook route or filtered
    fields), never the full record.
-2. **Land It stores no rider video, and a rider's video link is never more visible than the rider.**
+2. **Land The Trick stores no rider video, and a rider's video link is never more visible than the rider.**
    **Rewritten twice on 2026-08-17, both times authorised by the owner (Rachid, in chat).** It
    originally read: *"Clips are never public. The `clips` file field is protected: delivery only via
    short-lived file tokens minted for the owner, no rule path that exposes a clip to another rider,
@@ -472,7 +473,7 @@ Tracked from the handoff's own list, mapped to phases:
 | Legal copy pointing under-13s at "a parent's Crew Pass" | Guardian consent inside sign-up (§6.2) — the Crew Pass no longer exists, so this copy is now wrong, not just draft | 2 |
 | Streaks (a counter) | A weekly target (§1): date logic and timezones, and weeks that can break it | 3 |
 | Crews (one demo crew) | Creation, invites, membership | 4 |
-| Clips (`createObjectURL`, die on refresh) | ~~Upload, R2 storage, token-gated delivery~~ — Land It hosts no video (§6.6, reversed 2026-08-17). **Closed a different way on 2026-08-17:** the prototype's panel is replaced by embedded **YouTube links** a rider pastes, private by default and never public (`t15b-video-links`, §3 guarantee 2) | 4 (T15b) |
+| Clips (`createObjectURL`, die on refresh) | ~~Upload, R2 storage, token-gated delivery~~ — Land The Trick hosts no video (§6.6, reversed 2026-08-17). **Closed a different way on 2026-08-17:** the prototype's panel is replaced by embedded **YouTube links** a rider pastes, private by default and never public (`t15b-video-links`, §3 guarantee 2) | 4 (T15b) |
 | The map (one embed at a time) | Mapbox with every spot plotted | 4 |
 | Payments (instant and free) | Stripe + entitlements | 5 |
 | Admin rider list (mock data) | Real riders | 6 |
@@ -484,7 +485,7 @@ Tracked from the handoff's own list, mapped to phases:
 
 ## 6. Legal position, and what is still open
 
-Land It is a product whose core audience is 8–16 year olds, built by a team of one, in the most
+Land The Trick is a product whose core audience is 8–16 year olds, built by a team of one, in the most
 active period of child-safety regulation the UK has had. This section is the position we build
 against. It was rewritten 2026-08-16 after a research pass found the plan had named only two of
 the four regimes that bind us.
@@ -496,7 +497,7 @@ Nothing here is legal advice.
 ### 6.1 Which regimes apply
 
 **UK Online Safety Act 2023, Part 3 — user-to-user.** The plan missed this entirely until
-2026-08-16. Land It lets riders encounter content generated by other riders: submitted spots,
+2026-08-16. Land The Trick lets riders encounter content generated by other riders: submitted spots,
 profiles, crew boards, crew invites. Schedule 1's "limited functionality" exemption covers only
 comments, reviews and likes on *provider* content, so it does not reach us; and "likely to be
 accessed by children" is not a close call. None of the duties scale with size — a service of one
@@ -535,7 +536,7 @@ ban on social media for under-16s, regulations to be laid by the end of 2026 and
 Spring 2027, plus default-off livestreaming and stranger communication, no personalised feeds or
 autoplay, and an overnight curfew for 16–17s. The working scope is "user-to-user platforms whose
 purpose is to enable social interaction and which allow users to post material, alongside
-algorithms". There is no statutory definition yet. Land It's *purpose* is trick tracking, so we are
+algorithms". There is no statutory definition yet. Land The Trick's *purpose* is trick tracking, so we are
 very likely outside the ban — but our core audience is exactly the age group it targets, so being
 outside it has to be demonstrable rather than assumed. Four design properties make that argument,
 and all four are free now and expensive to retrofit. **Treat them as decisions, not preferences:**
@@ -547,7 +548,7 @@ and all four are free now and expensive to retrofit. **Treat them as decisions, 
   chronological, scoped to a crew you were invited to.
 - Rider-submitted spots reach nobody until a human approves them (already the plan).
 
-Together these mean there is no stranger-contact surface in Land It. That is the sentence the whole
+Together these mean there is no stranger-contact surface in Land The Trick. That is the sentence the whole
 child-safety position rests on; protect it.
 
 ### 6.2 The consent flow — decided (2026-08-16)
@@ -659,7 +660,7 @@ None of this is agent-session work, and none of it blocks a build session. All o
 
 ### 6.6 Rider video — we do not host it
 
-**Reversed 2026-08-17 (Rachid, in chat).** Land It hosts no video. There is no upload anywhere in
+**Reversed 2026-08-17 (Rachid, in chat).** Land The Trick hosts no video. There is no upload anywhere in
 the product, no clip vault, no per-plan byte cap and no object storage for rider footage. Riders
 **paste a YouTube link** which the app embeds — built the same day as **`t15b-video-links`**, and
 described at the bottom of this section.
@@ -767,7 +768,7 @@ this feature falsifies. Recorded here because a later session reading either fil
 that argues the opposite:
 
 - **The `clip` report subject was deliberately *unavailable*** — the radio disabled, the blurb
-  reading "There is no video on Land It yet". Riders can now link a video, and a video surface whose
+  reading "There is no video on Land The Trick yet". Riders can now link a video, and a video surface whose
   report route is switched off is precisely the combination the safeguarding page and §6.1's OSA duty
   cannot have. The option is live and the blurb describes the real thing. T18's reasoning was right
   for the day it was written; this is the same reasoning applied to the day after.
@@ -794,7 +795,7 @@ from the enforced number, and policing staff prose is a different feature.
 Yearly ≈ two months free throughout. Cost sanity (checked 2026-08-15, VPS stack): fixed base is
 ~£18/mo flat — the VPS at £16.80 plus pennies of R2 for **database backups** (§2.6), shared across
 every product on the box — so break-even is **~5 Shredders**. Per paying rider, Stripe takes ~26p
-of £3.99 and there is no storage or egress cost at all: since 2026-08-17 Land It hosts no video
+of £3.99 and there is no storage or egress cost at all: since 2026-08-17 Land The Trick hosts no video
 (§6.6), so the per-rider marginal cost of a paid plan is Stripe's fee and nothing else. Native apps
 will later take a 15% store cut, which the yearly price should anticipate.
 
@@ -817,7 +818,7 @@ no session recording without revisiting consent, given the audience.
 **Decided and live** (2026-08-15, replacing the earlier Railway decision). The box is
 set up, hardened, monitored and backed up — see `docs/infrastructure.md` for current state.
 Coventry datacentre keeps rider data in the UK. Coolify's preview deployments stand in for per-PR
-environments; they get wired to the Land It repo once there is something to deploy (after Wave 2).
+environments; they get wired to the Land The Trick repo once there is something to deploy (after Wave 2).
 
 ### 6.10 Staff portal placement — worth revisiting
 
@@ -1105,7 +1106,7 @@ decisions rather than details:**
 **T7 · Library + trick detail + locked trick.** Filters, search, rookie banner, stage picker,
 notes, prerequisite/unlock pills, locked-trick page. Clips panel renders in its locked/upsell state
 only (real clips are T14). Inputs: `landit-screens-a.jsx`, screenshots 08–10.
-(**Superseded twice on 2026-08-17:** the clips panel was deleted with T14's reversal — Land It hosts
+(**Superseded twice on 2026-08-17:** the clips panel was deleted with T14's reversal — Land The Trick hosts
 no video, §6.6 — and the side column then gained a **video-links panel** in its place (T15b), which
 borrows the prototype clips panel's layout and none of its behaviour. The rest of T7 stands.)
 
@@ -1274,7 +1275,7 @@ would otherwise forbid. Nothing else in this session changes an existing signatu
   and a unit the rule changed under (LESSONS §4).
 - **The "real vinyl" panel is dropped.** The prototype sells a posted die-cut pack to "Crew Pass
   riders". The Crew Pass was dropped in §2.4 and no posted pack exists, so the panel promised a
-  product on a plan, neither of which is real. Whether Land It should ever post physical stickers is
+  product on a plan, neither of which is real. Whether Land The Trick should ever post physical stickers is
   a product question and it is the owner's — filed as an issue, not answered here. An e2e test holds
   the page free of both words so the copy cannot drift back.
 - **The nav link is not wired here.** `ROUTES.stickers` exists; `components/shell/nav.ts` is the
@@ -1511,9 +1512,9 @@ owner:
   offset shadows, zero radius, `--sky` and `--yellow` — and no stock Mapbox style comes close.
   A matching basemap means authoring one in Mapbox Studio, which needs a Studio account and a
   designer; that is owner work, not session work. So Mapbox draws the ground (`light-v11`,
-  deliberately low-contrast) and everything Land It renders on it is ours: square markers with a
+  deliberately low-contrast) and everything Land The Trick renders on it is ours: square markers with a
   3px ink keyline and a hard offset shadow, the selected pin in `--yellow` and larger, restyled
-  zoom controls, and the panel's own header and footer bars. It reads as Land It, and the road
+  zoom controls, and the panel's own header and footer bars. It reads as Land The Trick, and the road
   names stay legible under markers that are meant to shout. `MAP_BASE_STYLE` in
   `apps/web/src/lib/mapbox.ts` is one line: **if the owner later commissions a Studio style, that
   is the whole change.** Attribution and the Mapbox logo are restyled and never hidden — a
@@ -1555,7 +1556,7 @@ is called zero times on load, and that nothing containing the position reaches `
 The task was: upload through PocketBase's file field backed by R2, token-gated playback, per-plan
 cap read from the `plans` record (2GB Shredder / 5GB Legend) enforced in the upload hook, the at-cap
 states from §6.6, delete. It was built, tested and merged, and then **the decision underneath it was
-reversed by the owner (Rachid, 2026-08-17, in chat): Land It will not host rider video.** See the
+reversed by the owner (Rachid, 2026-08-17, in chat): Land The Trick will not host rider video.** See the
 §1 decision row and §6.6. T14 is not "unfinished" and it did not fail — the feature worked; the
 product changed its mind about wanting it.
 

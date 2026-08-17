@@ -47,7 +47,7 @@ async function fetchCollections(url) {
   const { items } = await response.json();
 
   // PocketBase's own `_superusers`, `_authOrigins`, `_externalAuths`,
-  // `_mfas` and `_otps` are its plumbing, not Land It's data model.
+  // `_mfas` and `_otps` are its plumbing, not Land The Trick's data model.
   return items
     .filter((c) => !c.system && !c.name.startsWith('_'))
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -187,7 +187,7 @@ function emit(collections) {
  * write, which is what \`*Create\` and \`*Update\` describe.
  */
 
-/** Every collection Land It defines. PocketBase's own \`_\`-prefixed ones are not here. */
+/** Every collection Land The Trick defines. PocketBase's own \`_\`-prefixed ones are not here. */
 export type CollectionName =
 ${names.map((n) => `  | '${n}'`).join('\n')};
 

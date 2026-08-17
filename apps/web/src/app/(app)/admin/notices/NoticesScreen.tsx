@@ -15,7 +15,13 @@ import styles from '../admin.module.css';
 /** The design pack's five banner hues. */
 const HUES = ['#FFC23F', '#9CE05B', '#3AC0FF', '#FF3D78', '#8A3BE0'] as const;
 
-const BLANK = { title: '', body: '', label: 'Land It', audience: '', hue: HUES[0] as string };
+const BLANK = {
+  title: '',
+  body: '',
+  label: 'Land The Trick',
+  audience: '',
+  hue: HUES[0] as string,
+};
 
 /**
  * The announcements composer (`landit-admin.jsx`, `AdminNotices`).

@@ -127,7 +127,7 @@ test('printable sheets are offered to paid riders and named as such to free ones
   await expect(page.getByRole('button', { name: /print my sheets/i })).toHaveCount(0);
 });
 
-test('the sport switch offers every sport Land It ships', async ({ page }) => {
+test('the sport switch offers every sport Land The Trick ships', async ({ page }) => {
   await newRider(page);
   await page.goto('/progress');
 

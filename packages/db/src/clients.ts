@@ -1,7 +1,7 @@
 import PocketBase from 'pocketbase';
 
 /**
- * The three ways Land It talks to PocketBase.
+ * The three ways Land The Trick talks to PocketBase.
  *
  * They differ in one thing that matters — **whose credentials they carry** —
  * and confusing them is how a paywall or a privacy rule gets bypassed by

@@ -40,7 +40,7 @@ export function mapIsAvailable(): boolean {
 /**
  * The base style the markers sit on (plan §7, T13).
  *
- * A quiet, low-contrast Mapbox style, with the whole Land It visual language
+ * A quiet, low-contrast Mapbox style, with the whole Land The Trick visual language
  * carried by what we draw on top of it — the markers, the controls and the
  * panel around it. The alternative, a custom style authored in Mapbox Studio to
  * match the palette, needs a Studio account and a designer: it is owner work,

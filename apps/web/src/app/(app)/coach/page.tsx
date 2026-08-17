@@ -24,7 +24,7 @@ import { currentRider } from '@/lib/session';
 import styles from './coach.module.css';
 
 export const metadata: Metadata = {
-  title: 'Coach view · Land It',
+  title: 'Coach view · Land The Trick',
   description: 'A read-only summary of the week, for a parent or a coach.',
   robots: { index: false, follow: false },
 };

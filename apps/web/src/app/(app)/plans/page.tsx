@@ -9,7 +9,7 @@ import { PlansScreen } from './PlansScreen';
 import { buildPlansView } from './view';
 
 export const metadata: Metadata = {
-  title: 'Plans · Land It',
+  title: 'Plans · Land The Trick',
   description:
     'Rookie is free forever. Shredder unlocks every trick; Legend adds flair and progress insights.',
 };

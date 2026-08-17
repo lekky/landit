@@ -1,7 +1,7 @@
 import localFont from 'next/font/local';
 
 /**
- * The three Land It typefaces, served from our own origin.
+ * The three Land The Trick typefaces, served from our own origin.
  *
  * Plan §2.5: self-hosted via `next/font`, never the Google Fonts CDN. The
  * audience is children, the cookie policy promises no cross-site tracking, and

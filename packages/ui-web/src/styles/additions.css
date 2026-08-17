@@ -108,7 +108,21 @@ a.btn.ink:hover {
 }
 
 /*
- * The top bar between 861px and 1040px (issue #57).
+ * The top bar between 861px and 1100px (issue #57, widened by the 2026-08-17
+ * rename).
+ *
+ * **The paragraph below came true.** It warned that these numbers were measured
+ * against the labels of the day and that a longer one would push the row over
+ * again. On 2026-08-17 the product was renamed from "Land It" to "Land The
+ * Trick", the wordmark went from 6 glyphs to 14, and `e2e/shell.spec.ts` failed
+ * at 861px with the nav scrolling by 20px — caught by the half of that test
+ * which refuses to accept the overflow net as a pass. The band is the fix, as
+ * predicted; it is tightened and it now reaches higher, because a row that
+ * needed 993px at full size needs roughly 1065px with the longer mark, which is
+ * past the old 1040px edge. Changing a size in this shared stylesheet is a
+ * behaviour change to `packages/ui-web`; **the owner granted the exception in
+ * chat on 2026-08-17**, choosing this over shortening the mark or dropping the
+ * streak chip earlier.
  *
  * The prototype was drawn at one desktop width and never asked what nine nav
  * items cost. Measured on the real shell: the wordmark, the nine items, the
@@ -145,24 +159,30 @@ a.btn.ink:hover {
   display: none;
 }
 
-@media (min-width: 861px) and (max-width: 1040px) {
+@media (min-width: 861px) and (max-width: 1100px) {
   .topbar-in {
     gap: 12px;
     padding-left: 14px;
     padding-right: 14px;
   }
+  /*
+   * 15px, not the 19px this was before the rename. Three words at 19px is what
+   * put the nav 20px over at 861px; the glyph beside it stays 30px, so the mark
+   * still reads as a mark rather than as small print.
+   */
   .topbar-in .logo .wm {
-    font-size: 19px;
+    font-size: 15px;
   }
   .nav {
     gap: 2px;
     margin-left: 4px;
   }
+  /* 7px of side padding rather than 8px: 9 items, so it buys 18px of the row. */
   .nav a,
   .nav span[aria-disabled] {
     font-size: 13px;
     letter-spacing: 0.075em;
-    padding: 6px 8px;
+    padding: 6px 7px;
   }
 }
 

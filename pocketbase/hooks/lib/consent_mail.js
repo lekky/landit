@@ -1,7 +1,7 @@
 /// <reference path="../../.pb_data/types.d.ts" />
 
 /**
- * The one email Land It sends to somebody who is not a rider.
+ * The one email Land The Trick sends to somebody who is not a rider.
  *
  * It goes to a parent or carer who has never heard of us, so it says what the
  * service is, what their child can already do without them, and what approving
@@ -49,7 +49,7 @@ function body(input) {
 
   return `<div style="font-family:system-ui,sans-serif;font-size:16px;line-height:1.5;color:#12100B">
 <p>Hello,</p>
-<p><strong>${name}</strong> has made an account on Land It, a trick tracker for scooter,
+<p><strong>${name}</strong> has made an account on Land The Trick, a trick tracker for scooter,
 skateboard and BMX riders, and has given us your email address as their parent or carer.</p>
 <p>Because of their age, we need your say-so before their account is a normal one.</p>
 <p><strong>Right now, without you doing anything, ${name} can:</strong> look through the trick
@@ -57,7 +57,7 @@ library, log the tricks they are working on, keep their own notes and build thei
 All of that is private to them.</p>
 <p><strong>They cannot:</strong> be seen by any other rider, join a crew, be invited to one, submit
 a skatepark or spot, say they are going to an event, or pay us for anything.
-There is no messaging between riders on Land It at all, and there never will be.</p>
+There is no messaging between riders on Land The Trick at all, and there never will be.</p>
 <p><strong>If you approve</strong>, the second list becomes available to them. Their profile still
 starts private, and they choose if that ever changes.</p>
 <p style="margin:28px 0">
@@ -84,7 +84,7 @@ function sendGuardianRequest(app, input) {
       name: settings.meta.senderName,
     },
     to: [{ address: input.guardianEmail }],
-    subject: `${input.riderName} needs your OK on Land It`,
+    subject: `${input.riderName} needs your OK on Land The Trick`,
     html: body(input),
   });
 

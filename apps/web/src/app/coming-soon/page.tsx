@@ -22,12 +22,12 @@ import styles from './coming-soon.module.css';
  * is finished, and it would promise an email from an address that currently has
  * nowhere to receive (issue #36). A page that collects nothing owes nothing.
  *
- * It says what Land It is and that it is not ready. It does not give a date —
+ * It says what Land The Trick is and that it is not ready. It does not give a date —
  * there isn't one, and a missed date on a holding page is worse than no date.
  */
 
 export const metadata: Metadata = {
-  title: 'Land It · Coming soon',
+  title: 'Land The Trick · Coming soon',
   description: `A trick tracker for ${sportsList()} riders. Not open yet.`,
   // Belt and braces with `robots.ts`: that file tells crawlers not to index the
   // site at all while the gate is shut, and this tag says the same thing on the
@@ -62,9 +62,9 @@ export default function ComingSoon() {
           <span className={styles.yet}>just yet.</span>
         </h1>
         <p className={styles.copy}>
-          Land It is a trick tracker for {sportsList()} riders — log what you&rsquo;re learning,
-          what you want next, and how well you&rsquo;ve actually got it. We&rsquo;re still building
-          it.
+          Land The Trick is a trick tracker for {sportsList()} riders — log what you&rsquo;re
+          learning, what you want next, and how well you&rsquo;ve actually got it. We&rsquo;re still
+          building it.
         </p>
         <p className={styles.copySecond}>
           There&rsquo;s nothing to sign up to yet, and we&rsquo;re not collecting your email. Come
@@ -72,7 +72,7 @@ export default function ComingSoon() {
         </p>
         <div className={styles.actions}>
           <Link className="btn ghost" href={legalHref('about')}>
-            About Land It
+            About Land The Trick
           </Link>
         </div>
       </div>

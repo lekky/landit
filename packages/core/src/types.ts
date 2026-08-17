@@ -11,7 +11,7 @@
 
 /* ------------------------------------------------------------------ sports */
 
-/** The three sports Land It tracks (plan §1). */
+/** The three sports Land The Trick tracks (plan §1). */
 export type SportId = 'scooter' | 'skate' | 'bmx';
 
 /** Presentation and copy for one sport. */
@@ -38,7 +38,7 @@ export interface Sport {
    *
    * BMX shows **"Flatground"**, which is the point worth keeping when this is
    * next edited: it is not a synonym for Flatland but a deliberate avoidance of
-   * it. Land It's `flat` holds bunny hops, manuals and x-ups; Flatland proper —
+   * it. Land The Trick's `flat` holds bunny hops, manuals and x-ups; Flatland proper —
    * hang-5, time machine, steamroller — is a separate discipline on a different
    * bike, and the library does not contain it. "Flat" under-specifies and
    * "Flatland" over-promises; only the longer word is honest to both readers.

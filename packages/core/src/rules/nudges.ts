@@ -2,7 +2,7 @@ import { DEFAULT_TIMEZONE } from './time';
 import type { RiderClock } from './streak';
 
 /**
- * When Land It may and may not reach out to a rider.
+ * When Land The Trick may and may not reach out to a rider.
  *
  * Plan §6.4, Standard 13 — the Children's code standard on nudge techniques —
  * names three things this product does not build: loss-framed notifications
@@ -11,7 +11,7 @@ import type { RiderClock } from './streak';
  * this one is a rule, and a rule with nobody to enforce it is a sentence in a
  * document.
  *
- * So it is a function, here, before anything can send anything. Land It has no
+ * So it is a function, here, before anything can send anything. Land The Trick has no
  * push notifications and no scheduled email beyond the guardian-consent flow at
  * the time of writing — which is exactly why the guard is cheap now and
  * expensive the day someone adds a reminder job and reasons about the window in
@@ -66,7 +66,7 @@ export function isQuietHours(clock: RiderClock = {}): boolean {
 }
 
 /**
- * May Land It send this rider something right now?
+ * May Land The Trick send this rider something right now?
  *
  * The one call site anything with a send button should have. It fails **closed**
  * on a timezone it cannot resolve — an unknown zone throws from `riderHour`

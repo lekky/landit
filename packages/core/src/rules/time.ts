@@ -137,7 +137,7 @@ export function weeksBetween(from: DayKey, to: DayKey): number {
  * typed (LESSONS §3a). A date is exactly the kind of string that trap is made
  * of. Two arrays cost nothing and cannot disagree with themselves.
  *
- * English only, and that is the product: Land It has no localisation and the
+ * English only, and that is the product: Land The Trick has no localisation and the
  * decision to add one is not this file's to make.
  */
 export const WEEKDAY_NAMES = [

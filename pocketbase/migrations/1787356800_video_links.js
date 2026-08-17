@@ -3,7 +3,7 @@
 /**
  * Video links (T15b) — plan §1, §6.6 and §3 guarantee 2.
  *
- * Riders paste a **YouTube link** and the app embeds it. Land It still hosts no
+ * Riders paste a **YouTube link** and the app embeds it. Land The Trick still hosts no
  * video: what is stored is an eleven-character YouTube id, and `1787270400`
  * already took the file field away. Owner's decisions, all four recorded in the
  * plan (Rachid, 2026-08-17, in chat): a YouTube link, not an upload; `private`

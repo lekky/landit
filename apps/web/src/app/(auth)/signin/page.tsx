@@ -10,7 +10,7 @@ import { AuthCard } from '../AuthCard';
 import { SignInForm } from './SignInForm';
 
 export const metadata: Metadata = {
-  title: 'Sign in · Land It',
+  title: 'Sign in · Land The Trick',
   description: 'Pick up where you left off.',
 };
 

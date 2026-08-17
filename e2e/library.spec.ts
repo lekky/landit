@@ -182,7 +182,7 @@ test('a rookie can open a free trick and log a stage that sticks', async ({ page
 });
 
 // Until 2026-08-17 this asserted the clips panel rendered as an upsell. The
-// owner reversed clip hosting that day (plan §1, §6.6): Land It hosts no video,
+// owner reversed clip hosting that day (plan §1, §6.6): Land The Trick hosts no video,
 // so the trick page offers none and advertises none. What is asserted now is the
 // absence — this is the test that notices if a clips panel, or vault copy,
 // reappears on this page by accident. The video-link feature

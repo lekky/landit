@@ -39,7 +39,7 @@ import { anonymousClient, currentRider } from '@/lib/session';
 import styles from './profile.module.css';
 
 export const metadata: Metadata = {
-  title: 'Rider · Land It',
+  title: 'Rider · Land The Trick',
   // Profiles default to private and most will stay that way. Nothing about a
   // rider belongs in a search index (plan §6.4).
   robots: { index: false, follow: false },
@@ -307,8 +307,8 @@ export default async function RiderProfilePage({
             <Panel className={styles.sidePanel}>
               <div className="lab">Getting in touch</div>
               <p className={styles.sideBody}>
-                There is no messaging on Land It — not here and not anywhere. If something about{' '}
-                {firstName}&rsquo;s profile is wrong, tell us and a person will look at it.
+                There is no messaging on Land The Trick — not here and not anywhere. If something
+                about {firstName}&rsquo;s profile is wrong, tell us and a person will look at it.
               </p>
               {/*
                 T18. This paragraph promised a route and did not have one until
@@ -369,8 +369,8 @@ async function NotVisible({ handle, signedIn }: { handle: string; signedIn: bool
           {crewmate
             ? `They still hold their place on your crew board, by name and score. That much is always visible to a crewmate; the rest is theirs to open.`
             : signedIn
-              ? 'Either there is no rider with that handle, or they have not opened their profile to you. Profiles on Land It start private.'
-              : 'Either there is no rider with that handle, or they only show their profile to riders signed in to Land It. Profiles on Land It start private.'}
+              ? 'Either there is no rider with that handle, or they have not opened their profile to you. Profiles on Land The Trick start private.'
+              : 'Either there is no rider with that handle, or they only show their profile to riders signed in to Land The Trick. Profiles on Land The Trick start private.'}
         </p>
         <div className={styles.refusalActions}>
           <Link className="btn sm" href={signedIn ? ROUTES.crew : signInHref(riderHref(handle))}>

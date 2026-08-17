@@ -18,7 +18,7 @@ import { currentRider } from '@/lib/session';
 import { buildProgressView } from './view';
 
 export const metadata: Metadata = {
-  title: 'Progress · Land It',
+  title: 'Progress · Land The Trick',
   description: 'Where you are at: by category, by stage, over time, and the whole skill tree.',
 };
 

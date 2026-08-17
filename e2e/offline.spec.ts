@@ -198,7 +198,7 @@ test('the app is installable: a manifest, a scope and icons that resolve', async
 
   const manifest = await (await request.get(href!)).json();
 
-  expect(manifest.name).toBe('Land It');
+  expect(manifest.name).toBe('Land The Trick');
   expect(manifest.display).toBe('standalone');
   // Installed riders open the dashboard, not the sales pitch (`manifest.ts`).
   expect(manifest.start_url).toBe('/home');

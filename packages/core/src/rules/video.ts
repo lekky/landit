@@ -1,7 +1,7 @@
 /**
  * Video links — the parser, the visibility model and the per-plan allowance.
  *
- * Land It does not host video (plan §1, §6.6). A rider pastes a **YouTube
+ * Land The Trick does not host video (plan §1, §6.6). A rider pastes a **YouTube
  * link** and the app embeds it. Three rules live here, all pure, because all
  * three are enforced somewhere this package cannot reach:
  *
@@ -138,7 +138,7 @@ export function parseYouTubeVideoId(raw: string): string | null {
 /**
  * The embed URL for a stored id.
  *
- * **`youtube-nocookie.com`, and only ever behind a click** (plan §6.8). Land It
+ * **`youtube-nocookie.com`, and only ever behind a click** (plan §6.8). Land The Trick
  * has no consent banner and deliberately keeps it that way given the audience,
  * which it can only do while no third party is contacted without the rider
  * asking. An `<iframe>` rendered on page load contacts Google before anybody
@@ -190,7 +190,7 @@ export const VIDEO_VISIBILITIES = [
   {
     id: 'members',
     label: 'Signed-in riders',
-    help: 'Riders signed in to Land It — and only if your profile lets them see you.',
+    help: 'Riders signed in to Land The Trick — and only if your profile lets them see you.',
   },
 ] as const satisfies readonly { id: VideoVisibilityId; label: string; help: string }[];
 

@@ -12,8 +12,8 @@ import styles from '../../consent.module.css';
 import { Decision } from './Decision';
 
 export const metadata: Metadata = {
-  title: 'A rider needs your OK · Land It',
-  description: 'Approve or withdraw a young rider’s Land It account.',
+  title: 'A rider needs your OK · Land The Trick',
+  description: 'Approve or withdraw a young rider’s Land The Trick account.',
   // A guardian's link is not something to index, and the token is in the path.
   robots: { index: false, follow: false },
 };
@@ -69,8 +69,8 @@ export default async function ConsentPage({
         )}
 
         <p className={`cond ${styles.footnote}`}>
-          Land It is a trick tracker for scooter, skateboard and BMX riders. There is no messaging
-          between riders, no public feed, and profiles start private.
+          Land The Trick is a trick tracker for scooter, skateboard and BMX riders. There is no
+          messaging between riders, no public feed, and profiles start private.
         </p>
       </div>
     </div>

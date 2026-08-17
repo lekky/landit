@@ -11,7 +11,7 @@ import styles from './account.module.css';
  * What a rider waiting on a guardian sees.
  *
  * It is written to the rider, not about them: what they *can* do comes first and
- * at the same size as what they cannot, because most of Land It is open to them
+ * at the same size as what they cannot, because most of Land The Trick is open to them
  * and a screen that led with the refusals would read as a punishment for being
  * young. The refusals themselves are enforced server-side (§3 guarantee 4) —
  * this panel explains them, it does not implement them.

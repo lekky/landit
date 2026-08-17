@@ -28,7 +28,7 @@ import { StickerWall } from './StickerWall';
 import type { StickerView, StickerWallView, WallTabView } from './view';
 
 export const metadata: Metadata = {
-  title: 'Stickers · Land It',
+  title: 'Stickers · Land The Trick',
   description: 'Every sticker you have earned, and every one still to go.',
 };
 
@@ -121,7 +121,7 @@ export default async function StickersPage() {
       earnedLabel: held?.earned_at ? `Earned ${shortDate(held.earned_at, timezone)}` : null,
       unannounced: Boolean(held && !held.seen_at),
       riderStickerId: held ? held.id : null,
-      caption: `${record.name} sticker earned on Land It. ${condition}.`,
+      caption: `${record.name} sticker earned on Land The Trick. ${condition}.`,
       shareHeadline: `Earned ${record.name}`,
     };
   };

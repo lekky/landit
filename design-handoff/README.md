@@ -1,4 +1,4 @@
-# Handoff: Land It
+# Handoff: Land The Trick
 
 A trick tracker for scooter and skateboard riders. Riders log every trick they can do through five honesty-based stages, earn stickers, follow a weekly challenge, find spots and events, and compare with a crew. Staff run the whole thing from an in-app admin portal.
 
@@ -21,6 +21,13 @@ Two things in the prototype that must not survive into production:
 
 Open `design/Land It.html` in a browser to use the prototype. Nothing needs to be installed.
 
+**The prototype predates the name.** The product was called **Land It** until 2026-08-17, when the
+owner renamed it **Land The Trick** to match the domain. Everything in `design/` is frozen as it was
+shipped, so its filenames, its wordmark and its copy all still read "Land It" — including
+`Land It.html` and `Land It - Avatars.html`, which are referenced by those names throughout this
+document and the plan. The design is the contract; the name in it is not. Where this README describes
+the *product*, it says Land The Trick; where it names a *file*, it says what the file is called.
+
 ---
 
 ## Step 0: decide the stack before writing anything
@@ -29,7 +36,7 @@ Open `design/Land It.html` in a browser to use the prototype. Nothing needs to b
 
 Work through them with the team, record the answers at the bottom of this section, then build.
 
-### 1. What is Land It, as software?
+### 1. What is Land The Trick, as software?
 
 The single decision everything else hangs off.
 

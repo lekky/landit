@@ -508,7 +508,7 @@ export async function leaveCrew(client: Client, membershipId: string): Promise<v
  */
 
 export interface SubscriptionWrite {
-  /** The Land It rider this entitles. From the Checkout session's metadata. */
+  /** The Land The Trick rider this entitles. From the Checkout session's metadata. */
   readonly userId: string;
   /** A `plans` record id — never a slug, and never a Stripe price id. */
   readonly planId: string;

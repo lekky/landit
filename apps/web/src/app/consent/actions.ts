@@ -5,7 +5,7 @@ import { approveConsent, createServerClient, revokeConsent } from '@landit/db';
 /**
  * The guardian's decision.
  *
- * Anonymous on purpose: a parent has no Land It account and is never asked to
+ * Anonymous on purpose: a parent has no Land The Trick account and is never asked to
  * make one (plan §6.2). Their authority is the token in their email, and the
  * server is what checks it — these actions carry no privileges of their own and
  * hold no superuser client.

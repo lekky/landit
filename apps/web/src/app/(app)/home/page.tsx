@@ -63,7 +63,7 @@ import type {
 } from './view';
 
 export const metadata: Metadata = {
-  title: 'Home · Land It',
+  title: 'Home · Land The Trick',
   description: 'Your riding week, your streak and what you are working on.',
 };
 
@@ -332,7 +332,7 @@ function buildSportView(input: SportViewInput): SportView {
         id: notice.id,
         title: notice.title,
         body: notice.body,
-        label: notice.label || 'Land It',
+        label: notice.label || 'Land The Trick',
         hue: notice.hue || 'var(--yellow)',
       }
     : null;

@@ -70,7 +70,7 @@ export function ReportForm({ signedIn, about, subjectId, appealOf }: ReportFormP
           </p>
         ) : null}
         <Link className="btn sm ghost" href={ROUTES.home}>
-          Back to Land It
+          Back to Land The Trick
         </Link>
       </Panel>
     );

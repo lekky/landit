@@ -1,5 +1,5 @@
 /**
- * What Land It tells Sentry, and what it deliberately does not (T18).
+ * What Land The Trick tells Sentry, and what it deliberately does not (T18).
  *
  * The options live here rather than inline in `instrumentation.ts` for one
  * reason: they are a **privacy decision** about a service used by children, and

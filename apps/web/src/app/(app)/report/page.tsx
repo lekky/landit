@@ -8,8 +8,9 @@ import { ReportForm } from './ReportForm';
 import styles from './report.module.css';
 
 export const metadata: Metadata = {
-  title: 'Tell us something is wrong · Land It',
-  description: 'Report a rider, a spot or anything else on Land It. You do not need an account.',
+  title: 'Tell us something is wrong · Land The Trick',
+  description:
+    'Report a rider, a spot or anything else on Land The Trick. You do not need an account.',
 };
 
 /**

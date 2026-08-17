@@ -36,7 +36,7 @@ export function DataPanel() {
       <Panel flat className={styles.later}>
         <div className="lab">Your data</div>
         <p className={`cond ${styles.handle}`} style={{ marginTop: 8 }}>
-          Everything Land It holds about you, in one file: your profile, every trick you have
+          Everything Land The Trick holds about you, in one file: your profile, every trick you have
           logged, your notes, your stickers, your crews and anything you have reported to us.
         </p>
         <div className={styles.profileLinks} style={{ marginTop: 12 }}>

@@ -5,7 +5,7 @@ import { baseFixtures, call, makeRider, superuser, type Rider } from './helpers'
 /**
  * Plan §3, **guarantee 2 — the link half** (T15b).
  *
- * Riders paste a YouTube link and Land It embeds it. The guarantee has three
+ * Riders paste a YouTube link and Land The Trick embeds it. The guarantee has three
  * properties and every one of them is asserted here as **observed API
  * behaviour** rather than as rule text (LESSONS §5):
  *

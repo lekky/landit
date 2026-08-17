@@ -674,7 +674,7 @@ export interface CrewFeedItem {
  *
  * Every string in an item is one the product wrote. There is no free text from
  * a rider anywhere in this payload, because there is no rider-to-rider
- * messaging in Land It and a feed that could carry a sentence would be one
+ * messaging in Land The Trick and a feed that could carry a sentence would be one
  * (plan §6.1).
  */
 export async function getCrewFeed(

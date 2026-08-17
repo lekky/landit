@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   // Taken from `@landit/core` rather than written here, so the domain is one
   // fact in one place (`data/contact.ts`).
   metadataBase: new URL(SITE_URL),
-  title: 'Land It',
+  title: 'Land The Trick',
   description: `A trick tracker for ${sportsList()} riders.`,
 
   /**
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
-    title: 'Land It',
+    title: 'Land The Trick',
     // Ink under the status bar, matching `theme_color` and the top bar.
     statusBarStyle: 'black-translucent',
   },

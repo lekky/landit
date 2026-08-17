@@ -33,7 +33,7 @@ import styles from './admin.module.css';
  * A layout's `metadata` is resolved before the layout runs, so a `title` on
  * this file was still applied to the response after `requireStaff` had called
  * `notFound()` — an ordinary rider who typed `/admin` got the 404 page with
- * "Staff portal · Land It" in the tab. That is the exact fact the 404 exists to
+ * "Staff portal · Land The Trick" in the tab. That is the exact fact the 404 exists to
  * withhold, handed over by the browser chrome. Found by signing in as a rider
  * and looking; nothing about the rendered page was wrong.
  */

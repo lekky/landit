@@ -1,7 +1,7 @@
 /// <reference path="../.pb_data/types.d.ts" />
 
 /**
- * Land It stops hosting rider video (plan §1, §6.6, §3 guarantee 2).
+ * Land The Trick stops hosting rider video (plan §1, §6.6, §3 guarantee 2).
  *
  * **Authorised by the owner: Rachid, 2026-08-17, in chat.** This is a
  * *breaking* change to a collection that shipped in
@@ -47,7 +47,7 @@
  * rider can still read and delete their own rows, which is the correct
  * behaviour for rows they own and the correct starting point for `t15b`.
  *
- * **No stored data is destroyed in practice.** Land It has never been live and
+ * **No stored data is destroyed in practice.** Land The Trick has never been live and
  * the collection has no rows outside local development. The down path below
  * restores the three fields and the create rule, but PocketBase cannot restore
  * the *bytes* a file field pointed at — so this migration is reversible in

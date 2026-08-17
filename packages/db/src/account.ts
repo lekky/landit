@@ -62,7 +62,7 @@ export async function fileReport(client: Client, input: ReportInput): Promise<Re
 export type AccountExport = Record<string, unknown> & { readonly exported_at: string };
 
 /**
- * Everything Land It holds about the signed-in rider.
+ * Everything Land The Trick holds about the signed-in rider.
  *
  * **There is no account parameter, here or on the route.** The subject is
  * whoever the token belongs to, which is what makes "export somebody else" a

@@ -45,7 +45,7 @@ function subscribeToConnection(changed: () => void): () => void {
  * The alternative was Next 16's `useOffline` hook, which needs
  * `experimental.useOffline` — and that flag also changes what every Server
  * Action in the app does when a request fails, queueing and retrying it instead
- * of throwing. That is a decision about whether Land It logs offline, and §2.3
+ * of throwing. That is a decision about whether Land The Trick logs offline, and §2.3
  * says it does not: confirmed for launch by the owner on 2026-08-17, which is
  * why this bar tells a rider to wait rather than promising to catch up.
  */

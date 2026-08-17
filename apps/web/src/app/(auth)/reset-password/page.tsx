@@ -8,7 +8,7 @@ import { AuthCard } from '../AuthCard';
 import { ResetPasswordForm } from './ResetPasswordForm';
 
 export const metadata: Metadata = {
-  title: 'Set a new password · Land It',
+  title: 'Set a new password · Land The Trick',
   description: 'Pick something you have not used anywhere else.',
 };
 
