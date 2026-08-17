@@ -35,6 +35,17 @@ export {
   type EventQuery,
 } from './events';
 export {
+  CLIP_MAX_BYTES,
+  CLIP_MIME_TYPES,
+  clipFits,
+  clipKindOf,
+  clipUploadProblem,
+  clipVault,
+  formatBytes,
+  type ClipFileLike,
+  type ClipVault,
+} from './clips';
+export {
   AGE_BANDS,
   CONSENT_APPROVAL_WINDOW_DAYS,
   CONSENT_LIMITED_ALLOWS,

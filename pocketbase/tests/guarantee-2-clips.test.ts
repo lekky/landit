@@ -101,7 +101,11 @@ describe('guarantee 2 — a clip never becomes public', () => {
 
     // Shrink a cap rather than uploading gigabytes: the point being proven is
     // that the number is read off the `plans` record at write time, so staff can
-    // tune it without a deploy (plan §6.6). `legend` is used by no other test.
+    // tune it without a deploy (plan §6.6). `legend` is used by no other test —
+    // this file holds that lever, and the whole suite shares one instance, so a
+    // second file shrinking it would race this one. `clip-vault.test.ts` fills a
+    // rider's vault instead of moving a plan, for exactly that reason
+    // (LESSONS §5).
     const token = await superuser();
     const plans = await call<{ items: { id: string }[] }>('GET', '/api/collections/plans/records', {
       token,

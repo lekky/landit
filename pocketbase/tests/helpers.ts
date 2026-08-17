@@ -188,20 +188,44 @@ export function fakeMp4(size: number): Buffer {
   return Buffer.concat([ftyp, Buffer.alloc(Math.max(0, size - ftyp.length))]);
 }
 
+/**
+ * A file PocketBase will accept as `image/jpeg`, on the same terms as
+ * `fakeMp4`: Go sniffs `FF D8 FF` and believes nothing the upload declares.
+ */
+export function fakeJpeg(size: number): Buffer {
+  const header = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00]);
+  return Buffer.concat([header, Buffer.alloc(Math.max(0, size - header.length))]);
+}
+
+/** What `uploadClip` may be asked to do differently. Every field is optional; the defaults are T2's. */
+export interface UploadClipOptions {
+  /** Overrides the generated `clip-<handle>-<hex>.mp4`. The extension is what the hook reads. */
+  readonly filename?: string;
+  /** `photo` sends JPEG bytes and a JPEG mime instead of MP4. */
+  readonly as?: 'video' | 'photo';
+  /** Extra multipart fields, to prove the server ignores what a client claims. */
+  readonly fields?: Record<string, string>;
+}
+
 /** Uploads a clip the way the app will: multipart, against the file field. */
 export async function uploadClip(
   rider: Rider,
   trickId: string,
   bytes: number,
+  options: UploadClipOptions = {},
 ): Promise<{ status: number; body: Record<string, string> }> {
+  const photo = options.as === 'photo';
   const form = new FormData();
   form.set('user', rider.id);
   form.set('trick', trickId);
   form.set('kind', 'video');
+  for (const [key, value] of Object.entries(options.fields ?? {})) form.set(key, value);
   form.set(
     'file',
-    new Blob([new Uint8Array(fakeMp4(bytes))], { type: 'video/mp4' }),
-    `clip-${rider.handle}-${uniq()}.mp4`,
+    new Blob([new Uint8Array(photo ? fakeJpeg(bytes) : fakeMp4(bytes))], {
+      type: photo ? 'image/jpeg' : 'video/mp4',
+    }),
+    options.filename ?? `clip-${rider.handle}-${uniq()}.${photo ? 'jpg' : 'mp4'}`,
   );
 
   const response = await fetch(new URL('/api/collections/clips/records', baseUrl()), {
