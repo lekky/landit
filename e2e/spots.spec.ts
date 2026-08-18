@@ -59,6 +59,45 @@ const card = (page: Page, name: string) =>
   page.locator('[class*="card"]').filter({ hasText: name }).first();
 
 /**
+ * Put one named spot on screen and hand back its card.
+ *
+ * **Searching rather than scrolling, because the list is paged.** There are a
+ * hundred-odd spots across three dozen countries and the screen shows a
+ * screenful at a time, so "the spot I want is rendered" stopped being true by
+ * accident the moment the data went global — a spec that reached straight for a
+ * card was really asserting that the park happened to sort into the first page.
+ * Typing its name is also what a rider does, so this exercises the path they
+ * use rather than one the tests invented.
+ */
+/**
+ * Wait until the screen is actually listening.
+ *
+ * **A server-rendered control is visible before it works.** Every pill and
+ * button on this screen is painted by the server and only becomes live when
+ * React hydrates, and hydration got slower when the list went from seven spots
+ * to a hundred-odd — so a press that used to land after hydration by luck
+ * started landing before it, roughly one run in three, and the geolocation
+ * badge never appeared. Nothing was wrong with the product; the spec was
+ * relying on a race it never stated.
+ *
+ * `aria-pressed` flipping is the proof: the pill's state lives in React, so the
+ * attribute cannot change until the component owns the DOM node.
+ */
+async function whenInteractive(page: Page): Promise<void> {
+  const pill = page.getByRole('button', { name: 'Every spot' });
+  await pill.click();
+  await expect(pill).toHaveAttribute('aria-pressed', 'true');
+}
+
+async function findSpot(page: Page, name: string) {
+  await whenInteractive(page);
+  await page.getByLabel('Search spots').fill(name);
+  const found = card(page, name);
+  await expect(found).toBeVisible();
+  return found;
+}
+
+/**
  * Replace the geolocation API with something that counts. Installed before any
  * of the page's own script runs, so a call during hydration is caught too.
  */
@@ -96,29 +135,51 @@ test.describe('where to ride', () => {
     // only true after the second pill — which is itself the prototype's
     // behaviour and worth pinning down.
     await page.getByRole('button', { name: 'Every spot' }).click();
+
+    // The count is the claim about the whole collection; the cards below it are
+    // one page of that. Asserting the count is what proves the seed landed —
+    // asserting three particular cards only proved they sorted early.
+    await expect(page.getByText(`${liveSpots.length} spots`, { exact: false })).toBeVisible();
+
+    // And each of them is reachable, which is the promise that matters.
     for (const spot of liveSpots.slice(0, 3)) {
-      await expect(page.getByText(spot.name, { exact: true }).first()).toBeVisible();
+      await findSpot(page, spot.name);
     }
+  });
+
+  test('shows a screenful at a time and grows on a press', async ({ page }) => {
+    /*
+     * Paging exists because the list went global (2026-08-18). What has to hold
+     * is that nothing is *lost* by paging: the count still describes the whole
+     * collection, and pressing through reaches the rest.
+     */
+    await page.goto('/spots');
+    await page.getByRole('button', { name: 'Every spot' }).click();
+
+    const cards = page.locator('[class*="cardBody"]');
+    const first = await cards.count();
+    expect(first).toBeLessThan(liveSpots.length);
+
+    await page.getByRole('button', { name: /Show \d+ more/ }).click();
+    await expect.poll(() => cards.count()).toBeGreaterThan(first);
   });
 
   test('narrows the list by search and by sport', async ({ page }) => {
     await page.goto('/spots');
-    await page.getByRole('button', { name: 'Every spot' }).click();
-    await expect(page.getByText(skateOnlySpot.name, { exact: true }).first()).toBeVisible();
+    await findSpot(page, skateOnlySpot.name);
 
+    // A search for one spot's town must not still be showing another's card.
     await page.getByLabel('Search spots').fill(scooterSpot.town);
     await expect(page.getByText(scooterSpot.name, { exact: true }).first()).toBeVisible();
     await expect(page.getByText(skateOnlySpot.name, { exact: true })).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Clear' }).click();
-    await expect(page.getByText(skateOnlySpot.name, { exact: true }).first()).toBeVisible();
+    await findSpot(page, skateOnlySpot.name);
   });
 
   test('a card and the map header share one selection', async ({ page }) => {
     await page.goto('/spots');
-    await page.getByRole('button', { name: 'Every spot' }).click();
-
-    const chosen = card(page, scooterSpot.name);
+    const chosen = await findSpot(page, scooterSpot.name);
     await chosen.getByRole('button', { name: 'Show on map' }).click();
 
     // The map panel's header is ours, not Mapbox's, so it names the selection
@@ -129,11 +190,10 @@ test.describe('where to ride', () => {
 
   test('puts a spot on the map from anywhere in its card', async ({ page }) => {
     await page.goto('/spots');
-    await page.getByRole('button', { name: 'Every spot' }).click();
 
     // The name, not the button beneath it: the whole box is the control, which
     // is the only part of this a rider on a phone can reliably hit.
-    const chosen = card(page, scooterSpot.name);
+    const chosen = await findSpot(page, scooterSpot.name);
     await chosen.getByText(scooterSpot.name, { exact: true }).click();
 
     await expect(chosen.getByRole('button', { name: 'On the map' })).toBeVisible();
@@ -157,7 +217,7 @@ test.describe('where to ride', () => {
     );
 
     await page.goto('/spots');
-    const chosen = card(page, scooterSpot.name);
+    const chosen = await findSpot(page, scooterSpot.name);
 
     const opened = context.waitForEvent('page');
     await chosen.getByRole('link', { name: 'Directions' }).click();
@@ -170,7 +230,9 @@ test.describe('where to ride', () => {
 
   test('links out to the spot, and never to where the rider is', async ({ page }) => {
     await page.goto('/spots');
-    const directions = card(page, scooterSpot.name).getByRole('link', { name: 'Directions' });
+    const directions = (await findSpot(page, scooterSpot.name)).getByRole('link', {
+      name: 'Directions',
+    });
     const href = await directions.getAttribute('href');
 
     expect(href).toContain(String(scooterSpot.lat));
@@ -227,7 +289,7 @@ test.describe('where to ride', () => {
       .poll(async () => (await canvas.count()) + (await excuse.count()), { timeout: 15_000 })
       .toBeGreaterThan(0);
 
-    await expect(card(page, scooterSpot.name)).toBeVisible();
+    await findSpot(page, scooterSpot.name);
   });
 
   test('never asks for the rider’s location unless they press for it', async ({ page }) => {
@@ -236,10 +298,14 @@ test.describe('where to ride', () => {
     await expect(page.getByRole('heading', { name: 'Where to ride' })).toBeVisible();
 
     // Off by default (plan §6.4, standard 10). Not "asked once and remembered":
-    // never asked at all until a rider chooses it.
+    // never asked at all until a rider chooses it. Checked before hydration is
+    // waited for, deliberately: a call made during hydration must fail this.
     expect(await geoCalls(page)).toBe(0);
 
-    await page.getByRole('button', { name: 'Sort by nearest' }).click();
+    await whenInteractive(page);
+    expect(await geoCalls(page)).toBe(0);
+
+    await page.getByRole('button', { name: 'Near me' }).click();
     expect(await geoCalls(page)).toBe(1);
 
     // A visible indicator while it is on, carrying the way to switch it off.
@@ -251,7 +317,8 @@ test.describe('where to ride', () => {
   test('does not keep the rider’s position anywhere across a reload', async ({ page }) => {
     await watchGeolocation(page);
     await page.goto('/spots');
-    await page.getByRole('button', { name: 'Sort by nearest' }).click();
+    await whenInteractive(page);
+    await page.getByRole('button', { name: 'Near me' }).click();
     await expect(page.getByText('Using your location')).toBeVisible();
 
     const stored = await page.evaluate(() => ({
@@ -268,7 +335,7 @@ test.describe('where to ride', () => {
 
     await page.reload();
     await expect(page.getByText('Using your location')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Sort by nearest' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Near me' })).toBeVisible();
     expect(await geoCalls(page)).toBe(0);
   });
 

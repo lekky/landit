@@ -7,13 +7,14 @@ import { EVENTS } from './events';
 import { PLAN, PLANS } from './plans';
 import { DEFAULT_PRIVACY, GOALS, LEVELS, PRIVACY, STANCES } from './profile';
 import { SPORTS, SPORT_IDS } from './sports';
-import { SPOTS } from './spots';
+import { SPOTS, SPOT_TYPES, type SpotType } from './spots';
+import { SPOT_COUNTRY_BY_CODE } from '../rules/spots';
 import { STAGES } from './stages';
 import { STICKERS } from './stickers';
 import { TRICKS, TRICK_PREREQS } from './tricks';
 import { STICKER_RULES } from '../rules/stickers';
 import { challengesOverlap } from '../rules/challenges';
-import type { Plan, Sticker } from '../types';
+import type { Plan, Spot, Sticker } from '../types';
 
 /**
  * The canonical arrays are `as const`, so an optional field is absent from the
@@ -22,6 +23,7 @@ import type { Plan, Sticker } from '../types';
  */
 const allStickers: readonly Sticker[] = STICKERS;
 const allPlans: readonly Plan[] = PLANS;
+const allSpots: readonly Spot[] = SPOTS;
 
 /**
  * The canonical data is the single source for both the database seeds (T4) and
@@ -282,13 +284,98 @@ describe('challenges', () => {
 });
 
 describe('spots, events and profile options', () => {
-  it('seeds seven live spots with usable coordinates', () => {
-    expect(SPOTS).toHaveLength(7);
-    for (const spot of SPOTS) {
+  /*
+   * The spots are researched real places (2026-08-18), so what is worth
+   * asserting changed shape: a count proves nothing about a list that grows,
+   * and the failures that matter now are a spot nobody can reach and a spot
+   * that quietly replaces another.
+   */
+  it('seeds live spots that a rider could actually be sent to', () => {
+    expect(SPOTS.length).toBeGreaterThanOrEqual(30);
+    for (const spot of allSpots) {
       expect(spot.status).toBe('live');
+      expect(spot.name.length).toBeGreaterThan(0);
+      expect(spot.name.length).toBeLessThanOrEqual(80);
+      expect(spot.town.length).toBeLessThanOrEqual(60);
+      expect(SPOT_TYPES).toContain(spot.type as SpotType);
+
+      /*
+       * Tags may be empty, and that is a ruling rather than an oversight: a
+       * good few councils publish no obstacle list at all, and a real park with
+       * a verified coordinate belongs on the map more than a tidy field does.
+       * The alternative was inventing features, which is the one thing this
+       * data may not do. What is checked is that a tag, where present, is a
+       * usable label.
+       */
+      expect(spot.tags.length).toBeLessThanOrEqual(4);
+      for (const tag of spot.tags) {
+        expect(tag.trim()).toBe(tag);
+        expect(tag.length).toBeGreaterThan(0);
+      }
+
       expect(Math.abs(spot.lat)).toBeLessThanOrEqual(90);
       expect(Math.abs(spot.lng)).toBeLessThanOrEqual(180);
+      // Null island is what an unparsed coordinate looks like, and it is in the
+      // Gulf of Guinea. No skatepark is at 0,0.
+      expect(Math.abs(spot.lat) + Math.abs(spot.lng)).toBeGreaterThan(0);
+
       expect(spot.sports.length).toBeGreaterThan(0);
+      for (const sport of spot.sports) expect(SPORT_IDS).toContain(sport);
+    }
+  });
+
+  /*
+   * `name` + `town` is the seed's natural key (`packages/db/src/seed.ts`), so
+   * two spots sharing one is not a cosmetic duplicate: the second row
+   * overwrites the first on every seed, and the park that loses is silently
+   * absent from the map with nothing in any log to say so.
+   */
+  it('keeps every spot distinct by the key the seed matches on', () => {
+    const keys = allSpots.map((spot) => `${spot.name}|${spot.town}`.toLowerCase());
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  /*
+   * Three sports at launch (plan §1) — and a sport with no spots is a screen
+   * that tells a rider there is nowhere to ride. The prototype's seven spots
+   * had no BMX at all, which is exactly the hole this catches.
+   */
+  it('has somewhere to ride for every sport the product ships', () => {
+    for (const sport of SPORT_IDS) {
+      expect(allSpots.some((spot) => spot.sports.includes(sport))).toBe(true);
+    }
+  });
+
+  /*
+   * The contact fields are optional by design — a street spot has neither and a
+   * council park rarely has a phone — but where one is present it has to fit
+   * the column the migration made for it, or the seed fails at the database
+   * with a message about a field width rather than about the spot.
+   */
+  /*
+   * A country in the data with no code pointing at it is a rider whose own
+   * parks never lead their list — the failure is silent on screen, so it is
+   * caught here instead. See `SPOT_COUNTRY_BY_CODE`.
+   */
+  it('can route every country in the data back from a region code', () => {
+    const reachable = new Set(Object.values(SPOT_COUNTRY_BY_CODE));
+    for (const spot of allSpots) {
+      if (spot.country !== undefined) expect(reachable).toContain(spot.country);
+    }
+  });
+
+  it('keeps addresses and phone numbers inside their fields', () => {
+    for (const spot of allSpots) {
+      if (spot.address !== undefined) {
+        expect(spot.address.length).toBeGreaterThan(0);
+        expect(spot.address.length).toBeLessThanOrEqual(200);
+      }
+      if (spot.phone !== undefined) {
+        expect(spot.phone.length).toBeLessThanOrEqual(40);
+        // A number a rider can ring: digits, and the international prefix.
+        expect(spot.phone).toMatch(/\d/);
+      }
+      if (spot.country !== undefined) expect(spot.country.length).toBeLessThanOrEqual(60);
     }
   });
 

@@ -1,7 +1,7 @@
 'use client';
 
 import type { LatLng } from '@landit/core';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   MAP_ATTRIBUTION,
@@ -142,15 +142,52 @@ export function SpotMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /*
+   * Every call into MapLibre goes through here, and a throw becomes the
+   * placeholder rather than a blank screen.
+   *
+   * **This is a real failure, found by a flaky test.** When the basemap dies —
+   * no WebGL, or tiles unreachable — MapLibre fires `error`, `failed` is set,
+   * and the effect below removes the instance. But effects in the same commit
+   * run in declaration order, so a rider pressing "Near me" at that moment
+   * reached a map that had errored and not yet been torn down; `Marker.addTo`
+   * threw, React unmounted the tree, and **the whole screen went with it** —
+   * list, search and filters, not just the map. Reproduced roughly one run in
+   * three once the spot list grew (2026-08-18).
+   *
+   * The plan's promise for this screen is that the list works whether or not a
+   * map appears (§7, T13). A third-party canvas throwing must therefore degrade
+   * to the honest "map would not load" state, which is what this does. It is
+   * deliberately not a silent catch: `setFailed` shows the rider something is
+   * wrong and takes the half-drawn map away with it.
+   */
+  const withMap = useCallback((work: (control: MapControl) => void) => {
+    if (!control.current) return;
+    try {
+      work(control.current);
+    } catch {
+      /*
+       * Scheduled, not set here. The throw happens inside an effect body, and
+       * a synchronous `setFailed` there is a cascading render in the same
+       * commit — which `react-hooks/set-state-in-effect` rejects, rightly: the
+       * failure came from an external system, so it belongs in a callback the
+       * way any other subscription update would. A microtask is the shortest
+       * delay that gets it out of the effect, so the placeholder still appears
+       * in the same frame a rider would notice.
+       */
+      queueMicrotask(() => setFailed(true));
+    }
+  }, []);
+
   /* Markers follow the filtered list. */
   useEffect(() => {
-    if (control.current) sync(control.current, spots, selectedId, onSelect);
-  }, [spots, selectedId, onSelect]);
+    withMap((map) => sync(map, spots, selectedId, onSelect));
+  }, [spots, selectedId, onSelect, withMap]);
 
   /* The rider's dot follows the opt-in, and disappears with it. */
   useEffect(() => {
-    if (control.current) drawHere(control.current, here);
-  }, [here]);
+    withMap((map) => drawHere(map, here));
+  }, [here, withMap]);
 
   /*
    * Tear the map down when it fails, before the placeholder replaces it.
@@ -276,6 +313,10 @@ function drawHere(control: MapControl, here: LatLng | null): void {
     control.here = null;
     return;
   }
+
+  // A torn-down map leaves `instance` null; drawing a dot on nothing is not an
+  // error worth surfacing, it is simply nothing to do.
+  if (!control.instance) return;
 
   if (!control.here) {
     const element = document.createElement('div');

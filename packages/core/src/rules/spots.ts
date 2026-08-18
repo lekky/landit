@@ -259,6 +259,101 @@ export function unitsForCountry(country: string | null | undefined): DistanceUni
 }
 
 /**
+ * Alpha-2 code to the country name the spots data spells out.
+ *
+ * **Why a table and not an ISO library.** The data stores `country` as the
+ * common English name because that is what a rider reads on a card ("USA", not
+ * "US"), while every signal about where the *reader* is — a sign-up country, an
+ * `Accept-Language` region — is a code. Something has to join the two. A full
+ * ISO-3166 dataset is 249 entries and a dependency to answer a question about
+ * the couple of dozen countries that actually have spots in them; this is the
+ * join, and a country missing from it degrades to "no home country", which is
+ * the same behaviour a rider gets in a country with no spots yet.
+ *
+ * Add a line when the spots data reaches a new country. `data.test.ts` checks
+ * that every country in `SPOTS` can be reached from some code here, so a new
+ * country without a line is a failing test rather than a rider who never sees
+ * their own parks first.
+ */
+export const SPOT_COUNTRY_BY_CODE: Readonly<Record<string, string>> = {
+  AE: 'United Arab Emirates',
+  AR: 'Argentina',
+  AT: 'Austria',
+  AU: 'Australia',
+  BE: 'Belgium',
+  BR: 'Brazil',
+  CA: 'Canada',
+  CH: 'Switzerland',
+  CL: 'Chile',
+  CZ: 'Czechia',
+  DE: 'Germany',
+  DK: 'Denmark',
+  ES: 'Spain',
+  ET: 'Ethiopia',
+  FI: 'Finland',
+  FR: 'France',
+  GB: 'UK',
+  HK: 'Hong Kong',
+  ID: 'Indonesia',
+  IE: 'Ireland',
+  IL: 'Israel',
+  IT: 'Italy',
+  JP: 'Japan',
+  KE: 'Kenya',
+  MX: 'Mexico',
+  NL: 'Netherlands',
+  NO: 'Norway',
+  NZ: 'New Zealand',
+  PE: 'Peru',
+  PL: 'Poland',
+  PT: 'Portugal',
+  SE: 'Sweden',
+  SG: 'Singapore',
+  TW: 'Taiwan',
+  UK: 'UK',
+  US: 'USA',
+  ZA: 'South Africa',
+};
+
+/**
+ * The spots country a reader belongs to, from whatever code we were given, or
+ * `null` when we cannot tell or have nothing there.
+ */
+export function spotCountryForRegion(region: string | null | undefined): string | null {
+  const code = countryOf(region ?? '');
+  return SPOT_COUNTRY_BY_CODE[code] ?? null;
+}
+
+/**
+ * The reader's own country first, everything else after, order preserved
+ * within each half.
+ *
+ * **Why this exists at all.** The list went from seven English spots to a
+ * hundred-odd across three dozen countries, and the server sorts by name — so
+ * an alphabetical list opens on Argentina and Australia whoever you are, and
+ * pagination on top of that hides your own country behind a "show more". This
+ * is not a ranking or a relevance score: it is one stable partition, which is
+ * the least clever thing that makes the first screen useful.
+ *
+ * **It is not a substitute for "Near me".** Distance beats nationality the
+ * moment a rider presses for it — a Dubliner is closer to Liverpool than to
+ * some Irish parks — so the caller applies this only while there is no
+ * location to sort by (`SpotsScreen`). Nothing here reads or stores a position.
+ *
+ * Stable, and pure: same input, same output, no clock and no locale.
+ */
+export function sortSpotsHomeFirst<T extends { readonly country?: string }>(
+  spots: readonly T[],
+  home: string | null | undefined,
+): readonly T[] {
+  if (!home) return spots;
+  const mine: T[] = [];
+  const theirs: T[] = [];
+  for (const spot of spots) (spot.country === home ? mine : theirs).push(spot);
+  return mine.length ? [...mine, ...theirs] : spots;
+}
+
+/**
  * The region a browser's `Accept-Language` header claims, as an alpha-2 code —
  * `en-GB` → `GB`, `de-DE` → `DE`, `zh-Hans-CN` → `CN` — or `''` when it says
  * nothing usable.

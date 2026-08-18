@@ -1,4 +1,9 @@
-import { regionFromAcceptLanguage, unitsForCountry, type SportId } from '@landit/core';
+import {
+  regionFromAcceptLanguage,
+  spotCountryForRegion,
+  unitsForCountry,
+  type SportId,
+} from '@landit/core';
 import { listSpots } from '@landit/db';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
@@ -51,11 +56,31 @@ export default async function SpotsPage() {
     sports: (record.sports ?? []) as SportId[],
     tags: Array.isArray(record.tags) ? (record.tags as string[]) : [],
     status: record.status,
+    // PocketBase returns '' for an unset text field, and '' is not "absent" to
+    // a template — it renders an empty line. Collapse it here, once, so the
+    // screen only ever asks whether it has the value.
+    address: record.address || undefined,
+    phone: record.phone || undefined,
+    country: record.country || undefined,
   }));
 
-  const units = session
-    ? unitsForCountry(session.rider.country)
-    : unitsForCountry(regionFromAcceptLanguage((await headers()).get('accept-language')));
+  /*
+   * One signal, two uses. The rider's region already decided miles or
+   * kilometres; it now also decides whose parks lead the list, because a
+   * hundred-odd spots sorted by name opens on Argentina for everybody. Same
+   * precedence as the units: a signed-in rider's declared country beats a
+   * browser setting, and neither is stored.
+   */
+  const region = session
+    ? session.rider.country
+    : regionFromAcceptLanguage((await headers()).get('accept-language'));
 
-  return <SpotsScreen spots={spots} signedIn={!!session} units={units} />;
+  return (
+    <SpotsScreen
+      spots={spots}
+      signedIn={!!session}
+      units={unitsForCountry(region)}
+      homeCountry={spotCountryForRegion(region)}
+    />
+  );
 }

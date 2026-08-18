@@ -9,6 +9,7 @@ import {
   TRICK_PREREQS,
   formatPricePence,
   type Plan,
+  type Spot,
   type Sticker,
   type Trick,
 } from '@landit/core';
@@ -159,10 +160,19 @@ export function buildSeed(): SeedPlan {
         // Spots have no slug. Name plus town is what makes one distinct in the
         // seed data, and re-running must not create a second Rampworx.
         key: ['name', 'town'],
-        rows: SPOTS.map((spot) => ({
+        // Widened from the `as const` data so an optional field is a question
+        // about values rather than about literal types — the same move
+        // `data.test.ts` makes, and what lets a spot with no phone map cleanly.
+        rows: (SPOTS as readonly Spot[]).map((spot) => ({
           name: spot.name,
           town: spot.town,
           type: spot.type,
+          // Absent is written as empty rather than omitted: an omitted key
+          // leaves whatever the row held before, so a spot whose phone number
+          // is withdrawn would keep the old one forever.
+          address: spot.address ?? '',
+          phone: spot.phone ?? '',
+          country: spot.country ?? '',
           // `dist` is deliberately not seeded: distance belongs to the viewer,
           // not the spot (see `SPOTS` in @landit/core).
           lat: spot.lat,
