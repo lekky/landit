@@ -103,7 +103,7 @@ link never expires, and using it does not delete anything ${name} has logged.`,
   return mail.shell({
     eyebrow: 'Guardian',
     preheader: `${input.riderName} is waiting on a grown-up. Nothing happens unless you say so.`,
-    heading: `${name} needs<br/>your OK`,
+    heading: `${name} needs your OK`,
     content,
     footerNote: 'Sent because a rider gave this address as their parent or carer.',
   });
