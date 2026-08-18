@@ -14,7 +14,7 @@ something to paste. The live copies ride in `/pb_data`, which Litestream replica
 | File | PocketBase template | Status |
 | --- | --- | --- |
 | `password-reset.html` | Default password reset | **Ready to install.** |
-| `verify-email.html` | Default verification | **Do not install yet** — see below. |
+| `verify-email.html` | Default verification | **Ready to install.** |
 
 ## Placeholders
 
@@ -33,11 +33,19 @@ gives a rider a 404 instead of a password reset — observed on the live instanc
    on that same Options tab. Either set it to 3600 seconds or change both numbers. **A promise about
    expiry that the server does not keep is worse than no promise**, because the rider who waits
    fifty minutes is the one who finds out.
-2. **`verify-email.html` has nowhere to land.** Its button points at `{APP_URL}/verify-email`, a
-   route the web app does not have — nothing in the app gates on `verified`, so sign-up never
-   requests verification and the path has never existed. Installing it would swap one broken link
-   for another. It waits on two things that are the owner's: whether email verification is turned
-   on at all, and the route to serve it.
+2. **The verification copy quotes seven days**, which is PocketBase's own default verification
+   token duration. If you change that duration, change the sentence with it — same trap as the
+   reset expiry above, and the same reason it matters.
+
+Two things the design's verification copy claimed that are not true here, and were rewritten
+rather than shipped:
+
+- **"Tap the button and your trick list is live"**, and the same claim in the preheader. Nothing
+  waits on `verified`. Telling a rider their account is not live until they confirm would be a
+  lie, and for an under-16 rider it would collide with the guardian gate — which *is* a real lock
+  they are already behind, and which confirming an email does nothing about.
+- **"Or type this code — 482 913".** PocketBase's verification is a link; there is no code to
+  print. The block is gone rather than filled with something invented.
 
 ## Not implemented from the design set
 

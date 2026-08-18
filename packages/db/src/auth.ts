@@ -116,6 +116,40 @@ export async function confirmPasswordReset(
     .confirmPasswordReset(input.token, input.password, input.password);
 }
 
+/* ----------------------------------------------------------- verification -- */
+
+/**
+ * Ask PocketBase to send the confirmation email.
+ *
+ * **Nothing waits on the answer.** No screen is gated on `users.verified`, no
+ * API rule reads it, and sign-in ignores it — a rider who never confirms keeps
+ * a whole account. What confirming buys them is the only thing that ever needed
+ * it: a password reset goes to the address on the record, so an address with a
+ * typo in it is an account nobody can get back into.
+ *
+ * That is also why this is called and not awaited on the sign-up path. A rider
+ * whose confirmation email fails to send has still made an account, and telling
+ * them otherwise would be a lie about what went wrong.
+ *
+ * Silent about whether the address is registered, for the same reason
+ * `requestPasswordReset` is.
+ */
+export async function requestVerification(client: Client, email: string): Promise<void> {
+  await client.collection('users').requestVerification(email);
+}
+
+/**
+ * Finish confirmation with the token from the email.
+ *
+ * The token is read from the query by `/verify-email` and posted back, rather
+ * than being acted on by the visit itself — the same arrangement the reset page
+ * and the guardian-consent links use, and for the same reason: a link that acts
+ * on GET is actioned by every mail scanner that follows links in an inbox.
+ */
+export async function confirmVerification(client: Client, token: string): Promise<void> {
+  await client.collection('users').confirmVerification(token);
+}
+
 /* ------------------------------------------------------------- the handle -- */
 
 /**
