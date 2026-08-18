@@ -349,13 +349,35 @@ local branches. After merging: remove the worktree, delete the local branch, del
 branch.
 
 **On Windows, `git worktree remove` fails on nested `node_modules`** with "Filename too long".
-Mirror an empty directory over it first, then delete:
+Mirror an empty directory over it first, then delete. **Run it from PowerShell, not the Bash
+tool:**
 
-```
+```powershell
 robocopy <empty-dir> <worktree-path> /MIR ; Remove-Item <worktree-path> -Recurse -Force
 ```
 
 Then `git worktree prune`. Two separate sessions hit this and each rediscovered the fix.
+
+**The shell matters, and getting it wrong looks like the fix working.** Run through the Bash
+tool, MSYS path conversion rewrites `/MIR` as a path and robocopy refuses the whole command:
+
+```
+ERROR : Invalid Parameter #3 : "C:/Program Files/Git/MIR"
+```
+
+The mirror then does nothing, `git worktree remove` fails on `node_modules` exactly as it would
+have anyway, and a session that followed this rule to the letter still leaves a full directory
+behind. That is one of the ways issue #172's pile grew while the workaround was documented. From
+Bash the flag has to be doubled (`//MIR`); from PowerShell it is as written above. Robocopy also
+**exits 1–7 on success** — 2 means "extra files removed", which is what a successful mirror does —
+so a `$LASTEXITCODE` check that treats non-zero as failure will report the opposite of the truth.
+
+**A worktree directory can also refuse to delete while empty.** After a clean mirror, `Remove-Item`
+can still return *"being used by another process"* with no `node.exe` running and no shell inside
+it. It is transient: the same command a few minutes later succeeded on both worktrees this session
+had stranded (2026-08-18). Retry before concluding the directory is stuck, and prefer retrying to
+leaving it — the pile in issue #172 is what "I will get it later" looks like after eighteen
+sessions.
 
 **And `git worktree remove` exits 0 when that delete fails.** It prints `error: failed to delete
 ... Filename too long`, deregisters the worktree, returns success, and leaves the directory and its
