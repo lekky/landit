@@ -23,7 +23,7 @@ export const metadata: Metadata = {
  * `{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}` — so pointing `APP_URL` at
  * the web app produces a 404 on `/_` and a rider who cannot reset their
  * password (observed on the live instance, 2026-08-18). The template itself has
- * to be edited, in Settings → Mail, to `{APP_URL}/reset-password?token={TOKEN}`.
+ * to be edited, on the users collection, to `{APP_URL}/reset-password?token={TOKEN}`.
  * That is instance configuration and lives in the settings database, not in this
  * repository — `docs/infrastructure.md` runbook 6 carries it.
  */

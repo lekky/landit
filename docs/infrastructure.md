@@ -433,7 +433,7 @@ password-reset body links to `{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}`
 own route. With `APP_URL` set to `https://landthetrick.com`, as it must be for the guardian links,
 that resolves to `/_` on the web app and gives the rider a **404 instead of a password reset**
 (observed 2026-08-18, the first time the path was ever walked). Setting `APP_URL` correctly does not
-fix it; the template itself has to be edited, in Settings → Mail:
+fix it; the template itself has to be edited, on the users collection (below):
 
 | Template | Link it must carry |
 | --- | --- |
