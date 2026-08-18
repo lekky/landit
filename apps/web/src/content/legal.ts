@@ -54,9 +54,13 @@ import { countWord, sportsList } from '@/lib/sports';
  *   reason the cookie policy still has nothing to declare for YouTube. It is
  *   asserted in `e2e/video-links.spec.ts`.
  *
- * Anything the owner has not decided is absent rather than invented: there is
- * no data-controller section and no named accountable individual here, because
- * §6.5 has not settled either.
+ * Anything the owner has not decided is absent rather than invented. §6.5
+ * settled on 2026-08-17 (controller: Fennec Consulting Ltd, trading as Land
+ * The Trick; named accountable individual: Rachid Otsmane), so the privacy
+ * policy's "Who we are" section and the safeguarding page's "Who answers for
+ * this" section carry both — added 2026-08-18, issue #21. The ICO registration
+ * number is still pending; when it exists, it belongs in "Who we are" beside
+ * the company name, not anywhere less findable.
  */
 
 export type LegalDocId = 'privacy' | 'terms' | 'safeguarding' | 'cookies' | 'about';
@@ -74,8 +78,13 @@ export interface LegalDoc {
   readonly sections: readonly LegalSection[];
 }
 
-/** Still true: §6.3 leaves the EEA table and the US posture for counsel. */
-export const LEGAL_DRAFT_NOTICE = 'Draft copy, pending legal review before launch';
+/**
+ * Still true: §6.3 leaves the EEA table and the US posture for counsel. The
+ * wording used to end "before launch"; launch happened 2026-08-17 with the
+ * review still pending, so the notice now says what remains true rather than
+ * dating itself.
+ */
+export const LEGAL_DRAFT_NOTICE = 'Draft copy, pending legal review';
 
 /** "Two" today, "Three" the day T21 lands BMX. Never a literal. */
 const libraryCount = (() => {
@@ -91,6 +100,14 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
     intro:
       'What we collect, why we collect it, and how to get rid of it. Written to be read by a fourteen year old and their parent.',
     sections: [
+      {
+        h: 'Who we are',
+        p: [
+          'Land The Trick is run by Fennec Consulting Ltd, a UK limited company, trading as Land The Trick. In data-protection language, Fennec Consulting Ltd is the data controller: the organisation responsible for everything this policy describes, and the one answerable to you for it.',
+          `Questions, requests and complaints about your data all go to ${CONTACT.privacy}. A human reads it.`,
+          'If you think we have got something wrong with your data and we have not put it right, you can complain to the Information Commissioner’s Office, the UK regulator, at ico.org.uk. We would rather hear it from you first, but that right is yours either way.',
+        ],
+      },
       {
         h: 'What we collect',
         p: [
@@ -247,6 +264,13 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         p: [
           'Every trick carries a difficulty from 1 to 5. Anything at 4 or 5 involves drops, inverts or both, and the app says so on the trick page.',
           'We will not gate tricks by age, because riders progress at different rates. We will keep flagging the ones that need a foam pit and a spotter.',
+        ],
+      },
+      {
+        h: 'Who answers for this',
+        p: [
+          'Safeguarding here is a named person’s job, not a shared inbox. The individual accountable for it — including our duties under the UK Online Safety Act — is Rachid Otsmane of Fennec Consulting Ltd, the company that runs Land The Trick.',
+          `Anything sent to ${CONTACT.safeguarding} reaches them.`,
         ],
       },
     ],
