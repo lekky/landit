@@ -34,8 +34,9 @@ import { constructWebhookEvent, stripeConfig, stripeWriteFromEvent } from '@/lib
  * precisely because retries — and duplicate deliveries, which Stripe documents
  * as normal — will happen.
  *
- * **503 while unconfigured.** There is no Stripe account yet, so on most
- * deployments `stripeConfig()` is `null`. Answering 503 rather than 200 means
+ * **503 while unconfigured.** Stripe went live on 2026-08-17 (#120), so production
+ * has keys and this path is now the *preview and local* case rather than the
+ * normal one. Answering 503 rather than 200 means
  * a webhook pointed at an app that cannot verify it shows up as failing in the
  * Stripe dashboard instead of looking delivered — the same reasoning
  * `/api/health` uses (issue #62).

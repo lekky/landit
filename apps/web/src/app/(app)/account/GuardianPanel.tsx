@@ -84,7 +84,7 @@ export function GuardianPanel({ state }: { state: ConsentState }) {
           <strong>We have written to {result.sentTo}</strong>
           {result.emailed
             ? 'The link in it is good for a week. Ask them to check junk mail if it has not turned up.'
-            : 'We could not actually send it just yet — our email is not switched on until launch. The request is recorded and you can send it again once it is.'}
+            : 'We could not get it to them just now — that is our end, not yours. The request is recorded, so try sending it again in a few minutes.'}
         </div>
       ) : null}
 

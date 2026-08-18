@@ -161,8 +161,11 @@ test('a younger rider arrives at an account that says what it is waiting for', a
   await page.getByLabel(/parent or carer/i).fill('guardian@landit.invalid');
   await page.getByRole('button', { name: 'Ask them' }).click();
   await expect(page.getByText(/We have written to guardian@landit.invalid/)).toBeVisible();
-  // No mail provider is configured, and the screen says so rather than pretending.
-  await expect(page.getByText(/not switched on until launch/i)).toBeVisible();
+  // Local PocketBase has no mail account, so the send fails and the screen says so
+  // rather than pretending a parent has been written to. It no longer blames
+  // "launch" for it: the product launched on 2026-08-17 and a rider reading that
+  // would be told to wait for something that already happened.
+  await expect(page.getByText(/that is our end, not yours/i)).toBeVisible();
 });
 
 test('a guardian link that is not valid says so, and offers a way out', async ({ page }) => {
