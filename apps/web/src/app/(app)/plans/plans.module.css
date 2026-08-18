@@ -34,16 +34,15 @@
 /* ------------------------------------------------------ the period toggle -- */
 
 /*
- * The saving tag hangs off the toggle rather than sitting beside it, so the
- * padding below reserves the room it no longer takes in flow. Without it the
- * tag would ride over the first row of plan cards.
+ * The saving tag sits above the toggle and out of flow, so the top margin buys
+ * the headroom it no longer takes for itself. Without it the tag would collide
+ * with the lede.
  */
 .toggleRow {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 20px;
-  padding-bottom: 40px;
+  margin-top: 38px;
 }
 
 .toggle {
@@ -54,16 +53,23 @@
 }
 
 /*
- * Pinned under the toggle's right-hand half, which is the Yearly button. The
- * 3px overhang puts the tag's right edge over the toggle's offset shadow, so
- * the tilt reads as a sticker slapped on that corner rather than a caption
- * centred under the control. `top` resolves against the padding box, so the
- * 14px pays for the 3px keyline and the 3px shadow before the paper. `.tag`
- * already sets `white-space: nowrap`.
+ * Slapped over the top edge of the toggle's right-hand half, which is the
+ * Yearly button — the same move the "Most riders" tag makes on a plan card, and
+ * the reason the saving reads as belonging to Yearly rather than to whichever
+ * period happens to be selected.
+ *
+ * Offsets resolve against the padding box, inside the 3px keyline, so
+ * `bottom: calc(100% - 2px)` leaves the tag's lower edge 5px below the toggle's
+ * outer top — the keyline covered and a couple of px bitten out of the button's
+ * 9px of padding. The tilt drops the right-hand corner ~2px further, which is
+ * why the bite is this shallow: any deeper and that corner crowds the cap
+ * height of "Yearly". Anchoring by `bottom` rather than a negative `top` keeps
+ * the bite fixed if the tag's own height moves with the font. `.tag` already
+ * sets `white-space: nowrap`.
  */
 .savingTag {
   position: absolute;
-  top: calc(100% + 14px);
+  bottom: calc(100% - 2px);
   right: -3px;
 }
 

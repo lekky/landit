@@ -1871,13 +1871,15 @@ go red, which is the only way the silent failure above would ever be noticed.
   is the session that makes the screenshot visibly out of date, so it is named. Layout, the raised
   "Most riders" card and the toggle itself are the screenshot's exactly; the saving badge moved,
   and the next entry says why.
-- **The "2 months free" badge is pinned under the Yearly button, not set beside the toggle.**
+- **The "2 months free" badge sits on the Yearly button's top edge, not beside the toggle.**
   Changed 2026-08-18 on the owner's call. The prototype puts the badge after the whole control, and
   a visitor sitting on Monthly — the default — reads a green tag next to a black "Monthly" and is
   told they are getting two months free. Anchoring it to the Yearly half says whose saving it is
   without adding a word to the label, which matters because the label is derived from the prices by
-  `yearlySavingLabel` and is not copy anyone edits. The Yearly button also carries
-  `aria-describedby` to the tag, since position tells a screen reader nothing.
+  `yearlySavingLabel` and is not copy anyone edits. It overlaps the keyline rather than hanging
+  below it, which is the same move the "Most riders" tag makes on a plan card: sitting on the
+  control reads as a sticker, sitting under it reads as a caption for the whole toggle. The Yearly
+  button also carries `aria-describedby` to the tag, since position tells a screen reader nothing.
 - **The FAQ is a rewrite.** Two of the prototype's four answers sell Crew Pass and one promises
   die-cut vinyl "posted every season", which nobody has decided to post (issue #101 — the same
   panel T10 dropped from the sticker wall). What replaces them says the two things this product

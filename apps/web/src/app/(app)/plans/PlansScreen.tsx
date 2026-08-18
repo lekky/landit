@@ -102,13 +102,13 @@ export function PlansScreen({ view }: { view: PlansView }) {
               </button>
             ))}
             {/*
-              Pinned under the toggle's right-hand half, which is Yearly. Beside
-              the whole control (as the prototype has it) the tag reads as a
-              property of whatever is currently selected, so a visitor sitting
-              on Monthly is told they are getting two months free. Anchoring it
-              to the Yearly button says whose saving it is without spending
-              words on it, and `aria-describedby` says the same thing to a
-              screen reader, where position carries nothing.
+              Slapped over the top edge of the toggle's right-hand half, which
+              is Yearly. Beside the whole control (as the prototype has it) the
+              tag reads as a property of whatever is currently selected, so a
+              visitor sitting on Monthly is told they are getting two months
+              free. Sitting it on the Yearly button says whose saving it is
+              without spending words on it, and `aria-describedby` says the same
+              thing to a screen reader, where position carries nothing.
             */}
             {view.savingLabel && (
               <Tag
