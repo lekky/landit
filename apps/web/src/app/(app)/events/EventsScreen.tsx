@@ -1,6 +1,12 @@
 'use client';
 
-import { SPORTS, type EventKind } from '@landit/core';
+import {
+  SPORTS,
+  distanceKm,
+  distanceLabelIn,
+  type DistanceUnits,
+  type EventKind,
+} from '@landit/core';
 import { Button, Empty, Icon, Panel, Pill, SportChip, Tag, type IconName } from '@landit/ui-web';
 import { useMemo, useState, useTransition } from 'react';
 
@@ -9,6 +15,12 @@ import { useModal } from '@/providers/modal';
 import { useSport } from '@/providers/sport';
 import { useToast } from '@/providers/toast';
 
+// The spots screen's hook, unchanged and unmoved. It is the whole of Children's
+// code standard 10 (plan §6.4) and re-implementing it here would be a second
+// copy of a promise that must hold identically on both screens. It lives in the
+// spots folder because that is where it was written; promoting it to a shared
+// component means editing `SpotsScreen.tsx`, which another session owns.
+import { useHereOnce } from '../spots/useHereOnce';
 import { setAttendanceAction } from './actions';
 import styles from './events.module.css';
 import type { EventsView, EventView } from './view';
@@ -20,40 +32,120 @@ import type { EventsView, EventView } from './view';
  * differences worth naming:
  *
  * - **The list is filtered in the browser**, over rows the server shaped. It is
- *   a handful of events; a round trip per pill would make the row feel broken.
+ *   a few dozen events; a round trip per pill would make the row feel broken.
  * - **A past event is dimmed rather than dropped.** "What's coming up" is the
  *   heading, but a rider who said they were going to something last weekend
  *   should still see it — silently removing a row a child ticked reads as a
- *   bug. The default filter hides them; one pill brings them back.
+ *   bug. **Upcoming only is the state the page lands in**, and the pill now
+ *   renders *on* while it is doing that: it was previously drawn in the off
+ *   state while reading "Upcoming only", so an active filter looked like an
+ *   available one, and the list looked short for no visible reason.
+ *
+ * **Distances are approximate, and say so.** Organisers publish addresses, not
+ * coordinates, so an event's point comes from looking its address or town up in
+ * OpenStreetMap — sometimes the venue, often the town centre. That orders the
+ * list correctly, which is what "near me" is for when the calendar spans
+ * twenty-six countries, but it does not support "0.4 mi away". Every distance
+ * here is worded "about", because the data cannot back the precise reading.
+ *
+ * **Three separate location controls, because they answer three questions.**
+ * Country is a `<select>` and not a row of pills — a pill per country is a
+ * hundred pills once the calendar is worldwide. The text box is a plain
+ * substring search over city, venue, name and country, run in this browser and
+ * sent nowhere. "Near me" is the spots screen's hook, on the same terms:
+ * off until pressed, announced while on, never stored, never transmitted.
  *
  * Nobody else's attendance is anywhere on this screen, by design: there is no
  * stranger-contact surface in this product (plan §6.1), and a list of who else
  * is going to a park on Saturday would be one.
  */
 
-export function EventsScreen({ view }: { readonly view: EventsView }) {
+/**
+ * How many events a page shows.
+ *
+ * The calendar is worldwide and runs to dozens of rows; rendering all of them
+ * put a rider on a page they had to scroll past to reach anything else, and
+ * buried the "you're down for N events" panel under it. Twenty is roughly two
+ * screens on a phone — enough that paging is rare once a country or a sport is
+ * chosen, few enough that the page ends somewhere.
+ */
+const PER_PAGE = 20;
+
+export function EventsScreen({
+  view,
+  units,
+}: {
+  readonly view: EventsView;
+  readonly units: DistanceUnits;
+}) {
   const { sport } = useSport();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
+  const here = useHereOnce();
 
   const [kind, setKind] = useState<EventKind | null>(null);
   const [mySportOnly, setMySportOnly] = useState(true);
   const [showPast, setShowPast] = useState(false);
+  const [country, setCountry] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
   const [going, setGoing] = useState<ReadonlySet<string>>(
     () => new Set(view.events.filter((e) => e.going).map((e) => e.id)),
   );
 
-  const list = useMemo(
-    () =>
-      view.events.filter((event) => {
-        if (kind && event.kind !== kind) return false;
-        if (mySportOnly && !event.sportIds.includes(sport)) return false;
-        if (!showPast && event.past) return false;
-        return true;
-      }),
-    [view.events, kind, mySportOnly, showPast, sport],
-  );
+  const list = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    const narrowed = view.events.filter((event) => {
+      if (kind && event.kind !== kind) return false;
+      if (mySportOnly && !event.sportIds.includes(sport)) return false;
+      if (!showPast && event.past) return false;
+      if (country && event.country !== country) return false;
+      if (needle) {
+        const haystack =
+          `${event.name} ${event.town} ${event.venue} ${event.country}`.toLowerCase();
+        if (!haystack.includes(needle)) return false;
+      }
+      return true;
+    });
+
+    // Nearest first only while the rider is actually sharing a position.
+    // Without one the list stays in date order, which is the page's promise.
+    if (!here.point) return narrowed;
+    const from = here.point;
+    return [...narrowed]
+      .map((event, index) => ({ event, index }))
+      .sort((a, b) => {
+        const aHas = a.event.lat !== undefined && a.event.lng !== undefined;
+        const bHas = b.event.lat !== undefined && b.event.lng !== undefined;
+        // An event nobody has plotted cannot be near anything, so it keeps its
+        // date position at the back rather than being dropped.
+        if (!aHas && !bHas) return a.index - b.index;
+        if (!aHas) return 1;
+        if (!bHas) return -1;
+        const gap =
+          distanceKm(from, { lat: a.event.lat as number, lng: a.event.lng as number }) -
+          distanceKm(from, { lat: b.event.lat as number, lng: b.event.lng as number });
+        return gap === 0 ? a.index - b.index : gap;
+      })
+      .map((entry) => entry.event);
+  }, [view.events, kind, mySportOnly, showPast, sport, country, search, here.point]);
+
+  const pageCount = Math.max(1, Math.ceil(list.length / PER_PAGE));
+
+  /*
+   * The page a rider is actually on, clamped as the list shrinks under them.
+   *
+   * Narrowing a seventy-nine-event list to one country while on page 3 would
+   * otherwise land on an empty page that reads as "no events in France" — the
+   * filter worked, and the page was simply past the end. Clamped here, during
+   * render, rather than corrected afterwards in an effect: the effect version
+   * renders the empty page first and then fixes it, which is a visible flicker
+   * and a cascading render. `page` stays as the rider left it, so widening the
+   * filter again puts them back where they were.
+   */
+  const current = Math.min(page, pageCount - 1);
+  const shown = list.slice(current * PER_PAGE, current * PER_PAGE + PER_PAGE);
 
   const toggle = (event: EventView) => {
     const next = !going.has(event.id);
@@ -86,6 +178,7 @@ export function EventsScreen({ view }: { readonly view: EventsView }) {
     openModal(
       <EventDetail
         event={event}
+        distance={here.point ? distanceLabelIn(here.point, event, units) : null}
         going={going.has(event.id)}
         onToggle={() => {
           toggle(event);
@@ -114,6 +207,72 @@ export function EventsScreen({ view }: { readonly view: EventsView }) {
         </p>
       </div>
 
+      <div className={`search ${styles.search}`}>
+        <Icon name="search" size={19} strokeWidth={2.6} />
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="City, venue or event name…"
+          aria-label="Search events by city, venue or name"
+        />
+        {search && (
+          <button type="button" className={`cond ${styles.clear}`} onClick={() => setSearch('')}>
+            Clear
+          </button>
+        )}
+      </div>
+
+      <div className={styles.filters}>
+        {/*
+          A `<select>`, not a row of pills. The calendar is worldwide, so a pill
+          per country is a wall of pills that pushes the list off the screen —
+          and the options come from the events actually present, so no country
+          here can find nothing.
+        */}
+        <label className={styles.countryPick}>
+          <span className="lab" style={{ color: 'var(--ink-3)' }}>
+            Country
+          </span>
+          <select
+            className="cond"
+            value={country}
+            onChange={(event) => setCountry(event.target.value)}
+            aria-label="Filter events by country"
+          >
+            <option value="">Everywhere</option>
+            {view.countries.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <span className={styles.spacer} />
+
+        {/*
+          Standard 10 (plan §6.4), on the same terms as `/spots`: off until this
+          is pressed, asked for again on every visit, announced while it is on,
+          and the way to turn it off travels with the indicator.
+        */}
+        {here.state === 'off' && <Pill onClick={here.ask}>Sort by nearest</Pill>}
+        {here.state === 'asking' && (
+          <span className={`cond ${styles.locating}`}>Asking your browser…</span>
+        )}
+        {here.state === 'on' && (
+          <span className={styles.locationOn}>
+            <span className={styles.locationDot} aria-hidden="true" />
+            <span className="lab">Using your location</span>
+            <button type="button" className={`cond ${styles.locationOff}`} onClick={here.forget}>
+              Turn off
+            </button>
+          </span>
+        )}
+        {here.state === 'refused' && (
+          <span className={`cond ${styles.locating}`}>{here.message}</span>
+        )}
+      </div>
+
       <div className={styles.filters}>
         <Pill on={kind === null} onClick={() => setKind(null)}>
           Everything
@@ -129,8 +288,18 @@ export function EventsScreen({ view }: { readonly view: EventsView }) {
           </Pill>
         ))}
         <span className={styles.spacer} />
-        <Pill on={showPast} onClick={() => setShowPast((v) => !v)}>
-          {showPast ? 'Including past' : 'Upcoming only'}
+        {/*
+          Two pills rather than one toggle. This filter is *on* when the page
+          loads, and a single pill drawn in the off state while reading
+          "Upcoming only" said the opposite — it read as a filter waiting to be
+          applied, so a rider seeing a short list had no way to tell that past
+          events were already hidden.
+        */}
+        <Pill on={!showPast} onClick={() => setShowPast(false)}>
+          Upcoming only
+        </Pill>
+        <Pill on={showPast} onClick={() => setShowPast(true)}>
+          Including past
         </Pill>
         <Pill on={mySportOnly} onClick={() => setMySportOnly((v) => !v)}>
           {mySportOnly ? `Good for ${SPORTS[sport].short}` : 'Every sport'}
@@ -139,7 +308,7 @@ export function EventsScreen({ view }: { readonly view: EventsView }) {
 
       {list.length ? (
         <div className={styles.list}>
-          {list.map((event) => (
+          {shown.map((event) => (
             <Panel
               flat
               key={event.id}
@@ -167,7 +336,12 @@ export function EventsScreen({ view }: { readonly view: EventsView }) {
                   </div>
                   <div className={`d ${styles.name}`}>{event.name}</div>
                   <div className={`lab ${styles.meta}`}>
-                    {event.venue} · {event.town} · {event.level}
+                    {[event.venue, event.town, event.country, event.level]
+                      .filter(Boolean)
+                      .join(' · ')}
+                    {here.point && distanceLabelIn(here.point, event, units) && (
+                      <> · about {distanceLabelIn(here.point, event, units)} away</>
+                    )}
                   </div>
                 </div>
 
@@ -203,9 +377,54 @@ export function EventsScreen({ view }: { readonly view: EventsView }) {
           onCta={() => {
             setKind(null);
             setMySportOnly(false);
+            setCountry('');
+            setSearch('');
+            setShowPast(false);
           }}
         />
       )}
+
+      {pageCount > 1 && (
+        <nav className={styles.pager} aria-label="Events pages">
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={current === 0}
+            onClick={() => setPage(Math.max(0, current - 1))}
+          >
+            ← Previous
+          </Button>
+          {/*
+            A count, not a row of numbered buttons. Twenty-six countries of
+            events make for a lot of pages, and a rider looking for a comp near
+            them reaches it by filtering rather than by hunting page seven.
+          */}
+          <span className={`cond ${styles.pageCount}`} aria-live="polite">
+            Page {current + 1} of {pageCount} · {list.length} event
+            {list.length === 1 ? '' : 's'}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={current >= pageCount - 1}
+            onClick={() => setPage(Math.min(pageCount - 1, current + 1))}
+          >
+            Next →
+          </Button>
+        </nav>
+      )}
+
+      {/*
+        The listing is researched, not submitted by organisers, and this says so
+        in the same words `/spots` uses. It sits under the list rather than above
+        it because it is what a rider needs *after* picking a row and before
+        acting on it — and it is repeated inside the detail modal, which is where
+        the decision to travel is actually made.
+      */}
+      <p className={styles.sourceNote}>
+        We research these listings from organisers&rsquo; own pages. Details change — check the
+        organiser&rsquo;s link before you set off, and ring ahead where there is a number.
+      </p>
 
       {goingCount > 0 && (
         <Panel className={styles.tally}>
@@ -227,13 +446,31 @@ export function EventsScreen({ view }: { readonly view: EventsView }) {
   );
 }
 
+/**
+ * The detail modal — the screen's decision point, and therefore where the
+ * address, the phone number, the organiser's page and the caution all live.
+ *
+ * Every row here is conditional on having a value. An event researched without
+ * a phone renders no phone row rather than a "Call" label with nothing after
+ * it, which is the shape the migration's optional fields were chosen for.
+ *
+ * **Both outbound links are already checked.** `sourceUrl` arrives
+ * scheme-checked from `buildEventsView` and is `''` unless it is a real
+ * http(s) URL, so an `href` here can never carry a `javascript:` URI typed into
+ * the staff editor. `rel="noreferrer"` keeps the rider's page out of the
+ * organiser's referrer log — this is a children's product, and where a child
+ * browsed from is not the organiser's business.
+ */
 function EventDetail({
   event,
+  distance,
   going,
   onToggle,
   onClose,
 }: {
   readonly event: EventView;
+  /** "2.4 mi", only while the rider is sharing a position. */
+  readonly distance: string | null;
   readonly going: boolean;
   readonly onToggle: () => void;
   readonly onClose: () => void;
@@ -258,10 +495,11 @@ function EventDetail({
         <div className={styles.facts}>
           {(
             [
-              ['Where', `${event.venue}, ${event.town}`],
+              ['Where', [event.venue, event.town, event.country].filter(Boolean).join(', ')],
               ['Who for', event.level],
               ['Cost', event.price],
               ['Places', event.places],
+              ...(distance ? ([['Distance', `About ${distance} away`]] as const) : []),
             ] as const
           ).map(([label, value]) => (
             <div key={label}>
@@ -270,6 +508,70 @@ function EventDetail({
             </div>
           ))}
         </div>
+
+        {(event.address || event.phone || event.sourceUrl) && (
+          <div className={styles.contact}>
+            {event.address && (
+              <div className={styles.contactRow}>
+                <span className={`lab ${styles.muted}`}>Address</span>
+                <span className={styles.contactValue}>
+                  {event.address}
+                  {event.mapsUrl && (
+                    <>
+                      {' '}
+                      <a
+                        href={event.mapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`cond ${styles.contactLink}`}
+                      >
+                        Open in maps
+                      </a>
+                    </>
+                  )}
+                </span>
+              </div>
+            )}
+
+            {event.phone && (
+              <div className={styles.contactRow}>
+                <span className={`lab ${styles.muted}`}>Phone</span>
+                <span className={styles.contactValue}>
+                  {/* Shown exactly as the venue publishes it; only the href is normalised. */}
+                  {event.phoneLink ? (
+                    <a href={event.phoneLink} className={`cond ${styles.contactLink}`}>
+                      {event.phone}
+                    </a>
+                  ) : (
+                    event.phone
+                  )}
+                </span>
+              </div>
+            )}
+
+            {event.sourceUrl && (
+              <div className={styles.contactRow}>
+                <span className={`lab ${styles.muted}`}>Listing</span>
+                <span className={styles.contactValue}>
+                  <a
+                    href={event.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`cond ${styles.contactLink}`}
+                  >
+                    {event.sourceHost || 'Organiser’s page'}
+                  </a>
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        <p className={styles.verifyNote}>
+          We researched this from the organiser&rsquo;s own page, and details change. Check the
+          listing before you set off — dates, prices and age limits move, and a session can be
+          cancelled without us knowing.
+        </p>
         <div className={styles.modalActions}>
           <Button variant="ghost" onClick={onClose}>
             Close

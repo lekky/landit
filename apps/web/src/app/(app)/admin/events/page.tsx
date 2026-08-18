@@ -54,6 +54,15 @@ export default async function AdminEventsPage() {
       date: day,
       town: record.town,
       venue: record.venue,
+      country: record.country,
+      address: record.address,
+      phone: record.phone,
+      sourceUrl: record.source_url,
+      // Blank rather than "0": the editor's boxes are strings, and an empty box
+      // is how staff say "this venue has no pin" (`coordinate` in
+      // `content-actions.ts` reads it back the same way).
+      lat: record.lat ? String(record.lat) : '',
+      lng: record.lng ? String(record.lng) : '',
       level: record.level,
       price: record.price,
       spotsCopy: record.spots_copy,

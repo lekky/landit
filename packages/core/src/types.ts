@@ -303,6 +303,27 @@ export interface LandItEvent {
   readonly spots: string;
   readonly blurb: string;
   readonly isLive: boolean;
+  /**
+   * Where it is, beyond the town, and where the listing came from.
+   *
+   * All optional and all absent-by-default: an event is researched from an
+   * organiser's page, and those pages publish wildly different amounts. A
+   * commercial park's comp has every field; a council holiday clinic has an
+   * address and a booking link and no phone; a jam has a name, a date and a
+   * post. A reader renders each of these only when it is there
+   * (`pocketbase/migrations/1787616000_event_location_and_source.js`).
+   */
+  /** The country's common English name — "USA", "New Zealand" — never a code. */
+  readonly country?: string;
+  /** Full postal address on one line, as the venue publishes it. */
+  readonly address?: string;
+  /** As the venue publishes it, international format, never parsed. */
+  readonly phone?: string;
+  /** The organiser's own page for this event: the receipt for the listing. */
+  readonly sourceUrl?: string;
+  /** The venue's point, for "Near me". Absent, or `0`, means "nowhere plotted". */
+  readonly lat?: number;
+  readonly lng?: number;
 }
 
 /* ------------------------------------------------------- rider profile bits */

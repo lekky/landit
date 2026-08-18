@@ -136,6 +136,15 @@ const eventRow = (
   is_live: true,
   created: '',
   updated: '',
+  // The zero values PocketBase actually returns for an unresearched event —
+  // empty strings and `0`, never absent keys. `eventsFromRecords` turning these
+  // into `undefined` is the behaviour the tests below pin.
+  country: '',
+  address: '',
+  phone: '',
+  source_url: '',
+  lat: 0,
+  lng: 0,
   ...over,
 });
 
@@ -168,6 +177,49 @@ describe('challengesFromRecords', () => {
 });
 
 describe('eventsFromRecords', () => {
+  it('reads an unresearched event as absent, not as empty strings', () => {
+    // PocketBase returns a zero value for every unset field, so an event nobody
+    // has researched arrives as `country: ''`. If that reached the screen, the
+    // detail modal would render a "Where" row with nothing after it and the
+    // country filter would offer a country called "". One translation, here.
+    const [event] = eventsFromRecords([eventRow({ id: 'rec1', slug: 'e1' })]);
+    expect(event?.country).toBeUndefined();
+    expect(event?.address).toBeUndefined();
+    expect(event?.phone).toBeUndefined();
+    expect(event?.sourceUrl).toBeUndefined();
+  });
+
+  it('reads 0, 0 as no location rather than as a point in the Atlantic', () => {
+    // The same trap `hasCoords` exists for: an unset number field comes back as
+    // `0`, and `{lat: 0, lng: 0}` is a real place six hundred miles off Ghana.
+    // A "Near me" sort that believed it would put every unresearched event
+    // ahead of the rider's actual local park.
+    const [event] = eventsFromRecords([eventRow({ id: 'rec1', slug: 'e1' })]);
+    expect(event?.lat).toBeUndefined();
+    expect(event?.lng).toBeUndefined();
+  });
+
+  it('carries a researched location and source through unchanged', () => {
+    const [event] = eventsFromRecords([
+      eventRow({
+        id: 'rec1',
+        slug: 'e1',
+        country: 'Japan',
+        address: '1-chome Ariake, Koto City, Tokyo',
+        phone: '+81 3 1234 5678',
+        source_url: 'https://example.org/events/ariake',
+        lat: 35.6329,
+        lng: 139.7936,
+      }),
+    ]);
+    expect(event?.country).toBe('Japan');
+    expect(event?.address).toBe('1-chome Ariake, Koto City, Tokyo');
+    expect(event?.phone).toBe('+81 3 1234 5678');
+    expect(event?.sourceUrl).toBe('https://example.org/events/ariake');
+    expect(event?.lat).toBeCloseTo(35.6329);
+    expect(event?.lng).toBeCloseTo(139.7936);
+  });
+
   it('keys an event by slug and reads spots_copy as spots', () => {
     const [event] = eventsFromRecords([eventRow({ id: 'rec1', slug: 'e1' })]);
     expect(event?.id).toBe('e1');

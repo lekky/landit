@@ -435,11 +435,33 @@ export interface EventForm {
   readonly date: string;
   readonly venue: string;
   readonly town: string;
+  readonly country: string;
+  readonly address: string;
+  readonly phone: string;
+  readonly sourceUrl: string;
+  /** Decimal degrees as typed. Blank means "no point", never `0`. */
+  readonly lat: string;
+  readonly lng: string;
   readonly level: string;
   readonly price: string;
   readonly spotsCopy: string;
   readonly blurb: string;
   readonly sports: readonly string[];
+}
+
+/**
+ * A coordinate a staff member typed, or `0` for "leave it unset".
+ *
+ * `0` is what PocketBase stores for an empty number field and what `hasCoords`
+ * reads back as "nowhere", so clearing the box and saving genuinely removes the
+ * point rather than moving the venue to the Gulf of Guinea. Anything that is
+ * not a number in range is treated as blank: a typo must not silently relocate
+ * an event, and the field is optional anyway.
+ */
+function coordinate(raw: string, limit: number): number {
+  const value = Number(raw.trim());
+  if (!raw.trim() || !Number.isFinite(value) || Math.abs(value) > limit) return 0;
+  return value;
 }
 
 function eventPatch(form: EventForm) {
@@ -449,6 +471,15 @@ function eventPatch(form: EventForm) {
     date: form.date.trim(),
     venue: form.venue.trim(),
     town: form.town.trim(),
+    country: form.country.trim(),
+    address: form.address.trim(),
+    phone: form.phone.trim(),
+    // Stored as typed. The scheme check that decides whether this ever becomes
+    // a link lives in `eventSourceLink`, at render time — see that function for
+    // why validating here instead would be the weaker place to put it.
+    source_url: form.sourceUrl.trim(),
+    lat: coordinate(form.lat, 90),
+    lng: coordinate(form.lng, 180),
     level: form.level.trim(),
     price: form.price.trim(),
     spots_copy: form.spotsCopy.trim(),

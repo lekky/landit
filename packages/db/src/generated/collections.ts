@@ -365,6 +365,12 @@ export interface EventsRecord {
   is_live: boolean;
   created: string;
   updated: string;
+  country: string;
+  address: string;
+  phone: string;
+  source_url: string;
+  lat: number;
+  lng: number;
 }
 
 /** The shape accepted when creating a `events` record. */
@@ -382,6 +388,12 @@ export interface EventsCreate {
   spots_copy?: string;
   blurb?: string;
   is_live?: boolean;
+  country?: string;
+  address?: string;
+  phone?: string;
+  source_url?: string;
+  lat?: number;
+  lng?: number;
 }
 
 /** The shape accepted when updating a `events` record. */

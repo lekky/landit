@@ -292,9 +292,19 @@ describe('spots, events and profile options', () => {
     }
   });
 
-  it('seeds six events, each on a calendar day', () => {
-    expect(EVENTS).toHaveLength(6);
-    for (const event of EVENTS) expect(event.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  it('seeds a worldwide calendar, each event on a calendar day with a unique id', () => {
+    // Not a fixed count. This list is researched and goes stale by existing, so
+    // pinning it to a number would mean a failing test every time a staff member
+    // adds a comp. What must hold is that it is not empty, that ids are unique
+    // (they are the seed's natural key — a duplicate silently overwrites an
+    // event) and that every date is a day the rules can compare.
+    expect(EVENTS.length).toBeGreaterThan(0);
+    expect(new Set(EVENTS.map((event) => event.id)).size).toBe(EVENTS.length);
+    for (const event of EVENTS) {
+      expect(event.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(event.id.length).toBeLessThanOrEqual(40);
+      expect(event.sports.length).toBeGreaterThan(0);
+    }
   });
 
   it('offers three stances, three privacy levels and four riding levels', () => {

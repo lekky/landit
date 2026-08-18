@@ -543,7 +543,19 @@ export function challengesFromRecords(challenges: readonly ChallengesRecord[]): 
   }));
 }
 
-/** `events` rows as the `LandItEvent` shape the rules take. `spots_copy` is `spots`. */
+/**
+ * `events` rows as the `LandItEvent` shape the rules take. `spots_copy` is `spots`.
+ *
+ * The six location and provenance fields are **normalised to `undefined` when
+ * empty**, and that is the whole job of the `|| undefined` on each one.
+ * PocketBase returns a zero value for an unset field, never an absent key, so
+ * an unresearched event arrives as `country: ''` and `lat: 0`. Left alone,
+ * every reader would have to know that an empty string means "no address" and
+ * that `0, 0` is a point in the Gulf of Guinea rather than a venue. Translating
+ * once, here, is what lets `EventsScreen` write `event.address && ...` and be
+ * right — the same reason `tricksFromRecords` maps the empty select to
+ * `undefined` rather than to `false`.
+ */
 export function eventsFromRecords(events: readonly EventsRecord[]): LandItEvent[] {
   return events.map((row) => ({
     id: row.slug,
@@ -558,6 +570,13 @@ export function eventsFromRecords(events: readonly EventsRecord[]): LandItEvent[
     spots: row.spots_copy,
     blurb: row.blurb,
     isLive: row.is_live,
+    country: row.country || undefined,
+    address: row.address || undefined,
+    phone: row.phone || undefined,
+    sourceUrl: row.source_url || undefined,
+    // `0` is "unset", not Null Island — `hasCoords` says so and this agrees.
+    lat: row.lat || undefined,
+    lng: row.lng || undefined,
   }));
 }
 
