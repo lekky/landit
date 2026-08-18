@@ -237,6 +237,10 @@ jobs:
           key: pocketbase-${{ runner.os }}-${{ hashFiles('pocketbase/pocketbase.version') }}
 
       - name: Install Playwright browser
+        # A stalled apt mirror in --with-deps can otherwise sit silent until the
+        # job-level 20-minute budget kills the whole run (issue #216). Successful
+        # installs take ~5m20s, so 6 gives headroom without hiding a stall.
+        timeout-minutes: 6
         run: pnpm exec playwright install --with-deps chromium
 
       # "I rode today" writes the server-owned streak tuple through the
