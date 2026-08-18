@@ -158,13 +158,31 @@ export function SignUpForm() {
       ) : null}
 
       {needsGuardian ? (
-        <div className={styles.notice}>
-          <strong>A grown-up will need to say yes</strong>
-          Where you live, a parent or carer has to approve accounts under {consentAge(country)} — so{' '}
-          {countryName(country)} means we will ask you for their email next. You can use Land The
-          Trick while you wait: the whole trick library, your own tricks, your notes and your
-          streak.
-        </div>
+        <>
+          <div className={styles.notice}>
+            <strong>A grown-up will need to say yes</strong>
+            Where you live, a parent or carer has to approve accounts under {consentAge(country)} —
+            so {countryName(country)} means we need to ask one. You can use Land The Trick while you
+            wait: the whole trick library, your own tricks, your notes and your streak.
+          </div>
+
+          <div className="field">
+            <label htmlFor="guardian_email">A grown-up’s email</label>
+            <input
+              id="guardian_email"
+              name="guardian_email"
+              type="email"
+              placeholder="them@example.com"
+              autoComplete="off"
+            />
+            <span className={styles.hint}>
+              We will email them one question and nothing else. Do not know it now? Leave it blank —
+              your account still gets made, and you can send it from your account page whenever you
+              like.
+            </span>
+            {errors.guardian_email ? <span className="err">{errors.guardian_email}</span> : null}
+          </div>
+        </>
       ) : null}
 
       {errors.form ? <p className={styles.formError}>{errors.form}</p> : null}

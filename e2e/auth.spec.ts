@@ -273,3 +273,68 @@ test('the verification screen does not confirm anything by being visited', async
   await page.goto('/verify-email');
   await expect(page.getByText('That link is not complete')).toBeVisible();
 });
+
+test('a gated rider is asked for a grown-up at sign-up, and may skip it', async ({ page }) => {
+  await page.goto('/signup');
+  await page.getByLabel('Your name').fill('Kai Mensah');
+  await page.getByLabel('Email', { exact: true }).fill(`e2e-${unique()}@landit.invalid`);
+  await page.getByLabel('Password').fill(password);
+  await page.getByLabel('Where you live').selectOption('GB');
+
+  // Nothing is asked until the date of birth says the gate applies.
+  await expect(page.getByLabel('A grown-up’s email')).toBeHidden();
+
+  await page.getByLabel('Date of birth').fill(birthDate(11));
+  await expect(page.getByLabel('A grown-up’s email')).toBeVisible();
+  await expect(page.getByText(/Leave it blank/)).toBeVisible();
+
+  // Skipped, deliberately: the account is still made and the panel on /account
+  // remains the way to send it (issue #182, owner's decision).
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await page.waitForURL('**/onboarding');
+});
+
+test('an adult is never asked for a grown-up', async ({ page }) => {
+  await page.goto('/signup');
+  await page.getByLabel('Where you live').selectOption('GB');
+  await page.getByLabel('Date of birth').fill(birthDate(30));
+  await expect(page.getByLabel('A grown-up’s email')).toBeHidden();
+});
+
+test('a guardian address given at sign-up does not hold up the account', async ({ page }) => {
+  await page.goto('/signup');
+  await page.getByLabel('Your name').fill('Rosa Lindqvist');
+  await page.getByLabel('Email', { exact: true }).fill(`e2e-${unique()}@landit.invalid`);
+  await page.getByLabel('Password').fill(password);
+  await page.getByLabel('Where you live').selectOption('GB');
+  await page.getByLabel('Date of birth').fill(birthDate(11));
+  await page.getByLabel('A grown-up’s email').fill(`guardian-${unique()}@landit.invalid`);
+
+  // Local PocketBase has no mail account, so the request records and the send
+  // fails. The rider must not be able to tell — a mailer we cannot reach is not
+  // their sign-up failing.
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await page.waitForURL('**/onboarding');
+});
+
+test('a mistyped guardian address is caught before the account is made', async ({ page }) => {
+  await page.goto('/signup');
+  await page.getByLabel('Your name').fill('Tomas Vidal');
+  await page.getByLabel('Email', { exact: true }).fill(`e2e-${unique()}@landit.invalid`);
+  await page.getByLabel('Password').fill(password);
+  await page.getByLabel('Where you live').selectOption('GB');
+  await page.getByLabel('Date of birth').fill(birthDate(11));
+  await page.getByLabel('A grown-up’s email').fill('mum@');
+
+  // `type="email"` means the browser refuses the submit before any of our code
+  // runs, so the rider gets the platform's own message and no account is made.
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page).toHaveURL(/\/signup/);
+  const valid = await page
+    .getByLabel('A grown-up’s email')
+    .evaluate((el) => (el as unknown as { checkValidity(): boolean }).checkValidity());
+  expect(valid).toBe(false);
+
+  // The server checks it again regardless — the browser is not the guard, it is
+  // the courtesy. A posted form can carry anything.
+});

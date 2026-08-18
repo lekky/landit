@@ -5,6 +5,7 @@ import {
   confirmPasswordReset,
   confirmVerification,
   createServerClient,
+  requestGuardianConsent,
   requestPasswordReset,
   requestVerification,
   signIn,
@@ -77,6 +78,7 @@ export async function signUpAction(
   const band = text(form, 'age_band');
   const bandNextChangeOn = text(form, 'band_next_change_on');
   const timezone = text(form, 'timezone');
+  const guardianEmail = text(form, 'guardian_email').toLowerCase();
 
   const errors: Record<string, string> = {};
   if (name.length < 2) errors.name = 'Tell us what to call you';
@@ -84,6 +86,12 @@ export async function signUpAction(
   if (password.length < MIN_PASSWORD) errors.password = `${MIN_PASSWORD} characters minimum`;
   if (!country) errors.country = 'Pick where you live';
   if (!isAgeBand(band)) errors.dob = 'We need your date of birth';
+  // Optional by decision (issue #182, owner in chat 2026-08-18) — a rider who
+  // does not know the address still gets an account. Wrong is different from
+  // absent, though, and a typo here is a parent who never hears from us.
+  if (guardianEmail && !EMAIL.test(guardianEmail)) {
+    errors.guardian_email = "That email doesn't look right";
+  }
 
   if (Object.keys(errors).length) return { errors };
 
@@ -119,13 +127,38 @@ export async function signUpAction(
     // recovery than an error here would be.
   }
 
+  let token = '';
   try {
-    await startSession(email, password);
+    token = await startSession(email, password);
   } catch {
     // The account exists; only the sign-in that follows it failed. Sending them
     // to sign in by hand is better than an error page over a working account.
     redirect(ROUTES.signIn);
   }
+
+  /**
+   * Ask the grown-up, if the rider gave us one.
+   *
+   * **After the session, not before**: the consent route requires the rider's
+   * own token (`$apis.requireAuth('users')`), which is the same rule that stops
+   * anyone else asking on their behalf.
+   *
+   * Only when the gate actually applies. A rider who is not gated and typed an
+   * address anyway has not asked us to email a stranger, and we do not.
+   *
+   * Best-effort, like the confirmation email above it: a request that fails to
+   * send has not stopped the account being made, and the panel on `/account`
+   * is still there to send it again. Failing sign-up here would tell a child
+   * their account did not work because *our* mailer did not.
+   */
+  if (guardianEmail && signupOutcome(country, band as AgeBand) === 'consent_required') {
+    try {
+      await requestGuardianConsent(createServerClient({ token }), guardianEmail);
+    } catch {
+      // Swallowed on purpose — see above.
+    }
+  }
+
   redirect(ROUTES.onboarding);
 }
 
@@ -261,7 +294,8 @@ export async function confirmVerificationAction(
 
 /* ----------------------------------------------------------------- session -- */
 
-async function startSession(email: string, password: string): Promise<void> {
+async function startSession(email: string, password: string): Promise<string> {
   const { token } = await signIn(createServerClient(), { identity: email, password });
   (await cookies()).set(SESSION_COOKIE, token, sessionCookieOptions());
+  return token;
 }
