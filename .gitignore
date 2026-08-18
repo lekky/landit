@@ -43,6 +43,7 @@ Thumbs.db
 # Copied from @landit/ui-web at dev/build time by apps/web/scripts/sync-avatars.mjs.
 # The PNGs live once, in the design system package.
 apps/web/public/avatars/
+apps/web/public/maplibre/
 
 # The Claude Code preview-server config. Machine-specific by construction — it
 # stores an absolute path to the local pnpm shim (on this box, a corepack path

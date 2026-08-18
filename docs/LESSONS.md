@@ -612,6 +612,26 @@ clip's bytes are refused to a forged token, a rookie is refused a paid trick —
 superuser token, which is what proves the hook sits at the model layer rather than the request
 layer. A test that reads the rule and asserts it says the right thing proves nothing.
 
+**A test written to tolerate either outcome cannot fail.** The MapLibre swap (2026-08-17) shipped
+with an e2e test asserting the spots screen showed *"a canvas **or** the failure line"*, on the
+reasoning that CI might have no route to the tile service. Both branches were true of a map that
+was completely broken: a blank basemap still has a canvas. The screen went out drawing pins over
+nothing, the suite was green, and the owner found it in a screenshot.
+
+The tell is writing `or` into an assertion to accommodate an environment. When the environment
+genuinely makes an outcome uncertain, **assert the deterministic thing that actually breaks** — here,
+that the worker asset is served as JavaScript rather than as a 404 page — and let the uncertain part
+be a separate, weaker test that is honest about being weak.
+
+**Then try to make the new test fail, before believing it.** Three attempts at covering this bug
+each passed against deliberately broken code: deleting the copied worker (Playwright's web server
+rebuilt it), asserting no module 404s (worker fetches are not page responses), and asserting on the
+browser's console error (it never happens headless). The reason is worth knowing generally:
+**headless Chromium has no GPU, so MapLibre fails at WebGL and falls back before a worker is ever
+created** — the entire failure path this bug lives on does not exist in e2e. The test that shipped
+covers what it can, and says in its own comment what it cannot, so the next person does not read
+green as proof the map draws. A blank basemap has to be caught by eye.
+
 **A test that can skip is not a guarantee.** The PocketBase tests need a binary CI must download;
 CI caches it keyed on `pocketbase.version` and the suite is required, so the guarantees run on
 every PR. If a harness can silently no-op when its dependency is missing, it will, on the day it
@@ -809,6 +829,26 @@ says `pocketbase-typegen` and a repo that does not, and re-litigates it.
 
 T19 put a service worker in front of every page. Three things it paid for, none of which any gate
 would have caught.
+
+**A library that resolves its own asset URLs at runtime will not survive a bundler, and may not
+tell you.** maplibre-gl finds its web worker by reading `import.meta.url` and appending
+`maplibre-gl-worker.mjs`, expecting the file to sit beside the library. Under Next it does not:
+`import.meta.url` is a hashed chunk in `/_next/static/chunks/`, so the browser asked for a worker
+that was never emitted, got the 404 page, and rejected the module for its MIME type.
+
+**What made it expensive is that nothing failed.** Every tile is fetched and parsed inside that
+worker, but the markers, the zoom controls and the attribution are ordinary main-thread DOM — so
+they all rendered perfectly over a blank basemap. No `error` event reaches the map for a dead
+worker, so the component's own failure path never ran and the screen never fell back. It looked
+like a CSS problem and it was a missing file. Both `pnpm build` and CI were green throughout,
+because a 404 for an asset nobody statically references is not a build error.
+
+The fix pattern is the one the repo already uses for fonts and avatars: a sync script copies the
+asset into `public/` on every `dev` and `build`, and the code hands the library an absolute path
+(`setWorkerUrl`). Copy **everything the asset imports** — the worker pulls in
+`maplibre-gl-shared.mjs` by relative path and fails a second way without it. When adding any
+library that spawns a worker, loads a WASM blob or fetches its own chunk, check the network panel
+for a 404 before believing the screen.
 
 **The Cache API stores a body decoded and the headers that described it encoded, and only a
 *navigation* notices.** `next start` gzips HTML, so a page cached by the worker kept
