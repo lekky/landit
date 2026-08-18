@@ -87,7 +87,10 @@ Then, in order:
 10. **Clean up.** Remove the worktree, delete the local branch, delete the remote branch, then
     `git worktree prune`. "No uncommitted work" is not cleanup. On Windows `git worktree
     remove` fails on nested `node_modules` with "Filename too long" — mirror an empty
-    directory over it first (LESSONS §2).
+    directory over it first, **from PowerShell**, because the Bash tool mangles robocopy's
+    `/MIR` into a path and the mirror silently does nothing (LESSONS §2). Then check
+    `ls .claude/worktrees/`: the directory being gone is the only proof, and a removal that
+    fails with "being used by another process" is usually transient — retry it.
 11. **Write what the next session needs.** Anything noticed and not fixed becomes a GitHub
     issue **now**, labelled `p1`/`p2`/`p3`, while the file paths are still in context. If the
     session earned a process rule, add it to `docs/LESSONS.md` with its provenance.
