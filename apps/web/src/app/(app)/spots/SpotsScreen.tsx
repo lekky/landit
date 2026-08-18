@@ -505,7 +505,7 @@ export function SpotsScreen({
           */}
           <p className={styles.notice}>
             <span className={styles.noticeShort}>
-              <strong>Check before you travel:</strong> Sports may not be verified.
+              <strong>Check before you travel:</strong> Spots may not be verified.
             </span>
             <span className={styles.noticeFull}>
               <strong>Check before you travel.</strong> Spots come from riders, councils and public
