@@ -26,12 +26,14 @@ interface StubPosition {
 /**
  * Spots and the map (T13; screenshot 19).
  *
- * **This suite runs with no Mapbox token, which is the point.** CI has none and
- * neither does a fresh checkout, so every assertion here is about the half of
- * the screen that must work anyway: the list, the search, the sport filter, the
- * selection, the honest placeholder where the map goes, and the submission form.
- * If a future change makes the screen depend on a live map, this file is what
- * notices — a rider without a working map still has to be able to find a park.
+ * **This suite asserts nothing about the map drawing, which is the point.**
+ * There is no key to be missing since the move to MapLibre and OpenFreeMap
+ * (plan §1), but the tiles come from a service with no SLA and CI may have no
+ * route to it at all. So every assertion here is about the half of the screen
+ * that must work either way: the list, the search, the sport filter, the
+ * selection, and the submission form. If a future change makes the screen
+ * depend on a live map, this file is what notices — a rider whose map did not
+ * load still has to be able to find a park.
  *
  * **Two things are asserted that nothing else would catch.** That geolocation is
  * *not* asked for on load (Children's code standard 10, plan §6.4) — proved by
@@ -136,12 +138,22 @@ test.describe('where to ride', () => {
     expect(href).not.toMatch(/saddr|origin=/);
   });
 
-  test('says plainly that the map is waiting on a key rather than faking one', async ({ page }) => {
-    // CI has no `NEXT_PUBLIC_MAPBOX_TOKEN`, and this is what that has to look
-    // like: a sentence, not a broken canvas.
+  test('shows either a map or a sentence, never a broken canvas', async ({ page }) => {
+    // Deliberately tolerant of both outcomes. OpenFreeMap needs no key, so the
+    // map draws wherever the tiles are reachable — and CI is not promised a
+    // route to them. What must hold in both cases is that the panel resolves to
+    // one honest state rather than a half-drawn map or an empty hole.
     await page.goto('/spots');
-    await expect(page.getByText(/needs a Mapbox key/i)).toBeVisible();
-    await expect(page.locator('.mapboxgl-canvas')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Where to ride' })).toBeVisible();
+
+    const canvas = page.locator('.maplibregl-canvas');
+    const excuse = page.getByText(/map would not load/i);
+    await expect
+      .poll(async () => (await canvas.count()) + (await excuse.count()), { timeout: 15_000 })
+      .toBeGreaterThan(0);
+
+    // Whichever it is, the list beside it is unaffected — that is the promise.
+    await expect(card(page, scooterSpot.name)).toBeVisible();
   });
 
   test('never asks for the rider’s location unless they press for it', async ({ page }) => {

@@ -21,7 +21,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Launch markets | **Global product, global sign-up** | **"UK-first" dropped 2026-08-17 (Rachid, in chat)** — was "Global sign-up, UK-first product". Anyone can sign up, and the product is not written for one country: the consent threshold follows the rider's country, and distances are shown in the rider's own units (`unitsForCountry`, §6.3). One refusal: US under-13, which needs COPPA verifiable parental consent we are not building at launch. Two things stay UK-shaped on purpose and are *not* drift — **prices are GBP only** (issue #170) and the spots map's default centre is the UK, which is only ever seen with zero spots on screen. See §6.3. |
 | Regulatory scope | **UK Online Safety Act (Part 3, user-to-user) + ICO Children's code, applied to every rider** | Added 2026-08-16 — the plan previously missed the OSA entirely. Children's code standards are the baseline for *all* users, not only declared children. See §6.1. |
 | Rider video | **Land The Trick does not host video. Riders paste a YouTube link and the app embeds it** | **Reversed 2026-08-17 (Rachid, in chat).** Was "Cloudflare R2 via PocketBase's S3 backend, 2GB cap per rider (5GB Legend)", decided 2026-08-15 and built as T14. Hosting other people's children's video is the single heaviest thing this product could take on — moderation duty, storage cost, takedown obligations and a private-bucket promise to keep — and the rider benefit is a video they have usually already uploaded to YouTube. **Built as `t15b-video-links`, 2026-08-17.** Four owner's decisions govern it (Rachid, 2026-08-17, in chat): a YouTube link the app embeds; per-video visibility **`private \| members` with no `public` state at all** — which supersedes the three-way framing this row carried for a few hours, because a signed-out visitor must never reach a rider's video and deleting the state is what makes that true rather than defended; **a paid perk capped per plan** (Rookie none, Shredder a limited number, Legend unlimited — the specific numbers are tunable, see §2.4); and a rider can add, re-decide visibility, and remove. T14 is reverted (see §7). See §6.6 and §3 guarantee 2. |
-| Maps provider | **Mapbox** (provisional) | Store plain `lat`/`lng` so it stays swappable. |
+| Maps provider | **MapLibre GL, on OpenFreeMap's tiles** | **Replaced Mapbox 2026-08-17 (Rachid, in chat)**, which had been provisional since the start precisely so this could happen; plain `lat`/`lng` storage is what made it a one-component change. No account, no API key, no card, and commercial use is permitted. Two gains beyond cost: nothing to configure, so the map draws in every checkout and in CI rather than waiting on a token — and **no third party learns which spots a child is looking at**, which matters under §6.4. Accepted in exchange: OpenFreeMap is a small donation-funded service with no SLA, so the screen treats unreachable tiles as a normal state and falls back to the list. |
 | Payments | **Stripe on web**; entitlements modelled independently of Stripe; **single-rider plans only — Crew Pass dropped** (2026-08-15) | See §2.4 — entitlement independence is the decision that protects the native option. |
 | Streak shape | **A weekly target, not a consecutive-day count** (2026-08-16). A rider keeps the streak by riding **at least 2 times in a week**; the streak counts consecutive weeks that met the target, and missing a week breaks it. "I rode today" stays a plain button — no spot attached, no location captured | The audience is children who realistically ride at weekends: a daily streak punishes a school week, and is the engagement mechanic §6.4 Standard 13 warns about. Weeks are Monday-to-Sunday — the boundary the weekly challenges already use, so a rider never has two different "this week"s. **Two numbers here are tunable defaults, not deliberated decisions: the target of 2** (a weekend alone reaches it; 3 would force a weekday ride) **and no grace week** (the weekly target is itself the forgiveness — a grace week on top would make the streak nearly unbreakable). Both are constants in `packages/core` (`WEEKLY_RIDE_TARGET`, `WEEKLY_STREAK_GRACE_WEEKS`) and options on every function, so moving either is a one-line change plus this row. This supersedes the daily-streak and grace-period framing throughout: the daily functions in `core` stay exported but deprecated, and T8 wires the weekly ones. Stored shape in §3; that spots never record where a rider has been is §6.4 Standard 10 and T13. |
 | Staff portal placement | **Route group in the web app**, hard role gate, full audit log | Handoff prefers a separate app; see §6.10. |
@@ -478,7 +478,7 @@ Tracked from the handoff's own list, mapped to phases:
 | Streaks (a counter) | A weekly target (§1): date logic and timezones, and weeks that can break it | 3 |
 | Crews (one demo crew) | Creation, invites, membership | 4 |
 | Clips (`createObjectURL`, die on refresh) | ~~Upload, R2 storage, token-gated delivery~~ — Land The Trick hosts no video (§6.6, reversed 2026-08-17). **Closed a different way on 2026-08-17:** the prototype's panel is replaced by embedded **YouTube links** a rider pastes, private by default and never public (`t15b-video-links`, §3 guarantee 2) | 4 (T15b) |
-| The map (one embed at a time) | Mapbox with every spot plotted | 4 |
+| The map (one embed at a time) | MapLibre with every spot plotted | 4 |
 | Payments (instant and free) | Stripe + entitlements | 5 |
 | Admin rider list (mock data) | Real riders | 6 |
 | Moderation (queue for spots only) | Reporting for profiles and for video links — the `clip` report subject has a real subject since T15b (§6.6) | 6 |
@@ -715,8 +715,11 @@ None of this is agent-session work, and none of it blocks a build session. All o
   the product can ship to a UK-only paying audience while it is outstanding. Stripe Tax can
   calculate the VAT but does not file it. Needs the accountant, and it is the one item here whose
   answer might change what the upgrade flow is allowed to offer and to whom.
-- **Processor list, Article 28 contracts and a ROPA** for MailerSend, PostHog, Sentry, Cloudflare
-  and Mapbox. PostHog EU and R2 EU already keep transfers simple — that call was right, and
+- **Processor list, Article 28 contracts and a ROPA** for MailerSend, PostHog, Sentry and
+  Cloudflare. *(Mapbox left this list on 2026-08-17 with the move to OpenFreeMap, §1: it received
+  a rider's IP on every tile request and now nothing does — one fewer processor to contract with,
+  which was a side benefit of that decision rather than its reason.)* PostHog EU and R2 EU already
+  keep transfers simple — that call was right, and
   MailerSend (Lithuania) was picked partly to keep it that way, so check its DPA carries the
   Article 28 terms rather than assuming an EU address settles it. The processor here handles a
   **guardian's email address**, which is a third party's personal data collected from a child, so
@@ -1611,7 +1614,7 @@ paid tiers keep without linking `/plans` (T15's), and the nav entries for both s
 orchestrator's `chore-wire-wave5-links`, after every Wave 5 screen exists. `ROUTES` carries both
 paths, so wiring them is one line each.
 
-**T13 · Spots + map.** Mapbox with every live spot plotted, styled to the design language;
+**T13 · Spots + map.** A basemap with every live spot plotted, styled to the design language;
 selection sync between list and map; spot submission (Maps-link or coordinate parsing) into the
 `pending` queue, rate-limited. Children's code standard 10 (§6.4): browser geolocation is off by
 default and opt-in per use, there is a visible indicator whenever it is live, it never persists
@@ -1622,25 +1625,25 @@ Shipped, with four decisions recorded here because they diverge from the prototy
 owner:
 
 - **The map's style: a quiet base, the design language on top.** The palette is loud — hard
-  offset shadows, zero radius, `--sky` and `--yellow` — and no stock Mapbox style comes close.
-  A matching basemap means authoring one in Mapbox Studio, which needs a Studio account and a
-  designer; that is owner work, not session work. So Mapbox draws the ground (`light-v11`,
-  deliberately low-contrast) and everything Land The Trick renders on it is ours: square markers with a
+  offset shadows, zero radius, `--sky` and `--yellow` — and no stock basemap comes close. A
+  matching one means authoring a style of our own, which needs a designer; that is owner work, not
+  session work. So the basemap draws the ground (OpenFreeMap's `positron`, deliberately
+  low-contrast) and everything Land The Trick renders on it is ours: square markers with a
   3px ink keyline and a hard offset shadow, the selected pin in `--yellow` and larger, restyled
   zoom controls, and the panel's own header and footer bars. It reads as Land The Trick, and the road
   names stay legible under markers that are meant to shout. `MAP_BASE_STYLE` in
-  `apps/web/src/lib/mapbox.ts` is one line: **if the owner later commissions a Studio style, that
-  is the whole change.** Attribution and the Mapbox logo are restyled and never hidden — a
-  condition of the service, not a styling choice.
-- **No token in the repo, and the screen works without one.** There is no Mapbox account yet
-  (`docs/infrastructure.md`), so `NEXT_PUBLIC_MAPBOX_TOKEN` is a blank line in
-  `apps/web/.env.example` and every checkout, every CI run and every preview is tokenless. That
-  is a first-class state, not an error: the list, the search, the sport filter, the selection and
-  the submission form all work, `mapbox-gl` is never even imported, and the map panel says in one
-  line that it is waiting on a key. **The map is not live until the owner supplies a token** —
-  and because `NEXT_PUBLIC_*` is inlined at build time, it has to be a *build argument* on the
-  Coolify application (`apps/web/Dockerfile` takes it the same way it takes the PocketBase URL),
-  not a runtime variable.
+  `apps/web/src/lib/map.ts` is one line: **if the owner later commissions a bespoke style, that
+  is the whole change.** The OpenStreetMap and OpenMapTiles credits are restyled and never
+  hidden — a condition of the data, not a styling choice.
+- **No key at all, and no configuration step.** *(Superseded 2026-08-17.* T13 shipped against
+  Mapbox, where the map was dark until the owner supplied `NEXT_PUBLIC_MAPBOX_TOKEN` as a build
+  argument, and the screen had a first-class "waiting on a key" state saying so. The move to
+  OpenFreeMap removed the key, the environment variable, the Dockerfile `ARG`, the runbook step
+  and that entire state — issue #109 closed unbuilt.*)* What survives is the reasoning it was
+  built on: **the screen owes a rider a working list whether or not a map appears.** The tiles
+  now come from a service with no SLA rather than from an unset variable, so the fallback is
+  still there and still exercised — an unreachable basemap gives one line of explanation, and
+  the list, search, sport filter, selection and submission form are untouched by it.
 - **A submitted spot must carry coordinates.** The prototype's form accepted a name and a town
   with no location; this one does not. A spot with no point cannot appear on a map whose whole
   job is plotting them, and a reviewer handed "Rampworx, Liverpool" has nothing to check but a

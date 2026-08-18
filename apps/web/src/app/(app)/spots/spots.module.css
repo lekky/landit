@@ -306,7 +306,7 @@
 }
 
 /*
- * The pin. Mapbox draws the ground; this is the design language on top of it —
+ * The pin. The basemap draws the ground; this is the design language on top —
  * a square, a 3px ink keyline, a hard offset shadow, zero radius. Selected
  * turns yellow and grows its shadow, the same move the cards make.
  */
@@ -350,23 +350,28 @@
 }
 
 /*
- * Mapbox's own furniture, pulled into the palette. Attribution and the Mapbox
- * logo are a condition of using the service — they are restyled here, never
- * hidden.
+ * MapLibre's own furniture, pulled into the palette. The OpenStreetMap and
+ * OpenMapTiles credits are a condition of using the data — they are restyled
+ * here, never hidden.
+ *
+ * The `maplibregl-` prefix is load-bearing: MapLibre renamed every control
+ * class from the `mapboxgl-` ones this file used until 2026-08-17, and a stale
+ * prefix here does not error — it just quietly stops applying, leaving default
+ * rounded grey controls sitting in a design with no radius anywhere else.
  */
-.mapCanvas :global(.mapboxgl-ctrl-group) {
+.mapCanvas :global(.maplibregl-ctrl-group) {
   border: 2.5px solid var(--ink);
   border-radius: 0;
   box-shadow: var(--sh-sm);
   background: var(--paper);
 }
 
-.mapCanvas :global(.mapboxgl-ctrl-group button + button) {
+.mapCanvas :global(.maplibregl-ctrl-group button + button) {
   border-top: 2.5px solid var(--ink);
 }
 
-.mapCanvas :global(.mapboxgl-ctrl-attrib),
-.mapCanvas :global(.mapboxgl-ctrl-attrib a) {
+.mapCanvas :global(.maplibregl-ctrl-attrib),
+.mapCanvas :global(.maplibregl-ctrl-attrib a) {
   border-radius: 0;
   font-family: var(--fc);
   color: var(--ink-2);

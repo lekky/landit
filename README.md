@@ -80,4 +80,4 @@ pnpm e2e
 
 Next.js (pnpm monorepo) · PocketBase (self-hosted, one instance per product) · Coolify on a
 shared VPS · Cloudflare R2 (database backups only — Land The Trick hosts no rider video, §6.6) ·
-Stripe · MailerSend · Mapbox · PostHog EU + Cloudflare Analytics · Sentry.
+Stripe · MailerSend · MapLibre + OpenFreeMap · PostHog EU + Cloudflare Analytics · Sentry.
