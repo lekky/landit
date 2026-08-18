@@ -77,6 +77,19 @@ test('the yearly saving badge is derived, not typed (LESSONS §4)', async ({ pag
   await expect(page.getByText('2 months free', { exact: true })).toBeVisible();
 });
 
+test('the saving belongs to Yearly, and says so to a screen reader', async ({ page }) => {
+  // The badge used to sit beside the whole toggle, where a visitor on the
+  // default Monthly reads it as describing Monthly. It is now anchored to the
+  // Yearly button; position carries that for a sighted reader and
+  // `aria-describedby` carries it for everyone else. A layout change that
+  // detaches the two fails here.
+  const yearly = page.getByRole('button', { name: 'Yearly', exact: true });
+  await expect(yearly).toHaveAccessibleDescription('2 months free');
+  await expect(
+    page.getByRole('button', { name: 'Monthly', exact: true }),
+  ).toHaveAccessibleDescription('');
+});
+
 test('achievements are never for sale, and the page says so (plan §1, §2.4)', async ({ page }) => {
   const faq = page.getByText('Do stickers come faster on a paid plan?');
   await expect(faq).toBeVisible();

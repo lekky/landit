@@ -33,19 +33,38 @@
 
 /* ------------------------------------------------------ the period toggle -- */
 
+/*
+ * The saving tag hangs off the toggle rather than sitting beside it, so the
+ * padding below reserves the room it no longer takes in flow. Without it the
+ * tag would ride over the first row of plan cards.
+ */
 .toggleRow {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
   margin-top: 20px;
-  flex-wrap: wrap;
+  padding-bottom: 40px;
 }
 
 .toggle {
+  position: relative;
   display: inline-flex;
   border: 3px solid var(--ink);
   box-shadow: 3px 3px 0 var(--ink);
+}
+
+/*
+ * Pinned under the toggle's right-hand half, which is the Yearly button. The
+ * 3px overhang puts the tag's right edge over the toggle's offset shadow, so
+ * the tilt reads as a sticker slapped on that corner rather than a caption
+ * centred under the control. `top` resolves against the padding box, so the
+ * 14px pays for the 3px keyline and the 3px shadow before the paper. `.tag`
+ * already sets `white-space: nowrap`.
+ */
+.savingTag {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: -3px;
 }
 
 .toggleButton {
