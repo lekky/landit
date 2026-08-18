@@ -229,10 +229,22 @@ export async function deleteStaffRecord<N extends CollectionName>(
 // ----------------------------------------------------------------- riders --
 
 export interface AdminRiderFilter {
-  /** Matched against name and handle. */
+  /** Matched against name and handle, and against email when `matchEmail`. */
   readonly query?: string;
   /** A plan slug, or nothing for every plan. */
   readonly plan?: string;
+  /**
+   * Also match `query` against the sign-up email.
+   *
+   * **Off by default, and the default is the point.** Every other caller of
+   * this filter searches the thing staff can already see on the row; matching
+   * email widens that to a field the table deliberately does not show, so it is
+   * opted into by the one screen that means it rather than inherited by
+   * anything that happens to pass a query. See `apps/web`'s riders page for why
+   * it means it: a support mail arrives from an address, and finding the rider
+   * it belongs to was otherwise a database query.
+   */
+  readonly matchEmail?: boolean;
 }
 
 function riderFilter(filter: AdminRiderFilter): ListOptions {
@@ -241,7 +253,11 @@ function riderFilter(filter: AdminRiderFilter): ListOptions {
 
   const query = filter.query?.trim();
   if (query) {
-    clauses.push('(name ~ {:q} || handle ~ {:q})');
+    clauses.push(
+      filter.matchEmail
+        ? '(name ~ {:q} || handle ~ {:q} || email ~ {:q})'
+        : '(name ~ {:q} || handle ~ {:q})',
+    );
     params.q = query;
   }
   if (filter.plan) {

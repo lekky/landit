@@ -7,6 +7,7 @@ import {
   listAdminAnnouncements,
   listAdminEvents,
   listAdminPlans,
+  listAdminRiders,
   listAdminSpots,
   listAdminStickers,
   listReports,
@@ -223,6 +224,51 @@ describe('deleteStaffRecord', () => {
     const [row] = auditRows(calls);
     expect(row?.before).toMatchObject({ name: 'Memorial Park', status: 'pending' });
     expect(row?.after).toBeNull();
+  });
+});
+
+describe('listAdminRiders', () => {
+  const filterOf = (calls: readonly Call[]) =>
+    (calls.find((c) => c.method === 'getList')?.args[2] as { filter?: string })?.filter ?? '';
+
+  it('searches name and handle only, unless the caller asks for email', async () => {
+    const { client, calls } = fakeClient();
+
+    await listAdminRiders(client, { query: 'miles' });
+
+    // The default is the guarantee: a caller that has not thought about email
+    // does not silently search one. Adding `matchEmail` is opting in.
+    expect(filterOf(calls)).toBe('(name ~ {:q} || handle ~ {:q})');
+  });
+
+  it('widens to email when the screen opts in', async () => {
+    const { client, calls } = fakeClient();
+
+    await listAdminRiders(client, { query: 'miles@example.com', matchEmail: true });
+
+    expect(filterOf(calls)).toBe('(name ~ {:q} || handle ~ {:q} || email ~ {:q})');
+  });
+
+  it('binds the query as a parameter rather than into the filter', async () => {
+    const { client, calls } = fakeClient();
+
+    await listAdminRiders(client, { query: "x' || id != '", matchEmail: true });
+
+    // Asserted on the placeholder, not on a `params` key: `query()` in
+    // `collections.ts` hands both to `client.filter`, and the double returns
+    // the expression untouched. A value that reached the filter string would
+    // therefore show up here — which is exactly the failure worth catching,
+    // because the privacy rules are written in this same filter language.
+    expect(filterOf(calls)).toContain('{:q}');
+    expect(filterOf(calls)).not.toContain('id !=');
+  });
+
+  it('asks for no filter at all when nothing was searched for', async () => {
+    const { client, calls } = fakeClient();
+
+    await listAdminRiders(client, { matchEmail: true });
+
+    expect(filterOf(calls)).toBe('');
   });
 });
 

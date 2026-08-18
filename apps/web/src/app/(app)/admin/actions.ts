@@ -17,7 +17,7 @@ import { ROUTES } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { requireStaff } from '@/lib/staff';
 
-import type { RiderSheetView, TrackedTrickView } from './view';
+import { bandLabel, type RiderSheetView, type TrackedTrickView } from './view';
 
 /**
  * Every staff write the portal makes (plan §7, T16).
@@ -109,6 +109,10 @@ export async function riderSheetAction(userId: string): Promise<RiderSheetView |
     planName: plan?.name ?? rider.plan,
     planHue: plan?.hue || 'var(--ink-3)',
     suspended: rider.suspended,
+    // Read here rather than on the table, so the address of the rider being
+    // looked at is the only one in the page (see `../view.ts`).
+    email: rider.email ?? '',
+    ageBand: bandLabel(rider.age_band),
     sports: (rider.sports ?? []).map((id) => SPORT_LOOKS[id]).filter(Boolean),
     tracked,
     landed: tracked.filter((t) => t.landed).length,

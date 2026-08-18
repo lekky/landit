@@ -208,6 +208,53 @@
   align-items: center;
 }
 
+/*
+ * The riders table's columns, pinned.
+ *
+ * `.arow` in `@landit/ui-web` is a flex row: `flex: 1 1 90px` on every child
+ * and `flex: 0 0 auto` on the last. That last rule is what made the table look
+ * broken — the Account cell's natural width changes per row, because the
+ * GUARDIAN tag is wider than OK, so every row had a different amount of space
+ * left to share out and no two rows lined up. Nothing was wrong with the data;
+ * the columns were being negotiated per row.
+ *
+ * Grid fixes it by deciding the columns once for the whole table. `.arow` stays
+ * on the element for its padding, gap and alignment, and this only replaces how
+ * the track widths are worked out — the shared class is untouched, which it has
+ * to be (CLAUDE.md: shared code is additive-only).
+ *
+ * **Doubled selector on purpose.** `.arow` and a module class are both one
+ * class of specificity, so which wins would come down to stylesheet injection
+ * order — settled at build time and not worth depending on. `.riderRow.riderRow`
+ * compiles to two classes and wins outright.
+ *
+ * **The Account column is a fixed 150px and must not become `auto`.** Every row
+ * is its own grid container, so a content-sized track is re-measured per row —
+ * `auto` there would size to GUARDIAN on one row and OK on the next, leave a
+ * different remainder for the `fr` columns to share, and reproduce the exact
+ * misalignment this block exists to remove. 150px clears the widest tag
+ * (SUSPENDED) with its button; `.accountCell` wraps rather than overflows if a
+ * longer one is ever added.
+ *
+ * Below 900px the grid is dropped and `.arow`'s wrapping flex takes back over,
+ * which is what shipped before this and is the right answer on a phone: eight
+ * pinned columns there would be one column of clipped text.
+ */
+@media (min-width: 900px) {
+  .riderRow.riderRow {
+    display: grid;
+    grid-template-columns:
+      minmax(150px, 2.2fr) /* rider */
+      minmax(104px, 1.3fr) /* rides */
+      56px /* landed */
+      minmax(72px, 0.6fr) /* age band */
+      minmax(76px, 0.6fr) /* joined */
+      minmax(88px, 0.8fr) /* last active */
+      minmax(132px, 1fr) /* plan override */
+      150px; /* account */
+  }
+}
+
 .riderCell {
   display: flex;
   align-items: center;
@@ -286,6 +333,35 @@
   gap: 16px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+/*
+ * The sheet's two identity facts, under the stat tiles.
+ *
+ * `word-break` on the value because a long address must wrap inside the modal
+ * rather than widen it — the sheet is a fixed 620px and an overflowing address
+ * would push the close control off the edge.
+ */
+.sheetFacts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 3px solid var(--ink);
+}
+
+.sheetFact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sheetFactValue {
+  font-family: var(--fc);
+  font-size: 13.5px;
+  font-weight: 600;
+  word-break: break-word;
 }
 
 .sheetStats {

@@ -6,7 +6,12 @@ import { monthYear, relativeTime } from '@/lib/dates';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { requireStaff } from '@/lib/staff';
 
-import type { AdminPlanOption, AdminRiderRow, AdminRiderStatus } from '../view';
+import {
+  bandLabel,
+  type AdminPlanOption,
+  type AdminRiderRow,
+  type AdminRiderStatus,
+} from '../view';
 
 import { RidersScreen } from './RidersScreen';
 
@@ -50,7 +55,15 @@ export default async function AdminRidersPage({
   // rather than an empty one that looks like a rider base of nobody.
   const plan = plans.some((p) => p.slug === params.plan) ? params.plan : undefined;
 
-  const page = await listAdminRiders(pb, { query, plan }, { page: pageNumber, perPage: PER_PAGE });
+  // `matchEmail` is this screen's own opt-in, not the filter's default — see
+  // `AdminRiderFilter`. It is what makes a support mail findable: staff paste
+  // the address they were written from and get the rider, instead of asking
+  // somebody with database access. The address still never reaches the table.
+  const page = await listAdminRiders(
+    pb,
+    { query, plan, matchEmail: true },
+    { page: pageNumber, perPage: PER_PAGE },
+  );
 
   const landed = await landedCountsFor(
     pb,
@@ -87,6 +100,7 @@ export default async function AdminRidersPage({
       joined: rider.created ? monthYear(rider.created) : '—',
       active,
       activeToday,
+      ageBand: bandLabel(rider.age_band),
       plan: rider.plan,
       status: status(rider),
       isMe: rider.id === staff.rider.id,

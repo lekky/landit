@@ -134,6 +134,27 @@ export function RiderSheet({
         ))}
       </div>
 
+      {/*
+        The two facts the table deliberately does not carry (`../view.ts`).
+        Both wait for `view` rather than guessing from the row, because the row
+        has never held either — an em dash here means "still loading", which is
+        the same thing it means once loaded for an account that has neither.
+      */}
+      <div className={styles.sheetFacts}>
+        <div className={styles.sheetFact}>
+          <span className="lab" style={{ color: 'var(--ink-3)' }}>
+            Signed up with
+          </span>
+          <span className={styles.sheetFactValue}>{view?.email || '—'}</span>
+        </div>
+        <div className={styles.sheetFact}>
+          <span className="lab" style={{ color: 'var(--ink-3)' }}>
+            Age band
+          </span>
+          <span className={styles.sheetFactValue}>{view?.ageBand ?? '—'}</span>
+        </div>
+      </div>
+
       <div className={styles.sheetBody}>
         <div>
           <div className="lab" style={{ marginBottom: 10 }}>

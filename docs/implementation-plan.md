@@ -1950,6 +1950,20 @@ prototype, or need the owner:
   dashboard able to undo it. Both refusals are in the server actions, not only in the disabled
   control.
 
+- **Email and age band were added to the Riders tab on 2026-08-18 (owner's call, in chat), and they
+  are not carried the same way.** T16 shipped neither: `admin/view.ts` recorded that a staff row
+  needs neither to move a plan or suspend an account, and it was right about the two jobs it had.
+  What changed is a third job nobody had named — answering a support mail, which meant asking
+  somebody with database access who the address belonged to. So **age band is a column**, because it
+  is the fact behind the GUARDIAN tag the table already showed and it is a bucket of four rather
+  than a birth date; **email is on the rider sheet only**, plus matched by the search box, because
+  the table is a client component and forty rows would be forty children's addresses in the page
+  source whether or not anyone read them. There is still no birth date to show anywhere and there
+  never will be (§3, §6.2) — the column is headed "Age band" and reads "13–15", not "14".
+  Two consequences worth naming: the search box now puts whatever staff type into the URL, an
+  address included, which is issue #193; and issue #117 — nothing records that staff *opened* a
+  child account — is worth more than its `p3` now that opening one shows an email.
+
 How an account becomes staff is `docs/staff-accounts.md` — superuser dashboard only, deliberately
 with no script.
 

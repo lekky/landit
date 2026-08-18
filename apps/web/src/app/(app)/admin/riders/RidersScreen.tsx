@@ -133,8 +133,8 @@ export function RidersScreen({
           <input
             value={text}
             onChange={(e) => onSearch(e.target.value)}
-            placeholder="Name or handle…"
-            aria-label="Search riders by name or handle"
+            placeholder="Name, handle or email…"
+            aria-label="Search riders by name, handle or email"
           />
         </div>
         <Pill on={plan === 'all'} onClick={() => onPlanFilter('all')}>
@@ -149,12 +149,13 @@ export function RidersScreen({
 
       <Panel style={{ padding: 0, overflow: 'hidden' }} className={pending ? styles.busy : ''}>
         <div
-          className="arow"
+          className={`arow ${styles.riderRow}`}
           style={{ background: 'var(--paper-2)', borderBottom: '2px solid var(--wash)' }}
         >
           <span className="lab">Rider</span>
           <span className="lab">Rides</span>
           <span className="lab">Landed</span>
+          <span className="lab">Age band</span>
           <span className="lab">Joined</span>
           <span className="lab">Last active</span>
           <span className="lab">Plan override</span>
@@ -162,7 +163,11 @@ export function RidersScreen({
         </div>
 
         {rows.map((rider) => (
-          <div key={rider.id} className="arow" style={{ borderBottom: '2px solid var(--wash)' }}>
+          <div
+            key={rider.id}
+            className={`arow ${styles.riderRow}`}
+            style={{ borderBottom: '2px solid var(--wash)' }}
+          >
             <div className={styles.riderCell}>
               <Avatar avatarId={rider.avatarKey} name={rider.name} size={32} />
               <div style={{ minWidth: 0 }}>
@@ -182,6 +187,13 @@ export function RidersScreen({
 
             <span className="d" style={{ fontSize: 19 }}>
               {rider.landed}
+            </span>
+
+            {/* A band, never an age — there is no birth date to show. The
+                account column's GUARDIAN tag is the consequence of this cell,
+                which is why it sits on the same row rather than on the sheet. */}
+            <span className="cond" style={{ fontSize: 13.5 }}>
+              {rider.ageBand}
             </span>
 
             <span className={styles.muted}>{rider.joined}</span>
