@@ -950,3 +950,21 @@ because PocketBase takes mail configuration from its settings database via the a
 the template would have produced a tidy variable list in Coolify and an instance that still could
 not send — the worst kind of wrong, because everything looks configured. The file now says so.
 **A config template must say what consumes it, or it will be followed into a dead end.**
+
+**A launch does not sweep the copy that assumed it had not happened.** `landthetrick.com` went
+live on 2026-08-17. On 2026-08-18 the account screen still told a rider whose guardian email failed
+that "our email is not switched on until launch" — on a launched product, with email working, which
+tells a child to wait for a thing that already happened. A code comment said "there is no Stripe
+account yet" a day after Stripe went live. Neither breaks a test, because both are prose: the copy
+is a string with no assertion on its *meaning*, and the comment is a comment.
+
+This is §4's rule arriving from a third direction. There, a rule changed and the data quoting it
+went stale; here, **the world changed and the copy describing it went stale**. The sweep to run on
+the day a launch flag flips is `grep -rn "until launch\|before launch\|not yet\|pre-launch"` across
+`apps/web/src` — every hit is a sentence written by somebody who assumed today would not arrive.
+
+The related trap for an agent, which cost the same afternoon twice: **`CLAUDE.md` is read into the
+prompt at session start, so a long session can be reasoning from a copy another session has since
+corrected.** Both "the site is not live" and "Stripe is not set up" were repeated to the owner from
+context that was hours out of date while the file on disk said otherwise. Before telling the owner
+what state their product is in, re-read the file rather than trusting the copy in context.
