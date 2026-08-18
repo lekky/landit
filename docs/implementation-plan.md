@@ -1683,6 +1683,18 @@ owner:
   applying it to the guardian-consent request route (issue #32) is a four-line change once the
   owner has picked how often a parent may be emailed, which T13 did not get to decide.
 
+- **The whole spot card is the control, and the card is re-laid out for it** (2026-08-18, owner's
+  mockup, in chat). Screenshot 19 puts three controls in one row at the foot of the card — "Show
+  on map", "Directions", "Report this spot" — and makes the 13px first one the only way to move
+  the map. On a phone that is a small target inside a large dead box. Now a press anywhere on a
+  live card puts the spot on the map; "Report" moves to the card's top-right corner; and the foot
+  of the card is the two things a rider came for, ranged right, with "Show on map" as the button.
+  **The button is not decoration** — a card is a `div` because the links inside it cannot live in
+  a `button`, so it stays the keyboard path, the accessible name, and the label that says which
+  spot is currently plotted. The card's handler steps aside for anything inside it that is
+  already a link (`closest('a, button')` in `SpotsScreen.tsx`), which is what keeps "Directions"
+  from moving the map on its way out; `e2e/spots.spec.ts` pins both halves.
+
 Standard 10 is implemented as `useHereOnce`: geolocation is asked for only on a press, held in
 component state, announced by a badge that carries its own "turn off", and gone on reload. It is
 `getCurrentPosition` and never `watchPosition` — a watch is a live tracking session held open on a

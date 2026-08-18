@@ -112,12 +112,48 @@
   display: flex;
   gap: 14px;
   align-items: flex-start;
+  transition: 0.12s;
+}
+
+/*
+ * A card that can be plotted is a control, and says so the way every other
+ * control in this design says it: the -1px lift and the grown shadow of a
+ * button under the pointer. The button inside it keeps its own hover, which is
+ * the same move at a smaller size, so the two do not fight.
+ */
+.cardTap {
+  cursor: pointer;
+}
+
+.cardTap:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--sh);
 }
 
 /* The selected card: paper-2 and the full 5px shadow, as the prototype had it. */
 .cardOn {
   background: var(--paper-2);
   box-shadow: var(--sh);
+}
+
+/* Name and place on the left, the report link in the corner it belongs in. */
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cardHeading {
+  min-width: 0;
+  flex: 1;
+}
+
+.report {
+  flex: none;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  /* A quiet corner control still has to be big enough to hit on a phone. */
+  padding: 2px 0 2px 6px;
 }
 
 .cardPending {
@@ -155,11 +191,16 @@
   align-items: center;
 }
 
+/*
+ * The two things a rider came for, ranged right so the button lands under the
+ * thumb rather than in the middle of the card.
+ */
 .cardActions {
   display: flex;
-  gap: 10px;
+  gap: 14px;
   align-items: center;
-  margin-top: 10px;
+  justify-content: flex-end;
+  margin-top: 12px;
   flex-wrap: wrap;
 }
 

@@ -12,7 +12,7 @@ import {
 } from '@landit/core';
 import { Button, Empty, Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web';
 import Link from 'next/link';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { type MouseEvent, useCallback, useMemo, useRef, useState } from 'react';
 
 import { reportHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
@@ -101,6 +101,30 @@ export function SpotsScreen({
     // page; a pin click on a card further down does scroll it into view.
     cards.current.get(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, []);
+
+  /*
+   * The whole card is the target, not just the button inside it — a rider
+   * looking for a park aims at the box.
+   *
+   * **The button stays, and is still the only keyboard path.** A card is a
+   * `div` because the two links in it cannot live inside a `button`, so this
+   * handler is a pointer affordance layered over a real control rather than a
+   * replacement for one; dropping the button would leave the card unreachable
+   * by keyboard and unnamed to a screen reader, and would take the label that
+   * says which spot is currently on the map with it.
+   *
+   * The `closest` check is what stops "Directions" and "Report" moving the map
+   * on their way out. One rule in one place, rather than `stopPropagation` on
+   * each link: a third link added to a card is covered without anyone
+   * remembering to opt it out.
+   */
+  const selectFromCard = useCallback(
+    (event: MouseEvent<HTMLDivElement>, id: string) => {
+      if ((event.target as HTMLElement).closest('a, button')) return;
+      select(id);
+    },
+    [select],
+  );
 
   const otherSport = sports.find((id) => id !== sport);
   const pendingCount = mine.length;
@@ -207,17 +231,42 @@ export function SpotsScreen({
                   if (node) cards.current.set(spot.id, node);
                   else cards.current.delete(spot.id);
                 }}
-                className={`panel flat ${styles.card} ${on ? styles.cardOn : ''}`}
+                className={`panel flat ${styles.card} ${on ? styles.cardOn : ''} ${
+                  plottable ? styles.cardTap : ''
+                }`}
+                onClick={plottable ? (event) => selectFromCard(event, spot.id) : undefined}
               >
                 <span className={styles.cardIcon}>
                   <Icon name="map" size={20} strokeWidth={2.2} />
                 </span>
                 <div className={styles.cardBody}>
-                  <div className="d" style={{ fontSize: 19 }}>
-                    {spot.name}
-                  </div>
-                  <div className={`lab ${styles.cardMeta}`}>
-                    {[spot.town, spot.type, distance].filter(Boolean).join(' · ')}
+                  <div className={styles.cardTop}>
+                    <div className={styles.cardHeading}>
+                      <div className="d" style={{ fontSize: 19 }}>
+                        {spot.name}
+                      </div>
+                      <div className={`lab ${styles.cardMeta}`}>
+                        {[spot.town, spot.type, distance].filter(Boolean).join(' · ')}
+                      </div>
+                    </div>
+                    {/*
+                      T18. A spot is rider-submitted content in a public place,
+                      so "this is wrong, gone, or not safe" needs somewhere to
+                      go from the spot itself — an ordinary link, so it works
+                      signed out, which is the OSA duty (plan §6.1). It sits in
+                      the corner rather than in the row below: reporting is
+                      about the spot, not one of the two things a rider came to
+                      the card to do. The label is short because the corner is
+                      small, and `aria-label` says which spot it reports, which
+                      the corner has no room to.
+                    */}
+                    <Link
+                      className={`cond ${styles.report}`}
+                      href={reportHref({ type: 'spot', id: spot.id })}
+                      aria-label={`Report ${spot.name}`}
+                    >
+                      Report
+                    </Link>
                   </div>
                   <div className={styles.cardTags}>
                     {spot.tags.map((tag) => (
@@ -229,40 +278,26 @@ export function SpotsScreen({
                       <SportChip key={id} sport={SPORT_LOOKS[id]} small />
                     ))}
                   </div>
-                  <div className={styles.cardActions}>
-                    {plottable && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => select(spot.id)}
-                          aria-pressed={on}
-                        >
-                          {on ? 'On the map' : 'Show on map'}
-                        </Button>
-                        <a
-                          className={`cond ${styles.directions}`}
-                          href={mapsLink(spot)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          Directions
-                        </a>
-                      </>
-                    )}
-                    {/*
-                      T18. A spot is rider-submitted content in a public place,
-                      so "this is wrong, gone, or not safe" needs somewhere to
-                      go from the spot itself — an ordinary link, so it works
-                      signed out, which is the OSA duty (plan §6.1).
-                    */}
-                    <Link
-                      className={`cond ${styles.directions}`}
-                      href={reportHref({ type: 'spot', id: spot.id })}
-                    >
-                      Report this spot
-                    </Link>
-                  </div>
+                  {plottable && (
+                    <div className={styles.cardActions}>
+                      <a
+                        className={`cond ${styles.directions}`}
+                        href={mapsLink(spot)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Directions
+                      </a>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => select(spot.id)}
+                        aria-pressed={on}
+                      >
+                        {on ? 'On the map' : 'Show on map'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             );

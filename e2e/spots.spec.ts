@@ -127,6 +127,47 @@ test.describe('where to ride', () => {
     await expect(chosen.getByRole('button', { name: 'On the map' })).toBeVisible();
   });
 
+  test('puts a spot on the map from anywhere in its card', async ({ page }) => {
+    await page.goto('/spots');
+    await page.getByRole('button', { name: 'Every spot' }).click();
+
+    // The name, not the button beneath it: the whole box is the control, which
+    // is the only part of this a rider on a phone can reliably hit.
+    const chosen = card(page, scooterSpot.name);
+    await chosen.getByText(scooterSpot.name, { exact: true }).click();
+
+    await expect(chosen.getByRole('button', { name: 'On the map' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open in Maps' })).toBeVisible();
+  });
+
+  test('a link inside a card goes to its own place and leaves the map alone', async ({
+    page,
+    context,
+  }) => {
+    /*
+     * The card's click handler and the links inside it overlap, and the handler
+     * is what has to give way. Directions is the one to prove it on: it opens
+     * in its own tab, so the spots page is still there to be asserted about
+     * afterwards. Google is never actually reached — the popup is answered
+     * locally, because CI is not promised a route to it and a test that needs
+     * one is a test that fails for the wrong reason.
+     */
+    await context.route('https://www.google.com/**', (route) =>
+      route.fulfill({ contentType: 'text/html', body: '<p>maps</p>' }),
+    );
+
+    await page.goto('/spots');
+    const chosen = card(page, scooterSpot.name);
+
+    const opened = context.waitForEvent('page');
+    await chosen.getByRole('link', { name: 'Directions' }).click();
+    await (await opened).close();
+
+    // Still unselected: the press went to the link and stopped there.
+    await expect(chosen.getByRole('button', { name: 'Show on map' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open in Maps' })).toHaveCount(0);
+  });
+
   test('links out to the spot, and never to where the rider is', async ({ page }) => {
     await page.goto('/spots');
     const directions = card(page, scooterSpot.name).getByRole('link', { name: 'Directions' });
