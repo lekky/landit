@@ -22,7 +22,7 @@ import { useToast } from '@/providers/toast';
 // copy of a promise that must hold identically on both screens. It lives in the
 // spots folder because that is where it was written; promoting it to a shared
 // component means editing `SpotsScreen.tsx`, which another session owns.
-import { useHereOnce } from '../spots/useHereOnce';
+import { useHereOnce } from '@/lib/useHereOnce';
 import { setAttendanceAction } from './actions';
 import styles from './events.module.css';
 import type { EventsView, EventView } from './view';

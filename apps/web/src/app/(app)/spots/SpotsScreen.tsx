@@ -21,7 +21,7 @@ import { useSport } from '@/providers/sport';
 
 import { AddSpotForm } from './AddSpotForm';
 import { SpotMap } from './SpotMap';
-import { useHereOnce } from './useHereOnce';
+import { useHereOnce } from '@/lib/useHereOnce';
 import styles from './spots.module.css';
 
 /** A `spots` row, flattened to what a screen needs. */

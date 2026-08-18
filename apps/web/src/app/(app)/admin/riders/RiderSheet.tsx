@@ -93,7 +93,7 @@ export function RiderSheet({
   const stats: readonly (readonly [number, string])[] = [
     [view?.tracked.length ?? 0, 'Tracked'],
     [view?.landed ?? rider.landed, 'Landed'],
-    [view?.clips ?? 0, 'Clips'],
+    [view?.clips ?? 0, 'Videos'],
     [(view?.sports ?? rider.sports).length, 'Sports'],
   ];
 

@@ -90,6 +90,16 @@ test('"I’m going" sticks across a reload', async ({ page }) => {
   await page.getByRole('button', { name: "I'm going" }).click();
   await expect(page.getByRole('button', { name: '✓ Going' })).toBeVisible({ timeout: 15_000 });
 
+  // The toast fires only after `setAttendanceAction` resolves (EventsScreen's
+  // startTransition awaits it), so it is the one signal on this screen the
+  // server produced — the ✓ label above and the tally below are optimistic
+  // client state. Waiting here means the reload cannot abort the write in
+  // flight, which is what made this test flaky under local parallelism
+  // (issue #121). Straight apostrophe: the toast string, not the JSX &rsquo;.
+  await expect(page.getByText("You're down for E2E Northern Jam.")).toBeVisible({
+    timeout: 15_000,
+  });
+
   await page.reload();
   await expect(page.getByRole('button', { name: '✓ Going' })).toBeVisible();
   await expect(page.getByText(/You’re down for 1 event/)).toBeVisible();

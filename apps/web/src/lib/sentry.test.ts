@@ -135,5 +135,8 @@ describe('an event actually leaves the process', () => {
     expect(envelope).toContain('landit sentry wiring check');
 
     delete process.env.NEXT_PUBLIC_SENTRY_DSN;
-  });
+    // The flush above may take its whole 5s budget under load; vitest's default
+    // 5s test timeout is the same number, so the test needs more than the flush
+    // or it fails by arithmetic rather than by delivery (issue #215).
+  }, 15_000);
 });
