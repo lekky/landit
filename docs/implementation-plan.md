@@ -1202,6 +1202,27 @@ it are deliberate and should not be quietly reversed:
   first four screens are for picking a sport and landing a trick; the reminder waits on the
   dashboard, which is soon enough for something nothing is waiting on.
 
+**Amended again 2026-08-18 — the guardian address is asked for at sign-up** (issue #182, owner's
+decision in chat). The form already computed the band in the browser and already told a gated rider
+"we will ask you for their email next"; it never did. It does now, as a field that appears inline
+the moment the country and date of birth say the gate applies, and the request goes out as part of
+signing up rather than waiting to be found on `/account`.
+
+- **Optional, by decision.** A rider who does not know the address still gets an account, limited,
+  with the panel on `/account` unchanged as the way to send it later. The alternative considered
+  and rejected was making it required, which turns "my mum's email is on her phone" into no account
+  at all.
+- **The consequence of optional is recorded rather than solved**: a rider who skips it is in
+  exactly the position issue #182 described — limited, with nothing pointing them back. A reminder
+  on the dashboard was offered and declined. If that turns out to matter, the pattern is already
+  there in `components/verify/`.
+- **The request happens after the session exists**, because the consent route requires the rider's
+  own token — the same rule that stops anybody else asking on their behalf. It is best-effort: a
+  mailer we cannot reach is not a sign-up that failed, and a child told their account did not work
+  because of our SMTP would be the worst version of this screen.
+- **Only when the gate applies.** An address typed by a rider who is not gated is ignored, not
+  emailed. Nobody has asked us to write to a stranger.
+
 The confirmation email is PocketBase's own, so its template is instance configuration rather than
 code: `pocketbase/templates/verify-email.html` is the reviewed copy and that directory's README
 says where it is pasted. The design pack's version of this email claimed the account was not live
