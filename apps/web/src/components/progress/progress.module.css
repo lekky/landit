@@ -357,9 +357,13 @@
 }
 
 /*
- * The sheet itself. Off screen until the browser prints, so "Print my sheets"
- * prints the rider's own list rather than a screenshot of this page — four
- * tricks a page, as the panel says.
+ * The sheet itself. Off screen until the browser prints; when it prints, it is
+ * the only thing that prints. That takes two scopes: this screen's own
+ * children, and the shell around the screen — top bar, banners, footer, and
+ * the mobile tab bar, which would otherwise join the print because an A4 page
+ * is narrower than the 860px breakpoint. The shell rules key off
+ * `:has(.sheet)`, so they exist only while a sheet is on the page and printing
+ * any other screen is untouched.
  */
 .sheet {
   display: none;
@@ -372,6 +376,28 @@
 
   .screen > *:not(.sheet) {
     display: none !important;
+  }
+
+  /* Everything the shell puts around the page column. */
+  :global(.app):has(.sheet) > *:not(:global(.page)) {
+    display: none !important;
+  }
+
+  /* Anything beside the screen inside the page column — the verify banner. */
+  :global(.app):has(.sheet) > :global(.page) > *:not(:has(.sheet)) {
+    display: none !important;
+  }
+
+  /* The column itself: no viewport-filling height, no dotted wash, and no
+     120px of bottom padding turning into a blank stretch of paper. */
+  :global(.app):has(.sheet) {
+    min-height: 0;
+    background: none;
+  }
+
+  :global(.app):has(.sheet) > :global(.page) {
+    padding: 0;
+    max-width: none;
   }
 }
 
@@ -396,8 +422,18 @@
   break-inside: avoid;
 }
 
-.sheetRow:nth-child(4n) {
+/*
+ * Four to a page, counted by type: the heading and subtitle are the sheet's
+ * first two *children*, so `nth-child(4n)` would break the first page after
+ * two tricks. The rows are its only divs. The last row keeps `auto` so a list
+ * that is a multiple of four does not print a trailing blank page.
+ */
+.sheetRow:nth-of-type(4n) {
   break-after: page;
+}
+
+.sheetRow:last-of-type {
+  break-after: auto;
 }
 
 .sheetTick {
