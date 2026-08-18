@@ -1,3 +1,4 @@
+import { AVATARS } from '../data/avatars';
 import {
   CUSTOM_GOAL_ID,
   CUSTOM_GOAL_MAX_LENGTH,
@@ -5,8 +6,11 @@ import {
   HANDLE_MAX_LENGTH,
   HANDLE_MIN_LENGTH,
   HANDLE_PATTERN,
+  LEVELS,
   RESERVED_HANDLES,
+  STANCES,
 } from '../data/profile';
+import { SPORT_IDS } from '../data/sports';
 import type { Goal, SportId } from '../types';
 
 /** The goals to offer a rider: shared ones, plus the ones for sports they ride. */
@@ -116,4 +120,67 @@ export function handleCandidates(name: string | null | undefined, count = 8): st
   }
 
   return out;
+}
+
+/* ---------------------------------------------------- the profile itself -- */
+
+/**
+ * A profile as a rider may set it — the five things both onboarding and the
+ * account editor ask for. `stance` and `avatarKey` are the two that may be
+ * absent: a rider who does not know which foot leads should not be made to
+ * guess, and "my initial" is a legitimate picture.
+ */
+export interface ProfileChoice {
+  readonly sports: readonly string[];
+  readonly level: string | null;
+  readonly goal: string | null;
+  readonly goalCustom?: string | null;
+  readonly stance?: string | null;
+  readonly avatarKey?: string | null;
+}
+
+/**
+ * Why a set of profile choices cannot be saved, in the words the rider reads —
+ * or `null` when they are fine.
+ *
+ * One function for two callers on purpose. Onboarding (T6) asked these same
+ * five questions and checked them inline; the account editor (T23) asks them
+ * again, and a second copy of "pick at least one sport" is the pair that drifts
+ * the first time one of the rules moves. The messages are onboarding's,
+ * unchanged, so the flow that already shipped still says what it said.
+ *
+ * Every id is checked against the canonical list rather than merely being
+ * non-empty, because both callers take these from a form: a level or a goal the
+ * product does not have would otherwise be stored and then render as nothing.
+ *
+ * This is a message, not a permission. All five fields are written with the
+ * rider's own client, so the `users` update rule and the guard hook are what
+ * decide the write (plan §3) — a rider past this function still cannot touch
+ * `plan`, `role` or their streak.
+ */
+export function profileChoiceProblem(choice: ProfileChoice): string | null {
+  if (!choice.sports.some((sport) => (SPORT_IDS as readonly string[]).includes(sport))) {
+    return 'Pick at least one sport.';
+  }
+
+  if (!LEVELS.some((level) => level.id === choice.level)) {
+    return 'Tell us roughly where you are at.';
+  }
+
+  if (choice.goal === CUSTOM_GOAL_ID) {
+    if (!isValidCustomGoal(choice.goalCustom)) return 'Write a goal, or pick one of the others.';
+  } else if (!GOALS.some((goal) => goal.id === choice.goal)) {
+    return 'Pick a goal, or write your own.';
+  }
+
+  // Both are optional, so only a *wrong* value is a problem. Absent is a choice.
+  if (choice.stance && !STANCES.some((stance) => stance.id === choice.stance)) {
+    return 'Pick one of the stances, or leave it blank.';
+  }
+
+  if (choice.avatarKey && !AVATARS.some((avatar) => avatar.id === choice.avatarKey)) {
+    return 'Pick one of the pictures, or keep your initial.';
+  }
+
+  return null;
 }

@@ -1,6 +1,15 @@
 'use server';
 
-import { PRIVACY, type PrivacyId } from '@landit/core';
+import {
+  CUSTOM_GOAL_ID,
+  PRIVACY,
+  SPORT_IDS,
+  profileChoiceProblem,
+  type LevelId,
+  type PrivacyId,
+  type SportId,
+  type StanceId,
+} from '@landit/core';
 import { requestGuardianConsent, updateProfile } from '@landit/db';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -84,6 +93,79 @@ export async function setPrivacyAction(
 
   try {
     await updateProfile(session.client, session.rider.id, { privacy: choice as PrivacyId });
+  } catch {
+    return { error: 'We could not save that just now. Try again in a moment.' };
+  }
+
+  revalidatePath(ROUTES.account);
+  return { saved: true };
+}
+
+/* -------------------------------------------------------------- profile -- */
+
+export interface ProfileFormState {
+  readonly error?: string;
+  readonly saved?: boolean;
+}
+
+/**
+ * Change what you ride, where you are at, the goal, your stance and your
+ * picture (T23).
+ *
+ * The gap this closes: onboarding asked all five questions once and no screen
+ * ever asked again, so a rider who took up BMX in the meantime, or picked a
+ * level on their first evening and outgrew it, had a profile they could read
+ * and not touch — the same defect the privacy control above was built to fix,
+ * across five more fields (issue #96).
+ *
+ * Every value is checked against the canonical list by `profileChoiceProblem`
+ * in `@landit/core`, which is the same function onboarding calls. Nothing here
+ * grants anything: the write goes through the rider's own client, so the
+ * `users` update rule decides it, and the guard hook still refuses `plan`,
+ * `role`, `consent_state` and the streak whatever this form posts.
+ *
+ * Turning a sport off is not a delete. `sports` decides which libraries,
+ * stickers and challenges a rider is *shown*; their `trick_progress` rows are
+ * untouched and come straight back if they turn it on again.
+ */
+export async function saveProfileAction(
+  _state: ProfileFormState | undefined,
+  form: FormData,
+): Promise<ProfileFormState> {
+  const session = await currentRider();
+  if (!session) redirect(ROUTES.signIn);
+
+  const sports = form.getAll('sports').map(String);
+  const level = String(form.get('level') ?? '');
+  const goal = String(form.get('goal') ?? '');
+  const goalCustom = String(form.get('goal_custom') ?? '');
+  const stance = String(form.get('stance') ?? '');
+  const avatarKey = String(form.get('avatar_key') ?? '');
+
+  const problem = profileChoiceProblem({ sports, level, goal, goalCustom, stance, avatarKey });
+  if (problem) return { error: problem };
+
+  try {
+    await updateProfile(session.client, session.rider.id, {
+      sports: sports.filter((sport): sport is SportId =>
+        (SPORT_IDS as readonly string[]).includes(sport),
+      ),
+      level: level as LevelId,
+      goal,
+      // A written goal is only kept while it is the goal. Leaving the text
+      // behind would put it back on the dashboard the next time a rider
+      // returned to "Something else" and saved without retyping.
+      goal_custom: goal === CUSTOM_GOAL_ID ? goalCustom.trim() : '',
+      /*
+       * "Not saying" is a real answer, and it is stored as the empty string —
+       * what the field already held for every rider who skipped the question at
+       * onboarding. The generated union cannot express that value (issue #134),
+       * so the assertion is the gap in the types rather than a new value being
+       * smuggled past them.
+       */
+      stance: stance as StanceId,
+      avatar_key: avatarKey,
+    });
   } catch {
     return { error: 'We could not save that just now. Try again in a moment.' };
   }

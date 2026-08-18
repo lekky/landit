@@ -1,13 +1,11 @@
 import {
-  LEVELS,
-  PRIVACY,
-  STANCES,
   countryName,
-  goalLabel,
   isConsentLimited,
   type ConsentState,
+  type LevelId,
   type PrivacyId,
   type SportId,
+  type StanceId,
 } from '@landit/core';
 import { Avatar, Button, Panel, SportChip, Tag } from '@landit/ui-web';
 import type { Metadata } from 'next';
@@ -25,6 +23,7 @@ import styles from './account.module.css';
 import { DataPanel } from './DataPanel';
 import { GuardianPanel } from './GuardianPanel';
 import { PrivacyPanel } from './PrivacyPanel';
+import { ProfilePanel } from './ProfilePanel';
 
 export const metadata: Metadata = {
   title: 'Your account · Land The Trick',
@@ -47,10 +46,6 @@ export default async function AccountPage() {
 
   const rider = session.rider;
   const sports = (rider.sports ?? []) as SportId[];
-  const level = LEVELS.find((l) => l.id === rider.level);
-  const stance = STANCES.find((s) => s.id === rider.stance);
-  const privacy = PRIVACY.find((p) => p.id === rider.privacy);
-  const goal = goalLabel(rider.goal, rider.goal_custom);
   const consent = rider.consent_state as ConsentState;
 
   return (
@@ -83,24 +78,22 @@ export default async function AccountPage() {
         <Tag color="var(--violet)">{rider.plan === 'rookie' ? 'Rookie · free' : rider.plan}</Tag>
       </Panel>
 
-      <div className={styles.facts}>
-        <Panel flat className={styles.fact}>
-          <div className="lab">Where you are at</div>
-          <div className={`d ${styles.factValue}`}>{level?.label ?? 'Not set'}</div>
-        </Panel>
-        <Panel flat className={styles.fact}>
-          <div className="lab">The goal</div>
-          <div className={`d ${styles.factValue}`}>{goal ?? 'Not set'}</div>
-        </Panel>
-        <Panel flat className={styles.fact}>
-          <div className="lab">Stance</div>
-          <div className={`d ${styles.factValue}`}>{stance?.label ?? 'Not saying'}</div>
-        </Panel>
-        <Panel flat className={styles.fact}>
-          <div className="lab">Who can see you</div>
-          <div className={`d ${styles.factValue}`}>{privacy?.label ?? 'Private'}</div>
-        </Panel>
-      </div>
+      {/*
+        T23. The four facts that used to be printed here in a read-only grid —
+        level, goal, stance and privacy — are each set below by the control that
+        also shows them. Two renderings of one value on one screen is how a
+        rider ends up scrolling past "Stance · Regular" to reach a stance picker
+        that says the same thing.
+      */}
+      <ProfilePanel
+        name={rider.name}
+        sports={sports}
+        level={(rider.level || null) as LevelId | null}
+        goal={rider.goal || null}
+        goalCustom={rider.goal_custom || ''}
+        stance={(rider.stance || null) as StanceId | null}
+        avatarKey={rider.avatar_key || null}
+      />
 
       {/*
         The privacy control (T11). Until this landed the value was shown here
@@ -162,8 +155,7 @@ export default async function AccountPage() {
       <Panel flat className={styles.later}>
         <div className="lab">Still on its way</div>
         <ul className={styles.laterList}>
-          <li>Spots, events and the weekly challenge</li>
-          <li>Editing your name, avatar, stance and goal</li>
+          <li>Changing your name or your handle</li>
         </ul>
         <p className={`cond ${styles.handle}`} style={{ marginTop: 10 }}>
           Everything you log now is kept and will be there when they land.

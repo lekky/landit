@@ -163,6 +163,8 @@ export {
   isValidCustomGoal,
   isValidHandle,
   normaliseHandle,
+  profileChoiceProblem,
+  type ProfileChoice,
 } from './profile';
 export {
   REPORT_DETAIL_MAX,

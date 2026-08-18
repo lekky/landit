@@ -3,7 +3,7 @@
 import { AVATAR_GROUPS } from '@landit/core';
 import { AVATARS, Avatar, Button, Modal, avatarsInGroup, type AvatarGroupId } from '@landit/ui-web';
 
-import styles from './onboarding.module.css';
+import styles from './avatarPicker.module.css';
 
 /**
  * All 36 avatars, grouped the way the set is documented: Lids, Heads, Kit.
@@ -35,7 +35,7 @@ export function AvatarPicker({
           </Button>
         </div>
 
-        <div className={styles.avatarPicks} style={{ marginBottom: 12 }}>
+        <div className={styles.initialRow}>
           <Avatar avatarId={null} name={name} size={44} ringWidth={value ? 2.5 : 3.5} />
           <Button variant="ghost" size="sm" onClick={() => onPick(null)} disabled={!value}>
             Use my initial

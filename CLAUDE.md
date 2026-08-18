@@ -14,7 +14,7 @@ your merge and a live service used by children.
 
 1. **This file.**
 2. **[docs/implementation-plan.md](docs/implementation-plan.md)** — the authority: decisions,
-   architecture, data model, and §7's task list (T0–T22) with ground rules. If the plan
+   architecture, data model, and §7's task list (T0–T23) with ground rules. If the plan
    conflicts with the design prototype, the plan wins. Decisions in §1 were deliberated —
    never silently reverse one (especially: PocketBase not Supabase/Firebase; single-rider
    plans only; achievements are never for sale; three sports at launch — scooter, skate and

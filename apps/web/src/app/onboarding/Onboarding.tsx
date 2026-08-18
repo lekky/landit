@@ -21,11 +21,11 @@ import {
 import { Avatar, Button, Icon, Panel, Pill, TrickCard, avatarById } from '@landit/ui-web';
 import { useMemo, useState } from 'react';
 
+import { AvatarPicker } from '@/components/AvatarPicker';
 import { browserTimezone } from '@/components/TimezoneField';
 
 import { SPORT_LOOKS } from '@/lib/sports';
 
-import { AvatarPicker } from './AvatarPicker';
 import { finishOnboarding } from './actions';
 import styles from './onboarding.module.css';
 

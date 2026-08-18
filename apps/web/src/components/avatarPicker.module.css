@@ -1,0 +1,58 @@
+/*
+ * The avatar picker modal.
+ *
+ * Lives beside the component rather than in a screen's stylesheet because two
+ * screens open it now: onboarding step 2, where a rider first picks a picture,
+ * and the account editor (T23), where they change it. Onboarding keeps its own
+ * `.avatarPicks` — that is the row on the step behind this modal, not part of
+ * it.
+ */
+.pickerBody {
+  padding: 20px;
+}
+
+.pickerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pickerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 10px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.pickerCell {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+}
+
+.pickerName {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+.pickerGroup {
+  margin: 14px 0 6px;
+}
+
+/* "Use my initial", above the grid. */
+.initialRow {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  margin-bottom: 12px;
+}
