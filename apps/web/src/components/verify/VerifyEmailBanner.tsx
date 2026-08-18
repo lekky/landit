@@ -1,5 +1,6 @@
 'use client';
 
+import { Icon } from '@landit/ui-web';
 import { useActionState, useState } from 'react';
 
 import { resendVerificationAction, type AuthFormState } from '@/app/(auth)/actions';
@@ -19,7 +20,10 @@ import styles from './verify.module.css';
  *
  * Deliberately not the offline bar's yellow. That one reports something broken
  * now; this is a reminder about something that has not happened yet, and a
- * product that shouts equally at both teaches riders to ignore both.
+ * product that shouts equally at both teaches riders to ignore both. Quieter is
+ * not the same as unstyled, though: it is a bordered paper panel in the
+ * product's condensed voice, because a reminder nobody can see is not a quiet
+ * reminder, it is a reminder that does not work.
  *
  * Whether it appears at all is decided on the server, from the cookie this sets
  * — see `lib/verify.ts`.
@@ -49,20 +53,26 @@ export function VerifyEmailBanner({ email }: { email: string }) {
 
   return (
     <div className={styles.banner} role="status">
-      <strong>Confirm your email</strong>
-      <span className={styles.why}>
-        {state?.done
-          ? `Sent to ${email}. Give it a minute, and check junk mail.`
-          : 'If you ever lose your password, the reset goes to this address.'}
+      <span className={styles.mark} aria-hidden="true">
+        <Icon name="lock" size={18} strokeWidth={2.6} />
+      </span>
+
+      <span className={styles.text}>
+        <strong className={`cond ${styles.title}`}>Confirm your email</strong>
+        <span className={styles.why}>
+          {state?.done
+            ? `Sent to ${email}. Give it a minute, and check junk mail.`
+            : 'If you ever lose your password, the reset goes to this address.'}
+        </span>
       </span>
 
       <div className={styles.actions}>
         {state?.done ? (
-          <span className={styles.sent}>On its way</span>
+          <span className={`tag ${styles.sent}`}>On its way</span>
         ) : (
           <form action={action}>
             <input type="hidden" name="email" value={email} />
-            <button type="submit" className={styles.link} disabled={pending}>
+            <button type="submit" className="btn sm ghost" disabled={pending}>
               {pending ? 'Sending…' : 'Send it again'}
             </button>
           </form>
