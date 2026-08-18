@@ -55,6 +55,24 @@ export const MAP_ATTRIBUTION =
   '<a href="https://www.openmaptiles.org/" target="_blank">&copy; OpenMapTiles</a> ' +
   'Data from <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>';
 
+/**
+ * Where MapLibre's web worker is served from.
+ *
+ * **Not where the library looks for it by default.** maplibre-gl resolves the
+ * worker at runtime from `import.meta.url`, expecting it beside the library —
+ * which under a bundler is a hashed chunk in `/_next/static/chunks/`. It then
+ * requests a file that was never emitted, Next returns its HTML 404 page, and
+ * the browser rejects the module for its MIME type. No `error` event reaches
+ * the map, so nothing falls back: markers, zoom controls and attribution are
+ * all main-thread DOM and render perfectly over a **blank basemap**, because
+ * every tile is fetched and parsed in that worker.
+ *
+ * `apps/web/scripts/sync-maplibre-worker.mjs` copies the worker and the shared
+ * module it imports into `public/maplibre/` on every `dev` and `build`. This
+ * constant is the other half; `SpotMap` hands it to `setWorkerUrl`.
+ */
+export const MAP_WORKER_URL = '/maplibre/maplibre-gl-worker.mjs';
+
 /** Where the map opens when it has no spots to fit. */
 export const MAP_DEFAULT_CENTRE = { lat: 53.4, lng: -2.5 } as const;
 export const MAP_DEFAULT_ZOOM = 5.4;

@@ -38,6 +38,11 @@ export default tseslint.config(
       // each one, and naming them individually meant `pnpm lint` failing with
       // 693 errors in a directory nobody wrote (T12).
       'pocketbase/.pb_*/**',
+      // MapLibre's worker and the module it imports, copied in by
+      // `apps/web/scripts/sync-maplibre-worker.mjs` on every dev and build.
+      // Vendor code, minified to one 482KB line — linting it means 1,127
+      // errors in a file nobody wrote (2026-08-17).
+      'apps/web/public/maplibre/**',
       // The received design pack is reference material, not our code.
       'design-handoff/**',
     ],

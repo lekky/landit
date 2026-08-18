@@ -138,11 +138,45 @@ test.describe('where to ride', () => {
     expect(href).not.toMatch(/saddr|origin=/);
   });
 
-  test('shows either a map or a sentence, never a broken canvas', async ({ page }) => {
-    // Deliberately tolerant of both outcomes. OpenFreeMap needs no key, so the
-    // map draws wherever the tiles are reachable — and CI is not promised a
-    // route to them. What must hold in both cases is that the panel resolves to
-    // one honest state rather than a half-drawn map or an empty hole.
+  test('serves the map worker as JavaScript, not a 404 page', async ({ page }) => {
+    /*
+     * The regression this exists for, and the limit of what it can prove.
+     *
+     * maplibre-gl works out where its worker lives at runtime from
+     * `import.meta.url`, which under Next resolves to a hashed chunk — so it
+     * asked for `/_next/static/chunks/maplibre-gl-worker.mjs`, got the 404 page,
+     * and had its module rejected for the MIME type. Every tile is fetched and
+     * parsed in that worker, so the basemap came up **blank** while the markers,
+     * the zoom controls and the attribution — all main-thread DOM — rendered
+     * perfectly. No `error` event fires for that, so the screen never fell back
+     * and nothing in the app noticed. Shipped 2026-08-17; the owner found it in
+     * a screenshot.
+     *
+     * **What this catches:** the sync step (`sync-maplibre-worker.mjs`) being
+     * dropped from `build`, or the copied files moving or losing their type.
+     *
+     * **What it cannot catch, stated so nobody trusts it too far:** whether the
+     * map actually *draws*. Headless Chromium has no GPU, so MapLibre fails at
+     * WebGL and the component falls back to its placeholder long before a worker
+     * is created — the browser error this bug produces never happens here, and
+     * asserting on it silently passes forever (LESSONS §5). A blank basemap has
+     * to be caught by eye, on a real browser.
+     */
+    const worker = await page.request.get('/maplibre/maplibre-gl-worker.mjs');
+    expect(worker.status()).toBe(200);
+    expect(worker.headers()['content-type']).toContain('javascript');
+
+    // The worker imports this by relative path; without it, it fails a second way.
+    const shared = await page.request.get('/maplibre/maplibre-gl-shared.mjs');
+    expect(shared.status()).toBe(200);
+    expect(shared.headers()['content-type']).toContain('javascript');
+  });
+
+  test('draws the map panel without taking the list down with it', async ({ page }) => {
+    // Tiles come from a service with no SLA and CI is not promised a route to
+    // it, so this asserts the contract rather than the pixels: the panel
+    // resolves to one honest state, and the list beside it is unaffected either
+    // way. The test above is the one that fails when the map is quietly broken.
     await page.goto('/spots');
     await expect(page.getByRole('heading', { name: 'Where to ride' })).toBeVisible();
 
@@ -152,7 +186,6 @@ test.describe('where to ride', () => {
       .poll(async () => (await canvas.count()) + (await excuse.count()), { timeout: 15_000 })
       .toBeGreaterThan(0);
 
-    // Whichever it is, the list beside it is unaffected — that is the promise.
     await expect(card(page, scooterSpot.name)).toBeVisible();
   });
 

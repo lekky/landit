@@ -17,6 +17,10 @@ apps/web/next-env.d.ts
 # fail on a file nobody edited.
 packages/db/src/generated/
 
+# MapLibre's worker, copied into place by a build step. Vendor code, and the
+# drift would be reformatted on every build anyway.
+apps/web/public/maplibre/
+
 node_modules/
 .next/
 dist/

@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/sync-avatars.mjs && next dev --port 3000",
-    "build": "node scripts/sync-avatars.mjs && next build",
+    "dev": "node scripts/sync-avatars.mjs && node scripts/sync-maplibre-worker.mjs && next dev --port 3000",
+    "build": "node scripts/sync-avatars.mjs && node scripts/sync-maplibre-worker.mjs && next build",
     "start": "next start --port 3000",
     "typecheck": "tsc --noEmit",
     "fonts:sync": "node scripts/sync-fonts.mjs"

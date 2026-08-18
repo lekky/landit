@@ -3,7 +3,13 @@
 import type { LatLng } from '@landit/core';
 import { useEffect, useRef, useState } from 'react';
 
-import { MAP_ATTRIBUTION, MAP_BASE_STYLE, MAP_DEFAULT_CENTRE, MAP_DEFAULT_ZOOM } from '@/lib/map';
+import {
+  MAP_ATTRIBUTION,
+  MAP_BASE_STYLE,
+  MAP_DEFAULT_CENTRE,
+  MAP_DEFAULT_ZOOM,
+  MAP_WORKER_URL,
+} from '@/lib/map';
 
 import styles from './spots.module.css';
 
@@ -82,6 +88,11 @@ export function SpotMap({
         const maplibregl = await import('maplibre-gl');
         if (cancelled) return;
 
+        // Before the map exists, or it will look for its worker beside a hashed
+        // Next chunk and quietly draw nothing but our own markers. See
+        // `MAP_WORKER_URL`.
+        maplibregl.setWorkerUrl(MAP_WORKER_URL);
+
         const instance = new maplibregl.Map({
           container: node,
           style: MAP_BASE_STYLE,
@@ -98,7 +109,20 @@ export function SpotMap({
         instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
         instance.on('error', () => setFailed(true));
 
-        control.current = { maplibregl, instance, markers: new Map(), here: null };
+        /*
+         * Follow the container's size, rather than only the window's.
+         *
+         * This panel is laid out beside the list and reaches its real width
+         * after the map is built, so MapLibre sized its canvas to a narrower
+         * box and kept it: 128px of canvas inside a 556px panel, measured on
+         * 2026-08-17. It corrects itself the first time the window resizes,
+         * which is exactly the kind of bug nobody reports because every
+         * developer resizes their window.
+         */
+        const resize = new ResizeObserver(() => instance.resize());
+        resize.observe(node);
+
+        control.current = { maplibregl, instance, markers: new Map(), here: null, resize };
         if (cancelled) return;
         // Plot whatever is already selected, without waiting for a state change.
         sync(control.current, spots, selectedId, onSelect);
@@ -110,6 +134,7 @@ export function SpotMap({
 
     return () => {
       cancelled = true;
+      control.current?.resize.disconnect();
       control.current?.instance.remove();
       control.current = null;
     };
@@ -139,6 +164,7 @@ export function SpotMap({
    */
   useEffect(() => {
     if (!failed || !control.current) return;
+    control.current.resize.disconnect();
     control.current.instance.remove();
     control.current = null;
   }, [failed]);
@@ -176,6 +202,7 @@ interface MapControl {
   markers: Map<string, any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   here: any;
+  readonly resize: ResizeObserver;
 }
 
 /**
