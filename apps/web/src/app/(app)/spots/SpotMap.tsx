@@ -353,7 +353,33 @@ function drawHere(control: MapControl, here: LatLng | null): void {
     const element = document.createElement('div');
     element.className = styles.hereDot!;
     element.setAttribute('aria-label', 'Roughly where you are');
-    control.here = new control.maplibregl.Marker({ element }).addTo(control.instance);
+    /*
+     * **`setLngLat` before `addTo`, which is the only order that works.**
+     *
+     * `Marker.addTo` subscribes `_update` to the map's `move`, `moveend`,
+     * `terrain` and `projectiontransition` events and then calls it — and
+     * `_update` dereferences the marker's own `LngLat`. Added first, that is
+     * `undefined`, and the call throws `Cannot read properties of undefined
+     * (reading 'lng')`. It is the order MapLibre's own examples use, and the
+     * one `sync` above already used for the spot pins.
+     *
+     * **It threw every time, not occasionally.** The listeners are registered
+     * *before* the throwing call, so the half-added marker stayed subscribed
+     * and threw again on every frame of the next camera ease — uncaught, from
+     * inside MapLibre's render loop, where no `try` of ours can reach it.
+     *
+     * The first throw was caught by `withMap`, which set `failed` — so pressing
+     * "Near me" replaced the map with "The map would not load just now". The
+     * comment there attributes that throw to a map that had errored and not yet
+     * been torn down (issue #219 era). That was a misreading: the marker threw
+     * on its own account, on a perfectly healthy map, every single time.
+     */
+    control.here = new control.maplibregl.Marker({ element })
+      .setLngLat([here.lng, here.lat])
+      .addTo(control.instance);
+    return;
   }
+
+  // Already on the map, so this is just a move.
   control.here.setLngLat([here.lng, here.lat]);
 }
