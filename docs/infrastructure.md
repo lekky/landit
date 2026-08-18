@@ -428,6 +428,26 @@ the values the two panels actually show. The shape is the point, not the values.
 selectors, so cPanel's `default._domainkey` and MailerSend's `ms1`/`ms2` coexist happily. Deleting
 one to "tidy up" breaks whichever sender it belonged to.
 
+**PocketBase's stock email templates point at PocketBase, not at the app.** Its default
+password-reset body links to `{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}` — the admin UI's
+own route. With `APP_URL` set to `https://landthetrick.com`, as it must be for the guardian links,
+that resolves to `/_` on the web app and gives the rider a **404 instead of a password reset**
+(observed 2026-08-18, the first time the path was ever walked). Setting `APP_URL` correctly does not
+fix it; the template itself has to be edited, in Settings → Mail:
+
+| Template | Link it must carry |
+| --- | --- |
+| Password reset | `{APP_URL}/reset-password?token={TOKEN}` |
+| Verification | only matters if verification is turned on — the stock body has the same defect |
+| Email change | same shape, same defect |
+
+The guardian-consent email is unaffected: it is built by `pocketbase/hooks/lib/consent_mail.js` and
+composes its own links from `LANDIT_APP_URL`, which is why it was the one path that could not fail
+this way. **Anything PocketBase templates, PocketBase aims at itself.**
+
+These templates live in the settings database, not in this repository, so they survive deploys and
+are lost with the `/pb_data` volume — which Litestream replicates (Backups above).
+
 ### 7. DMARC — **done 2026-08-18**
 
 A `_dmarc` TXT record. Start at `p=none` for a week to confirm MailerSend is passing, then tighten
