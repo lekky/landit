@@ -8,7 +8,8 @@ riders of all ages — safeguarding is a feature, not a checkbox.
 
 | Doc | What it is |
 | --- | --- |
-| [docs/implementation-plan.md](docs/implementation-plan.md) | **The authority.** Stack decisions, architecture, data model, and §7: the session-by-session build plan (T0–T21). |
+| [docs/implementation-plan.md](docs/implementation-plan.md) | **The authority.** Stack decisions, architecture, data model, and §7: the session-by-session build plan (T0–T23, growing one task at a time post-launch). |
+| [docs/FEATURES.md](docs/FEATURES.md) | What the product actually does today — a code-derived snapshot for orientation, re-audited when it drifts. |
 | [design-handoff/README.md](design-handoff/README.md) | The design contract: tokens, screens, behaviour, data shapes. The prototype in `design-handoff/design/` is the behavioural spec; screenshots in `design-handoff/screenshots/`. |
 | [docs/infrastructure.md](docs/infrastructure.md) | The live server (box1): URLs, access patterns, security posture, backups. Build sessions never need this box. |
 | [CLAUDE.md](CLAUDE.md) | Standing instructions for agent sessions. |
@@ -58,8 +59,9 @@ pnpm build && pnpm test && pnpm lint
 ```
 
 `pnpm build` typechecks every workspace and builds the app; `pnpm test` runs Vitest across
-`packages/*`; `pnpm lint` runs ESLint and checks Prettier formatting (`pnpm format` fixes
-it). Browser tests are separate and run in their own CI job:
+`packages/*`, `apps/web` and `pocketbase` — the last of those boots the real pinned
+PocketBase binary and drives the hooks over HTTP; `pnpm lint` runs ESLint and checks
+Prettier formatting (`pnpm format` fixes it). Browser tests are separate and run in their own CI job:
 
 ```bash
 pnpm e2e
@@ -80,4 +82,7 @@ pnpm e2e
 
 Next.js (pnpm monorepo) · PocketBase (self-hosted, one instance per product) · Coolify on a
 shared VPS · Cloudflare R2 (database backups only — Land The Trick hosts no rider video, §6.6) ·
-Stripe · MailerSend · MapLibre + OpenFreeMap · PostHog EU + Cloudflare Analytics · Sentry.
+Stripe · MailerSend (PocketBase's SMTP sender — configured in its settings database, no code
+integration) · MapLibre + OpenFreeMap · Sentry (wired, inert until a DSN is set — issue #145) ·
+PostHog EU + Cloudflare Analytics (decided in plan §1, not yet wired — nothing in the code
+references either).
