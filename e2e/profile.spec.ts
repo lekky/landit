@@ -1,4 +1,4 @@
-import { SPORTS } from '@landit/core';
+import { AVATARS, SPORTS } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
 /**
@@ -129,4 +129,63 @@ test('the goal, the level and the stance can be changed, and the stance cleared'
     'aria-pressed',
     'false',
   );
+});
+
+/*
+ * The last avatar in the first group — the one a phone could not reach.
+ *
+ * Named from the data rather than typed in, so adding an avatar to Lids moves
+ * the assertion to the new last one instead of quietly testing a cell that is
+ * no longer at the bottom.
+ */
+const LAST_LID = AVATARS.filter((avatar) => avatar.group === 'Lids').at(-1)!;
+
+test('the avatar picker has one scroll region on a phone, and the choice sticks', async ({
+  page,
+}) => {
+  // A small phone, where the grid falls to three columns and a twelve-plus
+  // group runs past a screen. Bigger screens get more columns and fewer rows,
+  // so this is the size that finds the problem.
+  await page.setViewportSize({ width: 375, height: 667 });
+  await onboardedRider(page);
+
+  await page.getByRole('button', { name: /picture/i }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+
+  /*
+   * The regression this pins (`components/avatarPicker.module.css`): each group
+   * capped itself at `46vh` and scrolled inside a modal that was already
+   * scrolling, so on a touch device — which draws no scrollbar until a drag —
+   * the rows below the cap were not discoverable at all. Six of the fifteen
+   * Lids were gone.
+   */
+  // Read through a locator rather than `page.evaluate`: this project's e2e
+  // tsconfig has no DOM lib, so `document` and `getComputedStyle` are not names
+  // here (the same note as `shell.spec.ts`). Asking each element whether it will
+  // actually move needs nothing but the element Playwright hands over — and it
+  // is the rider's question, not the stylesheet's: not "what is `overflow-y`"
+  // but "does this thing scroll under a thumb".
+  const scrollable = await page.locator('.modal *').evaluateAll((elements) =>
+    elements
+      .filter((el) => {
+        const before = el.scrollTop;
+        el.scrollTop = 9999;
+        const moved = el.scrollTop > before;
+        el.scrollTop = before;
+        return moved;
+      })
+      .map((el) => `${el.tagName}[${el.getAttribute('class') ?? ''}]`),
+  );
+  expect(scrollable).toEqual([]);
+
+  // And the cell that was out of reach is a cell a rider can actually use.
+  // Not `exact`: the cell's accessible name is its image's alt text followed by
+  // the caption under it, and both are the avatar's name.
+  await page.getByRole('button', { name: LAST_LID.name }).click();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByText('Saved')).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByText(LAST_LID.name)).toBeVisible();
 });
