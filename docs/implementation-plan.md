@@ -1186,6 +1186,28 @@ pending** — counsel confirms them rather than unblocking them, so this task no
 Wave 3 merge. Depends on T4 + T5. Inputs: `landit-auth.jsx`, §6.2–6.3 of this plan,
 screenshots 04–05.
 
+**Amended 2026-08-18 — email verification, which T6 did not include** (issue #180, owner's decision
+in chat). Sign-up now asks PocketBase to send a confirmation email, and an unverified rider sees a
+dismissible reminder on every signed-in screen with a control to send it again. Three things about
+it are deliberate and should not be quietly reversed:
+
+- **It gates nothing.** Not sign-in, not the library, not logging a trick, and specifically **not
+  the guardian-consent flow**. A gated rider is reached at their *guardian's* address, so coupling
+  the two would leave a child waiting on their own inbox for a thing their guardian has to do.
+- **The reminder explains rather than threatens**, because the only true consequence is the one it
+  names: a password reset goes to the address on the record, so a typo is an account nobody can
+  recover. Inventing urgency here would be a nudge technique aimed largely at children (§6.4).
+- **Dismissal lasts seven days**, not forever and not one page load — same reasoning.
+- **It does not appear during onboarding**, which sits outside the `(app)` route group. The
+  first four screens are for picking a sport and landing a trick; the reminder waits on the
+  dashboard, which is soon enough for something nothing is waiting on.
+
+The confirmation email is PocketBase's own, so its template is instance configuration rather than
+code: `pocketbase/templates/verify-email.html` is the reviewed copy and that directory's README
+says where it is pasted. The design pack's version of this email claimed the account was not live
+until confirmed and offered a numeric code PocketBase cannot produce; both were rewritten rather
+than shipped.
+
 Onboarding step 1 ("what you ride") offers a card per entry in `SPORT_IDS` — three at launch (§1),
 where screenshot 05 shows two. The two-card grid becomes an N-card grid; multi-select and the
 at-least-one rule are unchanged. Step 4's suggested tricks and step 3's goal pills already filter by

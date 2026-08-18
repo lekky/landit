@@ -225,3 +225,51 @@ test('a wrong password says nothing about whether the account exists', async ({ 
 
   await expect(page.getByText('That email and password do not match an account')).toBeVisible();
 });
+
+test('an unverified rider is reminded, once, and can put it away', async ({ page }) => {
+  const email = `e2e-${unique()}@landit.invalid`;
+  await fillSignUp(page, { name: 'Ada Nkemdi', email, country: 'GB', dob: birthDate(24) });
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await page.waitForURL('**/onboarding');
+
+  // Onboarding is outside the (app) group deliberately, so the reminder is not
+  // one of the things competing for a rider's first four screens.
+  await expect(page.getByRole('status').filter({ hasText: 'Confirm your email' })).toBeHidden();
+
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: /Just started/ }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Land my first trick' }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: "Let's go" }).click();
+  await page.waitForURL('**/home');
+
+  // Local PocketBase has no mail account, so nothing is delivered — but the
+  // rider is unverified either way, which is the state the banner reads.
+  const banner = page.getByRole('status').filter({ hasText: 'Confirm your email' });
+  await expect(banner).toBeVisible();
+
+  // It explains rather than threatens, and nothing about the account is gated:
+  // onboarding is reachable and the rider is on it.
+  await expect(banner).toContainText('the reset goes to this address');
+
+  await banner.getByRole('button', { name: 'Not now' }).click();
+  await expect(banner).toBeHidden();
+
+  // Dismissal is a cookie the server reads, so it survives a navigation rather
+  // than coming back on the next render.
+  await page.goto('/account');
+  await expect(page.getByRole('status').filter({ hasText: 'Confirm your email' })).toBeHidden();
+});
+
+test('the verification screen does not confirm anything by being visited', async ({ page }) => {
+  await page.goto('/verify-email?token=not-a-real-token');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Confirm your email');
+
+  // The token is in a form, not acted on by the GET — a mail scanner following
+  // the link confirms nothing (plan §6.2).
+  await expect(page.getByRole('button', { name: 'Confirm this email' })).toBeVisible();
+
+  await page.goto('/verify-email');
+  await expect(page.getByText('That link is not complete')).toBeVisible();
+});

@@ -3,8 +3,10 @@
 import { AGE_BANDS, signupOutcome, type AgeBand } from '@landit/core';
 import {
   confirmPasswordReset,
+  confirmVerification,
   createServerClient,
   requestPasswordReset,
+  requestVerification,
   signIn,
   signUp,
 } from '@landit/db';
@@ -106,6 +108,17 @@ export async function signUpAction(
     return { errors: { form: serverMessage(error, 'We could not make that account.') } };
   }
 
+  // Deliberately not awaited into the outcome: a confirmation email that fails
+  // to send has not stopped an account being made, and nothing in the product
+  // waits on `verified`. Telling a rider their sign-up failed because our mailer
+  // was down would be a lie about what went wrong.
+  try {
+    await requestVerification(client, email);
+  } catch {
+    // The banner on every screen offers to send it again, which is a better
+    // recovery than an error here would be.
+  }
+
   try {
     await startSession(email, password);
   } catch {
@@ -186,6 +199,60 @@ export async function confirmResetAction(
     return {
       errors: {
         form: serverMessage(error, 'That link has expired. Ask for a fresh one.'),
+      },
+    };
+  }
+  return { done: true };
+}
+
+/* ------------------------------------------------------------ verification -- */
+
+/**
+ * Send the confirmation email again.
+ *
+ * Takes the address from the form rather than the session, so it works from the
+ * banner (where the rider is signed in) without a second code path — and, like
+ * `requestReset`, says the same thing whichever answer it got. An action that
+ * reported "no account with that address" would be a way to ask whether one
+ * exists.
+ */
+export async function resendVerificationAction(
+  _state: AuthFormState | undefined,
+  form: FormData,
+): Promise<AuthFormState> {
+  const email = text(form, 'email');
+  if (!EMAIL.test(email)) return { errors: { form: "That email doesn't look right" } };
+
+  try {
+    await requestVerification(createServerClient(), email);
+  } catch {
+    // Deliberately swallowed, same as the request path: whether an address is
+    // registered is not a question this action answers.
+  }
+  return { done: true };
+}
+
+/**
+ * Finish confirmation with the token from the email.
+ *
+ * A POST, not the visit itself — `/verify-email` reads the token from the query
+ * and puts it in a form. Mail scanners follow links in an inbox, and a link that
+ * acted on GET would be actioned by them rather than by the rider. Same
+ * arrangement as the reset page and the guardian-consent links (plan §6.2).
+ */
+export async function confirmVerificationAction(
+  _state: AuthFormState | undefined,
+  form: FormData,
+): Promise<AuthFormState> {
+  const token = text(form, 'token');
+  if (!token) return { errors: { form: 'That link is not complete.' } };
+
+  try {
+    await confirmVerification(createServerClient(), token);
+  } catch (error) {
+    return {
+      errors: {
+        form: serverMessage(error, 'That link has expired. We can send you a fresh one.'),
       },
     };
   }

@@ -35,6 +35,7 @@ export const ROUTES = {
   signIn: '/signin',
   forgotPassword: '/forgot-password',
   resetPassword: '/reset-password',
+  verifyEmail: '/verify-email',
   onboarding: '/onboarding',
   account: '/account',
   library: '/library',

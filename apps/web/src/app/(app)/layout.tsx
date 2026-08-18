@@ -1,8 +1,11 @@
 import { DEFAULT_TIMEZONE, currentWeeklyStreak, type SportId } from '@landit/core';
+import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 
 import { AppShell } from '@/components/shell/AppShell';
+import { VerifyEmailBanner } from '@/components/verify/VerifyEmailBanner';
 import { currentRider } from '@/lib/session';
+import { VERIFY_DISMISSED_COOKIE } from '@/lib/verify';
 
 /**
  * Where the signed-in screens go.
@@ -28,6 +31,20 @@ import { currentRider } from '@/lib/session';
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await currentRider();
   const rider = session?.rider;
+
+  /**
+   * The confirm-your-email reminder, decided here rather than in the banner.
+   *
+   * Nothing in this product gates on `verified` — the banner explains why
+   * confirming is worth doing and does not stop a rider doing anything. Reading
+   * the dismissal cookie on the server keeps a bar the rider put away last week
+   * out of the tree entirely, rather than rendering it and taking it back on
+   * hydration.
+   */
+  const dismissedVerifyBanner = (await cookies()).has(VERIFY_DISMISSED_COOKIE);
+  const showVerifyBanner = Boolean(
+    rider && !rider.verified && rider.email && !dismissedVerifyBanner,
+  );
 
   const streak = rider
     ? currentWeeklyStreak(
@@ -56,6 +73,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       riderId={rider?.id}
       sports={rider?.sports?.length ? (rider.sports as SportId[]) : undefined}
     >
+      {showVerifyBanner ? <VerifyEmailBanner email={rider!.email} /> : null}
       {children}
     </AppShell>
   );
