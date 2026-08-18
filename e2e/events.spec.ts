@@ -13,6 +13,10 @@ import { seedSchedule } from './support/seed-schedule';
  *   `event_attendance` and a `useState`.
  * - **A past event is hidden by default and can be brought back**, rather than
  *   dropped. A row a child ticked that silently disappears reads as a bug.
+ * - **A visitor who is not signed in reads the whole calendar**, because the
+ *   `events` rule is `is_live = true` with no auth arm and a live event is
+ *   public data. Only "I'm going" needs an account, and it is a sign-in link
+ *   rather than a button that fails on click.
  * - **Nobody else's attendance is anywhere on the page.** There is no
  *   stranger-contact surface in this product (plan §6.1), and "who else is
  *   going" would be one. This is the kind of decision that gets added back by
@@ -127,4 +131,32 @@ test('no other rider appears anywhere on the events screen', async ({ page }) =>
   await expect(page.getByText(/going with/i)).toHaveCount(0);
   await expect(page.getByText(/riders going/i)).toHaveCount(0);
   await expect(page.getByText(/attendees/i)).toHaveCount(0);
+});
+
+test('a visitor who is not signed in reads the whole calendar', async ({ page }) => {
+  // Deliberately no `newRider`. This is the anonymous read, which is the API
+  // rule's doing rather than the page's — `events` is `is_live = true` with no
+  // auth arm, like `spots`, and unlike `announcements` beside it.
+  await page.goto('/events');
+
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('What’s coming up');
+  await expect(page.getByText('E2E Northern Jam')).toBeVisible();
+
+  // Every filter still works without an account.
+  await page.getByRole('button', { name: 'Including past' }).click();
+  await expect(page.getByText('E2E Last Month Session')).toBeVisible();
+});
+
+test('a visitor is offered sign-in where a rider is offered "I’m going"', async ({ page }) => {
+  await page.goto('/events');
+
+  // The one control that needs an account is a link back to this page, not a
+  // button that looks live and loses the rider's filters on click.
+  const link = page.getByRole('link', { name: 'Sign in to save' }).first();
+  await expect(link).toBeVisible();
+  await expect(link).toHaveAttribute('href', `/signin?next=${encodeURIComponent('/events')}`);
+  await expect(page.getByRole('button', { name: "I'm going" })).toHaveCount(0);
+
+  await link.click();
+  await page.waitForURL('**/signin?next=*');
 });

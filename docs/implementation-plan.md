@@ -1652,6 +1652,18 @@ modal, "I'm going". Inputs: `landit-screens-b.jsx`, `landit-screens-d.jsx`, scre
 - **The e2e schedule is seeded by the spec, around today.** The shipped challenges carry fixed 2026
   dates, so a spec asserting "Live now" against them would pass in August and fail in September —
   a test with an expiry date (`e2e/support/seed-schedule.ts`, LESSONS §1).
+- **`/events` reads signed out** (`chore-public-events`, 2026-08-18). `events.listRule` has always
+  been `is_live = true` with no auth arm — compare `announcements` directly beside it in the init
+  migration, which adds `@request.auth.id != ''` deliberately — so a live event was already public
+  data and the sign-in redirect on the page was a gate the rules never asked for. A visitor gets the
+  whole calendar, every filter and both organiser links; **"I'm going" is the one control that needs
+  an account**, and it is a sign-in link that returns to `/events` rather than a button that fails on
+  click. `event_attendance` is untouched and still `OWN`, so what a visitor cannot see is exactly
+  what a signed-in rider cannot see: anybody else's attendance. **The onboarding bounce went with
+  the redirect**, on the grounds that a page a stranger may read cannot coherently turn a signed-in
+  rider away — the same position `/spots` and the library already hold. Signed-out units come from
+  `Accept-Language` and the sport tabs open on all three, both settled on the server (§6.4, LESSONS
+  §3a). Asserted in `e2e/events.spec.ts`.
 
 Two cross-route links are deliberately unwired, per LESSONS §3a: the history upsell states what the
 paid tiers keep without linking `/plans` (T15's), and the nav entries for both screens are the
@@ -1927,7 +1939,8 @@ go red, which is the only way the silent failure above would ever be noticed.
   panel T10 dropped from the sticker wall). What replaces them says the two things this product
   cannot be vague about: achievements are not for sale, and an adult is the one who pays. Pinned in
   `e2e/plans.spec.ts` against the rendered page, so a careless copy edit fails a build.
-- **`/plans` reads signed out**, unlike every other screen in the `(app)` group. The site footer
+- **`/plans` reads signed out**, joining the library and `/spots` — and `/events` since
+  2026-08-18 (T12). The site footer
   links it and a person deciding whether to sign up should not have to sign up to find out what it
   costs. `plans.listRule` is already `is_live = true`, so this needed no rule change.
 - **Downgrading is cancelling, and it happens in Stripe's hosted portal.** Card details and

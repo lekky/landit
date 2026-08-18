@@ -8,9 +8,11 @@ import {
   type EventKind,
 } from '@landit/core';
 import { Button, Empty, Icon, Panel, Pill, SportChip, Tag, type IconName } from '@landit/ui-web';
+import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
 
 import { SportSwitch } from '@/components/shell/SportSwitch';
+import { ROUTES, signInHref } from '@/lib/routes';
 import { useModal } from '@/providers/modal';
 import { useSport } from '@/providers/sport';
 import { useToast } from '@/providers/toast';
@@ -55,6 +57,11 @@ import type { EventsView, EventView } from './view';
  * sent nowhere. "Near me" is the spots screen's hook, on the same terms:
  * off until pressed, announced while on, never stored, never transmitted.
  *
+ * **A visitor sees the whole calendar and cannot save any of it.** Every filter,
+ * the detail modal and both organiser links work signed out; "I'm going" is the
+ * one control that needs an account, and it is replaced by a sign-in link that
+ * comes back here rather than left in place to fail on click.
+ *
  * Nobody else's attendance is anywhere on this screen, by design: there is no
  * stranger-contact surface in this product (plan §6.1), and a list of who else
  * is going to a park on Saturday would be one.
@@ -74,9 +81,17 @@ const PER_PAGE = 20;
 export function EventsScreen({
   view,
   units,
+  signedIn,
 }: {
   readonly view: EventsView;
   readonly units: DistanceUnits;
+  /**
+   * Whether "I'm going" is offered at all. A visitor gets a sign-in link in its
+   * place rather than a button that looks live and bounces them off the page
+   * mid-click — the server action still refuses on its own, but by then the
+   * rider has lost their filters.
+   */
+  readonly signedIn: boolean;
 }) {
   const { sport } = useSport();
   const { openModal, closeModal } = useModal();
@@ -179,6 +194,7 @@ export function EventsScreen({
       <EventDetail
         event={event}
         distance={here.point ? distanceLabelIn(here.point, event, units) : null}
+        signedIn={signedIn}
         going={going.has(event.id)}
         onToggle={() => {
           toggle(event);
@@ -354,15 +370,21 @@ export function EventsScreen({
                   <Button size="sm" variant="ghost" onClick={() => openDetails(event)}>
                     Details
                   </Button>
-                  <Button
-                    size="sm"
-                    disabled={pending}
-                    onClick={() => toggle(event)}
-                    style={going.has(event.id) ? { background: 'var(--green)' } : undefined}
-                    aria-pressed={going.has(event.id)}
-                  >
-                    {going.has(event.id) ? '✓ Going' : "I'm going"}
-                  </Button>
+                  {signedIn ? (
+                    <Button
+                      size="sm"
+                      disabled={pending}
+                      onClick={() => toggle(event)}
+                      style={going.has(event.id) ? { background: 'var(--green)' } : undefined}
+                      aria-pressed={going.has(event.id)}
+                    >
+                      {going.has(event.id) ? '✓ Going' : "I'm going"}
+                    </Button>
+                  ) : (
+                    <Link className="btn sm" href={signInHref(ROUTES.events)}>
+                      Sign in to save
+                    </Link>
+                  )}
                 </div>
               </div>
             </Panel>
@@ -464,6 +486,7 @@ export function EventsScreen({
 function EventDetail({
   event,
   distance,
+  signedIn,
   going,
   onToggle,
   onClose,
@@ -471,6 +494,7 @@ function EventDetail({
   readonly event: EventView;
   /** "2.4 mi", only while the rider is sharing a position. */
   readonly distance: string | null;
+  readonly signedIn: boolean;
   readonly going: boolean;
   readonly onToggle: () => void;
   readonly onClose: () => void;
@@ -576,13 +600,19 @@ function EventDetail({
           <Button variant="ghost" onClick={onClose}>
             Close
           </Button>
-          <Button
-            className={styles.push}
-            onClick={onToggle}
-            style={going ? { background: 'var(--green)' } : undefined}
-          >
-            {going ? "✓ You're going" : "I'm going"}
-          </Button>
+          {signedIn ? (
+            <Button
+              className={styles.push}
+              onClick={onToggle}
+              style={going ? { background: 'var(--green)' } : undefined}
+            >
+              {going ? "✓ You're going" : "I'm going"}
+            </Button>
+          ) : (
+            <Link className={`btn ${styles.push}`} href={signInHref(ROUTES.events)}>
+              Sign in to save
+            </Link>
+          )}
         </div>
       </div>
     </div>
