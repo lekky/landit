@@ -2,11 +2,13 @@ import { CATS, SPORT_IDS, STAGE, TRICKS, type Trick } from '@landit/core';
 import { Icon, Panel, Tag, TrickCard, type IconName } from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 import siteStyles from '@/components/site/site.module.css';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { Wordmark } from '@/components/site/Wordmark';
 import { ROUTES } from '@/lib/routes';
+import { currentRider } from '@/lib/session';
 import { SPORT_LOOKS, countWord, sentenceCase, sportsChoicePhrase, sportsList } from '@/lib/sports';
 
 import styles from './landing.module.css';
@@ -21,6 +23,21 @@ import styles from './landing.module.css';
  * Every sentence that names the sports is generated from `SPORT_IDS`
  * (`lib/sports.ts`). It reads exactly as the screenshots do while there are
  * two, and says three the day T21 lands BMX — this page needs no BMX edit.
+ *
+ * **A signed-in rider never sees it.** `/` is the sales pitch — sports we
+ * support, what a stage means, what it costs — and a rider who has already
+ * bought the argument has a dashboard instead. Every other door was already
+ * shut this way (`/signin` and `/signup` both bounce a signed-in rider to
+ * `ROUTES.dashboard`); this was the one left open, and riders reached it by
+ * clicking the mark in their own top bar. The bar now points at the dashboard
+ * directly when somebody is signed in, so this redirect is the backstop for
+ * the other ways in — a bookmark, the address bar, a shared link — not the
+ * common path.
+ *
+ * The cost is that this page is no longer statically rendered: reading the
+ * session cookie makes it dynamic, the same trade the auth pages already make.
+ * Nothing here was cached for a signed-out visitor beyond the render itself,
+ * and `manifest.ts` already starts the installed app at `/home`.
  */
 
 export const metadata: Metadata = {
@@ -67,7 +84,9 @@ const FEATURES: readonly { icon: IconName; hue: string; title: string; copy: str
   },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  if (await currentRider()) redirect(ROUTES.dashboard);
+
   const landed = STAGE.every;
 
   return (
