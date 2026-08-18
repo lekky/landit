@@ -76,3 +76,88 @@ export const MAP_WORKER_URL = '/maplibre/maplibre-gl-worker.mjs';
 /** Where the map opens when it has no spots to fit. */
 export const MAP_DEFAULT_CENTRE = { lat: 53.4, lng: -2.5 } as const;
 export const MAP_DEFAULT_ZOOM = 5.4;
+
+/* ------------------------------------------------------ failure, sorted -- */
+
+/**
+ * A MapLibre `error` event, as far as the decision below needs it.
+ *
+ * Structural rather than imported: `maplibre-gl` is only ever loaded inside an
+ * effect (see `SpotMap`), and importing its types here would undo that.
+ *
+ * `ErrorEvent` is built as `extend({ error }, data)`, so whatever the thrower
+ * attached sits alongside the error itself — which is what makes `tile` below
+ * a reliable signal rather than a guess.
+ */
+export interface MapErrorEvent {
+  readonly error?: unknown;
+  readonly tile?: unknown;
+}
+
+/**
+ * Did this error concern **one tile**, rather than the map?
+ *
+ * **Why this question is worth asking.** MapLibre's `error` event is not a
+ * "the map is broken" signal, and treating it as one cost us the whole map.
+ * `TileManager._loadTile` fires an `ErrorEvent` for *any* tile request that
+ * fails with something other than a 404:
+ *
+ *     catch (err) {
+ *       tile.state = "errored";
+ *       if (err.status !== 404) this._source.fire(new ErrorEvent(ensureError(err), { tile }));
+ *     }
+ *
+ * and it reaches the map, because the source's tile manager has the Style as
+ * its evented parent and the Style has the Map as its own. MapLibre excludes
+ * 404 there deliberately — a missing tile is ordinary — so what arrives is
+ * exactly the transient class: a 500, a 502, a 429, a dropped connection. The
+ * guard on that line is `!isAbortError(err)`, so a failed fetch counts too.
+ *
+ * None of that is fatal. MapLibre marks the tile errored, carries on, and
+ * still reports `loaded()`, `isStyleLoaded()` and `areTilesLoaded()` as true
+ * afterwards — verified against 6.4.0 by serving the real `positron` style
+ * with a single tile returning 500 (issue #219). The map is fine; one square
+ * of it is missing.
+ *
+ * **Why it matters more here than it would elsewhere.** The basemap is
+ * OpenFreeMap, which is documented above as donation-funded and without an
+ * SLA, and riders read this screen outdoors on a phone while looking for a
+ * park. A moment of bad signal mid-pan is the normal condition, not the edge
+ * case, and it used to take the map away until the page was reloaded.
+ *
+ * **Everything else keeps the fallback.** A style that will not load or a GPU
+ * that will not initialise leaves nothing to look at, and for those the honest
+ * placeholder is still the right answer. This narrows the fatal class to what
+ * is genuinely fatal; it does not remove it. Sprite and glyph fetches are not
+ * separated out here — they are rarer, they are not what was proven, and
+ * guessing at their URLs would be a heuristic rather than a signal.
+ */
+export function isTileScopedMapError(event: MapErrorEvent | undefined): boolean {
+  return event?.tile != null;
+}
+
+/**
+ * One line describing a map failure, for the console.
+ *
+ * **Because the old handler threw the evidence away.** `on('error', () =>
+ * setFailed(true))` ignored the event it was handed and both `catch` blocks
+ * were bare, so a rider reporting "the map did not load" — or the owner
+ * screenshotting it — left nothing to diagnose from. `AJAXError` carries the
+ * status and the URL that failed, which is the whole answer in most cases, and
+ * it was being discarded.
+ *
+ * The console rather than Sentry: Sentry is off unless a DSN is set and there
+ * is no project provisioned yet (`lib/sentry.ts`, issue #145), so reporting
+ * there would be reporting nowhere.
+ */
+export function describeMapError(event: MapErrorEvent | undefined): string {
+  const scope = isTileScopedMapError(event) ? 'one tile failed' : 'the map failed';
+  const error = event?.error;
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string' && error.length > 0
+        ? error
+        : 'no error was attached';
+  return `${scope}: ${message}`;
+}

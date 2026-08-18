@@ -9,6 +9,9 @@ import {
   MAP_DEFAULT_CENTRE,
   MAP_DEFAULT_ZOOM,
   MAP_WORKER_URL,
+  describeMapError,
+  isTileScopedMapError,
+  type MapErrorEvent,
 } from '@/lib/map';
 
 import styles from './spots.module.css';
@@ -48,6 +51,13 @@ interface Plottable {
  * small, donation-funded service with no SLA (plan §1). If it is unreachable
  * the panel says so in one line and the list beside it — search, filters,
  * directions on every spot — is entirely unaffected.
+ *
+ * **But a tile that cannot be drawn is not a map that cannot be drawn.** This
+ * component used to treat every MapLibre `error` as fatal, and MapLibre fires
+ * that event for a single failed tile request — so one 500, or one moment of
+ * bad signal while panning, replaced a working map with the placeholder until
+ * the page was reloaded (issue #219). `isTileScopedMapError` is where that
+ * distinction now lives, with the evidence for it.
  *
  * **`here` is drawn, never recorded.** It arrives as a prop, becomes a marker,
  * and is dropped when the rider turns it off. It is not in the map's state, not
@@ -107,7 +117,24 @@ export function SpotMap({
           cooperativeGestures: true,
         });
         instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-        instance.on('error', () => setFailed(true));
+        /*
+         * Not every `error` is a broken map, and treating them alike cost us
+         * the whole map (issue #219). A tile that failed is one tile: MapLibre
+         * marks it errored, carries on, and still reports itself loaded. Only
+         * the errors that leave nothing to look at reach `setFailed`.
+         *
+         * Both branches log, because the version of this line that discarded
+         * the event left a rider's "the map did not load" with nothing behind
+         * it — see `describeMapError`.
+         */
+        instance.on('error', (event: MapErrorEvent) => {
+          if (isTileScopedMapError(event)) {
+            console.warn(`[map] ${describeMapError(event)}`);
+            return;
+          }
+          console.error(`[map] ${describeMapError(event)}`);
+          setFailed(true);
+        });
 
         /*
          * Follow the container's size, rather than only the window's.
@@ -127,8 +154,11 @@ export function SpotMap({
         // Plot whatever is already selected, without waiting for a state change.
         sync(control.current, spots, selectedId, onSelect);
         drawHere(control.current, here);
-      } catch {
-        if (!cancelled) setFailed(true);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('[map] could not be built', error);
+          setFailed(true);
+        }
       }
     })();
 
@@ -165,7 +195,8 @@ export function SpotMap({
     if (!control.current) return;
     try {
       work(control.current);
-    } catch {
+    } catch (error) {
+      console.error('[map] a call into MapLibre threw', error);
       /*
        * Scheduled, not set here. The throw happens inside an effect body, and
        * a synchronous `setFailed` there is a cascading render in the same
