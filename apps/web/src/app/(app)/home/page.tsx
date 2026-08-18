@@ -19,6 +19,7 @@ import {
   sportsOf,
   suggestedNextTricks,
   trickById,
+  tricksFor,
   weeklyEncouragement,
   weeklyProgress,
   weeklyProgressLabel,
@@ -118,6 +119,12 @@ export default async function HomePage() {
 
   const tricks = tricksFromRecords(trickRecords, prereqRecords);
 
+  // Slug to record id. The rules and this whole view are keyed by slug; a write
+  // to `trick_progress` needs the id its relation stores, and this is the only
+  // place both are in hand.
+  const recordIdBySlug: Record<string, string> = {};
+  for (const row of trickRecords) recordIdBySlug[row.slug] = row.id;
+
   /* ------------------------------------------------------------- streak -- */
 
   // The five stored fields, as `@landit/core` names them. Empty strings are how
@@ -186,6 +193,7 @@ export default async function HomePage() {
       sport,
       snapshot,
       tricks,
+      recordIdBySlug,
       plan,
       goal,
       globalLanded,
@@ -221,10 +229,16 @@ export default async function HomePage() {
 
 /* -------------------------------------------------------------- builders -- */
 
-function toCardView(trick: Trick, stage: StageId | undefined, plan: PlanId): TrickCardView {
+function toCardView(
+  trick: Trick,
+  stage: StageId | undefined,
+  plan: PlanId,
+  recordId?: string,
+): TrickCardView {
   const locked = isTrickLocked(trick, plan);
   return {
     slug: trick.id,
+    ...(recordId ? { recordId } : {}),
     name: trick.name,
     category: {
       label: categoryLabel(trick.cat, trick.sport),
@@ -250,6 +264,8 @@ interface SportViewInput {
   snapshot: Parameters<typeof computeStats>[0];
   /** The live library, as `@landit/core` takes it. */
   tricks: readonly Trick[];
+  /** Slug to `tricks` record id, so a card can carry the id a write needs. */
+  recordIdBySlug: Readonly<Record<string, string>>;
   plan: PlanId;
   goal: string | null;
   globalLanded: number;
@@ -263,7 +279,7 @@ interface SportViewInput {
 }
 
 function buildSportView(input: SportViewInput): SportView {
-  const { sport, snapshot, tricks, plan, goal, clock, today } = input;
+  const { sport, snapshot, tricks, plan, goal, clock, today, recordIdBySlug } = input;
   const stats = computeStats(snapshot, sport, { tricks });
   const byId = snapshot.byId ?? {};
   const look = SPORTS[sport];
@@ -279,7 +295,7 @@ function buildSportView(input: SportViewInput): SportView {
       .filter((id) => byId[id] === stage)
       .map(inSport)
       .filter((t): t is Trick => Boolean(t))
-      .map((t) => toCardView(t, byId[t.id], plan));
+      .map((t) => toCardView(t, byId[t.id], plan, recordIdBySlug[t.id]));
 
   const workingTricks = staged('trying');
   const wishList = staged('want').slice(0, 4);
@@ -364,6 +380,11 @@ function buildSportView(input: SportViewInput): SportView {
     libraryLabel: `${look.label} library`,
     summary,
     acrossSports,
+    // Counted off the same live, in-sport tricks the library counts, so the
+    // "All 12 of yours" on this screen and the "My tricks · 12" on that one
+    // cannot drift. Not `stats.working + stats.wanted`: that would miss the
+    // stages between them.
+    tracked: tricksFor(sport, tricks).filter((t) => t.isLive && byId[t.id]).length,
     workingTricks,
     startHere,
     wishList,

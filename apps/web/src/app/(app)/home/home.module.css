@@ -271,6 +271,41 @@
   text-align: right;
 }
 
+/*
+ * A "Working on it" trick: the card, and the stage row under it (T22).
+ *
+ * The wrapper is what lets the row exist at all — `TrickCard` is a button, so
+ * the picker cannot go inside it (see `WorkingTrick.tsx`). Stacked with a small
+ * gap rather than joined, because they are two controls: one opens the trick,
+ * the other sets the stage, and a rider should be able to see which is which
+ * before tapping.
+ */
+.working {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+/*
+ * The row overrides `.stages`' five equal columns to wrap instead. In a card
+ * this narrow, five cells across would put each label on three lines; wrapping
+ * to two rows of readable buttons is the better trade, and it is why the picker
+ * is asked for `compact` labels here.
+ */
+.workingStages :global(.stages) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.workingStages :global(.stagebtn) {
+  flex: 1 1 auto;
+  min-width: 62px;
+  font-size: 9.5px;
+  padding: 6px 2px 5px;
+}
+
 @media (max-width: 900px) {
   .top {
     grid-template-columns: 1fr;

@@ -31,9 +31,20 @@ export const metadata: Metadata = {
  * so reading the constants here would mean a staff edit that changes nothing a
  * rider can see. What comes from `core` is the *rules* applied to those rows.
  */
-export default async function LibraryPage() {
+export default async function LibraryPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await currentRider();
   const client = session?.client ?? anonymousClient();
+
+  // `?mine=1` is read here rather than with `useSearchParams` in the browser,
+  // so the first paint already knows which view it is. Reading it client-side
+  // would render the full library, then swap to the rider's own tricks a frame
+  // later — a flash of the wrong list on the screen most likely to be opened
+  // from a bookmark (LESSONS §3a on server/client agreement).
+  const mine = (await searchParams).mine === '1';
 
   const [trickRecords, prereqRecords] = await Promise.all([
     listTricks(client),
@@ -53,6 +64,7 @@ export default async function LibraryPage() {
       byId={byId}
       plan={(session?.rider.plan ?? 'rookie') as PlanId}
       signedIn={!!session}
+      initialMine={mine && !!session}
     />
   );
 }

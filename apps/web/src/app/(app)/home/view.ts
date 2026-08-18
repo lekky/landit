@@ -19,6 +19,17 @@ import type { CategoryLook, SportLook, StageLook } from '@landit/ui-web';
 /** One trick, ready for `TrickCard`. */
 export interface TrickCardView {
   readonly slug: string;
+  /**
+   * The `tricks` **record** id, which is what `trick_progress` relates to.
+   *
+   * Everything else on this screen is keyed by slug, because a slug survives a
+   * reseed and a record id does not. This is here because "Working on it" can
+   * now set a stage without opening the trick, and a write needs the id the
+   * relation actually stores. Absent when the record is not to hand, and the
+   * inline stage row simply does not render — the card still opens the trick,
+   * which is where the picker has always been.
+   */
+  readonly recordId?: string;
   readonly name: string;
   readonly category: CategoryLook;
   readonly difficulty: number;
@@ -94,6 +105,12 @@ export interface SportView {
   readonly summary: string;
   /** "6 landed across your sports", or nothing when there is only one. */
   readonly acrossSports: string | null;
+  /**
+   * How many of this sport's tricks the rider has a stage on — every stage,
+   * not just the ones in progress. It is the number on the way into "My
+   * tricks", so it has to match what that screen then shows.
+   */
+  readonly tracked: number;
   readonly workingTricks: readonly TrickCardView[];
   readonly startHere: readonly TrickCardView[];
   readonly wishList: readonly TrickCardView[];

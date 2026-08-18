@@ -7,6 +7,7 @@ import {
   TRICK_STATUS_FILTERS,
   activeFilterCount,
   filterTricks,
+  groupTricksByStage,
   prereqTricks,
   sortTricks,
   trickMatchesSearch,
@@ -203,6 +204,77 @@ describe('the prerequisite graph, read both ways', () => {
   it('drops prerequisites that name a trick nobody can see', () => {
     const built = trick({ id: 'built-on-nothing', pre: ['retired', 'no-such-trick'] });
     expect(prereqTricks(built, library)).toEqual([]);
+  });
+});
+
+describe('grouping by stage', () => {
+  it('groups the rider’s tricks in STAGES order, not in the order given', () => {
+    const groups = groupTricksByStage(library, byId);
+    // `byId` above tracks them as every / trying / want, listed in that order.
+    // The stage order is want → trying → some → most → every, so a correct
+    // implementation reverses what it was handed rather than preserving it.
+    expect(groups.map((g) => g.stage)).toEqual(['want', 'trying', 'every']);
+    expect(groups.map((g) => g.tricks.map((t) => t.id))).toEqual([
+      ['barspin'],
+      ['tailwhip'],
+      ['bunny-hop'],
+    ]);
+  });
+
+  it('drops the stages the rider has nothing on', () => {
+    const groups = groupTricksByStage(library, byId);
+    expect(groups.map((g) => g.stage)).not.toContain('some');
+    expect(groups.map((g) => g.stage)).not.toContain('most');
+  });
+
+  it('leaves out anything untracked, and returns nothing for a rider with no stages', () => {
+    const groups = groupTricksByStage(library, byId);
+    expect(groups.flatMap((g) => g.tricks.map((t) => t.id))).not.toContain('kickflip');
+    expect(groupTricksByStage(library, {})).toEqual([]);
+    expect(groupTricksByStage([], byId)).toEqual([]);
+  });
+
+  it('sorts within a stage by difficulty, and honours the chosen sort', () => {
+    const crowded: Record<string, StageId> = {
+      'bunny-hop': 'trying',
+      tailwhip: 'trying',
+      barspin: 'trying',
+    };
+    expect(groupTricksByStage(library, crowded)[0]?.tricks.map((t) => t.id)).toEqual([
+      'bunny-hop',
+      'barspin',
+      'tailwhip',
+    ]);
+    expect(groupTricksByStage(library, crowded, 'hardest')[0]?.tricks.map((t) => t.id)).toEqual([
+      'tailwhip',
+      'barspin',
+      'bunny-hop',
+    ]);
+    expect(groupTricksByStage(library, crowded, 'az')[0]?.tricks.map((t) => t.id)).toEqual([
+      'barspin',
+      'bunny-hop',
+      'tailwhip',
+    ]);
+  });
+
+  it('groups whatever it is handed, so it composes with the filter', () => {
+    // The switch narrows with `filterTricks` first and groups second, so a
+    // sport or category still applies inside "My tricks".
+    const scooterOnly = filterTricks({ sport: 'scooter', status: 'tracked', byId }, library);
+    const groups = groupTricksByStage(scooterOnly, byId);
+    expect(groups.flatMap((g) => g.tricks.map((t) => t.sport))).toEqual([
+      'scooter',
+      'scooter',
+      'scooter',
+    ]);
+  });
+
+  it('never returns a trick staff have pulled, because the filter drops it first', () => {
+    const withRetired: Record<string, StageId> = { ...byId, retired: 'every' };
+    const live = filterTricks({ status: 'tracked', byId: withRetired }, library);
+    expect(
+      groupTricksByStage(live, withRetired).flatMap((g) => g.tricks.map((t) => t.id)),
+    ).not.toContain('retired');
   });
 });
 
