@@ -5,6 +5,12 @@
 # there; care is.
 **/*.md
 
+# Email HTML, transcribed from the design pack. Whitespace between table cells
+# is not free here — several clients render a newline between two <td>s as a
+# visible gap, and Prettier reflows exactly there. These files are pasted whole
+# into PocketBase's settings, so what is in the file is what a rider receives.
+pocketbase/templates/*.html
+
 # The received design pack is reference, not our code. Never reformat it.
 design-handoff/
 

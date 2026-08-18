@@ -41,38 +41,72 @@ function escapeHtml(text) {
     .replace(/"/g, '&quot;');
 }
 
+/**
+ * The email itself, framed by the shell every Land The Trick email shares
+ * (`lib/mail_shell.js`).
+ *
+ * **The words are not the design's to change.** This email was written for a
+ * parent who has never heard of us, and every sentence is doing a job: what the
+ * rider can already do comes before what they cannot, both lists are the same
+ * size, and doing nothing is named as a decision rather than left as a silence.
+ * The 2026-08-18 restyle moved it into the card, the header bar and the type
+ * scale — it did not touch a sentence. The one thing it did drop is the
+ * "Hello," that used to open it, because the shell leads with a heading and the
+ * two together read as a form letter.
+ */
 function body(input) {
   const name = escapeHtml(input.riderName);
   const approve = `${appUrl()}/consent/approve/${encodeURIComponent(input.approvalToken)}`;
   const revoke = `${appUrl()}/consent/revoke/${encodeURIComponent(input.revocationToken)}`;
   const days = require(`${__hooks}/lib/consent.js`).APPROVAL_WINDOW_DAYS;
+  const mail = require(`${__hooks}/lib/mail_shell.js`);
 
-  return `<div style="font-family:system-ui,sans-serif;font-size:16px;line-height:1.5;color:#12100B">
-<p>Hello,</p>
-<p><strong>${name}</strong> has made an account on Land The Trick, a trick tracker for scooter,
-skateboard and BMX riders, and has given us your email address as their parent or carer.</p>
-<p>Because of their age, we need your say-so before their account is a normal one.</p>
-<p><strong>Right now, without you doing anything, ${name} can:</strong> look through the trick
+  const content = [
+    mail.p(
+      `<strong>${name}</strong> has made an account on Land The Trick, a trick tracker for scooter,
+skateboard and BMX riders, and has given us your email address as their parent or carer.`,
+    ),
+    mail.p('Because of their age, we need your say-so before their account is a normal one.'),
+    mail.p(
+      `<strong>Right now, without you doing anything, ${name} can:</strong> look through the trick
 library, log the tricks they are working on, keep their own notes and build their riding streak.
-All of that is private to them.</p>
-<p><strong>They cannot:</strong> be seen by any other rider, join a crew, be invited to one, submit
-a skatepark or spot, say they are going to an event, or pay us for anything.
-There is no messaging between riders on Land The Trick at all, and there never will be.</p>
-<p><strong>If you approve</strong>, the second list becomes available to them. Their profile still
-starts private, and they choose if that ever changes.</p>
-<p style="margin:28px 0">
-  <a href="${approve}" style="background:#FF5A1F;border:2.5px solid #12100B;color:#fff;
-  padding:14px 22px;text-decoration:none;font-weight:700;display:inline-block">Approve ${name}’s account</a>
-</p>
-<p style="font-size:14px;color:#5B554A">That link works for ${days} days. If it runs out, ${name}
-can send you a new one from their account.</p>
-<p style="font-size:14px;color:#5B554A">If you would rather not, you do not need to do anything —
-the account stays as it is. You can also
-<a href="${revoke}">say no, or change your mind later</a>. That link never expires, and using it
-does not delete anything ${name} has logged.</p>
-<p style="font-size:14px;color:#5B554A">If you were not expecting this, ignore it and nothing will
-happen. Questions or concerns: ${SAFEGUARDING_EMAIL}.</p>
-</div>`;
+All of that is private to them.`,
+    ),
+    mail.p(
+      `<strong>They cannot:</strong> be seen by any other rider, join a crew, be invited to one,
+submit a skatepark or spot, say they are going to an event, or pay us for anything.
+There is no messaging between riders on Land The Trick at all, and there never will be.`,
+    ),
+    mail.p(
+      `<strong>If you approve</strong>, the second list becomes available to them. Their profile
+still starts private, and they choose if that ever changes.`,
+    ),
+    `<div style="padding:4px 0 18px">${mail.button({ href: approve, label: `Approve ${name}’s account` })}</div>`,
+    mail.p(
+      `That link works for ${days} days. If it runs out, ${name} can send you a new one from their
+account.`,
+      { size: 13, colour: mail.INK_3 },
+    ),
+    mail.p(
+      `If you would rather not, you do not need to do anything — the account stays as it is. You can
+also <a href="${revoke}" style="color:${mail.INK_2}">say no, or change your mind later</a>. That
+link never expires, and using it does not delete anything ${name} has logged.`,
+      { size: 13, colour: mail.INK_3 },
+    ),
+    mail.p(
+      `If you were not expecting this, ignore it and nothing will happen. Questions or concerns:
+<a href="mailto:${SAFEGUARDING_EMAIL}" style="color:${mail.INK_2}">${SAFEGUARDING_EMAIL}</a>.`,
+      { size: 13, colour: mail.INK_3, last: true },
+    ),
+  ].join('\n');
+
+  return mail.shell({
+    eyebrow: 'Guardian',
+    preheader: `${input.riderName} is waiting on a grown-up. Nothing happens unless you say so.`,
+    heading: `${name} needs your OK`,
+    content,
+    footerNote: 'Sent because a rider gave this address as their parent or carer.',
+  });
 }
 
 /** Send the request. Returns whether it actually went out. */

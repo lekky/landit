@@ -15,9 +15,17 @@ export const metadata: Metadata = {
 /**
  * Where the reset email lands.
  *
- * PocketBase's own template links to `/reset-password?token=…` once the app URL
- * is set in its settings, so the token arrives in the query. It is read here and
- * posted back in the form body rather than being acted on by the visit itself.
+ * The token arrives in the query, is read here and posted back in the form body
+ * rather than being acted on by the visit itself.
+ *
+ * **PocketBase's default template does not link here, and setting the app URL
+ * does not make it.** Its stock body points at PocketBase's *own* admin UI —
+ * `{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}` — so pointing `APP_URL` at
+ * the web app produces a 404 on `/_` and a rider who cannot reset their
+ * password (observed on the live instance, 2026-08-18). The template itself has
+ * to be edited, on the users collection, to `{APP_URL}/reset-password?token={TOKEN}`.
+ * That is instance configuration and lives in the settings database, not in this
+ * repository — `docs/infrastructure.md` runbook 6 carries it.
  */
 export default async function ResetPasswordPage({
   searchParams,
