@@ -3,11 +3,11 @@
 import type { LatLng } from '@landit/core';
 import { useEffect, useRef, useState } from 'react';
 
-import { MAP_BASE_STYLE, MAP_DEFAULT_CENTRE, MAP_DEFAULT_ZOOM, mapboxToken } from '@/lib/mapbox';
+import { MAP_ATTRIBUTION, MAP_BASE_STYLE, MAP_DEFAULT_CENTRE, MAP_DEFAULT_ZOOM } from '@/lib/map';
 
 import styles from './spots.module.css';
 
-import 'mapbox-gl/dist/mapbox-gl.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
 interface Plottable {
   readonly id: string;
@@ -17,26 +17,31 @@ interface Plottable {
 }
 
 /**
- * Every plotted spot, on a Mapbox map, in the design language (plan §7, T13).
+ * Every plotted spot, on a MapLibre map, in the design language (plan §7, T13).
  *
- * **How the design language survives a third-party map.** Mapbox draws the
- * ground and nothing else: a quiet `light-v11` base (see `@/lib/mapbox`), with
- * every Land The Trick surface on this panel drawn by us — square markers with a 3px
- * ink keyline and a hard offset shadow, our own zoom controls, and the panel's
- * own header and footer bars. A basemap in the palette would need a style
- * authored in Mapbox Studio, which needs a Studio account and a designer; this
- * is the version that is honest about what we can build, and swapping
- * `MAP_BASE_STYLE` for a bespoke one later changes one line.
+ * **How the design language survives a third-party map.** The basemap draws the
+ * ground and nothing else: a quiet `positron` base (see `@/lib/map`), with
+ * every Land The Trick surface on this panel drawn by us — square markers with
+ * a 3px ink keyline and a hard offset shadow, our own zoom controls, and the
+ * panel's own header and footer bars. A basemap in the palette would mean
+ * authoring a style of our own; this is the version that is honest about what
+ * we can build, and swapping `MAP_BASE_STYLE` for a bespoke one later changes
+ * one line.
  *
- * **Attribution stays.** The Mapbox logo and the OpenStreetMap credit are a
- * condition of using the service, not a styling choice. They are restyled to
- * the palette and never hidden.
+ * **Attribution stays.** MapLibre reads the OpenStreetMap and OpenMapTiles
+ * credits out of the style's own sources; they are restyled to the palette and
+ * never hidden.
  *
- * **No token, no map, and no pretending.** `mapbox-gl` is not even imported
- * until we know there is a token — a dynamic `import()`, so a checkout without
- * one never downloads a megabyte of WebGL to draw a placeholder, and CI (which
- * has no token) never opens a socket to Mapbox. What the rider sees instead is
- * one line saying the map is not switched on. The list beside it is unaffected.
+ * **The library is still loaded lazily** — a dynamic `import()`, so a page that
+ * merely mentions this component does not pull a megabyte of WebGL into its
+ * bundle. What changed with OpenFreeMap is that there is no longer a *key* to
+ * be missing: the map draws in every checkout and in CI, and the placeholder
+ * below is now only ever the failure path.
+ *
+ * **A map that cannot be drawn is not a broken screen.** Tiles come from a
+ * small, donation-funded service with no SLA (plan §1). If it is unreachable
+ * the panel says so in one line and the list beside it — search, filters,
+ * directions on every spot — is entirely unaffected.
  *
  * **`here` is drawn, never recorded.** It arrives as a prop, becomes a marker,
  * and is dropped when the rider turns it off. It is not in the map's state, not
@@ -53,30 +58,31 @@ export function SpotMap({
   readonly onSelect: (id: string) => void;
   readonly here: LatLng | null;
 }) {
-  const token = mapboxToken();
   const container = useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = useState(false);
 
   // The imperative half lives in one ref-holding object so the effects below
-  // stay readable. `unknown` because the module is only ever loaded inside an
-  // effect — importing its types at the top would pull mapbox-gl into every
+  // stay readable. `any` because the module is only ever loaded inside an
+  // effect — importing its types at the top would pull maplibre-gl into every
   // bundle that so much as mentions this file.
   const control = useRef<MapControl | null>(null);
 
-  /* Build the map once, when there is a token and a container. */
+  /* Build the map once, when there is a container. */
   useEffect(() => {
-    if (!token || !container.current || control.current) return;
+    if (!container.current || control.current) return;
 
     let cancelled = false;
     const node = container.current;
 
     void (async () => {
       try {
-        const mapboxgl = (await import('mapbox-gl')).default;
+        // The whole module, not a default export: maplibre-gl has no default,
+        // which is the one place its API differs from the mapbox-gl this
+        // replaced (plan §1, 2026-08-17).
+        const maplibregl = await import('maplibre-gl');
         if (cancelled) return;
 
-        mapboxgl.accessToken = token;
-        const instance = new mapboxgl.Map({
+        const instance = new maplibregl.Map({
           container: node,
           style: MAP_BASE_STYLE,
           center: [MAP_DEFAULT_CENTRE.lng, MAP_DEFAULT_CENTRE.lat],
@@ -86,13 +92,13 @@ export function SpotMap({
           pitchWithRotate: false,
           dragRotate: false,
           touchPitch: false,
-          attributionControl: true,
+          attributionControl: { customAttribution: MAP_ATTRIBUTION },
           cooperativeGestures: true,
         });
-        instance.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
+        instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
         instance.on('error', () => setFailed(true));
 
-        control.current = { mapboxgl, instance, markers: new Map(), here: null };
+        control.current = { maplibregl, instance, markers: new Map(), here: null };
         if (cancelled) return;
         // Plot whatever is already selected, without waiting for a state change.
         sync(control.current, spots, selectedId, onSelect);
@@ -109,7 +115,7 @@ export function SpotMap({
     };
     // Built once. The effects below carry every later change into it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, []);
 
   /* Markers follow the filtered list. */
   useEffect(() => {
@@ -125,11 +131,11 @@ export function SpotMap({
    * Tear the map down when it fails, before the placeholder replaces it.
    *
    * Without this the fallback is a lie you can see: React reconciles the two
-   * branches below as the same `div` and only swaps its class, so mapbox-gl's
-   * injected children — the markers, the zoom buttons, the logo — survive the
-   * switch and end up floating over the "map would not load" hatching. A wrong
-   * token draws a broken map that is still, unmistakably, a map. `remove()`
-   * takes its DOM with it, and the `key`s below stop React reusing the node.
+   * branches below as the same `div` and only swaps its class, so the library's
+   * injected children — the markers, the zoom buttons, the attribution —
+   * survive the switch and end up floating over the "map would not load"
+   * hatching. A half-drawn map is still, unmistakably, a map. `remove()` takes
+   * its DOM with it, and the `key`s below stop React reusing the node.
    */
   useEffect(() => {
     if (!failed || !control.current) return;
@@ -137,13 +143,12 @@ export function SpotMap({
     control.current = null;
   }, [failed]);
 
-  if (!token || failed) {
+  if (failed) {
     return (
       <div key="placeholder" className={styles.mapPlaceholder}>
         <p className={`cond ${styles.mapPlaceholderText}`}>
-          {failed
-            ? 'The map would not load just now. Every spot is still in the list.'
-            : 'The map is not switched on yet — it needs a Mapbox key. Every spot is in the list, with directions on each one.'}
+          The map would not load just now. Every spot is still in the list, with directions on each
+          one.
         </p>
       </div>
     );
@@ -164,7 +169,7 @@ export function SpotMap({
 
 interface MapControl {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mapboxgl: any;
+  maplibregl: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   instance: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -207,7 +212,7 @@ function sync(
         event.stopPropagation();
         onSelect(spot.id);
       });
-      marker = new control.mapboxgl.Marker({ element, anchor: 'bottom' })
+      marker = new control.maplibregl.Marker({ element, anchor: 'bottom' })
         .setLngLat([spot.lng, spot.lat])
         .addTo(control.instance);
       control.markers.set(spot.id, marker);
@@ -231,7 +236,7 @@ function sync(
   }
 
   if (spots.length > 1) {
-    const bounds = new control.mapboxgl.LngLatBounds();
+    const bounds = new control.maplibregl.LngLatBounds();
     for (const spot of spots) bounds.extend([spot.lng, spot.lat]);
     control.instance.fitBounds(bounds, { padding: 56, maxZoom: 12, duration: 600 });
   }
@@ -249,7 +254,7 @@ function drawHere(control: MapControl, here: LatLng | null): void {
     const element = document.createElement('div');
     element.className = styles.hereDot!;
     element.setAttribute('aria-label', 'Roughly where you are');
-    control.here = new control.mapboxgl.Marker({ element }).addTo(control.instance);
+    control.here = new control.maplibregl.Marker({ element }).addTo(control.instance);
   }
   control.here.setLngLat([here.lng, here.lat]);
 }

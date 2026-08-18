@@ -75,14 +75,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_POCKETBASE_URL
 ENV NEXT_PUBLIC_POCKETBASE_URL=${NEXT_PUBLIC_POCKETBASE_URL}
 
-# The Mapbox token, same story and the same trap: setting it as a *runtime*
-# variable on the application does nothing, because the browser bundle is
-# already built. Left unset the spots screen still works — the list, the search
-# and the submission form need no map — and the map panel says it is waiting on
-# a key rather than drawing a broken one (plan §7, T13).
-ARG NEXT_PUBLIC_MAPBOX_TOKEN
-ENV NEXT_PUBLIC_MAPBOX_TOKEN=${NEXT_PUBLIC_MAPBOX_TOKEN}
-
 RUN pnpm --filter @landit/web build
 
 # ---------------------------------------------------------------- runner --

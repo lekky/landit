@@ -166,8 +166,9 @@ Two settings that are not obvious and cost a rebuild each:
 - **The web app needs `NEXT_PUBLIC_POCKETBASE_URL=https://api.landthetrick.com` as a *build*
   argument, not a runtime variable.** Next inlines `NEXT_PUBLIC_*` into the browser bundle at build
   time, so setting it at runtime does nothing at all and the deployed app's API calls go nowhere.
-  In Coolify it must be marked "Build Variable". **The same is true of `NEXT_PUBLIC_MAPBOX_TOKEN`**
-  — same prefix, same inlining, same silent failure — see "Switching the map on" below.
+  In Coolify it must be marked "Build Variable". It is now the *only* `NEXT_PUBLIC_*` variable
+  this app takes — the Mapbox token that used to share this warning is gone with the move to
+  MapLibre (step 2c).
 - **PocketBase's `/pb_data` must be a persistent volume before the first deploy.** Without it the
   database — riders, consent records, everything — lives in the container's writable layer and is
   destroyed by the next deploy. Its `data.db` inside that volume is also the path step 3 adds to
@@ -271,35 +272,23 @@ rollover the old container answers `"superuser":"rejected"` and the proxy briefl
 settles on its own. `rejected` while *steady* is the password; `rejected` for ninety seconds after a
 deploy is the rollover.
 
-### 2c. The Mapbox token — switching the map on
+### 2c. The map — nothing to do
 
-Not done: there is no Mapbox account yet (issue #109). The spots map is built and *keyless* — with
-no token it says so in one line, and the list, search, filters and submission form all work
-regardless (plan §7, T13). Turning it on is account work plus one variable, and **no code change**.
+**Superseded 2026-08-17, one day after it was written.** This step used to describe creating a
+Mapbox account, restricting a token by URL and setting `NEXT_PUBLIC_MAPBOX_TOKEN` as a build
+variable. The owner replaced Mapbox with **MapLibre GL on OpenFreeMap's tiles** (plan §1), which
+needs no account, no key and no card, so there is no infrastructure step here at all: the map
+draws on a fresh deploy the same way it draws on a laptop, and issue #109 closed without being
+built.
 
-**In the browser, by the owner** — a session cannot do this part, it means creating an account:
+The note is kept rather than deleted because the trap it warned about is still live for the
+*other* `NEXT_PUBLIC_*` variable — see step 2 on `NEXT_PUBLIC_POCKETBASE_URL`, which is still a
+build argument and still fails silently if set at runtime.
 
-1. Create a Mapbox account. The free tier is **50,000 map loads a month**; a map load is one
-   initialisation of the map, so one rider opening `/spots`. No card is needed to start, and
-   without one the account stops at the ceiling rather than billing past it.
-2. Create a **public** access token (`pk.…`), scoped to public styles and tiles only.
-3. **Restrict it by URL before it goes anywhere.** The token is inlined into the browser bundle and
-   anybody can read it out of the JavaScript — a URL restriction in the Mapbox account is the only
-   thing standing between it and somebody else's site spending the quota. Add `landthetrick.com`,
-   plus the preview domain if PR previews should draw maps.
-
-**Then in Coolify, on `landit-web`:**
-
-4. Add `NEXT_PUBLIC_MAPBOX_TOKEN` as a **Build Variable** — the same trap as
-   `NEXT_PUBLIC_POCKETBASE_URL` in step 2. Set at runtime it does nothing at all, because the
-   browser bundle is already built, and Coolify's variable list shows it as set the whole time.
-   `apps/web/Dockerfile` declares `ARG NEXT_PUBLIC_MAPBOX_TOKEN` for exactly this.
-5. Tick **Literal**, per the interpolation rule in step 2.
-6. **Redeploy** — a restart is not enough, the token is baked in at build time.
-
-**Then confirm it, because this failure is quiet:** open `/spots` and check the map draws instead
-of the "not switched on yet" line. A map that draws but whose tiles 401 means the URL restriction
-does not match the domain being served.
+The one thing worth watching now is not a variable but a dependency: OpenFreeMap is a small
+donation-funded service with no SLA. If it goes away, `MAP_BASE_STYLE` in
+`apps/web/src/lib/map.ts` is one line pointing at a style URL, and the spots screen already treats
+an unreachable basemap as a normal state rather than an error.
 
 ### 3. Litestream — **done 2026-08-17**
 
@@ -443,10 +432,10 @@ Steps 1–8 above are the sequence; this is the progress.
       `box1-backups` above is unaffected — that is Litestream's database replication and has nothing
       to do with clips. Issue #113 closed as obsolete. **Nothing here is ever provisioned by a build
       session in any case** — this file is reference only.
-- [ ] **`NEXT_PUBLIC_MAPBOX_TOKEN` set as a build variable, and the map confirmed drawing**
-      (runbook 2c) — **issue #109**. Blocked on the Mapbox account, which is owner work: a session
-      cannot create one. Until then the spots screen says the map is not switched on and everything
-      else on it works.
+- [x] **The spots map draws with no infrastructure step at all** (runbook 2c) — done
+      2026-08-17. Not by provisioning anything: the owner replaced Mapbox with MapLibre on
+      OpenFreeMap's tiles, which needs no account, key or card, so the variable this line used to
+      ask for no longer exists. Issue #109 closed unbuilt.
 - [x] **`LANDIT_PREVIEW_KEY` set on the deployed web app** (runbook 2) — done 2026-08-17. The real
       site on the real domain can now be opened behind the holding page, which is what makes a
       deploy checkable before launch day.
