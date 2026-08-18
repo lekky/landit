@@ -1,4 +1,5 @@
 import { categoryLabel } from '../data/categories';
+import { STAGE_IDS } from '../data/stages';
 import { TRICKS } from '../data/tricks';
 import type { CategoryId, SportId, StageId, Trick } from '../types';
 import { isLandedStage, tricksFor } from './tricks';
@@ -139,6 +140,55 @@ export function filterTricks(query: LibraryQuery = {}, tricks: readonly Trick[] 
   });
 
   return sortTricks(matched, sort);
+}
+
+/** One stage's worth of the rider's tricks, in `STAGES` order. */
+export interface TrickStageGroup {
+  readonly stage: StageId;
+  readonly tricks: readonly Trick[];
+}
+
+/**
+ * The rider's tracked tricks, grouped by the stage they are on.
+ *
+ * "My tricks" asks a different question from the library, and the answer wants a
+ * different shape. The library asks *what exists* and is therefore ordered by
+ * difficulty: easiest first, because that is the order you would learn them in.
+ * This asks *where am I*, and the useful ordering is the stage — the three you
+ * are learning together, then the ones you land sometimes, then the ones that
+ * are yours. Difficulty still sorts *within* a stage, so the cheapest next win
+ * in each group is the one at the front.
+ *
+ * Groups come back in `STAGES` order and **empty groups are dropped**: a rider
+ * with nothing on "Sometimes" should not read a heading that says so. That also
+ * makes `groups.length` the honest answer to "how many kinds of progress am I
+ * making", which is what the count beside the switch reports.
+ *
+ * Untracked tricks are absent by construction — no stage, no group. This
+ * function does not filter by sport, search or paywall; hand it the output of
+ * `filterTricks` and it groups whatever it is given, so the switch composes with
+ * the sidebar rather than overriding it.
+ */
+export function groupTricksByStage(
+  tricks: readonly Trick[],
+  byId: Readonly<Record<string, StageId>> = {},
+  sort: TrickSort = 'easiest',
+): TrickStageGroup[] {
+  const buckets = new Map<StageId, Trick[]>();
+  for (const trick of tricks) {
+    const stage = byId[trick.id];
+    if (!stage) continue;
+    const bucket = buckets.get(stage);
+    if (bucket) bucket.push(trick);
+    else buckets.set(stage, [trick]);
+  }
+
+  const groups: TrickStageGroup[] = [];
+  for (const stage of STAGE_IDS) {
+    const bucket = buckets.get(stage);
+    if (bucket?.length) groups.push({ stage, tricks: sortTricks(bucket, sort) });
+  }
+  return groups;
 }
 
 /**

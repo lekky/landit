@@ -86,6 +86,12 @@ export async function setStageAction(input: {
   revalidatePath(trickHref(input.slug));
   revalidatePath(ROUTES.library);
   revalidatePath(ROUTES.stickers);
+  // T22: the dashboard's "Working on it" can now set a stage without opening
+  // the trick, so it is a caller of this action and has to be refreshed like
+  // any other. The picker corrects itself optimistically; this is what stops
+  // the *rest* of the screen — the counts, the "all N of yours" link, which
+  // tricks are in the section at all — disagreeing with it until the next load.
+  revalidatePath(ROUTES.dashboard);
   return { ok: true, earned };
 }
 

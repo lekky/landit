@@ -109,6 +109,23 @@ export const ROUTES = {
 export const legalHref = (doc: LegalDocId): Route => `/legal/${doc}`;
 
 /**
+ * The library, optionally showing only the tricks the rider is tracking (T22).
+ *
+ * "My tricks" is a query parameter rather than a route of its own, and that is
+ * the decision rather than a shortcut. It is the same list of the same cards
+ * with the same sidebar filters still applying — a second route would be a
+ * second copy of the library that has to be kept in step with the first. What a
+ * rider gets from it is what a route would have given them anyway: an address.
+ * `/library?mine=1` can be bookmarked, linked from the dashboard, and shared
+ * between a rider's own devices.
+ *
+ * Absent rather than `mine=0` when off, so the plain library keeps the plain
+ * URL and nothing has to strip a default out of a shared link.
+ */
+export const libraryHref = (options: { mine?: boolean } = {}): Route =>
+  options.mine ? `${ROUTES.library}?mine=1` : ROUTES.library;
+
+/**
  * One trick, by its **slug** — the canonical data's `id`, not the database id.
  * A URL a rider can read is worth having, and the slug survives a reseed while
  * a record id does not (`tricksFromRecords`).

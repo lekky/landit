@@ -6,11 +6,12 @@ import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 
 import { SportSwitch } from '@/components/shell/SportSwitch';
-import { ROUTES, trickHref } from '@/lib/routes';
+import { ROUTES, libraryHref, trickHref } from '@/lib/routes';
 import { useSport } from '@/providers/sport';
 
 import { AnnouncementBanner } from './AnnouncementBanner';
 import { StreakCard } from './StreakCard';
+import { WorkingTrick } from './WorkingTrick';
 import type { HomeView, TrickCardView } from './view';
 
 import styles from './home.module.css';
@@ -107,14 +108,37 @@ export function HomeScreen({ view }: { view: HomeView }) {
       </div>
 
       <section>
-        <SectionHead more="Library →" onMore={() => router.push(ROUTES.library)}>
+        {/*
+          The way into "My tricks" (T22). When there is something in progress
+          this section is a slice of the rider's own list, so the link out goes
+          to the whole of it rather than to the library at large — and it says
+          how many are there, which is the reason to follow it. With nothing in
+          progress the section is "Start here", suggestions from the library,
+          and the library is where it should still point.
+        */}
+        <SectionHead
+          more={working ? `All ${current.tracked} of yours →` : 'Library →'}
+          onMore={() => router.push(working ? libraryHref({ mine: true }) : ROUTES.library)}
+        >
           {working ? 'Working on it' : 'Start here'}
         </SectionHead>
         {primary.length ? (
           <div className="grid-tricks">
-            {primary.map((t) => (
-              <HomeTrickCard key={t.slug} trick={t} onOpen={() => router.push(trickHref(t.slug))} />
-            ))}
+            {primary.map((t) =>
+              working ? (
+                <WorkingTrick
+                  key={t.slug}
+                  trick={t}
+                  onOpen={() => router.push(trickHref(t.slug))}
+                />
+              ) : (
+                <HomeTrickCard
+                  key={t.slug}
+                  trick={t}
+                  onOpen={() => router.push(trickHref(t.slug))}
+                />
+              ),
+            )}
           </div>
         ) : (
           <Empty

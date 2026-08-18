@@ -11,6 +11,7 @@ import {
   activeFilterCount,
   categoryLabel,
   filterTricks,
+  groupTricksByStage,
   isTrickLocked,
   tricksFor,
   type CategoryId,
@@ -26,7 +27,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
 import { SportSwitch } from '@/components/shell/SportSwitch';
-import { ROUTES, trickHref } from '@/lib/routes';
+import { ROUTES, libraryHref, trickHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { useSport } from '@/providers/sport';
 
@@ -53,6 +54,7 @@ export function LibraryBrowser({
   byId,
   plan,
   signedIn,
+  initialMine = false,
 }: {
   /** Every live trick, from the database, so a staff edit shows up here. */
   tricks: readonly Trick[];
@@ -60,6 +62,8 @@ export function LibraryBrowser({
   byId: Readonly<Record<string, StageId>>;
   plan: PlanId;
   signedIn: boolean;
+  /** `?mine=1` on the way in, resolved on the server. Never true signed out. */
+  initialMine?: boolean;
 }) {
   const router = useRouter();
   const { sport } = useSport();
@@ -70,16 +74,47 @@ export function LibraryBrowser({
   const [status, setStatus] = useState<TrickStatusFilter>('all');
   const [sort, setSort] = useState<TrickSort>('easiest');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [mine, setMineState] = useState(initialMine);
 
   const pool = useMemo(() => tricksFor(sport, tricks), [sport, tricks]);
+  /*
+   * In "My tricks" the switch owns the status: it asks for `tracked` and the
+   * sidebar's own status pills are hidden while it is on, so the two controls
+   * can never disagree and leave a rider staring at an empty grid wondering
+   * which of them emptied it.
+   */
   const list = useMemo(
-    () => filterTricks({ search, sport, category, difficulty, status, sort, byId }, tricks),
-    [search, sport, category, difficulty, status, sort, byId, tricks],
+    () =>
+      filterTricks(
+        { search, sport, category, difficulty, status: mine ? 'tracked' : status, sort, byId },
+        tricks,
+      ),
+    [search, sport, category, difficulty, status, sort, byId, tricks, mine],
   );
+  const groups = useMemo(
+    () => (mine ? groupTricksByStage(list, byId, sort) : []),
+    [mine, list, byId, sort],
+  );
+  /** How many of this sport's tricks the rider has a stage on — the switch's count. */
+  const tracked = useMemo(() => pool.filter((t) => byId[t.id]).length, [pool, byId]);
 
   const lockedCount = pool.filter((t) => isTrickLocked(t, plan)).length;
-  const activeFilters = activeFilterCount({ category, difficulty, status });
+  const activeFilters = activeFilterCount({ category, difficulty, status: mine ? 'all' : status });
   const showRookieBanner = signedIn && plan === 'rookie' && lockedCount > 0;
+
+  /*
+   * Flipping the switch rewrites the address as well as the view.
+   *
+   * `replace`, not `push`: the two sides are one screen in two modes, not two
+   * places, so Back should leave the library rather than walk a rider through
+   * every toggle they made. `scroll: false` because the switch sits at the top
+   * of the list it changes — jumping to the top of a page you are already at
+   * the top of only ever looks like a glitch.
+   */
+  const setMine = (next: boolean) => {
+    setMineState(next);
+    router.replace(libraryHref({ mine: next }), { scroll: false });
+  };
 
   const reset = () => {
     setSearch('');
@@ -87,6 +122,20 @@ export function LibraryBrowser({
     setDifficulty(null);
     setStatus('all');
   };
+
+  const card = (trick: Trick) => (
+    <TrickCard
+      key={trick.id}
+      name={trick.name}
+      category={{ label: categoryLabel(trick.cat, trick.sport), color: CATS[trick.cat].color }}
+      difficulty={trick.diff}
+      sport={SPORT_LOOKS[trick.sport]}
+      stage={byId[trick.id] ? STAGE[byId[trick.id]!] : null}
+      locked={isTrickLocked(trick, plan)}
+      lockTier={TIERS_LABEL[trick.diff - 1]}
+      onOpen={() => router.push(trickHref(trick.id))}
+    />
+  );
 
   const filters = (
     <Panel flat className={styles.filters}>
@@ -123,14 +172,24 @@ export function LibraryBrowser({
         ))}
       </div>
 
-      <div className={`lab ${styles.groupLabel}`}>My status</div>
-      <div className={styles.pills}>
-        {TRICK_STATUS_FILTERS.map((option) => (
-          <Pill key={option.id} on={status === option.id} onClick={() => setStatus(option.id)}>
-            {option.label}
-          </Pill>
-        ))}
-      </div>
+      {/*
+        Hidden while "My tricks" is on, because the switch is already answering
+        this question. Two controls over one field is how a rider ends up asking
+        for their tracked tricks *and* the untracked ones and being told there
+        are none.
+      */}
+      {!mine && (
+        <>
+          <div className={`lab ${styles.groupLabel}`}>My status</div>
+          <div className={styles.pills}>
+            {TRICK_STATUS_FILTERS.map((option) => (
+              <Pill key={option.id} on={status === option.id} onClick={() => setStatus(option.id)}>
+                {option.label}
+              </Pill>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className={`lab ${styles.groupLabel}`}>Sort</div>
       <div className={styles.pills}>
@@ -149,9 +208,19 @@ export function LibraryBrowser({
 
       <div className={styles.head}>
         <div>
-          <span className="eyebrow">{SPORTS[sport].label} library</span>
+          <span className="eyebrow">
+            {mine
+              ? `Your ${SPORTS[sport].label.toLowerCase()} tricks`
+              : `${SPORTS[sport].label} library`}
+          </span>
           <h1 className={`d ${styles.title}`}>
-            {pool.length} trick{pool.length === 1 ? '' : 's'}
+            {mine ? (
+              <>{tracked} tracked</>
+            ) : (
+              <>
+                {pool.length} trick{pool.length === 1 ? '' : 's'}
+              </>
+            )}
           </h1>
         </div>
         <div className={`search ${styles.search}`}>
@@ -187,6 +256,36 @@ export function LibraryBrowser({
         </div>
 
         <div>
+          {/*
+            "My tricks" (T22). Signed in only — a visitor with no account has no
+            tracked tricks, so the switch would be a control with one working
+            side, and the library is deliberately readable signed out.
+
+            A pair of buttons rather than pills: the two are one choice with two
+            answers, and the pills below are many independent narrowings. The
+            shape says which kind of control it is before the label is read.
+          */}
+          {signedIn && (
+            <div className={styles.mineSwitch} role="group" aria-label="Which tricks to show">
+              <button
+                type="button"
+                className={`cond ${styles.mineOption}`}
+                aria-pressed={!mine}
+                onClick={() => setMine(false)}
+              >
+                All {pool.length} tricks
+              </button>
+              <button
+                type="button"
+                className={`cond ${styles.mineOption}`}
+                aria-pressed={mine}
+                onClick={() => setMine(true)}
+              >
+                My tricks · {tracked}
+              </button>
+            </div>
+          )}
+
           {showRookieBanner && (
             <Panel flat className={styles.banner}>
               <span className={styles.bannerIcon}>
@@ -228,29 +327,39 @@ export function LibraryBrowser({
             {category ? ` · ${CATS[category].blurb}` : ''}
           </div>
 
-          {list.length ? (
-            <div className="grid-tricks">
-              {list.map((trick) => {
-                const locked = isTrickLocked(trick, plan);
-                const stage = byId[trick.id];
-                return (
-                  <TrickCard
-                    key={trick.id}
-                    name={trick.name}
-                    category={{
-                      label: categoryLabel(trick.cat, trick.sport),
-                      color: CATS[trick.cat].color,
-                    }}
-                    difficulty={trick.diff}
-                    sport={SPORT_LOOKS[trick.sport]}
-                    stage={stage ? STAGE[stage] : null}
-                    locked={locked}
-                    lockTier={TIERS_LABEL[trick.diff - 1]}
-                    onOpen={() => router.push(trickHref(trick.id))}
-                  />
-                );
-              })}
-            </div>
+          {mine ? (
+            groups.length ? (
+              groups.map((group) => (
+                <section key={group.stage} className={styles.stageGroup}>
+                  <div className={styles.stageHead}>
+                    <span
+                      className={styles.stageSwatch}
+                      style={{ background: STAGE[group.stage].color }}
+                    />
+                    <h2 className={`d ${styles.stageTitle}`}>{STAGE[group.stage].label}</h2>
+                    <span className={`lab ${styles.stageCount}`}>{group.tricks.length}</span>
+                    <span className={styles.stageRule} />
+                  </div>
+                  <div className="grid-tricks">{group.tricks.map(card)}</div>
+                </section>
+              ))
+            ) : (
+              <Empty
+                icon="grid"
+                title={
+                  tracked ? 'Nothing matches in your tricks' : 'You are not tracking anything yet'
+                }
+                sub={
+                  tracked
+                    ? 'Drop a filter, or switch back to the whole library.'
+                    : 'Open any trick and tell it whether you can do it. It shows up here straight after.'
+                }
+                cta="Browse all tricks"
+                onCta={() => setMine(false)}
+              />
+            )
+          ) : list.length ? (
+            <div className="grid-tricks">{list.map(card)}</div>
           ) : (
             <Empty
               icon="search"

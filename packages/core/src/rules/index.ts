@@ -113,6 +113,7 @@ export {
   TRICK_STATUS_FILTERS,
   activeFilterCount,
   filterTricks,
+  groupTricksByStage,
   prereqTricks,
   sortTricks,
   trickMatchesSearch,
@@ -120,6 +121,7 @@ export {
   tricksUnlockedBy,
   type LibraryQuery,
   type TrickSort,
+  type TrickStageGroup,
   type TrickStatusFilter,
 } from './library';
 export {

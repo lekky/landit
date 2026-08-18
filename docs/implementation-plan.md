@@ -2109,6 +2109,39 @@ avatars, sport colour — have no screenshot to compare against at all; judge th
 language in `design-handoff/README.md` and flag anything that fights it rather than silently
 restyling the owner's assets.
 
+**T22 · My tricks.** Added after launch (owner, 2026-08-18, in chat), and the first task on this
+list that came from looking at the shipped product rather than from the design pack.
+
+A rider tracking twelve tricks out of thirty had no screen that showed those twelve. The library
+listed all thirty with a status filter folded into the sidebar; Progress counted them without ever
+naming them. Four placements were drawn for the owner — a switch in the library, a route of its
+own in the nav, a band on the dashboard, a list at the top of Progress — and the owner chose the
+switch, with the dashboard band alongside it.
+
+- **The library grows an "All tricks / My tricks" switch**, signed in only, at `/library?mine=1`.
+  It is a query parameter rather than a route because it is the same list, the same cards and the
+  same sidebar filters — a second route would be a second copy of the library to keep in step. What
+  the parameter buys is the thing a route would have bought anyway: an address that can be
+  bookmarked and linked. It is read on the server, so the first paint is already the right list.
+- **"My tricks" groups by stage, not by difficulty.** The library asks what exists and is ordered
+  easiest-first, the order you would learn in; this asks where you are, and the useful ordering is
+  the stage. Difficulty still sorts inside a group. `groupTricksByStage` is the rule, in
+  `packages/core` with the rest of them, and it groups whatever it is handed — so the switch
+  composes with the sport, search and category filters instead of overriding them.
+- **The dashboard's "Working on it" becomes the door**, linking to the whole list with its count
+  rather than to the library at large, and each of its cards grows a stage row underneath. Logging
+  a session is then one tap from opening the app.
+- **The stage row is a sibling of the card, never a child.** `TrickCard` is a `<button>`; a button
+  inside a button is invalid markup and unusable by keyboard or screen reader. `packages/ui-web`
+  did not change — the wrapper belongs to the dashboard.
+- **No new write path.** The row calls the same `setStageAction` the trick page calls, so the
+  `trick_progress` hook remains the single authority on the paywall (§3, guarantee 3) and a refusal
+  snaps the row back and says why, wherever it was tapped.
+
+**Not built, and left to the owner.** The switch does not add a nav entry. Option 2 in the
+prototypes — *My tricks* as a top-level destination — is the same screen plus a navigation slot,
+and the phone's bottom bar is five items by design; taking it would mean deciding what leaves.
+
 ### Dependency graph
 
 ```
@@ -2118,7 +2151,8 @@ T0 ─┬─ T1 ─┬─ T4 ─┬─ T6 ─┬─ T7  T8  T9 ─┬─ T10 T11
 ```
 
 Sixteen of the twenty-one sessions run inside a concurrent wave; T21 and T20 each get a wave to
-themselves. The serial spine is T0 → (wave 1) → T4 → T6 → (wave 4) → … — about eight sequential
+themselves. T22 is not on the graph and has no wave: it was added after launch, and post-launch
+work arrives one task at a time rather than in waves. The serial spine is T0 → (wave 1) → T4 → T6 → (wave 4) → … — about eight sequential
 steps end to end. The infra track (§2.6) runs alongside and needs to be live by the end of Wave 2.
 T21 also depends on the BMX content track above, which is not on this graph because no session
 produces it.

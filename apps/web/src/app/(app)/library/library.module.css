@@ -100,6 +100,82 @@
   flex: none;
 }
 
+/*
+ * The "All tricks / My tricks" switch (T22).
+ *
+ * One box split by an ink rule rather than two buttons with a gap, because it
+ * is one choice: the shared border is what says the two sides are exclusive.
+ * The selected side inverts to ink, which is how `Pill` marks its own selection
+ * — the difference in *shape* is what separates one-of-two from many-of-many.
+ */
+.mineSwitch {
+  display: inline-flex;
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  background: var(--paper);
+  margin-bottom: 14px;
+  max-width: 100%;
+}
+
+.mineOption {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  padding: 9px 16px;
+  background: none;
+  border: 0;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.mineOption + .mineOption {
+  border-left: 3px solid var(--ink);
+}
+
+.mineOption[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/*
+ * A stage heading in "My tricks": swatch, name, count, then a rule to the edge.
+ * The rule is what keeps a group of two cards from reading as a stray pair —
+ * it draws the width of the section even when its contents do not fill it.
+ */
+.stageGroup + .stageGroup {
+  margin-top: 26px;
+}
+
+.stageHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.stageSwatch {
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid var(--ink);
+  flex: none;
+}
+
+.stageTitle {
+  font-size: 19px;
+  line-height: 1;
+  margin: 0;
+}
+
+.stageCount {
+  color: var(--ink-3);
+}
+
+.stageRule {
+  flex: 1;
+  height: 3px;
+  background: var(--ink);
+}
+
 .count {
   color: var(--ink-3);
   margin-bottom: 11px;
