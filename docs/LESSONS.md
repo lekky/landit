@@ -908,3 +908,45 @@ CI never sees this: it provisions the data directory fresh. Deleting the directo
 returned 99/99 and settled it in three minutes. **A local suite failure that a re-run does not
 reproduce is a question about the database, not about the change** — reset it before reading the
 failure as yours.
+
+## 8. Configuration that is copied between systems
+
+Turning live email on (2026-08-18) was six DNS records and no code. It took several rounds anyway,
+and every wrong turn was the same shape: a value that was correct where it was written and wrong
+where it was pasted.
+
+**A record means what it means in the zone that generated it.** cPanel's Zone Editor showed
+`MX 0 landthetrick.com`, which is right inside cPanel's zone, where the apex A record is the cPanel
+server. Namecheap's zone is the authoritative one and there the apex is the **web VPS**, which runs
+no mail server — so copying that row across, exactly as the runbook said to, would have aimed every
+incoming message at a machine that will never answer. Same trap in the SPF record's `+a`, which
+means "the cPanel server" in one zone and "the web server" in the other. **When carrying a record
+between two systems, resolve every name in it against the zone you are pasting into, not the one
+you copied from.**
+
+**A wildcard answers for names you never created, so "it resolves" proves nothing.** `*` → the VPS
+exists for PR previews, and it was cheerfully answering for `mail` and `webmail` — with the wrong
+address — before either record existed. A lookup that returns an answer is not evidence the record
+is there. **Check the authoritative nameserver for the record you expect, not a resolver for an
+address you hope for.**
+
+**A form that saves silently is not a record.** Namecheap does not commit a row until its own tick
+is clicked and says nothing when it is not; three of six records were simply absent afterwards,
+with the page still showing them. A DKIM host typed as `default_domainkey` — underscore where the
+dot belongs — saved happily and answered on a name no mail server will ever query, which is
+indistinguishable from "DKIM is broken". **Reload the page and then ask DNS. The form is a claim;
+the authoritative server is the fact.**
+
+**Structure validation is not correctness.** The DKIM key decoded to a well-formed 2048-bit RSA
+public key at exactly the right length, which proved only that nothing was truncated. The key
+contains runs where capital `I` and lowercase `l` are identical on screen and both valid base64, so
+a mis-read character yields a key that parses perfectly and verifies nothing. There is no way to
+settle it by inspection — only `dkim=pass` on a real signed message does. **Copy secrets and keys
+from the field, never off the screen, and prove them end to end.**
+
+**A template that names environment variables is a claim that something reads them.**
+`pocketbase/.env.example` listed five `SMTP_*` values; nothing in the repository reads one of them,
+because PocketBase takes mail configuration from its settings database via the admin UI. Following
+the template would have produced a tidy variable list in Coolify and an instance that still could
+not send — the worst kind of wrong, because everything looks configured. The file now says so.
+**A config template must say what consumes it, or it will be followed into a dead end.**

@@ -318,7 +318,7 @@ Set `LANDIT_APP_URL=https://landthetrick.com` on the PocketBase instance. It def
 `http://localhost:3000`, so getting this wrong sends a parent an approval link pointing at their own
 machine — which fails silently and reads as "the email is broken".
 
-### 5. Mailboxes in cPanel
+### 5. Mailboxes in cPanel — **DNS done 2026-08-18**
 
 **Its own cPanel account, not an addon domain on the agency's** (2026-08-16). The hostmedia plan
 allows several, and a separate account keeps Land The Trick's mail isolated from HelloWebDesign's:
@@ -333,56 +333,116 @@ All four are published in the terms, the privacy policy, the safeguarding page a
 guardian-consent email, and `safeguarding@` carries a **one-working-day response promise** the owner
 made deliberately (plan §7, T5). Until this is done they all bounce.
 
-**cPanel's zone is not authoritative** (step 1), so nothing it writes takes effect and three things
-have to be carried over to Namecheap by hand:
+The cPanel account for `landthetrick.com` is on **`5.101.173.45`** (`blackwell.dnshostnetwork.com`).
+The mailboxes were created 2026-08-16 and the domain could still not receive a single message two
+days later, because **cPanel's zone is not authoritative** (step 1) and nothing it writes takes
+effect. What has to be carried to Namecheap by hand, and the two ways it goes wrong:
 
-1. **Set Mail Settings to Custom MX** at the bottom of Namecheap's Advanced DNS tab, then add the
-   MX record pointing at the cPanel server. Left on "Email Forwarding" or "No Email Service", the
-   MX record is ignored and the mailboxes are unreachable. The target is in the cPanel welcome
-   email.
-2. **Copy cPanel's DKIM** out of its Zone Editor into Namecheap as a TXT record — host
-   `default._domainkey`, or whatever selector cPanel used.
-3. **Copy cPanel's SPF** the same way. Step 6 then appends MailerSend's include to it.
+1. **Do not copy cPanel's MX destination.** Its Zone Editor shows `MX 0 landthetrick.com`, which is
+   correct *inside cPanel's own zone*, where the apex A record is the cPanel server. In Namecheap's
+   zone the apex is the **web VPS**, which runs no mail server — so copying that row literally aims
+   every incoming message at a machine that will never answer, and the DNS reads as correct while it
+   happens. Add an A record `mail` → the cPanel IP and point the MX at `mail.landthetrick.com.`
+   instead.
+2. **The wildcard swallows the mail hostnames.** `*` → the VPS (step 1, needed for PR previews)
+   already answers for `mail` and `webmail`, so both resolved to the web server before the explicit
+   A records existed. Only an explicit record beats a wildcard. `webmail` needs one too, or the
+   mailboxes have no reachable front door.
+3. **Set Mail Settings to Custom MX** at the bottom of Namecheap's Advanced DNS tab. MX rows live in
+   that section, not in Host Records. Left on "Email Forwarding" or "No Email Service" the MX is
+   ignored no matter how right it looks.
+4. **Copy cPanel's DKIM** into Namecheap as a TXT record on `default._domainkey`. cPanel splits the
+   value across two boxes because a DNS string caps at 255 characters — the record is those two
+   joined with nothing between them, on one line, and Namecheap re-splits it itself. **Copy it from
+   the field, never off the screen:** the key contains runs where capital `I` and lowercase `l` are
+   indistinguishable in most fonts, both are valid base64, and the wrong one yields a key that
+   parses perfectly and verifies nothing.
+5. **Copy cPanel's SPF** the same way, merged with MailerSend's include — step 6.
+
+Two Namecheap behaviours, each of which cost a round trip here. A row is not saved until its own
+tick is clicked and it reports nothing when it is not, so reload the page and believe the list
+rather than the form. And a host typed as `default_domainkey` saves happily: the record then answers
+on a name no mail server will ever query, which is indistinguishable from "DKIM is broken".
+
+The live values, verified against `dns1.registrar-servers.com` and `8.8.8.8` on 2026-08-18:
+
+| Type | Host | Value |
+| --- | --- | --- |
+| A | `mail` | `5.101.173.45` |
+| A | `webmail` | `5.101.173.45` |
+| MX | `@` | `mail.landthetrick.com.`, priority 10 |
+| TXT | `default._domainkey` | cPanel's key — 2048-bit RSA, 392 base64 characters |
+
+An MX on `inbound` → `inbound.mailersend.net.` predates all of this and stays: it is MailerSend's
+inbound routing, on a subdomain, and has nothing to do with mail addressed to the bare domain. It is
+also why the zone looked like it had mail configured while all four addresses bounced.
 
 cPanel will keep reporting the mail DNS as misconfigured, because it cannot see Namecheap's zone.
 That is cosmetic. What matters is what `dig` says.
 
-### 6. MailerSend
+### 6. MailerSend — **DNS and account done 2026-08-18**
 
 1. The dashboard is **`accounts.mailersend.com`**, not `dashboard.mailerlite.com` — sibling
    products, and MailerLite is the newsletter one with no SMTP relay.
 2. **Get the account out of the trial phase.** Until it is approved it can only send *100/day to 5
    recipients*: fine against your own inbox, a hard stop the first time a real parent is on the
-   other end. Clear it early, not on launch day.
+   other end. Clear it early, not on launch day. Approved 2026-08-18.
 3. **Verify `landthetrick.com`** — the free tier allows one domain, so verify the real one and
-   there is nothing to swap later. Add the DKIM and Return-Path records it gives you, then put the
-   SMTP credentials into PocketBase's mail settings (`pocketbase/.env.example` lists the five
-   values).
+   there is nothing to swap later. Done 2026-08-16: DKIM on the `ms1` and `ms2` selectors (both
+   CNAMEs to `mailersend.net`), the Return-Path `mta` CNAME, and a `links` CNAME for click
+   tracking. Its own DKIM is separate from cPanel's and neither disturbs the other.
+4. **The SMTP credentials do not go in the environment.** `pocketbase/.env.example` lists five
+   `SMTP_*` values and **nothing in the repository reads any of them** — PocketBase takes mail
+   config from its settings database, entered at `https://api.landthetrick.com/_/` → Settings →
+   Mail and persisted in the `/pb_data` volume. Set them in Coolify and you get a tidy variable
+   list and an instance that still cannot send. The template says so now; it did not on the day
+   this was done.
 
 ⚠️ **The SPF trap.** cPanel generates an SPF record when the account is created in step 5 —
 `hellowebdesign.co.uk` carries the same shape, `v=spf1 +a +mx +ip4:<that server>
 include:relay.mailchannels.net ~all` — and step 5 copies it into Namecheap. MailerSend will then ask
 for an SPF record too. **A domain may have only one `v=spf1` record**: a second is not "two senders
 allowed", it is a permanent error that fails both, and one of the two is a guardian-consent email.
-Edit the record already at Namecheap to append MailerSend's include rather than adding a second:
+Edit the record already at Namecheap rather than adding a second. What `landthetrick.com` carries,
+live since 2026-08-18:
 
 ```
-v=spf1 +a +mx +ip4:<the Land The Trick cPanel server> include:relay.mailchannels.net include:_spf.mailersend.net ~all
+v=spf1 +mx +ip4:5.101.173.45 include:relay.mailchannels.net include:_spf.mailersend.net ~all
 ```
+
+Two edits to cPanel's generated record, both deliberate:
+
+- **`include:spf.efwd.registrar-servers.com` was removed.** That is Namecheap's own email-forwarding
+  service, added when the zone was first set up and never used — the mailboxes are cPanel's.
+- **`+a` was dropped.** In cPanel's zone `+a` resolves to the cPanel server and is a sensible
+  default. Carried into Namecheap's zone it resolves to the **web VPS**, authorising a machine that
+  sends no mail. `+mx +ip4:` already covers cPanel; the same mistake as the MX destination in step
+  5, and the same cause — a record that means one thing in the zone that generated it and something
+  else in the zone that is authoritative.
 
 **Read the IP out of the record cPanel generated for this account** — it is that account's server,
 not `hellowebdesign.co.uk`'s, and the two need not be the same machine. Same for the include: use
 the values the two panels actually show. The shape is the point, not the values.
 
 **DKIM is different — leave cPanel's alone.** A domain may hold as many DKIM keys as it has
-selectors, so cPanel's `default._domainkey` and MailerSend's own selector coexist happily. Deleting
+selectors, so cPanel's `default._domainkey` and MailerSend's `ms1`/`ms2` coexist happily. Deleting
 one to "tidy up" breaks whichever sender it belonged to.
 
-### 7. DMARC
+### 7. DMARC — **done 2026-08-18**
 
 A `_dmarc` TXT record. Start at `p=none` for a week to confirm MailerSend is passing, then tighten
 to `p=reject`. A brand-new domain has no legacy senders to break, which is the one advantage of not
 getting `landit.app`.
+
+Live since 2026-08-18:
+
+```
+v=DMARC1; p=none; rua=mailto:hello@landthetrick.com; adkim=r; aspf=r
+```
+
+`rua` points at `hello@`, which only collects anything because step 5's MX now works — a DMARC
+report address on a domain that cannot receive is a record that reports to nobody. **Tighten to
+`p=reject` from 2026-08-25**, once a week of reports shows both senders passing.
 
 ### 8. Uptime Kuma, then the email paths
 
@@ -426,9 +486,18 @@ Steps 1–8 above are the sequence; this is the progress.
       2026-08-17, issue #167. Replicating continuously to bucket path `landit`; restore verified
       from the replica, not just assumed from a clean service start.
 - [x] `LANDIT_APP_URL` set on the hosted instance (runbook 4) — done 2026-08-16
-- [ ] Mailboxes created 2026-08-16; still to do: Custom MX at Namecheap, and cPanel’s DKIM/SPF copied there (runbook 5)
-- [ ] Domain verified 2026-08-16; still to do: **out of trial phase**, and the SPF merged (runbook 6)
-- [ ] DMARC (runbook 7)
+- [x] Mail DNS at Namecheap: MX to `mail.landthetrick.com` with its own A record, cPanel's DKIM on
+      `default._domainkey`, Custom MX selected (runbook 5) — done 2026-08-18. Mailboxes were created
+      2026-08-16 but **the domain could not receive at all until the MX existed**; every published
+      address bounced for two days. *Receipt itself is not yet proven by a delivered message —
+      issue #36 stays open until one arrives.*
+- [x] MailerSend out of the trial phase, domain verified, and the SPF merged into one record
+      (runbook 6) — done 2026-08-18
+- [x] DMARC at `p=none` (runbook 7) — done 2026-08-18. **Tighten to `p=reject` from 2026-08-25.**
+- [ ] **The MailerSend SMTP credentials in PocketBase's mail settings** (runbook 6) — the admin UI,
+      not the environment. Until this is done every email path in the product is off, and the app
+      says so out loud rather than pretending: the guardian panel tells a rider the message could
+      not be sent, and `emailed` comes back `false`.
 - [x] Uptime Kuma monitors, three of them, alerting to Gmail (runbook 8) — done 2026-08-17.
       **Kuma cannot report its own host dying — issue #160.**
 - [ ] The email paths walked by hand — issue #31 (runbook 8)
