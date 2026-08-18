@@ -1716,6 +1716,48 @@ owner:
   already a link (`closest('a, button')` in `SpotsScreen.tsx`), which is what keeps "Directions"
   from moving the map on its way out; `e2e/spots.spec.ts` pins both halves.
 
+- **The spots are real places, researched, and the list is worldwide** (2026-08-18, owner in
+  chat: "we're global remember"). The seven spots this replaces were transcribed from the design
+  prototype and were never meant to be true — two were plausible fiction, and **Ramp 1 was
+  recorded in Wigan when it is in Great Sankey, Warrington, fifteen miles away**. That is the
+  defect class this screen cannot carry: a wrong label is a nuisance, a wrong coordinate is a
+  child at the wrong park. Seven research sessions worked the regions in parallel; every row's
+  coordinate traces to a source somebody opened — an OpenStreetMap feature cross-checked against
+  a council or venue page — and a park whose location could not be verified was **dropped rather
+  than estimated**, which is why Nevada, Seoul and Dublin's Le Fanu are absent.
+- **`sports` is researched, and the rule for it is written down here because it is a judgement,
+  not a fact.** A park is listed for a sport where nothing published says otherwise, and never
+  where a restriction is documented — Venice is skateboard-only, Houston bans scooters and BMX by
+  ordinance, Copenhagen's Fælledparken sends scooters to a separate track, Oxford's council page
+  says "scooters not allowed", and Southbank's Section 106 protects skateboarding and BMX by name
+  without mentioning scooters. **Commercial venues are judged the other way**: they publish
+  permitted-equipment lists, so a wheel missing from one is a restriction rather than a gap. The
+  asymmetry is deliberate — a free council park has no gate and no staff, so silence there is an
+  unwritten rule; a ticketed venue's silence is an answer. Without this rule the honest reading
+  ("only what is evidenced") left most of Europe and North America invisible to scooter riders,
+  who are this product's largest audience, because a municipality never wrote the word down.
+- **"Check before you travel", on the screen, permanently** (owner's call, 2026-08-18). The list
+  is not a live feed and must not read like one: parks close for rebuilds, session timetables
+  change, and a park that allows scooters this year can stop. The notice sits under the map on
+  desktop and above the list on a phone — where it would otherwise fall below every card — and
+  says less on a phone than on a desktop, both versions in the markup with CSS choosing, because
+  choosing in JavaScript would make the server's first paint a guess (LESSONS §5). It is not
+  dismissible: it is true on every visit.
+- **Three optional fields, and a migration that is additive.** `address`, `phone` and `country`
+  (`1787529600_spot_address_and_phone.js`). A rider deciding whether they can get to a park wants
+  the street; a parent ringing to ask about a scooter session wants the number, and the phone is
+  the only answer this data has to "when is it open", which nothing here records. All three are
+  optional because most spots have fewer than three — a street spot has none, and a
+  rider-submitted spot has none either, because the form does not ask. **`country` is a column
+  rather than the tail of `town`**: the seed's natural key is name-plus-town, so rewriting
+  "Liverpool" to "Liverpool, UK" would insert a second copy of every spot already in a database
+  instead of updating the one that is there.
+- **What this data still cannot say: opening hours.** Several parks are not drop-in-anytime — BMX
+  at BaySixty6 is two evenings a week, Adrenaline Alley requires free membership registration
+  before entry, and Warsaw's Bemowo closes for the winter. There is no field for any of it. The
+  notice and the phone number are the whole of the answer, which is thin, and a `hours` field is
+  the obvious next move if riders ask for it.
+
 Standard 10 is implemented as `useHereOnce`: geolocation is asked for only on a press, held in
 component state, announced by a badge that carries its own "turn off", and gone on reload. It is
 `getCurrentPosition` and never `watchPosition` — a watch is a live tracking session held open on a

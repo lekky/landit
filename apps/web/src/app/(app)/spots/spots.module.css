@@ -47,6 +47,20 @@
   min-width: 0;
 }
 
+/*
+ * "Near me" — the press that asks the browser where the rider is.
+ *
+ * It was labelled "Sort by nearest", which describes what happens to the list
+ * rather than what a rider wants, and riders read straight past it (owner,
+ * 2026-08-18: "can you add a near me button"). It was already there. The icon
+ * is what makes it findable at a glance in a row of word-shaped pills.
+ */
+.nearMe {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* ---------------------------------------------- the location indicator -- */
 
 /*
@@ -87,6 +101,22 @@
   font-size: 13px;
   color: var(--ink-3);
   max-width: 42ch;
+}
+
+/*
+ * The "check before you travel" line. Loud enough to be read once and quiet
+ * enough not to shout over the list: the yellow the design uses for the thing a
+ * rider needs to know, the ink keyline and the small hard shadow every other
+ * surface has, and no dismiss control — it is not a notification.
+ */
+.notice {
+  margin: 12px 0 0;
+  padding: 11px 14px;
+  border: 2.5px solid var(--ink);
+  background: var(--yellow);
+  box-shadow: var(--sh-sm);
+  font-size: 13.5px;
+  line-height: 1.5;
 }
 
 /* --------------------------------------------------------- the two panes -- */
@@ -156,6 +186,15 @@
   padding: 2px 0 2px 6px;
 }
 
+/*
+ * The short warning is the phone's and the full one is everything wider, so
+ * only one of the pair is ever visible. Hidden rather than absent because the
+ * choice has to be settled before first paint, not after hydration.
+ */
+.noticeShort {
+  display: none;
+}
+
 .cardPending {
   opacity: 0.85;
 }
@@ -184,6 +223,26 @@
   margin: 4px 0 8px;
 }
 
+/*
+ * Address and phone. Quieter than the meta line above them — they are there to
+ * be read once, when a rider has already decided they are interested, and they
+ * must not compete with the name of the place.
+ */
+.cardContact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.cardPhone {
+  white-space: nowrap;
+  font-weight: 700;
+}
+
 .cardTags {
   display: flex;
   gap: 6px;
@@ -207,6 +266,11 @@
 .directions {
   font-size: 13px;
   letter-spacing: 0.05em;
+}
+
+/* The one control under the cards, as wide as they are. */
+.more {
+  margin-top: 4px;
 }
 
 .pendingNote {
@@ -271,8 +335,16 @@
 
 /* -------------------------------------------------------------- the map -- */
 
+/*
+ * The map and the notice under it travel together. The sticky used to be on the
+ * panel alone; with something below it that a rider is meant to read, sticking
+ * the panel would have scrolled the notice away from the map it belongs to.
+ */
 .mapColumn {
   min-width: 0;
+  position: sticky;
+  top: 84px;
+  align-self: start;
 }
 
 .mapPanel {
@@ -280,8 +352,6 @@
   min-height: 340px;
   display: flex;
   flex-direction: column;
-  position: sticky;
-  top: 84px;
 }
 
 .mapHead {
@@ -419,11 +489,51 @@
 }
 
 @media (max-width: 860px) {
+  /*
+   * One column, and the notice goes back above the list (owner's call,
+   * 2026-08-18).
+   *
+   * Stacking would otherwise put the map column — and the notice under it —
+   * below every card, so "check before you travel" would be read last, after a
+   * rider had already chosen where they were going. Making the grid a flex
+   * column and letting the map column pass its children through (`display:
+   * contents`) puts the notice, the map panel and the list in one ordering
+   * scope, so `order` can lift the notice to the top. The desktop placement
+   * under the map is untouched.
+   *
+   * It is also smaller here than on desktop: a phone screen is mostly list, and
+   * a warning that pushes the first card below the fold gets scrolled past
+   * rather than read.
+   */
   .grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mapColumn {
+    position: static;
+    display: contents;
+  }
+
+  .notice {
+    order: -1;
+    margin: 0 0 12px;
+    padding: 8px 10px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    box-shadow: none;
+    border-width: 2px;
+  }
+
+  .noticeShort {
+    display: inline;
+  }
+
+  .noticeFull {
+    display: none;
   }
 
   .mapPanel {
-    position: static;
+    order: 0;
   }
 }

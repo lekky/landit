@@ -7,6 +7,7 @@ import {
   hasCoords,
   mapsLink,
   sortSpotsByDistance,
+  sortSpotsHomeFirst,
   type DistanceUnits,
   type SportId,
 } from '@landit/core';
@@ -34,7 +35,15 @@ export interface SpotView {
   readonly sports: readonly SportId[];
   readonly tags: readonly string[];
   readonly status: 'pending' | 'live' | 'rejected';
+  readonly address?: string;
+  readonly phone?: string;
+  readonly country?: string;
 }
+
+/**
+ * How many spots a press reveals. A tunable default, not a deliberated number.
+ */
+const PAGE = 24;
 
 /**
  * Where to ride: the list, the map, and the two staying in step (screenshot 19).
@@ -56,11 +65,18 @@ export function SpotsScreen({
   spots,
   signedIn,
   units,
+  homeCountry = null,
 }: {
   readonly spots: readonly SpotView[];
   readonly signedIn: boolean;
   /** Miles or kilometres, settled on the server from the rider's country. */
   readonly units: DistanceUnits;
+  /**
+   * The spots country the reader is in, settled on the server from the same
+   * signal as `units`, or null when it cannot be told. Their parks lead the
+   * list until they ask for "Near me".
+   */
+  readonly homeCountry?: string | null;
 }) {
   const { sports, sport, setSport } = useSport();
 
@@ -76,11 +92,55 @@ export function SpotsScreen({
 
   const list = useMemo(() => {
     const narrowed = filterSpots(live, { search, sport: everySport ? null : sport });
-    return here.point ? sortSpotsByDistance(narrowed, here.point) : narrowed;
-  }, [live, search, sport, everySport, here.point]);
+    // Distance beats nationality the moment a rider presses for it: a rider in
+    // Dublin is nearer Liverpool than parts of Ireland, and they said where
+    // they are. Home-first is only what happens until then.
+    return here.point
+      ? sortSpotsByDistance(narrowed, here.point)
+      : sortSpotsHomeFirst(narrowed, homeCountry);
+  }, [live, search, sport, everySport, here.point, homeCountry]);
 
-  /** Only spots with a location can be plotted, and only the filtered ones are. */
-  const plotted = useMemo(() => list.filter(hasCoords), [list]);
+  /*
+   * The list is shown a screenful at a time (2026-08-18, owner: "maybe need
+   * pagination?").
+   *
+   * **A "show more" rather than numbered pages, and the map is why.** The two
+   * halves of this screen share one selection and the map's own footer promises
+   * that everything on the list is on it. Numbered pages would break that
+   * promise every time the map redrew — a rider tapping a pin for a spot on
+   * page 3 would land on a card that is not rendered, and the scroll-into-view
+   * would silently do nothing. Growing one list keeps list and map the same set
+   * at every moment.
+   *
+   * `PAGE` is a tunable default, not a deliberated number: 24 fills a tall
+   * desktop screen and is a few scrolls on a phone.
+   */
+  const [shown, setShown] = useState(PAGE);
+
+  /*
+   * Reset the page when the list underneath it changes, during render rather
+   * than in an effect — an effect would paint the old count first, so a rider
+   * who searched from the bottom of a long list would see a flash of results
+   * they had already scrolled past. This is React's documented "adjust state
+   * when a prop changes" pattern; the extra render is discarded before paint.
+   */
+  const listKey = `${search}|${sport}|${everySport}|${here.point ? 'near' : 'home'}`;
+  const [lastKey, setLastKey] = useState(listKey);
+  if (listKey !== lastKey) {
+    setLastKey(listKey);
+    setShown(PAGE);
+  }
+
+  const visible = useMemo(() => list.slice(0, shown), [list, shown]);
+  const more = list.length - visible.length;
+
+  /**
+   * Only spots with a location can be plotted, and only the ones on screen are:
+   * the map's footer promises that every spot on this list is on the map, and
+   * that has to stay true of the list a rider can actually see. Pressing "Show
+   * more" grows both together.
+   */
+  const plotted = useMemo(() => visible.filter(hasCoords), [visible]);
 
   /*
    * Derived, not stored — which is what makes a filter that hides the selected
@@ -192,8 +252,9 @@ export function SpotsScreen({
           "visible indicator", and it carries the way to turn it off with it.
         */}
         {here.state === 'off' && (
-          <Pill onClick={here.ask} disabled={here.state !== 'off'}>
-            Sort by nearest
+          <Pill onClick={here.ask} className={styles.nearMe}>
+            <Icon name="map" size={14} strokeWidth={2.6} />
+            Near me
           </Pill>
         )}
         {here.state === 'asking' && (
@@ -218,9 +279,10 @@ export function SpotsScreen({
           <div className={`lab ${styles.count}`}>
             {list.length} spot{list.length === 1 ? '' : 's'}
             {here.state === 'on' ? ' · nearest first' : ''}
+            {more > 0 ? ` · showing ${visible.length}` : ''}
           </div>
 
-          {list.map((spot) => {
+          {visible.map((spot) => {
             const on = spot.id === selected?.id;
             const plottable = hasCoords(spot);
             const distance = here.point ? distanceLabelIn(here.point, spot, units) : null;
@@ -246,8 +308,35 @@ export function SpotsScreen({
                         {spot.name}
                       </div>
                       <div className={`lab ${styles.cardMeta}`}>
-                        {[spot.town, spot.type, distance].filter(Boolean).join(' · ')}
+                        {[[spot.town, spot.country].filter(Boolean).join(', '), spot.type, distance]
+                          .filter(Boolean)
+                          .join(' · ')}
                       </div>
+                      {/*
+                        The address and the number, for the two questions a card
+                        cannot otherwise answer: can I get there, and can
+                        somebody ring ahead? Rendered only when they exist — a
+                        street spot has neither and a rider-submitted spot has
+                        nothing but what the form asked for, so an always-on
+                        label would print a blank line for most of the list.
+
+                        `tel:` is a real link on a phone and inert on a desktop,
+                        which is the right way round; the card's own click
+                        handler steps aside for it like any other link.
+                      */}
+                      {(spot.address || spot.phone) && (
+                        <div className={styles.cardContact}>
+                          {spot.address && <span>{spot.address}</span>}
+                          {spot.phone && (
+                            <a
+                              className={styles.cardPhone}
+                              href={`tel:${spot.phone.replace(/[^+\d]/g, '')}`}
+                            >
+                              {spot.phone}
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {/*
                       T18. A spot is rider-submitted content in a public place,
@@ -302,6 +391,17 @@ export function SpotsScreen({
               </div>
             );
           })}
+
+          {more > 0 && (
+            <Button
+              variant="ghost"
+              wide
+              onClick={() => setShown((count) => count + PAGE)}
+              className={styles.more}
+            >
+              Show {Math.min(more, PAGE)} more
+            </Button>
+          )}
 
           {!list.length && !mine.length && (
             <Empty
@@ -364,6 +464,56 @@ export function SpotsScreen({
               </p>
             </div>
           </Panel>
+
+          {/*
+            **The honest line about what this list is** (owner, 2026-08-18, in
+            chat), under the map because that is where the owner put it.
+
+            The spots are researched from councils, venues and OpenStreetMap,
+            and rider submissions land here too. None of that is a live feed: a
+            park can close for a rebuild, a session timetable can change, and a
+            park that allows scooters this year can stop. The product cannot
+            know, so it says so plainly rather than leaving a rider to find out
+            at the gate.
+
+            This is also what makes the `sports` data honest. A park is listed
+            for a sport where nothing says otherwise and never where a
+            restriction is documented — so the filter is a good guess, not a
+            promise, and this is where that distinction is made in the open.
+
+            Deliberately not dismissible: it is true every time the screen is
+            read, and a rider who dismissed it in March is the one it is for in
+            August.
+
+            **It sits in the map column, which puts it last on a narrow screen**
+            — the column stacks under the list below 860px. That is a real cost
+            of this placement and it is recorded here rather than quietly
+            worked around.
+          */}
+          {/*
+            Two lengths of the same warning, chosen by screen width in CSS
+            rather than by JavaScript (owner, 2026-08-18).
+
+            **Why both are in the markup.** Choosing the text from a measured
+            viewport during render means the server's first paint is a guess and
+            the correction arrives after hydration — the same class of bug
+            LESSONS §5 records for locale-derived markup. `display: none` costs
+            a few dozen bytes and is settled before anything is painted.
+
+            The hidden one is hidden from assistive technology too, so a screen
+            reader hears one warning rather than two.
+          */}
+          <p className={styles.notice}>
+            <span className={styles.noticeShort}>
+              <strong>Check before you travel:</strong> Sports may not be verified.
+            </span>
+            <span className={styles.noticeFull}>
+              <strong>Check before you travel.</strong> Spots come from riders, councils and public
+              listings, and we cannot check them all every day. Opening times, prices and which
+              wheels are allowed change — some parks do not allow scooters or BMX. If a spot has a
+              number, ring ahead.
+            </span>
+          </p>
         </div>
       </div>
     </div>

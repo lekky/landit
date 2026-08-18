@@ -277,6 +277,20 @@ export interface Spot {
   readonly sports: readonly SportId[];
   readonly tags: readonly string[];
   readonly status: SpotStatus;
+  /*
+   * Where the place actually is, and how to ask it a question. All three are
+   * optional and most spots have fewer than three: a commercial indoor park
+   * publishes an address and a number, a council concrete park usually an
+   * address alone, a street spot neither, and a rider-submitted spot none of
+   * them — the form does not ask. Readers render what is there rather than
+   * printing an empty label. `country` is the common English name, displayed
+   * as-is; it is a field of its own rather than the tail of `town` because the
+   * seed's natural key is name-plus-town, and rewriting a town to append a
+   * country would insert a second copy of every spot already in a database.
+   */
+  readonly address?: string;
+  readonly phone?: string;
+  readonly country?: string;
 }
 
 /** A plain coordinate pair. */

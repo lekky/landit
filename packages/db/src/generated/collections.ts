@@ -558,6 +558,9 @@ export interface SpotsRecord {
   submitted_by: string;
   created: string;
   updated: string;
+  address: string;
+  phone: string;
+  country: string;
 }
 
 /** The shape accepted when creating a `spots` record. */
@@ -573,6 +576,9 @@ export interface SpotsCreate {
   tags?: unknown;
   status?: SpotsStatus;
   submitted_by?: string;
+  address?: string;
+  phone?: string;
+  country?: string;
 }
 
 /** The shape accepted when updating a `spots` record. */
