@@ -4,7 +4,7 @@ import {
   CUSTOM_GOAL_ID,
   SPORT_IDS,
   handleCandidates,
-  isValidCustomGoal,
+  profileChoiceProblem,
   type LevelId,
   type SportId,
   type StageId,
@@ -53,12 +53,18 @@ export async function finishOnboarding(input: OnboardingInput): Promise<Onboardi
   const sports = input.sports.filter((sport): sport is SportId =>
     (SPORT_IDS as readonly string[]).includes(sport),
   );
-  if (!sports.length) return { error: 'Pick at least one sport.' };
-  if (!input.level) return { error: 'Tell us roughly where you are at.' };
-  if (!input.goal) return { error: 'Pick a goal, or write your own.' };
-  if (input.goal === CUSTOM_GOAL_ID && !isValidCustomGoal(input.goalCustom)) {
-    return { error: 'Write a goal, or pick one of the others.' };
-  }
+  // The same check the account editor runs (T23), and deliberately the same
+  // function: two copies of "pick at least one sport" drift the first time one
+  // of the rules moves.
+  const problem = profileChoiceProblem({
+    sports,
+    level: input.level,
+    goal: input.goal,
+    goalCustom: input.goalCustom,
+    stance: input.stance,
+    avatarKey: input.avatarKey,
+  });
+  if (problem) return { error: problem };
 
   const { client, rider } = session;
 
@@ -66,8 +72,10 @@ export async function finishOnboarding(input: OnboardingInput): Promise<Onboardi
     await updateProfile(client, rider.id, {
       sports: [...sports],
       stance: input.stance ?? undefined,
-      level: input.level,
-      goal: input.goal,
+      // Both are non-null by the check above — `profileChoiceProblem` refuses a
+      // missing or unknown level and goal — which its return type cannot say.
+      level: input.level as LevelId,
+      goal: input.goal as string,
       goal_custom: input.goal === CUSTOM_GOAL_ID ? input.goalCustom.trim() : '',
       avatar_key: input.avatarKey ?? '',
       ...(input.timezone ? { timezone: input.timezone } : {}),

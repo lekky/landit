@@ -2214,6 +2214,52 @@ no. So "My tricks" is reached from the library switch and from the dashboard's "
 and **a session proposing to promote it into `components/shell/nav.ts` is reopening a settled
 decision** rather than filling a gap. The nav stays at five and four.
 
+**T23 · The profile editor.** Added after launch (owner, 2026-08-18, in chat), from the same place
+T22 came from: looking at the shipped product. The design pack always had this screen —
+`landit-screens-c.jsx`, screenshots 21-23 — and §7 never gave it to a task. T6 built onboarding and
+a deliberately small `/account`; T11 added the privacy control there because its own screens
+depended on it; the other five answers onboarding collects were left displayed and unsettable
+(issue #96).
+
+So a rider answered five questions on their first evening and was stuck with all five. No way to
+take up BMX after starting on a scooter, move off "just started" once they were not, change the
+goal printed on their own dashboard, say which foot leads once they had worked it out, or pick a
+different picture. Nothing in the data model was in the way: `updateProfile` already accepted every
+field and the `users` update rule already allowed them. It was a missing screen, and the rider-facing
+symptom — "there is nowhere to set the sports I'm interested in after sign up" — is how it was
+reported.
+
+- **It folds into `/account`, above the privacy panel**, rather than taking a route of its own. The
+  privacy control is already a profile setting on that screen, and two settings screens is one more
+  than a rider should have to find. `PrivacyPanel` is untouched.
+- **One form, one Save**, where the prototype writes on every tap. The prototype has no server; here
+  each tap is a round trip, and a half-applied profile — the new sports stored, the goal that
+  depended on them not — is a state worth not having.
+- **Turning a sport off hides, it does not delete.** `sports` decides which libraries, stickers and
+  challenges a rider is shown; their `trick_progress` rows are untouched and all of it comes back
+  when they turn it on again. The copy on the panel says so, because a rider who thinks it deletes
+  will not use it.
+- **A rider always rides at least one sport.** The last one on cannot be turned off — every screen
+  in the product is scoped to what a rider rides, so nought sports is a product with nothing in it.
+  Enforced in the browser and again in `profileChoiceProblem`.
+- **`profileChoiceProblem` in `packages/core` is the single check**, and onboarding was moved onto
+  it in the same PR. T6 validated these five fields inline; a second copy of "pick at least one
+  sport" is the pair that drifts the first time one of the rules moves. The messages are T6's,
+  unchanged, so the flow that shipped still says what it said.
+- **The read-only facts grid on `/account` is gone.** Level, goal, stance and privacy were each
+  printed there and are now each set by a control that also shows them; the grid was the second
+  rendering of the same four values on the same screen.
+- **The avatar picker moved to `apps/web/src/components`** so both screens open the same modal, and
+  the onboarding step behind it is unchanged.
+
+Nothing here is a security boundary. Every field is written with the rider's own client, so the
+`users` update rule decides the write and the guard hook still refuses `plan`, `role`,
+`consent_state` and the streak whatever the form posts (§3).
+
+**Still not editable, and deliberately: name and handle.** A handle is in URLs, on share cards and
+in the crew board, and changing one is a redirect question and a `RESERVED_HANDLES` question rather
+than a form field. Issue #96 did not ask for it and this task does not answer it.
+
 ### Dependency graph
 
 ```
@@ -2223,8 +2269,8 @@ T0 ─┬─ T1 ─┬─ T4 ─┬─ T6 ─┬─ T7  T8  T9 ─┬─ T10 T11
 ```
 
 Sixteen of the twenty-one sessions run inside a concurrent wave; T21 and T20 each get a wave to
-themselves. T22 is not on the graph and has no wave: it was added after launch, and post-launch
-work arrives one task at a time rather than in waves. The serial spine is T0 → (wave 1) → T4 → T6 → (wave 4) → … — about eight sequential
+themselves. T22 and T23 are not on the graph and have no wave: both were added after launch, and
+post-launch work arrives one task at a time rather than in waves. The serial spine is T0 → (wave 1) → T4 → T6 → (wave 4) → … — about eight sequential
 steps end to end. The infra track (§2.6) runs alongside and needs to be live by the end of Wave 2.
 T21 also depends on the BMX content track above, which is not on this graph because no session
 produces it.

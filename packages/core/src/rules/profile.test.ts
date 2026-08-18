@@ -11,6 +11,7 @@ import {
   isValidCustomGoal,
   isValidHandle,
   normaliseHandle,
+  profileChoiceProblem,
 } from './profile';
 
 describe('which goals to offer', () => {
@@ -126,5 +127,81 @@ describe('handles', () => {
   it('never suggests a reserved handle', () => {
     expect(handleCandidates('Admin')).not.toContain('admin');
     expect(handleCandidates('Admin').every((c) => isValidHandle(c))).toBe(true);
+  });
+});
+
+describe('whether a set of profile choices can be saved', () => {
+  const fine = {
+    sports: ['scooter'],
+    level: 'some',
+    goal: 'whip',
+    stance: 'regular',
+    avatarKey: 'cap-green',
+  };
+
+  it('accepts a complete set', () => {
+    expect(profileChoiceProblem(fine)).toBeNull();
+  });
+
+  it('accepts a rider who has skipped the stance and kept their initial', () => {
+    expect(profileChoiceProblem({ ...fine, stance: null, avatarKey: '' })).toBeNull();
+  });
+
+  it('refuses no sports, and refuses sports that are not sports', () => {
+    expect(profileChoiceProblem({ ...fine, sports: [] })).toBe('Pick at least one sport.');
+    expect(profileChoiceProblem({ ...fine, sports: ['unicycle'] })).toBe(
+      'Pick at least one sport.',
+    );
+  });
+
+  /*
+   * The account editor (T23) is what makes this matter: onboarding built its
+   * form from `LEVELS`, so an id off the list could only come from a tampered
+   * post. An editor a rider returns to is posted from a page that may be older
+   * than the deploy answering it.
+   */
+  it('refuses a level or a goal the product does not have', () => {
+    expect(profileChoiceProblem({ ...fine, level: null })).toBe(
+      'Tell us roughly where you are at.',
+    );
+    expect(profileChoiceProblem({ ...fine, level: 'legend' })).toBe(
+      'Tell us roughly where you are at.',
+    );
+    expect(profileChoiceProblem({ ...fine, goal: null })).toBe('Pick a goal, or write your own.');
+    expect(profileChoiceProblem({ ...fine, goal: 'retire' })).toBe(
+      'Pick a goal, or write your own.',
+    );
+  });
+
+  it('wants the words when the goal is the rider’s own', () => {
+    expect(profileChoiceProblem({ ...fine, goal: 'custom', goalCustom: '  ' })).toBe(
+      'Write a goal, or pick one of the others.',
+    );
+    expect(profileChoiceProblem({ ...fine, goal: 'custom', goalCustom: 'x'.repeat(61) })).toBe(
+      'Write a goal, or pick one of the others.',
+    );
+    expect(
+      profileChoiceProblem({ ...fine, goal: 'custom', goalCustom: 'Bri flip by the summer' }),
+    ).toBeNull();
+  });
+
+  it('refuses a stance or a picture that is not one of ours', () => {
+    expect(profileChoiceProblem({ ...fine, stance: 'sideways' })).toBe(
+      'Pick one of the stances, or leave it blank.',
+    );
+    expect(profileChoiceProblem({ ...fine, avatarKey: 'a-photo-of-me' })).toBe(
+      'Pick one of the pictures, or keep your initial.',
+    );
+  });
+
+  /*
+   * A goal is not narrowed to the sports a rider currently rides. Turning a
+   * sport off hides its library and its stickers (T23) and deletes nothing, and
+   * a saved goal is one of the things it must not quietly delete — the picker
+   * stops offering "land a kickflip" to a rider who has left skate, but a rider
+   * who already had it keeps it until they choose otherwise.
+   */
+  it('keeps a goal belonging to a sport the rider no longer rides', () => {
+    expect(profileChoiceProblem({ ...fine, sports: ['scooter'], goal: 'kickflip' })).toBeNull();
   });
 });
