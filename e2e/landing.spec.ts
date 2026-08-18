@@ -1,5 +1,5 @@
 import { SPORTS, SPORT_IDS } from '@landit/core';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 /**
  * The landing page (screenshots 01 and 02).
@@ -118,4 +118,79 @@ test('the sport copy is generated, so BMX needs no edit here', async ({ page }) 
   await expect(
     page.getByText(`${words[SPORT_IDS.length]} full libraries`, { exact: false }),
   ).toBeVisible();
+});
+
+/*
+ * The other half of the page: who does *not* see it.
+ *
+ * `/` is the sales pitch, so a rider who is already signed in is sent to their
+ * dashboard instead — the same rule `/signin` and `/signup` have always had.
+ * The way riders actually hit it was the mark in their own top bar, which
+ * pointed at `/` on every signed-in screen; that now points at the dashboard,
+ * and the redirect below is the backstop for a bookmark or a typed address.
+ *
+ * The helper is a copy of the one in `progress.spec.ts` and three other specs.
+ * Each file keeps its own rather than sharing one, which is this suite's
+ * standing shape: the seed is global, the riders are not.
+ */
+
+const password = 'a-long-local-test-password';
+const unique = () => Math.random().toString(36).slice(2, 10);
+
+function birthDate(years: number): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear() - years, now.getUTCMonth(), now.getUTCDate()))
+    .toISOString()
+    .slice(0, 10);
+}
+
+/** A signed-up, onboarded rider, landed on their dashboard. */
+async function newRider(page: Page): Promise<void> {
+  await page.goto('/signup');
+  await page.getByLabel('Your name').fill('Landing Tester');
+  await page.getByLabel('Email').fill(`e2e-landing-${unique()}@landit.invalid`);
+  await page.getByLabel('Password').fill(password);
+  await page.getByLabel('Where you live').selectOption('GB');
+  await page.getByLabel('Date of birth').fill(birthDate(24));
+  await page.getByRole('button', { name: 'Create account' }).click();
+
+  await page.waitForURL('**/onboarding');
+  await page.getByRole('button', { name: new RegExp(SPORTS.scooter.label, 'i') }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: /Just started/ }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Land my first trick' }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: "Let's go" }).click();
+  await page.waitForURL('**/home');
+}
+
+test('a signed-in rider asking for the landing page gets their dashboard', async ({ page }) => {
+  await newRider(page);
+
+  await page.goto('/');
+  await page.waitForURL('**/home');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Alright, Landing.');
+});
+
+test('the mark in the top bar takes a signed-in rider to their dashboard', async ({ page }) => {
+  await newRider(page);
+
+  await page.goto('/progress');
+  const mark = page.getByRole('link', { name: 'Land The Trick, home' });
+  await expect(mark).toHaveAttribute('href', '/home');
+
+  await mark.click();
+  await page.waitForURL('**/home');
+});
+
+test('the mark still points at the landing page for a signed-out visitor', async ({ page }) => {
+  // `/plans` is the one app screen that reads signed out, so it is the only
+  // place the shell's top bar renders without a rider behind it.
+  await page.goto('/plans');
+
+  await expect(page.getByRole('link', { name: 'Land The Trick, home' })).toHaveAttribute(
+    'href',
+    '/',
+  );
 });

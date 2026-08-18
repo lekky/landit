@@ -1,4 +1,5 @@
 import { Icon } from '@landit/ui-web';
+import type { Route } from 'next';
 import Link from 'next/link';
 
 /**
@@ -16,6 +17,11 @@ import Link from 'next/link';
  * 15px there. Anything that makes the name longer again lands in the same
  * place — that band, not this file.
  *
+ * `href` was typed as the literal `'/'` while the landing page was the only
+ * place a mark could sensibly go. It is a `Route` now, because where "home"
+ * is depends on who is looking: the top bar sends a signed-in rider to their
+ * dashboard and everybody else to the landing page (`TopBar`).
+ *
  * `onPaper` is the variant the auth card uses (screenshot 04), where the mark
  * sits on paper instead of ink: the glyph's ring turns ink, `LAND THE` turns ink
  * and `TRICK` turns orange. T5 left the prop for T6, which is the first screen to
@@ -23,7 +29,7 @@ import Link from 'next/link';
  * the ink bar it was drawn on, and widening that selector would restyle the top
  * bar.
  */
-export function Wordmark({ href, onPaper = false }: { href?: '/'; onPaper?: boolean }) {
+export function Wordmark({ href, onPaper = false }: { href?: Route; onPaper?: boolean }) {
   const mark = (
     <>
       <span className="glyph" style={onPaper ? { borderColor: 'var(--ink)' } : undefined}>

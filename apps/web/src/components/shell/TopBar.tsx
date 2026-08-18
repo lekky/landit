@@ -15,6 +15,12 @@ import { TOP_NAV, isNavActive } from './nav';
  * Below 860px `.nav` is hidden by the design system and `MobileNav` takes over.
  * Below 520px the streak chip goes too, which is also the stylesheet's call,
  * not this component's.
+ *
+ * The mark goes where home is **for the person clicking it**: the dashboard
+ * when somebody is signed in, the landing page when nobody is. It pointed at
+ * `/` either way, which took a signed-in rider out of the app and onto the
+ * sales page from the one control every screen carries. `/` redirects them
+ * back now, but a link that lands where it means to beats a round trip.
  */
 
 export type TopBarRider = {
@@ -31,7 +37,7 @@ export function TopBar({ rider }: { rider?: TopBarRider }) {
   return (
     <header className="topbar">
       <div className="topbar-in">
-        <Wordmark href={ROUTES.home} />
+        <Wordmark href={rider ? ROUTES.dashboard : ROUTES.home} />
 
         <nav className="nav" aria-label="Main">
           {TOP_NAV.map((item) => {
