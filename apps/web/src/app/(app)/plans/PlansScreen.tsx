@@ -64,6 +64,9 @@ const FAQ: readonly { readonly q: string; readonly a: string }[] = [
   },
 ];
 
+/** Ties the Yearly button to the saving tag via `aria-describedby`. */
+const SAVING_TAG_ID = 'plans-yearly-saving';
+
 export function PlansScreen({ view }: { view: PlansView }) {
   const [period, setPeriod] = useState<BillingPeriod>('monthly');
   const [portal, portalAction, portalPending] = useActionState<{ error?: string }, FormData>(
@@ -89,18 +92,35 @@ export function PlansScreen({ view }: { view: PlansView }) {
                 type="button"
                 className={`cond ${styles.toggleButton}`}
                 aria-pressed={period === value}
+                aria-describedby={
+                  value === 'yearly' && view.savingLabel ? SAVING_TAG_ID : undefined
+                }
                 data-on={period === value ? 'true' : undefined}
                 onClick={() => setPeriod(value)}
               >
                 {value === 'monthly' ? 'Monthly' : 'Yearly'}
               </button>
             ))}
+            {/*
+              Pinned under the toggle's right-hand half, which is Yearly. Beside
+              the whole control (as the prototype has it) the tag reads as a
+              property of whatever is currently selected, so a visitor sitting
+              on Monthly is told they are getting two months free. Anchoring it
+              to the Yearly button says whose saving it is without spending
+              words on it, and `aria-describedby` says the same thing to a
+              screen reader, where position carries nothing.
+            */}
+            {view.savingLabel && (
+              <Tag
+                tilt
+                color="var(--lime)"
+                className={styles.savingTag}
+                style={{ color: 'var(--ink)' }}
+              >
+                <span id={SAVING_TAG_ID}>{view.savingLabel}</span>
+              </Tag>
+            )}
           </div>
-          {view.savingLabel && (
-            <Tag tilt color="var(--lime)" style={{ color: 'var(--ink)' }}>
-              {view.savingLabel}
-            </Tag>
-          )}
         </div>
       </div>
 
