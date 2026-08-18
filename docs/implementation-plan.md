@@ -2138,9 +2138,12 @@ switch, with the dashboard band alongside it.
   `trick_progress` hook remains the single authority on the paywall (§3, guarantee 3) and a refusal
   snaps the row back and says why, wherever it was tapped.
 
-**Not built, and left to the owner.** The switch does not add a nav entry. Option 2 in the
-prototypes — *My tricks* as a top-level destination — is the same screen plus a navigation slot,
-and the phone's bottom bar is five items by design; taking it would mean deciding what leaves.
+**Not built, and now decided: no nav entry** (owner, 2026-08-18, in chat). Option 2 in the
+prototypes — *My tricks* as a top-level destination — was put to the owner with its cost, since it
+is the same screen plus a slot in a bottom bar the design fixes at five items, and the answer was
+no. So "My tricks" is reached from the library switch and from the dashboard's "Working on it",
+and **a session proposing to promote it into `components/shell/nav.ts` is reopening a settled
+decision** rather than filling a gap. The nav stays at five and four.
 
 ### Dependency graph
 

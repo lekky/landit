@@ -307,17 +307,26 @@ export function LibraryBrowser({
                 dead label is not a safe default: it goes stale silently, where
                 a dead link does not compile.
 
-                Still no countdown and no pressure — the tier is described, and
-                the button says where it goes (plan §6.4, standard 13). "Get
-                Shredder" is the wording the plans page puts on the same
-                purchase, so the label and its destination agree.
+                The label is **"Upgrade now"**, chosen by the owner
+                (2026-08-18, in chat) over "Get Shredder", which this first
+                shipped with because it matched the plans page's own button on
+                the same purchase. Do not "correct" it back for consistency:
+                the two say different things on purpose. The plans page names
+                the plan because the rider is already choosing between three;
+                this banner names the *action*, because a rookie looking at a
+                locked trick has not started choosing yet.
+
+                Still within plan §6.4, standard 13. "Now" is when the button
+                works, not a deadline — there is no countdown, no scarcity and
+                no claim that the price is about to change. That standard bars
+                manufactured urgency, not the imperative mood.
               */}
               <Link
                 className={`btn sm ${styles.bannerCta}`}
                 href={ROUTES.plans}
                 style={{ background: 'var(--violet)' }}
               >
-                Get Shredder
+                Upgrade now
               </Link>
             </Panel>
           )}
