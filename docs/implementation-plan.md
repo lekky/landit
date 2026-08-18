@@ -650,8 +650,9 @@ What deliberately did **not** change, so a later session does not read it as dri
 - **The spots map still opens over the UK** (`MAP_DEFAULT_CENTRE`). It is only ever seen when there
   are *no* spots to fit; with any spot on screen the map fits bounds to the real data. Centring per
   rider needs a country-centroid table that is not worth carrying for the empty case.
-- **The seeded spots are all UK.** They are real places, not a market statement, and they are
-  replaced by rider submissions. Issue #106 already covers the gap that actually bites (no BMX spot).
+- ~~**The seeded spots are all UK.**~~ *Overtaken 2026-08-18 (PR #205): the seed is now 98 real
+  venues across ~30 countries, researched with per-venue sport permissions, and #106 (no BMX spot)
+  closed with it — 80 of the 98 take BMX. Coverage holes that remain are issue #213.*
 
 ### 6.4 The Children's code standards with teeth here
 

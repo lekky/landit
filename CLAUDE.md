@@ -23,7 +23,11 @@ your merge and a live service used by children.
    high: exact tokens, hard offset shadows, zero border radius, the loud visual language.
    Recreate, don't reinterpret. The prototype `.jsx` files are the behavioural spec; check
    screens against the numbered screenshots your task names.
-4. **[docs/LESSONS.md](docs/LESSONS.md)** — the process rules this build paid for, by theme.
+4. **[docs/FEATURES.md](docs/FEATURES.md)** — what the product actually does today, derived from
+   the code on `main`: routes, data model, server-side enforcement, plans, mechanics, coverage.
+   Orientation, not authority — when it disagrees with the code, the code wins and the file gets
+   re-audited.
+5. **[docs/LESSONS.md](docs/LESSONS.md)** — the process rules this build paid for, by theme.
    Read §1 (parallel sessions) before any session that runs beside another, and the section
    covering what you are about to touch. Every rule there was earned by something that went
    wrong; they are not optional context.

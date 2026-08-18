@@ -483,8 +483,9 @@ brief 502 and a `rejected` health response from the old container; at zero retri
 pages you, and a monitor that pages on every deploy is muted within a week.
 
 Alerts go to the owner's Gmail over SMTP (`smtp.gmail.com:465`, a Google App Password, not the
-account password). Deliberately **not** MailerSend: it is still in trial and unverified (#31), and
-an alert about a broken deployment that cannot itself be delivered is worse than none.
+account password). Deliberately **not** MailerSend — originally because it was still in trial, and
+still the right call now it is not: an alert path should not share a failure domain with the
+product's own email, or a broken mail stack silences its own alarm.
 
 **What this does not cover, and cannot:** Uptime Kuma runs on box1 and watches services on box1. If
 the host goes, Kuma goes with it and nothing is sent — the dashboard is green because nothing is
@@ -492,8 +493,11 @@ left to say otherwise. Closing that needs one check hosted somewhere box1 does n
 **issue #160**, and it belongs before `LANDIT_SITE_LIVE=true` rather than after.
 
 Then walk the guardian-consent email, the password reset and the verification email by hand
-(**issue #31**). Nothing that sends email has ever been observed working, and the guardian email is
-the mechanism the child-safety position rests on.
+(**issue #31**). The password reset was walked end-to-end on the live instance on 2026-08-18 — the
+walk is what found the stock template's 404 (above) — so sending demonstrably works. The
+guardian-consent and verification deliveries have not yet been observed by a human, and the
+guardian email is the mechanism the child-safety position rests on, so #31 stays open until they
+are.
 
 
 ## Not done yet (infra track, implementation-plan.md §7)
@@ -514,13 +518,15 @@ Steps 1–8 above are the sequence; this is the progress.
 - [x] MailerSend out of the trial phase, domain verified, and the SPF merged into one record
       (runbook 6) — done 2026-08-18
 - [x] DMARC at `p=none` (runbook 7) — done 2026-08-18. **Tighten to `p=reject` from 2026-08-25.**
-- [ ] **The MailerSend SMTP credentials in PocketBase's mail settings** (runbook 6) — the admin UI,
-      not the environment. Until this is done every email path in the product is off, and the app
-      says so out loud rather than pretending: the guardian panel tells a rider the message could
-      not be sent, and `emailed` comes back `false`.
+- [x] **The MailerSend SMTP credentials in PocketBase's mail settings** (runbook 6) — done
+      2026-08-18, the admin UI, not the environment. Proven by the observed password-reset
+      delivery the same day, not just by the settings screen.
 - [x] Uptime Kuma monitors, three of them, alerting to Gmail (runbook 8) — done 2026-08-17.
       **Kuma cannot report its own host dying — issue #160.**
-- [ ] The email paths walked by hand — issue #31 (runbook 8)
+- [ ] The email paths walked by hand — issue #31 (runbook 8). **Partial 2026-08-18**: the password
+      reset was walked end-to-end on the live instance (and caught the stock-template 404, now
+      fixed); the guardian-consent and verification deliveries are still unobserved, so this stays
+      open.
 - [x] **The superuser pair set on `landit-web` and verified green** (runbook 2b) — done 2026-08-17,
       issue #62. Server-owned writes work: "I rode today", and later the Stripe webhook and the
       staff portal.
@@ -548,7 +554,9 @@ Steps 1–8 above are the sequence; this is the progress.
       **Two items above it were still open when it was set**, and this is the record of that rather
       than a reproach — both are now live-site problems rather than pre-launch ones:
 
-      - **#31, the email paths.** Nothing that sends email has ever been observed working. On a
+      - **#31, the email paths.** At the time nothing that sends email had ever been observed
+        working (the password reset has since been walked, 2026-08-18; the guardian and
+        verification paths still have not). On a
         live site taking sign-ups that is not a to-do, it is the **guardian-consent gate**: a rider
         below their country's threshold lands at `pending` and stays there until a guardian
         approves by email (§6.2). If that email does not arrive, the account never opens and the

@@ -9,8 +9,8 @@
  *
  * Two halves:
  *
- * - `./data` — the canonical records transcribed from the design pack: 61
- *   tricks and their prerequisite edges, stickers, plans, spots, events,
+ * - `./data` — the canonical records: 97 tricks (30 scooter, 31 skate, 36
+ *   BMX) and their prerequisite edges, stickers, plans, spots, events,
  *   challenges, stances, goals and the avatar registry. Single source for both
  *   the database seeds and the test fixtures.
  * - `./rules` — the behaviour: landed stages, free and locked tricks,
