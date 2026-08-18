@@ -179,6 +179,29 @@
 }
 
 /*
+ * Stopping tracking. The dashed rule is doing real work: it separates an action
+ * from the five states above it, so the button does not read as a sixth stage.
+ * Solid rules in this panel mean "next section" (see `.landed` below) — dashed
+ * means "same section, different kind of thing".
+ */
+.untrack {
+  margin-top: 12px;
+  border-top: 2px dashed var(--ink-3);
+  padding-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.untrackWhy {
+  font-size: 13px;
+  color: var(--ink-2);
+  max-width: 34ch;
+}
+
+/*
  * The first-landed row, with "Share it" pushed to the right of it
  * (screenshot 09). It wraps rather than squeezing: the date is the content and
  * the button is the offer, so on a narrow panel the button drops below.

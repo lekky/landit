@@ -25,8 +25,11 @@ import { checkoutMetadata, priceEnvName, priceKey, stripeClient, stripeConfig } 
  *
  * **Nothing here touches a card number, and nothing here holds a Stripe key
  * that is in the repo.** Checkout is hosted by Stripe; the secret key is an
- * environment variable the owner sets, and until they do, every action below
- * returns "not switched on yet" rather than failing.
+ * environment variable the owner sets on the deployed box, and it is set —
+ * the account went live with the site on 2026-08-17. The unconfigured branch
+ * below stays anyway, because it is what a preview deploy and a local checkout
+ * still see: with no keys every action returns "not switched on yet" rather
+ * than failing.
  */
 
 export interface UpgradeFormState {
