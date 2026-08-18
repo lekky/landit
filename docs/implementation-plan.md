@@ -916,8 +916,9 @@ no session recording without revisiting consent, given the audience.
 **Decided and live** (2026-08-15, replacing the earlier Railway decision). The box is
 set up, hardened, monitored and backed up — see `docs/infrastructure.md` for current state.
 Coventry datacentre keeps rider data in the UK. Both applications have been deployed on
-`landthetrick.com` and `api.landthetrick.com` since 2026-08-16, behind the `LANDIT_SITE_LIVE`
-holding page.
+`landthetrick.com` and `api.landthetrick.com` since 2026-08-16, and the `LANDIT_SITE_LIVE` holding
+page came down on **2026-08-17**: the site is public, crawlable and taking sign-ups, with Stripe
+live behind it.
 
 **Preview deployments are still off, and that is now a decision rather than a schedule slip.** This
 section wanted them wired after Wave 2; every wave has since merged without them. The reason they

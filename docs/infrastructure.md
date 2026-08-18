@@ -57,6 +57,15 @@ Set up 2026-08-15. This file records what exists and how to reach it — no secr
   `NEXT_PUBLIC_POCKETBASE_URL` as a **build** variable (Next inlines it) and
   `landit-pocketbase` carries `LANDIT_APP_URL` at run time.
 
+  **Deploys are manual, and that is a decision** (Rachid, 2026-08-17, in chat). Auto-deploy on
+  merge to `main` was considered and declined. It matters more than it looks: the owner does not
+  review PRs and sessions squash-merge their own (`CLAUDE.md`), so **merging is not shipping** —
+  a human clicking Redeploy is the only thing between an agent's merge and a live site used by
+  children. Two facts make that separation worth keeping: `main` has been red after roughly one
+  merge in three lately (issue #165), and the site is now public. A merged `main` and a deployed
+  box are therefore routinely *different commits*; check the box rather than the log when asking
+  what is live.
+
 ## Backups (done 2026-08-15)
 
 - **R2 bucket `box1-backups`** on Rachid's Cloudflare account, **EU jurisdiction** — note the
@@ -184,7 +193,7 @@ without a rebuild:
 
 | Variable | Value while building | Value at launch |
 | --- | --- | --- |
-| `LANDIT_SITE_LIVE` | leave unset, or `false` | `true` |
+| `LANDIT_SITE_LIVE` | leave unset, or `false` | `true` — **set 2026-08-17, the site is live** |
 | `LANDIT_PREVIEW_KEY` | a long random string | keep it, or clear it |
 
 `LANDIT_SITE_LIVE` decides whether every URL serves the app or the holding page. It is read by
@@ -442,5 +451,20 @@ Steps 1–8 above are the sequence; this is the progress.
 - [ ] **Preview deployments turned on, and what a preview may touch decided** (runbook 2) —
       **issue #164**. The Preview environment has no superuser pair and points at the production
       PocketBase. Every wave merged without previews, so this was never actually used.
-- [ ] **`LANDIT_SITE_LIVE=true`, on launch day.** The last item on this list, deliberately: it is
-      the one that makes everything above it visible to the public.
+- [x] **`LANDIT_SITE_LIVE=true`** — **done 2026-08-17 (Rachid, confirmed in chat).** The last item
+      on this list, deliberately, because it is the one that makes everything above it visible to
+      the public. `landthetrick.com` now serves the product rather than the holding page, and
+      `/robots.txt` returns `Allow: /`, so the site is crawlable as well as reachable.
+
+      **Two items above it were still open when it was set**, and this is the record of that rather
+      than a reproach — both are now live-site problems rather than pre-launch ones:
+
+      - **#31, the email paths.** Nothing that sends email has ever been observed working. On a
+        live site taking sign-ups that is not a to-do, it is the **guardian-consent gate**: a rider
+        below their country's threshold lands at `pending` and stays there until a guardian
+        approves by email (§6.2). If that email does not arrive, the account never opens and the
+        rider has no way to say so.
+      - **#160, Uptime Kuma's blind spot.** Kuma runs on the box it watches, so a host-level outage
+        alerts nobody and the dashboard stays green because nothing is left to say otherwise. The
+        section above this one says it "belongs before `LANDIT_SITE_LIVE=true` rather than after".
+        It is now after.
