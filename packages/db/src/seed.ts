@@ -8,6 +8,7 @@ import {
   TRICKS,
   TRICK_PREREQS,
   formatPricePence,
+  type LandItEvent,
   type Plan,
   type Sticker,
   type Trick,
@@ -175,7 +176,11 @@ export function buildSeed(): SeedPlan {
       {
         collection: 'events',
         key: ['slug'],
-        rows: EVENTS.map((event) => ({
+        // Widened to the interface on purpose. `EVENTS` is `as const`, so its
+        // type is a union of six literal shapes and an optional field is
+        // missing from the members that do not carry one — `event.lat` would
+        // not typecheck against an event researched without coordinates.
+        rows: (EVENTS as readonly LandItEvent[]).map((event) => ({
           slug: event.id,
           name: event.name,
           kind: event.kind,
@@ -188,6 +193,16 @@ export function buildSeed(): SeedPlan {
           spots_copy: event.spots,
           blurb: event.blurb,
           is_live: event.isLive,
+          // Absent stays absent. An event researched without a phone writes
+          // `''` rather than the string "undefined", and one without a venue
+          // point writes nothing at all — `lat: 0` would be a location, and a
+          // wrong one (`hasCoords`).
+          country: event.country ?? '',
+          address: event.address ?? '',
+          phone: event.phone ?? '',
+          source_url: event.sourceUrl ?? '',
+          ...(event.lat === undefined ? {} : { lat: event.lat }),
+          ...(event.lng === undefined ? {} : { lng: event.lng }),
         })),
       },
     ],

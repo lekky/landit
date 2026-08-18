@@ -97,7 +97,9 @@ test('an event that has been and gone is hidden until it is asked for', async ({
 
   await expect(page.getByText('E2E Last Month Session')).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Upcoming only' }).click();
+  // "Upcoming only" is the state the page lands in and is now drawn as such;
+  // the pill that changes it is the other one.
+  await page.getByRole('button', { name: 'Including past' }).click();
   await expect(page.getByText('E2E Last Month Session')).toBeVisible();
   await expect(page.getByText('Been and gone')).toBeVisible();
 });
@@ -107,7 +109,7 @@ test('the kind filter narrows the list and every pill finds something', async ({
   await page.goto('/events');
 
   // "Including past", so both seeded kinds are in scope for the pills.
-  await page.getByRole('button', { name: 'Upcoming only' }).click();
+  await page.getByRole('button', { name: 'Including past' }).click();
 
   await page.getByRole('button', { name: 'Session', exact: true }).click();
   await expect(page.getByText('E2E Last Month Session')).toBeVisible();

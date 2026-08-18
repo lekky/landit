@@ -1,6 +1,13 @@
-import { DEFAULT_TIMEZONE, sportsOf, type SportId } from '@landit/core';
+import {
+  DEFAULT_TIMEZONE,
+  regionFromAcceptLanguage,
+  sportsOf,
+  unitsForCountry,
+  type SportId,
+} from '@landit/core';
 import { eventsFromRecords, listEventAttendance, listEvents } from '@landit/db';
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { ROUTES } from '@/lib/routes';
@@ -21,6 +28,14 @@ export const metadata: Metadata = {
  * and `event_attendance` is `OWN`, so "who else is going" is not readable and
  * is not shown — this product has no stranger-contact surface (plan §6.1), and
  * an attendee list would be one.
+ *
+ * **Distances are in the reader's units, resolved here, on the server** — the
+ * same way `/spots` resolves them, off the rider's own country and falling back
+ * to `Accept-Language`. Reading the units in the browser instead would make the
+ * first paint disagree with the second (LESSONS §3a), and the rider's *position*
+ * never comes near this file: "Near me" is asked for, and answered, entirely in
+ * the component, and no coordinate of theirs is sent anywhere (plan §6.4
+ * standard 10).
  */
 export default async function EventsPage() {
   const session = await currentRider();
@@ -43,6 +58,10 @@ export default async function EventsPage() {
     if (slug) going.add(slug);
   }
 
+  const units = unitsForCountry(
+    rider.country || regionFromAcceptLanguage((await headers()).get('accept-language')),
+  );
+
   const view = buildEventsView({
     events: eventsFromRecords(eventRecords),
     sports: sportsOf({ sports: rider.sports as SportId[] }),
@@ -50,5 +69,5 @@ export default async function EventsPage() {
     clock: { timezone: rider.timezone || DEFAULT_TIMEZONE },
   });
 
-  return <EventsScreen view={view} />;
+  return <EventsScreen view={view} units={units} />;
 }

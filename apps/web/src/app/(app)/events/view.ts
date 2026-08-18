@@ -1,8 +1,13 @@
 import {
   SPORTS,
+  eventCountriesPresent,
   eventDateBlock,
   eventKindColor,
   eventKindsPresent,
+  eventMapsLink,
+  eventPhoneLink,
+  eventSourceHost,
+  eventSourceLink,
   eventsFor,
   isEventPast,
   sortedEvents,
@@ -52,6 +57,27 @@ export interface EventView {
   readonly going: boolean;
   /** Already been and gone, on the rider's calendar. */
   readonly past: boolean;
+
+  /*
+   * Where it is and where the listing came from. Every one of these is `''`
+   * when the research did not find it, and the screen renders each line only
+   * when it has one — an event with no phone shows no phone row, rather than a
+   * label with nothing after it.
+   */
+  readonly country: string;
+  readonly address: string;
+  /** As published. `phoneLink` is the dialable form; this is what is shown. */
+  readonly phone: string;
+  readonly phoneLink: string;
+  /** Already scheme-checked: `''` unless it is a real http(s) URL. */
+  readonly sourceUrl: string;
+  /** "rampworx.com" — where that link goes, before a rider follows it. */
+  readonly sourceHost: string;
+  /** Google Maps for the venue, or `''` when there is no point to open. */
+  readonly mapsUrl: string;
+  /** The venue's point, for "Near me". Both `undefined` when unplottable. */
+  readonly lat?: number;
+  readonly lng?: number;
 }
 
 export interface EventsView {
@@ -61,6 +87,12 @@ export interface EventsView {
   /** How many live events each sport has, for the tab notes. */
   readonly countBySport: Readonly<Record<string, number>>;
   readonly goingCount: number;
+  /**
+   * The countries with an event behind them, alphabetically — the options the
+   * country filter offers. Computed on the server so the `<select>` renders
+   * identically on both sides of hydration (LESSONS §3a).
+   */
+  readonly countries: readonly string[];
 }
 
 export interface EventsViewInput {
@@ -99,6 +131,18 @@ export function buildEventsView(input: EventsViewInput): EventsView {
       sportIds: [...event.sports],
       going: input.going.has(event.id),
       past: isEventPast(event, input.clock),
+      country: event.country ?? '',
+      address: event.address ?? '',
+      phone: event.phone ?? '',
+      phoneLink: eventPhoneLink(event.phone),
+      // Scheme-checked here, once, so no component can render an unchecked
+      // `href` — the check belongs between the data and the DOM, not in a
+      // component that might be copied without it.
+      sourceUrl: eventSourceLink(event.sourceUrl),
+      sourceHost: eventSourceHost(event.sourceUrl),
+      mapsUrl: eventMapsLink(event),
+      ...(event.lat === undefined ? {} : { lat: event.lat }),
+      ...(event.lng === undefined ? {} : { lng: event.lng }),
     };
   });
 
@@ -114,5 +158,6 @@ export function buildEventsView(input: EventsViewInput): EventsView {
     kinds: eventKindsPresent(input.events).map((id) => ({ id, color: eventKindColor(id) })),
     countBySport,
     goingCount: events.filter((e) => e.going).length,
+    countries: eventCountriesPresent(input.events),
   };
 }

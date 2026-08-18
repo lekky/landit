@@ -245,6 +245,13 @@ export interface AdminEventRow {
   readonly date: string;
   readonly town: string;
   readonly venue: string;
+  readonly country: string;
+  readonly address: string;
+  readonly phone: string;
+  readonly sourceUrl: string;
+  /** As a string, because the editor's inputs are strings and blank means unset. */
+  readonly lat: string;
+  readonly lng: string;
   readonly level: string;
   readonly price: string;
   readonly spotsCopy: string;
