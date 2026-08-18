@@ -1,7 +1,14 @@
 # CLAUDE.md — session orientation
 
-Land The Trick: a trick tracker for scooter, skateboard and BMX riders. Pre-launch build, executed as
-parallel agent sessions over the task plan in `docs/implementation-plan.md` §7.
+Land The Trick: a trick tracker for scooter, skateboard and BMX riders, built as parallel agent
+sessions over the task plan in `docs/implementation-plan.md` §7.
+
+**The site went live on 2026-08-17** — `landthetrick.com` serves the product, not a holding page,
+and Stripe is live behind it. Two things follow for a session. Real people can now reach what you
+merge, so "it is only pre-launch" is no longer a reason to defer a correction. And **merging is
+still not shipping**: deploys are deliberately manual (`docs/infrastructure.md`), so `main` and the
+deployed box are routinely different commits, and a human clicking Redeploy is what stands between
+your merge and a live service used by children.
 
 ## Start here
 
