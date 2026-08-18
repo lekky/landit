@@ -21,11 +21,12 @@ import {
   type TrickStatusFilter,
 } from '@landit/core';
 import { Empty, Icon, Panel, Pill, TrickCard } from '@landit/ui-web';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
 import { SportSwitch } from '@/components/shell/SportSwitch';
-import { trickHref } from '@/lib/routes';
+import { ROUTES, trickHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { useSport } from '@/providers/sport';
 
@@ -199,12 +200,26 @@ export function LibraryBrowser({
                 </p>
               </div>
               {/*
-                The plans page is a later task and `typedRoutes` makes a link to
-                it a compile error, so it renders as a label rather than a dead
-                link (LESSONS §3a). No countdown, no pressure — the tier is
-                described, and that is all (plan §6.4, standard 13).
+                A real link since T15 built `/plans`. Until then this was the
+                label "Upgrading is not switched on yet", because `typedRoutes`
+                made a link to an unbuilt page a compile error (LESSONS §3a) —
+                and it outlived the reason by long enough to still be telling
+                riders they could not buy anything after Stripe went live. A
+                dead label is not a safe default: it goes stale silently, where
+                a dead link does not compile.
+
+                Still no countdown and no pressure — the tier is described, and
+                the button says where it goes (plan §6.4, standard 13). "Get
+                Shredder" is the wording the plans page puts on the same
+                purchase, so the label and its destination agree.
               */}
-              <span className={`cond ${styles.bannerNote}`}>Upgrading is not switched on yet.</span>
+              <Link
+                className={`btn sm ${styles.bannerCta}`}
+                href={ROUTES.plans}
+                style={{ background: 'var(--violet)' }}
+              >
+                Get Shredder
+              </Link>
             </Panel>
           )}
 

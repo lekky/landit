@@ -11,13 +11,19 @@ import Stripe from 'stripe';
  * about which provider it was. `stripeWriteFromEvent` returning
  * `source: 'stripe'` is the last mention of the word on the way in.
  *
- * **There is no Stripe account yet.** The keys below are placeholders in
- * `apps/web/.env.example` and nothing in this repo has ever held a real one —
- * secrets never enter the repo (`CLAUDE.md`), and creating the account and its
- * products is the owner's, in their own browser. Everything here is written to
- * be *unconfigured* without breaking: `stripeConfig()` returns `null`, the
- * plans page renders in full and says upgrading is not switched on yet, and the
- * webhook answers 503 rather than pretending it processed something.
+ * **The Stripe account is live** — it went live with the site on 2026-08-17,
+ * and the owner created it and its four products in their own browser. The keys
+ * below are still placeholders in `apps/web/.env.example` and nothing in this
+ * repo has ever held a real one: secrets never enter the repo (`CLAUDE.md`),
+ * so the real values live only in the deployed environment.
+ *
+ * **The unconfigured path is still a first-class state, and stays one.** Every
+ * local checkout, every test run and every preview deploy has no keys, and a
+ * module that threw on import there would be a module nobody could run. So:
+ * `stripeConfig()` returns `null`, the plans page renders in full and says
+ * upgrading is not switched on yet, and the webhook answers 503 rather than
+ * pretending it processed something. Read `null` as "not here", never as
+ * "not built".
  *
  * **Nothing here decides who may buy.** That is `@landit/core`'s
  * `upgradeRouteFor` to define and `pocketbase/hooks/55_subscriptions.pb.js` to
@@ -51,11 +57,11 @@ function env(name: string): string | undefined {
 }
 
 /**
- * The Stripe configuration, or `null` when the account has not been set up.
+ * The Stripe configuration, or `null` when this environment has no keys.
  *
- * `null` is a first-class state, not an error path: it is what every checkout
- * and every deployment sees until the owner creates the account (issue filed
- * with the exact keys and products). Callers branch on it rather than throwing,
+ * `null` is a first-class state, not an error path: production has the keys,
+ * and every local run, test and preview deploy does not. Callers branch on it
+ * rather than throwing,
  * so the plans page still renders three real cards with real prices from the
  * `plans` records — the prices are ours, in `@landit/core`, and were never
  * Stripe's to tell us.

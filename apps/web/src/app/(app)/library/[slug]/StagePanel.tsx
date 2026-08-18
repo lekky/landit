@@ -20,8 +20,18 @@ import styles from './trick.module.css';
  * can refuse this write, and when it does the picker snaps back and says why
  * rather than leaving a rider looking at a stage that was never stored.
  *
- * Picking the stage you are already on clears it. That is the untrack path, and
- * it is `StagePicker`'s documented behaviour rather than something added here.
+ * Picking the stage you are already on clears it — that is `StagePicker`'s
+ * documented behaviour rather than something added here. It is also the whole
+ * problem the "Stop tracking this trick" button solves: a rider sitting on
+ * *Learning* who taps *Learning* is expecting nothing to happen, so the one
+ * gesture that untracks a trick was the one nothing on screen suggested. The
+ * button is a second door onto the same `pick(null)` call, not a second path —
+ * there is still one write, one refusal and one toast.
+ *
+ * It sits **below** the five-cell row rather than inside it because stopping is
+ * an action and the five are states; putting it in the row would make six cells
+ * where the design specifies five, and would change a component every stage row
+ * in the app renders through.
  *
  * **Two things T10 added.** The "Share it" button screenshot 09 shows beside the
  * first-landed date, which T7 deliberately left out so one `ShareCard` would
@@ -104,6 +114,16 @@ export function StagePanel({
             ? "That's it locked in."
             : 'Tap a higher stage when it gets more consistent.'}
         </p>
+      )}
+      {current && (
+        <div className={styles.untrack}>
+          <span className={styles.untrackWhy}>
+            Takes it off your list. Your first-landed date is kept.
+          </span>
+          <Button size="sm" variant="ghost" onClick={() => pick(null)}>
+            Stop tracking this trick
+          </Button>
+        </div>
       )}
       {landedLabel && (
         <div className={styles.landed}>
