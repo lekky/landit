@@ -1,58 +1,107 @@
 /*
  * The confirm-your-email reminder.
  *
- * Wash on ink with a hard bottom rule and no radius, like every other bar in
- * the product (`design-handoff/README.md`). Deliberately *not* the offline
- * bar's yellow: that one reports something being wrong right now, and this one
- * is a reminder about a thing that has not happened yet. Same shape, quieter
- * voice.
+ * A panel, not a bar. The distinction matters: this renders *inside* `.page`,
+ * so the bottom-rule-only treatment every full-bleed bar in the product uses
+ * (`design-handoff/README.md`) landed here as a stray underline on a surface
+ * the exact colour of the page behind it — `--wash` on `--wash`. Paper on ink
+ * with the hard 3px rule and an unblurred offset gives it the edge it needs to
+ * read as a thing rather than as loose text.
+ *
+ * Deliberately *not* the offline bar's yellow, and deliberately not `--sh`
+ * either: that one reports something being wrong right now, and this is a
+ * reminder about a thing that has not happened yet. Same language, smaller
+ * shadow, no accent fill. Nothing here blurs a shadow or rounds a corner.
  */
 
 .banner {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
-  padding: 10px 18px;
-  background: var(--wash);
+  padding: 13px 16px;
+  /* Matches `.page`'s own top padding, so the gap the banner leaves below it is
+     the same as the gap the top bar leaves above it. */
+  margin-bottom: 26px;
+  background: var(--paper);
   color: var(--ink);
-  border-bottom: var(--bd);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
   font-size: 15px;
   line-height: 1.35;
 }
-.banner strong {
+
+/*
+ * `lock`, not a new glyph. The icon set is transcribed from the prototype
+ * path-for-path and there is no envelope in it, so drawing one would be the
+ * single shape in the product nobody designed (`ui-web/src/icons.tsx`). A lock
+ * is not a stand-in here anyway: the whole reason to confirm the address is
+ * that the password reset goes to it.
+ */
+.mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* Grows into whatever the mark leaves, and never drops below `flex-basis` —
+   which is what keeps the mark beside the words instead of stranded on a line
+   of its own once the actions wrap away below. */
+.text {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  flex: 1 1 240px;
+  gap: 4px 10px;
+  min-width: 0;
+}
+.title {
   font-size: 17px;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.07em;
 }
 .why {
   color: var(--ink-2);
 }
+
 .actions {
   display: flex;
   align-items: center;
   gap: 14px;
   margin-left: auto;
 }
+
+/* The dismiss stays a quiet underline. Two hard-edged buttons side by side
+   would give walking away the same weight as confirming, and this gates
+   nothing. */
 .link {
   background: none;
   border: 0;
   padding: 0;
-  font: inherit;
-  color: var(--ink);
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
   text-decoration: underline;
-  text-underline-offset: 3px;
+  text-underline-offset: 4px;
   cursor: pointer;
 }
 .link:hover {
   color: var(--orange);
 }
+
 .sent {
-  font-weight: 600;
+  background: var(--green);
 }
 
-@media (max-width: 620px) {
+@media (max-width: 700px) {
   .actions {
     margin-left: 0;
     width: 100%;
+    justify-content: flex-end;
   }
 }
