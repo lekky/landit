@@ -7,9 +7,21 @@ import type { SportLook } from '@landit/ui-web';
  * and for a reason that is sharper here than anywhere else: the riders table is
  * a client component, so whatever these types carry is what gets serialised
  * into the page and shipped to a browser. That makes this file a statement
- * about what a staff screen may know about a rider, and it deliberately carries
- * no email, no town, no age band and no consent token — none of which the two
- * jobs on this screen (move a plan, suspend an account) need.
+ * about what a staff screen may know about a rider, and the two fields added on
+ * 2026-08-18 were weighed against that rather than assumed (owner's call, in
+ * chat).
+ *
+ * **Age band travels with the row; email does not.** T16 carried neither, on
+ * the grounds that moving a plan and suspending an account need neither. The
+ * band earns its place because it is the fact behind the Account column's
+ * GUARDIAN tag — staff were reading the consequence with no way to see the
+ * cause — and it is a bucket of four, not a birth date, so a row carrying it
+ * leaks nothing sharper than the tag beside it already did. Email is different
+ * in kind: it identifies a child off the platform, and a table of forty rows is
+ * forty addresses in the page source whether or not anyone reads them. It
+ * therefore lives on `RiderSheetView` alone, which is fetched per rider when
+ * staff open one, so the page carries the address of the rider being looked at
+ * and of nobody else. `country` and the consent token stay off both.
  *
  * Dates arrive pre-formatted for the same reason they do on every other screen:
  * `toLocaleDateString` disagrees between Node and the browser and takes the
@@ -30,6 +42,8 @@ export interface AdminRiderRow {
   readonly active: string;
   /** True when `active` is today, which the table colours differently. */
   readonly activeToday: boolean;
+  /** "Under 13", "13–15", "16–17", "Adult", "—". Pre-formatted; see `AGE_BAND_LABEL`. */
+  readonly ageBand: string;
   readonly plan: string;
   /** `ok` | `suspended` | `pending` — the account column's tag. */
   readonly status: AdminRiderStatus;
@@ -38,6 +52,31 @@ export interface AdminRiderRow {
 }
 
 export type AdminRiderStatus = 'ok' | 'suspended' | 'pending';
+
+/**
+ * How the four age bands read on a staff screen.
+ *
+ * **These are bands, and the labels say so.** There is no date of birth in the
+ * database and there never was: the browser works the band out at sign-up and
+ * throws the date away (plan §3/§6.2, `bandForAge` in `@landit/core`). A column
+ * headed "Age" showing "14" would be inventing precision we deliberately do not
+ * collect, so the column is headed "Age band" and shows the bucket.
+ *
+ * Keyed loosely rather than by `AgeBand` because the column is also what an
+ * account with the field unset renders, and a `Record<AgeBand, string>` has no
+ * key for that — `bandLabel` maps anything it does not know to an em dash.
+ */
+const AGE_BAND_LABEL: Readonly<Record<string, string>> = {
+  under_13: 'Under 13',
+  '13_15': '13–15',
+  '16_17': '16–17',
+  adult: 'Adult',
+};
+
+/** The band's label, or an em dash for an account that has never declared one. */
+export function bandLabel(band: string | undefined | null): string {
+  return (band && AGE_BAND_LABEL[band]) || '—';
+}
 
 export interface AdminPlanOption {
   readonly slug: string;
@@ -93,6 +132,16 @@ export interface RiderSheetView {
   readonly planName: string;
   readonly planHue: string;
   readonly suspended: boolean;
+  /**
+   * The address the account signed up with.
+   *
+   * On the sheet and never on the row — see the head of this file. Empty
+   * string for an account with no address on it rather than `null`, so the
+   * sheet renders one dash instead of branching.
+   */
+  readonly email: string;
+  /** "Under 13", "13–15", "16–17", "Adult", "—". */
+  readonly ageBand: string;
   readonly sports: readonly SportLook[];
   readonly tracked: readonly TrackedTrickView[];
   readonly landed: number;
