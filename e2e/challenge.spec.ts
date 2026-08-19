@@ -5,7 +5,7 @@ import { seedLibrary } from './support/seed-library';
 import { LIVE_GOAL, seedSchedule } from './support/seed-schedule';
 
 /**
- * The weekly challenge (T12), for a rider on the free plan.
+ * The challenge screen (T12), for a rider on the free plan.
  *
  * Four decisions here are only observable on the rendered page, and each is one
  * careless edit away from being undone (LESSONS §3a):
@@ -15,7 +15,7 @@ import { LIVE_GOAL, seedSchedule } from './support/seed-schedule';
  *   walked from `SPORT_IDS`, so a fourth sport arriving with no schedule fails
  *   this rather than shipping a dead tab.
  * - **The log button works while the week is live, and the count moves.**
- * - **Past weeks are not merely blurred for a free rider — the results are
+ * - **Past challenges are not merely blurred for a free rider — the results are
  *   not on the page at all.** A blur that can be lifted in dev tools is a
  *   costume, not a limit.
  * - **The free-plan limit does not touch what can be earned.** The panel says
@@ -94,7 +94,7 @@ test('every sport has a week running, not just the two the design pack knew abou
 
   for (const sport of SPORT_IDS) {
     await page.getByRole('tab', { name: new RegExp(SPORTS[sport].short, 'i') }).click();
-    await expect(page.getByText(`Weekly challenge · ${SPORTS[sport].label}`)).toBeVisible();
+    await expect(page.getByText(`Challenge · ${SPORTS[sport].label}`)).toBeVisible();
     await expect(page.getByText('Live now')).toBeVisible();
     await expect(
       page.getByRole('button', { name: new RegExp(`Log a ${sport} thing`) }),
@@ -109,7 +109,7 @@ test('a free rider is shown the history is paid — and told it costs them no st
   await newRider(page);
   await page.goto('/challenge');
 
-  await expect(page.getByText('Past weeks')).toBeVisible();
+  await expect(page.getByText('Past challenges')).toBeVisible();
   await expect(page.getByText('Challenge history')).toBeVisible();
   await expect(page.getByText(/same on every plan/i)).toBeVisible();
 

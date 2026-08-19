@@ -5,7 +5,7 @@ import { riderToday, type RiderClock } from './streak';
 import { compareDayKeys, isDayWithin } from './time';
 
 /**
- * Weekly challenges.
+ * Challenges.
  *
  * A challenge's state is **never stored** (plan §2.2): it is read off `starts`
  * and `ends` every time it is asked for. A stored state is a state that goes

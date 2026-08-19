@@ -131,7 +131,7 @@ describe('finishing a challenge awards the sticker the screen promised', () => {
       name: 'Challenger',
       hue: '#FF6B6B',
       ico: 'bolt',
-      cond: 'Finish a weekly challenge',
+      cond: 'Finish a challenge',
       is_live: true,
     });
     const bmxWeek = await challenge('t12-last-day', 'bmx', day(-6), day(0), { goal: 2 });

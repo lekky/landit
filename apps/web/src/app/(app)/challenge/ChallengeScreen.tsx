@@ -12,7 +12,7 @@ import styles from './challenge.module.css';
 import type { ChallengeSportView } from './view';
 
 /**
- * The weekly challenge (screenshot 17).
+ * The challenge screen (screenshot 17).
  *
  * A client component only because the sport tabs are client state; every
  * string and number on it was computed on the server (`view.ts`).
@@ -40,7 +40,7 @@ export function ChallengeScreen({ views }: { readonly views: readonly ChallengeS
   if (!view) {
     return (
       <div className={styles.page}>
-        <span className="eyebrow">Weekly challenge</span>
+        <span className="eyebrow">Challenge</span>
         <h1 className={`d ${styles.head}`}>Nothing scheduled</h1>
       </div>
     );
@@ -70,7 +70,7 @@ export function ChallengeScreen({ views }: { readonly views: readonly ChallengeS
       />
 
       <div>
-        <span className="eyebrow">Weekly challenge · {view.sportLabel}</span>
+        <span className="eyebrow">Challenge · {view.sportLabel}</span>
         <h1 className={`d ${styles.head}`}>{current ? current.week : 'Nothing scheduled'}</h1>
       </div>
 
@@ -163,7 +163,7 @@ export function ChallengeScreen({ views }: { readonly views: readonly ChallengeS
       )}
 
       <div>
-        <SectionHead>Past weeks</SectionHead>
+        <SectionHead>Past challenges</SectionHead>
         {view.hasHistory ? (
           <div className={styles.pastHold}>
             <div className={historyShown ? styles.past : `${styles.past} ${styles.blurred}`}>
@@ -202,7 +202,7 @@ export function ChallengeScreen({ views }: { readonly views: readonly ChallengeS
           <Empty
             icon="bolt"
             title="No history yet"
-            sub="Finished weeks land here with what you managed."
+            sub="Finished challenges land here with what you managed."
           />
         )}
       </div>
