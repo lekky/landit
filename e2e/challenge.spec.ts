@@ -15,7 +15,7 @@ import { LIVE_GOAL, seedSchedule } from './support/seed-schedule';
  *   walked from `SPORT_IDS`, so a fourth sport arriving with no schedule fails
  *   this rather than shipping a dead tab.
  * - **The log button works while the week is live, and the count moves.**
- * - **Past weeks are not merely blurred for a free rider — the results are
+ * - **Past challenges are not merely blurred for a free rider — the results are
  *   not on the page at all.** A blur that can be lifted in dev tools is a
  *   costume, not a limit.
  * - **The free-plan limit does not touch what can be earned.** The panel says
@@ -109,7 +109,7 @@ test('a free rider is shown the history is paid — and told it costs them no st
   await newRider(page);
   await page.goto('/challenge');
 
-  await expect(page.getByText('Past weeks')).toBeVisible();
+  await expect(page.getByText('Past challenges')).toBeVisible();
   await expect(page.getByText('Challenge history')).toBeVisible();
   await expect(page.getByText(/same on every plan/i)).toBeVisible();
 
