@@ -13,7 +13,7 @@ import styles from './site.module.css';
  *
  * Columns whose destination has not been built yet render as plain labels —
  * see `lib/routes.ts` for why, and for the one line that turns each back into a
- * link. Stickers, Events, Spots, Crew, the weekly challenge and plans are still
+ * link. Stickers, Events, Spots, Crew, the challenge and plans are still
  * labels; T10 to T15 land those routes and each fills in its own line.
  *
  * The footer is shared with the signed-out pages, and Progress is a signed-in
@@ -46,7 +46,7 @@ const COLUMNS: readonly FooterColumn[] = [
     title: 'Riders',
     links: [
       { label: 'Crew', href: ROUTES.crew },
-      { label: 'Weekly challenge', href: ROUTES.challenge },
+      { label: 'Challenge', href: ROUTES.challenge },
       { label: 'Plans and pricing', href: ROUTES.plans },
     ],
   },

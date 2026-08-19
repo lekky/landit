@@ -93,12 +93,16 @@ export function isDayWithin(day: DayKey, from: DayKey, to: DayKey): boolean {
 /**
  * The day a week turns over on, as a `Date.getUTCDay()` index: `1`, Monday.
  *
- * **One product, one definition of "a week."** The weekly challenges were
- * already Monday-to-Sunday before the weekly streak existed — every seeded
- * challenge `starts` on a Monday and `ends` on the Sunday six days later, and
- * the cards say "Opens Monday". The weekly streak (plan §1) is scored on the
- * same boundary rather than a second one, so a rider's challenge week and
- * streak week are always the same seven days.
+ * **One product, one definition of "a week."** The challenges were already
+ * Monday-to-Sunday before the weekly streak existed — every seeded challenge
+ * `starts` on a Monday and `ends` on a Sunday. The weekly streak (plan §1) is
+ * scored on the same boundary rather than a second one, so a rider's streak
+ * week never cuts across a challenge window.
+ *
+ * A challenge covers a whole number of weeks, not necessarily one: the shipped
+ * six run weekly and everything from 2026-08-31 runs fortnightly (plan §7,
+ * T12). Both sit on this grid, which is the property `time.test.ts` holds them
+ * to.
  *
  * This is not a knob. Changing it would silently re-cut every challenge window,
  * so a different week boundary is a plan decision, not a call-site option.

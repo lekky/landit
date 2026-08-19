@@ -106,7 +106,7 @@ export const STICKERS = [
     sport: null,
     hue: '#FF6B6B',
     ico: 'bolt',
-    cond: 'Finish a weekly challenge',
+    cond: 'Finish a challenge',
     isLive: true,
   },
   {

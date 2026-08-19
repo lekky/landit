@@ -97,7 +97,7 @@ test('a screen that has been built is a real link', async ({ page }) => {
     ['Events', '/events'],
     ['Spots', '/spots'],
     ['Crew', '/crew'],
-    ['Weekly challenge', '/challenge'],
+    ['Challenge', '/challenge'],
     // T15's. The footer is where a person deciding whether to sign up looks for
     // the price, so this is the one app screen that also reads signed out.
     ['Plans and pricing', '/plans'],
