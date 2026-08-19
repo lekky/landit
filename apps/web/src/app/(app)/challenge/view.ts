@@ -14,7 +14,7 @@ import {
 } from '@landit/core';
 
 /**
- * The weekly challenge screen, computed on the server (screenshot 17,
+ * The challenge screen, computed on the server (screenshot 17,
  * `landit-screens-b.jsx`'s `Challenge`).
  *
  * Everything the screen draws is a plain string or number by the time it
@@ -97,9 +97,16 @@ export interface ChallengeSportView {
   readonly sport: SportId;
   readonly sportLabel: string;
   readonly current: CurrentChallengeView | null;
+  /** The next few weeks, never the whole schedule — see `UPCOMING_SHOWN`. */
   readonly upcoming: readonly UpcomingWeekView[];
+  /** The most recent finished weeks, newest first — see `PAST_SHOWN`. */
   readonly past: readonly PastWeekView[];
-  /** Whether there is any history at all — the blur needs something to cover. */
+  /**
+   * Whether there is any history at all — the blur needs something to cover.
+   *
+   * Read off the unsliced list, so a rider who has ridden through more weeks
+   * than `PAST_SHOWN` still counts as having history.
+   */
   readonly hasHistory: boolean;
 }
 
@@ -118,6 +125,24 @@ export interface ChallengeViewInput {
   readonly earnedStickerIds: readonly string[];
 }
 
+/**
+ * How much of the schedule each list is allowed to show.
+ *
+ * The prototype sliced neither, and was right not to: it had six weeks per
+ * sport, so "all of them" and "a readable list" were the same list. The
+ * schedule now runs the six shipped weeks plus nine fortnightly slots, and
+ * unsliced that is eight "Coming up" cards the day the first slot opens and
+ * fourteen finished cards behind the free-plan panel by the new year. A
+ * deliberate divergence from the design, recorded in plan §7 (T12).
+ *
+ * The caps are on the lists, not on the schedule, so they hold whatever the
+ * cadence becomes next — which is the point of writing them down rather than
+ * trimming the data. `past` gets the generous one: four slots ahead is all
+ * anybody plans for, but a season of history is what a rider actually scrolls.
+ */
+const UPCOMING_SHOWN = 4;
+const PAST_SHOWN = 8;
+
 export function buildChallengeView(input: ChallengeViewInput): ChallengeSportView[] {
   return input.sports.map((sport) => buildOne(sport, input));
 }
@@ -129,6 +154,7 @@ function buildOne(sport: SportId, input: ChallengeViewInput): ChallengeSportView
 
   const upcoming: UpcomingWeekView[] = weeks
     .filter((c) => challengeState(c, clock) === 'upcoming' && c.id !== current?.id)
+    .slice(0, UPCOMING_SHOWN)
     .map((c) => ({
       id: c.id,
       week: c.week,
@@ -141,7 +167,7 @@ function buildOne(sport: SportId, input: ChallengeViewInput): ChallengeSportView
   // Newest first: the week that just finished is the one a rider looks for.
   const finished = weeks.filter((c) => challengeState(c, clock) === 'past').reverse();
 
-  const past: PastWeekView[] = finished.map((c) => ({
+  const past: PastWeekView[] = finished.slice(0, PAST_SHOWN).map((c) => ({
     id: c.id,
     week: c.week,
     range: challengeRangeLabel(c),
@@ -201,8 +227,24 @@ function buttonLabel(
   complete: boolean,
   range: string,
 ): string {
-  if (state === 'upcoming') return `Opens ${range.split(' to ')[0]}`;
-  if (state === 'past') return 'This week is over';
-  if (complete) return '✓ Done this week';
+  if (state === 'upcoming') return `Opens ${openingDay(range)}`;
+  if (state === 'past') return 'This one is over';
+  if (complete) return '✓ Done';
   return challenge.verb;
+}
+
+/**
+ * The opening date, with its month, out of a range label.
+ *
+ * `challengeRangeLabel` drops the month from the start when both ends sit in
+ * one month — "10 to 16 Aug" — so taking the text before " to " gave a button
+ * reading **"Opens 10"**, which is not a date. It has been that way since T12
+ * and shows on any challenge that does not straddle a month boundary; the
+ * straddling case ("27 Jul to 2 Aug") was the one anybody looked at.
+ */
+function openingDay(range: string): string {
+  const [from = '', to = ''] = range.split(' to ');
+  if (/[A-Za-z]/.test(from)) return from;
+  // Borrow the month off the closing date, which always carries one.
+  return `${from} ${to.replace(/^\d+\s*/, '')}`.trim();
 }

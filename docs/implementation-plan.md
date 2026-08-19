@@ -1765,6 +1765,43 @@ modal, "I'm going". Inputs: `landit-screens-b.jsx`, `landit-screens-d.jsx`, scre
   `challengesFor('bmx')` was empty and the `challenger` sticker was unearnable for a BMX-only
   rider. `data.test.ts` and `challenges.test.ts` now count off `SPORT_IDS`; the two-sport versions
   were green for as long as BMX had nothing.
+- **The schedule runs to 2027-01-03, and the cadence goes fortnightly** (Rachid, in chat,
+  2026-08-19). The pack transcribed weeks 30–35, which gave the shipped schedule an expiry date of
+  **2026-08-30 — eleven days after the site went live**. Past its last Sunday `liveChallenge` falls
+  back to the most recent finished slot, so every sport shows a dead card, permanently, to real
+  riders; nothing was red, because "does it end?" was never asked. Nine fourteen-day slots now carry
+  all three sports to 2027-01-03, **authored, not transcribed**, on the same footing as the BMX six:
+  contiguous, identical dates across the sports, `riders` left empty, every slot naming tricks that
+  are in the shipped library, and no seasonal framing — the product is global, so a slot that assumes
+  dark October evenings is wrong for the half of its riders in Perth. The shipped six stay weekly:
+  nothing derives a cadence, `challengeState` reads whatever dates it is handed, so the two halves
+  coexist without a migration. **Merging is not seeding** — the records reach riders only when
+  `packages/db`'s seed is run against production.
+- **"Weekly" is gone from the copy, in favour of wording that survives the next cadence change.**
+  The screen's eyebrow, the public footer link and the `challenger` sticker's condition all said it.
+  They now say "challenge"; `week` carries a range ("Weeks 36-37") because the field is the card's
+  label and a slot is no longer one week. `challengeRewardSticker` matches on the sticker's *name*
+  and never its condition, so the reward still resolves — and the test that holds every challenge
+  to a live sticker with a rule proves it rather than trusting it.
+- **The tests now ask whether the schedule ends, and stop sampling.** Three assertions replace the
+  four hand-picked dates that let the expiry through: the slots run back to back with no gap
+  (`challengesOverlap` passes a gap happily — a gap is not an overlap, and it still shows a dead
+  card), there is exactly one live challenge on **every day the schedule claims** rather than on four
+  dates somebody thought to type, and the last slot ends no earlier than 2026-12-31. The per-sport
+  count is no longer asserted as six: asserting a literal count is asserting the schedule never
+  grows. What is asserted is that no sport is short of the others.
+- **The two lists are capped at four ahead and eight back** — a deliberate divergence from the
+  prototype, which slices neither. It was right not to at six weeks per sport, where "all of them"
+  and "a readable list" were the same list; unsliced it is now eight "Coming up" cards the day the
+  first slot opens and fourteen finished cards behind the free-plan panel by the new year.
+  `hasHistory` is still read off the unsliced list, so a rider who has ridden through more slots
+  than the cap still counts as having history.
+- **"Opens 10" was not a date.** `buttonLabel` took the text before " to " out of the range label,
+  and `challengeRangeLabel` drops the month from the start when both ends sit in one month — so an
+  upcoming challenge that did not straddle a month boundary offered a button reading "Opens 10".
+  Shipped in T12 and visible on every same-month week since; the straddling case was the one anybody
+  looked at. `openingDay` borrows the month off the closing date. Found while capping the lists, in
+  the same function, and fixed there rather than filed.
 - **Every challenge's `reward` names the `challenger` sticker** (issue #76). The pack gave each week
   a bespoke reward — "Long Roller", "Waxed In", "Down The Set" — and **not one of those ten names
   was a sticker record**, so the screen promised what the award flow could never grant. Of the

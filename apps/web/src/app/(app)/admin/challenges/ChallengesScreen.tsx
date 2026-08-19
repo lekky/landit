@@ -20,7 +20,7 @@ import type { AdminChallengeRow, AdminChallengeState } from '../view';
 import styles from '../admin.module.css';
 
 /**
- * The weekly challenge schedule (`landit-admin.jsx`, `AdminChallenges`).
+ * The challenge schedule (`landit-admin.jsx`, `AdminChallenges`).
  *
  * Two things the prototype could not do, both because it had no server:
  *

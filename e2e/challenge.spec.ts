@@ -5,7 +5,7 @@ import { seedLibrary } from './support/seed-library';
 import { LIVE_GOAL, seedSchedule } from './support/seed-schedule';
 
 /**
- * The weekly challenge (T12), for a rider on the free plan.
+ * The challenge screen (T12), for a rider on the free plan.
  *
  * Four decisions here are only observable on the rendered page, and each is one
  * careless edit away from being undone (LESSONS §3a):
@@ -94,7 +94,7 @@ test('every sport has a week running, not just the two the design pack knew abou
 
   for (const sport of SPORT_IDS) {
     await page.getByRole('tab', { name: new RegExp(SPORTS[sport].short, 'i') }).click();
-    await expect(page.getByText(`Weekly challenge · ${SPORTS[sport].label}`)).toBeVisible();
+    await expect(page.getByText(`Challenge · ${SPORTS[sport].label}`)).toBeVisible();
     await expect(page.getByText('Live now')).toBeVisible();
     await expect(
       page.getByRole('button', { name: new RegExp(`Log a ${sport} thing`) }),
