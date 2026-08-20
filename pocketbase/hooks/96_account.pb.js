@@ -64,6 +64,33 @@ onRecordUpdateRequest((e) => {
 }, 'users');
 
 /**
+ * A rider may end their account. They may not delete the row.
+ *
+ * The rule change in `1787702400_users_no_self_delete.js` is what actually
+ * refuses this — a `null` `deleteRule` is superuser-only and a rider's request
+ * never reaches a hook. This is the belt to that migration's braces, and it
+ * earns its place for one specific reason: the rule lives in a collection
+ * record that the superuser dashboard can edit by hand, and a `deleteRule`
+ * typed back to `id = @request.auth.id` in a browser would silently reopen a
+ * route that cascade-deletes guardian consent records. A hook cannot be
+ * changed from a browser.
+ *
+ * The message names the route that does the right thing, because the caller
+ * hitting this is far more likely to be our own client than an attacker.
+ */
+onRecordDeleteRequest((e) => {
+  if (e.hasSuperuserAuth()) {
+    e.next();
+    return;
+  }
+
+  throw new ForbiddenError(
+    'An account is closed through /api/landit/account/delete, which anonymises it. ' +
+      'The record itself is not deletable.',
+  );
+}, 'users');
+
+/**
  * Take everything with you.
  *
  * Rate-limited on the audit rows the route itself writes — an export is the
