@@ -6,6 +6,8 @@ import { useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
 
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+
 import { setStageAction } from '../library/actions';
 import { acknowledgeStickersAction } from '../stickers/actions';
 import type { TrickCardView } from './view';
@@ -57,6 +59,15 @@ export function WorkingTrick({ trick, onOpen }: { trick: TrickCardView; onOpen: 
     startTransition(async () => {
       const result = await setStageAction({ trickId: recordId, slug: trick.slug, stage: value });
       if (result.ok) {
+        // Same event as the trick page's picker, with `from` to tell the two
+        // apart — bumping from the dashboard and bumping from the trick are the
+        // same act, and counting them as two events would hide that.
+        capture(ANALYTICS_EVENTS.trickLogged, {
+          slug: trick.slug,
+          stage: value ?? 'none',
+          from: 'home',
+        });
+
         if (value) toast(`Logged as ${STAGE[value].label.toLowerCase()}`, STAGE[value].color);
         else toast('Stopped tracking this one');
 

@@ -968,3 +968,35 @@ prompt at session start, so a long session can be reasoning from a copy another 
 corrected.** Both "the site is not live" and "Stripe is not set up" were repeated to the owner from
 context that was hours out of date while the file on disk said otherwise. Before telling the owner
 what state their product is in, re-read the file rather than trusting the copy in context.
+
+
+## 9. A third party that refuses your test browser
+
+Wiring PostHog (§6.8) built and typechecked and unit-tested clean, and sent **nothing**. Three
+things about that are worth keeping.
+
+**The SDK classifies your test browser as a bot and drops everything, silently.** PostHog's bot
+check ends `return !!navigator.webdriver`, which Playwright sets on every context it opens. With
+`opt_out_useragent_filter` at its default of `false`, every event is discarded *before any network
+request is made* — no error, no console warning, no failed request to notice. A headless run and a
+completely broken configuration look identical. Overriding the user agent is not enough either;
+`headlesschrome` is on the blocklist as well, but `navigator.webdriver` is the one that bites a
+non-headless UA. Masking it with `addInitScript` for a verification run is fine, because it
+changes the *browser*, not the config being tested. Setting `opt_out_useragent_filter: true` in the
+app to make a test pass would not be: it would make real crawler traffic count as riders forever,
+to fix a problem that only exists in the test.
+
+The general rule: **when a third-party client sends nothing, ask what it thinks of your browser
+before you re-read your own config.** Roughly an hour went into bisecting our options — every one
+of which was correct — because the failure looked like ours.
+
+**Diagnostics against a minified bundle lie in the confident direction.** The probe that said
+`_requestQueue: false`, which looked like a smoking gun, was reading a field name that does not
+survive minification; the real queue was there under `Io` the whole time. A property that is
+`undefined` on a minified object is evidence of nothing at all. Probe by shape — "which key holds
+something with an `enqueue` method" — or read the debug log the library already writes.
+
+**`pkill` inside the same Bash call kills the caller.** Three attempts to restart a dev server
+died with exit 144 before this was obvious: the `pkill -f "next dev"` matched, and took down the
+process group running the command that issued it. Kill in one call, start in the next, or use the
+tool's own background mode.

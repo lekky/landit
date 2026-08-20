@@ -912,6 +912,40 @@ steps, trick logging, paywall hits and upgrades as those screens are built. The 
 rides alongside for plain traffic counts. No consent banner needed for either; keep it that way —
 no session recording without revisiting consent, given the audience.
 
+**PostHog is wired (2026-08-20); the Cloudflare beacon is not.** The decision above stood
+unbuilt for five days after launch, so the site was public and taking sign-ups with nothing
+counting anything. What landed:
+
+- `apps/web/src/lib/analytics.ts` decides what may be collected and is asserted in
+  `analytics.test.ts`; `analyticsClient.ts` is the only module that touches the SDK, and
+  `instrumentation-client.ts` starts it beside Sentry. **Blank key means off entirely**, which is
+  CI and every checkout.
+- The four events §6.8 asked for: `onboarding_step`, `onboarding_finished`, `trick_logged`,
+  `paywall_hit`, `upgrade_started` — hand-written, because autocapture on this product would
+  collect rider handles, crew names and trick names a child typed.
+- **Cookie-less means `persistence: 'memory'`**: no cookie, no `localStorage`, no
+  `sessionStorage`, and `person_profiles: 'never'` so the SDK cannot build a profile even if a
+  future call site asks it to. The accepted cost is that "unique visitors" counts page loads
+  rather than people, and a funnel cannot span a full page reload. That is the right trade here:
+  `/legal/cookies` already tells children there is no per-rider analytics profile "to look at, to
+  switch off, or to ask us for", and the config is what makes that sentence true rather than
+  aspirational.
+- URLs are scrubbed with `sentry.ts`'s own `stripQuery`, so a `$pageview` from
+  `/consent/approve/<token>` carries `[redacted]` rather than a live guardian-consent credential.
+  Verified against a real browser and a real payload, not only in a unit test.
+
+**Two things remain, and neither is code.** The IP address PostHog's ingestion reads off the
+request is discarded only by a **project setting** ("Discard client IP data") — the SDK's own `ip`
+option is deprecated and does nothing — and PostHog still needs its Article 28 contract and ROPA
+entry (§6.5). Until the first is switched on, an address reaches an EU processor and is dropped
+there rather than never sent.
+
+**A consequence worth knowing before writing a test:** PostHog's SDK classifies any browser with
+`navigator.webdriver` as a bot and discards every event before making a request, so no Playwright
+spec can prove delivery without either masking that signal or setting
+`opt_out_useragent_filter: true` — and the second would make real bot traffic count as riders.
+That is why delivery is proven by the record in LESSONS §9 rather than by a spec in `e2e/`.
+
 ### 6.9 Hosting
 
 **Decided and live** (2026-08-15, replacing the earlier Railway decision). The box is

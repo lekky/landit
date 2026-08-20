@@ -6,6 +6,8 @@ import { useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
 
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+
 import { acknowledgeStickersAction } from '../../stickers/actions';
 import { setStageAction } from '../actions';
 import styles from './trick.module.css';
@@ -83,6 +85,11 @@ export function StagePanel({
     startTransition(async () => {
       const result = await setStageAction({ trickId, slug, stage: value });
       if (result.ok) {
+        // After the write, never before it: an optimistic count is a count of
+        // intentions, and this one is meant to say what riders actually log.
+        // The slug is a catalogue fact; nothing here identifies the rider.
+        capture(ANALYTICS_EVENTS.trickLogged, { slug, stage: value ?? 'none', from: 'trick' });
+
         if (value) toast(`Logged as ${STAGE[value].label.toLowerCase()}`, STAGE[value].color);
         else toast('Stopped tracking this one');
 

@@ -300,7 +300,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         p: [
           'Riders can add a link to a video on YouTube. A page with one on it shows a still panel and a play button, and nothing on it talks to YouTube or to Google until you press play. Not a thumbnail, not a hidden player, nothing.',
           'Press play and YouTube’s player loads, from a version of their address built for this, and from then on YouTube can set storage of its own on your device — that part is theirs, not ours. If you would rather it did not, do not press play, or open the video on YouTube where you can decide with everything else in front of you.',
-          'This is why Land The Trick has no cookie pop-up: nothing third-party runs here unless you ask for it.',
+          'This is why Land The Trick has no cookie pop-up. The counting above stores nothing on your device, and the one thing here that would — YouTube — does not run at all until you press play.',
         ],
       },
       {

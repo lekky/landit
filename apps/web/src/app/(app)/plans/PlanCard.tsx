@@ -5,6 +5,7 @@ import { Button, Icon } from '@landit/ui-web';
 import Link from 'next/link';
 import { useActionState } from 'react';
 
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES } from '@/lib/routes';
 
 import { startUpgradeAction, type UpgradeFormState } from './actions';
@@ -113,7 +114,22 @@ export function PlanCard({
         )}
 
         {buyable && (
-          <form action={action} className={styles.buy}>
+          <form
+            action={action}
+            className={styles.buy}
+            // Checkout *started*, which is all this side can honestly claim: the
+            // rider leaves for Stripe, and whether they paid comes back through
+            // the webhook, not through a browser. `upgradeRoute` is carried
+            // because "ask a grown-up" and "pay for it yourself" are two very
+            // different journeys behind one button (§6.2).
+            onSubmit={() =>
+              capture(ANALYTICS_EVENTS.upgradeStarted, {
+                plan: card.slug,
+                period,
+                route: view.upgradeRoute,
+              })
+            }
+          >
             <input type="hidden" name="period" value={period} />
             <label className={styles.confirm}>
               <input type="checkbox" name="confirm_adult" value="yes" />

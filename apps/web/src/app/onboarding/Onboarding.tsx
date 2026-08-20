@@ -19,11 +19,12 @@ import {
   type StanceId,
 } from '@landit/core';
 import { Avatar, Button, Icon, Panel, Pill, TrickCard, avatarById } from '@landit/ui-web';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { browserTimezone } from '@/components/TimezoneField';
 
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { SPORT_LOOKS } from '@/lib/sports';
 
 import { finishOnboarding } from './actions';
@@ -111,6 +112,26 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
     });
   }
 
+  /**
+   * The funnel (§6.8). Step 1 is captured on mount because it is the initial
+   * state and nothing navigates to it, and the later steps are captured by
+   * `advance` — **forward only**. Counting "Back" as a step would make a rider
+   * who changed their mind look like two riders making progress, which is the
+   * one thing a funnel is supposed to tell you the truth about.
+   *
+   * What travels is the step's number and its title. Not what was picked: step
+   * 3 can hold a goal a child typed in their own words, and free text a child
+   * wrote is never analytics data.
+   */
+  useEffect(() => {
+    capture(ANALYTICS_EVENTS.onboardingStep, { step: 1, name: STEPS[0] });
+  }, []);
+
+  const advance = (next: number) => {
+    setStep(next);
+    capture(ANALYTICS_EVENTS.onboardingStep, { step: next + 1, name: STEPS[next] });
+  };
+
   const blocked =
     (step === 0 && sports.length === 0) ||
     (step === 1 && !level) ||
@@ -119,6 +140,18 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
   async function submit() {
     setSaving(true);
     setError(null);
+
+    // Before the call, not after: a successful finish redirects, so there is no
+    // "after" to capture on the happy path. This counts onboarding *submitted*,
+    // which is what the catalogue entry says it means. Counts, not answers —
+    // how many sports and tricks were chosen, never which or what was typed.
+    capture(ANALYTICS_EVENTS.onboardingFinished, {
+      sports: sports.length,
+      tricks: Object.keys(picks).length,
+      level,
+      avatar_picked: avatarKey !== null,
+    });
+
     const result = await finishOnboarding({
       sports,
       stance,
@@ -399,7 +432,7 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
           <Button
             className={styles.next}
             disabled={blocked || saving}
-            onClick={() => (step < last ? setStep(step + 1) : void submit())}
+            onClick={() => (step < last ? advance(step + 1) : void submit())}
           >
             {step < last ? 'Next' : saving ? 'Saving…' : "Let's go"}
           </Button>
