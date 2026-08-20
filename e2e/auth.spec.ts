@@ -10,10 +10,11 @@ import { expect, test, type Page } from '@playwright/test';
  * leaves the browser**. Everything else here could be re-derived from the unit
  * and API tests; that one can only be observed where the form actually is.
  *
- * What is deliberately *not* tested: the emails. There is no mail account and no
- * verified sending domain yet (`docs/infrastructure.md`), so nothing can be
- * delivered, and a test that asserted on a message nobody can send would be
- * asserting on a mock of our own making.
+ * What is *not* tested here: the emails. That used to be because there was no
+ * mail account and no verified sending domain, which stopped being true on
+ * 2026-08-18 (`docs/infrastructure.md`). It needed neither in the end —
+ * `e2e/password-reset.spec.ts` catches what PocketBase sends on a socket of its
+ * own and reads the real message off it. This file stays about the sign-up form.
  */
 
 const password = 'a-long-local-test-password';

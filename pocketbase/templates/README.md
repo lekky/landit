@@ -13,8 +13,23 @@ something to paste. The live copies ride in `/pb_data`, which Litestream replica
 
 | File | PocketBase template | Status |
 | --- | --- | --- |
-| `password-reset.html` | Default password reset | **Ready to install.** |
-| `verify-email.html` | Default verification | **Ready to install.** |
+| `password-reset.html` | Default password reset | **Ready to install**, and checked — see below. |
+| `verify-email.html` | Default verification | **Ready to install.** Unchecked; nothing walks it. |
+
+**`password-reset.html` is no longer only a reference copy.** `e2e/password-reset.spec.ts` asks for
+a reset on `/forgot-password`, takes the token out of the message PocketBase actually sends, puts it
+through **the href in this file** — filling in `{APP_URL}` and `{TOKEN}` the way PocketBase would —
+and then walks whatever URL comes out: sets a password on the page it lands on and signs in with it.
+So the link inside this file is covered by CI. Change it to something the web app does not serve and
+the suite fails with the reason.
+
+It substitutes rather than pasting deliberately: writing the template into the e2e instance works,
+but PocketBase's automigrate notices the collection change and drops a `*_updated_users.js` into
+`pocketbase/migrations/` on every run. **This proves the file, not the box.** Whether the live
+instance still has this body pasted into it is instance state and nothing in CI can see it.
+
+The verification template has no equivalent, because nothing in the product waits on `verified` and
+there is no screen to end on.
 
 ## Placeholders
 
@@ -28,14 +43,26 @@ gives a rider a 404 instead of a password reset — observed on the live instanc
 
 ## Two things to set before pasting
 
+Both token durations sit beside the templates on that same Options tab, and **neither default
+matches what these files promise**. The numbers below were read off a throwaway 0.39.11 started
+against this repo's migrations, not remembered:
+
+| Token | 0.39.11 default | What the copy claims |
+| --- | --- | --- |
+| `passwordResetToken.duration` | `1800` — 30 minutes | 60 minutes |
+| `verificationToken.duration` | `86400` — 24 hours | 7 days |
+
 1. **The reset copy claims the link "expires in 60 minutes"**, in the body and the preheader,
-   because the design says so. PocketBase's own token duration sits beside the template
-   on that same Options tab. Either set it to 3600 seconds or change both numbers. **A promise about
-   expiry that the server does not keep is worse than no promise**, because the rider who waits
-   fifty minutes is the one who finds out.
-2. **The verification copy quotes seven days**, which is PocketBase's own default verification
-   token duration. If you change that duration, change the sentence with it — same trap as the
-   reset expiry above, and the same reason it matters.
+   because the design says so. Either set the duration to 3600 seconds or change both numbers.
+   **A promise about expiry that the server does not keep is worse than no promise**, because the
+   rider who waits fifty minutes is the one who finds out. Open: **issue #233**.
+2. **The verification copy quotes seven days.** An earlier version of this file said that was
+   PocketBase's own default and so nobody touched either number; it is not, and saying it was is
+   what kept the mismatch in place. Same trap as the reset expiry, same two ways out. Open:
+   **issue #234**.
+
+`/forgot-password` used to add a third number to the first row — "good for a couple of hours" —
+which was wrong whichever way #233 is settled. It now says an hour, matching this template.
 
 Two things the design's verification copy claimed that are not true here, and were rewritten
 rather than shipped:
