@@ -448,6 +448,13 @@ this way. **Anything PocketBase templates, PocketBase aims at itself.**
 These templates live in the settings database, not in this repository, so they survive deploys and
 are lost with the `/pb_data` volume — which Litestream replicates (Backups above).
 
+**The reset link is now guarded in CI even though the live copy is not.** `e2e/password-reset.spec.ts`
+takes the token out of a real reset email, puts it through the href in
+`pocketbase/templates/password-reset.html`, and walks the result to a signed-in rider — so the URL
+inside that file cannot drift away from the route the web app serves. That proves the file, not the
+box: if the paste into the admin UI is ever lost or redone from PocketBase's stock template, the 404
+comes back and only walking it by hand finds out.
+
 ### 7. DMARC — **done 2026-08-18**
 
 A `_dmarc` TXT record. Start at `p=none` for a week to confirm MailerSend is passing, then tighten
@@ -526,7 +533,11 @@ Steps 1–8 above are the sequence; this is the progress.
 - [ ] The email paths walked by hand — issue #31 (runbook 8). **Partial 2026-08-18**: the password
       reset was walked end-to-end on the live instance (and caught the stock-template 404, now
       fixed); the guardian-consent and verification deliveries are still unobserved, so this stays
-      open.
+      open. **2026-08-20**: the reset no longer depends on that walk being repeated — CI now sends
+      the real email, follows the link out of it and signs in with the password it sets
+      (`e2e/password-reset.spec.ts`). What CI cannot see is the *instance* half: the reset token's
+      duration is still PocketBase's 30-minute default against an email promising 60 (issue #233),
+      and the verification token's is 24 hours against an email promising 7 days (issue #234).
 - [x] **The superuser pair set on `landit-web` and verified green** (runbook 2b) — done 2026-08-17,
       issue #62. Server-owned writes work: "I rode today", and later the Stripe webhook and the
       staff portal.
