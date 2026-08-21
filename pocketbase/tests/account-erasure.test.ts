@@ -327,3 +327,82 @@ describe('ending an account', () => {
     expect(consents.body.totalItems).toBe(1);
   });
 });
+
+/**
+ * The other door (`1787702400_users_no_self_delete.js`).
+ *
+ * Erasure had two routes and only one of them was the decision. The tests above
+ * pin what `/api/landit/account/delete` does; these pin that it is the *only*
+ * way out, because a plain row delete cascades `guardian_consents` away and
+ * leaves the moderation trail pointing at nothing.
+ */
+describe('the users row is not deletable by the rider it belongs to', () => {
+  it('refuses a rider deleting their own record, and the record survives', async () => {
+    const rider = await makeRider();
+
+    const attempt = await call('DELETE', `/api/collections/users/records/${rider.id}`, {
+      token: rider.token,
+    });
+    expect(attempt.status).toBe(403);
+
+    // The assertion that matters: a refusal that still deleted the row would
+    // pass a status check and fail the guarantee.
+    const still = await call('GET', `/api/collections/users/records/${rider.id}`, {
+      token: rider.token,
+    });
+    expect(still.status).toBe(200);
+  });
+
+  it('does not let a row delete take the guardian consent record with it', async () => {
+    // The whole reason the rule is closed. `guardian_consents.user` is
+    // `cascadeDelete`, so this request succeeding would destroy §6.2 evidence
+    // on nothing but a session token — no password, no audit row.
+    const rider = await makeRider({ age_band: 'under_13', country: 'GB' });
+    const asked = await call('POST', '/api/landit/consent/request', {
+      token: rider.token,
+      body: { guardian_email: `guardian-${Date.now()}@example.invalid` },
+    });
+    expect(asked.status).toBe(200);
+
+    await call('DELETE', `/api/collections/users/records/${rider.id}`, { token: rider.token });
+
+    const token = await superuser();
+    const consents = await call<{ totalItems: number }>(
+      'GET',
+      '/api/collections/guardian_consents/records',
+      { token, query: { filter: `user = "${rider.id}"` } },
+    );
+    expect(consents.body.totalItems).toBe(1);
+  });
+
+  it('refuses a rider deleting somebody else’s record', async () => {
+    const rider = await makeRider();
+    const stranger = await makeRider();
+
+    const attempt = await call('DELETE', `/api/collections/users/records/${stranger.id}`, {
+      token: rider.token,
+    });
+    expect(attempt.status).toBe(403);
+
+    const still = await call('GET', `/api/collections/users/records/${stranger.id}`, {
+      token: stranger.token,
+    });
+    expect(still.status).toBe(200);
+  });
+
+  it('still lets the superuser delete a row, which is the cleanup path', async () => {
+    // Test accounts and bad imports are deleted from the dashboard, with the
+    // box's own credentials. Closing the rider's route must not close that one.
+    const rider = await makeRider();
+
+    const removed = await call('DELETE', `/api/collections/users/records/${rider.id}`, {
+      token: await superuser(),
+    });
+    expect(removed.status).toBe(204);
+
+    const gone = await call('GET', `/api/collections/users/records/${rider.id}`, {
+      token: await superuser(),
+    });
+    expect(gone.status).toBe(404);
+  });
+});

@@ -61,7 +61,9 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
   10/day, 5/day per guardian address; reports 5/h + 20 open; exports 5/h.
 - **Also server-owned**: role/plan/consent/suspension/streak fields frozen against client writes;
   sticker awards; one live challenge per sport with a log window; subscription→plan resolution
-  (staff overrides outrank provider rows); an audit row for every staff-collection write.
+  (staff overrides outrank provider rows); an audit row for every staff-collection write; the
+  `users` row itself is not deletable over the API, so closure always goes through the
+  anonymise-and-retain route rather than a cascade that would take guardian consent with it.
 
 ## Game mechanics (packages/core — pure TS, no React/DOM)
 
