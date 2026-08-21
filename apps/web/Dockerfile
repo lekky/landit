@@ -75,6 +75,19 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_POCKETBASE_URL
 ENV NEXT_PUBLIC_POCKETBASE_URL=${NEXT_PUBLIC_POCKETBASE_URL}
 
+# Analytics (§6.8), inlined for the same reason and with the same trap. **A
+# build argument Docker has no `ARG` for is discarded without a word**, so
+# leaving these out would mean Coolify listing the key as set, the deploy
+# succeeding, and PostHog receiving nothing — with no error anywhere to say so.
+#
+# Both are safe to leave unset: no key means analytics never initialises, and an
+# empty host falls back to the EU cloud rather than to PostHog's US default
+# (`analyticsHost()`, and the test that pins it).
+ARG NEXT_PUBLIC_POSTHOG_KEY
+ENV NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY}
+ARG NEXT_PUBLIC_POSTHOG_HOST
+ENV NEXT_PUBLIC_POSTHOG_HOST=${NEXT_PUBLIC_POSTHOG_HOST}
+
 RUN pnpm --filter @landit/web build
 
 # ---------------------------------------------------------------- runner --
