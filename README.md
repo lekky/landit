@@ -84,5 +84,5 @@ Next.js (pnpm monorepo) · PocketBase (self-hosted, one instance per product) ·
 shared VPS · Cloudflare R2 (database backups only — Land The Trick hosts no rider video, §6.6) ·
 Stripe · MailerSend (PocketBase's SMTP sender — configured in its settings database, no code
 integration) · MapLibre + OpenFreeMap · Sentry (wired, inert until a DSN is set — issue #145) ·
-PostHog EU (wired, cookie-less and inert until `NEXT_PUBLIC_POSTHOG_KEY` is set — §6.8) +
-Cloudflare Analytics (decided in plan §1, not yet wired).
+PostHog EU (wired, cookie-less and inert until `NEXT_PUBLIC_POSTHOG_KEY` is set — §6.8; the
+Cloudflare beacon that used to sit beside it was dropped on 2026-08-21).
