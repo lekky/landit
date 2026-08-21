@@ -923,22 +923,31 @@ counting anything. What landed:
 - The four events §6.8 asked for: `onboarding_step`, `onboarding_finished`, `trick_logged`,
   `paywall_hit`, `upgrade_started` — hand-written, because autocapture on this product would
   collect rider handles, crew names and trick names a child typed.
-- **Cookie-less means `persistence: 'memory'`**: no cookie, no `localStorage`, no
-  `sessionStorage`, and `person_profiles: 'never'` so the SDK cannot build a profile even if a
-  future call site asks it to. The accepted cost is that "unique visitors" counts page loads
-  rather than people, and a funnel cannot span a full page reload. That is the right trade here:
-  `/legal/cookies` already tells children there is no per-rider analytics profile "to look at, to
-  switch off, or to ask us for", and the config is what makes that sentence true rather than
-  aspirational.
+- **Cookie-less means `cookieless_mode: 'always'` over `persistence: 'memory'`**: no cookie, no
+  `localStorage`, no `sessionStorage`, and `person_profiles: 'never'` so the SDK cannot build a
+  profile even if a future call site asks it to. Riders are counted by a hash PostHog computes on
+  its own servers from `(team, daily salt, IP, user agent, hostname)`, with the salt discarded
+  nightly. `/legal/cookies` already tells children there is no per-rider analytics profile "to
+  look at, to switch off, or to ask us for", and this config is what makes that sentence true
+  rather than aspirational.
+- **"Unique riders" therefore means unique *per day*** — the same child tomorrow is a second
+  rider, because the salt changed. Daily figures are real; a monthly total is a sum of daily ones
+  and overcounts. **This replaced plain memory persistence on 2026-08-21** (owner's call, in
+  chat), which counted page loads rather than people and made the number worse still. The
+  remaining alternative buys a truer monthly figure with a durable identifier for a child, which
+  is the thing the policy says we do not keep — so this is where it stops.
+- **Two project settings, and one of them is a reversal.** "Cookieless server hash mode" must be
+  **on**, or PostHog ignores every event with no error at all. "Discard client IP data" must be
+  **off**: the IP is the hash's main ingredient and PostHog strips it after hashing, so the toggle
+  is redundant and its interaction with cookieless mode is undocumented. §6.8's own advice said
+  the opposite for one day; this is the correction.
 - URLs are scrubbed with `sentry.ts`'s own `stripQuery`, so a `$pageview` from
   `/consent/approve/<token>` carries `[redacted]` rather than a live guardian-consent credential.
   Verified against a real browser and a real payload, not only in a unit test.
 
-**Two things remain, and neither is code.** The IP address PostHog's ingestion reads off the
-request is discarded only by a **project setting** ("Discard client IP data") — the SDK's own `ip`
-option is deprecated and does nothing — and PostHog still needs its Article 28 contract and ROPA
-entry (§6.5). Until the first is switched on, an address reaches an EU processor and is dropped
-there rather than never sent.
+**What remains is not code.** PostHog needs its Article 28 contract and ROPA entry (§6.5), and
+the project settings above need setting — the first of them before the key goes on a deploy, or
+the dashboard stays empty.
 
 **A consequence worth knowing before writing a test:** PostHog's SDK classifies any browser with
 `navigator.webdriver` as a bot and discards every event before making a request, so no Playwright

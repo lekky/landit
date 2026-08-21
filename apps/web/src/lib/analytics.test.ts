@@ -62,10 +62,21 @@ describe('where the events go', () => {
 
 describe('the three promises the cookie policy makes', () => {
   it('writes nothing to the rider’s device — no cookie, no localStorage', () => {
-    // The whole of "set up without cookies" is this one value. `memory` also
-    // rules out localStorage and sessionStorage, which a cookie banner would
-    // have to cover even though neither is a cookie.
+    // Two switches, both required. `cookieless_mode` is what makes PostHog
+    // count riders by a server-side daily hash instead of by something stored
+    // on the device; `memory` is the independent belt to that brace, and rules
+    // out localStorage and sessionStorage as well — neither is a cookie, and a
+    // banner would have to cover both.
+    expect(analyticsOptions().cookieless_mode).toBe('always');
     expect(analyticsOptions().persistence).toBe('memory');
+  });
+
+  it('asks for cookieless always, never the banner-shaped variant', () => {
+    // 'on_reject' is the mode for a site that shows a cookie banner and only
+    // falls back to hashing when someone refuses. We show no banner, so
+    // anything other than 'always' would mean cookies for whoever did not
+    // refuse — which is the opposite of what /legal/cookies says.
+    expect(analyticsOptions().cookieless_mode).not.toBe('on_reject');
   });
 
   it('cannot create a per-rider profile, even if a call site asks it to', () => {
@@ -100,7 +111,8 @@ describe('what is switched off on purpose', () => {
 
   it('denies the IP property the browser would send', () => {
     // Not the whole story, and the module says so: ingestion reads an address
-    // off the request itself, and discarding that is a project setting.
+    // off the request itself. In cookieless mode PostHog strips that after
+    // hashing with it, which is why "Discard client IP data" must stay off.
     expect(analyticsOptions().property_denylist).toContain('$ip');
   });
 });

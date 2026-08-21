@@ -20,13 +20,25 @@
  * to later; it is a published statement that this file has to keep true. Three
  * options carry it, and none of them is a default:
  *
- *  - **`persistence: 'memory'`** — no cookie, no `localStorage`, no
- *    `sessionStorage`. Nothing is written to a rider's device at all, so there
- *    is no identifier to carry between page loads and none to ask us to delete.
- *    The cost is real and accepted: "unique visitors" counts page loads rather
- *    than people, and a funnel cannot span a full page reload. Counts of what
- *    gets used are what §6.8 asked for; a durable per-rider identity is the
- *    thing the policy says we do not have.
+ *  - **`cookieless_mode: 'always'` with `persistence: 'memory'`** — no cookie,
+ *    no `localStorage`, no `sessionStorage`. Nothing is written to a rider's
+ *    device at all, so there is no identifier to carry between page loads and
+ *    none to ask us to delete. Riders are counted instead by a hash PostHog
+ *    computes on its own servers from
+ *    `(team, daily salt, IP, user agent, hostname)`; the salt is thrown away at
+ *    the end of each day, which is what makes the hash irreversible and stops it
+ *    being an identifier for a person rather than for a day's visit.
+ *
+ *    **So "unique riders" means unique *per day*.** The same child on Tuesday
+ *    and Wednesday is two, because the salt changed — a monthly figure is a sum
+ *    of daily ones and will overcount. That is the honest limit of counting
+ *    without storing anything, and it is the right way round for this product:
+ *    the alternative buys a truer monthly number with a durable identifier for a
+ *    child, which is the thing `/legal/cookies` says we do not keep.
+ *
+ *    `persistence: 'memory'` stays set beneath it. Cookieless mode already
+ *    disables storage, but the two are independent switches and only one of them
+ *    is named in the policy.
  *  - **`person_profiles: 'never'`** — the SDK will not create a person profile
  *    even if some future call site reaches for `identify()`. The promise is then
  *    enforced by configuration rather than by everyone remembering, which is the
@@ -45,12 +57,20 @@
  *
  * ## Two things this file cannot do
  *
- * **IP addresses are attached by PostHog's ingestion, from the request** — the
- * SDK's own `ip` option is deprecated and documented as having no effect. The
- * `$ip` denylist below removes the property the browser sends, which is not the
- * same thing. Discarding the address for real is a project setting
- * ("Discard client IP data"), and it is the owner's to switch on. Until it is,
- * an IP reaches an EU processor and is dropped there rather than never sent.
+ * **Cookieless mode has to be switched on in the PostHog project as well**
+ * ("Cookieless server hash mode", under the project's web-analytics settings).
+ * The SDK asking for it is not enough: with the project setting off, PostHog
+ * **ignores every cookieless event**, so the failure mode is an empty dashboard
+ * rather than an error. That is the one thing to check first if nothing appears.
+ *
+ * **The IP address is PostHog's to handle, not ours.** The SDK's own `ip` option
+ * is deprecated and does nothing, and the `$ip` denylist below only removes the
+ * property the *browser* sends — ingestion reads an address off the request
+ * regardless. In cookieless mode that address is the hash's main ingredient and
+ * is stripped before any transformation runs, which is why GeoIP and bot
+ * detection stop enriching events. **Do not also switch on "Discard client IP
+ * data"**: cookieless mode already does that job, and the two settings pull on
+ * the same input with no documented answer for what happens when both are set.
  *
  * **A processor contract still has to exist.** Plan §6.5 lists PostHog among the
  * services needing an Article 28 contract and a ROPA entry. Wiring the SDK does
@@ -159,6 +179,7 @@ export type AnalyticsOptions = Pick<
   | 'disable_session_recording'
   | 'disable_surveys'
   | 'disable_external_dependency_loading'
+  | 'cookieless_mode'
   | 'persistence'
   | 'person_profiles'
   | 'property_denylist'
@@ -184,12 +205,15 @@ export function analyticsOptions(): AnalyticsOptions {
     disable_surveys: true,
     disable_external_dependency_loading: true,
 
-    // Nothing written to the rider's device, and no profile behind it.
+    // Nothing written to the rider's device, and no profile behind it. Riders
+    // are counted by PostHog's server-side daily hash instead — see the header
+    // for what that does and does not buy.
+    cookieless_mode: 'always',
     persistence: 'memory',
     person_profiles: 'never',
 
     // Removes the property the browser sends. The address ingestion reads off
-    // the request is a project setting, not this — see the header.
+    // the request is PostHog's to strip, not ours — see the header.
     property_denylist: ['$ip'],
 
     sanitize_properties: scrubProperties,
