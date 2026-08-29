@@ -5,9 +5,9 @@ import type { ReactNode } from 'react';
 import { ROUTES } from '@/lib/routes';
 import { requireStaff } from '@/lib/staff';
 
-import { signOutAction } from '../../(auth)/actions';
-
 import { AdminTabs } from './AdminTabs';
+
+import { SignOutForm } from '@/components/SignOutForm';
 
 import styles from './admin.module.css';
 
@@ -65,11 +65,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
            * "Back to the app" beside it is the non-destructive way out, which is
            * why both are here rather than one.
            */}
-          <form action={signOutAction}>
+          <SignOutForm where="admin">
             <button type="submit" className="btn sm" style={{ background: 'var(--violet)' }}>
               Sign out
             </button>
-          </form>
+          </SignOutForm>
         </div>
       </Panel>
 

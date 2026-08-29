@@ -3,6 +3,8 @@
 import { Button } from '@landit/ui-web';
 import { useActionState } from 'react';
 
+import { ANALYTICS_EVENTS, capture, useFailureCapture } from '@/lib/analyticsClient';
+
 import { requestResetAction, type AuthFormState } from '../actions';
 import styles from '../auth.module.css';
 
@@ -26,6 +28,8 @@ export function ForgotPasswordForm() {
     undefined,
   );
 
+  useFailureCapture(ANALYTICS_EVENTS.passwordResetRequested, state?.errors?.form);
+
   if (state?.done) {
     return (
       <div className={styles.notice}>
@@ -37,7 +41,11 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form action={action} className={styles.form}>
+    <form
+      action={action}
+      onSubmit={() => capture(ANALYTICS_EVENTS.passwordResetRequested, { outcome: 'attempted' })}
+      className={styles.form}
+    >
       <div className="field">
         <label htmlFor="email">Email</label>
         <input id="email" name="email" type="email" placeholder="you@example.com" />

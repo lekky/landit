@@ -6,6 +6,8 @@ import { useActionState, useState } from 'react';
 import { resendVerificationAction, type AuthFormState } from '@/app/(auth)/actions';
 import { VERIFY_DISMISSED_COOKIE, VERIFY_DISMISS_DAYS } from '@/lib/verify';
 
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+
 import styles from './verify.module.css';
 
 /**
@@ -70,7 +72,7 @@ export function VerifyEmailBanner({ email }: { email: string }) {
         {state?.done ? (
           <span className={`tag ${styles.sent}`}>On its way</span>
         ) : (
-          <form action={action}>
+          <form action={action} onSubmit={() => capture(ANALYTICS_EVENTS.verificationResent)}>
             <input type="hidden" name="email" value={email} />
             <button type="submit" className="btn sm ghost" disabled={pending}>
               {pending ? 'Sending…' : 'Send it again'}

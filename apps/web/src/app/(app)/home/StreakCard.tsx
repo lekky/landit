@@ -5,6 +5,8 @@ import { useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
 
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+
 import { rodeTodayAction } from './actions';
 import type { StreakView } from './view';
 
@@ -54,6 +56,14 @@ export function StreakCard({ streak }: { streak: StreakView }) {
       }
       if (result.streak) setState(result.streak);
       if (result.logged) {
+        // Only when the server says it actually logged: tapping twice in a day
+        // is a no-op, and counting it would make the streak look busier than
+        // riders are. The streak length is a number about riding, not a rider.
+        capture(ANALYTICS_EVENTS.rideLogged, {
+          rides_this_week:
+            (result.streak?.cells.filter(Boolean).length ?? 0) + (result.streak?.spare ?? 0),
+          week_banked: result.streak?.encouragement === 'This week is banked.',
+        });
         toast(
           result.streak?.encouragement === 'This week is banked.'
             ? 'Ride logged. This week is banked.'

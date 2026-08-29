@@ -3,6 +3,8 @@
 import { Button } from '@landit/ui-web';
 import { useActionState } from 'react';
 
+import { ANALYTICS_EVENTS, capture, useFailureCapture } from '@/lib/analyticsClient';
+
 import { signInAction, type AuthFormState } from '../actions';
 import styles from '../auth.module.css';
 
@@ -19,8 +21,14 @@ export function SignInForm({ next }: { next?: string }) {
     undefined,
   );
 
+  useFailureCapture(ANALYTICS_EVENTS.signedIn, state?.errors?.form);
+
   return (
-    <form action={action} className={styles.form}>
+    <form
+      action={action}
+      onSubmit={() => capture(ANALYTICS_EVENTS.signedIn, { outcome: 'attempted' })}
+      className={styles.form}
+    >
       {next ? <input type="hidden" name="next" value={next} /> : null}
       <div className="field">
         <label htmlFor="email">Email</label>

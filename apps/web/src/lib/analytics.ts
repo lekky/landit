@@ -111,18 +111,87 @@ export function analyticsHost(): string {
  * a display name, a guardian's email address and anything a child typed are
  * none of our analytics' business — most sharply the custom goal from onboarding
  * step 3, which is free text written by a child and never leaves the device.
+ *
+ * **This is the whole of the safety argument now that the catalogue is broad.**
+ * Coverage was widened on 2026-08-21 (owner, in chat) from the four areas §6.8
+ * named to nearly every action a rider can take. Autocapture was considered for
+ * it and refused again in the same breath, because the two are not the same
+ * trade: an event written here is one somebody chose the properties for, while
+ * autocapture sends the *text of whatever was clicked* — which on this product
+ * is crew names, rider handles and spot names a child typed. Breadth is safe;
+ * automatic breadth is not. A new screen is therefore untracked until somebody
+ * adds an entry below, and that is the direction this should fail in.
+ *
+ * Three events name a thing that happened on a path carrying something secret,
+ * and each carries only that it happened: `consent_decided` (never the token —
+ * see `URL_PROPERTIES`), `report_filed` (never a word of the report), and
+ * `guardian_asked` (never the address).
  */
 export const ANALYTICS_EVENTS = {
-  /** A step of onboarding was reached. Carries the step index and its title. */
+  /* ------------------------------------------------------------ account -- */
+  /** An account was created. Carries nothing about who. */
+  signedUp: 'signed_up',
+  signedIn: 'signed_in',
+  signedOut: 'signed_out',
+  passwordResetRequested: 'password_reset_requested',
+  passwordResetCompleted: 'password_reset_completed',
+  verificationResent: 'verification_resent',
+  profileSaved: 'profile_saved',
+  /** A privacy toggle moved. Carries which setting and its new value. */
+  privacySet: 'privacy_set',
+
+  /* ------------------------------------------------------- safeguarding -- */
+  /** A rider asked a grown-up for consent. Never the email address. */
+  guardianAsked: 'guardian_asked',
+  /** A guardian approved or revoked. Never the token, never the address. */
+  consentDecided: 'consent_decided',
+  /** A report was filed. **That** it happened, and what kind — never a word of it. */
+  reportFiled: 'report_filed',
+
+  /* --------------------------------------------------------- onboarding -- */
   onboardingStep: 'onboarding_step',
-  /** Onboarding was submitted. Carries how many sports and tricks were picked. */
   onboardingFinished: 'onboarding_finished',
-  /** A rider logged progress on a trick. Carries the trick's catalogue facts. */
+
+  /* ---------------------------------------------------------- the loop -- */
+  /** "I rode today" — the weekly streak, and the best signal the product has. */
+  rideLogged: 'ride_logged',
+  /** A rider moved a trick's stage. Carries the trick's catalogue facts. */
   trickLogged: 'trick_logged',
+  /** A note was saved against a trick. Never the note. */
+  noteSaved: 'note_saved',
+  challengeLogged: 'challenge_logged',
+  /** The coach-view toggle on the progress screen. */
+  insightsSet: 'insights_set',
+
+  /* ------------------------------------------------------------- crews -- */
+  crewCreated: 'crew_created',
+  crewJoined: 'crew_joined',
+  crewLeft: 'crew_left',
+  inviteMinted: 'invite_minted',
+
+  /* ------------------------------------------------------------ content -- */
+  videoLinkAdded: 'video_link_added',
+  videoLinkRemoved: 'video_link_removed',
+  videoVisibilitySet: 'video_visibility_set',
+  /** A spot was submitted for review. Never its name or the address typed. */
+  spotSubmitted: 'spot_submitted',
+  /** Going / not going on an event. */
+  eventAttendanceSet: 'event_attendance_set',
+
+  /* -------------------------------------------------------------- money -- */
   /** A locked trick was opened — the paywall, seen. Carries tier and sport. */
   paywallHit: 'paywall_hit',
   /** Checkout was started from a plan card. Carries plan slug and period. */
   upgradeStarted: 'upgrade_started',
+  billingPortalOpened: 'billing_portal_opened',
+
+  /* --------------------------------------------------------- getting about -- */
+  /** The sport switcher in the top bar. */
+  sportSwitched: 'sport_switched',
+  /** A nav destination was chosen. Carries the route, which is not a rider fact. */
+  navClicked: 'nav_clicked',
+  /** The library's sport / category / tier filters. */
+  libraryFiltered: 'library_filtered',
 } as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];
@@ -212,9 +281,16 @@ export function analyticsOptions(): AnalyticsOptions {
     persistence: 'memory',
     person_profiles: 'never',
 
-    // Removes the property the browser sends. The address ingestion reads off
-    // the request is PostHog's to strip, not ours — see the header.
-    property_denylist: ['$ip'],
+    // `$ip`: removes the property the browser sends. The address ingestion
+    // reads off the request is PostHog's to strip, not ours — see the header.
+    //
+    // `title`: the document title, which the SDK attaches to every pageview.
+    // Today every title in the app is safe — the rider profile is a flat
+    // "Rider · Land The Trick" and a trick page uses the catalogue name. It is
+    // dropped anyway, because the *next* person to want a nicer share preview
+    // will put a rider's handle in that title and nothing here would notice.
+    // The path already says which page it was, so this costs a duplicate.
+    property_denylist: ['$ip', 'title'],
 
     sanitize_properties: scrubProperties,
 

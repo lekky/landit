@@ -6,6 +6,8 @@ import { useRef, useState, useTransition } from 'react';
 import { useToast } from '@/providers/toast';
 
 import { saveNoteAction } from '../actions';
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+
 import styles from './trick.module.css';
 
 /**
@@ -36,6 +38,10 @@ export function NotesPanel({
     saved.current = attempt;
     startTransition(async () => {
       const result = await saveNoteAction({ trickId, slug, body: attempt });
+      // A note is a rider writing to themselves — the single most private thing
+      // in the product. What travels is that one was saved and whether it was
+      // cleared; not its text, and not its length.
+      if (result.ok) capture(ANALYTICS_EVENTS.noteSaved, { slug, cleared: attempt.length === 0 });
       if (!result.ok) {
         saved.current = initial;
         toast(result.message, 'var(--red)');

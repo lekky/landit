@@ -84,9 +84,10 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
 - **No video hosting** (reversed 2026-08-17): riders link YouTube videos instead.
 - **No DOB stored**, no geolocation stored, no third-party map account (OpenFreeMap). PostHog is
   wired but **cookie-less and profile-less** — no cookie, no device storage, no `identify()`, no
-  autocapture, no session replay, and inert without a key. Riders are counted by a server-side
-  hash that is re-salted nightly, so "unique" means unique per day (Sentry is wired but inert
-  without a DSN).
+  autocapture, no session replay, and inert without a key. 33 hand-written events cover nearly
+  every rider action; autocapture is refused on purpose, because it would send the text of what
+  was clicked. Riders are counted by a server-side hash that is re-salted nightly, so "unique"
+  means unique per day (Sentry is wired but inert without a DSN).
 - **No minimum age statement** — by design, part of the child-safety position.
 
 ## Staff portal

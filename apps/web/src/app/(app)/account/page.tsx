@@ -17,7 +17,7 @@ import { currentRider } from '@/lib/session';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { isStaff } from '@/lib/staff';
 
-import { signOutAction } from '../../(auth)/actions';
+import { SignOutForm } from '@/components/SignOutForm';
 
 import styles from './account.module.css';
 import { DataPanel } from './DataPanel';
@@ -166,11 +166,11 @@ export default async function AccountPage() {
       <DataPanel />
 
       <div className={styles.signOut}>
-        <form action={signOutAction}>
+        <SignOutForm where="account">
           <Button type="submit" variant="ghost">
             Sign out
           </Button>
-        </form>
+        </SignOutForm>
         <span className="cond" style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
           <Link href={legalHref('privacy')}>What we keep</Link> ·{' '}
           <Link href={legalHref('safeguarding')}>Safeguarding</Link>

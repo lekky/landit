@@ -6,6 +6,8 @@ import { Button, Panel } from '@landit/ui-web';
 import { useActionState } from 'react';
 
 import { decideConsentAction, type ConsentActionState } from '../../actions';
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+
 import styles from '../../consent.module.css';
 
 /**
@@ -133,7 +135,14 @@ export function Decision({
 
       {state?.error ? <p className={styles.error}>{state.error}</p> : null}
 
-      <form action={submit} className={styles.actions}>
+      <form
+        action={submit}
+        className={styles.actions}
+        // `action` is 'approve' or 'revoke'. The token in the URL is a live
+        // credential and never travels — `URL_PROPERTIES` redacts it out of the
+        // pageview too (plan §3, guarantee 4).
+        onSubmit={() => capture(ANALYTICS_EVENTS.consentDecided, { decision: action })}
+      >
         <input type="hidden" name="token" value={token} />
         <input type="hidden" name="action" value={action} />
         <Button type="submit" variant={approving ? 'primary' : 'ink'} disabled={pending}>

@@ -109,6 +109,13 @@ describe('what is switched off on purpose', () => {
     expect(analyticsOptions().advanced_disable_flags).toBe(true);
   });
 
+  it('drops the document title, so a nicer share preview cannot leak a handle', () => {
+    // The rider profile's title is static today. This is the guard for the day
+    // somebody makes it "Ash · Land The Trick" for a share card and does not
+    // think about analytics — which is a reasonable thing not to think about.
+    expect(analyticsOptions().property_denylist).toContain('title');
+  });
+
   it('denies the IP property the browser would send', () => {
     // Not the whole story, and the module says so: ingestion reads an address
     // off the request itself. In cookieless mode PostHog strips that after
@@ -178,21 +185,80 @@ describe('pageviews from pages that carry a credential', () => {
 });
 
 describe('the event catalogue', () => {
+  const names = Object.values(ANALYTICS_EVENTS);
+
   it('names each event once, so a typo cannot split a funnel in two', () => {
-    const names = Object.values(ANALYTICS_EVENTS);
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it('covers what §6.8 asked to be instrumented', () => {
-    // Onboarding funnel, trick logging, paywall hits and upgrades — the four
-    // the plan names. A screen adding a fifth adds it to the catalogue, not to
-    // a string literal at its call site.
-    expect(Object.keys(ANALYTICS_EVENTS)).toEqual([
-      'onboardingStep',
-      'onboardingFinished',
-      'trickLogged',
-      'paywallHit',
-      'upgradeStarted',
-    ]);
+  it('uses one naming shape, so nothing sorts oddly in a dashboard', () => {
+    for (const name of names) expect(name).toMatch(/^[a-z]+(_[a-z]+)*$/);
+  });
+
+  it('still covers what §6.8 asked for, after the catalogue was widened', () => {
+    // Coverage grew to nearly every rider action on 2026-08-21. These five are
+    // the ones the plan named, and are the reason the file exists — a later
+    // reshuffle may add, but must not quietly drop one.
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'onboarding_step',
+        'onboarding_finished',
+        'trick_logged',
+        'paywall_hit',
+        'upgrade_started',
+      ]),
+    );
+  });
+
+  it('covers the actions a rider can actually take', () => {
+    // The full list, pinned. Adding an event is a deliberate act with this
+    // test in front of it, which is the point: the catalogue *is* the privacy
+    // boundary now that autocapture is refused (see `analytics.ts`).
+    expect([...names].sort()).toEqual(
+      [
+        'billing_portal_opened',
+        'challenge_logged',
+        'consent_decided',
+        'crew_created',
+        'crew_joined',
+        'crew_left',
+        'event_attendance_set',
+        'guardian_asked',
+        'insights_set',
+        'invite_minted',
+        'library_filtered',
+        'nav_clicked',
+        'note_saved',
+        'onboarding_finished',
+        'onboarding_step',
+        'password_reset_completed',
+        'password_reset_requested',
+        'paywall_hit',
+        'privacy_set',
+        'profile_saved',
+        'report_filed',
+        'ride_logged',
+        'signed_in',
+        'signed_out',
+        'signed_up',
+        'spot_submitted',
+        'sport_switched',
+        'trick_logged',
+        'upgrade_started',
+        'verification_resent',
+        'video_link_added',
+        'video_link_removed',
+        'video_visibility_set',
+      ].sort(),
+    );
+  });
+
+  it('names nothing after a rider or anything one could type', () => {
+    // A crude guard, but it catches the shape of mistake that matters: an
+    // event called `crew_name_entered` or `handle_changed_to` is a call site
+    // about to send the thing itself.
+    for (const name of names) {
+      expect(name).not.toMatch(/handle|email|name_|_name|note_text|goal|address/);
+    }
   });
 });

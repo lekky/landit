@@ -1,6 +1,7 @@
 'use client';
 
 import posthog from 'posthog-js';
+import { useEffect, useRef } from 'react';
 
 import { ANALYTICS_EVENTS, analyticsEnabled, analyticsKey, analyticsOptions } from './analytics';
 
@@ -55,3 +56,61 @@ export function capture(event: AnalyticsEvent, properties?: Record<string, unkno
 }
 
 export { ANALYTICS_EVENTS };
+
+/**
+ * Report that an action a rider submitted came back with an error.
+ *
+ * The forms that sign a rider up, sign them in and reset a password all
+ * **redirect on success**, so the only thing a browser can observe is the
+ * attempt and, when it happens, the failure. Firing the event once at submit
+ * would leave a count called `signed_up` quietly including everyone who
+ * mistyped their password, which is the kind of number somebody makes a
+ * decision on a year later.
+ *
+ * So each of those call sites captures `outcome: 'attempted'` when the form
+ * goes, and this captures `outcome: 'failed'` when one comes back — success is
+ * the difference between the two. The ref stops React re-firing it on an
+ * unrelated re-render; a *new* failure changes the message and fires again.
+ *
+ * `message` is the app's own copy, which is written by us and says nothing
+ * about the rider. It is not sent — only the fact that it changed is used, and
+ * what travels is the caller's own `properties`.
+ */
+export function useFailureCapture(
+  event: AnalyticsEvent,
+  message: string | undefined,
+  properties?: Record<string, unknown>,
+): void {
+  const last = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!message || message === last.current) return;
+    last.current = message;
+    capture(event, { ...properties, outcome: 'failed' });
+    // `properties` is a fresh object literal at most call sites, so it is
+    // deliberately not a dependency — the message is what says "this is new".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event, message]);
+}
+
+/**
+ * The mirror of `useFailureCapture`, for an action that reports success in its
+ * returned state rather than by redirecting.
+ *
+ * `token` is whatever the action hands back to prove it worked — a reference,
+ * an id, a `true`. It is compared, not sent; what travels is the caller's own
+ * `properties`. Fires once per distinct token, so a re-render does not
+ * double-count and a second submission does.
+ */
+export function useSuccessCapture(
+  event: AnalyticsEvent,
+  token: string | number | boolean | null | undefined,
+  properties?: Record<string, unknown>,
+): void {
+  const last = useRef<typeof token>(undefined);
+  useEffect(() => {
+    if (!token || token === last.current) return;
+    last.current = token;
+    capture(event, properties);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event, token]);
+}

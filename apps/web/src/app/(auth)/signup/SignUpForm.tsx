@@ -18,6 +18,8 @@ import { useActionState, useMemo, useState } from 'react';
 
 import { TimezoneField } from '@/components/TimezoneField';
 
+import { ANALYTICS_EVENTS, capture, useFailureCapture } from '@/lib/analyticsClient';
+
 import { signUpAction, type AuthFormState } from '../actions';
 import styles from '../auth.module.css';
 
@@ -50,6 +52,8 @@ export function SignUpForm() {
     undefined,
   );
 
+  useFailureCapture(ANALYTICS_EVENTS.signedUp, state?.errors?.form);
+
   const [country, setCountry] = useState<string>(DEFAULT_COUNTRY);
   const [dob, setDob] = useState('');
   const countries = useMemo(() => countryOptions(), []);
@@ -69,7 +73,11 @@ export function SignUpForm() {
   const errors = state?.errors ?? {};
 
   return (
-    <form action={action} className={styles.form}>
+    <form
+      action={action}
+      onSubmit={() => capture(ANALYTICS_EVENTS.signedUp, { outcome: 'attempted' })}
+      className={styles.form}
+    >
       <div className="field">
         <label htmlFor="name">Your name</label>
         <input id="name" name="name" placeholder="Miles" autoComplete="given-name" />

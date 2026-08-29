@@ -8,6 +8,8 @@ import { setInsightsAction, type InsightsFormState } from '@/app/(app)/progress/
 import type { InsightsView } from '@/app/(app)/progress/view';
 import { ROUTES } from '@/lib/routes';
 
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+
 import styles from './progress.module.css';
 
 /**
@@ -94,7 +96,11 @@ export function InsightsPanel({ insights, entitled, optedIn }: InsightsPanelProp
             <li>Nothing new is collected — it is the log you already keep.</li>
             <li>You can turn it off again whenever you like, right here.</li>
           </ul>
-          <form action={action} className={styles.optInRow}>
+          <form
+            action={action}
+            className={styles.optInRow}
+            onSubmit={() => capture(ANALYTICS_EVENTS.insightsSet, { on: !optedIn })}
+          >
             <Button type="submit" disabled={pending}>
               {pending ? 'Turning on…' : 'Turn insights on'}
             </Button>
@@ -193,7 +199,12 @@ export function InsightsPanel({ insights, entitled, optedIn }: InsightsPanelProp
         )}
       </div>
 
-      <form action={action} className={styles.optInRow} style={{ marginTop: 22 }}>
+      <form
+        action={action}
+        className={styles.optInRow}
+        style={{ marginTop: 22 }}
+        onSubmit={() => capture(ANALYTICS_EVENTS.insightsSet, { on: !optedIn })}
+      >
         <Button type="submit" variant="ghost" size="sm" disabled={pending}>
           <Icon name="chart" size={15} strokeWidth={2.4} />
           {pending ? 'Turning off…' : 'Turn insights off'}

@@ -5,6 +5,8 @@ import { useActionState } from 'react';
 
 import { joinCrewAction, type CrewFormState } from '../../crew/actions';
 
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+
 import styles from './join.module.css';
 
 /**
@@ -21,7 +23,11 @@ export function JoinButton({ code }: { code: string }) {
   );
 
   return (
-    <form action={join} className={styles.actions}>
+    <form
+      onSubmit={() => capture(ANALYTICS_EVENTS.crewJoined, { outcome: 'attempted', from: 'link' })}
+      action={join}
+      className={styles.actions}
+    >
       <input type="hidden" name="code" value={code} />
       <Button type="submit" disabled={pending}>
         {pending ? 'Joining…' : 'Join the crew'}

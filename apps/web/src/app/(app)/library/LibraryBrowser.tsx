@@ -27,6 +27,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
 import { SportSwitch } from '@/components/shell/SportSwitch';
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES, libraryHref, trickHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { useSport } from '@/providers/sport';
@@ -141,14 +142,25 @@ export function LibraryBrowser({
     <Panel flat className={styles.filters}>
       <div className="lab">Category</div>
       <div className={styles.pills}>
-        <Pill on={!category} onClick={() => setCategory(null)}>
+        <Pill
+          on={!category}
+          onClick={() => {
+            capture(ANALYTICS_EVENTS.libraryFiltered, { category: 'all' });
+            setCategory(null);
+          }}
+        >
           All
         </Pill>
         {CATEGORY_IDS.map((id) => (
           <Pill
             key={id}
             on={category === id}
-            onClick={() => setCategory(id)}
+            onClick={() => {
+              // A category id is catalogue data. The search box is deliberately
+              // not instrumented: what a rider types is theirs.
+              capture(ANALYTICS_EVENTS.libraryFiltered, { category: id });
+              setCategory(id);
+            }}
             style={
               category === id
                 ? { background: CATS[id].color, color: '#fff', boxShadow: '3px 3px 0 var(--ink)' }

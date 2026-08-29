@@ -4,6 +4,8 @@ import { SPORTS, type SportId } from '@landit/core';
 import { Tabs, type TabItem } from '@landit/ui-web';
 import { useMemo } from 'react';
 
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+
 import { useSport } from '@/providers/sport';
 import { SPORT_LOOKS } from '@/lib/sports';
 
@@ -51,7 +53,11 @@ export function SportSwitch({
     <Tabs
       items={items}
       value={sport}
-      onChange={(id) => setSport(id as SportId)}
+      onChange={(id) => {
+        // A sport id is one of three fixed strings — the same for everybody.
+        capture(ANALYTICS_EVENTS.sportSwitched, { sport: id, from: sport });
+        setSport(id as SportId);
+      }}
       label={label}
       compact
     />

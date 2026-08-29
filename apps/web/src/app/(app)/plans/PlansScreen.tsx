@@ -11,6 +11,8 @@ import { openBillingPortalAction } from './actions';
 import { PlanCard } from './PlanCard';
 import type { PlansView } from './view';
 
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+
 import styles from './plans.module.css';
 
 /**
@@ -159,7 +161,10 @@ export function PlansScreen({ view }: { view: PlansView }) {
             Card details, invoices and cancelling all live with Stripe, who take the payment. Land
             It never sees a card number and never stores one.
           </p>
-          <form action={portalAction}>
+          <form
+            action={portalAction}
+            onSubmit={() => capture(ANALYTICS_EVENTS.billingPortalOpened)}
+          >
             <Button type="submit" variant="ghost" size="sm" disabled={portalPending}>
               {portalPending ? 'Opening…' : 'Manage billing'}
             </Button>
