@@ -292,7 +292,8 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         h: 'Counting who uses what',
         p: [
           'We count how many people open each page, so we know which parts of the app to improve.',
-          'It is set up without cookies and without advertising identifiers, and the counts are not attached to you. There is no per-rider analytics profile here — not one to look at, not one to switch off, and not one to ask us for.',
+          'It is set up without cookies and without advertising identifiers. Nothing is stored on your device to do it: instead, the day you visit, our analytics service works out a scrambled code from things your browser sends anyway, and counts that. The code is built with a secret that is thrown away at the end of each day, so it cannot be turned back into you, and tomorrow the same phone gets a different one.',
+          'That is deliberate, and it costs us something: we can tell how many people used the app today, but not whether you are the same person who used it last week. We would rather know less. There is no per-rider analytics profile here — not one to look at, not one to switch off, and not one to ask us for.',
         ],
       },
       {
@@ -300,7 +301,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         p: [
           'Riders can add a link to a video on YouTube. A page with one on it shows a still panel and a play button, and nothing on it talks to YouTube or to Google until you press play. Not a thumbnail, not a hidden player, nothing.',
           'Press play and YouTube’s player loads, from a version of their address built for this, and from then on YouTube can set storage of its own on your device — that part is theirs, not ours. If you would rather it did not, do not press play, or open the video on YouTube where you can decide with everything else in front of you.',
-          'This is why Land The Trick has no cookie pop-up: nothing third-party runs here unless you ask for it.',
+          'This is why Land The Trick has no cookie pop-up. The counting above stores nothing on your device, and the one thing here that would — YouTube — does not run at all until you press play.',
         ],
       },
       {

@@ -16,6 +16,11 @@ allowBuilds:
   # it, so this stays `false` and CI does not fetch a binary it will not run.
   # Turn it on in the same change that adds an auth token, not before.
   '@sentry/cli': false
+  # Arrives with `posthog-js`, which uses it to polyfill a handful of built-ins
+  # for older browsers. Its install script only prints a funding banner — it
+  # compiles nothing and the library works without it, so there is no reason to
+  # let a dependency run code at install time to ask for money.
+  core-js: false
   # Native resolver behind eslint-import-resolver-typescript (via
   # eslint-config-next). Without its install step ESLint cannot resolve imports.
   unrs-resolver: true

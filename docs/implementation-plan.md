@@ -26,7 +26,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Streak shape | **A weekly target, not a consecutive-day count** (2026-08-16). A rider keeps the streak by riding **at least 2 times in a week**; the streak counts consecutive weeks that met the target, and missing a week breaks it. "I rode today" stays a plain button — no spot attached, no location captured | The audience is children who realistically ride at weekends: a daily streak punishes a school week, and is the engagement mechanic §6.4 Standard 13 warns about. Weeks are Monday-to-Sunday — the boundary the weekly challenges already use, so a rider never has two different "this week"s. **Two numbers here are tunable defaults, not deliberated decisions: the target of 2** (a weekend alone reaches it; 3 would force a weekday ride) **and no grace week** (the weekly target is itself the forgiveness — a grace week on top would make the streak nearly unbreakable). Both are constants in `packages/core` (`WEEKLY_RIDE_TARGET`, `WEEKLY_STREAK_GRACE_WEEKS`) and options on every function, so moving either is a one-line change plus this row. This supersedes the daily-streak and grace-period framing throughout: the daily functions in `core` stay exported but deprecated, and T8 wires the weekly ones. Stored shape in §3; that spots never record where a rider has been is §6.4 Standard 10 and T13. |
 | Staff portal placement | **Route group in the web app**, hard role gate, full audit log | Handoff prefers a separate app; see §6.10. |
 | Error reporting | **Sentry** | Already connected; PII scrubbed. See §2.5. |
-| Analytics | **PostHog EU (free tier) + Cloudflare Web Analytics** | PostHog for product events (onboarding funnel, upgrades), Cloudflare beacon for traffic. Both cookie-less, no ad identifiers. |
+| Analytics | **PostHog EU (free tier), alone** | **Changed 2026-08-21 (Rachid, in chat); was PostHog EU + Cloudflare Web Analytics, decided 2026-08-15.** Cloudflare's beacon was there for plain traffic counts, because the cookie-less PostHog config first shipped could only count page loads, not people. `cookieless_mode: 'always'` counts riders with a server-side daily hash instead, so the beacon has nothing left to add — and dropping it is one fewer processor on a product with four Article 28 contracts outstanding (§6.5). PostHog carries both jobs: product events (onboarding funnel, upgrades) and traffic. Cookie-less, no device storage, no ad identifiers, no person profiles. The cost is that unique means unique *per day* (§6.8). |
 | Transactional email | **MailerSend** | **Changed 2026-08-16 (Rachid); was Resend, confirmed 2026-08-15.** Resend is already in use on another product and its free tier carries one sending domain, so Land The Trick would have meant paying before launch for a service sending dozens of emails a month. MailerSend's free tier (500/month, one domain) covers launch volume many times over, and it is EU-based — the same reason PostHog EU and R2 EU were chosen (§6.5). **Nothing in the codebase names a provider:** PocketBase sends over plain SMTP, so this is five environment values and no code change, and switching again costs the same. Rolling our own on box1 was considered and rejected — a cold shared IP that also carries the other products, and the guardian-consent email is the one that must not land in spam. |
 | Pricing | **Rookie free; Shredder £3.99/mo · £39.99/yr; Legend £6.99/mo · £69.99/yr** | Confirmed 2026-08-15. Yearly ≈ 2 months free. Crew Pass dropped, replaced by the single-rider Legend tier — see §2.4. |
 
@@ -911,6 +911,53 @@ open owner decision** — filed as an issue, not resolved here.
 steps, trick logging, paywall hits and upgrades as those screens are built. The Cloudflare beacon
 rides alongside for plain traffic counts. No consent banner needed for either; keep it that way —
 no session recording without revisiting consent, given the audience.
+
+**The Cloudflare half was dropped on 2026-08-21** (§1) once PostHog's cookieless mode could count
+riders as well as events. The rest of the paragraph above still holds, and the no-banner
+constraint is now enforced in code rather than remembered.
+
+**PostHog is wired (2026-08-20), and is now the whole of analytics.** The decision above stood
+unbuilt for five days after launch, so the site was public and taking sign-ups with nothing
+counting anything. What landed:
+
+- `apps/web/src/lib/analytics.ts` decides what may be collected and is asserted in
+  `analytics.test.ts`; `analyticsClient.ts` is the only module that touches the SDK, and
+  `instrumentation-client.ts` starts it beside Sentry. **Blank key means off entirely**, which is
+  CI and every checkout.
+- The four events §6.8 asked for: `onboarding_step`, `onboarding_finished`, `trick_logged`,
+  `paywall_hit`, `upgrade_started` — hand-written, because autocapture on this product would
+  collect rider handles, crew names and trick names a child typed.
+- **Cookie-less means `cookieless_mode: 'always'` over `persistence: 'memory'`**: no cookie, no
+  `localStorage`, no `sessionStorage`, and `person_profiles: 'never'` so the SDK cannot build a
+  profile even if a future call site asks it to. Riders are counted by a hash PostHog computes on
+  its own servers from `(team, daily salt, IP, user agent, hostname)`, with the salt discarded
+  nightly. `/legal/cookies` already tells children there is no per-rider analytics profile "to
+  look at, to switch off, or to ask us for", and this config is what makes that sentence true
+  rather than aspirational.
+- **"Unique riders" therefore means unique *per day*** — the same child tomorrow is a second
+  rider, because the salt changed. Daily figures are real; a monthly total is a sum of daily ones
+  and overcounts. **This replaced plain memory persistence on 2026-08-21** (owner's call, in
+  chat), which counted page loads rather than people and made the number worse still. The
+  remaining alternative buys a truer monthly figure with a durable identifier for a child, which
+  is the thing the policy says we do not keep — so this is where it stops.
+- **Two project settings, and one of them is a reversal.** "Cookieless server hash mode" must be
+  **on**, or PostHog ignores every event with no error at all. "Discard client IP data" must be
+  **off**: the IP is the hash's main ingredient and PostHog strips it after hashing, so the toggle
+  is redundant and its interaction with cookieless mode is undocumented. §6.8's own advice said
+  the opposite for one day; this is the correction.
+- URLs are scrubbed with `sentry.ts`'s own `stripQuery`, so a `$pageview` from
+  `/consent/approve/<token>` carries `[redacted]` rather than a live guardian-consent credential.
+  Verified against a real browser and a real payload, not only in a unit test.
+
+**What remains is not code.** PostHog needs its Article 28 contract and ROPA entry (§6.5), and
+the project settings above need setting — the first of them before the key goes on a deploy, or
+the dashboard stays empty.
+
+**A consequence worth knowing before writing a test:** PostHog's SDK classifies any browser with
+`navigator.webdriver` as a bot and discards every event before making a request, so no Playwright
+spec can prove delivery without either masking that signal or setting
+`opt_out_useragent_filter: true` — and the second would make real bot traffic count as riders.
+That is why delivery is proven by the record in LESSONS §9 rather than by a spec in `e2e/`.
 
 ### 6.9 Hosting
 

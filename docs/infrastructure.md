@@ -172,12 +172,24 @@ what was already proven green.
 
 Two settings that are not obvious and cost a rebuild each:
 
-- **The web app needs `NEXT_PUBLIC_POCKETBASE_URL=https://api.landthetrick.com` as a *build*
-  argument, not a runtime variable.** Next inlines `NEXT_PUBLIC_*` into the browser bundle at build
-  time, so setting it at runtime does nothing at all and the deployed app's API calls go nowhere.
-  In Coolify it must be marked "Build Variable". It is now the *only* `NEXT_PUBLIC_*` variable
-  this app takes — the Mapbox token that used to share this warning is gone with the move to
-  MapLibre (step 2c).
+- **The web app's `NEXT_PUBLIC_*` variables are *build* arguments, not runtime variables.** Next
+  inlines them into the browser bundle at build time, so setting one at runtime does nothing at
+  all. In Coolify each must be marked "Build Variable", and **each also needs a matching `ARG` in
+  `apps/web/Dockerfile`** — a build argument the Dockerfile does not declare is discarded by
+  Docker in silence, which looks exactly like a variable that was never set except that Coolify
+  lists it as set.
+
+  | Variable | Value | Needed for |
+  | --- | --- | --- |
+  | `NEXT_PUBLIC_POCKETBASE_URL` | `https://api.landthetrick.com` | Every API call. Wrong or unset → the app talks to nothing, and no restart fixes it. |
+  | `NEXT_PUBLIC_POSTHOG_KEY` | the `phc_…` project key | Analytics (§6.8). Unset → analytics never initialises, which is a safe default rather than a broken one. |
+  | `NEXT_PUBLIC_POSTHOG_HOST` | leave unset | Only to point a deploy at a throwaway project. Unset means the EU cloud. |
+
+  The PostHog key is public by design — it ships in the browser bundle and is sent with every
+  event, like the Sentry DSN — so "Build Variable" is right for it and it needs no secret handling.
+  **Setting it takes a rebuild, not a restart**, which is the opposite of `LANDIT_SITE_LIVE`
+  below. The Mapbox token that used to share this warning is gone with the move to MapLibre
+  (step 2c).
 - **PocketBase's `/pb_data` must be a persistent volume before the first deploy.** Without it the
   database — riders, consent records, everything — lives in the container's writable layer and is
   destroyed by the next deploy. Its `data.db` inside that volume is also the path step 3 adds to

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { ROUTES, trickHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 
+import { PaywallSeen } from './PaywallSeen';
+
 import styles from './trick.module.css';
 
 /**
@@ -42,6 +44,9 @@ export function LockedTrick({
 
   return (
     <div>
+      {/* Renders nothing; counts the paywall being seen (§6.8). */}
+      <PaywallSeen trickId={trick.id} sport={trick.sport} tier={tier} />
+
       <Link className={`cond ${styles.back}`} href={ROUTES.library}>
         <Icon name="back" size={16} /> All tricks
       </Link>
