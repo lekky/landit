@@ -36,9 +36,24 @@ your merge and a live service used by children.
 
 ### Starting
 
-1. **Brief the owner first.** Open with a short bullet list for a Technical Product Owner:
-   what this session will add or change — behaviour, not implementation. If the goal is
-   unclear, ask before building.
+1. **Open with a TPO brief, and get it agreed before building anything.** It is the bookend
+   of the closing summary in step 12, and it has the same five parts every time so that none
+   of them quietly goes missing:
+   - **What changes** — behaviour a rider would notice, in their words, not implementation.
+   - **What gets measured** — which `ANALYTICS_EVENTS` entries this adds or touches
+     (`apps/web/src/lib/analytics.ts`), or one line saying why none: a staff-only screen, a
+     refactor nobody sees, a fix to something already counted. **Analytics is part of the
+     work, not a follow-up task.** A feature that ships uncounted is one nobody can tell you
+     anything about six months later, and the session that could have added the event in a
+     line is the one that had the file open.
+   - **What it costs** — anything that gets slower, larger, newly depended on, or newly
+     someone else's to run.
+   - **Collisions** — step 2, named so the owner can sequence the sessions.
+   - **Decisions only the owner can make** — explicit and up front, because step 8 means
+     there is no review in which to raise them later.
+
+   If the goal is unclear, ask in the brief rather than guessing at it. A brief the owner
+   corrects in one line has done its job.
 2. **Collision check, in the brief.** Four commands, not one:
    `gh pr list` (open PRs), `gh issue list` (the work may already be logged, and adjacent
    issues are often worth folding in), `git worktree list` and `git branch -a` (sessions
@@ -68,7 +83,11 @@ your merge and a live service used by children.
 6. **Gates before any commit:** `pnpm build`, `pnpm test`, `pnpm lint` — judged on **exit
    codes**, never on piped output (a `| tail` swallows the status). Read `git status` before
    committing; never `git add -A` blind. New behaviour has tests where the task says so;
-   screens are checked against the named screenshots.
+   screens are checked against the named screenshots. **New rider-facing behaviour ships with
+   its analytics event in the same PR** — the brief said which one, and the catalogue in
+   `apps/web/src/lib/analytics.ts` says what a property is allowed to carry (catalogue facts,
+   never rider facts, and never anything a rider typed). There is no autocapture to fall back
+   on, deliberately, so an uninstrumented screen is an invisible one.
 7. **Before opening or updating the PR:** `git fetch origin`, rebase onto `origin/main`,
    re-run the gates, push. `.github/pull_request_template.md` scaffolds the body — its first
    section is the same TPO brief that opened the session. If the work closes an issue, put

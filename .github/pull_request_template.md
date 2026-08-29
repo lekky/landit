@@ -4,6 +4,13 @@
 
 - <!-- behaviour added, changed, or fixed — no implementation detail -->
 
+## What gets measured
+
+<!-- The ANALYTICS_EVENTS entries this adds or touches (apps/web/src/lib/analytics.ts),
+     or one line saying why none: staff-only, a refactor nobody sees, already counted.
+     There is no autocapture, on purpose — an uninstrumented screen is an invisible one.
+     Properties carry catalogue facts, never rider facts and never anything a rider typed. -->
+
 ## Detail
 
 <!-- implementation notes: approach, plan sections amended (if any),

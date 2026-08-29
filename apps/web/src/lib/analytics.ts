@@ -126,6 +126,24 @@ export function analyticsHost(): string {
  * and each carries only that it happened: `consent_decided` (never the token —
  * see `URL_PROPERTIES`), `report_filed` (never a word of the report), and
  * `guardian_asked` (never the address).
+ *
+ * ## Adding one
+ *
+ * `CLAUDE.md` asks every session's opening brief to say which events its work
+ * adds, so this is the recipe it is pointing at. Four steps, and the third is
+ * the one that surprises people:
+ *
+ *  1. Add the entry below, `camelCase: 'snake_case'`, under the right heading.
+ *  2. Call it from the screen, through `capture` in `analyticsClient.ts` —
+ *     never `posthog` directly, so an analytics failure cannot break a page.
+ *     Fire it **after** the write succeeds, not optimistically; where success
+ *     is a redirect, `useFailureCapture` and `useSuccessCapture` are the way.
+ *  3. **Add it to the pinned list in `analytics.test.ts`**, which will fail
+ *     until you do. That is on purpose: the catalogue is the privacy boundary
+ *     now that autocapture is refused, so growing it should cost a deliberate
+ *     edit in a file whose whole subject is what may be collected.
+ *  4. Check the properties against the rule above. If you are about to send
+ *     something a rider typed, send a count or a category of it instead.
  */
 export const ANALYTICS_EVENTS = {
   /* ------------------------------------------------------------ account -- */
