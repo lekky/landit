@@ -6,6 +6,8 @@ import { useActionState } from 'react';
 
 import { ROUTES } from '@/lib/routes';
 
+import { ANALYTICS_EVENTS, capture, useFailureCapture } from '@/lib/analyticsClient';
+
 import { confirmResetAction, type AuthFormState } from '../actions';
 import styles from '../auth.module.css';
 
@@ -14,6 +16,8 @@ export function ResetPasswordForm({ token }: { token: string }) {
     confirmResetAction,
     undefined,
   );
+
+  useFailureCapture(ANALYTICS_EVENTS.passwordResetCompleted, state?.errors?.form);
 
   if (state?.done) {
     return (
@@ -35,7 +39,11 @@ export function ResetPasswordForm({ token }: { token: string }) {
   }
 
   return (
-    <form action={action} className={styles.form}>
+    <form
+      action={action}
+      onSubmit={() => capture(ANALYTICS_EVENTS.passwordResetCompleted, { outcome: 'attempted' })}
+      className={styles.form}
+    >
       <input type="hidden" name="token" value={token} />
 
       <div className="field">

@@ -4,6 +4,8 @@ import { Icon } from '@landit/ui-web';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+
 import { NAV, isNavActive } from './nav';
 
 /**
@@ -42,6 +44,9 @@ export function MobileNav() {
             href={item.href}
             className={active ? 'on' : undefined}
             aria-current={active ? 'page' : undefined}
+            // The nav item's id, not its href: an id is a fixed name from
+            // `nav.ts`, while an href could one day carry a parameter.
+            onClick={() => capture(ANALYTICS_EVENTS.navClicked, { to: item.id, where: 'mobile' })}
           >
             {inner}
           </Link>

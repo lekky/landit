@@ -17,6 +17,8 @@ import {
 import { InviteCard } from './InviteCard';
 import type { BoardRowView, CrewView, FeedItemView } from './view';
 
+import { ANALYTICS_EVENTS, capture, useFailureCapture } from '@/lib/analyticsClient';
+
 import styles from './crew.module.css';
 
 /**
@@ -41,6 +43,9 @@ export function CrewScreen({ view }: { view: CrewView }) {
     startMinting(async () => {
       const result = await mintInviteAction(crew.id);
       if (result.code) {
+        // That an invite was made. Never the code — it is a capability, and
+        // crews are invite-only with no discovery (plan §6.1).
+        capture(ANALYTICS_EVENTS.inviteMinted);
         setInviteCode(result.code);
         setInviting(true);
       } else {
@@ -132,7 +137,7 @@ export function CrewScreen({ view }: { view: CrewView }) {
                 : 'Invite-only — nobody can find this crew or ask to join it.'}
             </p>
             {crew.membershipId ? (
-              <form action={leaveCrewAction}>
+              <form action={leaveCrewAction} onSubmit={() => capture(ANALYTICS_EVENTS.crewLeft)}>
                 <input type="hidden" name="membership" value={crew.membershipId} />
                 <Button type="submit" variant="ghost" size="sm">
                   Leave crew
@@ -290,6 +295,9 @@ function NoCrew({ compact = false }: { compact?: boolean }) {
     undefined,
   );
 
+  useFailureCapture(ANALYTICS_EVENTS.crewCreated, createState?.error);
+  useFailureCapture(ANALYTICS_EVENTS.crewJoined, joinState?.error, { from: 'crew' });
+
   return (
     <div className={compact ? styles.startCompact : styles.start}>
       {!compact ? (
@@ -303,7 +311,11 @@ function NoCrew({ compact = false }: { compact?: boolean }) {
       <div className={styles.startForms}>
         <Panel flat className={styles.startPanel}>
           <div className="lab">Start a crew</div>
-          <form action={create} className={styles.startForm}>
+          <form
+            action={create}
+            className={styles.startForm}
+            onSubmit={() => capture(ANALYTICS_EVENTS.crewCreated, { outcome: 'attempted' })}
+          >
             <div className="field">
               <label htmlFor="crew-name">What is it called?</label>
               <input
@@ -323,7 +335,13 @@ function NoCrew({ compact = false }: { compact?: boolean }) {
 
         <Panel flat className={styles.startPanel}>
           <div className="lab">Join with a code</div>
-          <form action={joinCrew} className={styles.startForm}>
+          <form
+            action={joinCrew}
+            className={styles.startForm}
+            onSubmit={() =>
+              capture(ANALYTICS_EVENTS.crewJoined, { outcome: 'attempted', from: 'crew' })
+            }
+          >
             <div className="field">
               <label htmlFor="crew-code">The code a mate sent you</label>
               <input

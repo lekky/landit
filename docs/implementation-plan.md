@@ -924,9 +924,24 @@ counting anything. What landed:
   `analytics.test.ts`; `analyticsClient.ts` is the only module that touches the SDK, and
   `instrumentation-client.ts` starts it beside Sentry. **Blank key means off entirely**, which is
   CI and every checkout.
-- The four events §6.8 asked for: `onboarding_step`, `onboarding_finished`, `trick_logged`,
-  `paywall_hit`, `upgrade_started` — hand-written, because autocapture on this product would
-  collect rider handles, crew names and trick names a child typed.
+- **33 events, covering nearly every action a rider can take** — account and sign-in, the
+  guardian-consent decision, reports filed, the weekly streak, trick logging, notes, challenges,
+  crews and invites, video links, spots, events, the paywall, checkout, and getting about the app
+  (sport switch, nav, library filters). Widened from §6.8's original four areas on **2026-08-21
+  (Rachid, in chat)**, who asked for comprehensive tracking including clicks.
+- **Autocapture was offered for that and refused, twice, and this is the load-bearing decision.**
+  Autocapture sends *the text of whatever was clicked*, which on this product is crew names, rider
+  handles and spot names a child typed — and it captures screens nobody has reviewed, the moment
+  they ship. Every event is therefore written by hand in `ANALYTICS_EVENTS`, with properties
+  somebody chose. Breadth is safe; automatic breadth is not, and a new screen stays uncounted
+  until somebody adds an entry. That is the direction this should fail in.
+- Three events sit on paths carrying something secret and carry only that they happened:
+  `consent_decided` (never the token), `report_filed` (never a word of the report),
+  `guardian_asked` (never the address). The search box and the notes field are not instrumented
+  at all.
+- The document `title` is on the property denylist. Every title in the app is safe today; it is
+  dropped so that the next person to put a rider's handle in one for a nicer share preview cannot
+  quietly start sending handles.
 - **Cookie-less means `cookieless_mode: 'always'` over `persistence: 'memory'`**: no cookie, no
   `localStorage`, no `sessionStorage`, and `person_profiles: 'never'` so the SDK cannot build a
   profile even if a future call site asks it to. Riders are counted by a hash PostHog computes on

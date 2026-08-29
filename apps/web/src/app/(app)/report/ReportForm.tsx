@@ -14,6 +14,8 @@ import { useActionState, useState } from 'react';
 import { ROUTES } from '@/lib/routes';
 
 import { fileReportAction, type ReportFormState } from './actions';
+import { ANALYTICS_EVENTS, useSuccessCapture } from '@/lib/analyticsClient';
+
 import styles from './report.module.css';
 
 /**
@@ -52,6 +54,16 @@ export function ReportForm({ signedIn, about, subjectId, appealOf }: ReportFormP
   );
   const [detail, setDetail] = useState('');
   const isAppeal = Boolean(appealOf);
+
+  // Safeguarding's own count, and nothing more. `filedAs` is the reference the
+  // rider is shown, used here only to tell one filing from the next — what
+  // travels is the subject type, which is a fixed list, and whether it was an
+  // appeal. Not a word of what was reported, and not who it was about.
+  useSuccessCapture(ANALYTICS_EVENTS.reportFiled, result?.filedAs, {
+    about: about ?? 'other',
+    appeal: isAppeal,
+    signed_in: signedIn,
+  });
 
   if (result?.filedAs) {
     return (

@@ -24,6 +24,8 @@ import { useToast } from '@/providers/toast';
 // component means editing `SpotsScreen.tsx`, which another session owns.
 import { useHereOnce } from '@/lib/useHereOnce';
 import { setAttendanceAction } from './actions';
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+
 import styles from './events.module.css';
 import type { EventsView, EventView } from './view';
 
@@ -175,6 +177,8 @@ export function EventsScreen({
 
     startTransition(async () => {
       const result = await setAttendanceAction(event.id, next);
+      if (!result.error)
+        capture(ANALYTICS_EVENTS.eventAttendanceSet, { event: event.id, going: next });
       if (result.error) {
         setGoing((current) => {
           const copy = new Set(current);

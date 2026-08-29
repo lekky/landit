@@ -6,6 +6,8 @@ import { useActionState } from 'react';
 
 import { setPrivacyAction, type PrivacyFormState } from './actions';
 
+import { ANALYTICS_EVENTS, capture, useFailureCapture } from '@/lib/analyticsClient';
+
 import styles from './account.module.css';
 
 /**
@@ -25,6 +27,8 @@ export function PrivacyPanel({ value }: { value: PrivacyId }) {
     undefined,
   );
 
+  useFailureCapture(ANALYTICS_EVENTS.privacySet, state?.error);
+
   return (
     <Panel flat className={styles.privacy}>
       <div className="lab">Who can see your profile</div>
@@ -33,7 +37,11 @@ export function PrivacyPanel({ value }: { value: PrivacyId }) {
         private.
       </p>
 
-      <form action={save} className={styles.privacyForm}>
+      <form
+        action={save}
+        className={styles.privacyForm}
+        onSubmit={() => capture(ANALYTICS_EVENTS.privacySet, { outcome: 'attempted' })}
+      >
         {PRIVACY.map((option) => (
           <label key={option.id} className={styles.privacyOption}>
             <input

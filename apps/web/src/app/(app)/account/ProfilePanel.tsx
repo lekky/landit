@@ -20,6 +20,8 @@ import { SPORT_LOOKS, countWord } from '@/lib/sports';
 
 import { saveProfileAction, type ProfileFormState } from './actions';
 
+import { ANALYTICS_EVENTS, capture, useFailureCapture } from '@/lib/analyticsClient';
+
 import styles from './account.module.css';
 
 /**
@@ -67,6 +69,8 @@ export function ProfilePanel({
     undefined,
   );
 
+  useFailureCapture(ANALYTICS_EVENTS.profileSaved, state?.error);
+
   const [sports, setSports] = useState<SportId[]>([...savedSports]);
   const [level, setLevel] = useState<LevelId | null>(savedLevel);
   const [goal, setGoal] = useState<string | null>(savedGoal);
@@ -107,7 +111,11 @@ export function ProfilePanel({
         already tracked is affected.
       </p>
 
-      <form action={save} className={styles.profileForm}>
+      <form
+        action={save}
+        className={styles.profileForm}
+        onSubmit={() => capture(ANALYTICS_EVENTS.profileSaved, { outcome: 'attempted' })}
+      >
         {/* What the pickers above actually post. */}
         <input type="hidden" name="avatar_key" value={avatarKey ?? ''} />
         <input type="hidden" name="level" value={level ?? ''} />

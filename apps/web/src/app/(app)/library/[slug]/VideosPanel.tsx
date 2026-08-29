@@ -13,6 +13,8 @@ import { Button, Panel } from '@landit/ui-web';
 import { useState, useTransition } from 'react';
 
 import { VideoEmbed } from '@/components/video/VideoEmbed';
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+
 import styles from '@/components/video/video.module.css';
 import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/providers/toast';
@@ -103,14 +105,19 @@ export function VideosPanel({
         // handed (plan §6.4 standard 7).
         visibility: 'private',
       });
-      if (result.ok) setLink('');
-      else setProblem(result.message);
+      if (result.ok) {
+        // That a link was added, and for which trick. Never the URL — a
+        // rider's own YouTube channel is a thing about them, not the product.
+        capture(ANALYTICS_EVENTS.videoLinkAdded, { slug });
+        setLink('');
+      } else setProblem(result.message);
     });
   };
 
   const changeVisibility = (videoLinkId: string, visibility: VideoVisibilityId) => {
     startTransition(async () => {
       const result = await setVideoLinkVisibilityAction({ videoLinkId, slug, visibility });
+      if (result.ok) capture(ANALYTICS_EVENTS.videoVisibilitySet, { slug, visibility });
       if (!result.ok) toast(result.message, 'var(--red)');
     });
   };
@@ -118,6 +125,7 @@ export function VideosPanel({
   const remove = (videoLinkId: string) => {
     startTransition(async () => {
       const result = await removeVideoLinkAction({ videoLinkId, slug });
+      if (result.ok) capture(ANALYTICS_EVENTS.videoLinkRemoved, { slug });
       if (!result.ok) toast(result.message, 'var(--red)');
     });
   };

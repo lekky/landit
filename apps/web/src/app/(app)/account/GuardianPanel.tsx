@@ -5,6 +5,8 @@ import { Button, Panel } from '@landit/ui-web';
 import { useActionState } from 'react';
 
 import { askGuardianAction, type GuardianFormState } from './actions';
+import { ANALYTICS_EVENTS, capture, useFailureCapture } from '@/lib/analyticsClient';
+
 import styles from './account.module.css';
 
 /**
@@ -42,6 +44,8 @@ export function GuardianPanel({ state }: { state: ConsentState }) {
     askGuardianAction,
     undefined,
   );
+
+  useFailureCapture(ANALYTICS_EVENTS.guardianAsked, result?.error);
 
   const revoked = state === 'revoked';
 
@@ -88,7 +92,11 @@ export function GuardianPanel({ state }: { state: ConsentState }) {
         </div>
       ) : null}
 
-      <form action={action} className={styles.guardianForm}>
+      <form
+        action={action}
+        className={styles.guardianForm}
+        onSubmit={() => capture(ANALYTICS_EVENTS.guardianAsked, { outcome: 'attempted' })}
+      >
         <div className="field">
           <label htmlFor="guardian_email">
             {result?.sentTo ? 'Send it again, or to somebody else' : 'A parent or carer’s email'}

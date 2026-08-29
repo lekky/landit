@@ -7,6 +7,8 @@ import { SportSwitch } from '@/components/shell/SportSwitch';
 import { useSport } from '@/providers/sport';
 import { useToast } from '@/providers/toast';
 
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+
 import { logChallengeAction } from './actions';
 import styles from './challenge.module.css';
 import type { ChallengeSportView } from './view';
@@ -58,6 +60,9 @@ export function ChallengeScreen({ views }: { readonly views: readonly ChallengeS
         toast(result.error, 'var(--red)');
         return;
       }
+      // The challenge id is catalogue data — the same string for everyone who
+      // sees this week's challenge.
+      capture(ANALYTICS_EVENTS.challengeLogged, { challenge: current.id });
       toast(`Logged. ${current.title}.`, current.hue);
     });
   };
