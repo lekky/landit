@@ -20,9 +20,11 @@ import { baseFixtures, call, makeRider, superuser } from './helpers';
 
 interface ExportPayload {
   account: Record<string, unknown>;
-  trick_progress: { id: string }[];
-  trick_notes: { id: string; body: string }[];
-  reports_filed: { id: string; detail: string }[];
+  trick_progress: { trick: string; stage: string; updated: string }[];
+  trick_log: { trick: string; stage: string; at: string }[];
+  trick_notes: { trick: string; body: string }[];
+  clips: { trick: string; video_id: string; video_url: string }[];
+  reports_filed: { detail: string }[];
   guardian_consents: Record<string, unknown>[];
   message?: string;
 }
@@ -69,6 +71,60 @@ describe('taking your data with you', () => {
     const serialised = JSON.stringify(mine.body);
     expect(serialised).not.toContain(stranger.id);
     expect(serialised).not.toContain(stranger.email);
+  });
+
+  it('is written in words a rider can read, not in row ids', async () => {
+    // Until 2026-08-30 this route answered a subject access request in database
+    // keys — `"trick": "mew7o75ag0ig9jy"` on every row of a rider's history —
+    // which is complete without being intelligible. Owner decision, in chat, on
+    // the readability of the download itself.
+    const fixtures = await baseFixtures();
+    const rider = await makeRider();
+
+    await call('POST', '/api/collections/trick_progress/records', {
+      token: rider.token,
+      body: { user: rider.id, trick: fixtures.freeTrick, stage: 'some' },
+    });
+    // Written explicitly: a `trick_progress` write does not leave a `trick_log`
+    // row behind, and both lists resolve their trick separately.
+    const logged = await call('POST', '/api/collections/trick_log/records', {
+      token: rider.token,
+      body: {
+        user: rider.id,
+        trick: fixtures.freeTrick,
+        stage: 'some',
+        at: '2026-08-18 16:31:37.983Z',
+      },
+    });
+    expect(logged.status).toBe(200);
+
+    const mine = await exportFor(rider.token);
+    expect(mine.status).toBe(200);
+
+    // The trick is named, and the stage is the words the app puts on screen.
+    expect(mine.body.trick_progress[0]?.trick).toBe('Fixture Bunny Hop');
+    expect(mine.body.trick_progress[0]?.stage).toBe('Sometimes');
+    expect(mine.body.trick_log[0]?.trick).toBe('Fixture Bunny Hop');
+    expect(mine.body.trick_log[0]?.at).toBe('18 Aug 2026, 16:31 UTC');
+
+    // `users.plan` holds a slug; the download says what the plan is called.
+    expect(mine.body.account.plan).toBe('Rookie');
+
+    // Every timestamp, spelled out. The account was made moments ago, so
+    // `created` is the one date a fresh rider is guaranteed to have.
+    expect(mine.body.account.created).toMatch(/^\d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} UTC$/);
+    expect(mine.body.trick_progress[0]?.updated).toMatch(
+      /^\d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} UTC$/,
+    );
+
+    // The catalogue id is gone from the body entirely — not merely replaced on
+    // the row the assertions above happen to read.
+    const serialised = JSON.stringify(mine.body);
+    expect(serialised).not.toContain(fixtures.freeTrick);
+
+    // The one id that stays, because it is the number to quote when writing to
+    // us about this file, and it is already public on the rider's profile.
+    expect(mine.body.account.id).toBe(rider.id);
   });
 
   it('is refused signed out', async () => {
