@@ -1,14 +1,22 @@
-import { Icon } from '@landit/ui-web';
 import type { Route } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 
 /**
- * The Land The Trick mark: a tilted yellow glyph and the wordmark, `LAND THE` in
- * paper with `TRICK` in yellow.
+ * The Land The Trick mark: the LTT badge from the 2026-08-30 logo pack and the
+ * wordmark, `LAND THE` in paper with `TRICK` in yellow.
  *
- * The prototype drew this as `LAND` + `IT`, and the 2026-08-17 rename kept the
- * shape rather than the words: the accent still falls on the back half of the
- * name, which is the part that carries it.
+ * The badge is artwork now, not a drawing. Until 2026-08-30 the glyph was a
+ * tilted yellow square with the scooter icon inside, built from tokens in
+ * `packages/ui-web` — a placeholder from before there was a logo, and wrong
+ * twice over once there was one: the product has three sports and the glyph
+ * showed one of them. The badge (crown over "LTT" on an ink splash tile) is cut
+ * from the same asset pack as the favicon and the install icons, so a rider
+ * sees one mark on the home screen, the tab and the top bar.
+ *
+ * The -5deg tilt carries over from the old glyph: every sticker in this design
+ * language sits slightly off-square, and the badge joining the bar dead level
+ * would be the odd one out.
  *
  * **It is 14 glyphs where it was 6, and that has a cost the top bar pays.** The
  * mark, nine nav items, the streak chip and the avatar stopped fitting between
@@ -17,24 +25,26 @@ import Link from 'next/link';
  * 15px there. Anything that makes the name longer again lands in the same
  * place — that band, not this file.
  *
- * `href` was typed as the literal `'/'` while the landing page was the only
- * place a mark could sensibly go. It is a `Route` now, because where "home"
- * is depends on who is looking: the top bar sends a signed-in rider to their
- * dashboard and everybody else to the landing page (`TopBar`).
+ * `href` is a `Route` because where "home" is depends on who is looking: the
+ * top bar sends a signed-in rider to their dashboard and everybody else to the
+ * landing page (`TopBar`).
  *
  * `onPaper` is the variant the auth card uses (screenshot 04), where the mark
- * sits on paper instead of ink: the glyph's ring turns ink, `LAND THE` turns ink
- * and `TRICK` turns orange. T5 left the prop for T6, which is the first screen to
- * need it; the colours are inline because the design system styles `.logo` for
- * the ink bar it was drawn on, and widening that selector would restyle the top
- * bar.
+ * sits on paper instead of ink: the badge is a sticker and needs no change, but
+ * `LAND THE` turns ink and `TRICK` turns orange. The colours are inline because
+ * the design system styles `.logo` for the ink bar it was drawn on, and
+ * widening that selector would restyle the top bar.
  */
 export function Wordmark({ href, onPaper = false }: { href?: Route; onPaper?: boolean }) {
   const mark = (
     <>
-      <span className="glyph" style={onPaper ? { borderColor: 'var(--ink)' } : undefined}>
-        <Icon name="scoot" size={19} strokeWidth={2.4} style={{ color: 'var(--ink)' }} />
-      </span>
+      <Image
+        src="/brand/ltt-badge-64.png"
+        alt=""
+        width={30}
+        height={30}
+        style={{ transform: 'rotate(-5deg)', flex: 'none' }}
+      />
       <span className="wm" style={onPaper ? { color: 'var(--ink)' } : undefined}>
         Land The <em style={onPaper ? { color: 'var(--orange)' } : undefined}>Trick</em>
       </span>

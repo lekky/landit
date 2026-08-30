@@ -27,6 +27,7 @@ import {
   TrickCard,
   avatarsInGroup,
 } from '@landit/ui-web';
+import Image from 'next/image';
 import { useState } from 'react';
 
 import { CATEGORIES, COLOUR_TOKENS, SAMPLE_STICKERS, SPORTS, STAGES, TIERS } from './sample';
@@ -100,11 +101,16 @@ export function Gallery() {
       <div className="topbar">
         <div className="topbar-in">
           <span className="logo">
-            <span className="glyph">
-              <Icon name="scoot" size={19} strokeWidth={2.4} style={{ color: 'var(--ink)' }} />
-            </span>
+            {/* The LTT badge artwork, as `components/site/Wordmark.tsx` renders it. */}
+            <Image
+              src="/brand/ltt-badge-64.png"
+              alt=""
+              width={30}
+              height={30}
+              style={{ transform: 'rotate(-5deg)', flex: 'none' }}
+            />
             <span className="wm">
-              Land<em>It</em>
+              Land The <em>Trick</em>
             </span>
           </span>
           <span className="lab" style={{ color: '#c9c2b4' }}>
