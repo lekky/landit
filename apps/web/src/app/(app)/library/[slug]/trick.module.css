@@ -97,6 +97,69 @@
   margin-bottom: 6px;
 }
 
+/*
+ * The award badge, where the design pack put a photo placeholder.
+ *
+ * A row rather than a hero image: the badge is square art at 512px and blowing
+ * it to the full column width would out-shout the trick name in the header
+ * band above it. At 128px it reads as an object on the page — which is what a
+ * die-cut sticker is — and leaves the copy beside it room to say what it takes
+ * to earn.
+ *
+ * No border and no panel. Everything else in this column is boxed (`.kit`,
+ * `.fact`), and the badge already carries its own die-cut white edge and drop
+ * shadow; a second frame around it would be a box around a sticker.
+ */
+.award {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.awardArt {
+  width: 128px;
+  flex: none;
+}
+
+.awardText {
+  min-width: 0;
+}
+
+.awardCond {
+  font-size: 26px;
+  line-height: 1.05;
+  margin-top: 5px;
+}
+
+/*
+ * The wall fades a locked badge to 45% because it is one of sixty-five and the
+ * fade is how a wall shows how much is left to go. Here it is the only picture
+ * on the page, and at 45% it reads as a rendering fault rather than as a thing
+ * to go and earn. Grayscale still carries "not yours" — on this page the
+ * colour is the reward, and it does not need the opacity as well.
+ */
+.awardArt :global(.sticker.locked img) {
+  opacity: 0.92;
+}
+
+.awardState {
+  margin: 5px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+/* Under the two-column break the whole grid is already one column wide, so the
+   badge can grow a little without crowding the copy off the row. */
+@media (max-width: 420px) {
+  .award {
+    gap: 13px;
+  }
+
+  .awardArt {
+    width: 96px;
+  }
+}
+
 .prose {
   margin: 0;
   font-size: 15.5px;

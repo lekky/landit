@@ -102,6 +102,8 @@ export {
   getCrewFeed,
   getRider,
   getRiderByHandle,
+  getRiderSticker,
+  getTrickAward,
   getTrickBySlug,
   getTrickNote,
   listAnnouncementDismissals,
