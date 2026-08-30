@@ -3,52 +3,31 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 /**
- * The Land The Trick mark: the LTT badge from the 2026-08-30 logo pack and the
- * wordmark, `LAND THE` in paper with `TRICK` in yellow.
+ * The Land The Trick mark: the one-line wordmark from the 2026-08-30 header
+ * pack — "LAND THE TRICK" in the brush lettering, crown over "THE", the splash
+ * accents behind.
  *
- * The badge is artwork now, not a drawing. Until 2026-08-30 the glyph was a
- * tilted yellow square with the scooter icon inside, built from tokens in
- * `packages/ui-web` — a placeholder from before there was a logo, and wrong
- * twice over once there was one: the product has three sports and the glyph
- * showed one of them. The badge (crown over "LTT" on an ink splash tile) is cut
- * from the same asset pack as the favicon and the install icons, so a rider
- * sees one mark on the home screen, the tab and the top bar.
+ * This is artwork now, front to back. Until 2026-08-30 the mark was a badge
+ * image beside "Land The Trick" set in the display font, and before that a
+ * code-drawn glyph — both stand-ins from before there was a logo. The one-line
+ * cut is the logo itself, and the sticker outline means the same file works on
+ * the ink top bar and the paper auth card, so `onPaper` no longer changes
+ * anything: the prop is still accepted so callers did not have to move, and
+ * ignored.
  *
- * The -5deg tilt carries over from the old glyph: every sticker in this design
- * language sits slightly off-square, and the badge joining the bar dead level
- * would be the odd one out.
- *
- * **It is 14 glyphs where it was 6, and that has a cost the top bar pays.** The
- * mark, nine nav items, the streak chip and the avatar stopped fitting between
- * 861px and roughly 1065px, which `e2e/shell.spec.ts` caught. The band in
- * `packages/ui-web/src/styles/additions.css` absorbs it by dropping this to
- * 15px there. Anything that makes the name longer again lands in the same
- * place — that band, not this file.
+ * Sizing lives in `packages/ui-web/src/styles/additions.css` (`.logo img`):
+ * 34px tall by default, and 27px in the 861–1100px band where the top bar
+ * fights for width — the same band that used to shrink the wordmark text
+ * (#157). At 3.4:1 the art is ~115px wide at full height, a little narrower
+ * than the badge-plus-text lockup it replaced.
  *
  * `href` is a `Route` because where "home" is depends on who is looking: the
  * top bar sends a signed-in rider to their dashboard and everybody else to the
  * landing page (`TopBar`).
- *
- * `onPaper` is the variant the auth card uses (screenshot 04), where the mark
- * sits on paper instead of ink: the badge is a sticker and needs no change, but
- * `LAND THE` turns ink and `TRICK` turns orange. The colours are inline because
- * the design system styles `.logo` for the ink bar it was drawn on, and
- * widening that selector would restyle the top bar.
  */
-export function Wordmark({ href, onPaper = false }: { href?: Route; onPaper?: boolean }) {
+export function Wordmark({ href }: { href?: Route; onPaper?: boolean }) {
   const mark = (
-    <>
-      <Image
-        src="/brand/ltt-badge-64.png"
-        alt=""
-        width={30}
-        height={30}
-        style={{ transform: 'rotate(-5deg)', flex: 'none' }}
-      />
-      <span className="wm" style={onPaper ? { color: 'var(--ink)' } : undefined}>
-        Land The <em style={onPaper ? { color: 'var(--orange)' } : undefined}>Trick</em>
-      </span>
-    </>
+    <Image src="/brand/wordmark-line-720.png" alt="Land The Trick" width={720} height={214} />
   );
 
   if (!href) return <span className="logo">{mark}</span>;

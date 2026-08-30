@@ -101,17 +101,13 @@ export function Gallery() {
       <div className="topbar">
         <div className="topbar-in">
           <span className="logo">
-            {/* The LTT badge artwork, as `components/site/Wordmark.tsx` renders it. */}
+            {/* The one-line wordmark, as `components/site/Wordmark.tsx` renders it. */}
             <Image
-              src="/brand/ltt-badge-64.png"
-              alt=""
-              width={30}
-              height={30}
-              style={{ transform: 'rotate(-5deg)', flex: 'none' }}
+              src="/brand/wordmark-line-720.png"
+              alt="Land The Trick"
+              width={720}
+              height={214}
             />
-            <span className="wm">
-              Land The <em>Trick</em>
-            </span>
           </span>
           <span className="lab" style={{ color: '#c9c2b4' }}>
             Design system
