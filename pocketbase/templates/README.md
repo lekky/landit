@@ -35,6 +35,12 @@ there is no screen to end on.
 
 PocketBase substitutes `{APP_URL}`, `{TOKEN}` and `{APP_NAME}`. Both files use the first two.
 
+`{APP_URL}` appears twice per file since 2026-08-30: in the action link, and in the header's badge
+image (`{APP_URL}/brand/ltt-badge-64.png`, served by the web app since #247). A client that blocks
+remote images — a common default — shows the alt text `LTT` in the badge's place; the header's
+"Land The Trick" text is markup and always renders. The guardian-consent and plans emails draw the
+same header in `hooks/lib/mail_shell.js`, which reads `LANDIT_APP_URL` for the same image.
+
 **The link matters more than the markup.** PocketBase's stock templates point at its own admin UI
 (`{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}`), which with `APP_URL` set to the web app
 gives a rider a 404 instead of a password reset — observed on the live instance 2026-08-18.

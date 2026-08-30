@@ -34,6 +34,16 @@ const FC = "'Barlow Condensed','Arial Narrow',Arial,sans-serif";
 const FB = "'Archivo',Helvetica,Arial,sans-serif";
 
 /**
+ * Where the badge image is served from — the app, not the API. The same
+ * env-with-fallback as `consent_mail.js`'s `appUrl`, duplicated rather than
+ * required from there because that module requires this one.
+ */
+function badgeUrl() {
+  const configured = $os.getenv('LANDIT_APP_URL');
+  return `${(configured || 'http://localhost:3000').replace(/\/+$/, '')}/brand/ltt-badge-64.png`;
+}
+
+/**
  * A call to action.
  *
  * Hard border and no radius, like every button in the product. `bg` defaults to
@@ -60,7 +70,7 @@ function shell(input) {
 <div style="display:none;font-size:0;line-height:0;max-height:0;overflow:hidden;color:${FIELD}">${input.preheader || ''}</div>
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${PAPER}" style="width:100%;max-width:600px;background:${PAPER};border:3px solid ${INK}">
 <tr><td bgcolor="${INK}" style="padding:14px 18px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-<td valign="middle"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="30" height="30" bgcolor="${YELLOW}" align="center" style="border:2.5px solid ${PAPER};font-family:${FD};font-size:15px;color:${INK};line-height:30px">L</td><td style="padding-left:9px;font-family:${FD};font-size:22px;text-transform:uppercase;color:${PAPER};line-height:1">Land The <span style="color:${YELLOW}">Trick</span></td></tr></table></td>
+<td valign="middle"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="30" height="30" valign="middle"><img src="${badgeUrl()}" width="30" height="30" alt="LTT" style="display:block;border:0"></td><td style="padding-left:9px;font-family:${FD};font-size:22px;text-transform:uppercase;color:${PAPER};line-height:1">Land The <span style="color:${YELLOW}">Trick</span></td></tr></table></td>
 <td align="right" valign="middle" style="font-family:${FC};font-weight:700;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#9d968a">${input.eyebrow || ''}</td>
 </tr></table></td></tr>
 <tr><td bgcolor="${accent}" style="height:7px;line-height:7px;font-size:0;border-top:3px solid ${INK};border-bottom:3px solid ${INK}">&nbsp;</td></tr>
