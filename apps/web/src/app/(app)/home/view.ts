@@ -65,6 +65,8 @@ export interface StickerView {
   readonly name: string;
   readonly hue: string;
   readonly icon?: string;
+  /** Printed award art under `/stickers/` (T24); absent on legacy records. */
+  readonly img?: string;
 }
 
 export interface CrewRiderView {

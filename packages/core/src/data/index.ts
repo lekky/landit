@@ -42,5 +42,6 @@ export {
 export { SPORT_IDS, SPORTS } from './sports';
 export { SPOTS, SPOT_TYPES, type SpotType } from './spots';
 export { LANDED_STAGES, STAGE, STAGE_IDS, STAGES } from './stages';
+export { AWARDS, type AwardId } from './awards';
 export { STICKERS, type StickerId } from './stickers';
 export { TRICK_PREREQS, TRICKS, type TrickId } from './tricks';

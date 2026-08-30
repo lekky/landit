@@ -25,6 +25,12 @@ export type StickerLook = {
   hue: string;
   /** Icon in the middle. Falls back to the star. */
   icon?: IconName;
+  /**
+   * Printed award art (T24): a file name under `/stickers/`. When set, the
+   * badge renders the image — name, shape, stars and colour are baked into
+   * the art — and the drawn SVG below is the fallback for records without it.
+   */
+  img?: string;
 };
 
 export type StickerBadgeProps = {
@@ -48,7 +54,12 @@ export function StickerBadge({
   const glyph = (sticker.icon && ICONS[sticker.icon]) || ICONS.star;
   const label = `${sticker.name} sticker, ${earned ? 'earned' : 'locked'}`;
 
-  const art = (
+  const art = sticker.img ? (
+    // The printed award badge (T24). The art carries the name, shape and
+    // stars; the locked state is the CSS treatment (`.sticker.locked img`),
+    // and the label carries it for a screen reader either way.
+    <img src={`/stickers/${sticker.img}`} alt={label} loading="lazy" draggable={false} />
+  ) : (
     <svg viewBox="0 0 120 120" role="img" aria-label={label}>
       <defs>
         <path id={`${uid}t`} d="M29.5 60 a30.5 30.5 0 0 1 61 0" fill="none" />

@@ -14,6 +14,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 
 import { SportSwitch } from '@/components/shell/SportSwitch';
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { useToast } from '@/providers/toast';
 import { useSport } from '@/providers/sport';
 
@@ -60,13 +61,25 @@ export function StickerWall({ view }: { view: StickerWallView }) {
   const acknowledged = useRef(false);
   useEffect(() => {
     if (acknowledged.current) return;
-    const ids = Object.values(view.bySport)
+    const fresh = Object.values(view.bySport)
       .flat()
-      .filter((s) => s.unannounced && s.riderStickerId)
-      .map((s) => s.riderStickerId as string);
-    if (!ids.length) return;
+      .filter((s) => s.unannounced && s.riderStickerId);
+    if (!fresh.length) return;
     acknowledged.current = true;
-    void acknowledgeStickersAction([...new Set(ids)]);
+    // One event per award, at the moment the rider is shown it — the earn
+    // itself happens server-side in the hook, where no analytics runs. The
+    // properties are catalogue facts (slug, stars, rarity), never rider facts.
+    const seen = new Set<string>();
+    for (const s of fresh) {
+      if (seen.has(s.slug)) continue;
+      seen.add(s.slug);
+      capture(ANALYTICS_EVENTS.stickerEarned, {
+        sticker: s.slug,
+        stars: s.stars ?? 0,
+        rarity: s.rarity ?? '',
+      });
+    }
+    void acknowledgeStickersAction([...new Set(fresh.map((s) => s.riderStickerId as string))]);
   }, [view.bySport]);
 
   if (!current) return null;
@@ -96,6 +109,7 @@ export function StickerWall({ view }: { view: StickerWallView }) {
                 name: s.name,
                 hue: s.hue,
                 ...(s.icon ? { icon: s.icon as IconName } : {}),
+                ...(s.img ? { img: s.img } : {}),
               }}
               earned={s.earned}
               just={s.unannounced}
@@ -114,6 +128,7 @@ export function StickerWall({ view }: { view: StickerWallView }) {
                   name: open.name,
                   hue: open.hue,
                   ...(open.icon ? { icon: open.icon as IconName } : {}),
+                  ...(open.img ? { img: open.img } : {}),
                 }}
                 earned={open.earned}
               />
@@ -154,6 +169,7 @@ export function StickerWall({ view }: { view: StickerWallView }) {
                 <Button
                   style={{ flex: 1 }}
                   onClick={() => {
+                    capture(ANALYTICS_EVENTS.stickerShared, { sticker: open.slug });
                     setSharing(open);
                     setOpen(null);
                   }}
@@ -173,6 +189,7 @@ export function StickerWall({ view }: { view: StickerWallView }) {
             name: sharing.name,
             hue: sharing.hue,
             ...(sharing.icon ? { icon: sharing.icon as IconName } : {}),
+            ...(sharing.img ? { img: sharing.img } : {}),
           }}
           headline={sharing.shareHeadline}
           meta={view.shareMeta}

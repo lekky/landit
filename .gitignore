@@ -44,6 +44,7 @@ Thumbs.db
 # The PNGs live once, in the design system package.
 apps/web/public/avatars/
 apps/web/public/maplibre/
+apps/web/public/stickers/
 
 # The Claude Code preview-server config. Machine-specific by construction — it
 # stores an absolute path to the local pnpm shim (on this box, a corepack path

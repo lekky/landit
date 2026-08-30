@@ -123,6 +123,10 @@ export function buildSeed(): SeedPlan {
       {
         collection: 'stickers',
         key: ['slug'],
+        // The award-system migration renames twelve legacy slugs onto their
+        // award equivalents *before* this runs, so the slug match updates
+        // those records in place and a rider's earned rows carry over — the
+        // seed itself never creates a duplicate.
         rows: (STICKERS as readonly Sticker[]).map((sticker) => ({
           slug: sticker.id,
           name: sticker.name,
@@ -134,6 +138,15 @@ export function buildSeed(): SeedPlan {
           cond: sticker.cond,
           n: sticker.n ?? 0,
           is_live: sticker.isLive,
+          // Award-era columns (T24). Absent is written as empty rather than
+          // omitted, so a record downgraded in the data cannot keep a stale
+          // kind or art file forever.
+          img: sticker.img ?? '',
+          stars: sticker.stars ?? 0,
+          rarity: sticker.rarity ?? '',
+          kind: sticker.kind ?? '',
+          trick: sticker.trick ?? '',
+          cat: sticker.cat ?? '',
         })),
       },
       {

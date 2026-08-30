@@ -72,7 +72,9 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
 - **5 stages** per trick: want → trying → landed some → landed most → every time.
 - **Weekly streak**: 2 rides in a Mon–Sun week, server-owned, no grace week. (A deprecated daily
   API survives in `rules/streak.ts` for the additive-only rule; nothing calls it.)
-- **25 stickers** (2 retired/not live), conditions in code, thresholds staff-tunable;
+- **135 awards** (T24: one badge per trick plus platform/streak/contribution/completion awards,
+  printed art in `packages/ui-web/assets/stickers/`; `promoter` dormant) and 10 retired legacy stickers.
+  Rule *kinds* in code, parameters and thresholds staff-tunable on the record;
   **18 challenges** (6 per sport), state derived from dates in the rider's timezone.
 - 36 avatars, 4 levels, stances, goals, country/consent tables, contact addresses.
 

@@ -1,4 +1,4 @@
-import { stickerCondition, stickerRule, type SportId } from '@landit/core';
+import { resolveStickerRule, stickerCondition, type AwardKind, type SportId } from '@landit/core';
 import { listAdminStickers } from '@landit/db';
 import type { Metadata } from 'next';
 
@@ -59,7 +59,19 @@ export default async function AdminStickersPage() {
       cond: record.cond,
       threshold,
       isLive: record.is_live,
-      hasRule: stickerRule(record.slug) !== undefined,
+      // Kind-based records resolve through their `kind`; legacy records
+      // through the slug map — same resolution the award hook applies.
+      hasRule:
+        resolveStickerRule({
+          id: record.slug,
+          name: record.name,
+          sport: (record.sport || null) as SportId | null,
+          hue: record.hue,
+          ico: record.ico,
+          cond: record.cond,
+          isLive: record.is_live,
+          ...(record.kind ? { kind: record.kind as AwardKind } : {}),
+        }) !== undefined,
     };
   });
 

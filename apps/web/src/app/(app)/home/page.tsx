@@ -154,6 +154,7 @@ export default async function HomePage() {
     name: s.name,
     hue: s.hue,
     ...(s.ico ? { icon: s.ico } : {}),
+    ...(s.img ? { img: s.img } : {}),
   }));
 
   /* ---------------------------------------------------------------- crew -- */

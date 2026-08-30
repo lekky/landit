@@ -10,9 +10,10 @@ import { SPORTS, SPORT_IDS } from './sports';
 import { SPOTS, SPOT_TYPES, type SpotType } from './spots';
 import { SPOT_COUNTRY_BY_CODE } from '../rules/spots';
 import { STAGES } from './stages';
+import { AWARDS } from './awards';
 import { STICKERS } from './stickers';
 import { TRICKS, TRICK_PREREQS } from './tricks';
-import { STICKER_RULES } from '../rules/stickers';
+import { STICKER_RULES, resolveStickerRule } from '../rules/stickers';
 import { challengesOverlap } from '../rules/challenges';
 import type { Plan, Spot, Sticker } from '../types';
 
@@ -159,23 +160,50 @@ describe('sports, categories and stages', () => {
 });
 
 describe('stickers', () => {
-  it('holds all 25 stickers with unique ids', () => {
-    // 24 transcribed from the design pack, plus `every-time` (T10, issue #81).
-    // One of the 24 — `upside` — is retired rather than removed, so it is still
-    // a record here; `stickersFor` keeps it off the wall.
-    expect(STICKERS).toHaveLength(25);
+  it('holds the award set plus the retired legacy stickers, with unique ids', () => {
+    // T24: 97 trick awards, 37 platform awards (one of them — `promoter` —
+    // dormant), `supporter`, and the ten legacy stickers that retired rather
+    // than mapping onto an award. Records retire, they are never removed: the
+    // seed upserts and cannot delete (see `upside`).
+    expect(AWARDS).toHaveLength(135);
+    expect(STICKERS).toHaveLength(145);
     expect(new Set(ids(STICKERS)).size).toBe(STICKERS.length);
   });
 
-  it('gives every sticker a rule, so none can be permanently unearnable', () => {
+  it('gives every live sticker a rule, so none can be permanently unearnable', () => {
+    // `promoter` is the deliberate exception: dormant record, no rule, until
+    // rider event submissions exist.
     for (const sticker of STICKERS) {
-      expect(Object.keys(STICKER_RULES)).toContain(sticker.id);
+      if (!sticker.isLive) continue;
+      expect(resolveStickerRule(sticker), sticker.id).toBeTypeOf('function');
     }
   });
 
-  it('has no rule without a sticker record behind it', () => {
+  it('has no slug-keyed rule without a sticker record behind it', () => {
     const known = new Set(ids(STICKERS));
     for (const id of Object.keys(STICKER_RULES)) expect(known).toContain(id);
+  });
+
+  it('names a committed art file on every award, and on no legacy sticker', () => {
+    for (const sticker of allStickers) {
+      const isAward = AWARDS.some((a) => a.id === sticker.id);
+      if (isAward) {
+        // The web package asserts the file itself exists; here the name only.
+        expect(sticker.img, sticker.id).toMatch(/^[a-z0-9-]+\.png$/);
+        expect(sticker.img, sticker.id).toBe(`${sticker.id}.png`);
+      } else {
+        expect(sticker.img, sticker.id).toBeUndefined();
+      }
+    }
+  });
+
+  it('keeps stars and rarity inside their scales', () => {
+    const allAwards: readonly Sticker[] = AWARDS;
+    for (const award of allAwards) {
+      expect(award.stars, award.id).toBeGreaterThanOrEqual(0);
+      expect(award.stars, award.id).toBeLessThanOrEqual(3);
+      expect(['common', 'uncommon', 'rare', 'legendary'], award.id).toContain(award.rarity);
+    }
   });
 
   it('scopes each sticker to a real sport, or to everything', () => {

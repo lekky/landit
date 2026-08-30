@@ -549,8 +549,20 @@
   display: block;
   width: 100%;
 }
+/* Printed award art (T24). The drawn SVG spells LOCKED in its own art; the
+   printed badge says it with the treatment instead. */
+.sticker img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .sticker.locked {
   filter: saturate(0.8) drop-shadow(0 3px 4px rgba(18, 16, 11, 0.28));
+}
+.sticker.locked img {
+  filter: grayscale(1);
+  opacity: 0.45;
 }
 .sticker.locked:hover {
   transform: none;
