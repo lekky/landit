@@ -54,6 +54,15 @@ import { countWord, sportsList } from '@/lib/sports';
  *   reason the cookie policy still has nothing to declare for YouTube. It is
  *   asserted in `e2e/video-links.spec.ts`.
  *
+ * - **There is no "draft copy, pending legal review" notice, and it does not
+ *   come back** — removed by the owner on 2026-08-30 (plan §7, T5). The pack
+ *   carried one and this file held its wording. It said something true of the
+ *   process and wrong on the page: a live product telling a parent that its
+ *   privacy policy is a draft. §6.3's counsel review is genuinely still open,
+ *   and that belongs in the plan, which tracks it, rather than on a published
+ *   document. `e2e/legal.spec.ts` asserts the absence, because the last time
+ *   this notice was questioned it was re-dated rather than re-decided.
+ *
  * Anything the owner has not decided is absent rather than invented. §6.5
  * settled on 2026-08-17 (controller: Fennec Consulting Ltd, trading as Land
  * The Trick; named accountable individual: Rachid Otsmane), so the privacy
@@ -64,6 +73,28 @@ import { countWord, sportsList } from '@/lib/sports';
  */
 
 export type LegalDocId = 'privacy' | 'terms' | 'safeguarding' | 'cookies' | 'about';
+
+/**
+ * The heading the footer's "Contact" entry points at.
+ *
+ * A constant rather than a repeated string because it is the one heading here
+ * with a link aimed at it: the footer used to send "Contact" to the top of the
+ * About page, which is where "About Land The Trick" already goes, so the entry
+ * read as a placeholder for a contact page nobody built. Renaming the section
+ * now moves the anchor with it instead of quietly breaking it.
+ */
+export const LEGAL_CONTACT_HEADING = 'Get in touch';
+
+/**
+ * A section's anchor, from its heading. Used for the `id` on the page and by
+ * `legalHref` for the link into it — one function, so the two cannot drift.
+ */
+export function legalSectionId(heading: string): string {
+  return heading
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
 
 export interface LegalSection {
   readonly h: string;
@@ -77,14 +108,6 @@ export interface LegalDoc {
   readonly intro: string;
   readonly sections: readonly LegalSection[];
 }
-
-/**
- * Still true: §6.3 leaves the EEA table and the US posture for counsel. The
- * wording used to end "before launch"; launch happened 2026-08-17 with the
- * review still pending, so the notice now says what remains true rather than
- * dating itself.
- */
-export const LEGAL_DRAFT_NOTICE = 'Draft copy, pending legal review';
 
 /** "Two" today, "Three" the day T21 lands BMX. Never a literal. */
 const libraryCount = (() => {
@@ -331,7 +354,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         ],
       },
       {
-        h: 'Get in touch',
+        h: LEGAL_CONTACT_HEADING,
         p: [
           `${CONTACT.hello} for anything, ${CONTACT.safeguarding} for anything urgent about a rider’s safety.`,
           `If you run a park, a shop or a comp and want your events on the calendar, email ${CONTACT.events}.`,

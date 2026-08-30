@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 
+import { LEGAL_CONTACT_HEADING, legalSectionId } from '@/content/legal';
 import { ROUTES, legalHref } from '@/lib/routes';
 import { sportsWithArticles } from '@/lib/sports';
 
@@ -11,10 +12,13 @@ import styles from './site.module.css';
  * The site footer, shared by the signed-out pages and the app shell
  * (screenshot 02).
  *
- * Columns whose destination has not been built yet render as plain labels —
- * see `lib/routes.ts` for why, and for the one line that turns each back into a
- * link. Stickers, Events, Spots, Crew, the weekly challenge and plans are still
- * labels; T10 to T15 land those routes and each fills in its own line.
+ * **Every entry here goes somewhere.** Columns whose destination had not been
+ * built rendered as greyed labels until T10–T15 landed the routes; the last
+ * three placeholders went on 2026-08-30 — the dead `Staff` label (issue #135)
+ * and the three social tags, which are now the real accounts. A footer entry
+ * that opens nothing is worse than no entry: on a product used by children it
+ * advertises a door and then refuses it. If a future column needs a target that
+ * does not exist yet, leave the column out rather than reviving the label.
  *
  * The footer is shared with the signed-out pages, and Progress is a signed-in
  * screen that bounces a visitor to `/signin`. That is deliberate rather than
@@ -28,7 +32,7 @@ import styles from './site.module.css';
  * than guessed at.
  */
 
-type FooterLink = { label: string; href?: Route };
+type FooterLink = { label: string; href: Route };
 type FooterColumn = { title: string; links: readonly FooterLink[] };
 
 const COLUMNS: readonly FooterColumn[] = [
@@ -54,7 +58,13 @@ const COLUMNS: readonly FooterColumn[] = [
     title: 'Company',
     links: [
       { label: 'About Land The Trick', href: legalHref('about') },
-      { label: 'Contact', href: legalHref('about') },
+      // Was the top of the same page as the entry above it, which made two
+      // footer entries one destination and left "Contact" reading as a stub for
+      // a page nobody built. It lands on the addresses now.
+      {
+        label: 'Contact',
+        href: legalHref('about', legalSectionId(LEGAL_CONTACT_HEADING)),
+      },
       { label: 'Safeguarding', href: legalHref('safeguarding') },
       // T18. "Easy" is what the OSA codes actually ask for, and a route nobody
       // can find is not easy. It is in the footer of every page, and it works
@@ -72,16 +82,20 @@ const COLUMNS: readonly FooterColumn[] = [
   },
 ];
 
-const SOCIALS = ['Instagram', 'YouTube', 'TikTok'];
+/**
+ * The real accounts, one handle across all three (owner, 2026-08-30, in chat).
+ *
+ * External, so plain anchors rather than `Link` — `typedRoutes` types `href` as
+ * an internal route and there is nothing for Next to prefetch. `rel` is the
+ * ordinary hygiene for a `target="_blank"`.
+ */
+const SOCIALS: readonly { name: string; href: string }[] = [
+  { name: 'Instagram', href: 'https://instagram.com/landthetrick' },
+  { name: 'YouTube', href: 'https://youtube.com/@landthetrick' },
+  { name: 'TikTok', href: 'https://tiktok.com/@landthetrick' },
+];
 
 function FooterLinkItem({ label, href }: FooterLink) {
-  if (!href) {
-    return (
-      <span className={`cond ${styles.link} ${styles.linkPending}`} aria-disabled="true">
-        {label}
-      </span>
-    );
-  }
   return (
     <Link className={`cond ${styles.link}`} href={href}>
       {label}
@@ -91,16 +105,10 @@ function FooterLinkItem({ label, href }: FooterLink) {
 
 export type SiteFooterProps = {
   /**
-   * Drops the Staff link. The signed-out pages set it: there is no reason to
-   * show a rider the door to the admin app.
-   */
-  compact?: boolean;
-  /**
    * Drops the four link columns, leaving the brand and the bottom strip.
    *
    * Set by the pre-launch holding page and nothing else. Those columns are a map
-   * of a product that is not open yet — most of them render as plain labels
-   * because the screens do not exist — and listing Events, Spots and Crew
+   * of a product that is not open yet, and listing Events, Spots and Crew
    * underneath the words "not open just yet" reads as a roadmap nobody asked
    * for. The bottom strip stays, because that is where Privacy and Terms are,
    * and those have to remain reachable while the gate is shut.
@@ -108,7 +116,13 @@ export type SiteFooterProps = {
   minimal?: boolean;
 };
 
-export function SiteFooter({ compact = false, minimal = false }: SiteFooterProps) {
+/*
+ * There was a `compact` prop here until 2026-08-30. Its whole job was hiding the
+ * dead `Staff` label from signed-out pages (issue #135); the label is gone, so
+ * the prop had nothing left to switch and every caller was passing it for no
+ * effect.
+ */
+export function SiteFooter({ minimal = false }: SiteFooterProps) {
   // Rendered on the server, so on a statically generated page this is the build
   // year. That is what the prototype's client-side `getFullYear()` amounted to
   // as well, and a footer is not worth making the page dynamic for.
@@ -127,10 +141,16 @@ export function SiteFooter({ compact = false, minimal = false }: SiteFooterProps
               land it.
             </p>
             <div className={styles.social}>
-              {SOCIALS.map((name) => (
-                <span key={name} className={`lab ${styles.socialTag}`}>
-                  {name}
-                </span>
+              {SOCIALS.map((social) => (
+                <a
+                  key={social.name}
+                  className={`lab ${styles.socialTag}`}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {social.name}
+                </a>
               ))}
             </div>
           </div>
@@ -162,11 +182,6 @@ export function SiteFooter({ compact = false, minimal = false }: SiteFooterProps
             <Link className={`cond ${styles.bottomLink}`} href={legalHref('terms')}>
               Terms
             </Link>
-            {!compact && (
-              <span className={`cond ${styles.staffLink}`} aria-disabled="true">
-                Staff
-              </span>
-            )}
           </div>
         </div>
       </div>

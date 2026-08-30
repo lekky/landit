@@ -58,22 +58,18 @@ a.indexLinkOn:hover {
   margin: 8px 0 12px;
 }
 .intro {
-  margin: 0 0 8px;
+  /*
+   * 26px, not the 8px this had while the draft-copy notice sat underneath it.
+   * That notice carried the gap between the intro and the first section head;
+   * with it gone the 8px read as a collision, so the spacing moves here.
+   */
+  margin: 0 0 26px;
   font-size: 17px;
   line-height: 1.5;
   color: var(--ink-2);
   max-width: 620px;
   text-wrap: pretty;
 }
-.notice {
-  padding: 11px 14px;
-  background: var(--paper-2);
-  margin: 18px 0 26px;
-}
-.noticeText {
-  color: var(--ink-2);
-}
-
 .sections {
   display: flex;
   flex-direction: column;

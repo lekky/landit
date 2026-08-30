@@ -51,7 +51,7 @@ export default function NotFound() {
         </div>
       </div>
 
-      <SiteFooter compact />
+      <SiteFooter />
     </div>
   );
 }

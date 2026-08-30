@@ -1233,6 +1233,35 @@ the captures were taken wide, and at a 934px viewport they do not show what the 
 `e2e/shell.spec.ts` holds the line at six widths — it fails if the document scrolls sideways *or*
 if the nav does, the second because the first passes on the safety net alone.
 
+**A fourth divergence, 2026-08-30 (Rachid, in chat): the provisional furniture comes off the legal
+pages and the footer.** Four things were placeholders the pack shipped or the build left behind, and
+all four are removed rather than reworded:
+
+- **The "Draft copy, pending legal review" strip on all five documents is gone.** It came from
+  `landit-legal.jsx` (which ended it "before launch"), and by 2026-08-30 it was a live product
+  telling a rider's parent that its privacy policy was a draft. Note precisely what removing it does
+  *not* assert: **§6.3's counsel review is still open** — confirm the EEA table's values and the US
+  refusal — and that stays a plan item, tracked here, rather than a banner on the published page.
+  `e2e/legal.spec.ts` now asserts the absence, because this notice already came back once by being
+  re-dated instead of re-decided.
+- **The footer's dead `Staff` label is gone** (issue #135, which recommended exactly this). It told
+  every child using the app that a staff area exists and took the two people who need it nowhere.
+  The working door is the conditional link on `/account`, which T17 built. The `compact` prop that
+  hid the label went with it — every caller was passing a switch with nothing left to switch.
+- **The three social tags are the real accounts**, `@landthetrick` on Instagram, YouTube and TikTok
+  (owner, 2026-08-30, in chat). They had been spans since T5, styled like links and going nowhere.
+- **The footer's `Contact` entry lands on the About document's "Get in touch" section**, not the top
+  of the same page `About Land The Trick` already opens. Two entries, one destination, is what made
+  it read as a stub for a contact page nobody built. `legalHref` takes an optional section anchor
+  and the page's section `id`s come from the same function, so the two cannot drift.
+
+The rule the second divergence above set — *a destination nobody has built renders as a label, not a
+link* — has now run out of work in the footer: every entry has an `href`, so the greyed-label branch
+and its `.linkPending` style are deleted. The rule itself stands for anything that needs it later,
+and `components/shell/nav.ts` still carries the same optional-`href` shape (issue filed). What
+should not happen is a label coming back for a target nobody intends to build: leave the entry out
+instead.
+
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
 to test — that is where the three-sport switch is proved against a 375px phone before `SPORT_IDS`
