@@ -238,24 +238,85 @@ function uniquePseudonym(app, userId, base) {
 // ------------------------------------------------------------------ export --
 
 /**
- * Everything we hold about the rider, as plain JSON.
+ * Everything we hold about the rider, as JSON a person can read.
  *
  * `publicExport()` is not used: it returns whatever the collection happens to
  * carry, which is how a later field lands in a download nobody decided to put
  * there. Each list below names its fields.
+ *
+ * **Written in words, not in row ids** (owner decision, Rachid, 2026-08-30, in
+ * chat). Until that date this function answered a subject access request in
+ * database keys — `"trick": "mew7o75ag0ig9jy"` on every row of a rider's
+ * history, `"stage": "most"`, a `plans` id where the account said `legend` —
+ * and a file whose owner cannot tell which trick they landed is complete
+ * without being intelligible, which is the half of GDPR Art. 15 that matters to
+ * the person holding it. So every relation is resolved to the name the app shows
+ * for it, every stored code goes through `lib/labels.js`, and every timestamp is
+ * spelled out. Nothing was removed from the disclosure to get there.
+ *
+ * **The per-row `id`s are gone, and `account.id` stays.** A `trick_log` row id
+ * is a primary key: it identifies nothing the rider can act on and it is the
+ * noise that made the file unreadable in the first place. The account id is the
+ * opposite — it is the number to quote when writing to us about this download,
+ * and it is already public on the rider's own profile.
  */
 function exportFor(app, rider) {
   const lib = require(`${__hooks}/lib/landit.js`);
+  const labels = require(`${__hooks}/lib/labels.js`);
 
-  const rows = (collection, fields) =>
-    lib.findAll(app, collection, 'user = {:user}', { user: rider.id }).map((row) => {
-      const out = { id: row.id };
-      for (const field of fields) out[field] = row.get(field);
-      return out;
-    });
+  /**
+   * The catalogue row's name, read once however many of the rider's rows point
+   * at it — a hundred log entries on one trick are one query, not a hundred.
+   *
+   * A catalogue row that has since been retired or removed leaves the rider
+   * holding the id rather than an empty string: an unreadable fact still beats a
+   * missing one, and this is the only path in the export that can produce one.
+   */
+  const seen = {};
+  const nameOf = (collection, id, field) => {
+    if (!id) return '';
+    const key = collection + '/' + id;
+    if (seen[key] === undefined) {
+      let label = '';
+      try {
+        label = app.findRecordById(collection, id).getString(field || 'name');
+      } catch {
+        label = '';
+      }
+      seen[key] = label || String(id);
+    }
+    return seen[key];
+  };
+
+  /** `users.plan` holds a slug, where `subscriptions.plan` holds a relation. */
+  const planNamed = (slug) => {
+    if (!slug) return '';
+    try {
+      const plan = app.findFirstRecordByFilter('plans', 'slug = {:slug}', { slug: String(slug) });
+      return plan.getString('name') || String(slug);
+    } catch {
+      return String(slug);
+    }
+  };
+
+  // Built by hand rather than with `.map`: `get` on a multi-select hands back
+  // the Go slice PocketBase stores it in, and an array *method* is not something
+  // goja promises on one. Indexing is.
+  const storedSports = rider.get('sports') || [];
+  const sportsRidden = [];
+  for (let i = 0; i < storedSports.length; i += 1) {
+    sportsRidden.push(labels.labelFor(labels.SPORT_LABELS, storedSports[i]));
+  }
+
+  const rows = (collection, build) =>
+    lib.findAll(app, collection, 'user = {:user}', { user: rider.id }).map(build);
+
+  const on = (row, field) => labels.readableDate(row.getString(field));
+  const stageOf = (row) => labels.labelFor(labels.STAGE_LABELS, row.getString('stage'));
+  const trickOf = (row) => nameOf('tricks', row.getString('trick'));
 
   return {
-    exported_at: new DateTime().string(),
+    exported_at: labels.readableDate(new DateTime().string()),
     account: {
       id: rider.id,
       email: rider.getString('email'),
@@ -263,26 +324,51 @@ function exportFor(app, rider) {
       handle: rider.getString('handle'),
       town: rider.getString('town'),
       country: rider.getString('country'),
-      age_band: rider.getString('age_band'),
-      age_declared_at: rider.get('age_declared_at'),
-      consent_state: rider.getString('consent_state'),
-      stance: rider.getString('stance'),
-      level: rider.getString('level'),
-      goal: rider.getString('goal'),
+      age_band: labels.labelFor(labels.AGE_BAND_LABELS, rider.getString('age_band')),
+      age_declared_at: on(rider, 'age_declared_at'),
+      // Added 2026-08-30 with the readability pass: a rider is entitled to know
+      // the date their age band moves on its own, and it was held and never
+      // disclosed. Same for the three weekly-streak fields below, which arrived
+      // in `1786924800_weekly_streak_fields.js` and never reached this list.
+      band_next_change_on: on(rider, 'band_next_change_on'),
+      consent_state: labels.labelFor(labels.CONSENT_LABELS, rider.getString('consent_state')),
+      stance: labels.labelFor(labels.STANCE_LABELS, rider.getString('stance')),
+      level: labels.labelFor(labels.LEVEL_LABELS, rider.getString('level')),
+      goal: labels.labelFor(labels.GOAL_LABELS, rider.getString('goal')),
       goal_custom: rider.getString('goal_custom'),
       avatar_key: rider.getString('avatar_key'),
-      privacy: rider.getString('privacy'),
-      sports: rider.get('sports'),
+      privacy: labels.labelFor(labels.PRIVACY_LABELS, rider.getString('privacy')),
+      sports: sportsRidden,
       timezone: rider.getString('timezone'),
-      plan: rider.getString('plan'),
+      plan: planNamed(rider.getString('plan')),
       insights_opt_in: rider.getBool('insights_opt_in'),
       streak: rider.getInt('streak'),
-      last_ride: rider.get('last_ride'),
-      created: rider.get('created'),
+      week_start: rider.getString('week_start'),
+      rides_this_week: rider.getInt('rides_this_week'),
+      last_qualifying_week: rider.getString('last_qualifying_week'),
+      last_ride: on(rider, 'last_ride'),
+      created: on(rider, 'created'),
     },
-    trick_progress: rows('trick_progress', ['trick', 'stage', 'updated']),
-    trick_log: rows('trick_log', ['trick', 'stage', 'at', 'estimated', 'created']),
-    trick_notes: rows('trick_notes', ['trick', 'body', 'updated']),
+    trick_progress: rows('trick_progress', (row) => ({
+      trick: trickOf(row),
+      stage: stageOf(row),
+      updated: on(row, 'updated'),
+    })),
+    // `created` is dropped from the rows that carry an `at`: the two differ by
+    // the milliseconds between landing a trick and the row being written, and
+    // printing both said nothing twice. Where a row has no `at` — a challenge
+    // joined, an event attended — `created` is the only date it has and stays.
+    trick_log: rows('trick_log', (row) => ({
+      trick: trickOf(row),
+      stage: stageOf(row),
+      at: on(row, 'at'),
+      estimated: row.getBool('estimated'),
+    })),
+    trick_notes: rows('trick_notes', (row) => ({
+      trick: trickOf(row),
+      body: row.getString('body'),
+      updated: on(row, 'updated'),
+    })),
     // T15b: `video_id` and `visibility` are what a `clips` row now holds, and
     // `kind`/`size` are field names that stopped existing when the file field was
     // removed on 2026-08-17 (`1787270400_clips_no_hosting.js`) — `row.get` was
@@ -290,29 +376,54 @@ function exportFor(app, rider) {
     // rule that each list names its fields *so that* a new one is a decision
     // rather than an accident: a rider's download has to include the videos they
     // linked, or it is not everything we hold about them.
-    clips: rows('clips', ['trick', 'video_id', 'visibility', 'at', 'created']),
-    rider_stickers: rows('rider_stickers', ['sticker', 'earned_at', 'seen_at']),
-    crew_members: rows('crew_members', ['crew', 'role', 'joined']),
-    challenge_log: rows('challenge_log', ['challenge', 'created']),
-    event_attendance: rows('event_attendance', ['event', 'created']),
-    subscriptions: rows('subscriptions', [
-      'plan',
-      'status',
-      'source',
-      'payer_kind',
-      'period_end',
-      'created',
-    ]),
+    //
+    // The link is spelled out as well as the id, because the id is the half of a
+    // YouTube link a rider cannot do anything with on its own.
+    clips: rows('clips', (row) => ({
+      trick: trickOf(row),
+      video_id: row.getString('video_id'),
+      video_url: row.getString('video_id')
+        ? 'https://www.youtube.com/watch?v=' + row.getString('video_id')
+        : '',
+      visibility: row.getString('visibility'),
+      at: on(row, 'at'),
+    })),
+    rider_stickers: rows('rider_stickers', (row) => ({
+      sticker: nameOf('stickers', row.getString('sticker')),
+      earned_at: on(row, 'earned_at'),
+      seen_at: on(row, 'seen_at'),
+    })),
+    crew_members: rows('crew_members', (row) => ({
+      crew: nameOf('crews', row.getString('crew')),
+      role: row.getString('role'),
+      joined: on(row, 'joined'),
+    })),
+    challenge_log: rows('challenge_log', (row) => ({
+      challenge: nameOf('challenges', row.getString('challenge'), 'title'),
+      created: on(row, 'created'),
+    })),
+    event_attendance: rows('event_attendance', (row) => ({
+      event: nameOf('events', row.getString('event')),
+      created: on(row, 'created'),
+    })),
+    subscriptions: rows('subscriptions', (row) => ({
+      plan: nameOf('plans', row.getString('plan')),
+      status: row.getString('status'),
+      source: row.getString('source'),
+      payer_kind: row.getString('payer_kind'),
+      period_end: on(row, 'period_end'),
+      created: on(row, 'created'),
+    })),
     // The guardian's address is on this record and belongs in the rider's
     // download: a rider is entitled to know who was asked about them. The token
     // hashes are not — they are credentials, not data about anybody.
-    guardian_consents: rows('guardian_consents', [
-      'guardian_email',
-      'method',
-      'requested',
-      'granted',
-      'revoked',
-    ]),
+    guardian_consents: rows('guardian_consents', (row) => ({
+      guardian_email: row.getString('guardian_email'),
+      method: row.getString('method'),
+      requested: on(row, 'requested'),
+      granted: on(row, 'granted'),
+      revoked: on(row, 'revoked'),
+    })),
     // Reports the rider *filed*. Reports filed **about** them are deliberately
     // absent: a subject access request is not a way to find out who reported
     // you, and handing that over would make the reporting route unusable by the
@@ -320,13 +431,12 @@ function exportFor(app, rider) {
     reports_filed: lib
       .findAll(app, 'reports', 'reporter = {:user}', { user: rider.id })
       .map((row) => ({
-        id: row.id,
         subject_type: row.getString('subject_type'),
         reason: row.getString('reason'),
         detail: row.getString('detail'),
         status: row.getString('status'),
         outcome: row.getString('outcome'),
-        created: row.get('created'),
+        created: on(row, 'created'),
       })),
   };
 }
