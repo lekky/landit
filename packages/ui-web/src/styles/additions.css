@@ -159,6 +159,17 @@ a.btn.ink:hover {
   display: none;
 }
 
+/*
+ * The one-line wordmark artwork (2026-08-30 header pack), which replaced the
+ * glyph-plus-text mark. The art is 3.4:1, so 34px tall is ~115px wide — a
+ * little narrower than the text lockup it replaced, which is the right
+ * direction for the tight band below.
+ */
+.logo img {
+  height: 34px;
+  width: auto;
+}
+
 @media (min-width: 861px) and (max-width: 1100px) {
   .topbar-in {
     gap: 12px;
@@ -172,6 +183,10 @@ a.btn.ink:hover {
    */
   .topbar-in .logo .wm {
     font-size: 15px;
+  }
+  /* The image mark shrinks with the band the way the text used to. */
+  .topbar-in .logo img {
+    height: 27px;
   }
   .nav {
     gap: 2px;

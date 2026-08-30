@@ -2,7 +2,6 @@
 
 import { useState, type CSSProperties } from 'react';
 
-import { Icon } from '../icons';
 import { Button, Tag } from './buttons';
 import { Difficulty } from './meters';
 import { Modal } from './overlays';
@@ -96,23 +95,17 @@ export function ShareCard(props: ShareCardProps) {
 
         <div style={CARD}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <span
-              style={{
-                width: 26,
-                height: 26,
-                background: 'var(--yellow)',
-                border: '2px solid var(--paper)',
-                display: 'grid',
-                placeItems: 'center',
-                transform: 'rotate(-5deg)',
-                flex: 'none',
-              }}
-            >
-              <Icon name="scoot" size={16} strokeWidth={2.4} style={{ color: 'var(--ink)' }} />
-            </span>
-            <span className="d" style={{ fontSize: 17, color: 'var(--paper)' }}>
-              Land<span style={{ color: 'var(--yellow)' }}>It</span>
-            </span>
+            {/*
+             * The one-line wordmark (2026-08-30 header pack), served by the web
+             * app. This card drew "LandIt" with the scooter glyph until the
+             * owner spotted it still wearing the pre-rename mark — the last
+             * place in the product that did.
+             */}
+            <img
+              src="/brand/wordmark-line-720.png"
+              alt="Land The Trick"
+              style={{ height: 26, width: 'auto' }}
+            />
             <span className="lab" style={{ marginLeft: 'auto', color: '#8d8679' }}>
               {dateLabel}
             </span>
