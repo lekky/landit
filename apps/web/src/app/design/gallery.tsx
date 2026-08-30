@@ -101,9 +101,9 @@ export function Gallery() {
       <div className="topbar">
         <div className="topbar-in">
           <span className="logo">
-            {/* The LT badge artwork, as `components/site/Wordmark.tsx` renders it. */}
+            {/* The LTT badge artwork, as `components/site/Wordmark.tsx` renders it. */}
             <Image
-              src="/brand/lt-badge-64.png"
+              src="/brand/ltt-badge-64.png"
               alt=""
               width={30}
               height={30}
