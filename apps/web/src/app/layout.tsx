@@ -33,7 +33,9 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
-    title: 'Land The Trick',
+    // iOS's home-screen label, the counterpart of the manifest's short_name:
+    // "LTT" matches the monogram icon and survives the label width (#158).
+    title: 'LTT',
     // Ink under the status bar, matching `theme_color` and the top bar.
     statusBarStyle: 'black-translucent',
   },

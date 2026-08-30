@@ -21,7 +21,10 @@ export default function manifest(): MetadataRoute.Manifest {
     // installs alongside the one a rider already has.
     id: '/',
     name: 'Land The Trick',
-    short_name: 'Land The Trick',
+    // What a launcher writes under the icon. The full name is 14 characters and
+    // gets truncated (#158); "LTT" matches the monogram on the icon above it
+    // (owner's call, 2026-08-30, in chat).
+    short_name: 'LTT',
     description: `A trick tracker for ${sportsList()} riders.`,
 
     /**
