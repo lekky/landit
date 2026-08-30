@@ -196,6 +196,17 @@ export const ANALYTICS_EVENTS = {
   /** Going / not going on an event. */
   eventAttendanceSet: 'event_attendance_set',
 
+  /* ------------------------------------------------------------- awards -- */
+  /**
+   * An award was announced to its rider — fired when the wall first shows the
+   * earned badge, because the earn itself happens in a PocketBase hook where
+   * no analytics runs. Carries the award's catalogue facts (slug, stars,
+   * rarity), never anything the rider did to earn it.
+   */
+  stickerEarned: 'sticker_earned',
+  /** The share card was opened for an earned award. Carries the slug. */
+  stickerShared: 'sticker_shared',
+
   /* -------------------------------------------------------------- money -- */
   /** A locked trick was opened — the paywall, seen. Carries tier and sport. */
   paywallHit: 'paywall_hit',

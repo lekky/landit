@@ -174,6 +174,7 @@ export function HomeScreen({ view }: { view: HomeView }) {
                     name: s.name,
                     hue: s.hue,
                     ...(s.icon ? { icon: s.icon as never } : {}),
+                    ...(s.img ? { img: s.img } : {}),
                   }}
                   earned
                 />

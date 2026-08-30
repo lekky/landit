@@ -89,6 +89,10 @@ export function computeSportStats(
     wanted: tracked.filter((id) => byId[id] === 'want').length,
     mastered: tracked.filter((id) => byId[id] === 'every').length,
     hardLanded: landedIds.filter((id) => trickById(id, tricks)?.diff === 5).length,
+    // Award-era (T24): the `dialled` award reads consistency on a Pro trick,
+    // so the count is "at `every` AND difficulty 5", not either alone.
+    hardMastered: tracked.filter((id) => byId[id] === 'every' && trickById(id, tricks)?.diff === 5)
+      .length,
     catCount,
     catTotal,
     catDone,
@@ -122,10 +126,33 @@ export function computeStats(
   const bySport = {} as Record<SportId, SportStats>;
   for (const s of SPORT_IDS) bySport[s] = computeSportStats(snapshot, s, catalogue);
 
+  /*
+   * Award-era cross-sport maxima (T24). The single-sport award kinds
+   * (`sport-cat-count`, `sport-landed-count`, `sport-cats-landed`) ask "has any
+   * ONE sport reached the bar", which no single scope can answer — so the
+   * maxima are computed here, over every sport, and attached to the combined
+   * scopes the shared awards are judged against.
+   */
+  const perSport = Object.values(bySport);
+  const maxSportLanded = Math.max(0, ...perSport.map((s) => s.landed));
+  const maxSportCatCount = {} as Record<CategoryId, number>;
+  for (const c of CATEGORY_IDS) {
+    maxSportCatCount[c] = Math.max(0, ...perSport.map((s) => s.catCount[c]));
+  }
+  const maxSportCatsLanded = Math.max(
+    0,
+    ...perSport.map((s) => CATEGORY_IDS.filter((c) => s.catCount[c] > 0).length),
+  );
+  const sportsLanded = perSport.filter((s) => s.landed > 0).length;
+  const crossSport = { sportsLanded, maxSportLanded, maxSportCatCount, maxSportCatsLanded };
+
+  const global = sport ? computeSportStats(snapshot, null, catalogue) : scoped;
+
   return {
     ...scoped,
+    ...crossSport,
     sports: sportsOf(snapshot),
     bySport,
-    global: sport ? computeSportStats(snapshot, null, catalogue) : scoped,
+    global: { ...global, ...crossSport },
   };
 }

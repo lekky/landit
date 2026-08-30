@@ -1,110 +1,139 @@
 import { STICKERS, type StickerId } from '../data/stickers';
-import type { RiderStats, SportId, SportStats, Sticker, StickerRule } from '../types';
+import type { AwardKind, RiderStats, SportId, SportStats, Sticker, StickerRule } from '../types';
 import { isLandedStage } from './tricks';
 
 /**
  * The threshold a rule tests against, read from the sticker **record** so staff
  * can retune it from the admin portal without a deploy (plan §2.2).
  *
- * A record with no threshold cannot satisfy a rule that needs one: the sticker
- * simply stays locked. Failing closed is the only safe direction — the
- * alternative is awarding a milestone nobody reached, and stickers are the one
- * thing in this product that must always be earned.
+ * `fallback` is the kind's shipped bar (`KIND_DEFAULT_N`): a record that ships
+ * without `n` means "the coded default", exactly as the legacy hook rules'
+ * `(n || 5)` always has. Kinds with no sensible unit default fall back to
+ * `Infinity`, so clearing `n` on one of those locks the sticker rather than
+ * awarding a milestone nobody reached — failing closed, the only safe
+ * direction for the one thing in this product that must always be earned.
  */
-function threshold(sticker: Sticker): number {
-  return sticker.n ?? Number.POSITIVE_INFINITY;
-}
-
-/** Has the rider landed any one of these tricks? */
-function landedAny(scope: SportStats, ids: readonly string[]): boolean {
-  return ids.some((id) => isLandedStage(scope.byId[id]));
-}
-
-/** How many of these tricks has the rider landed? */
-function landedCount(scope: SportStats, ids: readonly string[]): number {
-  return ids.filter((id) => isLandedStage(scope.byId[id])).length;
+function threshold(sticker: Sticker, fallback = Number.POSITIVE_INFINITY): number {
+  return sticker.n ?? fallback;
 }
 
 /**
- * The ledge and rail tricks in skate's `street` category — the whole category
- * except `sk-gap`, "Stair Set".
- *
- * Named explicitly rather than counted by category, because the category is
- * staff-editable and the point is *which* tricks count, not how many there are
- * (issue #79). Counting the category badged stair sets, which is the one
- * escalation ladder in skateboarding an achievement must not nudge.
+ * The launch-window cutoff for the `day-one` founder award: one month after
+ * the site went live on 2026-08-17. A constant, deliberately — the window is
+ * historical fact, not a tunable.
  */
-const LEDGE_AND_RAIL = [
-  'sk-50-50',
-  'sk-boardslide',
-  'sk-noseslide',
-  'sk-5-0',
-  'sk-nosegrind',
-  'sk-crooked',
-  'sk-tailslide',
-] as const;
+export const FOUNDER_JOINED_BY = '2026-09-17';
+
+const count = (value: number | undefined): number => value ?? 0;
 
 /**
- * Every sticker's condition, as code.
+ * Shipped bars for kinds whose record may ship without `n` — the "first one"
+ * awards, where a `1` on the record would render as "1 Land your first trick"
+ * in the condition copy. Mirrored by the PocketBase hook.
+ */
+export const KIND_DEFAULT_N: Partial<Record<AwardKind, number>> = {
+  'landed-count': 1,
+  'mastered-count': 1,
+  'hard-mastered': 1,
+  challenges: 1,
+  clips: 1,
+  'spots-approved': 1,
+  'events-going': 1,
+  'account-age': 365,
+};
+
+/**
+ * The award-era rules (T24), one per `kind` — the shape is code, the
+ * parameters (`n`, `trick`, `cat`) are the record's. Every kind is monotonic
+ * in the rider's own riding (issue #78). Kinds that read a stat only the
+ * server computes (`spotsApproved`, `planPaid`, …) see `undefined` on the
+ * client and read it as zero/false: the client under-promises, never
+ * over-promises, and the wall is drawn from `rider_stickers` regardless.
  *
- * The split is deliberate (plan §3): the sticker *record* carries the editable
- * parts — name, colour, icon, copy, threshold, live flag — and lives in the
- * database, while the condition itself lives here where it can be reviewed and
- * tested. Staff can retune a threshold; they cannot invent a new rule, and a
- * client cannot forge one.
+ * `comeback` is transition-based — "rode again after a two-month gap" is a
+ * fact about two writes, not about current stats — so its generic rule is
+ * never-true and the award hook grants it at the moment of the ride.
+ */
+export const KIND_RULES: Record<AwardKind, StickerRule> = {
+  trick: (s, x) => Boolean(x.trick) && isLandedStage(s.byId[x.trick as string]),
+  'landed-count': (s, x) => s.landed >= threshold(x, KIND_DEFAULT_N['landed-count']),
+  'sport-landed-count': (s, x) => count(s.maxSportLanded) >= threshold(x),
+  'mastered-count': (s, x) => s.mastered >= threshold(x, KIND_DEFAULT_N['mastered-count']),
+  'hard-mastered': (s, x) => count(s.hardMastered) >= threshold(x, KIND_DEFAULT_N['hard-mastered']),
+  'sport-cat-count': (s, x) =>
+    Boolean(x.cat) &&
+    count(s.maxSportCatCount?.[x.cat as NonNullable<Sticker['cat']>]) >= threshold(x),
+  streak: (s, x) => s.streak >= threshold(x),
+  challenges: (s, x) => s.challenges >= threshold(x, KIND_DEFAULT_N.challenges),
+  clips: (s, x) => s.clips >= threshold(x, KIND_DEFAULT_N.clips),
+  'spots-approved': (s, x) =>
+    count(s.spotsApproved) >= threshold(x, KIND_DEFAULT_N['spots-approved']),
+  'events-going': (s, x) => count(s.eventsGoing) >= threshold(x, KIND_DEFAULT_N['events-going']),
+  crew: (s) => s.crew,
+  'crew-owned': (s, x) => count(s.crewOwnedSize) >= threshold(x),
+  'sports-landed': (s, x) => count(s.sportsLanded) >= threshold(x),
+  'sport-cats-landed': (s, x) => count(s.maxSportCatsLanded) >= threshold(x),
+  'profile-complete': (s) => s.profileComplete === true,
+  'account-age': (s, x) => count(s.accountAgeDays) >= threshold(x, KIND_DEFAULT_N['account-age']),
+  founder: (s) => s.isFounder === true,
+  'stage-drop': (s) => s.stageDropped === true,
+  comeback: () => false,
+  supporter: (s) => s.planPaid === true,
+};
+
+/**
+ * The retired legacy stickers' conditions, as code — kept although every one
+ * of them is `isLive: false`, because a rule that exists and a record that is
+ * retired are two independent locks (the third being the hook, which never
+ * evaluates a retired record). `upside` is never-true on top of that: switching
+ * the record back on from the admin portal still cannot badge a backflip
+ * (issue #77).
  *
- * The map is keyed by `StickerId`, so a sticker added to the canonical data
- * without a rule here is a type error rather than a sticker nobody can ever
- * earn.
- *
- * **A rule must be monotonic in the rider's own riding.** `catDone` ("every
- * live trick in the category") and any percentage of the library re-base when
- * staff add a trick, so a rider loses an earned sticker because somebody else
- * edited the library (issue #78). `landed >= n`, `catCount >= n` and
- * `landedCount(list) >= n` only ever go up, and they are the shapes to reach
- * for. `catDone` is still computed on `SportStats` — nothing here reads it.
+ * The fifteen legacy stickers whose conditions matched an award exactly are
+ * not here: the migration renamed their records onto the award slugs, and the
+ * `kind` on those records is what judges them now.
  */
 export const STICKER_RULES = {
-  /* --- combined: judged against the rider's global stats --- */
-  'first-land': (s) => s.landed >= 1,
   'five-deep': (s, x) => s.landed >= threshold(x),
-  'ten-deep': (s, x) => s.landed >= threshold(x),
-  'week-one': (s, x) => s.streak >= threshold(x),
-  'month-on': (s, x) => s.streak >= threshold(x),
-  'first-clip': (s) => s.clips >= 1,
-  challenger: (s) => s.challenges >= 1,
-  'crew-up': (s) => s.crew,
   gnarly: (s, x) => s.hardLanded >= threshold(x),
-  'every-time': (s, x) => s.mastered >= threshold(x),
   'both-feet': (s) => s.bothSports,
-
-  /* --- scooter: judged against scooter stats alone --- */
-  'hop-master': (s) => s.byId['bunny-hop'] === 'every',
-  'whip-club': (s) => landedAny(s, ['tailwhip']),
-  'flat-out': (s, x) => s.catCount.flat >= threshold(x),
   'street-cred': (s, x) => s.catCount.street >= threshold(x),
   'park-rat': (s, x) => s.catCount.park >= threshold(x),
-  'grind-time': (s) => landedAny(s, ['50-50', 'feeble', 'smith', 'icepick']),
-  // Retired (issue #77) — see the record in `../data/stickers.ts`. It is
-  // `isLive: false` there and the hook never evaluates a retired sticker, so
-  // this is the third lock: switching the record back on from the admin portal
-  // still cannot award a badge for landing a backflip.
+  'grind-time': (s) =>
+    ['50-50', 'feeble', 'smith', 'icepick'].some((id) => isLandedStage(s.byId[id])),
   upside: () => false,
-
-  /* --- skate: judged against skate stats alone --- */
-  'ollie-up': (s) => s.byId['sk-ollie'] === 'every',
-  'flip-club': (s) => landedAny(s, ['sk-kickflip']),
   'flat-track': (s, x) => s.catCount.flat >= threshold(x),
-  'ledge-rat': (s, x) => landedCount(s, LEDGE_AND_RAIL) >= threshold(x),
+  'ledge-rat': (s, x) =>
+    [
+      'sk-50-50',
+      'sk-boardslide',
+      'sk-noseslide',
+      'sk-5-0',
+      'sk-nosegrind',
+      'sk-crooked',
+      'sk-tailslide',
+    ].filter((id) => isLandedStage(s.byId[id])).length >= threshold(x),
   'bowl-rider': (s, x) => s.catCount.park >= threshold(x),
-  'coping-time': (s) => landedAny(s, ['sk-axle-stall']),
-  'tre-deep': (s) => landedAny(s, ['sk-tre-flip']),
-} satisfies Record<StickerId, StickerRule>;
+} satisfies Partial<Record<StickerId, StickerRule>>;
 
-/** Look up the rule for a sticker, if one exists. */
+/** Look up the slug-keyed legacy rule for a sticker, if one exists. */
 export function stickerRule(id: string): StickerRule | undefined {
   const rules: Readonly<Record<string, StickerRule>> = STICKER_RULES;
   return rules[id];
+}
+
+/**
+ * Resolve the rule that judges a sticker: the record's `kind` when it carries
+ * one, else the slug-keyed legacy map. Kind first, deliberately — it is what
+ * lets a migrated record (`flat-out`) change meaning by data alone, and it is
+ * the same precedence the PocketBase hook applies.
+ */
+export function resolveStickerRule(sticker: Sticker): StickerRule | undefined {
+  if (sticker.kind) {
+    const rules: Readonly<Partial<Record<string, StickerRule>>> = KIND_RULES;
+    return rules[sticker.kind];
+  }
+  return stickerRule(sticker.id);
 }
 
 /**
@@ -129,11 +158,11 @@ export function stickerScope(stats: RiderStats, sticker: Sticker): SportStats {
 /**
  * Has this rider earned this sticker, right now?
  *
- * A sticker with no rule in `STICKER_RULES` is never earned — staff can add a
- * record from the admin portal, but it stays locked until a rule ships.
+ * A sticker that resolves no rule is never earned — staff can add a record
+ * from the admin portal, but it stays locked until a rule ships.
  */
 export function evaluateSticker(stats: RiderStats, sticker: Sticker): boolean {
-  const rule = stickerRule(sticker.id);
+  const rule = resolveStickerRule(sticker);
   if (!rule) return false;
   return rule(stickerScope(stats, sticker), sticker);
 }

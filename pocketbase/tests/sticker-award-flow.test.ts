@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { baseFixtures, call, ensureRecord, makeRider, type Rider } from './helpers';
+import { baseFixtures, call, ensureRecord, makeRider, superuser, type Rider } from './helpers';
 
 /**
  * The sticker award flow, end to end and over HTTP (plan §7, T10).
@@ -34,13 +34,77 @@ async function stickerFixtures() {
     n: 1,
     is_live: true,
   });
-  await ensureRecord('stickers', "slug = 'week-one'", {
-    slug: 'week-one',
-    name: 'Kept It Up',
-    hue: '#FFC23F',
-    ico: 'flame',
+  // Award-era (T24): a kind-based record. The rule shape is the hook's
+  // `KIND_RULES.streak`; the record carries only the threshold.
+  await ensureRecord('stickers', "slug = 'hot-streak'", {
+    slug: 'hot-streak',
+    name: 'Hot Streak',
+    hue: '#e0392b',
+    ico: 'star',
     cond: 'weeks in a row',
     n: 4,
+    kind: 'streak',
+    img: 'hot-streak.png',
+    stars: 1,
+    is_live: true,
+  });
+  // A trick award (T24) keyed to the shared fixture trick.
+  await ensureRecord('stickers', "slug = 'fixture-bunny-hop'", {
+    slug: 'fixture-bunny-hop',
+    name: 'Bunny Hop',
+    sport: 'scooter',
+    hue: '#ffc23f',
+    ico: 'star',
+    cond: 'Land the Bunny Hop',
+    kind: 'trick',
+    trick: 'fixture-bunny-hop',
+    img: 'bunny-hop.png',
+    stars: 1,
+    is_live: true,
+  });
+  await ensureRecord('stickers', "slug = 'on-the-map'", {
+    slug: 'on-the-map',
+    name: 'On The Map',
+    hue: '#ff5a1f',
+    ico: 'star',
+    cond: 'Get a spot you found onto the map',
+    kind: 'spots-approved',
+    is_live: true,
+  });
+  await ensureRecord('stickers', "slug = 'showed-up'", {
+    slug: 'showed-up',
+    name: 'Showed Up',
+    hue: '#8a3be0',
+    ico: 'star',
+    cond: 'Mark yourself going to an event',
+    kind: 'events-going',
+    is_live: true,
+  });
+  await ensureRecord('stickers', "slug = 'supporter'", {
+    slug: 'supporter',
+    name: 'Supporter',
+    hue: '#8a3be0',
+    ico: 'star',
+    cond: 'Back Land The Trick with a paid plan',
+    kind: 'supporter',
+    is_live: true,
+  });
+  await ensureRecord('stickers', "slug = 'comeback'", {
+    slug: 'comeback',
+    name: 'Comeback',
+    hue: '#e0392b',
+    ico: 'star',
+    cond: 'Ride again after two months away',
+    kind: 'comeback',
+    is_live: true,
+  });
+  await ensureRecord('stickers', "slug = 'keeping-it-real'", {
+    slug: 'keeping-it-real',
+    name: 'Keeping It Real',
+    hue: '#ffc23f',
+    ico: 'star',
+    cond: 'Move a trick down a stage. Honesty counts',
+    kind: 'stage-drop',
     is_live: true,
   });
   await ensureRecord('stickers', "slug = 'both-feet'", {
@@ -219,11 +283,11 @@ describe('what the rules award, judged over HTTP', () => {
 
     const short = await makeRider({}, { streak: 3 });
     await track(short, freeTrick);
-    expect(Object.keys(await held(short))).not.toContain('week-one');
+    expect(Object.keys(await held(short))).not.toContain('hot-streak');
 
     const long = await makeRider({}, { streak: 4 });
     await track(long, freeTrick);
-    expect(Object.keys(await held(long))).toContain('week-one');
+    expect(Object.keys(await held(long))).toContain('hot-streak');
   });
 
   it('counts two or more sports, not scooter and skate (issue from T21)', async () => {
@@ -251,5 +315,138 @@ describe('what the rules award, judged over HTTP', () => {
     // The difficulty-5 recognition still lands — it just does not name a target.
     expect(Object.keys(after)).toContain('gnarly');
     expect(Object.keys(after)).not.toContain('upside');
+  });
+});
+
+/**
+ * The award era (T24), judged over HTTP like everything above: every new
+ * award source is a server hook, and the client's only part is the ordinary
+ * write that triggered it.
+ */
+describe('the award era, over HTTP', () => {
+  it('awards a trick badge from its kind, on the progress write', async () => {
+    const { freeTrick } = await baseFixtures();
+    const rider = await makeRider();
+
+    await track(rider, freeTrick);
+    const after = await held(rider);
+    // `fixture-bunny-hop` is a kind-based record (`kind: 'trick'`) — no
+    // slug-keyed rule exists for it in the hook, so this passing is the kind
+    // resolution working end to end.
+    expect(Object.keys(after)).toContain('fixture-bunny-hop');
+  });
+
+  it('awards the contributor when staff approve their spot, and not before', async () => {
+    const rider = await makeRider();
+
+    const submitted = await call<{ id: string }>('POST', '/api/collections/spots/records', {
+      token: rider.token,
+      body: {
+        name: `Award Fixture Park ${rider.id.slice(0, 6)}`,
+        town: 'Skegness',
+        lat: 53.143,
+        lng: 0.343,
+        sports: ['scooter'],
+        status: 'pending',
+        submitted_by: rider.id,
+      },
+    });
+    expect(submitted.status).toBe(200);
+    // Pending reaches nobody, including the award pass.
+    expect(Object.keys(await held(rider))).not.toContain('on-the-map');
+
+    const approved = await call('PATCH', `/api/collections/spots/records/${submitted.body.id}`, {
+      token: await superuser(),
+      body: { status: 'live' },
+    });
+    expect(approved.status).toBe(200);
+    expect(Object.keys(await held(rider))).toContain('on-the-map');
+  });
+
+  it(`awards "I'm going" the moment the attendance row lands`, async () => {
+    const event = await ensureRecord('events', "slug = 'fixture-award-jam'", {
+      slug: 'fixture-award-jam',
+      name: 'Fixture Award Jam',
+      kind: 'Jam',
+      town: 'Hull',
+      date: '2026-10-01 10:00:00.000Z',
+      is_live: true,
+    });
+    const rider = await makeRider();
+
+    const going = await call('POST', '/api/collections/event_attendance/records', {
+      token: rider.token,
+      body: { user: rider.id, event: event.id },
+    });
+    expect(going.status).toBe(200);
+    expect(Object.keys(await held(rider))).toContain('showed-up');
+  });
+
+  it('recognises a supporter from the server-resolved plan, never a client claim', async () => {
+    // `makeRider` sets the plan with a superuser call — the same server-owned
+    // write Stripe's webhook path uses. The users hook awards on it directly.
+    const paying = await makeRider({}, { plan: 'shredder' });
+    expect(Object.keys(await held(paying))).toContain('supporter');
+
+    const free = await makeRider();
+    expect(Object.keys(await held(free))).not.toContain('supporter');
+  });
+
+  it('grants the comeback on the ride after a two-month gap, and only then', async () => {
+    const rider = await makeRider();
+    const token = await superuser();
+
+    // First ride, recorded. No previous ride, so no gap and no badge.
+    const first = await call('PATCH', `/api/collections/users/records/${rider.id}`, {
+      token,
+      body: { last_ride: '2026-06-01 00:00:00.000Z' },
+    });
+    expect(first.status).toBe(200);
+    expect(Object.keys(await held(rider))).not.toContain('comeback');
+
+    // A ride within the window moves the date without a badge.
+    await call('PATCH', `/api/collections/users/records/${rider.id}`, {
+      token,
+      body: { last_ride: '2026-06-20 00:00:00.000Z' },
+    });
+    expect(Object.keys(await held(rider))).not.toContain('comeback');
+
+    // Two months away, then back on the deck.
+    const back = await call('PATCH', `/api/collections/users/records/${rider.id}`, {
+      token,
+      body: { last_ride: '2026-08-29 00:00:00.000Z' },
+    });
+    expect(back.status).toBe(200);
+    expect(Object.keys(await held(rider))).toContain('comeback');
+  });
+
+  it('rewards moving a trick down a stage — the honesty award', async () => {
+    const { freeTrick } = await baseFixtures();
+    const rider = await makeRider();
+
+    // Up first: land it, and log the landing the way the app does.
+    const tracked = await call<{ id: string }>('POST', '/api/collections/trick_progress/records', {
+      token: rider.token,
+      body: { user: rider.id, trick: freeTrick, stage: 'most' },
+    });
+    expect(tracked.status).toBe(200);
+    await call('POST', '/api/collections/trick_log/records', {
+      token: rider.token,
+      body: { user: rider.id, trick: freeTrick, stage: 'most', at: '2026-08-20 10:00:00.000Z' },
+    });
+    expect(Object.keys(await held(rider))).not.toContain('keeping-it-real');
+
+    // Honesty: it stopped being "most", and the rider says so.
+    await call('POST', '/api/collections/trick_log/records', {
+      token: rider.token,
+      body: { user: rider.id, trick: freeTrick, stage: 'some', at: '2026-08-27 10:00:00.000Z' },
+    });
+    const downgraded = await call(
+      'PATCH',
+      `/api/collections/trick_progress/records/${tracked.body.id}`,
+      { token: rider.token, body: { stage: 'some' } },
+    );
+    expect(downgraded.status).toBe(200);
+    expect(Object.keys(await held(rider))).toContain('keeping-it-real');
   });
 });

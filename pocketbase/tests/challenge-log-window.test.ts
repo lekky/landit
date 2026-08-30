@@ -52,7 +52,7 @@ async function challenge(
     starts,
     ends,
     goal: 3,
-    reward: 'Challenger sticker',
+    reward: 'First Challenge sticker',
     ...extra,
   });
   return record.id;
@@ -123,15 +123,18 @@ describe('the challenge log window is the server’s, not the client’s', () =>
 });
 
 describe('finishing a challenge awards the sticker the screen promised', () => {
-  it('gives a BMX rider the Challenger sticker off a BMX challenge', async () => {
+  it('gives a BMX rider the First Challenge sticker off a BMX challenge', async () => {
     // Issues #76 and #80 together: the reward has to name a sticker that
     // exists, and BMX has to have a challenge to finish in the first place.
-    await ensureRecord('stickers', "slug = 'challenger'", {
-      slug: 'challenger',
-      name: 'Challenger',
-      hue: '#FF6B6B',
-      ico: 'bolt',
+    // T24 renamed the record: `challenger` became `first-challenge`, judged
+    // by its kind. The reward copy on the challenge fixture names it below.
+    await ensureRecord('stickers', "slug = 'first-challenge'", {
+      slug: 'first-challenge',
+      name: 'First Challenge',
+      hue: '#2ec4b6',
+      ico: 'star',
       cond: 'Finish a weekly challenge',
+      kind: 'challenges',
       is_live: true,
     });
     const bmxWeek = await challenge('t12-last-day', 'bmx', day(-6), day(0), { goal: 2 });

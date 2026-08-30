@@ -66,21 +66,27 @@ test('the wall is signed-in only', async ({ page }) => {
   await page.waitForURL('**/signin');
 });
 
-test('a fresh wall shows every sticker, all of them locked', async ({ page }) => {
+test('a fresh wall shows the award set, locked — bar the founder badge', async ({ page }) => {
   await arrive(page, 'Fresh Rider');
   await page.goto('/stickers');
 
   await expect(page.getByText('Sticker wall')).toBeVisible();
-  // "0 of N" — the N is the seeded set, and it must not be zero, or this file
+  // "X of N" — the N is the seeded set, and it must not be zero, or this file
   // is asserting over an empty collection. `innerText` is what the CSS renders,
   // and the Anton headline is uppercased there, so the comparison is too.
   const heading = page.getByRole('heading', { level: 1 });
   const count = (await heading.innerText()).toLowerCase();
-  expect(count).toMatch(/^0 of \d+$/);
+  expect(count).toMatch(/^\d+ of \d+$/);
   expect(Number(count.split(' of ')[1])).toBeGreaterThan(5);
 
+  // A rider who signed up during the launch window (before 2026-09-17) holds
+  // `day-one` from their first second — deliberately, T24's founder badge. A
+  // rider after it holds nothing. Either way: at most one earned, the heading
+  // agrees with the badges, and the wall is otherwise locked.
+  const earned = Number(count.split(' of ')[0]);
+  expect(earned).toBeLessThanOrEqual(1);
   await expect(page.locator('.sticker.locked').first()).toBeVisible();
-  await expect(page.locator('.sticker:not(.locked)')).toHaveCount(0);
+  await expect(page.locator('.sticker:not(.locked)')).toHaveCount(earned);
 });
 
 test('landing a trick earns a sticker, announces it once, and puts it on the wall', async ({
@@ -90,8 +96,10 @@ test('landing a trick earns a sticker, announces it once, and puts it on the wal
   await landSomething(page);
 
   // The award happened in the hook, on the write. The toast is the app saying
-  // so — it is not the app deciding (plan §3).
-  await expect(page.getByText(/Sticker earned: /)).toBeVisible();
+  // so — it is not the app deciding (plan §3). One landing now announces
+  // several awards at once (the trick's own badge, First Land, and during the
+  // launch window Day One), so this asserts presence, not singularity.
+  await expect(page.getByText(/Sticker earned: /).first()).toBeVisible();
 
   // Once. `rider_stickers.seen_at` is stamped after it is shown, so a reload
   // of the same page does not announce it again.

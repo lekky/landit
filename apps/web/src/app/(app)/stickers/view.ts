@@ -19,6 +19,11 @@ export interface StickerView {
   readonly name: string;
   readonly hue: string;
   readonly icon?: string;
+  /** Printed award art under `/stickers/` (T24); absent on legacy records. */
+  readonly img?: string;
+  /** 0–3, baked into the art; carried for the detail modal and analytics. */
+  readonly stars?: number;
+  readonly rarity?: string;
   /** `null` for a shared sticker, which is judged against combined stats. */
   readonly sport: SportId | null;
   /** "Scooter", or nothing when the sticker is shared. */

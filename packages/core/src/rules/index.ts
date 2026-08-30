@@ -238,10 +238,14 @@ export {
 } from './spots';
 export { computeSportStats, computeStats, sportsOf, type StatsCatalogue } from './stats';
 export {
+  FOUNDER_JOINED_BY,
+  KIND_DEFAULT_N,
+  KIND_RULES,
   STICKER_RULES,
   earnedStickerIds,
   evaluateSticker,
   newlyEarnedStickerIds,
+  resolveStickerRule,
   stickerCondition,
   stickerRule,
   stickerScope,

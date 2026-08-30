@@ -243,6 +243,8 @@ describe('the event catalogue', () => {
         'signed_up',
         'spot_submitted',
         'sport_switched',
+        'sticker_earned',
+        'sticker_shared',
         'trick_logged',
         'upgrade_started',
         'verification_resent',

@@ -277,6 +277,7 @@ export default async function RiderProfilePage({
                           name: sticker.name,
                           hue: sticker.hue,
                           ...(sticker.ico ? { icon: sticker.ico as never } : {}),
+                          ...(sticker.img ? { img: sticker.img } : {}),
                         }}
                       />
                     );

@@ -599,6 +599,12 @@ export interface StickersRecord {
   is_live: boolean;
   created: string;
   updated: string;
+  img: string;
+  stars: number;
+  rarity: string;
+  kind: string;
+  trick: string;
+  cat: string;
 }
 
 /** The shape accepted when creating a `stickers` record. */
@@ -612,6 +618,12 @@ export interface StickersCreate {
   cond?: string;
   n?: number;
   is_live?: boolean;
+  img?: string;
+  stars?: number;
+  rarity?: string;
+  kind?: string;
+  trick?: string;
+  cat?: string;
 }
 
 /** The shape accepted when updating a `stickers` record. */

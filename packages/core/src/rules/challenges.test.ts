@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { CHALLENGES } from '../data/challenges';
 import { SPORT_IDS } from '../data/sports';
 import type { Challenge } from '../types';
-import { stickerRule } from './stickers';
+import { resolveStickerRule } from './stickers';
 import {
   canLogChallenge,
   challengeProgress,
@@ -241,14 +241,18 @@ describe('the reward a challenge promises', () => {
       const sticker = challengeRewardSticker(challenge);
       expect(sticker, `${challenge.id} promises "${challenge.reward}"`).not.toBeNull();
       expect(sticker?.isLive).toBe(true);
-      expect(stickerRule(sticker?.id ?? '')).toBeTypeOf('function');
+      expect(sticker && resolveStickerRule(sticker)).toBeTypeOf('function');
     }
   });
 
   it('reads a reward with or without the trailing word "sticker"', () => {
-    expect(challengeRewardSticker({ reward: 'Challenger' })?.id).toBe('challenger');
-    expect(challengeRewardSticker({ reward: 'Challenger sticker' })?.id).toBe('challenger');
-    expect(challengeRewardSticker({ reward: 'challenger STICKER' })?.id).toBe('challenger');
+    expect(challengeRewardSticker({ reward: 'First Challenge' })?.id).toBe('first-challenge');
+    expect(challengeRewardSticker({ reward: 'First Challenge sticker' })?.id).toBe(
+      'first-challenge',
+    );
+    expect(challengeRewardSticker({ reward: 'first challenge STICKER' })?.id).toBe(
+      'first-challenge',
+    );
   });
 
   it('resolves to null rather than guessing when the name is not a sticker', () => {

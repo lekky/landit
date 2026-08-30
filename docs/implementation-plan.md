@@ -29,6 +29,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Analytics | **PostHog EU (free tier), alone** | **Changed 2026-08-21 (Rachid, in chat); was PostHog EU + Cloudflare Web Analytics, decided 2026-08-15.** Cloudflare's beacon was there for plain traffic counts, because the cookie-less PostHog config first shipped could only count page loads, not people. `cookieless_mode: 'always'` counts riders with a server-side daily hash instead, so the beacon has nothing left to add — and dropping it is one fewer processor on a product with four Article 28 contracts outstanding (§6.5). PostHog carries both jobs: product events (onboarding funnel, upgrades) and traffic. Cookie-less, no device storage, no ad identifiers, no person profiles. The cost is that unique means unique *per day* (§6.8). |
 | Transactional email | **MailerSend** | **Changed 2026-08-16 (Rachid); was Resend, confirmed 2026-08-15.** Resend is already in use on another product and its free tier carries one sending domain, so Land The Trick would have meant paying before launch for a service sending dozens of emails a month. MailerSend's free tier (500/month, one domain) covers launch volume many times over, and it is EU-based — the same reason PostHog EU and R2 EU were chosen (§6.5). **Nothing in the codebase names a provider:** PocketBase sends over plain SMTP, so this is five environment values and no code change, and switching again costs the same. Rolling our own on box1 was considered and rejected — a cold shared IP that also carries the other products, and the guardian-consent email is the one that must not land in spam. |
 | Pricing | **Rookie free; Shredder £3.99/mo · £39.99/yr; Legend £6.99/mo · £69.99/yr** | Confirmed 2026-08-15. Yearly ≈ 2 months free. Crew Pass dropped, replaced by the single-rider Legend tier — see §2.4. |
+| Achievements | **The printed award set replaces the 25 drawn stickers** (Rachid, 2026-08-30, in chat) | One badge per trick in the library plus platform, streak, contribution and completion awards — 135 records, art committed under `packages/ui-web/assets/stickers/`, built as T24. Three owner decisions ride with it, each a *scoped* amendment to "achievements are never for sale" rather than a reversal: the **`supporter`** badge exists (earned by being on a paid plan — recognition of backing, 0 stars, and it may never gate or rank anything); the **clip awards** (`first-clip`, `clipped-up`) count a paid-capped feature, so Rookie riders cannot start them; and the **completion awards** count whole categories, which the difficulty-≥3 paywall keeps out of free reach. The free floor is pinned by tests instead: entry awards, the volume ladder to `rolling-deep`, and each sport's rite of passage stay free-earnable. `promoter` ships dormant (no rider event submissions yet). Fifteen legacy stickers whose conditions matched an award became that award in place (earned rows carry over); ten retired. |
 
 ---
 
@@ -189,6 +190,12 @@ stages are earned-only on every plan; paid tiers sell capacity, cosmetics and in
 *social* feature are unaffected by any of this. If a family tier earns its way back, it returns as
 an additive seat collection resolved through the same entitlements logic — nothing being built now
 closes that door.
+
+Three scoped amendments arrived with the award system (owner, 2026-08-30, in chat — the §1
+"Achievements" row is the record): the `supporter` badge, and the paid-adjacent clip and
+completion awards. The boundary that survives untouched: no award may ever gate a feature, change
+a score or a stage, or rank a rider — a badge behind the paywall is recognition a free rider
+cannot collect, never capability they lack. `rider_stickers` stays hook-written only.
 
 ### 2.5 Tooling (decided here so build sessions don't churn on it)
 
@@ -2379,6 +2386,43 @@ Nothing here is a security boundary. Every field is written with the rider's own
 **Still not editable, and deliberately: name and handle.** A handle is in URLs, on share cards and
 in the crew board, and changing one is a redirect question and a `RESERVED_HANDLES` question rather
 than a form field. Issue #96 did not ask for it and this task does not answer it.
+
+**T24 · The award system.** Added after launch (Rachid, 2026-08-30, in chat): the 25 drawn
+stickers become a 135-badge printed award set — one award per trick in the library, plus platform,
+streak, contribution and completion awards, with owner-approved art committed under
+`packages/ui-web/assets/stickers/` (512px, ~77KB average; full-resolution originals live outside the
+repo). The §1 "Achievements" row records the three scoped paywall decisions that shipped with it.
+
+The mechanics reuse the sticker system rather than duplicating it. New `stickers` fields (`img`,
+`stars`, `rarity`, `kind`, `trick`, `cat`, migration `1788048000`) carry the art and the rule
+*parameters*; the rule *shapes* are twenty-one coded kinds mirrored in `@landit/core` and
+`pocketbase/hooks/lib/stickers.js`, every one monotonic in the rider's own riding (issue #78) —
+the "completions" are counts with staff-tunable thresholds set to the smallest per-sport category
+size, never `catDone`. The award hook gains three sources: `event_attendance`, `spots` updates
+(approval awards the contributor, keyed by `submitted_by`), and the rider's own `users` row (plan,
+profile, age, and the streak fields every ride bumps) — which also carries the one
+transition-based award, `comeback`, granted directly when `last_ride` jumps by eight weeks or
+more. `keeping-it-real` reads `trick_log` for a stage moved down: the honesty the stages ask for,
+rewarded once.
+
+Continuity: the migration renames twelve legacy slugs onto their award equivalents *before* the
+seed runs, so `rider_stickers` rows carry straight over (`ten-deep`→`rolling-deep`,
+`week-one`→`hot-streak`, `month-on`→`all-season`, `challenger`→`first-challenge`,
+`crew-up`→`crewed-up`, `every-time`→`on-lock`, `whip-club`→`tailwhip`, `hop-master`→`bunny-hop`,
+`flip-club`→`sk-kickflip`, `coping-time`→`sk-axle-stall`, `tre-deep`→`sk-tre-flip`,
+`ollie-up`→`sk-ollie`; `first-land`, `first-clip` and `flat-out` already carried their slugs). Ten
+legacy stickers with no honest equivalent retired (`five-deep`, `gnarly`, `both-feet`,
+`street-cred`, `park-rat`, `grind-time`, `flat-track`, `ledge-rat`, `bowl-rider`, and `upside`
+which was already retired) — their earned rows survive in the data, off the wall. **Deploy order
+matters and is manual as ever: deploy (migrations run) → paste nothing → run
+`pnpm --filter @landit/db seed`.** Between those two steps the renamed records keep awarding
+through slug-keyed bridge rules and the wall simply shows the old set.
+
+`upside`'s spirit holds (issue #77): the library's own coached tricks now carry awards — including
+the flips, whose records the library teaches foam-pit-first — but no award names a category of
+danger as a dare, and `upside` itself stays retired with a never-true rule. Analytics: two new
+catalogue events, `sticker_earned` (fired when the wall first shows the badge — the earn is
+server-side; properties are slug, stars, rarity) and `sticker_shared`.
 
 ### Dependency graph
 

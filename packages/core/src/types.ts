@@ -105,6 +105,43 @@ export interface Trick {
 
 /* ---------------------------------------------------------------- stickers */
 
+/**
+ * The rule kinds an award-era sticker record may carry (T24). The *kind* is
+ * code — a client or a staff edit cannot invent a new one — while the record
+ * carries the tunable parameters (`n`, `trick`, `cat`), keeping plan §3's
+ * split: rules in code, thresholds in data.
+ *
+ * Every kind is monotonic in the rider's own riding (issue #78): counts and
+ * thresholds only, never "all of the category". `comeback` is transition-based
+ * and awarded by a dedicated hook, so its generic rule is never-true; a kind
+ * of `''` (promoter) is a record deliberately shipped without a rule.
+ */
+export type AwardKind =
+  | 'trick'
+  | 'landed-count'
+  | 'sport-landed-count'
+  | 'mastered-count'
+  | 'hard-mastered'
+  | 'sport-cat-count'
+  | 'streak'
+  | 'challenges'
+  | 'clips'
+  | 'spots-approved'
+  | 'events-going'
+  | 'crew'
+  | 'crew-owned'
+  | 'sports-landed'
+  | 'sport-cats-landed'
+  | 'profile-complete'
+  | 'account-age'
+  | 'founder'
+  | 'stage-drop'
+  | 'comeback'
+  | 'supporter';
+
+/** How rare an award reads on the wall. Display only — never gates anything. */
+export type AwardRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
+
 export interface Sticker {
   readonly id: string;
   readonly name: string;
@@ -118,6 +155,21 @@ export interface Sticker {
   /** Editable threshold. Rules read it from the record, never from a literal. */
   readonly n?: number;
   readonly isLive: boolean;
+  /**
+   * Award-era art (T24): a file under `packages/ui-web/assets/stickers/`. A record
+   * with `img` renders the printed badge; one without keeps the drawn SVG,
+   * which is what the retired legacy stickers still use.
+   */
+  readonly img?: string;
+  /** 0–3 stars, baked into the art; carried for detail copy and sorting. */
+  readonly stars?: number;
+  /** Which coded rule judges this record. Absent on legacy slug-keyed rules. */
+  readonly kind?: AwardKind | '';
+  /** For `kind: 'trick'` — the trick slug this award celebrates. */
+  readonly trick?: string;
+  /** For `kind: 'sport-cat-count'` — the category the count reads. */
+  readonly cat?: CategoryId;
+  readonly rarity?: AwardRarity;
 }
 
 /**
@@ -474,6 +526,8 @@ export interface SportStats {
   readonly mastered: number;
   /** Landed tricks at difficulty 5. */
   readonly hardLanded: number;
+  /** Tricks at `every` AND difficulty 5 — consistency on a Pro trick (T24). */
+  readonly hardMastered?: number;
   readonly catCount: Readonly<Record<CategoryId, number>>;
   readonly catTotal: Readonly<Record<CategoryId, number>>;
   /** Whether every trick in the category is landed. False for an empty category. */
@@ -499,6 +553,37 @@ export interface SportStats {
   readonly bothSports: boolean;
   /** Landed as a percentage of tricks in scope, rounded. */
   readonly pct: number;
+
+  /*
+   * Award-era shared stats (T24). All optional: the client computes the ones it
+   * can from the snapshot it holds; the award hook computes every one of them
+   * fresh from the database. A missing value reads as zero/false in the rules,
+   * so the client can never show an instant award the server would refuse —
+   * the wall is drawn from `rider_stickers` either way.
+   */
+  /** Spots this rider submitted that staff approved onto the map. */
+  readonly spotsApproved?: number;
+  /** Events this rider has marked "I'm going" on. Intent, never attendance. */
+  readonly eventsGoing?: number;
+  /** Members in the largest crew this rider owns. */
+  readonly crewOwnedSize?: number;
+  /** Avatar, level, goal, stance and at least one sport all set. */
+  readonly profileComplete?: boolean;
+  readonly accountAgeDays?: number;
+  /** Joined during the launch window — see `FOUNDER_JOINED_BY`. */
+  readonly isFounder?: boolean;
+  /** On a paid plan right now. Server-resolved; the client never computes it. */
+  readonly planPaid?: boolean;
+  /** Has ever moved a trick *down* a stage — the honesty the stages ask for. */
+  readonly stageDropped?: boolean;
+  /** Sports with at least one landed trick. `bothSports` is `>= 2` of this. */
+  readonly sportsLanded?: number;
+  /** The largest single-sport landed count. */
+  readonly maxSportLanded?: number;
+  /** Per category, the largest single-sport landed count. */
+  readonly maxSportCatCount?: Readonly<Record<CategoryId, number>>;
+  /** The most categories any one sport has a landed trick in. */
+  readonly maxSportCatsLanded?: number;
 }
 
 /**
