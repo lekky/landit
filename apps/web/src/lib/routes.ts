@@ -107,7 +107,16 @@ export const ROUTES = {
   adminModeration: '/admin/moderation',
 } as const satisfies Record<string, Route>;
 
-export const legalHref = (doc: LegalDocId): Route => `/legal/${doc}`;
+/**
+ * A legal document, optionally at one of its sections.
+ *
+ * The anchor comes from `legalSectionId`, which the page uses for the matching
+ * `id`, so a caller cannot invent a fragment that lands nowhere. `typedRoutes`
+ * checks the path against the route table and does not model fragments, hence
+ * the cast on the second form only.
+ */
+export const legalHref = (doc: LegalDocId, sectionId?: string): Route =>
+  sectionId ? (`/legal/${doc}#${sectionId}` as Route) : `/legal/${doc}`;
 
 /**
  * The library, optionally showing only the tricks the rider is tracking (T22).

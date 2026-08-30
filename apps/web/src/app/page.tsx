@@ -168,7 +168,7 @@ export default async function LandingPage() {
         </div>
       </div>
 
-      <SiteFooter compact />
+      <SiteFooter />
     </div>
   );
 }

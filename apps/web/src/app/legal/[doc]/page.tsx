@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation';
 
 import siteStyles from '@/components/site/site.module.css';
 import { Wordmark } from '@/components/site/Wordmark';
-import { LEGAL_DOCS, LEGAL_DRAFT_NOTICE, legalDoc } from '@/content/legal';
+import { LEGAL_DOCS, legalDoc, legalSectionId } from '@/content/legal';
 import { ROUTES, legalHref } from '@/lib/routes';
 
 import styles from '../legal.module.css';
@@ -74,13 +74,11 @@ export default async function LegalDocPage(props: PageProps<'/legal/[doc]'>) {
             <h1 className={`d ${styles.title}`}>{doc.title}</h1>
             <p className={styles.intro}>{doc.intro}</p>
 
-            <Panel flat className={styles.notice}>
-              <span className={`lab ${styles.noticeText}`}>{LEGAL_DRAFT_NOTICE}</span>
-            </Panel>
-
             <div className={styles.sections}>
               {doc.sections.map((section) => (
-                <section key={section.h}>
+                // The id is what `legalHref(doc, sectionId)` links into — the
+                // footer's Contact entry uses it. Same function both sides.
+                <section key={section.h} id={legalSectionId(section.h)}>
                   <div className={`sechead ${styles.sectionHead}`}>
                     <h2>{section.h}</h2>
                     <span className="rule" />

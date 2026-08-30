@@ -77,7 +77,7 @@ export default function ComingSoon() {
         </div>
       </div>
 
-      <SiteFooter compact minimal />
+      <SiteFooter minimal />
     </div>
   );
 }

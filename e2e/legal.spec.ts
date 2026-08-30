@@ -168,9 +168,50 @@ test('safeguarding states the no-stranger-contact position (plan §6.1)', async 
   expect(body).toMatch(/no feed of strangers/i);
 });
 
+test('no document is marked as draft copy (2026-08-30)', async ({ page }) => {
+  // Every legal page carried a grey "Draft copy, pending legal review" strip,
+  // inherited from `landit-legal.jsx`. The owner removed it on 2026-08-30. It is
+  // asserted rather than trusted because a published document that calls itself
+  // a draft is a thing a rider's parent reads, and it came back once already
+  // when the wording was re-dated instead of re-decided.
+  //
+  // Note what this does *not* claim: §6.3's counsel review of the EEA table and
+  // the US posture is still open. That is a plan item, not a banner.
+  for (const [slug] of DOCS) {
+    await page.goto(`/legal/${slug}`);
+    const body = await page.locator('body').innerText();
+    expect(body).not.toMatch(/draft copy/i);
+    expect(body).not.toMatch(/pending legal review/i);
+  }
+});
+
 test('the cookies page does not offer a setting that does not exist', async ({ page }) => {
   await page.goto('/legal/cookies');
   const body = await page.locator('body').innerText();
   expect(body).not.toMatch(/opt out in your account settings/i);
   expect(body).toMatch(/without cookies/i);
+});
+
+test('the footer has no dead labels, and Contact lands on the addresses', async ({ page }) => {
+  // Three placeholders lived here until 2026-08-30: a greyed `Staff` word that
+  // opened nothing (issue #135), three social tags that were spans rather than
+  // links, and a `Contact` entry pointing at the top of the same page as the
+  // `About Land The Trick` entry above it. The rule the footer now keeps is that
+  // every entry in it goes somewhere.
+  await page.goto('/');
+  const footer = page.locator('footer');
+
+  await expect(footer).not.toContainText('Staff');
+
+  for (const name of ['Instagram', 'YouTube', 'TikTok']) {
+    await expect(footer.getByRole('link', { name })).toHaveAttribute('href', /landthetrick/);
+  }
+
+  await expect(footer.getByRole('link', { name: 'Contact', exact: true })).toHaveAttribute(
+    'href',
+    '/legal/about#get-in-touch',
+  );
+
+  // Nothing in the footer's link columns is a label pretending to be a link.
+  await expect(footer.locator('[aria-disabled="true"]')).toHaveCount(0);
 });

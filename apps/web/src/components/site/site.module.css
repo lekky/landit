@@ -77,6 +77,11 @@
   padding: 5px 10px;
   color: #c9c2b4;
 }
+/* `a.` so this outranks `a:hover { color: var(--pink) }` in the design system. */
+a.socialTag:hover {
+  border-color: var(--paper);
+  color: var(--paper);
+}
 .colTitle {
   color: #c9c2b4;
   margin-bottom: 12px;
@@ -99,15 +104,6 @@
 }
 a.link:hover {
   color: var(--paper);
-}
-/*
- * A destination that has not been built yet (see `lib/routes.ts`). It keeps the
- * footer's shape without pretending to be a link: no hover, not focusable, and
- * announced as unavailable.
- */
-.linkPending {
-  color: #6b6459;
-  cursor: default;
 }
 .bottom {
   border-top: 2px solid #2a2620;
@@ -139,11 +135,6 @@ a.link:hover {
 a.bottomLink:hover {
   color: var(--paper);
 }
-.staffLink {
-  color: #6b6459;
-  font-size: 13px;
-}
-
 @media (max-width: 760px) {
   .grid {
     grid-template-columns: 1fr 1fr;
