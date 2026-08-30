@@ -1,4 +1,4 @@
-import { SPOTS, type Spot } from '@landit/core';
+import { SPOTS, sortSpotsByDistance, type Spot } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
 /*
@@ -55,6 +55,17 @@ const skateOnlySpot = liveSpots.find(
   (spot) => spot.sports.includes('skate') && !spot.sports.includes('scooter'),
 )!;
 
+/**
+ * Where the geolocation stub says the rider is (Liverpool), and the live spot
+ * that is nearest to it.
+ *
+ * Computed with the same `core` function the screen sorts by rather than
+ * hard-coded, for the reason the seed comment gives: an edit to the spot data
+ * should move this test, not break it.
+ */
+const STUB_POINT = { lat: 53.4084, lng: -2.9916 };
+const nearestSpot = sortSpotsByDistance(liveSpots, STUB_POINT)[0]!;
+
 const card = (page: Page, name: string) =>
   page.locator('[class*="card"]').filter({ hasText: name }).first();
 
@@ -102,7 +113,11 @@ async function findSpot(page: Page, name: string) {
  * of the page's own script runs, so a call during hydration is caught too.
  */
 async function watchGeolocation(page: Page): Promise<void> {
-  await page.addInitScript(() => {
+  // `STUB_POINT` is passed in rather than closed over: an init script is
+  // serialised and runs in the browser, where this file's constants do not
+  // exist. It is the same value the expected ordering above is computed from,
+  // which is the point of threading it through.
+  await page.addInitScript((from: { lat: number; lng: number }) => {
     window.__geoCalls = 0;
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
@@ -110,7 +125,7 @@ async function watchGeolocation(page: Page): Promise<void> {
         getCurrentPosition: (ok: (position: StubPosition) => void) => {
           window.__geoCalls += 1;
           ok({
-            coords: { latitude: 53.4084, longitude: -2.9916, accuracy: 40 },
+            coords: { latitude: from.lat, longitude: from.lng, accuracy: 40 },
             timestamp: Date.now(),
           });
         },
@@ -120,7 +135,7 @@ async function watchGeolocation(page: Page): Promise<void> {
         clearWatch: () => {},
       },
     });
-  });
+  }, STUB_POINT);
 }
 
 const geoCalls = (page: Page) => page.evaluate(() => window.__geoCalls);
@@ -297,9 +312,12 @@ test.describe('where to ride', () => {
     await page.goto('/spots');
     await expect(page.getByRole('heading', { name: 'Where to ride' })).toBeVisible();
 
-    // Off by default (plan §6.4, standard 10). Not "asked once and remembered":
-    // never asked at all until a rider chooses it. Checked before hydration is
-    // waited for, deliberately: a call made during hydration must fail this.
+    // No permission granted to this context, so the screen's silent resume
+    // (below) must decline to do anything: standard 10's line is that a browser
+    // dialog never appears in front of a rider who did not press for one, and
+    // on a browser sitting at `prompt` a `getCurrentPosition` call *is* that
+    // dialog. Checked before hydration is waited for, deliberately: a call made
+    // during hydration must fail this.
     expect(await geoCalls(page)).toBe(0);
 
     await whenInteractive(page);
@@ -312,6 +330,61 @@ test.describe('where to ride', () => {
     await expect(page.getByText('Using your location')).toBeVisible();
     await page.getByRole('button', { name: 'Turn off' }).click();
     await expect(page.getByText('Using your location')).toHaveCount(0);
+  });
+
+  test('opens nearest-first when the browser already allows it', async ({ page, context }) => {
+    // The rider granted this on an earlier visit, in their own browser — which
+    // is the only state the screen's resume acts on (Rachid, 2026-08-30;
+    // §6.4 standard 10). `grantPermissions` is how a test says "they did".
+    await context.grantPermissions(['geolocation']);
+    await watchGeolocation(page);
+    await page.goto('/spots');
+
+    // No press anywhere in this test. The indicator appearing is the assertion:
+    // a position is held, and the rider is told so in the same words and with
+    // the same way out as when they press for it.
+    await expect(page.getByText('Using your location')).toBeVisible();
+    await expect(page.getByText(/nearest first/)).toBeVisible();
+    expect(await geoCalls(page)).toBe(1);
+
+    // The nearest spot to the stub's position (Liverpool) leads the list. This
+    // is the behaviour the rider asked for; the indicator is what makes it fair.
+    // Across every sport, so the assertion does not quietly depend on which tab
+    // a fresh browser opens on.
+    await whenInteractive(page);
+    const first = page.locator('[class*="card"]').first();
+    await expect(first).toContainText(nearestSpot.name);
+
+    // "Turn off" still ends it, and does not quietly restart: the permission is
+    // still granted, so a resume that ignored the press would come straight
+    // back and leave a rider unable to switch their location off at all.
+    await page.getByRole('button', { name: 'Turn off' }).click();
+    await expect(page.getByText('Using your location')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Near me' })).toBeVisible();
+    expect(await geoCalls(page)).toBe(1);
+  });
+
+  test('keeps the position out of storage even when it resumes on its own', async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(['geolocation']);
+    await watchGeolocation(page);
+    await page.goto('/spots');
+    await expect(page.getByText('Using your location')).toBeVisible();
+
+    // What may survive a visit is the *browser's* permission, which is the
+    // rider's own record in their own settings. The position is still never
+    // ours to keep, and the resume must not have become a reason to cache it.
+    const stored = await page.evaluate(() => ({
+      local: JSON.stringify(window.localStorage),
+      session: JSON.stringify(window.sessionStorage),
+      cookie: document.cookie,
+    }));
+    for (const value of Object.values(stored)) {
+      expect(value).not.toContain('53.408');
+      expect(value).not.toContain('2.991');
+    }
   });
 
   test('does not keep the rider’s position anywhere across a reload', async ({ page }) => {

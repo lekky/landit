@@ -228,6 +228,7 @@ describe('the event catalogue', () => {
         'invite_minted',
         'library_filtered',
         'nav_clicked',
+        'nearby_sort_used',
         'note_saved',
         'onboarding_finished',
         'onboarding_step',
