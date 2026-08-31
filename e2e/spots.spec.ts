@@ -1,4 +1,4 @@
-import { SPOTS, sortSpotsByDistance, type Spot } from '@landit/core';
+import { SPORT_IDS, SPOTS, sortSpotsByDistance, type Spot } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
 /*
@@ -53,6 +53,15 @@ const liveSpots: readonly Spot[] = SPOTS.filter((spot) => spot.status === 'live'
 const scooterSpot = liveSpots.find((spot) => spot.sports.includes('scooter'))!;
 const skateOnlySpot = liveSpots.find(
   (spot) => spot.sports.includes('skate') && !spot.sports.includes('scooter'),
+)!;
+/*
+ * A park that takes BMX and not scooters, which is the pair the tab row has to
+ * be able to tell apart. Plenty of parks ban BMX for pegs and plenty ban
+ * scooters outright, so both of these are real and researched — see the note on
+ * `SPOTS`.
+ */
+const bmxNotScooterSpot = liveSpots.find(
+  (spot) => spot.sports.includes('bmx') && !spot.sports.includes('scooter'),
 )!;
 
 /**
@@ -154,7 +163,14 @@ test.describe('where to ride', () => {
     // The count is the claim about the whole collection; the cards below it are
     // one page of that. Asserting the count is what proves the seed landed —
     // asserting three particular cards only proved they sorted early.
-    await expect(page.getByText(`${liveSpots.length} spots`, { exact: false })).toBeVisible();
+    //
+    // Scoped to the count line rather than the page, because the sport tabs
+    // now carry counts of their own and "98 spots" is briefly true of both the
+    // whole list and the Skateboard tab. An unscoped match found two elements
+    // and failed on strict mode, which is the locator doing its job.
+    await expect(page.locator('[class*="count"]')).toHaveText(
+      new RegExp(`${liveSpots.length} spots`),
+    );
 
     // And each of them is reachable, which is the promise that matters.
     for (const spot of liveSpots.slice(0, 3)) {
@@ -179,6 +195,40 @@ test.describe('where to ride', () => {
     await expect.poll(() => cards.count()).toBeGreaterThan(first);
   });
 
+  test('offers every sport, BMX included', async ({ page }) => {
+    /*
+     * The defect this pins (owner, 2026-08-31: "doesn't have bmx").
+     *
+     * This screen used to roll its own sport switch — a single "Switch to
+     * {other}" pill that picked the first sport that was not the current one.
+     * At two sports that is a toggle; at three it is a dead end, and BMX was
+     * the sport it could never reach. Counting the tabs rather than naming
+     * them is deliberate: a fourth sport should move this assertion, not slip
+     * past it.
+     */
+    await page.goto('/spots');
+    const row = page.getByRole('tablist', { name: 'Spots by sport' });
+    await expect(row.getByRole('tab')).toHaveCount(SPORT_IDS.length);
+
+    // `whenInteractive` is the hydration gate the rest of this file uses, and
+    // it leaves "Every spot" on — which is the filter this test is about, so
+    // it goes straight back off again.
+    await whenInteractive(page);
+    const bmx = row.getByRole('tab', { name: /BMX/ });
+    await bmx.click();
+    await expect(bmx).toHaveAttribute('aria-selected', 'true');
+    await page.getByRole('button', { name: /^Good for/ }).click();
+
+    // And it is a real filter, not a tab that only highlights: a park that
+    // takes BMX and bans scooters is on the list under BMX and gone under
+    // Scooter.
+    await page.getByLabel('Search spots').fill(bmxNotScooterSpot.name);
+    await expect(card(page, bmxNotScooterSpot.name)).toBeVisible();
+
+    await row.getByRole('tab', { name: /Scooter/ }).click();
+    await expect(page.getByText(bmxNotScooterSpot.name, { exact: true })).toHaveCount(0);
+  });
+
   test('narrows the list by search and by sport', async ({ page }) => {
     await page.goto('/spots');
     await findSpot(page, skateOnlySpot.name);
@@ -190,6 +240,89 @@ test.describe('where to ride', () => {
 
     await page.getByRole('button', { name: 'Clear' }).click();
     await findSpot(page, skateOnlySpot.name);
+  });
+
+  test('brings the map to the rider on a phone, and stays out of the way until asked', async ({
+    page,
+  }) => {
+    /*
+     * The defect (owner, 2026-08-31: "on mobile you have to click to the bottom
+     * of the list to see the map… clicking a spot should show the map, not make
+     * the user guess").
+     *
+     * The map used to be the last thing in the document on a narrow screen —
+     * measured at 6,435px down a 7,642px page at this exact viewport, below all
+     * 24 cards, and another ~6,000px away with each press of "Show more". So
+     * this asserts position rather than mere presence: "the panel is in the
+     * DOM" was true the whole time it was unreachable.
+     *
+     * Nothing here needs the map to draw, which matters because CI never draws
+     * one (no GPU, #227). The panel, its header and its footer are ours and
+     * exist in both the canvas and the "would not load" states.
+     */
+    const HEIGHT = 780;
+    await page.setViewportSize({ width: 375, height: HEIGHT });
+    await page.goto('/spots');
+    await whenInteractive(page);
+
+    const panel = page.locator('[class*="mapPanel"]');
+    const top = async () => (await panel.boundingBox())!.y;
+
+    // Closed, it is off the bottom of the screen and costs the list nothing.
+    expect(await top()).toBeGreaterThanOrEqual(HEIGHT);
+
+    await page.getByRole('button', { name: 'Show on map' }).first().click();
+
+    /*
+     * It clears the bottom nav rather than covering it — a sheet sitting on top
+     * of the five nav destinations would trap a rider inside it, so this is the
+     * assertion that stops the height creeping until it does.
+     *
+     * **Polled on the settled edge, not read once.** The sheet slides up over
+     * 180ms, and a `boundingBox` taken during that is an honest measurement of
+     * a place the sheet is only passing through: the first version of this read
+     * the box the moment it came on screen and failed at 997px, which is where
+     * it genuinely was, briefly.
+     */
+    const nav = (await page.locator('.mobnav').boundingBox())!;
+    await expect
+      .poll(async () => {
+        const box = (await panel.boundingBox())!;
+        return Math.round(box.y + box.height);
+      })
+      .toBeLessThanOrEqual(Math.round(nav.y) + 1);
+
+    // And on screen, rather than merely somewhere above the nav.
+    expect(await top()).toBeLessThan(HEIGHT);
+
+    // The travel warning follows the map, because the sheet is where a rider
+    // decides to go and Directions takes them out of the product from here.
+    await expect(page.locator('[class*="mapWarn"]')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Close' }).click();
+    await expect.poll(top).toBeGreaterThanOrEqual(HEIGHT);
+  });
+
+  test('is a column, not a sheet, from 861px up', async ({ page }) => {
+    /*
+     * The breakpoint is written twice — `@media (max-width: 860px)` in the
+     * stylesheet and `SHEET_WIDTH` in `SpotsScreen`, which decides whether an
+     * Escape means anything and whether an opened map is counted. This is what
+     * notices if the two ever drift: one pixel either side of the line, the
+     * whole presentation has to change together.
+     */
+    await page.setViewportSize({ width: 860, height: 800 });
+    await page.goto('/spots');
+    await whenInteractive(page);
+    await expect(page.getByRole('button', { name: 'Close' })).toBeVisible();
+    await expect(page.locator('[class*="mapWarn"]')).toBeVisible();
+
+    await page.setViewportSize({ width: 861, height: 800 });
+    // Nothing to close, and gone from the accessibility tree rather than merely
+    // invisible: a column that is always on the page has no dismiss.
+    await expect(page.getByRole('button', { name: 'Close' })).toHaveCount(0);
+    await expect(page.locator('[class*="mapNote"]')).toBeVisible();
+    await expect(page.locator('[class*="mapWarn"]')).toBeHidden();
   });
 
   test('a card and the map header share one selection', async ({ page }) => {

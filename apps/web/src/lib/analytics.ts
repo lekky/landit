@@ -239,6 +239,33 @@ export const ANALYTICS_EVENTS = {
    * facts, never rider facts") rules it out on its own.
    */
   nearbySortUsed: 'nearby_sort_used',
+  /**
+   * The spots map was switched between its two grounds.
+   *
+   * Carries `ground` — `'plain'` or `'detail'`, two fixed strings that describe
+   * the basemap and nobody in particular. Never which spot was on screen when
+   * it was pressed, and never a position.
+   *
+   * It exists to answer the question that made the toggle: riders asked for
+   * satellite, this is the answer we could give without putting a paid tile
+   * vendor in a child's request path (`MAP_STYLES`), and if nobody ever presses
+   * it that is the evidence the real ask was imagery after all.
+   */
+  spotsMapGround: 'spots_map_ground',
+  /**
+   * The map sheet came up on a phone. No properties at all.
+   *
+   * **Fired only below the sheet's own breakpoint**, which is the whole reason
+   * it is trustworthy: on a wide screen the map is simply on the page and
+   * nothing opens, so counting that too would bury the one figure this is for.
+   *
+   * It exists because the thing it measures was invisible. The map used to
+   * render below every card — 6,435px down on a 375px screen, further with each
+   * "Show more" — so a rider tapping "Show on map" got no feedback at all, and
+   * nothing in the product could have told you. This is how we find out whether
+   * riders on phones now reach the map.
+   */
+  spotsMapSheetOpened: 'spots_map_sheet_opened',
 } as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];
