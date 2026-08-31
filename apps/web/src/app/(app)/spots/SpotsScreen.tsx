@@ -50,6 +50,19 @@ export interface SpotView {
 const PAGE = 24;
 
 /**
+ * The width below which the map is a sheet rather than a column.
+ *
+ * **The same 860px the stylesheet uses, and the duplication is the point of
+ * this comment.** CSS owns the layout and always will; this copy exists so the
+ * two things JavaScript has to decide — whether an Escape means anything, and
+ * whether an opened map is worth counting — agree with what a rider can
+ * actually see. Change one and change the other: `spots.module.css` has the
+ * matching `@media (max-width: 860px)` block, and `mobile map sheet` in
+ * `e2e/spots.spec.ts` fails if they drift apart at the boundary.
+ */
+const SHEET_WIDTH = '(max-width: 860px)';
+
+/**
  * Where to ride: the list, the map, and the two staying in step (screenshot 19).
  *
  * **Selection is one piece of state and both halves read it.** A card click and
@@ -97,6 +110,13 @@ export function SpotsScreen({
   const [search, setSearch] = useState('');
   const [everySport, setEverySport] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  /*
+   * Whether the map sheet is up. **Only a phone can see this** — the sheet
+   * exists inside one media query and on a wide screen the map is a column that
+   * is always there, so on desktop this flag is set and read and changes
+   * nothing. See `SHEET_WIDTH` and the `.mapPanel` rules.
+   */
+  const [mapOpen, setMapOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
 
   const here = useHereOnce({ resumeWhenGranted: true });
@@ -196,10 +216,60 @@ export function SpotsScreen({
   const cards = useRef(new Map<string, HTMLElement>());
   const select = useCallback((id: string) => {
     setSelectedId(id);
+    /*
+     * **Choosing a spot brings the map to it, rather than leaving a rider to go
+     * looking** (owner, 2026-08-31: "clicking a spot should show the map, not
+     * make the user guess").
+     *
+     * On a phone the map panel was the last thing on the page — measured at
+     * 6,435px down a 7,642px document on a 375×780 screen, below all 24 cards,
+     * and *further* away with every press of "Show more". So a rider tapped
+     * "Show on map", nothing they could see happened, and the thing they asked
+     * for was eight screens south. This is the flag that lifts it.
+     */
+    setMapOpen(true);
     // `nearest` so choosing a card you are already looking at does not jump the
-    // page; a pin click on a card further down does scroll it into view.
+    // page; a pin click on a card further down does scroll it into view. The
+    // cards carry a `scroll-margin-bottom` on narrow screens so this never
+    // parks the chosen one underneath the sheet.
     cards.current.get(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, []);
+
+  /*
+   * The sheet going up, counted — and counted only where it *is* a sheet.
+   *
+   * This is the one number that says whether the fix above worked: a rider on a
+   * phone reaching the map at all. On a wide screen the map is simply on the
+   * page, nothing opens, and an event saying it did would be a lie that made
+   * the mobile figure unreadable. Hence the width check rather than a property.
+   *
+   * Nothing travels with it. Which spot was chosen is a catalogue fact and
+   * would be allowed, but it is not what this measures, and the smallest event
+   * that answers the question is the right one.
+   */
+  const sheetWasOpen = useRef(false);
+  useEffect(() => {
+    if (mapOpen === sheetWasOpen.current) return;
+    sheetWasOpen.current = mapOpen;
+    if (!mapOpen) return;
+    if (!window.matchMedia(SHEET_WIDTH).matches) return;
+    capture(ANALYTICS_EVENTS.spotsMapSheetOpened);
+  }, [mapOpen]);
+
+  /*
+   * Escape closes it, because it covers the bottom of the screen and a rider
+   * who reached it from the keyboard needs the way out that every other
+   * dismissible surface in the product has. Guarded on the width so a desktop
+   * Escape does not silently flip a flag nothing is reading.
+   */
+  useEffect(() => {
+    if (!mapOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && window.matchMedia(SHEET_WIDTH).matches) setMapOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mapOpen]);
 
   /*
    * The whole card is the target, not just the button inside it — a rider
@@ -508,7 +578,7 @@ export function SpotsScreen({
         </div>
 
         <div className={styles.mapColumn}>
-          <Panel className={styles.mapPanel}>
+          <Panel className={`${styles.mapPanel} ${mapOpen ? styles.mapPanelOpen : ''}`}>
             <div className={styles.mapHead}>
               <span className="lab">Map</span>
               {selected && <span className={`cond ${styles.mapName}`}>{selected.name}</span>}
@@ -522,6 +592,25 @@ export function SpotsScreen({
                   Open in Maps
                 </a>
               )}
+              {/*
+                The way out of the sheet, and nothing at all on a wide screen —
+                `display: none` there, so it is out of the tab order and out of
+                the accessibility tree rather than merely invisible. A column
+                that is always on the page has nothing to close.
+
+                It is last in the source so it is last in the tab order. In
+                the sheet it takes the header's `margin-left: auto` and "Open in
+                Maps" gives it up, so Close is hard right whether or not a spot
+                is selected; on a wide screen the link keeps the auto and is the
+                rightmost thing, exactly as before.
+              */}
+              <button
+                type="button"
+                className={`cond ${styles.mapClose}`}
+                onClick={() => setMapOpen(false)}
+              >
+                Close
+              </button>
             </div>
 
             <SpotMap
@@ -532,9 +621,26 @@ export function SpotsScreen({
             />
 
             <div className={styles.mapFoot}>
+              {/*
+                Two footers, one shown at a time, chosen by width in CSS for the
+                reason the notice below gives: a footer picked from a measured
+                viewport during render is a first paint that is a guess.
+
+                **They say different things because the sheet is a different
+                moment.** On a wide screen the map sits beside the list and the
+                thing worth saying is that the two are the same set. In the
+                sheet the list is behind it and one spot fills the view — a
+                rider is looking at where they are about to go, so this is the
+                last place "check before you travel" can still reach them before
+                Directions takes them out of the product entirely. It is the
+                short wording, because a sheet has no room for the long one.
+              */}
               <p className={`cond ${styles.mapNote}`}>
                 Every live spot on this list is on the map. Tap a pin or a card — they follow each
                 other.
+              </p>
+              <p className={styles.mapWarn}>
+                <strong>Check before you travel:</strong> Spots may not be verified.
               </p>
             </div>
           </Panel>

@@ -242,6 +242,89 @@ test.describe('where to ride', () => {
     await findSpot(page, skateOnlySpot.name);
   });
 
+  test('brings the map to the rider on a phone, and stays out of the way until asked', async ({
+    page,
+  }) => {
+    /*
+     * The defect (owner, 2026-08-31: "on mobile you have to click to the bottom
+     * of the list to see the map… clicking a spot should show the map, not make
+     * the user guess").
+     *
+     * The map used to be the last thing in the document on a narrow screen —
+     * measured at 6,435px down a 7,642px page at this exact viewport, below all
+     * 24 cards, and another ~6,000px away with each press of "Show more". So
+     * this asserts position rather than mere presence: "the panel is in the
+     * DOM" was true the whole time it was unreachable.
+     *
+     * Nothing here needs the map to draw, which matters because CI never draws
+     * one (no GPU, #227). The panel, its header and its footer are ours and
+     * exist in both the canvas and the "would not load" states.
+     */
+    const HEIGHT = 780;
+    await page.setViewportSize({ width: 375, height: HEIGHT });
+    await page.goto('/spots');
+    await whenInteractive(page);
+
+    const panel = page.locator('[class*="mapPanel"]');
+    const top = async () => (await panel.boundingBox())!.y;
+
+    // Closed, it is off the bottom of the screen and costs the list nothing.
+    expect(await top()).toBeGreaterThanOrEqual(HEIGHT);
+
+    await page.getByRole('button', { name: 'Show on map' }).first().click();
+
+    /*
+     * It clears the bottom nav rather than covering it — a sheet sitting on top
+     * of the five nav destinations would trap a rider inside it, so this is the
+     * assertion that stops the height creeping until it does.
+     *
+     * **Polled on the settled edge, not read once.** The sheet slides up over
+     * 180ms, and a `boundingBox` taken during that is an honest measurement of
+     * a place the sheet is only passing through: the first version of this read
+     * the box the moment it came on screen and failed at 997px, which is where
+     * it genuinely was, briefly.
+     */
+    const nav = (await page.locator('.mobnav').boundingBox())!;
+    await expect
+      .poll(async () => {
+        const box = (await panel.boundingBox())!;
+        return Math.round(box.y + box.height);
+      })
+      .toBeLessThanOrEqual(Math.round(nav.y) + 1);
+
+    // And on screen, rather than merely somewhere above the nav.
+    expect(await top()).toBeLessThan(HEIGHT);
+
+    // The travel warning follows the map, because the sheet is where a rider
+    // decides to go and Directions takes them out of the product from here.
+    await expect(page.locator('[class*="mapWarn"]')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Close' }).click();
+    await expect.poll(top).toBeGreaterThanOrEqual(HEIGHT);
+  });
+
+  test('is a column, not a sheet, from 861px up', async ({ page }) => {
+    /*
+     * The breakpoint is written twice — `@media (max-width: 860px)` in the
+     * stylesheet and `SHEET_WIDTH` in `SpotsScreen`, which decides whether an
+     * Escape means anything and whether an opened map is counted. This is what
+     * notices if the two ever drift: one pixel either side of the line, the
+     * whole presentation has to change together.
+     */
+    await page.setViewportSize({ width: 860, height: 800 });
+    await page.goto('/spots');
+    await whenInteractive(page);
+    await expect(page.getByRole('button', { name: 'Close' })).toBeVisible();
+    await expect(page.locator('[class*="mapWarn"]')).toBeVisible();
+
+    await page.setViewportSize({ width: 861, height: 800 });
+    // Nothing to close, and gone from the accessibility tree rather than merely
+    // invisible: a column that is always on the page has no dismiss.
+    await expect(page.getByRole('button', { name: 'Close' })).toHaveCount(0);
+    await expect(page.locator('[class*="mapNote"]')).toBeVisible();
+    await expect(page.locator('[class*="mapWarn"]')).toBeHidden();
+  });
+
   test('a card and the map header share one selection', async ({ page }) => {
     await page.goto('/spots');
     const chosen = await findSpot(page, scooterSpot.name);

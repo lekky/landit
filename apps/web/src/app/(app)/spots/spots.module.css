@@ -375,6 +375,42 @@
 }
 
 /*
+ * The sheet's way out. A column that is always on the page has nothing to
+ * close, so on a wide screen this is `display: none` — out of the tab order and
+ * out of the accessibility tree, not merely invisible.
+ */
+.mapClose {
+  display: none;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: var(--fc);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.mapClose:focus-visible {
+  outline: 3px solid var(--violet);
+  outline-offset: 2px;
+}
+
+/*
+ * The footer the sheet uses instead of `.mapNote` — see the note beside them in
+ * `SpotsScreen`. Hidden here, shown in the media query below, and never both.
+ */
+.mapWarn {
+  display: none;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+/*
  * The canvas and the ground toggle that sits over it, in one positioned box.
  *
  * `mapCanvas` used to be the panel's flex child directly; this takes that job
@@ -596,7 +632,123 @@
     display: none;
   }
 
+  /* ------------------------------------------------- the map, as a sheet -- */
+
+  /*
+   * **On a phone the map is a sheet docked to the bottom of the screen, not the
+   * last thing on the page** (owner, 2026-08-31: "clicking a spot should show
+   * the map, not make the user guess").
+   *
+   * What it replaces was worse than a layout preference. The block above turns
+   * the grid into a flex column and lets the map column pass its children
+   * through, and the ordering it describes never happened: `.list` has no
+   * `order`, so it defaulted to 0, tied with the `order: 0` that used to sit
+   * here, and a tie is settled by source order — where the list comes first.
+   * The map therefore rendered **below every card**: 6,435px down a 7,642px
+   * document on a 375×780 screen, and another ~6,000px further with each press
+   * of "Show more". Tapping "Show on map" did something a rider had no way to
+   * see. `position: fixed` takes the panel out of flow entirely, so the tie is
+   * gone rather than re-broken.
+   *
+   * **Docked, not modal.** No backdrop, no scroll lock, no focus trap: the list
+   * keeps scrolling behind it, so a rider can tap one park, look, scroll on and
+   * tap the next without dismissing anything. It is a second view of the page
+   * they are already on rather than an interruption to it, which is also why it
+   * needs no ARIA it does not have — the panel keeps its own heading and the
+   * canvas keeps its `role="group"`.
+   *
+   * **It clears the bottom nav rather than covering it** (63px measured, plus
+   * the notch inset). Sitting on top of the five nav destinations would trap a
+   * rider inside a sheet whose only exit is a button they did not ask for.
+   *
+   * **Closed still means laid out.** `translateY` moves it off-screen and
+   * leaves its box alone, so MapLibre's ResizeObserver keeps seeing a real size
+   * and the canvas is correct the instant the sheet arrives. `display: none`
+   * here would hand the library a zero-height container and the first open
+   * would be blank — the same class of bug the ResizeObserver was added for.
+   */
   .mapPanel {
-    order: 0;
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: calc(63px + env(safe-area-inset-bottom));
+    z-index: 60;
+    height: min(52vh, 400px);
+    min-height: 0;
+    margin: 0;
+    transform: translateY(calc(100% + 80px));
+    transition: transform 180ms ease-out;
+  }
+
+  .mapPanelOpen {
+    transform: translateY(0);
+  }
+
+  /*
+   * The panel's own minimums are written for a column that can be as tall as it
+   * likes. In a sheet the height is fixed and the canvas takes what is left, so
+   * they have to come off or the footer is pushed out of the bottom.
+   *
+   * `.mapPlaceholder` is in this list because it is the *common* path, not the
+   * rare one: it carries the same 320px floor, and a sheet whose map could not
+   * be drawn is exactly when the footer's "check before you travel" has to
+   * still be on screen. CI never draws a map at all (no GPU, see #227), so the
+   * version of this sheet the test suite sees is always this one.
+   */
+  .mapStage,
+  .mapCanvas,
+  .mapPlaceholder {
+    min-height: 0;
+  }
+
+  /*
+   * Close takes the header's right-hand end, and "Open in Maps" gives up the
+   * `margin-left: auto` it holds on desktop — two auto margins in one flex row
+   * split the space between them and would leave the link stranded mid-header.
+   */
+  .mapLink {
+    margin-left: 0;
+  }
+
+  .mapClose {
+    display: block;
+    margin-left: auto;
+  }
+
+  /*
+   * The sheet's footer says the thing that still matters at this moment, in the
+   * yellow the warning wears at the top of the screen — same colour, same
+   * sentence, so a rider reads it as the one they have already seen rather than
+   * a second, different caution. Sentence case rather than `.cond`'s uppercase:
+   * this is a line to be read, and it is aimed at children.
+   */
+  .mapFoot {
+    background: var(--yellow);
+  }
+
+  .mapNote {
+    display: none;
+  }
+
+  .mapWarn {
+    display: block;
+  }
+
+  /*
+   * Keep the chosen card clear of the sheet. `select` scrolls it into view with
+   * `block: 'nearest'`, which without this would happily settle it underneath
+   * the very thing the tap just opened.
+   */
+  .card {
+    scroll-margin-bottom: calc(min(52vh, 400px) + 80px);
+  }
+
+  /*
+   * The desktop reason for this margin was the notice sitting under the panel.
+   * The panel is out of flow here and the notice is up at the top, so the gap
+   * would be dead space above the first card.
+   */
+  .mapColumn {
+    gap: 0;
   }
 }

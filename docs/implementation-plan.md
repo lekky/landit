@@ -1799,7 +1799,7 @@ never persists across sessions, and the rider's own position is never stored —
 (The "opt-in per use" reading of that first clause was amended on 2026-08-30; see §6.4 and the
 note below.) Inputs: `landit-screens-b.jsx`, screenshot 19.
 
-Shipped, with six decisions recorded here because they diverge from the prototype or need the
+Shipped, with eight decisions recorded here because they diverge from the prototype or need the
 owner:
 
 - **The map's style: a quiet base, the design language on top.** The palette is loud — hard
@@ -1851,6 +1851,34 @@ owner:
   `apps/web/src/lib/map.ts` is where a licensed imagery layer would be added if that decision is
   ever taken. The toggle lives inside `SpotMap` so it disappears with a map that could not be
   drawn.
+- **On a phone the map is a sheet, not the bottom of the page** *(owner, 2026-08-31: "on mobile
+  you have to click to the bottom of the list to see the map… clicking a spot should show the
+  map, not make the user guess"; they chose the sheet over a map-first stack or a List/Map
+  mode).* This corrects a **latent bug, not a layout preference**. The narrow-screen block turns
+  the grid into a flex column and lets the map column pass its children through so `order` can
+  lift the notice; the map's own `order: 0` tied with `.list`'s default 0, and a tie is settled
+  by source order — where the list comes first. The map therefore rendered below every card:
+  **6,435px down a 7,642px document on a 375×780 screen**, and another ~6,000px further with
+  each press of "Show more", so a rider tapping "Show on map" got no feedback they could see.
+  Below 860px the panel is now `position: fixed`, docked above the bottom nav (it clears the
+  nav rather than covering it), closed until a spot is chosen. **Docked, not modal:** no
+  backdrop, no scroll lock, no focus trap, so the list keeps scrolling behind it and a rider can
+  tap one park, look, scroll on and tap the next. Escape and a Close in its header dismiss it.
+  It reuses the **one already-mounted map instance** — that is what makes it cheap, and it is
+  why `translateY` rather than `display: none` parks it: the container keeps a real size, so
+  MapLibre's ResizeObserver has something to measure and the first open is never blank.
+  `SHEET_WIDTH` in `SpotsScreen` duplicates the breakpoint for the two things JavaScript has to
+  decide (whether Escape means anything, whether an open map is counted); an e2e test asserts
+  both sides of 860px so the two cannot drift.
+- **The travel warning follows the map into the sheet** *(owner's call, 2026-08-31).* The map
+  panel's footer reads "every live spot on this list is on the map" on a wide screen, which has
+  no job in a sheet where one spot fills the view and the list is behind it. In the sheet it
+  carries the short "check before you travel" instead, in the same yellow as the notice at the
+  top of the screen — the sheet is where a rider decides to go, and Directions takes them out of
+  the product from there, so it is the last place the caution can reach them. Both footers are
+  in the markup and chosen by width in CSS, the same technique the notice itself uses and for
+  the same reason: a footer picked from a measured viewport during render makes the first paint
+  a guess (LESSONS §5).
 - **A submitted spot must carry coordinates.** The prototype's form accepted a name and a town
   with no location; this one does not. A spot with no point cannot appear on a map whose whole
   job is plotting them, and a reviewer handed "Rampworx, Liverpool" has nothing to check but a
