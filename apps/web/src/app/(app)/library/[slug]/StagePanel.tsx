@@ -1,6 +1,6 @@
 'use client';
 
-import { LANDED_STAGES, STAGE, STAGES, type StageId } from '@landit/core';
+import { STAGE, STAGES, type StageId } from '@landit/core';
 import { Button, Icon, ShareCard } from '@landit/ui-web';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
@@ -52,8 +52,6 @@ export interface TrickShareView {
   readonly dateLabel: string;
   readonly caption: string;
 }
-
-const LANDED: readonly string[] = LANDED_STAGES;
 
 export function StagePanel({
   trickId,
@@ -113,7 +111,6 @@ export function StagePanel({
   };
 
   const index = current ? STAGES.findIndex((s) => s.id === current) : -1;
-  const landed = current !== null && LANDED.includes(current);
 
   return (
     <div className={styles.band}>
@@ -124,26 +121,27 @@ export function StagePanel({
         </span>
       </div>
 
-      <div className={styles.ladder} role="group" aria-label="Can you do it?">
-        {STAGES.map((s, i) => {
-          const now = current === s.id;
-          const past = index > i;
-          return (
-            <button
-              type="button"
-              key={s.id}
-              aria-pressed={now}
-              /*
-               * Tapping the stage you are already on does nothing — the pack is
-               * explicit about it, and the way off the ladder is the confirmed
-               * "Stop tracking" below rather than a tap that looks like a no-op
-               * and silently untracks the trick.
-               */
-              disabled={now}
-              className={`${styles.step}${past ? ` ${styles.stepPast}` : ''}${now ? ` ${styles.stepNow}` : ''}`}
-              onClick={() => pick(s.id)}
-            >
-              {/*
+      <div className={styles.bandMain}>
+        <div className={styles.ladder} role="group" aria-label="Can you do it?">
+          {STAGES.map((s, i) => {
+            const now = current === s.id;
+            const past = index > i;
+            return (
+              <button
+                type="button"
+                key={s.id}
+                aria-pressed={now}
+                /*
+                 * Tapping the stage you are already on does nothing — the pack is
+                 * explicit about it, and the way off the ladder is the confirmed
+                 * "Stop tracking" below rather than a tap that looks like a no-op
+                 * and silently untracks the trick.
+                 */
+                disabled={now}
+                className={`${styles.step}${past ? ` ${styles.stepPast}` : ''}${now ? ` ${styles.stepNow}` : ''}`}
+                onClick={() => pick(s.id)}
+              >
+                {/*
                 A tick on the stages already behind you, a ring on the one you
                 are at. The pack drew both as dots — a filled one for passed —
                 but a dot only says "not this one", where the tick says you did
@@ -151,19 +149,53 @@ export function StagePanel({
                 the library grid and the prerequisite pills tick the same way,
                 so the ladder is not inventing a third vocabulary for it.
               */}
-              {past ? (
-                <Icon name="check" size={17} strokeWidth={3.4} className={styles.stepTick} />
-              ) : (
-                <span className={styles.stepDot} />
-              )}
-              {/* The short label: "Want", not "Want to learn". Five cells share
+                {past ? (
+                  <Icon name="check" size={17} strokeWidth={3.4} className={styles.stepTick} />
+                ) : (
+                  <span className={styles.stepDot} />
+                )}
+                {/* The short label: "Want", not "Want to learn". Five cells share
                   one row and the pack's ladder reads across in one line. Every
                   stage in `STAGES` carries one, so there is no fallback to
                   write — TypeScript narrows one to `never` if you try. */}
-              {s.short}
-            </button>
-          );
-        })}
+                {s.short}
+              </button>
+            );
+          })}
+        </div>
+
+        {/*
+          The first-landed date, on a phone only. Above the breakpoint the hero
+          carries it as a chip beside the difficulty, which is the row this
+          saves (owner's layout, 2026-08-31). It lives inside this row rather
+          than under it so that when the ladder wraps to its own line the date
+          and the buttons land on one line together, as the phone mock-up has
+          them. Both are drawn from `landedLabel`; only one is ever on screen.
+        */}
+        {landedLabel && !confirming && (
+          <div className={styles.bandLanded}>
+            <div className={`lab ${styles.bandLabel}`}>First landed</div>
+            <div className={`cond ${styles.bandDate}`}>{landedLabel}</div>
+          </div>
+        )}
+
+        {/*
+          Beside the ladder rather than under it. Share first, because stopping
+          is the rarer and heavier of the two and should not be the one a thumb
+          lands on.
+        */}
+        {current && !confirming && (
+          <div className={styles.bandActions}>
+            {landedLabel && share && (
+              <Button size="sm" onClick={() => setSharing(true)}>
+                Share it
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={() => setConfirming(true)}>
+              Stop tracking
+            </Button>
+          </div>
+        )}
       </div>
 
       {!current && (
@@ -172,31 +204,12 @@ export function StagePanel({
         </p>
       )}
 
-      {current && !confirming && (
-        <div className={styles.bandFoot}>
-          {landedLabel ? (
-            <div>
-              <div className={`lab ${styles.bandLabel}`}>First landed</div>
-              <div className={`cond ${styles.bandDate}`}>{landedLabel}</div>
-            </div>
-          ) : (
-            <p className={`cond ${styles.bandNoteInline}`}>
-              {landed ? 'The badge is yours from here.' : 'Tap a higher stage as it comes good.'}
-            </p>
-          )}
-          <div className={styles.bandActions}>
-            <Button size="sm" variant="ghost" onClick={() => setConfirming(true)}>
-              Stop tracking
-            </Button>
-            {landedLabel && share && (
-              <Button size="sm" onClick={() => setSharing(true)}>
-                Share it
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-
+      {/*
+        The first-landed date, on a phone only. Above the breakpoint it sits in
+        the hero instead, as a chip beside the difficulty — which is what buys
+        the band its third row back (owner's layout, 2026-08-31). Both are drawn
+        from the same `landedLabel`; only one is ever on screen.
+      */}
       {/*
         The confirm. It clears the stage and nothing else: the first-landed date
         and the award both survive, which is the sentence a rider needs to read

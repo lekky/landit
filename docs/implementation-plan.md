@@ -2696,6 +2696,20 @@ Decisions taken inside this task, each because the pack could not have known the
   hero's right-hand column has height to spare at every width, and the tier is the half a rider
   reads. Applied to the locked header too, so the two do not drift apart.
 
+A second pass the same day, against the owner's own mock-ups:
+
+- **The band is two rows, not three.** The first-landed date moves up into the hero as an ink
+  chip beside the difficulty, and the Share/Stop buttons move up beside the ladder. On a phone
+  the chip is hidden and the date sits with the buttons on one line under the ladder — the same
+  `landedLabel` either way, and only ever one of them on screen.
+- **Passed cells are lime, not cream.** Cream against paper was two nearly-white cells either
+  side of the sky one; lime is already this product's landed colour (the pack's `.pill.done`),
+  so the ladder borrows it rather than inventing a fourth.
+- **The current cell's shadow is gold, not ink.** Every other shadow on this page falls on
+  paper, where ink reads as depth. This one falls on the black band, where an ink shadow is
+  invisible and the lift did nothing at all. The yellow is the one already in the wordmark and
+  in the band's own "Can you do it?".
+
 No new analytics event: none of this adds a rider action.
 
 ### Dependency graph

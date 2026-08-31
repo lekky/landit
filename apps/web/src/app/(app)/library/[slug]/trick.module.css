@@ -74,6 +74,34 @@
   margin-top: 10px;
 }
 
+/*
+ * The first-landed date in the hero, as an ink chip against the category
+ * colour. Desktop only: on a phone the hero has no width to spare and the band
+ * carries it instead.
+ */
+.heroLanded {
+  margin-left: auto;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 7px 12px 8px;
+  flex: none;
+}
+
+.heroLanded .lab {
+  color: #c9c2b4;
+}
+
+.heroLandedDate {
+  font-size: 15px;
+  color: var(--paper);
+  margin-top: 2px;
+}
+
+/* With a chip in the row the difficulty no longer needs to push itself right. */
+.heroLanded + .difficulty {
+  margin-left: 0;
+}
+
 .difficulty {
   margin-left: auto;
   text-align: right;
@@ -395,9 +423,21 @@
  * how the home screen and the design gallery draw, for a look only this page
  * uses (CLAUDE.md: shared code is additive-only).
  */
+/*
+ * The ladder and the actions on one row, which is what takes a row off the
+ * band (owner's layout, 2026-08-31). The ladder takes the width that is left.
+ */
+.bandMain {
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+}
+
 .ladder {
   display: flex;
   align-items: stretch;
+  flex: 1;
+  min-width: 0;
   border: 2.5px solid var(--paper);
   background: var(--paper);
 }
@@ -448,9 +488,17 @@
   color: var(--ink);
 }
 
-/* Passed: ticked, on cream. */
+/*
+ * Passed: ticked, on lime.
+ *
+ * Cream against paper was too close to read at a glance — two nearly-white
+ * cells either side of the sky one, and no way to tell "done" from "not yet"
+ * without looking for the tick. Lime is already this product's landed colour
+ * (the pack's `.pill.done`, and the landed prerequisite pills), so the ladder
+ * borrows it rather than inventing a fourth state colour.
+ */
 .stepPast {
-  background: var(--paper-2);
+  background: var(--lime);
 }
 
 /*
@@ -468,7 +516,13 @@
   z-index: 2;
   transform: scale(1.09);
   border: 2.5px solid var(--ink);
-  box-shadow: 4px 4px 0 var(--ink);
+  /*
+   * Gold, not ink. Every other shadow on this page falls on paper, where ink
+   * reads as depth; this one falls on the black band, where an ink shadow is
+   * invisible and the lift did nothing (owner, 2026-08-31). The yellow is the
+   * one already in the wordmark and in this band's own "Can you do it?".
+   */
+  box-shadow: 4px 4px 0 var(--yellow);
   font-size: 14px;
 }
 
@@ -540,9 +594,19 @@
 
 .bandActions {
   display: flex;
-  align-items: center;
-  gap: 9px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  flex: none;
+}
+
+/*
+ * The first-landed date under the ladder — phone only. The hero carries it
+ * above the breakpoint (`.heroLanded`), which is the row this saves.
+ */
+.bandLanded {
+  display: none;
+  margin-top: 12px;
 }
 
 /* ---------------------------------------------------------- side panels -- */
@@ -736,6 +800,42 @@
 
   .band {
     padding: 14px;
+  }
+
+  /*
+   * On a phone the ladder needs the whole width, so the actions drop under it
+   * and share that row with the first-landed date — the arrangement in the
+   * owner's phone mock-up. The hero's chip is hidden, so the date is shown
+   * exactly once.
+   */
+  /*
+   * On a phone the ladder takes the whole width and wraps to its own line; the
+   * date and the buttons then land on the line below it, together, which is the
+   * arrangement in the owner's phone mock-up. The hero's chip is hidden, so the
+   * date is on screen exactly once.
+   */
+  .bandMain {
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+
+  .ladder {
+    flex: 1 0 100%;
+  }
+
+  .heroLanded {
+    display: none;
+  }
+
+  .bandLanded {
+    display: block;
+    flex: 1;
+  }
+
+  .bandActions {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
   }
 
   .step {
