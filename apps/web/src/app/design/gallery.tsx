@@ -8,6 +8,7 @@ import {
   Button,
   Difficulty,
   Empty,
+  Equipment,
   ICON_NAMES,
   Icon,
   Modal,
@@ -544,7 +545,11 @@ export function Gallery() {
           </Panel>
         </Section>
 
-        <Section id="icons" title="Icons" note="24px grid, stroke width 2.2, round caps and joins.">
+        <Section
+          id="icons"
+          title="Icons"
+          note="24px grid, stroke width 2.2, round caps and joins — except scoot, board and bmx, which are painted equipment art and render as PNGs at whatever box they are given."
+        >
           <Panel flat style={{ padding: 18 }}>
             <div
               style={{
@@ -558,7 +563,7 @@ export function Gallery() {
                   key={name}
                   style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
                 >
-                  <Icon name={name} size={26} />
+                  <Equipment name={name} size={26} />
                   <span className="lab" style={{ color: 'var(--ink-3)', fontSize: 9.5 }}>
                     {name}
                   </span>

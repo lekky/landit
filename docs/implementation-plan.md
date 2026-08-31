@@ -1284,6 +1284,35 @@ and `components/shell/nav.ts` still carries the same optional-`href` shape (issu
 should not happen is a label coming back for a target nobody intends to build: leave the entry out
 instead.
 
+**A fifth divergence, 2026-08-31 (Rachid, in chat): the three equipment glyphs are painted art, not
+strokes.** `scoot`, `board` and `bmx` were the only entries in the icon map that name a physical
+object a rider owns, and the only ones a rider picks for themselves at onboarding. They are now
+die-cut sticker illustrations — PNGs in `packages/ui-web/assets/sports/`, rendered through
+`Equipment` in `sport-art.tsx`, copied to `public/sports/` by `sync-sports.mjs` on the same terms as
+the avatars and the award badges. Everything else in `ICONS` is untouched and stays on the 24px
+grid; the three stroked paths stay exported for anywhere the art cannot go, such as a favicon or a
+one-colour print. Three things follow that a later session should not "fix" back to a screenshot:
+
+- **The art does not take the sport's colour.** A stroked glyph inherited `currentColor`, so a
+  scooter chip drew an orange scooter. The paint is fixed — and, worth knowing, it does not match
+  the palette either: the scooter art is pink, which is BMX's `--pink` in this product, and the
+  board art is teal, which is not a token at all. The chip's keyline and label still carry the
+  sport colour, so the colour-coding survives; the object inside it does not participate.
+  **Open for the owner** if that reads wrong on the wall: repainting is an art decision, not a
+  code one.
+- **The glyph boxes grew.** `SportChip` gives the art 16/19px where the stroke had 12/13, and the
+  onboarding swatch 28px where it had 22. Below roughly 14px a painted wheel closes up and a
+  skateboard is a dash. The chip is centred on its tallest child, so the badge grows and nothing
+  inside it moves: **measured on `/design`, the small chip goes 20.0px to 23.4px and the regular
+  chip 20.6px to 26.4px**. The small one is the layout-sensitive one — it is what a trick card
+  carries — and at a 375px viewport no card overflows, no chip is clipped by its parent and the
+  document does not scroll sideways.
+- **The supplied art carried a spray-paint splat behind each object, and it was cut off.** Keeping
+  it would have put a coloured blur behind a 16px chip and fought the keyline. The cut is
+  reproducible rather than hand-traced: the splat and the equipment share a hue by design, so it
+  is separated on structure — what the die cut enclosed, and whether a hole is bordered by the
+  cream cut edge or by the artist's black line.
+
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
 to test — that is where the three-sport switch is proved against a 375px phone before `SPORT_IDS`

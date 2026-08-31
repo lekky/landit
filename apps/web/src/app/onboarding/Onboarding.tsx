@@ -18,7 +18,7 @@ import {
   type StageId,
   type StanceId,
 } from '@landit/core';
-import { Avatar, Button, Icon, Panel, Pill, TrickCard, avatarById } from '@landit/ui-web';
+import { Avatar, Button, Equipment, Panel, Pill, TrickCard, avatarById } from '@landit/ui-web';
 import { useEffect, useMemo, useState } from 'react';
 
 import { AvatarPicker } from '@/components/AvatarPicker';
@@ -221,12 +221,14 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
                         className={styles.sportIcon}
                         style={{ background: on ? 'var(--paper)' : sport.color }}
                       >
-                        <Icon
-                          name={SPORT_LOOKS[id].icon}
-                          size={22}
-                          strokeWidth={2.3}
-                          style={{ color: 'var(--ink)' }}
-                        />
+                        {/*
+                         * 28px inside a 40px swatch: the art is fitted to a box
+                         * rather than drawn on a grid, so it needs to fill more
+                         * of the swatch than the 22px glyph did to weigh the
+                         * same. `color` is left off deliberately — painted
+                         * equipment does not take the ink colour.
+                         */}
+                        <Equipment name={SPORT_LOOKS[id].icon} size={28} strokeWidth={2.3} />
                       </span>
                       <span className={`d ${styles.sportName}`}>{sport.label}</span>
                     </span>
