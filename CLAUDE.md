@@ -93,15 +93,17 @@ your merge and a live service used by children.
    section is the same TPO brief that opened the session. If the work closes an issue, put
    `Fixes #N` in the body. On a rebase conflict in a shared document, take **origin's version
    wholesale** and re-apply only your own paragraphs (LESSONS §1).
-8. **Merge policy: the owner approves, and the owner merges. A session never merges its own
-   PR.** (Rachid, 2026-08-31, in chat, reversing the previous rule that a session self-merged
-   on green checks.) Build the work, run the gates, push the branch, and **stop there**: report
-   what is ready and wait. Do not open a PR, and never `gh pr merge`, until the owner has said
-   so in chat for that specific piece of work. Green checks are not permission — they are
-   evidence you offer when you ask for it.
-   - **What a session does:** build → gates → push → report, with the branch name and what the
-     checks say. Then wait.
-   - **What needs the owner, every time:** opening the PR, and merging it. Ask in chat.
+8. **Merge policy: nothing is opened or merged without the owner saying so.** (Rachid,
+   2026-08-31, in chat, reversing the previous rule that a session self-merged on green
+   checks.) Build the work, run the gates, push the branch, and **stop there**: report what is
+   ready and wait. Green checks are not permission — they are the evidence you offer when you
+   ask for it.
+   - **What a session does unprompted:** build → gates → push → report, with the branch name
+     and what the checks actually say. Then wait.
+   - **What needs the owner, every time:** opening the PR, and merging it.
+   - A session may run `gh pr create` or `gh pr merge` **only after the owner has said so in
+     chat for that specific PR**, and the approval does not carry to the next one. "The checks
+     are green" is not an approval; neither is an approval of the work's *design*.
    - There is no branch protection, so nothing but this discipline stops an unapproved merge.
    - Anything the owner must decide about the *work* is still raised BEFORE it is built (step
      1), because a decision reversed after the fact is a rebuild.
