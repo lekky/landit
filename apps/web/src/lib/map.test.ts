@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { describeMapError, isTileScopedMapError } from './map';
+import { MAP_DEFAULT_STYLE, MAP_STYLES, describeMapError, isTileScopedMapError } from './map';
 
 /**
  * Sorting a MapLibre `error` event into "one tile" and "the map" (issue #219).
@@ -78,5 +78,38 @@ describe('describeMapError', () => {
     expect(describeMapError({ error: 'something went wrong' })).toBe(
       'the map failed: something went wrong',
     );
+  });
+});
+
+describe('the two grounds', () => {
+  /*
+   * **A deliberate owner decision, pinned so a tidy-up cannot quietly reverse
+   * it** (2026-08-31, in chat). The map shipped opening on `plain` that morning
+   * — a quiet ground so the loud markers read — and the default was reversed the
+   * same day because it optimised for reading the map furniture over answering
+   * the question a rider arrived with: what does this place actually look like.
+   *
+   * The reasoning for both sides is in `MAP_STYLES`, and either is one line to
+   * choose. This test is not an argument for one of them; it is the thing that
+   * makes changing it deliberate, the way `analytics.test.ts` does for the
+   * event catalogue.
+   *
+   * It is also the only automated check on this at all: the toggle lives inside
+   * the map, CI has no GPU, and no browser test in this repo ever sees a drawn
+   * map (issue #227).
+   */
+  it('opens on the detailed ground', () => {
+    expect(MAP_DEFAULT_STYLE).toBe('detail');
+  });
+
+  it('offers a quiet ground to switch to, on the same host and key-free', () => {
+    // The point of `plain` is that it is *there*: if the detail turns out to
+    // fight the markers, this is what a rider taps. And both must stay on
+    // OpenFreeMap — a licensed or key-bearing tile host is a §1 decision, not
+    // something a style URL edit gets to make (see `MAP_STYLES`).
+    expect(MAP_DEFAULT_STYLE in MAP_STYLES).toBe(true);
+    for (const style of Object.values(MAP_STYLES)) {
+      expect(style.url.startsWith('https://tiles.openfreemap.org/styles/')).toBe(true);
+    }
   });
 });

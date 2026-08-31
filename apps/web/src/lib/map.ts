@@ -20,13 +20,15 @@
  */
 
 /**
- * The base style the markers sit on.
+ * The quiet ground — `MAP_STYLES.plain`, and no longer the one the map opens on
+ * (see `MAP_DEFAULT_STYLE`).
  *
- * `positron` because the markers are loud by design: a quiet, low-contrast grey
- * basemap lets a rider read which pin is theirs and what road it is near, and
- * OpenFreeMap's louder styles (`liberty`, `bright`) fight them. This is the
- * same reasoning that picked Mapbox's `light-v11` before it, and swapping to
- * another style is still one line.
+ * `positron` because the markers are loud by design: a low-contrast grey
+ * basemap lets a rider read which pin is theirs and what road it is near,
+ * without OpenFreeMap's busier styles fighting them. That is still exactly what
+ * this style is *for*, and it is still one line to make it the default again —
+ * what changed on 2026-08-31 is which of the two a rider is given first, not
+ * the reasoning about what each one does.
  */
 export const MAP_BASE_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
@@ -57,9 +59,21 @@ export const MAP_BASE_STYLE = 'https://tiles.openfreemap.org/styles/positron';
  * attribution, no key, no card, no new third party and no new cost — one extra
  * style fetch, on a map that is already loaded.
  *
- * `positron` stays the default because the markers are loud by design and a
- * quiet ground is what lets a rider read which pin is theirs. Detail is the
- * thing you switch to when you have found the spot and want to look at it.
+ * **Detail leads** (owner, 2026-08-31, in chat — reversing the `plain` default
+ * this shipped with hours earlier). The original argument was that the markers
+ * are loud by design and a quiet ground is what lets a rider read which pin is
+ * theirs; that is a real cost and it is why `plain` still exists one tap away.
+ * But it optimised for reading the *map furniture* over answering the question
+ * a rider came with. Somebody looking up a skatepark wants to know what the
+ * place is — where the bowl is, where you park, whether it is inside a leisure
+ * centre — and a ground with no buildings on it cannot tell them. A default
+ * that has to be switched away from to be useful is the wrong way round.
+ *
+ * **What this makes riskier, stated plainly:** `liberty` under these markers
+ * has never been looked at on real tiles (issue #261 — CI has no GPU and the
+ * build sandbox cannot reach the tile host). That was a toggle nobody might
+ * press; it is now the first thing every rider sees. If the pins turn out to be
+ * hard to pick out, `MAP_DEFAULT_STYLE` is the one line that puts it back.
  */
 export const MAP_STYLES = {
   plain: {
@@ -77,8 +91,13 @@ export const MAP_STYLES = {
 
 export type MapStyleId = keyof typeof MAP_STYLES;
 
-/** The ground the map opens on. */
-export const MAP_DEFAULT_STYLE: MapStyleId = 'plain';
+/**
+ * The ground the map opens on.
+ *
+ * One line, deliberately: this is the knob to turn if the detailed ground turns
+ * out to fight the markers (see `MAP_STYLES`, and issue #261).
+ */
+export const MAP_DEFAULT_STYLE: MapStyleId = 'detail';
 
 /**
  * Credit that is a condition of use, not a styling choice.

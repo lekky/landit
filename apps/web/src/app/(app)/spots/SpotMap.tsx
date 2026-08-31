@@ -33,13 +33,14 @@ interface Plottable {
  * Every plotted spot, on a MapLibre map, in the design language (plan §7, T13).
  *
  * **How the design language survives a third-party map.** The basemap draws the
- * ground and nothing else: a quiet `positron` base (see `@/lib/map`), with
- * every Land The Trick surface on this panel drawn by us — square markers with
- * a 3px ink keyline and a hard offset shadow, our own zoom controls, and the
- * panel's own header and footer bars. A basemap in the palette would mean
- * authoring a style of our own; this is the version that is honest about what
- * we can build, and swapping `MAP_BASE_STYLE` for a bespoke one later changes
- * one line.
+ * ground and nothing else — OpenFreeMap's `liberty` by default since
+ * 2026-08-31, `positron` one tap away (see `MAP_STYLES`) — with every Land The
+ * Trick surface on this panel drawn by us: square markers with a 3px ink
+ * keyline and a hard offset shadow, our own zoom controls, and the panel's own
+ * header and footer bars. A basemap in the palette would mean authoring a style
+ * of our own; this is the version that is honest about what we can build, and
+ * swapping either entry in `MAP_STYLES` for a bespoke one later changes one
+ * line.
  *
  * **Attribution stays.** MapLibre reads the OpenStreetMap and OpenMapTiles
  * credits out of the style's own sources; they are restyled to the palette and
