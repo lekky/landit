@@ -22,6 +22,17 @@ export { cx } from './cx';
 export { ICONS, ICON_NAMES, Icon, type IconName, type IconProps } from './icons';
 
 export {
+  Equipment,
+  SPORT_ART,
+  SPORT_ART_BASE_PATH,
+  SPORT_ART_NAMES,
+  hasSportArt,
+  sportArtSrc,
+  type EquipmentProps,
+  type SportArtName,
+} from './sport-art';
+
+export {
   AVATARS,
   AVATAR_GROUPS,
   AVATAR_BASE_PATH,

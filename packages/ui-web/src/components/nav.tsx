@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
 
 import { cx } from '../cx';
 import { Icon, type IconName } from '../icons';
+import { Equipment } from '../sport-art';
 import type { SportLook } from './tricks';
 
 /**
@@ -102,14 +103,22 @@ export type SportChipProps = {
   style?: CSSProperties;
 };
 
-/** "What it's for" badge: icon plus short sport name, keyline in sport colour. */
+/**
+ * "What it's for" badge: equipment plus short sport name, keyline in sport
+ * colour.
+ *
+ * The art is given 16/19px where the stroked glyph took 12/13. Painted wheels
+ * and a die-cut edge need the extra two or three pixels to read at all, and the
+ * chip is laid out `align-items: center` around its tallest child, so the badge
+ * grows by that much and nothing inside it moves.
+ */
 export function SportChip({ sport, small = false, className, style }: SportChipProps) {
   return (
     <span
       className={cx('sportchip', className)}
       style={{ borderColor: sport.color, color: sport.color, fontSize: small ? 10 : 11, ...style }}
     >
-      <Icon name={sport.icon} size={small ? 12 : 13} strokeWidth={2.4} />
+      <Equipment name={sport.icon} size={small ? 16 : 19} strokeWidth={2.4} />
       {sport.label}
     </span>
   );

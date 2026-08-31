@@ -8,6 +8,13 @@ import type { CSSProperties, ReactElement } from 'react';
  * Paths are unchanged. Do not redraw them to "tidy" the geometry: the sticker
  * badges centre these shapes inside a 120px circle, so any change to a path
  * moves an icon on the sticker wall too.
+ *
+ * `scoot`, `board` and `bmx` are still here and still correct, but no screen
+ * draws them any more: the app renders painted equipment art for those three
+ * through `Equipment` in `sport-art.tsx` (owner, 2026-08-31). They stay
+ * exported because this map is additive-only, and because a stroked scooter is
+ * the right thing anywhere the art cannot go — a favicon, a one-colour print,
+ * an email.
  */
 export const ICONS = {
   scoot: (
