@@ -9,9 +9,10 @@ import {
 } from '@landit/core';
 import { Button, Empty, Icon, Panel, Pill, SportChip, Tag, type IconName } from '@landit/ui-web';
 import Link from 'next/link';
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
 import { SportSwitch } from '@/components/shell/SportSwitch';
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES, signInHref } from '@/lib/routes';
 import { useModal } from '@/providers/modal';
 import { useSport } from '@/providers/sport';
@@ -24,7 +25,6 @@ import { useToast } from '@/providers/toast';
 // component means editing `SpotsScreen.tsx`, which another session owns.
 import { useHereOnce } from '@/lib/useHereOnce';
 import { setAttendanceAction } from './actions';
-import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 
 import styles from './events.module.css';
 import type { EventsView, EventView } from './view';
@@ -57,7 +57,23 @@ import type { EventsView, EventView } from './view';
  * hundred pills once the calendar is worldwide. The text box is a plain
  * substring search over city, venue, name and country, run in this browser and
  * sent nowhere. "Near me" is the spots screen's hook, on the same terms:
- * off until pressed, announced while on, never stored, never transmitted.
+ * never prompted for unless a rider presses, announced while on, never stored,
+ * never transmitted.
+ *
+ * **This screen opens nearest-first when the browser already allows it**
+ * (Rachid, 2026-08-30, in chat; §6.4 standard 10 as amended), on the same terms
+ * as `/spots`: `resumeWhenGranted` reads a position on load *only* where the
+ * Permissions API already answers `granted`, and does nothing at all where it
+ * answers `prompt` or `denied` or refuses the question. No dialog is put in
+ * front of a rider who did not press for one.
+ *
+ * **One thing this screen owes that `/spots` did not.** A spot list reordered
+ * by distance still reads as a list of spots, but a *calendar* in date order is
+ * a promise, and distance order quietly breaks it — an event in June above one
+ * next week. So when a position is held the list says "Nearest first" above it.
+ * That line is not decoration: on a resume the rider pressed nothing, and the
+ * location badge alone tells them their position is in use without telling them
+ * their calendar has been re-sorted.
  *
  * **A visitor sees the whole calendar and cannot save any of it.** Every filter,
  * the detail modal and both organiser links work signed out; "I'm going" is the
@@ -99,7 +115,29 @@ export function EventsScreen({
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
-  const here = useHereOnce();
+  const here = useHereOnce({ resumeWhenGranted: true });
+
+  /*
+   * Nearest-first happened — counted once per position held, and tagged with
+   * the screen so the two lists' funnels do not merge into one unreadable
+   * number. `source` separates a press on this visit from a standing browser
+   * permission served silently, which is the only evidence there is about
+   * whether the resume earns its place. The position itself is never a
+   * property (§6.4 standard 10).
+   */
+  const counted = useRef(false);
+  useEffect(() => {
+    if (here.state !== 'on') {
+      counted.current = false;
+      return;
+    }
+    if (counted.current) return;
+    counted.current = true;
+    capture(ANALYTICS_EVENTS.nearbySortUsed, {
+      screen: 'events',
+      source: here.resumed ? 'resumed' : 'pressed',
+    });
+  }, [here.state, here.resumed]);
 
   const [kind, setKind] = useState<EventKind | null>(null);
   const [mySportOnly, setMySportOnly] = useState(true);
@@ -328,6 +366,12 @@ export function EventsScreen({
 
       {list.length ? (
         <div className={styles.list}>
+          {/*
+            Said only while it is true, so the screen gains nothing in its
+            ordinary state and says the one thing that changed when it changes.
+            First child of the list, so it takes the list's own 12px gap.
+          */}
+          {here.state === 'on' && <div className={`lab ${styles.order}`}>Nearest first</div>}
           {shown.map((event) => (
             <Panel
               flat

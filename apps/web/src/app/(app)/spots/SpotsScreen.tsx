@@ -104,7 +104,8 @@ export function SpotsScreen({
    * `source` is what makes the number worth having: it separates the riders who
    * pressed "Near me" on this visit from the ones a standing browser permission
    * served silently, which is the only evidence there is that the resume earns
-   * its place. Nothing else travels. The position is not a property and never
+   * its place. `screen` keeps this list's funnel apart from the calendar's,
+   * which fires the same event. Nothing else travels. The position is not a property and never
    * may be — it is the one rider fact §6.4 standard 10 says we do not keep, so
    * an event carrying it would undo the screen it is measuring.
    */
@@ -116,7 +117,10 @@ export function SpotsScreen({
     }
     if (counted.current) return;
     counted.current = true;
-    capture(ANALYTICS_EVENTS.nearbySortUsed, { source: here.resumed ? 'resumed' : 'pressed' });
+    capture(ANALYTICS_EVENTS.nearbySortUsed, {
+      screen: 'spots',
+      source: here.resumed ? 'resumed' : 'pressed',
+    });
   }, [here.state, here.resumed]);
 
   const live = useMemo(() => spots.filter((spot) => spot.status === 'live'), [spots]);

@@ -25,6 +25,20 @@ import { seedSchedule } from './support/seed-schedule';
  * The events are seeded by the spec around today — see `seed-schedule.ts`.
  */
 
+/*
+ * The browser globals the geolocation tests below run against. This project's
+ * e2e tsconfig has no DOM lib (see `shell.spec.ts`), and a call that is
+ * supposed *never* to happen has to be observed at the API it would have gone
+ * through. Declared narrowly, as types only — `declare` erases.
+ */
+declare const window: { __geoCalls: number };
+declare const navigator: object;
+
+interface StubPosition {
+  coords: { latitude: number; longitude: number; accuracy: number };
+  timestamp: number;
+}
+
 test.describe.configure({ mode: 'default' });
 
 test.beforeAll(async () => {
@@ -63,6 +77,34 @@ async function newRider(page: Page): Promise<void> {
   await page.getByRole('button', { name: "Let's go" }).click();
   await page.waitForURL('**/home');
 }
+
+/**
+ * Replace the geolocation API with something that counts, before any of the
+ * page's own script runs — so a call made during hydration is caught too.
+ */
+async function watchGeolocation(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    window.__geoCalls = 0;
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: (ok: (position: StubPosition) => void) => {
+          window.__geoCalls += 1;
+          ok({
+            coords: { latitude: 53.4084, longitude: -2.9916, accuracy: 40 },
+            timestamp: Date.now(),
+          });
+        },
+        watchPosition: () => {
+          throw new Error('watchPosition must never be used: it is a live tracking session.');
+        },
+        clearWatch: () => {},
+      },
+    });
+  });
+}
+
+const geoCalls = (page: Page) => page.evaluate(() => window.__geoCalls);
 
 test('the list shows an upcoming event with its date block and its details', async ({ page }) => {
   await newRider(page);
@@ -169,4 +211,66 @@ test('a visitor is offered sign-in where a rider is offered "I’m going"', asyn
 
   await link.click();
   await page.waitForURL('**/signin?next=*');
+});
+
+/*
+ * Children's code standard 10 (plan §6.4), on the calendar. Signed out, because
+ * nothing here needs an account and the promise is owed to a visitor too.
+ *
+ * Neither test asserts the *order* of the list: the seeded events carry no
+ * coordinates, so the screen keeps them in date order by its own rule about
+ * events nobody has plotted. What is asserted is the part the resume changed —
+ * that a position is taken only when the browser already allows it, that the
+ * rider is told both that their location is in use and that the ordering has
+ * changed, and that they can end it.
+ */
+test('the calendar never asks for the rider’s location unless they press for it', async ({
+  page,
+}) => {
+  await watchGeolocation(page);
+  await page.goto('/events');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('What’s coming up');
+
+  // No permission granted to this context, so the load-time resume must decline
+  // to act: on a browser sitting at `prompt`, a `getCurrentPosition` call *is*
+  // the permission dialog. Checked before hydration is waited for, on purpose.
+  expect(await geoCalls(page)).toBe(0);
+
+  const pill = page.getByRole('button', { name: 'Sort by nearest' });
+  await expect(pill).toBeVisible();
+  await expect(page.getByText('Nearest first')).toHaveCount(0);
+
+  await pill.click();
+  expect(await geoCalls(page)).toBe(1);
+  await expect(page.getByText('Using your location')).toBeVisible();
+  await expect(page.getByText('Nearest first')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Turn off' }).click();
+  await expect(page.getByText('Using your location')).toHaveCount(0);
+  await expect(page.getByText('Nearest first')).toHaveCount(0);
+});
+
+test('the calendar opens nearest-first when the browser already allows it', async ({
+  page,
+  context,
+}) => {
+  // The rider granted this in their own browser on an earlier visit, which is
+  // the only state the resume acts on (§6.4 standard 10, as amended).
+  await context.grantPermissions(['geolocation']);
+  await watchGeolocation(page);
+  await page.goto('/events');
+
+  // No press anywhere in this test. Both notices are the assertion: a calendar
+  // silently re-sorted from date order owes the rider the second one.
+  await expect(page.getByText('Using your location')).toBeVisible();
+  await expect(page.getByText('Nearest first')).toBeVisible();
+  expect(await geoCalls(page)).toBe(1);
+
+  // Still switches off for good — the permission is still granted, so a resume
+  // that ignored the press would come straight back and leave the rider unable
+  // to turn their location off at all.
+  await page.getByRole('button', { name: 'Turn off' }).click();
+  await expect(page.getByText('Using your location')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Sort by nearest' })).toBeVisible();
+  expect(await geoCalls(page)).toBe(1);
 });
