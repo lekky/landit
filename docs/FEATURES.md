@@ -24,7 +24,7 @@ consent gates under-threshold riders; there is deliberately no stranger-contact 
 | Marketing | `/`, `/coming-soon`, `/legal/{privacy,terms,safeguarding,cookies,about}`, `/offline` | Landing, holding page (dormant now the site is live), five legal docs, offline fallback. |
 | Auth | `/signin`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-email` | Sign-up asks country + age band (never a date of birth); verification is asked for but blocks nothing. |
 | Onboarding | `/onboarding`, `/consent/[action]/[token]` | Four-step first-run picking sport/level/goal/tricks; guardian approve/revoke landing needs no sign-in. |
-| Core loop | `/home`, `/library`, `/library/[slug]`, `/library?mine=1`, `/progress`, `/stickers`, `/challenge` | Dashboard (weekly streak, "I rode today", working trick, announcements), 97-trick library, per-trick stage/notes/videos, My Tricks, progress + skill tree + printable sheets, sticker wall, weekly challenge per sport. |
+| Core loop | `/home`, `/library`, `/library/[slug]`, `/library?mine=1`, `/progress`, `/stickers`, `/challenge` | Dashboard (weekly streak, "I rode today", working trick, announcements), 97-trick library, per-trick stage/notes/videos and the trick's own award badge, My Tricks, progress + skill tree + printable sheets, sticker wall, weekly challenge per sport. |
 | World | `/spots`, `/events` | 98 researched real venues on a MapLibre/OpenFreeMap map (no key, no account) + rider submissions; 74 researched events with "I'm going". Both readable signed out; distances use the reader's units; geolocation is opt-in per use, kept in memory only, never sent to the server. |
 | Social | `/crew`, `/join/[code]`, `/riders/[handle]` | Up to 5 owned crews, server-minted invite codes (25 uses / 14 days), crew board + fixed-sentence activity feed, public profiles. |
 | Money | `/plans`, Stripe Checkout | Rookie free / Shredder £3.99 / Legend £6.99 monthly (yearly ≈ 2 months free). Under-16s never see a payment form — the guardian gets a checkout link by email. |
@@ -74,6 +74,8 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
   API survives in `rules/streak.ts` for the additive-only rule; nothing calls it.)
 - **135 awards** (T24: one badge per trick plus platform/streak/contribution/completion awards,
   printed art in `packages/ui-web/assets/stickers/`; `promoter` dormant) and 10 retired legacy stickers.
+  A trick's own badge also shows on its trick page (T25) — grayscale until landed, dated once
+  earned — where the design pack had a photo placeholder that was never filled.
   Rule *kinds* in code, parameters and thresholds staff-tunable on the record;
   **18 challenges** (6 per sport), state derived from dates in the rider's timezone.
 - 36 avatars, 4 levels, stances, goals, country/consent tables, contact addresses.

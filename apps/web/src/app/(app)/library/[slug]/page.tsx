@@ -23,6 +23,8 @@ import {
 } from '@landit/core';
 import {
   countVideoLinks,
+  getRiderSticker,
+  getTrickAward,
   getTrickNote,
   listPlans,
   listTrickLog,
@@ -38,7 +40,7 @@ import {
   type PlansRecord,
   type UsersRecord,
 } from '@landit/db';
-import { Difficulty, Icon, Panel, Slot, SportChip, Tag } from '@landit/ui-web';
+import { Difficulty, Icon, Panel, SportChip, Tag } from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -48,6 +50,7 @@ import { ROUTES, trickHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { anonymousClient, currentRider } from '@/lib/session';
 
+import { AwardPanel } from './AwardPanel';
 import { LockedTrick } from './LockedTrick';
 import { NotesPanel } from './NotesPanel';
 import { StagePanel, type TrickShareView } from './StagePanel';
@@ -84,9 +87,26 @@ async function load(slug: string) {
   const session = await currentRider();
   const client = session?.client ?? anonymousClient();
 
-  const [trickRecords, prereqRecords] = await Promise.all([
+  const [trickRecords, prereqRecords, award] = await Promise.all([
     listTricks(client),
     listTrickPrereqs(client),
+    /*
+     * Keyed by slug, so it needs nothing from the trick record and rides along
+     * here. `stickers` is listable to anyone while it is live, which is why a
+     * signed-out visitor gets the badge too — locked, like every rider who has
+     * not landed it.
+     *
+     * **The `.catch` is about the database rather than the code.** This
+     * filters on `kind` and `trick`, columns migration `1788048000` added; a
+     * database without them answers a filter on an unknown field with **400**,
+     * and `first()` only swallows 404. Production already carries that
+     * migration and its seed, so this is not guarding a deploy anybody is
+     * about to make — it guards the databases that are not production: a fresh
+     * clone, a rollback, whatever a PR preview ends up pointing at. Same rule
+     * the dashboard's crew board is read under: a decoration that will not
+     * load is a smaller page, not a broken one.
+     */
+    getTrickAward(client, slug).catch(() => null),
   ]);
   const tricks = tricksFromRecords(trickRecords, prereqRecords);
   const trick = trickById(slug, tricks);
@@ -105,6 +125,8 @@ async function load(slug: string) {
       landedLabel: null,
       note: '',
       share: null,
+      award,
+      awardEarnedLabel: null,
       // A signed-out visitor gets no video surface at all, and it is worth being
       // precise about why: not because this branch chooses to hide one, but
       // because there is nothing for it to show. The `clips` view rule has no arm
@@ -117,17 +139,21 @@ async function load(slug: string) {
     };
   }
 
-  const [progress, log, noteRecord, snapshot, videoRecords, heldTotal, plans] = await Promise.all([
-    listTrickProgress(client, session.rider.id),
-    listTrickLog(client, session.rider.id),
-    getTrickNote(client, session.rider.id, record.id),
-    riderSnapshot(client, session.rider.id),
-    listVideoLinks(client, { userId: session.rider.id, trickId: record.id }),
-    // Across every trick, because the cap is per rider and not per trick — the
-    // same number `45_video_links.pb.js` counts before it refuses a write.
-    countVideoLinks(client, session.rider.id),
-    listPlans(client),
-  ]);
+  const [progress, log, noteRecord, snapshot, videoRecords, heldTotal, plans, held] =
+    await Promise.all([
+      listTrickProgress(client, session.rider.id),
+      listTrickLog(client, session.rider.id),
+      getTrickNote(client, session.rider.id, record.id),
+      riderSnapshot(client, session.rider.id),
+      listVideoLinks(client, { userId: session.rider.id, trickId: record.id }),
+      // Across every trick, because the cap is per rider and not per trick — the
+      // same number `45_video_links.pb.js` counts before it refuses a write.
+      countVideoLinks(client, session.rider.id),
+      listPlans(client),
+      // The narrow read, not the whole wall: one row, and `null` when the rider
+      // has not earned it. Skipped entirely when the trick has no award.
+      award ? getRiderSticker(client, session.rider.id, award.id) : null,
+    ]);
 
   const byId: Record<string, StageId> = trickProgressById(progress, trickRecords);
   const landed = firstLanded(trickLogEntries(log, trickRecords))[slug];
@@ -145,6 +171,16 @@ async function load(slug: string) {
       : null,
     note: noteRecord?.body ?? '',
     share: buildShare(trick, session.rider, snapshot, tricks, timezone),
+    award,
+    /*
+     * `shortDate`, the same helper and the same wording as the sticker wall —
+     * one badge should not be dated two ways depending on which screen a rider
+     * is looking at. It is also the no-ICU path (LESSONS §3a). `null` is the
+     * whole of "not earned": there is no second flag for the badge to
+     * disagree with.
+     */
+    awardEarnedLabel:
+      held && held.earned_at ? `Earned ${shortDate(held.earned_at, timezone)}` : null,
     videos: videoLinksFromRecords(videoRecords),
     heldTotal,
     // The allowance from **our own plan record** (plan §2.4), matched by slug —
@@ -297,7 +333,26 @@ export default async function TrickPage({ params }: Params) {
 
         <div className={styles.grid}>
           <div className={styles.column}>
-            <Slot label="Trick photo: drop a shot of this trick" minHeight={200} />
+            {/*
+              Where the design pack put a photo placeholder (screenshot 09).
+              Nothing at all when the trick has no live award — a trick staff
+              add tomorrow has none until one is seeded, and an empty column
+              reads better than a box explaining its own emptiness.
+            */}
+            {data.award && (
+              <AwardPanel
+                award={{
+                  name: data.award.name,
+                  hue: data.award.hue,
+                  icon: data.award.ico || null,
+                  img: data.award.img || null,
+                  cond: data.award.cond,
+                  n: data.award.n || null,
+                }}
+                earnedLabel={data.awardEarnedLabel}
+                accent={category.color}
+              />
+            )}
 
             <div>
               <div className={`lab ${styles.sectionLabel}`} style={{ color: category.color }}>

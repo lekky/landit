@@ -181,6 +181,40 @@ test('a rookie can open a free trick and log a stage that sticks', async ({ page
   await expect(card(page, freeTrick.name)).toContainText('Sometimes');
 });
 
+/*
+ * The award badge, where the design pack put a photo placeholder.
+ *
+ * Two things are being held down here. The placeholder itself — a hatched box
+ * captioned "Trick photo: drop a shot of this trick" — was live to riders for
+ * a fortnight after launch, so its absence is asserted rather than assumed.
+ * And the badge's state comes from `rider_stickers`, which only the award hook
+ * can write: a page that decided for itself whether a rider had earned
+ * something would look identical until the day it was wrong. Landing the trick
+ * and reloading is the only honest way to see that the hook, not the screen,
+ * turned the badge over.
+ */
+test('a trick shows its award, and landing the trick earns it', async ({ page }) => {
+  await signUpRookie(page);
+  await page.goto(`/library/${freeTrick.id}`);
+
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(freeTrick.name);
+  // The design pack's placeholder, gone for good.
+  await expect(page.getByText(/trick photo/i)).toHaveCount(0);
+
+  await expect(page.getByText('The award')).toBeVisible();
+  await expect(page.getByRole('img', { name: `${freeTrick.name} sticker, locked` })).toBeVisible();
+  await expect(page.getByText(/^Earned /)).toHaveCount(0);
+
+  // `some` is the lowest stage that counts as landed (`LANDED_STAGES`), so
+  // this is the least a rider can do and still have earned the badge.
+  await page.getByRole('button', { name: 'Sometimes' }).click();
+  await expect(page.locator('.toast', { hasText: /Logged as/i })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole('img', { name: `${freeTrick.name} sticker, earned` })).toBeVisible();
+  await expect(page.getByText(/^Earned /)).toBeVisible();
+});
+
 // Until 2026-08-17 this asserted the clips panel rendered as an upsell. The
 // owner reversed clip hosting that day (plan §1, §6.6): Land The Trick hosts no video,
 // so the trick page offers none and advertises none. What is asserted now is the

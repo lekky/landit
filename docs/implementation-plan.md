@@ -2453,6 +2453,59 @@ danger as a dare, and `upside` itself stays retired with a never-true rule. Anal
 catalogue events, `sticker_earned` (fired when the wall first shows the badge — the earn is
 server-side; properties are slug, stars, rarity) and `sticker_shared`.
 
+**T25 · The trick page's award badge.** Added after launch (Rachid, 2026-08-30, in chat), and a
+**deliberate divergence from the design pack** recorded here because the plan is what wins when the
+two disagree.
+
+The handoff specified a photograph on the trick page — `design-handoff/README.md` describes the
+left column as "photo placeholder, the lowdown, a 'What you need' kit row…", and its Photography
+note says every image slot is a hatched placeholder that "needs real photography before launch".
+Neither happened. The site went live on 2026-08-17 with the placeholder still in it, so for a
+fortnight every trick page showed riders a hatched box captioned *"Trick photo: drop a shot of this
+trick"* — an instruction to a designer, on a page children read. Photography for ninety-seven
+tricks was never commissioned, and generating art for them was judged not worth having: an
+illustration that gets a tailwhip subtly wrong is worse than no illustration on a page that teaches
+the trick.
+
+**The slot takes the art the product already owns.** T24 committed one printed badge per trick, and
+that art *depicts the trick* — `tailwhip.png` is a scooter mid-whip with motion arcs. Nothing new
+was drawn, generated or commissioned; the image problem had already been solved once at badge
+scale, and this only puts the answer on the page. Two consequences worth stating: the space now
+carries information rather than decoration — it is the only place before the sticker wall where a
+rider sees what landing *this* trick gets them — and it scales, because a trick staff add tomorrow
+gets its badge from the same seed rather than waiting on a photographer.
+
+- **Earned is read, never derived.** The badge's state comes from `rider_stickers` — the row only
+  the award hook can create (`createRule: null`, plan §3) — and not from evaluating the rule in the
+  page. A screen that decided for itself whether a child had earned something would look identical
+  until the day it was wrong. `e2e/library.spec.ts` lands a trick and reloads, so the assertion is
+  about the hook rather than about the render.
+- **Locked is the wall's treatment, with the wall's opacity dropped.** Grayscale still says "not
+  yours"; the 45% fade is right for one badge among sixty-five and wrong for the only picture on a
+  page, where it read as a rendering fault.
+- **The award's name is not shown, the condition is.** Every trick award is named after its trick,
+  so the name would be the third "Tailwhip" on one screen — the header band has it and the printed
+  art has it lettered across the badge. The condition is staff copy and goes through
+  `stickerCondition`, so a retune reaches the page (LESSONS §4).
+- **Nothing at all when there is no live award**, rather than a box explaining its own emptiness.
+  A `packages/core` test pins one award per trick in both directions, so the empty branch is not
+  reachable through the data — but it is reachable through a *deploy*, which is why the read is
+  wrapped in a `.catch`. The query filters on `kind` and `trick`, columns migration `1788048000`
+  added, and a database without them answers a filter on an unknown field with **400** where
+  `first()` only swallows 404 (checked against a real PocketBase, not assumed). **The production
+  box already carries T24's migration and seed (Rachid, 2026-08-30, in chat), so this is not a
+  deploy-ordering step anybody has to take** — the catch is for the databases that are not the
+  production box: a fresh clone, a rollback, whatever a PR preview points at once #164 is settled.
+  There, the worst case is a missing badge rather than a 500 on every trick page in the library.
+- **Not on the locked trick page**, which never had the slot. Putting a reward preview on a paywall
+  screen is a pitch, and issue #129 reserves what the paid tiers are worth for the owner.
+- **No new analytics event.** The badge is a visual on a screen whose views are already counted and
+  it adds no rider action; `sticker_earned` and `sticker_shared` already cover the badge's own
+  lifecycle.
+
+`design-handoff/README.md` is left as delivered — it is the record of what the designer handed
+over, not a to-do list — and this paragraph is what supersedes its two photography lines.
+
 ### Dependency graph
 
 ```

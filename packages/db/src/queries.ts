@@ -382,6 +382,48 @@ export async function listStickers(client: Client): Promise<StickersRecord[]> {
   return records(client, 'stickers').list({ filter: 'is_live = true' });
 }
 
+/**
+ * The award badge for one trick, by trick slug.
+ *
+ * T24 gave every trick in the library its own award, and `stickers.trick`
+ * carries the slug rather than a relation — the awards are seeded from a
+ * manifest keyed by slug, and a slug survives a reseed where a record id does
+ * not. Filtered in the query rather than fetched-and-found because the trick
+ * page wants one of 135 records and has no other use for the rest.
+ *
+ * `null` is a real answer, not an error: a trick staff add tomorrow has no
+ * award until one is seeded for it, and an award taken off `is_live` is
+ * invisible here for the same reason it is invisible on the wall.
+ */
+export async function getTrickAward(
+  client: Client,
+  trickSlug: string,
+): Promise<StickersRecord | null> {
+  return records(client, 'stickers').first('is_live = true && kind = {:kind} && trick = {:trick}', {
+    kind: 'trick',
+    trick: trickSlug,
+  });
+}
+
+/**
+ * One rider's row for one sticker, or `null` when they have not earned it.
+ *
+ * The narrow read behind `listRiderStickers` for a screen that asks about a
+ * single badge. Earned is still the *server's* answer and never the client
+ * rules' opinion (plan §3): `rider_stickers.createRule` is `null`, so the row
+ * exists only if the award hook made it.
+ */
+export async function getRiderSticker(
+  client: Client,
+  userId: string,
+  stickerId: string,
+): Promise<RiderStickersRecord | null> {
+  return records(client, 'rider_stickers').first('user = {:user} && sticker = {:sticker}', {
+    user: userId,
+    sticker: stickerId,
+  });
+}
+
 /** A rider's earned stickers. Subject to their privacy setting, like everything else. */
 export async function listRiderStickers(
   client: Client,

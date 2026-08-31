@@ -197,6 +197,31 @@ describe('stickers', () => {
     }
   });
 
+  it('gives every trick in the library its own award, and points each at a real trick', () => {
+    /*
+     * The trick page draws this award where the design pack put a photo
+     * placeholder, so a trick without one is a trick whose page has a hole in
+     * it. T24 seeded exactly one per trick and this is the stop for the next
+     * person who adds a trick to `tricks.ts` without adding its badge.
+     *
+     * Both directions: a trick with no award leaves a gap on screen, and an
+     * award naming a trick that does not exist is a badge nothing can earn.
+     */
+    // Widened to `Sticker`, like the stars-and-rarity test below: the literal
+    // union of 135 records has no common `kind` or `trick` to read.
+    const allAwards: readonly Sticker[] = AWARDS;
+    const trickAwards = allAwards.filter((a) => a.kind === 'trick');
+    const trickIds = new Set(TRICKS.map((t) => t.id));
+
+    const awarded = new Map<string, number>();
+    for (const award of trickAwards) {
+      expect(trickIds, award.id).toContain(award.trick);
+      const slug = award.trick ?? '';
+      awarded.set(slug, (awarded.get(slug) ?? 0) + 1);
+    }
+    for (const trick of TRICKS) expect(awarded.get(trick.id), trick.id).toBe(1);
+  });
+
   it('keeps stars and rarity inside their scales', () => {
     const allAwards: readonly Sticker[] = AWARDS;
     for (const award of allAwards) {
