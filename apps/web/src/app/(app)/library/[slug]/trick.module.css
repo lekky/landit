@@ -23,14 +23,25 @@
   color: var(--ink);
 }
 
+/*
+ * `--badge-w` is declared on the card rather than on the hero because three
+ * things measure from it and only one of them is inside the hero: the badge's
+ * own width and overhang, the band's left inset, and the cream strip's. A
+ * custom property inherits down, not sideways, so declaring it on `.header`
+ * left `calc(var(--badge-w) + 40px)` undefined in the band — which invalidates
+ * the whole `padding` shorthand it sits in, and the band lost its inset with
+ * nothing failing anywhere.
+ */
 .panel {
+  --badge-w: 132px;
+
   padding: 0;
   overflow: hidden;
   margin-bottom: 20px;
 }
 
 .header {
-  padding: 20px 22px;
+  padding: 18px 22px 26px;
   border-bottom: 3px solid var(--ink);
   display: flex;
   align-items: flex-end;
@@ -97,67 +108,170 @@
   margin-bottom: 6px;
 }
 
-/*
- * The award badge, where the design pack put a photo placeholder.
- *
- * A row rather than a hero image: the badge is square art at 512px and blowing
- * it to the full column width would out-shout the trick name in the header
- * band above it. At 128px it reads as an object on the page — which is what a
- * die-cut sticker is — and leaves the copy beside it room to say what it takes
- * to earn.
- *
- * No border and no panel. Everything else in this column is boxed (`.kit`,
- * `.fact`), and the badge already carries its own die-cut white edge and drop
- * shadow; a second frame around it would be a box around a sticker.
- */
-.award {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
+/* ------------------------------------------------------- the award hero -- */
 
-.awardArt {
-  width: 128px;
+/*
+ * The trick's award, in the hero, overhanging the band below it.
+ *
+ * T25 put this badge in the left column where the design pack had a photo
+ * placeholder, and greyed it out until it was earned. The trick-page pack
+ * (`design_handoff_trick_page`, owner 2026-08-31) moves it into the hero and
+ * reverses the grey: an unearned badge keeps its full colour, and the state is
+ * carried by a mark laid over it instead. The reasoning in the pack is that a
+ * badge is the thing a rider came to want, and a desaturated one reads as
+ * broken rather than as unearned — the same argument T25 made for dropping the
+ * wall's 45% fade, carried the rest of the way.
+ *
+ * The art needs no shield drawn under it. The pack specifies a CSS shield with
+ * a striped art slot because its badges were placeholders; T24's printed award
+ * art already *is* that shield, nameplate and star lettered in
+ * (`/stickers/tic-tac.png`), so the slot takes the file and the CSS carries
+ * only the drop shadow and the mark.
+ */
+.badge {
+  position: relative;
   flex: none;
+  width: var(--badge-w);
+  /* Overhangs the band below. Above it in the stack, or the band's own
+     background would cover the bottom third of the art. */
+  margin-bottom: calc(var(--badge-w) * -0.36);
+  z-index: 2;
 }
 
-.awardText {
-  min-width: 0;
-}
-
-.awardCond {
-  font-size: 26px;
-  line-height: 1.05;
-  margin-top: 5px;
+.badgeArt {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Hard, never blurred — the pack's shadow rule, and the whole page's. */
+  filter: drop-shadow(4px 4px 0 var(--ink));
 }
 
 /*
- * The wall fades a locked badge to 45% because it is one of sixty-five and the
- * fade is how a wall shows how much is left to go. Here it is the only picture
- * on the page, and at 45% it reads as a rendering fault rather than as a thing
- * to go and earn. Grayscale still carries "not yours" — on this page the
- * colour is the reward, and it does not need the opacity as well.
+ * The earned stamp: sprayed on, not printed. Rotated, distressed by a mask of
+ * diagonal slits crossed with a soft radial so the ink thins toward the edges,
+ * and multiplied into the art so it reads as pigment on top of the badge
+ * rather than a sticker over it.
+ *
+ * It sits at 30% of the badge's height, which on the printed art crosses the
+ * picture and clears the nameplate. That is the pack's rule and it holds for
+ * all ninety-seven files, because T24 printed them from one template.
  */
-.awardArt :global(.sticker.locked img) {
-  opacity: 0.92;
+.stamp,
+.pending {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  font-family: var(--fd);
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
+  pointer-events: none;
 }
 
-.awardState {
-  margin: 5px 0 0;
+.stamp {
+  font-size: calc(var(--badge-w) * 0.19);
+  letter-spacing: 0.02em;
+  color: var(--red);
+  border: 4px solid var(--red);
+  padding: 4px 11px 5px;
+  mix-blend-mode: multiply;
+  text-shadow: 1px 1px 0 rgb(224 57 43 / 45%);
+  -webkit-mask-image:
+    repeating-linear-gradient(58deg, #000 0 9px, transparent 9px 10.5px),
+    radial-gradient(120% 150% at 30% 40%, #000 55%, rgb(0 0 0 / 35%) 100%);
+  mask-image:
+    repeating-linear-gradient(58deg, #000 0 9px, transparent 9px 10.5px),
+    radial-gradient(120% 150% at 30% 40%, #000 55%, rgb(0 0 0 / 35%) 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  /* Lands rather than fades when the rider crosses into Sometimes: the page
+     re-renders from the server, the stamp mounts, and this plays once. */
+  animation: stamp-land 180ms ease-out;
+}
+
+/* Two drips off the bottom edge, so the paint looks wet. */
+.stamp::after,
+.stamp::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  background: var(--red);
+}
+
+.stamp::after {
+  left: 22%;
+  width: 5px;
+  height: 11px;
+  clip-path: polygon(0 0, 100% 0, 60% 100%, 40% 100%);
+}
+
+.stamp::before {
+  right: 31%;
+  width: 4px;
+  height: 7px;
+  clip-path: polygon(0 0, 100% 0, 65% 100%, 35% 100%);
+}
+
+@keyframes stamp-land {
+  from {
+    transform: translate(-50%, -50%) rotate(-12deg) scale(1.25);
+    opacity: 0.35;
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotate(-12deg) scale(1);
+    opacity: 1;
+  }
+}
+
+/* A rider who has asked not to be moved gets the stamp, not the landing. */
+@media (prefers-reduced-motion: reduce) {
+  .stamp {
+    animation: none;
+  }
+}
+
+/* The unearned mark. Same place, same angle — the badge under it is untouched. */
+.pending {
+  font-size: calc(var(--badge-w) * 0.15);
+  color: var(--ink-3);
+  border: 3px dashed var(--ink-3);
+  padding: 4px 10px;
+  opacity: 0.75;
+}
+
+/*
+ * The award line under the trick's name: "The award · Land the Tic Tac".
+ *
+ * `cond` is staff copy, so a retune reaches this line the way it reaches the
+ * wall (LESSONS §4) — the same reason T25 rendered the condition rather than
+ * the award's name, which every trick award repeats from its trick.
+ */
+.awardLine {
   font-size: 14px;
-  color: var(--ink-2);
+  color: var(--ink);
+  margin-top: 4px;
 }
 
-/* Under the two-column break the whole grid is already one column wide, so the
-   badge can grow a little without crowding the copy off the row. */
-@media (max-width: 420px) {
-  .award {
-    gap: 13px;
-  }
+/*
+ * The cream strip, mobile only.
+ *
+ * On a phone the hero wraps and the black band's ladder needs the full width,
+ * so the badge overhangs this instead and the award line moves into it with
+ * the earned date. Above the breakpoint the strip is gone and the line sits in
+ * the hero, which is why the two carry the same copy from the same props.
+ */
+.awardStrip {
+  display: none;
+  background: var(--paper-2);
+  border-bottom: 3px solid var(--ink);
+  padding: 14px 14px 14px calc(var(--badge-w) + 24px);
+}
 
-  .awardArt {
-    width: 96px;
-  }
+.awardStripEarned {
+  color: var(--ink-3);
+  margin-top: 3px;
 }
 
 .prose {
@@ -219,76 +333,198 @@
   color: var(--ink-2);
 }
 
-/* ---------------------------------------------------------- side panels -- */
+/* --------------------------------------------------------- the log band -- */
 
-.stagePanel {
-  padding: 15px;
+/*
+ * "Can you do it?" as a black band across the page, directly under the hero.
+ *
+ * Until the trick-page pack this was a panel in the right column, third in a
+ * stack of four. It is the only thing on the page a rider actually *does* —
+ * everything else is copy to read or a link to follow — and the pack's
+ * argument is that its position should say so. Full width, on ink, immediately
+ * under the name, is the loudest the page can be without shouting in colour.
+ *
+ * The left inset clears the badge overhanging from the hero. Below the mobile
+ * breakpoint the badge overhangs the cream strip instead and the inset goes.
+ */
+.band {
+  background: var(--ink);
+  border-bottom: 3px solid var(--ink);
+  padding: 18px 22px 20px calc(var(--badge-w) + 40px);
+}
+
+.bandHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.bandTitle {
+  color: var(--yellow);
+}
+
+/* Secondary text on ink: the pack's band grey, not `--ink-3`, which is a
+   paper colour and disappears here. */
+.bandStatus {
+  color: #c9c2b4;
+}
+
+.bandStatusLogged {
+  color: var(--sky);
+}
+
+/*
+ * The ladder: five equal cells in one row, split by dividers, in a cream
+ * container on the black band.
+ *
+ * Local rather than `StagePicker`, which every other stage row in the app
+ * renders through and which knows only "selected" and "not". The ladder needs a
+ * third state — the stages a rider has already passed — and it is drawn on ink
+ * rather than on paper. Widening the shared component for one band would change
+ * how the home screen and the design gallery draw, for a look only this page
+ * uses (CLAUDE.md: shared code is additive-only).
+ */
+.ladder {
+  display: flex;
+  align-items: stretch;
+  border: 2.5px solid var(--paper);
+  background: var(--paper);
+}
+
+.step {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-right: 2.5px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  /* The pack's 14/4/13, and comfortably past the 44px minimum it asks for. */
+  padding: 14px 4px 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.step:last-child {
+  border-right: 0;
+}
+
+.stepDot {
+  width: 15px;
+  height: 15px;
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+/* Passed: filled dot on cream. */
+.stepPast {
   background: var(--paper-2);
 }
+
+.stepPast .stepDot {
+  background: var(--ink);
+}
+
+/* Where the rider is now: hollow dot on sky. */
+.stepNow {
+  background: var(--sky);
+}
+
+.stepNow .stepDot {
+  background: var(--paper);
+}
+
+.step:hover:not(.stepNow) {
+  background: var(--paper-2);
+}
+
+.step:disabled {
+  cursor: default;
+}
+
+/*
+ * The helper line before anything is logged, and the first-landed row after.
+ * They occupy the same slot under the ladder, which is the pack's arrangement:
+ * the band explains itself until the rider has used it, then reports.
+ */
+.bandNote {
+  margin: 12px 0 0;
+  font-size: 13.5px;
+  color: #c9c2b4;
+}
+
+.bandNote b {
+  color: var(--yellow);
+  font-weight: 700;
+}
+
+/* The same line where it shares the foot row with the buttons, so it does not
+   carry the paragraph's top margin into a flex row. */
+.bandNoteInline {
+  margin: 0;
+  font-size: 13.5px;
+  color: #c9c2b4;
+  max-width: 44ch;
+}
+
+.bandFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.bandLabel {
+  color: #c9c2b4;
+}
+
+.bandDate {
+  font-size: 15px;
+  color: var(--paper);
+  margin-top: 2px;
+}
+
+.bandActions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+/* ---------------------------------------------------------- side panels -- */
 
 .sidePanel {
   padding: 15px;
 }
 
-.stages {
-  margin-top: 10px;
-}
-
-.stageNote {
-  margin: 12px 0 0;
-  font-size: 14px;
-  color: var(--ink-2);
-  letter-spacing: 0.03em;
-}
-
-/*
- * Stopping tracking. The dashed rule is doing real work: it separates an action
- * from the five states above it, so the button does not read as a sixth stage.
- * Solid rules in this panel mean "next section" (see `.landed` below) — dashed
- * means "same section, different kind of thing".
- */
-.untrack {
-  margin-top: 12px;
-  border-top: 2px dashed var(--ink-3);
-  padding-top: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.untrackWhy {
-  font-size: 13px;
-  color: var(--ink-2);
-  max-width: 34ch;
-}
-
-/*
- * The first-landed row, with "Share it" pushed to the right of it
- * (screenshot 09). It wraps rather than squeezing: the date is the content and
- * the button is the offer, so on a narrow panel the button drops below.
- */
-.landed {
-  margin-top: 12px;
-  border-top: 2.5px solid var(--wash);
-  padding-top: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.landedDate {
-  font-size: 14.5px;
-  margin-top: 2px;
-}
-
+/* The signed-out band. On ink, so the copy is the band's grey and not
+   `--ink-2`, which is a colour for paper and vanishes here. */
 .signIn {
-  margin: 12px 0 0;
+  margin: 0;
   font-size: 14px;
-  color: var(--ink-2);
+  color: #c9c2b4;
+  max-width: 62ch;
+}
+
+.signIn a {
+  color: var(--yellow);
+}
+
+.signIn a:hover {
+  color: var(--paper);
 }
 
 .notes {
@@ -406,4 +642,53 @@
   gap: 7px;
   justify-content: center;
   margin-top: 9px;
+}
+
+/* ---------------------------------------------------------- on a phone -- */
+
+/*
+ * Below this the hero wraps, and the badge stops overhanging the black band
+ * and overhangs a cream strip instead. That is the pack's mobile arrangement,
+ * and the reason for it is the ladder: five cells inset past a badge on a
+ * 420px screen leaves each one around 57px, where the full width gives 78px.
+ * The band is the one thing on this page a rider taps, so it gets the width.
+ */
+@media (max-width: 720px) {
+  .panel {
+    --badge-w: 96px;
+  }
+
+  .header {
+    padding: 14px 14px 22px;
+    gap: 10px;
+  }
+
+  .name {
+    font-size: clamp(28px, 9vw, 34px);
+    text-shadow: 2px 2px 0 var(--ink);
+  }
+
+  /* The award line moves into the strip below, which has room for the date. */
+  .awardLine {
+    display: none;
+  }
+
+  .awardStrip {
+    display: block;
+  }
+
+  .band {
+    padding: 14px;
+  }
+
+  .step {
+    font-size: 10.5px;
+    padding: 13px 2px 12px;
+    letter-spacing: 0.05em;
+  }
+
+  .grid {
+    padding: 14px;
+    gap: 14px;
+  }
 }

@@ -182,18 +182,26 @@ test('a rookie can open a free trick and log a stage that sticks', async ({ page
 });
 
 /*
- * The award badge, where the design pack put a photo placeholder.
+ * The award badge in the hero, and the stamp that lands on it.
  *
- * Two things are being held down here. The placeholder itself — a hatched box
- * captioned "Trick photo: drop a shot of this trick" — was live to riders for
- * a fortnight after launch, so its absence is asserted rather than assumed.
- * And the badge's state comes from `rider_stickers`, which only the award hook
- * can write: a page that decided for itself whether a rider had earned
- * something would look identical until the day it was wrong. Landing the trick
- * and reloading is the only honest way to see that the hook, not the screen,
- * turned the badge over.
+ * Three things are being held down here. The photo placeholder — a hatched box
+ * captioned "Trick photo: drop a shot of this trick" — was live to riders for a
+ * fortnight after launch, so its absence is asserted rather than assumed.
+ *
+ * The badge's state comes from `rider_stickers`, which only the award hook can
+ * write: a page that decided for itself whether a rider had earned something
+ * would look identical until the day it was wrong. The accessible name is where
+ * that answer surfaces, so it is what gets asserted — the stamp itself is
+ * `aria-hidden`, being the same fact drawn twice.
+ *
+ * And the stamp lands **without a reload**. `StagePanel` refreshes the page
+ * when the write says a sticker came back, which is what makes earning it a
+ * moment rather than something a rider finds later; the assertion before the
+ * reload is what notices if that refresh is dropped. The reload after it is
+ * still worth keeping, because it is the only way to see that the row outlived
+ * the request that made it.
  */
-test('a trick shows its award, and landing the trick earns it', async ({ page }) => {
+test('a trick shows its award, and landing the trick stamps it', async ({ page }) => {
   await signUpRookie(page);
   await page.goto(`/library/${freeTrick.id}`);
 
@@ -201,18 +209,64 @@ test('a trick shows its award, and landing the trick earns it', async ({ page })
   // The design pack's placeholder, gone for good.
   await expect(page.getByText(/trick photo/i)).toHaveCount(0);
 
+  // Every trick award is named after its trick, so the badge's name is the
+  // trick's — asserted from the catalogue rather than typed in.
   await expect(page.getByText('The award')).toBeVisible();
-  await expect(page.getByRole('img', { name: `${freeTrick.name} sticker, locked` })).toBeVisible();
-  await expect(page.getByText(/^Earned /)).toHaveCount(0);
+  await expect(
+    page.getByRole('img', { name: `${freeTrick.name} award, not earned yet` }),
+  ).toBeVisible();
+  await expect(page.getByText('First landed')).toHaveCount(0);
 
   // `some` is the lowest stage that counts as landed (`LANDED_STAGES`), so
   // this is the least a rider can do and still have earned the badge.
   await page.getByRole('button', { name: 'Sometimes' }).click();
   await expect(page.locator('.toast', { hasText: /Logged as/i })).toBeVisible();
 
+  // No reload: the refresh the earn triggers is what turns the badge over.
+  await expect(page.getByRole('img', { name: `${freeTrick.name} award, earned` })).toBeVisible();
+
   await page.reload();
-  await expect(page.getByRole('img', { name: `${freeTrick.name} sticker, earned` })).toBeVisible();
-  await expect(page.getByText(/^Earned /)).toBeVisible();
+  await expect(page.getByRole('img', { name: `${freeTrick.name} award, earned` })).toBeVisible();
+  await expect(page.getByText('First landed')).toBeVisible();
+});
+
+/*
+ * Stopping tracking asks first, and takes only the stage with it.
+ *
+ * The confirm is the trick-page pack's, and it is worth a test rather than a
+ * glance: this is one tap on a child's own record, and the two things it must
+ * not touch — the first-landed date and the badge they earned — are exactly
+ * the two the copy promises to keep.
+ */
+test('stopping tracking asks first, and keeps the badge', async ({ page }) => {
+  await signUpRookie(page);
+  await page.goto(`/library/${freeTrick.id}`);
+
+  await page.getByRole('button', { name: 'Sometimes' }).click();
+  await expect(page.locator('.toast', { hasText: /Logged as/i })).toBeVisible();
+
+  // First press asks; it does not write.
+  await page.getByRole('button', { name: 'Stop tracking' }).click();
+  await expect(page.getByText(/Stop tracking this trick\?/)).toBeVisible();
+  await page.getByRole('button', { name: 'Keep tracking' }).click();
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Sometimes' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+
+  // Second time through, answered the other way.
+  await page.getByRole('button', { name: 'Stop tracking' }).click();
+  await page.getByRole('button', { name: 'Stop tracking' }).last().click();
+  await expect(page.locator('.toast', { hasText: /Stopped tracking/i })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Sometimes' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
+  // The badge is still theirs — the hook never unwrites a sticker.
+  await expect(page.getByRole('img', { name: `${freeTrick.name} award, earned` })).toBeVisible();
 });
 
 // Until 2026-08-17 this asserted the clips panel rendered as an upsell. The
