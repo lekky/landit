@@ -1805,13 +1805,14 @@ owner:
 - **The map's style: a quiet base, the design language on top.** The palette is loud — hard
   offset shadows, zero radius, `--sky` and `--yellow` — and no stock basemap comes close. A
   matching one means authoring a style of our own, which needs a designer; that is owner work, not
-  session work. So the basemap draws the ground (OpenFreeMap's `positron`, deliberately
-  low-contrast) and everything Land The Trick renders on it is ours: square markers with a
+  session work. So the basemap draws the ground (OpenFreeMap's tiles — `liberty` by default
+  since 2026-08-31, the low-contrast `positron` one tap away; see the Plain/Detail note below)
+  and everything Land The Trick renders on it is ours: square markers with a
   3px ink keyline and a hard offset shadow, the selected pin in `--yellow` and larger, restyled
   zoom controls, and the panel's own header and footer bars. It reads as Land The Trick, and the road
-  names stay legible under markers that are meant to shout. `MAP_BASE_STYLE` in
-  `apps/web/src/lib/map.ts` is one line: **if the owner later commissions a bespoke style, that
-  is the whole change.** The OpenStreetMap and OpenMapTiles credits are restyled and never
+  names stay legible under markers that are meant to shout. `MAP_STYLES` in
+  `apps/web/src/lib/map.ts` is a two-entry table: **if the owner later commissions a bespoke
+  style, that is the whole change.** The OpenStreetMap and OpenMapTiles credits are restyled and never
   hidden — a condition of the data, not a styling choice.
 - **No key at all, and no configuration step.** *(Superseded 2026-08-17.* T13 shipped against
   Mapbox, where the map was dark until the owner supplied `NEXT_PUBLIC_MAPBOX_TOKEN` as a build
@@ -1851,6 +1852,16 @@ owner:
   `apps/web/src/lib/map.ts` is where a licensed imagery layer would be added if that decision is
   ever taken. The toggle lives inside `SpotMap` so it disappears with a map that could not be
   drawn.
+  **Detail is the default** *(owner, 2026-08-31, in chat — reversing the `plain` default this
+  shipped with the same day).* The original argument was that the markers are loud by design and
+  a quiet ground is what lets a rider read which pin is theirs; that cost is real and it is why
+  `plain` is still one tap away. But it optimised for reading the map furniture over answering
+  the question a rider arrived with — where the bowl is, where you park, whether the place is
+  inside a leisure centre — and a ground with no buildings on it cannot answer that. A default
+  that has to be switched away from to be useful is the wrong way round. **This raises the stakes
+  of issue #261:** `liberty` under these markers has never been seen on real tiles (CI has no GPU
+  and the build sandbox cannot reach the tile host), and what was an unverified toggle is now the
+  first thing every rider sees. `MAP_DEFAULT_STYLE` is the one line that puts it back.
 - **On a phone the map is a sheet, not the bottom of the page** *(owner, 2026-08-31: "on mobile
   you have to click to the bottom of the list to see the map… clicking a spot should show the
   map, not make the user guess"; they chose the sheet over a map-first stack or a List/Map
