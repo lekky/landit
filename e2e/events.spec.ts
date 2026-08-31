@@ -274,3 +274,21 @@ test('the calendar opens nearest-first when the browser already allows it', asyn
   await expect(page.getByRole('button', { name: 'Sort by nearest' })).toBeVisible();
   expect(await geoCalls(page)).toBe(1);
 });
+
+test('the What’s on row is the way back to spots on a phone', async ({ page }) => {
+  // The other half of the pair `e2e/spots.spec.ts` checks. A rider who taps
+  // the bottom bar's "What's on" lands on Spots, and if Events could not get
+  // them back the fold would be a one-way door.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/events');
+
+  const row = page.getByRole('navigation', { name: 'What’s on', exact: true });
+  await expect(row.getByRole('link', { name: 'Events', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+
+  await row.getByRole('link', { name: 'Spots', exact: true }).click();
+  await page.waitForURL('**/spots');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Where to ride');
+});

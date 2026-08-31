@@ -11,6 +11,8 @@ import { Button, Empty, Icon, Panel, Pill, SportChip, Tag, type IconName } from 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
+import { SectionTabs } from '@/components/shell/SectionTabs';
+import { WHATS_ON_TABS } from '@/components/shell/nav';
 import { SportSwitch } from '@/components/shell/SportSwitch';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES, signInHref } from '@/lib/routes';
@@ -252,6 +254,8 @@ export function EventsScreen({
 
   return (
     <div className={styles.page}>
+      <SectionTabs tabs={WHATS_ON_TABS} label="What’s on" />
+
       <SportSwitch note={(id) => `${view.countBySport[id] ?? 0} on`} label="Events by sport" />
 
       <div className={styles.headRow}>
