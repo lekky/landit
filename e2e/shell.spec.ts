@@ -83,13 +83,113 @@ test('the top bar never widens the page, at any width the nav is on show', async
   }
 });
 
-test('the bottom bar is the five the design specifies, in order', async ({ page }) => {
+test('the bottom bar is five sections, in the order a phone wants them', async ({ page }) => {
+  /*
+   * Five, because `.mobnav` is `repeat(5, 1fr)` and the design specifies five
+   * (handoff, Responsive). But five *sections*, not the first five entries of
+   * the top bar — which is what this used to assert, and what left Challenge,
+   * Events, Spots and Plans with no navigation entry at all below 861px.
+   *
+   * The order is a phone's: What's on sits in the middle cell, the easiest
+   * reach one-handed, because it is the reason to open the app while standing
+   * outside a skatepark.
+   */
   await page.setViewportSize({ width: 800, height: 800 });
   await page.goto(SHELL);
 
   const items = page.getByRole('navigation', { name: 'Main, compact', exact: true }).locator('> *');
   await expect(items).toHaveCount(5);
-  await expect(items).toHaveText([/Home/, /Tricks/, /Progress/, /Stickers/, /Crew/]);
+  await expect(items).toHaveText([/Home/, /Tricks/, /What’s on/, /Progress/, /Crew/]);
+
+  for (const [name, href] of [
+    ['Home', '/home'],
+    ['Tricks', '/library'],
+    ['What’s on', '/spots'],
+    ['Progress', '/progress'],
+    ['Crew', '/crew'],
+  ] as const) {
+    await expect(
+      page.getByRole('navigation', { name: 'Main, compact', exact: true }).getByRole('link', {
+        name,
+        exact: true,
+      }),
+    ).toHaveAttribute('href', href);
+  }
+});
+
+test('no bottom-bar label wraps, down to the narrowest phone anyone still uses', async ({
+  page,
+}) => {
+  /*
+   * A wrapped label takes the row's height with it and pushes the icons out of
+   * line. "What's on" is the longest of the five and the one that made this
+   * worth measuring rather than eyeballing: about 58px of Barlow Condensed
+   * against a 71px cell at 375px, and about 60px of cell at 320px.
+   *
+   * Measured as the label's own line count rather than as a width, because the
+   * width the arithmetic predicts is the width in the font that loaded, and a
+   * fallback font is exactly the case this is a net for.
+   */
+  for (const width of [430, 375, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto(SHELL);
+
+    const items = page
+      .getByRole('navigation', { name: 'Main, compact', exact: true })
+      .locator('> *');
+
+    const heights = await items.evaluateAll((nodes) =>
+      nodes.map((n) => Math.round(n.getBoundingClientRect().height)),
+    );
+    expect(new Set(heights).size, `the bottom bar's cells disagree on height at ${width}px`).toBe(
+      1,
+    );
+
+    // Both halves are needed. `white-space: nowrap` means a label that does not
+    // fit overflows its cell instead of wrapping it, and an overflow leaves
+    // every cell the same height — so the heights above would say nothing.
+    const overflow = await items.evaluateAll((nodes) =>
+      nodes.map((n) => n.scrollWidth - n.clientWidth),
+    );
+    expect(overflow, `a bottom-bar label is wider than its cell at ${width}px`).toEqual(
+      overflow.map(() => 0),
+    );
+
+    // And the bar itself does not push the document sideways at that width.
+    const root = page.locator('html');
+    await expect
+      .poll(() => root.evaluate((el) => el.scrollWidth - el.clientWidth), {
+        message: `the document scrolls sideways at ${width}px`,
+      })
+      .toBe(0);
+  }
+});
+
+test('the avatar opens the four destinations that are not places to ride', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 800 });
+  await page.goto(SHELL);
+
+  const trigger = page.getByRole('button', { name: 'Your account and settings' });
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+  await trigger.click();
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+
+  for (const [name, href] of [
+    ['Your account', '/account'],
+    ['Coach / parent view', '/coach'],
+    ['Plans and pricing', '/plans'],
+    // Footer-only before this, underneath a scrolled page. The OSA codes ask
+    // for a reporting route that is easy to find (plan §6.1).
+    ['Report something', '/report'],
+  ] as const) {
+    await expect(menu.getByRole('menuitem', { name, exact: true })).toHaveAttribute('href', href);
+  }
+
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
 });
 
 test('every nav item whose screen exists is a real link', async ({ page }) => {

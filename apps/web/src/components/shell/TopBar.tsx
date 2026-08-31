@@ -1,12 +1,13 @@
 'use client';
 
-import { Avatar, Icon } from '@landit/ui-web';
+import { Icon } from '@landit/ui-web';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { Wordmark } from '@/components/site/Wordmark';
 import { ROUTES } from '@/lib/routes';
 
+import { AccountMenu } from './AccountMenu';
 import { TOP_NAV, isNavActive } from './nav';
 
 /**
@@ -42,15 +43,6 @@ export function TopBar({ rider }: { rider?: TopBarRider }) {
         <nav className="nav" aria-label="Main">
           {TOP_NAV.map((item) => {
             const active = isNavActive(item, pathname);
-            if (!item.href) {
-              // Not built yet (`lib/routes.ts`). Shown so the bar keeps its
-              // shape, but not a link and not a focus stop.
-              return (
-                <span key={item.id} aria-disabled="true">
-                  {item.label}
-                </span>
-              );
-            }
             return (
               <Link
                 key={item.id}
@@ -71,18 +63,10 @@ export function TopBar({ rider }: { rider?: TopBarRider }) {
                 <Icon name="flame" size={15} fill="var(--yellow)" />
                 {rider.streak}
               </span>
-              {/* The avatar is the way to the account, which is the only
-                  signed-in destination there is until T7 and T8 land. */}
-              <Link href={ROUTES.account} aria-label="Your account">
-                <Avatar
-                  avatarId={rider.avatarId}
-                  name={rider.name}
-                  size={34}
-                  ringWidth={2.5}
-                  ring="var(--paper)"
-                  title={rider.name}
-                />
-              </Link>
+              {/* The avatar opens the four destinations that are not places
+                  to ride — account, coach view, plans, report. On a phone this
+                  is the only way to any of them that is not the site footer. */}
+              <AccountMenu rider={rider} />
             </>
           ) : (
             <Link href={ROUTES.signIn} className="btn ghost sm">

@@ -417,4 +417,27 @@ test.describe('where to ride', () => {
     await page.getByRole('button', { name: '+ Add a spot' }).click();
     await expect(page.getByText(/Sign in and you can put one forward/i)).toBeVisible();
   });
+
+  test('the What’s on row is the way to events, which the bottom bar folds in here', async ({
+    page,
+  }) => {
+    /*
+     * Below 861px `.nav` is hidden and the bottom bar carries five sections
+     * rather than nine pages, so Spots and Events share one cell. That is only
+     * honest if each screen offers the other: highlighting a nav item is not
+     * navigation. Before this, Events had no entry on a phone at all.
+     */
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/spots');
+
+    const row = page.getByRole('navigation', { name: 'What’s on', exact: true });
+    await expect(row.getByRole('link', { name: 'Spots', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+
+    await row.getByRole('link', { name: 'Events', exact: true }).click();
+    await page.waitForURL('**/events');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('What’s coming up');
+  });
 });

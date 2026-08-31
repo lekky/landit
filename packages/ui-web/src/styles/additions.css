@@ -72,15 +72,8 @@ a.btn.ink:hover {
 }
 
 /* A nav item whose screen is not built yet. Present, but plainly not a link. */
-.nav span[aria-disabled],
-.mobnav span[aria-disabled] {
-  opacity: 0.45;
-  cursor: default;
-}
-
 @media (max-width: 860px) {
-  .mobnav a,
-  .mobnav span[aria-disabled] {
+  .mobnav a {
     background: none;
     border: none;
     padding: 10px 2px 13px;
@@ -96,9 +89,19 @@ a.btn.ink:hover {
     font-size: 10.5px;
     letter-spacing: 0.09em;
     text-transform: uppercase;
+    /*
+     * A label that wraps takes the row's height with it and pushes the icons
+     * out of line, so it may not. The bar went from five pages to five
+     * *sections* (`components/shell/nav.ts`) and "What's on" is the longest
+     * label any of them will carry: in Barlow Condensed at 10.5px with this
+     * tracking it measures about 58px against a 71px cell on a 375px phone,
+     * and about 60px of cell on a 320px one. It fits, narrowly — `nowrap` is
+     * what makes it fail visibly rather than silently if a later label does
+     * not, and `e2e/shell.spec.ts` measures the real thing at both widths.
+     */
+    white-space: nowrap;
   }
-  .mobnav a svg,
-  .mobnav span[aria-disabled] svg {
+  .mobnav a svg {
     width: 21px;
     height: 21px;
   }
@@ -228,4 +231,88 @@ a.btn.ink:hover {
   .sporttabs-compact .n {
     display: none;
   }
+}
+
+/*
+ * The section tab row (`components/shell/SectionTabs.tsx`).
+ *
+ * The bottom bar carries five sections rather than five pages, and two of them
+ * hold two screens each — Spots with Events, Progress with the sticker wall.
+ * Highlighting the bar is not navigation, so both screens in a pair carry this
+ * row and the other one is a tap away.
+ *
+ * It reuses `.sporttabs` / `.sporttab` because it *is* that control, but its
+ * tabs are links rather than buttons, which costs it three things the prototype
+ * never had to give an `<a>`: the label colour on hover (`a:hover` in
+ * `tokens.css` outranks `.sporttab` and would turn a tab pink), the underline,
+ * and the selected state. `Tabs` colours its own selected tab from a `color`
+ * prop — a sport's colour — and a section has no such colour, so the selected
+ * tab here is simply ink, like every other "this one" in the design.
+ */
+.sectiontabs a,
+.sectiontabs a:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+.sectiontabs a.on,
+.sectiontabs a.on:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/*
+ * The account menu behind the top bar's avatar
+ * (`components/shell/AccountMenu.tsx`).
+ *
+ * Account, coach view, plans and reporting are not places to ride, so they are
+ * not in either nav bar; before this they were reachable on a phone only from
+ * the site footer. The avatar was already in the top bar at every width and
+ * already meant "you", so it opens them.
+ *
+ * Drawn in the design's own language rather than a system menu: 3px ink
+ * keyline, hard offset shadow, zero radius. It sits above `.mobnav` (z-index
+ * 70) because the top bar is above the page and the sheet hangs off it.
+ */
+.accountmenu {
+  position: relative;
+  display: flex;
+}
+.accountmenu-trigger {
+  background: none;
+  border: none;
+  padding: 0;
+  display: flex;
+  cursor: pointer;
+}
+.accountmenu-sheet {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 80;
+  min-width: 208px;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: var(--sh);
+}
+.accountmenu-item,
+.accountmenu-item:hover {
+  display: block;
+  padding: 11px 14px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.accountmenu-item + .accountmenu-item {
+  border-top: 2px solid var(--ink);
+}
+.accountmenu-item:hover,
+.accountmenu-item:focus-visible {
+  background: var(--yellow);
 }

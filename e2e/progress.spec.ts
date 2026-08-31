@@ -136,3 +136,35 @@ test('the sport switch offers every sport Land The Trick ships', async ({ page }
   await expect(page.getByRole('tablist', { name: 'Progress by sport' })).toHaveCount(0);
   expect(SPORT_IDS.length).toBe(3);
 });
+
+test('the Progress row is the way to the sticker wall, which shares its cell', async ({ page }) => {
+  /*
+   * Progress and the sticker wall are one section in the bottom bar
+   * (`components/shell/nav.ts`): both are the rider's own record, and neither
+   * is worth a fifth of a five-cell bar on its own. The wall keeps a first-class
+   * entry on a phone through this row and through the dashboard's sticker count
+   * — what it lost is a cell, not a way in.
+   */
+  await newRider(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/progress');
+
+  const row = page.getByRole('navigation', { name: 'Progress', exact: true });
+  await expect(row.getByRole('link', { name: 'Progress', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+
+  await row.getByRole('link', { name: 'Stickers', exact: true }).click();
+  await page.waitForURL('**/stickers');
+
+  // And back again, so the fold is not a one-way door.
+  const wallRow = page.getByRole('navigation', { name: 'Progress', exact: true });
+  await expect(wallRow.getByRole('link', { name: 'Stickers', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  await wallRow.getByRole('link', { name: 'Progress', exact: true }).click();
+  await page.waitForURL('**/progress');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Where you’re at');
+});

@@ -13,6 +13,8 @@ import {
 } from '@landit/ui-web';
 import { useEffect, useRef, useState } from 'react';
 
+import { SectionTabs } from '@/components/shell/SectionTabs';
+import { PROGRESS_TABS } from '@/components/shell/nav';
 import { SportSwitch } from '@/components/shell/SportSwitch';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { useToast } from '@/providers/toast';
@@ -86,6 +88,8 @@ export function StickerWall({ view }: { view: StickerWallView }) {
 
   return (
     <div className={styles.page}>
+      <SectionTabs tabs={PROGRESS_TABS} label="Progress" />
+
       <SportSwitch note={(id) => notes.get(id) ?? ''} label="Sport" />
 
       <div className={styles.head}>

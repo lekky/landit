@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+
 import { defineConfig } from 'vitest/config';
 
 /**
@@ -14,8 +16,17 @@ import { defineConfig } from 'vitest/config';
  * components; a screen tested here is a screen tested twice, and the copy
  * decisions that matter are asserted against the rendered page in `e2e/`
  * (LESSONS §3a).
+ *
+ * The `@/` alias is resolved here so a test under `src/lib/` can reach a pure
+ * module that happens to live elsewhere in the tree — `components/shell/nav.ts`
+ * is arrays and one predicate, with no JSX in it. That is not a widening of the
+ * rule above: the rule is about screens, and the `include` glob that enforces
+ * it is untouched.
  */
 export default defineConfig({
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
   test: {
     name: '@landit/web',
     include: ['src/lib/**/*.test.ts'],

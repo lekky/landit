@@ -4,6 +4,8 @@ import type { PlanId, SportId } from '@landit/core';
 import { Bar, Panel, SectionHead, SkillNode, Tag } from '@landit/ui-web';
 
 import type { SportProgressView } from '@/app/(app)/progress/view';
+import { SectionTabs } from '@/components/shell/SectionTabs';
+import { PROGRESS_TABS } from '@/components/shell/nav';
 import { SportSwitch } from '@/components/shell/SportSwitch';
 import { trickHref } from '@/lib/routes';
 import { useSport } from '@/providers/sport';
@@ -48,6 +50,8 @@ export function ProgressScreen({
   if (!view) {
     return (
       <div className={styles.screen}>
+        <SectionTabs tabs={PROGRESS_TABS} label="Progress" />
+
         <div className={styles.headHold}>
           <span className="eyebrow">Progress</span>
           <h1 className={`d ${styles.head}`}>Where you&rsquo;re at</h1>
@@ -66,6 +70,8 @@ export function ProgressScreen({
 
   return (
     <div className={styles.screen}>
+      <SectionTabs tabs={PROGRESS_TABS} label="Progress" />
+
       <div className={styles.headHold}>
         <span className="eyebrow">Progress</span>
         <h1 className={`d ${styles.head}`}>Where you&rsquo;re at</h1>

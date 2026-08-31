@@ -191,8 +191,22 @@
 
 /* ------------------------------------------------------ challenge card --- */
 
-.challenge {
+/*
+ * An `<a>`, not a `<div>` — the card is the way into `/challenge`. `.panel` was
+ * only ever put on a block in the prototype, so the link needs its box back and
+ * a colour that survives `a:hover { color: var(--pink) }` in `tokens.css`, which
+ * outranks anything here and would otherwise turn the whole card's text pink
+ * (the same trap `a.btn` is patched for in `additions.css`).
+ */
+.challenge,
+.challenge:hover {
+  display: block;
   padding: 16px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.challenge:hover {
+  transform: translate(-1px, -1px);
 }
 
 .challengeHead {

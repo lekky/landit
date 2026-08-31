@@ -15,6 +15,8 @@ import { Button, Empty, Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web
 import Link from 'next/link';
 import { type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { SectionTabs } from '@/components/shell/SectionTabs';
+import { WHATS_ON_TABS } from '@/components/shell/nav';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { reportHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
@@ -227,6 +229,8 @@ export function SpotsScreen({
 
   return (
     <div>
+      <SectionTabs tabs={WHATS_ON_TABS} label="What’s on" />
+
       <div className={styles.head}>
         <div>
           <span className="eyebrow">Spots</span>

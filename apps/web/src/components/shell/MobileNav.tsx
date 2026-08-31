@@ -6,13 +6,17 @@ import { usePathname } from 'next/navigation';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 
-import { NAV, isNavActive } from './nav';
+import { MOBILE_NAV, isNavActive } from './nav';
 
 /**
- * The fixed bottom bar. Five items, no more: below 860px `.mobnav` is a
+ * The fixed bottom bar. Five items, no more: below 861px `.mobnav` is a
  * `repeat(5, 1fr)` grid and the design specifies five (handoff, Responsive).
  *
- * It is always in the DOM; the stylesheet is what shows it below 860px and
+ * It reads `MOBILE_NAV` rather than the top bar's list, because the five are
+ * sections rather than the first five pages — see `nav.ts` for why. Nothing
+ * here knows that; a section is just a nav item with more `alsoActiveFor`.
+ *
+ * It is always in the DOM; the stylesheet is what shows it below 861px and
  * hides `.nav` in the top bar. Keeping the decision in CSS means no layout
  * shift on load and no matchMedia in the shell.
  */
@@ -21,23 +25,8 @@ export function MobileNav() {
 
   return (
     <nav className="mobnav" aria-label="Main, compact">
-      {NAV.map((item) => {
+      {MOBILE_NAV.map((item) => {
         const active = isNavActive(item, pathname);
-        const inner = (
-          <>
-            <Icon name={item.icon} size={21} strokeWidth={2.2} />
-            {item.label}
-          </>
-        );
-
-        if (!item.href) {
-          // Not built yet (`lib/routes.ts`).
-          return (
-            <span key={item.id} aria-disabled="true">
-              {inner}
-            </span>
-          );
-        }
         return (
           <Link
             key={item.id}
@@ -48,7 +37,8 @@ export function MobileNav() {
             // `nav.ts`, while an href could one day carry a parameter.
             onClick={() => capture(ANALYTICS_EVENTS.navClicked, { to: item.id, where: 'mobile' })}
           >
-            {inner}
+            <Icon name={item.icon} size={21} strokeWidth={2.2} />
+            {item.label}
           </Link>
         );
       })}

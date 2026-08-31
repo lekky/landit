@@ -2,10 +2,12 @@
 
 import type { SportId } from '@landit/core';
 import { Avatar, Bar, Empty, Panel, SectionHead, StickerBadge, TrickCard } from '@landit/ui-web';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 
 import { SportSwitch } from '@/components/shell/SportSwitch';
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES, libraryHref, trickHref } from '@/lib/routes';
 import { useSport } from '@/providers/sport';
 
@@ -86,9 +88,22 @@ export function HomeScreen({ view }: { view: HomeView }) {
           <StreakCard streak={view.streak} />
 
           {current.challenge && (
-            <div
+            /*
+              The whole card is the way into `/challenge`, and on a phone it is
+              the *only* way: the bottom bar folds Challenge into Home rather
+              than spending one of five cells on it (`components/shell/nav.ts`),
+              so a card that only reported the week would leave the screen
+              behind it unreachable below 861px. A card rather than a button
+              because the target is the thing being described — a rider who
+              wants this week's challenge taps this week's challenge.
+            */
+            <Link
+              href={ROUTES.challenge}
               className={`panel ${styles.challenge}`}
               style={{ background: current.challenge.hue }}
+              onClick={() =>
+                capture(ANALYTICS_EVENTS.navClicked, { to: 'challenge', where: 'home-card' })
+              }
             >
               <div className={styles.challengeHead}>
                 <span className="tag" style={{ background: 'var(--ink)' }}>
@@ -102,7 +117,7 @@ export function HomeScreen({ view }: { view: HomeView }) {
               <div className="lab" style={{ marginTop: 7 }}>
                 {current.challenge.logged} of {current.challenge.goal} logged
               </div>
-            </div>
+            </Link>
           )}
         </div>
       </div>
