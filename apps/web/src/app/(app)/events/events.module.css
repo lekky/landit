@@ -61,6 +61,12 @@
   gap: 12px;
 }
 
+/* The "Nearest first" line. Same treatment as the spots list's count line,
+   because it does the same job: a quiet note about how the list is ordered. */
+.order {
+  color: var(--ink-3);
+}
+
 .row {
   padding: 0;
   display: flex;

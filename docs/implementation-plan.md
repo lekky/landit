@@ -688,8 +688,15 @@ Not all fifteen bite equally. These four change what gets built:
   there. What survives a visit is the *browser's* permission — the rider's own record, in their
   own settings — never a position of ours. The indicator is unchanged in both wording and
   placement, and is what keeps the resume honest: a rider whose list is sorted by distance is
-  told so, and can end it in one press, whichever way it started. `/events` keeps the press-only
-  behaviour; `useHereOnce` takes the resume as an option, so moving it is one argument.
+  told so, and can end it in one press, whichever way it started.
+
+  **Extended to `/events` the same day** (Rachid, 2026-08-30, in chat), on identical terms —
+  `useHereOnce` takes the resume as an option and both screens now pass it. The calendar owes
+  one thing `/spots` did not: a list of spots reordered by distance still reads as a list of
+  spots, but **a calendar in date order is a promise**, and distance order quietly breaks it.
+  So `/events` shows a "Nearest first" line above the list for exactly as long as a position is
+  held. On a resume the rider pressed nothing, and the location badge alone would tell them
+  their position is in use without telling them their calendar has been re-sorted.
 - **Standard 12, profiling.** The Legend insights panel (§2.4) derives suggestions from a rider's
   own history. That is defensible and in the rider's interest, but it is profiling: off by
   default, opt-in, and it never leaves the rider's own data.
@@ -1891,8 +1898,9 @@ a badge that carries its own "turn off", and gone on reload. It is `getCurrentPo
 `e2e/spots.spec.ts` replaces `navigator.geolocation` with a counter and asserts that nothing
 containing the position reaches `localStorage`, `sessionStorage` or a cookie.
 
-**The load-time resume (2026-08-30).** `/spots` passes `resumeWhenGranted` and so reads a position
-on mount where `navigator.permissions.query({ name: 'geolocation' })` already answers `granted`;
+**The load-time resume (2026-08-30).** `/spots` and `/events` pass `resumeWhenGranted` and so read
+a position on mount where `navigator.permissions.query({ name: 'geolocation' })` already answers
+`granted`;
 everywhere else — `prompt`, `denied`, a rejected or throwing query, no Permissions API — it does
 nothing and waits for the press, because on those browsers a speculative `getCurrentPosition` *is*
 the permission dialog. `geolocationPermission` in `apps/web/src/lib/useHereOnce.ts` is that whole
@@ -1902,8 +1910,14 @@ check and is the one part of the hook a unit test can reach without a browser
 and a second test grants one and asserts the screen opens nearest-first, shows the indicator, and
 still switches off for good on "Turn off" — a resume that ignored `forget()` would leave a rider
 unable to turn their location off at all. `nearby_sort_used` carries `source: 'pressed' |
-'resumed'` so there is evidence about whether the resume earns its place; the position is not a
-property of it and never may be.
+'resumed'` so there is evidence about whether the resume earns its place, and `screen: 'spots' |
+'events'` so the two lists' funnels do not merge; the position is not a property of it and never
+may be.
+
+`e2e/events.spec.ts` pins the same two facts on the calendar, signed out, plus the "Nearest first"
+line appearing and disappearing with the position. It asserts no ordering: the seeded events carry
+no coordinates, so the screen keeps them in date order by its own rule about events nobody has
+plotted.
 
 **T14 · Clips. ~~Built 2026-08-17 (PR #112).~~ REVERTED 2026-08-17 (PR: `chore-revert-clips`).**
 

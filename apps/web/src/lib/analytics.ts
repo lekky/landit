@@ -222,13 +222,16 @@ export const ANALYTICS_EVENTS = {
   /** The library's sport / category / tier filters. */
   libraryFiltered: 'library_filtered',
   /**
-   * The spots list went nearest-first, because a position is in hand.
+   * A list went nearest-first, because a position is in hand. Fired by both
+   * `/spots` and `/events`.
    *
-   * Carries `source` and nothing else: `'pressed'` when the rider pressed "Near
-   * me" on this visit, `'resumed'` when their browser was already granting it
-   * and the screen opened that way (§6.4 standard 10, as amended 2026-08-30).
-   * The distinction is the whole reason the event exists — it is the only way
-   * to tell whether the silent resume is doing anything for anybody.
+   * Carries `screen` (`'spots' | 'events'`) and `source`, and nothing else:
+   * `'pressed'` when the rider pressed for it on this visit, `'resumed'` when
+   * their browser was already granting it and the screen opened that way (§6.4
+   * standard 10, as amended 2026-08-30). That distinction is the whole reason
+   * the event exists — it is the only way to tell whether the silent resume is
+   * doing anything for anybody — and `screen` is what stops the two lists'
+   * funnels merging into one number that answers neither question.
    *
    * **The position itself is not a property and never may be.** A latitude and
    * longitude is the sharpest rider fact this product ever holds, it is the one
