@@ -33,7 +33,7 @@
  * nothing failing anywhere.
  */
 .panel {
-  --badge-w: 132px;
+  --badge-w: 158px;
 
   padding: 0;
   overflow: hidden;
@@ -80,7 +80,15 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  gap: 4px;
+}
+
+/* The tier as a word in its own right — "Rookie", not the tail of a label. */
+.difficultyTier {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink);
+  margin-bottom: 3px;
 }
 
 /* ------------------------------------------------------------- unlocked -- */
@@ -266,7 +274,7 @@
   display: none;
   background: var(--paper-2);
   border-bottom: 3px solid var(--ink);
-  padding: 14px 14px 14px calc(var(--badge-w) + 24px);
+  padding: 14px;
 }
 
 .awardStripEarned {
@@ -427,22 +435,47 @@
   background: var(--paper);
 }
 
-/* Passed: filled dot on cream. */
+/*
+ * The tick on a stage already behind the rider. Sized to the dot's box (15px
+ * plus the 2.5px ring it replaces) so swapping one for the other does not
+ * shuffle the labels underneath.
+ */
+.stepTick {
+  display: block;
+  width: 20px;
+  height: 20px;
+  margin: -2px 0 -3px;
+  color: var(--ink);
+}
+
+/* Passed: ticked, on cream. */
 .stepPast {
   background: var(--paper-2);
 }
 
-.stepPast .stepDot {
-  background: var(--ink);
-}
-
-/* Where the rider is now: hollow dot on sky. */
+/*
+ * Where the rider is now — lifted off the ladder rather than merely coloured.
+ *
+ * Everything else on this page casts a hard offset shadow to the bottom-right;
+ * the current stage is the one cell that should look like a physical thing
+ * sitting on top of the row, so it takes the shadow, a full border where the
+ * others have only a divider, and enough scale to break the ladder's line. The
+ * `z-index` is what puts it over its neighbours rather than under them.
+ */
 .stepNow {
   background: var(--sky);
+  position: relative;
+  z-index: 2;
+  transform: scale(1.09);
+  border: 2.5px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  font-size: 14px;
 }
 
 .stepNow .stepDot {
   background: var(--paper);
+  width: 17px;
+  height: 17px;
 }
 
 .step:hover:not(.stepNow) {
@@ -451,6 +484,14 @@
 
 .step:disabled {
   cursor: default;
+}
+
+/* The lift is decoration; a rider who has asked not to be moved keeps the
+   colour, the border and the shadow, and loses only the scale. */
+@media (prefers-reduced-motion: reduce) {
+  .stepNow {
+    transform: none;
+  }
 }
 
 /*
@@ -655,12 +696,28 @@
  */
 @media (max-width: 720px) {
   .panel {
-    --badge-w: 96px;
+    --badge-w: 112px;
   }
 
   .header {
-    padding: 14px 14px 22px;
+    padding: 14px 14px 16px;
     gap: 10px;
+  }
+
+  /*
+   * No overhang on a phone. The pack had the badge hanging into the cream
+   * strip with the copy set in beside it; the owner asked for that copy on the
+   * left edge (2026-08-31), and the two cannot both be there. The badge keeps
+   * its size and sits wholly in the hero instead — which also gives the strip
+   * the full width for the award name, the longest of which ("Land the
+   * Nose Manual") no longer wraps at 375px.
+   */
+  .badge {
+    margin-bottom: 0;
+  }
+
+  .difficultyTier {
+    font-size: 19px;
   }
 
   .name {

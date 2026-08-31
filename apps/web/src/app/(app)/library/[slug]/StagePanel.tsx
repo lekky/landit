@@ -1,7 +1,7 @@
 'use client';
 
 import { LANDED_STAGES, STAGE, STAGES, type StageId } from '@landit/core';
-import { Button, ShareCard } from '@landit/ui-web';
+import { Button, Icon, ShareCard } from '@landit/ui-web';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
@@ -143,7 +143,19 @@ export function StagePanel({
               className={`${styles.step}${past ? ` ${styles.stepPast}` : ''}${now ? ` ${styles.stepNow}` : ''}`}
               onClick={() => pick(s.id)}
             >
-              <span className={styles.stepDot} />
+              {/*
+                A tick on the stages already behind you, a ring on the one you
+                are at. The pack drew both as dots — a filled one for passed —
+                but a dot only says "not this one", where the tick says you did
+                it. It is also the mark this product already uses for landed:
+                the library grid and the prerequisite pills tick the same way,
+                so the ladder is not inventing a third vocabulary for it.
+              */}
+              {past ? (
+                <Icon name="check" size={17} strokeWidth={3.4} className={styles.stepTick} />
+              ) : (
+                <span className={styles.stepDot} />
+              )}
               {/* The short label: "Want", not "Want to learn". Five cells share
                   one row and the pack's ladder reads across in one line. Every
                   stage in `STAGES` carries one, so there is no fallback to

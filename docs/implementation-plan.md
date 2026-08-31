@@ -2676,6 +2676,28 @@ Decisions taken inside this task, each because the pack could not have known the
   carries `from: 'trick'`; `sticker_shared`, `note_saved` and the video-link pair cover the rest.
   The band and the badge are a rearrangement of counted actions, not new ones.
 
+**T26a · The band and the badge, after the owner looked at it.** Five changes asked for on
+2026-08-31 once T26 was on screen, all of them presentation and none of them behavioural:
+
+- **A tick, not a filled dot, on the stages already behind the rider.** The pack drew passed
+  stages as a solid dot, which only says "not this one" — the tick says you did it, which is what
+  the row is for. It is also the mark this product already uses for landed (the library grid and
+  the prerequisite pills), so the ladder is not inventing a third vocabulary.
+- **A bigger badge** — 132px to 158px on desktop, 96px to 112px on a phone. It is the page's hero
+  object and was being out-shouted by the trick's name beside it.
+- **The current stage is lifted, not just coloured.** Scale, a full ink border where the other
+  cells have only a divider, and the page's hard offset shadow, so the cell a rider is on reads as
+  a physical thing sitting on top of the ladder.
+- **The cream strip's copy is left-aligned on a phone**, and with it the badge stops overhanging
+  there. The pack had the badge hanging into that strip with the award name set in beside it; the
+  two cannot both have the left edge, and the owner chose the copy. The badge keeps its size and
+  sits wholly in the hero instead.
+- **"Difficulty" and the tier are stacked** rather than "Difficulty · Rookie" on one line. The
+  hero's right-hand column has height to spare at every width, and the tier is the half a rider
+  reads. Applied to the locked header too, so the two do not drift apart.
+
+No new analytics event: none of this adds a rider action.
+
 ### Dependency graph
 
 ```

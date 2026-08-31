@@ -349,10 +349,17 @@ export default async function TrickPage({ params }: Params) {
             <h1 className={`d ${styles.name}`}>{trick.name}</h1>
             {awardLine && <div className={`cond ${styles.awardLine}`}>{awardLine}</div>}
           </div>
+          {/*
+            Stacked rather than "Difficulty · Rookie" on one line (owner,
+            2026-08-31). The hero's right-hand column has height to spare at
+            every width, and the tier is the half a rider actually reads — on
+            one line it was the tail of a label, here it is a word.
+          */}
           <div className={styles.difficulty}>
             <div className="lab" style={{ color: 'var(--ink)' }}>
-              Difficulty · {TIERS_LABEL[trick.diff - 1]}
+              Difficulty
             </div>
+            <div className={`d ${styles.difficultyTier}`}>{TIERS_LABEL[trick.diff - 1]}</div>
             <Difficulty value={trick.diff} />
           </div>
         </div>
