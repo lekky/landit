@@ -1307,6 +1307,13 @@ one-colour print. Three things follow that a later session should not "fix" back
   chip 20.6px to 26.4px**. The small one is the layout-sensitive one — it is what a trick card
   carries — and at a 375px viewport no card overflows, no chip is clipped by its parent and the
   document does not scroll sideways.
+- **Six places render it, and a grep for `sport.icon` finds only one of them.** The full set is
+  `SportChip` and `Tabs` (both in `packages/ui-web/src/components/nav.tsx`, the second covering the
+  global sport switch, the sticker wall's tabs and `/design/shell`), the onboarding sport picker,
+  the account screen's sport picker, the trick page's "what you need" kit badge, and the icon grid
+  on `/design`. Four of those reach the icon name as `SPORT_LOOKS[id].icon` rather than
+  `sport.icon`, which is how the first pass of this work shipped half-converted and had to be
+  finished in a second PR. Grep for `.icon` and read the hits, not for a spelling of it.
 - **The supplied art carried a spray-paint splat behind each object, and it was cut off.** Keeping
   it would have put a coloured blur behind a 16px chip and fought the keyline. The cut is
   reproducible rather than hand-traced: the splat and the equipment share a hue by design, so it
