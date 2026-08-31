@@ -13,8 +13,9 @@ import {
 } from '@landit/core';
 import { Button, Empty, Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web';
 import Link from 'next/link';
-import { type MouseEvent, useCallback, useMemo, useRef, useState } from 'react';
+import { type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { reportHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { useSport } from '@/providers/sport';
@@ -55,11 +56,21 @@ const PAGE = 24;
  * idea of the selected spot there would be two, and they would disagree the
  * first time a filter removed the selected one from the list.
  *
- * **The rider's location is opt-in, per use, and never leaves this component**
- * (plan §6.4, standard 10). It is asked for on a press, held in React state,
- * shown while it is held, and dropped on the next navigation — there is no
- * `localStorage` write, no cookie, no field on `users`, and nothing about it is
- * sent to the server. See `useHereOnce`.
+ * **The rider's location never leaves this component** (plan §6.4, standard 10).
+ * It is held in React state, shown while it is held, and dropped on the next
+ * navigation — there is no `localStorage` write, no cookie, no field on `users`,
+ * and nothing about it is sent to the server. See `useHereOnce`.
+ *
+ * **This screen opens nearest-first when the browser already allows it**
+ * (Rachid, 2026-08-30, in chat; §6.4 standard 10 amended in the same change).
+ * `resumeWhenGranted` reads a position on load *only* where the Permissions API
+ * answers `granted` — a state the rider put their own browser into on an
+ * earlier press — so a rider who has said yes once is not made to say it again
+ * on every visit to find their nearest park. Where the answer is `prompt`,
+ * `denied`, or a browser that will not answer at all, **nothing happens**: no
+ * dialog is put in front of a child who did not ask for one, and the "Near me"
+ * control below is unchanged. The indicator and its "Turn off" are the same
+ * either way, which is what makes the resume defensible rather than quiet.
  */
 export function SpotsScreen({
   spots,
@@ -85,7 +96,28 @@ export function SpotsScreen({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
 
-  const here = useHereOnce();
+  const here = useHereOnce({ resumeWhenGranted: true });
+
+  /*
+   * Nearest-first happened — counted once per position held, not per render.
+   *
+   * `source` is what makes the number worth having: it separates the riders who
+   * pressed "Near me" on this visit from the ones a standing browser permission
+   * served silently, which is the only evidence there is that the resume earns
+   * its place. Nothing else travels. The position is not a property and never
+   * may be — it is the one rider fact §6.4 standard 10 says we do not keep, so
+   * an event carrying it would undo the screen it is measuring.
+   */
+  const counted = useRef(false);
+  useEffect(() => {
+    if (here.state !== 'on') {
+      counted.current = false;
+      return;
+    }
+    if (counted.current) return;
+    counted.current = true;
+    capture(ANALYTICS_EVENTS.nearbySortUsed, { source: here.resumed ? 'resumed' : 'pressed' });
+  }, [here.state, here.resumed]);
 
   const live = useMemo(() => spots.filter((spot) => spot.status === 'live'), [spots]);
   const mine = useMemo(() => spots.filter((spot) => spot.status === 'pending'), [spots]);

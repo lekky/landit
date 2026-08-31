@@ -221,6 +221,21 @@ export const ANALYTICS_EVENTS = {
   navClicked: 'nav_clicked',
   /** The library's sport / category / tier filters. */
   libraryFiltered: 'library_filtered',
+  /**
+   * The spots list went nearest-first, because a position is in hand.
+   *
+   * Carries `source` and nothing else: `'pressed'` when the rider pressed "Near
+   * me" on this visit, `'resumed'` when their browser was already granting it
+   * and the screen opened that way (§6.4 standard 10, as amended 2026-08-30).
+   * The distinction is the whole reason the event exists — it is the only way
+   * to tell whether the silent resume is doing anything for anybody.
+   *
+   * **The position itself is not a property and never may be.** A latitude and
+   * longitude is the sharpest rider fact this product ever holds, it is the one
+   * thing standard 10 says we do not keep, and the rule above ("catalogue
+   * facts, never rider facts") rules it out on its own.
+   */
+  nearbySortUsed: 'nearby_sort_used',
 } as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];

@@ -672,9 +672,24 @@ Not all fifteen bite equally. These four change what gets built:
   handed. The prototype defaults to `members`, and so did `DEFAULT_PRIVACY` in `packages/core`
   until 2026-08-16 (issue #20) — both read this sentence as satisfied by "not public". It is not.
   `members` stays a setting a rider may choose.
-- **Standard 10, geolocation.** Spots carry `lat`/`lng`. Location is off by default, there is a
-  visible indicator whenever it is on, and it never persists across sessions. We store the spot's
-  location, never the rider's.
+- **Standard 10, geolocation.** Spots carry `lat`/`lng`. There is a visible indicator whenever a
+  position is in hand, carrying its own way to switch it off; the position never persists across
+  sessions and never reaches the server. We store the spot's location, never the rider's.
+
+  **Amended 2026-08-30 (Rachid, in chat).** "Off by default" had been implemented as *asked for
+  on a press, on every single visit* — so a rider who had already told their browser yes, for
+  good, still had to press "Near me" every time they opened `/spots` to see their nearest park.
+  `/spots` now reads a position on load **only where the Permissions API already answers
+  `granted`**, which is a state nobody but the rider can put their own browser into, on an
+  earlier press of ours. Where the answer is `prompt`, `denied`, or a browser that will not
+  answer the question at all (Safari does not implement the query for geolocation), **nothing
+  happens**: no permission dialog is ever raised in front of a rider who did not press for one,
+  which is the behaviour this standard is actually aimed at, and the "Near me" control is still
+  there. What survives a visit is the *browser's* permission — the rider's own record, in their
+  own settings — never a position of ours. The indicator is unchanged in both wording and
+  placement, and is what keeps the resume honest: a rider whose list is sorted by distance is
+  told so, and can end it in one press, whichever way it started. `/events` keeps the press-only
+  behaviour; `useHereOnce` takes the resume as an option, so moving it is one argument.
 - **Standard 12, profiling.** The Legend insights panel (§2.4) derives suggestions from a rider's
   own history. That is defensible and in the rider's interest, but it is profiling: off by
   default, opt-in, and it never leaves the rider's own data.
@@ -1771,10 +1786,11 @@ paths, so wiring them is one line each.
 
 **T13 · Spots + map.** A basemap with every live spot plotted, styled to the design language;
 selection sync between list and map; spot submission (Maps-link or coordinate parsing) into the
-`pending` queue, rate-limited. Children's code standard 10 (§6.4): browser geolocation is off by
-default and opt-in per use, there is a visible indicator whenever it is live, it never persists
-across sessions, and the rider's own position is never stored — only the spot's. Inputs:
-`landit-screens-b.jsx`, screenshot 19.
+`pending` queue, rate-limited. Children's code standard 10 (§6.4): browser geolocation is never
+prompted for unless a rider presses for it, there is a visible indicator whenever it is live, it
+never persists across sessions, and the rider's own position is never stored — only the spot's.
+(The "opt-in per use" reading of that first clause was amended on 2026-08-30; see §6.4 and the
+note below.) Inputs: `landit-screens-b.jsx`, screenshot 19.
 
 Shipped, with four decisions recorded here because they diverge from the prototype or need the
 owner:
@@ -1869,12 +1885,25 @@ owner:
   notice and the phone number are the whole of the answer, which is thin, and a `hours` field is
   the obvious next move if riders ask for it.
 
-Standard 10 is implemented as `useHereOnce`: geolocation is asked for only on a press, held in
-component state, announced by a badge that carries its own "turn off", and gone on reload. It is
-`getCurrentPosition` and never `watchPosition` — a watch is a live tracking session held open on a
-child's device. `e2e/spots.spec.ts` replaces `navigator.geolocation` with a counter and asserts it
-is called zero times on load, and that nothing containing the position reaches `localStorage`,
-`sessionStorage` or a cookie.
+Standard 10 is implemented as `useHereOnce`: the position is held in component state, announced by
+a badge that carries its own "turn off", and gone on reload. It is `getCurrentPosition` and never
+`watchPosition` — a watch is a live tracking session held open on a child's device.
+`e2e/spots.spec.ts` replaces `navigator.geolocation` with a counter and asserts that nothing
+containing the position reaches `localStorage`, `sessionStorage` or a cookie.
+
+**The load-time resume (2026-08-30).** `/spots` passes `resumeWhenGranted` and so reads a position
+on mount where `navigator.permissions.query({ name: 'geolocation' })` already answers `granted`;
+everywhere else — `prompt`, `denied`, a rejected or throwing query, no Permissions API — it does
+nothing and waits for the press, because on those browsers a speculative `getCurrentPosition` *is*
+the permission dialog. `geolocationPermission` in `apps/web/src/lib/useHereOnce.ts` is that whole
+check and is the one part of the hook a unit test can reach without a browser
+(`useHereOnce.test.ts` covers the Safari cases CI's Chromium never produces). The counter test in
+`e2e/spots.spec.ts` still asserts **zero** calls on load in a context with no permission granted,
+and a second test grants one and asserts the screen opens nearest-first, shows the indicator, and
+still switches off for good on "Turn off" — a resume that ignored `forget()` would leave a rider
+unable to turn their location off at all. `nearby_sort_used` carries `source: 'pressed' |
+'resumed'` so there is evidence about whether the resume earns its place; the position is not a
+property of it and never may be.
 
 **T14 · Clips. ~~Built 2026-08-17 (PR #112).~~ REVERTED 2026-08-17 (PR: `chore-revert-clips`).**
 
