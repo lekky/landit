@@ -1799,7 +1799,7 @@ never persists across sessions, and the rider's own position is never stored —
 (The "opt-in per use" reading of that first clause was amended on 2026-08-30; see §6.4 and the
 note below.) Inputs: `landit-screens-b.jsx`, screenshot 19.
 
-Shipped, with four decisions recorded here because they diverge from the prototype or need the
+Shipped, with six decisions recorded here because they diverge from the prototype or need the
 owner:
 
 - **The map's style: a quiet base, the design language on top.** The palette is loud — hard
@@ -1822,6 +1822,35 @@ owner:
   now come from a service with no SLA rather than from an unset variable, so the fallback is
   still there and still exercised — an unreachable basemap gives one line of explanation, and
   the list, search, sport filter, selection and submission form are untouched by it.
+- **The sport switch is `SportSwitch`, not the prototype's "Switch to" pill** *(2026-08-31,
+  owner: "the show but doesn't work well it's mess and doesn't have bmx").* The prototype
+  (`landit-screens-b.jsx`) filtered this screen with three pills — "Good for {sport}", "Every
+  spot", and a "Switch to {other}" that resolved `sports.find(id => id !== sport)`. That is a
+  toggle at two sports and a **dead end at three**: with BMX in `SPORT_IDS`, a rider on Scooter
+  was offered Skate and BMX was unreachable from /spots in either direction, though the spot data
+  has been researched for BMX from the start. /spots was also the only sport-filtered screen in
+  the product without the tab row — home, library, events, stickers, challenge and progress all
+  use `SportSwitch`, which renders one tab per `SPORT_IDS` entry and grows a fourth on its own.
+  The two "Show" pills stay; the third is gone. A **deliberate divergence from the prototype**,
+  recorded here because the prototype is the behavioural spec: it was written when there were two
+  sports and was correct for exactly that long.
+- **There is no satellite view, and the toggle is what could be given instead** *(owner asked for
+  satellite 2026-08-31 and chose this over paid imagery, in chat).* Every satellite layer with
+  usable coverage is somebody's licensed product. Esri's key-free `World_Imagery` endpoint works
+  without an account and its terms exclude commercial use without an ArcGIS licence —
+  landthetrick.com takes money, so that is a licence broken, not a corner cut. MapTiler and
+  Mapbox would sell us imagery, and the price is exactly what dropping Mapbox bought: a key back
+  in the build and in Coolify, a card, and **a third party learning which spots a child looks
+  at** (§1, §6.4). Self-hosting planet imagery is terabytes on a shared box. So the map gains a
+  **Plain / Detail** toggle over the canvas instead, swapping OpenFreeMap's `positron` for its
+  full-detail `liberty` — building footprints, car parks, footpaths and the
+  `leisure=pitch` / `sport=skateboard` polygons that are the park itself. Same host, same
+  attribution, no key, no card, no new third party, no new cost. It answers the question under
+  the ask ("what does this place actually look like?") and not the ask itself, which is stated
+  here so nobody later reads the toggle as satellite having been done. `MAP_STYLES` in
+  `apps/web/src/lib/map.ts` is where a licensed imagery layer would be added if that decision is
+  ever taken. The toggle lives inside `SpotMap` so it disappears with a map that could not be
+  drawn.
 - **A submitted spot must carry coordinates.** The prototype's form accepted a name and a town
   with no location; this one does not. A spot with no point cannot appear on a map whose whole
   job is plotting them, and a reviewer handed "Rampworx, Liverpool" has nothing to check but a

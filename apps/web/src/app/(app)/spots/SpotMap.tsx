@@ -5,14 +5,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   MAP_ATTRIBUTION,
-  MAP_BASE_STYLE,
   MAP_DEFAULT_CENTRE,
+  MAP_DEFAULT_STYLE,
   MAP_DEFAULT_ZOOM,
+  MAP_STYLES,
   MAP_WORKER_URL,
   describeMapError,
   isTileScopedMapError,
   type MapErrorEvent,
+  type MapStyleId,
 } from '@/lib/map';
+
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 
 import styles from './spots.module.css';
 
@@ -77,6 +81,35 @@ export function SpotMap({
   const container = useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = useState(false);
 
+  /*
+   * Which ground the map is drawn on — see `MAP_STYLES` for what the two are
+   * and why there is no satellite one.
+   *
+   * **Held here rather than by the screen, so it dies with the map.** When
+   * tiles cannot be reached this component returns the placeholder instead of a
+   * canvas, and a toggle owned by `SpotsScreen` would go on offering a choice
+   * of grounds for a map that is not there — the same defect issue #220 records
+   * for the panel's other promises. Rendered inside the canvas branch, it
+   * cannot outlive it.
+   *
+   * Deliberately not persisted. It is a way of looking at one spot for a
+   * moment, not a preference, and `localStorage` on this screen is a thing to
+   * add on purpose rather than by habit.
+   */
+  const [styleId, setStyleId] = useState<MapStyleId>(MAP_DEFAULT_STYLE);
+
+  /*
+   * What the *map instance* was last told to draw, which is not the same thing
+   * as `styleId`.
+   *
+   * The build effect below runs once, and it runs `await import()` first — so a
+   * rider who presses the toggle inside that window would otherwise have their
+   * choice overwritten by the initial style a moment later. Reading the ref at
+   * construction means the map is built on whatever is current by then, and the
+   * effect that follows sees the two already agree and does nothing.
+   */
+  const drawn = useRef<MapStyleId>(MAP_DEFAULT_STYLE);
+
   // The imperative half lives in one ref-holding object so the effects below
   // stay readable. `any` because the module is only ever loaded inside an
   // effect — importing its types at the top would pull maplibre-gl into every
@@ -105,7 +138,7 @@ export function SpotMap({
 
         const instance = new maplibregl.Map({
           container: node,
-          style: MAP_BASE_STYLE,
+          style: MAP_STYLES[drawn.current].url,
           center: [MAP_DEFAULT_CENTRE.lng, MAP_DEFAULT_CENTRE.lat],
           zoom: MAP_DEFAULT_ZOOM,
           // Nothing on this map is worth a 3D tilt, and a child dragging a
@@ -221,6 +254,27 @@ export function SpotMap({
   }, [here, withMap]);
 
   /*
+   * Carry a ground change into the map.
+   *
+   * **The markers do not need redrawing, and that is not luck.** Both the spot
+   * pins and the rider's dot are `Marker`s — absolutely-positioned DOM elements
+   * MapLibre keeps outside the canvas and moves on every camera event — so a
+   * style swap replaces the tiles under them and leaves them, their selection
+   * state and the camera exactly where they were. Anything drawn *as a layer*
+   * would have to be re-added on `styledata`; nothing here is.
+   *
+   * The `drawn` guard is what makes this a no-op on mount: the map was built on
+   * `drawn.current` a few lines up, so the first run has nothing to do rather
+   * than throwing a second style fetch at OpenFreeMap for the one already on
+   * screen.
+   */
+  useEffect(() => {
+    if (drawn.current === styleId) return;
+    drawn.current = styleId;
+    withMap((map) => map.instance.setStyle(MAP_STYLES[styleId].url));
+  }, [styleId, withMap]);
+
+  /*
    * Tear the map down when it fails, before the placeholder replaces it.
    *
    * Without this the fallback is a lie you can see: React reconciles the two
@@ -249,13 +303,47 @@ export function SpotMap({
   }
 
   return (
-    <div
-      key="canvas"
-      ref={container}
-      className={styles.mapCanvas}
-      aria-label="Map of spots"
-      role="group"
-    />
+    <div key="canvas" className={styles.mapStage}>
+      <div ref={container} className={styles.mapCanvas} aria-label="Map of spots" role="group" />
+
+      {/*
+        Plain or Detail, over the canvas rather than in the panel's header bar.
+
+        **It sits on the map because it is about the map**, and because the
+        header already carries the selected spot's name and its "Open in Maps"
+        link — a third control there wraps onto its own line at the panel's real
+        width. Top-left is the one corner MapLibre leaves alone: its zoom
+        buttons are top-right and the attribution is bottom-right, and neither
+        may be moved to make room (the credit is a condition of use).
+
+        A radio group, not two toggles: these are two ways of drawing one map,
+        exactly one is true at a time, and `aria-checked` says which — which is
+        also what a keyboard rider needs to hear when they arrive on it.
+      */}
+      <div className={styles.ground} role="radiogroup" aria-label="Map detail">
+        {Object.values(MAP_STYLES).map((option) => {
+          const on = option.id === styleId;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              className={`${styles.groundButton} ${on ? styles.groundButtonOn : ''}`}
+              onClick={() => {
+                if (on) return;
+                // Which ground, and nothing else. A style id is one of two fixed
+                // strings and the same for everybody — no spot, no position.
+                capture(ANALYTICS_EVENTS.spotsMapGround, { ground: option.id });
+                setStyleId(option.id);
+              }}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

@@ -239,6 +239,19 @@ export const ANALYTICS_EVENTS = {
    * facts, never rider facts") rules it out on its own.
    */
   nearbySortUsed: 'nearby_sort_used',
+  /**
+   * The spots map was switched between its two grounds.
+   *
+   * Carries `ground` — `'plain'` or `'detail'`, two fixed strings that describe
+   * the basemap and nobody in particular. Never which spot was on screen when
+   * it was pressed, and never a position.
+   *
+   * It exists to answer the question that made the toggle: riders asked for
+   * satellite, this is the answer we could give without putting a paid tile
+   * vendor in a child's request path (`MAP_STYLES`), and if nobody ever presses
+   * it that is the evidence the real ask was imagery after all.
+   */
+  spotsMapGround: 'spots_map_ground',
 } as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];

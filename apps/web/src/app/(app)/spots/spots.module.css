@@ -374,10 +374,73 @@
   letter-spacing: 0.05em;
 }
 
+/*
+ * The canvas and the ground toggle that sits over it, in one positioned box.
+ *
+ * `mapCanvas` used to be the panel's flex child directly; this takes that job
+ * so the toggle has something to be absolute against. MapLibre measures the
+ * element it is handed, so the canvas still has to fill this on its own — hence
+ * both boxes carry the height, not just the outer one.
+ */
+.mapStage {
+  position: relative;
+  flex: 1;
+  min-height: 320px;
+  display: flex;
+}
+
 .mapCanvas {
   flex: 1;
   min-height: 320px;
   width: 100%;
+}
+
+/*
+ * Plain / Detail. The one corner MapLibre leaves free — zoom is top-right and
+ * the attribution is bottom-right, and the credit may not be moved.
+ *
+ * `z-index: 1` puts it over the canvas and under nothing else: the pins are
+ * markers in MapLibre's own overlay above this, which is the right way round.
+ * A selected pin should never end up behind a control.
+ */
+.ground {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  display: flex;
+  border: 3px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  background: var(--paper);
+}
+
+.groundButton {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 5px 11px;
+  cursor: pointer;
+  color: var(--ink-2);
+  font-family: var(--fc);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  line-height: 1.6;
+}
+
+.groundButton + .groundButton {
+  border-left: 3px solid var(--ink);
+}
+
+.groundButton:focus-visible {
+  outline: 3px solid var(--violet);
+  outline-offset: 2px;
+}
+
+.groundButtonOn {
+  background: var(--ink);
+  color: var(--paper);
 }
 
 .mapPlaceholder {

@@ -30,6 +30,56 @@
  */
 export const MAP_BASE_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
+/* --------------------------------------------------- the two ground views -- */
+
+/**
+ * The two basemaps a rider can switch between, and why it is these two.
+ *
+ * **The ask was "can the map have a satellite view?" (owner, 2026-08-31).** It
+ * cannot, not on the terms §1 set. Every satellite layer with usable coverage
+ * is somebody's licensed product: Esri's key-free `World_Imagery` endpoint is
+ * the one that works without an account, and its terms of use exclude
+ * commercial use without an ArcGIS licence — landthetrick.com takes money, so
+ * that is a licence we would be breaking, not a corner we would be cutting.
+ * MapTiler and Mapbox sell imagery and would sell it to us, but the price is
+ * the thing dropping Mapbox bought: an API key back in the build and in
+ * Coolify, a card, and **a third party learning which spots a child looks at**
+ * (§1, §6.4). Self-hosting planet imagery is terabytes on a box that also runs
+ * somebody else's products.
+ *
+ * **So this answers the question underneath it instead** (owner chose this
+ * over paid imagery, 2026-08-31, in chat). A rider asking for satellite is
+ * asking "what does this place actually look like — where is the bowl, where do
+ * I park, is it inside a leisure centre?". `liberty` is OpenFreeMap's
+ * full-detail style and it draws exactly that from OpenStreetMap: building
+ * footprints, car parks, footpaths, and the `leisure=pitch` / `sport=skateboard`
+ * polygons that are the skatepark itself. It is the same host, the same
+ * attribution, no key, no card, no new third party and no new cost — one extra
+ * style fetch, on a map that is already loaded.
+ *
+ * `positron` stays the default because the markers are loud by design and a
+ * quiet ground is what lets a rider read which pin is theirs. Detail is the
+ * thing you switch to when you have found the spot and want to look at it.
+ */
+export const MAP_STYLES = {
+  plain: {
+    id: 'plain',
+    /** What the rider reads on the toggle. */
+    label: 'Plain',
+    url: MAP_BASE_STYLE,
+  },
+  detail: {
+    id: 'detail',
+    label: 'Detail',
+    url: 'https://tiles.openfreemap.org/styles/liberty',
+  },
+} as const;
+
+export type MapStyleId = keyof typeof MAP_STYLES;
+
+/** The ground the map opens on. */
+export const MAP_DEFAULT_STYLE: MapStyleId = 'plain';
+
 /**
  * Credit that is a condition of use, not a styling choice.
  *

@@ -243,6 +243,7 @@ describe('the event catalogue', () => {
         'signed_out',
         'signed_up',
         'spot_submitted',
+        'spots_map_ground',
         'sport_switched',
         'sticker_earned',
         'sticker_shared',

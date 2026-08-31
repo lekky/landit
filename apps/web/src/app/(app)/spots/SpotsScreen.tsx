@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { SectionTabs } from '@/components/shell/SectionTabs';
+import { SportSwitch } from '@/components/shell/SportSwitch';
 import { WHATS_ON_TABS } from '@/components/shell/nav';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { reportHref } from '@/lib/routes';
@@ -91,7 +92,7 @@ export function SpotsScreen({
    */
   readonly homeCountry?: string | null;
 }) {
-  const { sports, sport, setSport } = useSport();
+  const { sports, sport } = useSport();
 
   const [search, setSearch] = useState('');
   const [everySport, setEverySport] = useState(false);
@@ -224,12 +225,49 @@ export function SpotsScreen({
     [select],
   );
 
-  const otherSport = sports.find((id) => id !== sport);
+  /*
+   * How many live spots each sport has, for the tab row's note.
+   *
+   * Counted over every live spot rather than the filtered list: the note answers
+   * "is it worth switching to BMX?", and a count that shrank as you typed a
+   * search would answer a question nobody asked.
+   */
+  const countBySport = useMemo(() => {
+    const counts = new Map<SportId, number>();
+    for (const spot of live) {
+      for (const id of spot.sports) counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    return counts;
+  }, [live]);
+
+  const sportNote = useCallback(
+    (id: SportId) => `${countBySport.get(id) ?? 0} spots`,
+    [countBySport],
+  );
+
   const pendingCount = mine.length;
 
   return (
     <div>
       <SectionTabs tabs={WHATS_ON_TABS} label="What’s on" />
+
+      {/*
+        The sport tabs, which this screen did without until BMX landed.
+
+        **It used to roll its own switch and could only ever reach two sports.**
+        A "Switch to {other}" pill picked `sports.find(id => id !== sport)` — the
+        *first* sport that was not the current one — so a rider on Scooter was
+        offered Skate and BMX was unreachable from this screen entirely, in
+        either direction. That pill is the prototype's (`landit-screens-b.jsx`),
+        written when there were two sports and correct for exactly that long.
+
+        This is `SportSwitch`, the same component every other sport-filtered
+        screen already uses (home, library, events, stickers, challenge,
+        progress), so /spots stops being the one screen that switches sport
+        differently from the rest of the product — and it grows a fourth tab on
+        its own if a fourth sport is ever added.
+      */}
+      <SportSwitch note={sportNote} label="Spots by sport" />
 
       <div className={styles.head}>
         <div>
@@ -280,10 +318,6 @@ export function SpotsScreen({
         <Pill on={everySport} onClick={() => setEverySport(true)}>
           Every spot
         </Pill>
-        {otherSport && !everySport && (
-          <Pill onClick={() => setSport(otherSport)}>Switch to {SPORTS[otherSport].short}</Pill>
-        )}
-
         <span className={styles.spacer} />
 
         {/*

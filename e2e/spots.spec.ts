@@ -1,4 +1,4 @@
-import { SPOTS, sortSpotsByDistance, type Spot } from '@landit/core';
+import { SPORT_IDS, SPOTS, sortSpotsByDistance, type Spot } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
 /*
@@ -53,6 +53,15 @@ const liveSpots: readonly Spot[] = SPOTS.filter((spot) => spot.status === 'live'
 const scooterSpot = liveSpots.find((spot) => spot.sports.includes('scooter'))!;
 const skateOnlySpot = liveSpots.find(
   (spot) => spot.sports.includes('skate') && !spot.sports.includes('scooter'),
+)!;
+/*
+ * A park that takes BMX and not scooters, which is the pair the tab row has to
+ * be able to tell apart. Plenty of parks ban BMX for pegs and plenty ban
+ * scooters outright, so both of these are real and researched — see the note on
+ * `SPOTS`.
+ */
+const bmxNotScooterSpot = liveSpots.find(
+  (spot) => spot.sports.includes('bmx') && !spot.sports.includes('scooter'),
 )!;
 
 /**
@@ -154,7 +163,14 @@ test.describe('where to ride', () => {
     // The count is the claim about the whole collection; the cards below it are
     // one page of that. Asserting the count is what proves the seed landed —
     // asserting three particular cards only proved they sorted early.
-    await expect(page.getByText(`${liveSpots.length} spots`, { exact: false })).toBeVisible();
+    //
+    // Scoped to the count line rather than the page, because the sport tabs
+    // now carry counts of their own and "98 spots" is briefly true of both the
+    // whole list and the Skateboard tab. An unscoped match found two elements
+    // and failed on strict mode, which is the locator doing its job.
+    await expect(page.locator('[class*="count"]')).toHaveText(
+      new RegExp(`${liveSpots.length} spots`),
+    );
 
     // And each of them is reachable, which is the promise that matters.
     for (const spot of liveSpots.slice(0, 3)) {
@@ -177,6 +193,40 @@ test.describe('where to ride', () => {
 
     await page.getByRole('button', { name: /Show \d+ more/ }).click();
     await expect.poll(() => cards.count()).toBeGreaterThan(first);
+  });
+
+  test('offers every sport, BMX included', async ({ page }) => {
+    /*
+     * The defect this pins (owner, 2026-08-31: "doesn't have bmx").
+     *
+     * This screen used to roll its own sport switch — a single "Switch to
+     * {other}" pill that picked the first sport that was not the current one.
+     * At two sports that is a toggle; at three it is a dead end, and BMX was
+     * the sport it could never reach. Counting the tabs rather than naming
+     * them is deliberate: a fourth sport should move this assertion, not slip
+     * past it.
+     */
+    await page.goto('/spots');
+    const row = page.getByRole('tablist', { name: 'Spots by sport' });
+    await expect(row.getByRole('tab')).toHaveCount(SPORT_IDS.length);
+
+    // `whenInteractive` is the hydration gate the rest of this file uses, and
+    // it leaves "Every spot" on — which is the filter this test is about, so
+    // it goes straight back off again.
+    await whenInteractive(page);
+    const bmx = row.getByRole('tab', { name: /BMX/ });
+    await bmx.click();
+    await expect(bmx).toHaveAttribute('aria-selected', 'true');
+    await page.getByRole('button', { name: /^Good for/ }).click();
+
+    // And it is a real filter, not a tab that only highlights: a park that
+    // takes BMX and bans scooters is on the list under BMX and gone under
+    // Scooter.
+    await page.getByLabel('Search spots').fill(bmxNotScooterSpot.name);
+    await expect(card(page, bmxNotScooterSpot.name)).toBeVisible();
+
+    await row.getByRole('tab', { name: /Scooter/ }).click();
+    await expect(page.getByText(bmxNotScooterSpot.name, { exact: true })).toHaveCount(0);
   });
 
   test('narrows the list by search and by sport', async ({ page }) => {
