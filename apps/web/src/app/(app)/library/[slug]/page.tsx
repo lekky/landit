@@ -50,7 +50,7 @@ import { ROUTES, trickHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { anonymousClient, currentRider } from '@/lib/session';
 
-import { AwardPanel } from './AwardPanel';
+import { AwardBadge } from './AwardBadge';
 import { LockedTrick } from './LockedTrick';
 import { NotesPanel } from './NotesPanel';
 import { StagePanel, type TrickShareView } from './StagePanel';
@@ -308,6 +308,17 @@ export default async function TrickPage({ params }: Params) {
   const unlocked = isTrickUnlocked(trick, byId);
   const stage = byId[trick.id] ?? null;
 
+  /*
+   * The award line, in two places that are never both on screen: the hero
+   * subline above the breakpoint, the cream strip below it. `cond` is staff
+   * copy — "Land the Tailwhip" — so a retune reaches this the way it reaches
+   * the sticker wall, which is why it is read rather than written out here
+   * (LESSONS §4). The award's *name* would be no use: every trick award is
+   * named after its trick, and the name is already the heading above it and
+   * lettered across the badge beside it.
+   */
+  const awardLine = data.award ? `The award · ${data.award.cond}` : null;
+
   return (
     <div>
       <Link className={`cond ${styles.back}`} href={ROUTES.library}>
@@ -316,12 +327,27 @@ export default async function TrickPage({ params }: Params) {
 
       <Panel className={styles.panel}>
         <div className={styles.header} style={{ background: category.color }}>
+          {/*
+            The badge overhangs the band below it. Nothing at all when the
+            trick has no live award — a trick staff add tomorrow has none until
+            one is seeded, and a hero missing a badge reads better than one
+            holding a box that explains its own emptiness.
+          */}
+          {data.award?.img && (
+            <AwardBadge
+              name={data.award.name}
+              img={data.award.img}
+              earned={data.awardEarnedLabel !== null}
+            />
+          )}
+
           <div style={{ minWidth: 0 }}>
             <div className={styles.headerTags}>
               <Tag color="var(--ink)">{categoryLabel(trick.cat, trick.sport)}</Tag>
               <SportChip sport={SPORT_LOOKS[trick.sport]} />
             </div>
             <h1 className={`d ${styles.name}`}>{trick.name}</h1>
+            {awardLine && <div className={`cond ${styles.awardLine}`}>{awardLine}</div>}
           </div>
           <div className={styles.difficulty}>
             <div className="lab" style={{ color: 'var(--ink)' }}>
@@ -331,29 +357,42 @@ export default async function TrickPage({ params }: Params) {
           </div>
         </div>
 
+        {/* Phone only (see `.awardStrip`): where the badge overhangs instead,
+            so the ladder below can have the full width of the screen. */}
+        {awardLine && (
+          <div className={styles.awardStrip}>
+            <div className="cond">{data.award?.cond}</div>
+            {data.awardEarnedLabel && (
+              <div className={`lab ${styles.awardStripEarned}`}>{data.awardEarnedLabel}</div>
+            )}
+          </div>
+        )}
+
+        {session ? (
+          <StagePanel
+            trickId={record.id}
+            slug={trick.id}
+            stage={stage}
+            landedLabel={landedLabel}
+            share={data.share}
+          />
+        ) : (
+          /* The same band, with the one thing a visitor can do in it. The page
+             keeps its shape signed out — the loudest strip on it does not
+             quietly disappear for someone who has not signed in yet. */
+          <div className={styles.band}>
+            <div className={styles.bandHead}>
+              <span className={`lab ${styles.bandTitle}`}>Can you do it?</span>
+            </div>
+            <p className={styles.signIn}>
+              <Link href={ROUTES.signIn}>Sign in</Link> to mark this one off — every trick you land
+              is kept, and only you can see it.
+            </p>
+          </div>
+        )}
+
         <div className={styles.grid}>
           <div className={styles.column}>
-            {/*
-              Where the design pack put a photo placeholder (screenshot 09).
-              Nothing at all when the trick has no live award — a trick staff
-              add tomorrow has none until one is seeded, and an empty column
-              reads better than a box explaining its own emptiness.
-            */}
-            {data.award && (
-              <AwardPanel
-                award={{
-                  name: data.award.name,
-                  hue: data.award.hue,
-                  icon: data.award.ico || null,
-                  img: data.award.img || null,
-                  cond: data.award.cond,
-                  n: data.award.n || null,
-                }}
-                earnedLabel={data.awardEarnedLabel}
-                accent={category.color}
-              />
-            )}
-
             <div>
               <div className={`lab ${styles.sectionLabel}`} style={{ color: category.color }}>
                 ◆ The lowdown
@@ -389,46 +428,13 @@ export default async function TrickPage({ params }: Params) {
               </span>
               <p className={styles.factBody}>{trick.fact}</p>
             </div>
-          </div>
-
-          <div className={styles.column}>
-            {session ? (
-              <StagePanel
-                trickId={record.id}
-                slug={trick.id}
-                stage={stage}
-                landedLabel={landedLabel}
-                share={data.share}
-              />
-            ) : (
-              <Panel flat className={styles.stagePanel}>
-                <div className="lab">Can you do it?</div>
-                <p className={styles.signIn}>
-                  <Link href={ROUTES.signIn}>Sign in</Link> to mark this one off — every trick you
-                  land is kept, and only you can see it.
-                </p>
-              </Panel>
-            )}
 
             {/*
-              Video links (T15b). Signed-in only: `clips` has no rule arm a
-              guest can match, so there is nothing to draw for one and no
-              "sign in to see videos" tease either — the trick page never
-              suggests a rider has videos on it.
+              What this trick is built on and what it opens up. Under the copy
+              rather than beside the videos, which is where the pack puts it:
+              these are links onward, and the end of the reading column is
+              where a rider is ready for them.
             */}
-            {session && (
-              <VideosPanel
-                trickId={record.id}
-                slug={trick.id}
-                trickName={trick.name}
-                initial={data.videos}
-                allowance={data.allowance}
-                heldTotal={data.heldTotal}
-              />
-            )}
-
-            {session && <NotesPanel trickId={record.id} slug={trick.id} initial={note} />}
-
             {(prereqs.length > 0 || unlocks.length > 0) && (
               <Panel flat className={styles.sidePanel}>
                 {prereqs.length > 0 && (
@@ -453,19 +459,23 @@ export default async function TrickPage({ params }: Params) {
                 )}
                 {unlocks.length > 0 && (
                   <>
+                    {/* "You unlocked" once it is landed, which is the pack's
+                        wording and the honest tense for it. */}
                     <div className={`lab ${prereqs.length ? styles.unlocksLabel : ''}`}>
-                      Land this and you unlock
+                      {isTrickLanded(byId, trick.id) ? 'You unlocked' : 'Land this and you unlock'}
                     </div>
                     <div className={styles.pillRow}>
                       {unlocks.map((next) => {
                         const locked = isTrickLocked(next, plan);
+                        const landed = isTrickLanded(byId, next.id);
                         return (
                           <Link
                             key={next.id}
                             href={trickHref(next.id)}
-                            className={`pill ${styles.pillLink}${locked ? ` ${styles.pillLocked}` : ''}`}
+                            className={`pill ${styles.pillLink}${locked ? ` ${styles.pillLocked}` : ''}${landed ? ` ${styles.pillLanded}` : ''}`}
                           >
                             {locked && <Icon name="lock" size={11} strokeWidth={2.8} />}
+                            {landed && <Icon name="check" size={12} strokeWidth={3} />}
                             {next.name}
                           </Link>
                         );
@@ -475,6 +485,27 @@ export default async function TrickPage({ params }: Params) {
                 )}
               </Panel>
             )}
+          </div>
+
+          <div className={styles.column}>
+            {/*
+              Video links (T15b). Signed-in only: `clips` has no rule arm a
+              guest can match, so there is nothing to draw for one and no
+              "sign in to see videos" tease either — the trick page never
+              suggests a rider has videos on it.
+            */}
+            {session && (
+              <VideosPanel
+                trickId={record.id}
+                slug={trick.id}
+                trickName={trick.name}
+                initial={data.videos}
+                allowance={data.allowance}
+                heldTotal={data.heldTotal}
+              />
+            )}
+
+            {session && <NotesPanel trickId={record.id} slug={trick.id} initial={note} />}
           </div>
         </div>
       </Panel>

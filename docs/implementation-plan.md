@@ -2617,6 +2617,65 @@ gets its badge from the same seed rather than waiting on a photographer.
 `design-handoff/README.md` is left as delivered — it is the record of what the designer handed
 over, not a to-do list — and this paragraph is what supersedes its two photography lines.
 
+**T26 · The trick page, award-led.** A **second design pack for this one screen**, handed over by
+the owner on 2026-08-31 (committed at `design-handoff/trick-page/`, "Alt A — award-led hero"): four HTML
+references, four screenshots and a token table, at the same high fidelity as the original handoff.
+It arrived eleven hours after T25 merged and it moves what T25 had just placed, so the two are
+reconciled here rather than left to be read as a contradiction.
+
+Two things change for a rider, and the pack's argument for each is worth keeping:
+
+- **The award moves into the hero, and is never greyed out.** T25 put the badge in the left column
+  and greyed it until earned, carrying over the sticker wall's treatment. The pack reverses both:
+  the badge sits in the hero overhanging the band below it, in full colour whether or not it is
+  held, with the state carried by a mark laid *over* it — a red graffiti **LANDED** stamp when
+  earned, a dashed grey **NOT YET** in the same position when not. The reasoning is that the colour
+  is the thing being offered, and a desaturated badge reads as a page that failed to load rather
+  than as a thing left to go and get. That is the same argument T25 made when it dropped the wall's
+  45% fade; this carries it the rest of the way. **T25's superseded lines are its second and third
+  bullets** (the locked treatment, and showing the condition instead of the name — the condition
+  now runs as the hero's subline, "The award · Land the Tic Tac"). Everything else T25 decided
+  stands, and one of its rules is load-bearing here: **earned is still read from `rider_stickers`
+  and never derived in the page.**
+- **"Can you do it?" becomes a black band across the full width, directly under the hero.** It was
+  a panel third in the right-hand column. It is the only thing on this page a rider actually does —
+  the rest is copy to read and links to follow — and the pack's case is that its position should
+  say so. The five stages become one horizontal ladder, with the stages already passed filled in,
+  which the old picker had no way to show. What the band does is unchanged from T7 and T10:
+  optimistic write, server correction, one refusal path, one toast.
+
+Decisions taken inside this task, each because the pack could not have known the answer:
+
+- **The hero keeps its per-category colour** (owner, 2026-08-31, in chat). Every capture in the
+  pack is green because every capture is of a Flat trick; green is `--flat`, not a hero colour.
+- **The trick photo is gone for good** (owner, 2026-08-31, in chat) — the pack's layout has no
+  photo in it, which settles the slot T25 had already refilled. A `chore-trick-photos` branch was
+  in flight with photographs for four tricks; it was discarded unmerged on the same instruction.
+- **No CSS shield is drawn.** The pack specifies one — a yellow clip-path with a striped art slot,
+  a nameplate and a star — because its badges were placeholders. T24's printed art already *is*
+  that shield with the trick's name lettered across it, so the slot takes the file and the CSS
+  carries only the drop shadow and the mark. This is the pack's own instruction ("real badge art is
+  to be supplied and dropped into the same slot"), not a divergence from it.
+- **The stamp red is `--red` (#e0392b), not the pack's #E5203C.** Two reds a rider cannot tell
+  apart, and the product already has one; a second would be the kind of drift LESSONS §4 is about.
+- **The ladder is local to this page, not a change to `StagePicker`.** The shared picker knows
+  "selected" and "not"; the ladder needs a third state and is drawn on ink. Widening the shared
+  component would change how the home screen and the design gallery draw, for a look only this page
+  uses — and shared code is additive-only (CLAUDE.md).
+- **On a phone the award line moves to a cream strip** below the hero and the badge overhangs that
+  instead, which is the pack's own mobile arrangement. The reason is the ladder: five cells inset
+  past a badge on a 420px screen leave each one about 57px, where the full width gives 78px.
+- **Stopping tracking now asks first**, which the pack calls for and T7 did not have. It clears the
+  stage and nothing else — the first-landed date and the earned badge both survive, which is what
+  the confirm says before it is answered rather than after.
+- **A deliberate divergence, recorded: the mobile ladder keeps the full stage labels.** The pack
+  abbreviates them to Want / Learn / Some / Most / Every. Those abbreviations exist nowhere in
+  `packages/core`, and inventing a third set of stage words to live only in this one component is
+  how a product ends up naming the same five things three ways. The type size carries it instead.
+- **No new analytics event.** `trick_logged` already counts every stage change from this page and
+  carries `from: 'trick'`; `sticker_shared`, `note_saved` and the video-link pair cover the rest.
+  The band and the badge are a rearrangement of counted actions, not new ones.
+
 ### Dependency graph
 
 ```
