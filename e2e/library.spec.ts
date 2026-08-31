@@ -227,7 +227,14 @@ test('a trick shows its award, and landing the trick stamps it', async ({ page }
 
   await page.reload();
   await expect(page.getByRole('img', { name: `${freeTrick.name} award, earned` })).toBeVisible();
-  await expect(page.getByText('First landed')).toBeVisible();
+  /*
+   * `visible: true`, because the date is in the markup twice on purpose: as a
+   * chip in the hero above the breakpoint, and under the ladder below it. Only
+   * ever one of them is displayed, and `display: none` keeps the other out of
+   * the accessibility tree — but both are in the DOM, and a bare `getByText`
+   * matches on text rather than on visibility.
+   */
+  await expect(page.getByText('First landed').filter({ visible: true })).toBeVisible();
 });
 
 /*
