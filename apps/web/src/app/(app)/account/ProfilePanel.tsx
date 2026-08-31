@@ -12,7 +12,7 @@ import {
   type SportId,
   type StanceId,
 } from '@landit/core';
-import { Avatar, Button, Icon, Panel, avatarById } from '@landit/ui-web';
+import { Avatar, Button, Equipment, Panel, avatarById } from '@landit/ui-web';
 import { useActionState, useState } from 'react';
 
 import { AvatarPicker } from '@/components/AvatarPicker';
@@ -176,12 +176,7 @@ export function ProfilePanel({
                     className={styles.sportPickIcon}
                     style={{ background: on ? 'var(--paper)' : 'var(--wash)' }}
                   >
-                    <Icon
-                      name={SPORT_LOOKS[id].icon}
-                      size={19}
-                      strokeWidth={2.3}
-                      style={{ color: 'var(--ink)' }}
-                    />
+                    <Equipment name={SPORT_LOOKS[id].icon} size={22} strokeWidth={2.3} />
                   </span>
                   <span className={styles.sportPickText}>
                     <span className={`cond ${styles.optionName}`}>{sport.label}</span>

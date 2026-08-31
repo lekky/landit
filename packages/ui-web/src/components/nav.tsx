@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react';
 
 import { cx } from '../cx';
-import { Icon, type IconName } from '../icons';
+import type { IconName } from '../icons';
 import { Equipment } from '../sport-art';
 import type { SportLook } from './tricks';
 
@@ -78,7 +78,14 @@ export function Tabs({
               on ? { background: it.color, borderColor: 'var(--ink)', color: '#fff' } : undefined
             }
           >
-            {it.icon && <Icon name={it.icon} size={17} strokeWidth={2.3} />}
+            {/*
+             * `Equipment`, not `Icon`: a tab row is a sport switch as often as it is
+             * a section switch, and this is where the sport switch and the sticker
+             * wall draw their scooter. Every other tab icon falls through to the
+             * stroked glyph, which is what `Equipment` does with a name it has no
+             * art for.
+             */}
+            {it.icon && <Equipment name={it.icon} size={17} strokeWidth={2.3} />}
             {it.shortLabel ? (
               <>
                 <span className="tab-full">{it.label}</span>

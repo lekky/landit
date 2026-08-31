@@ -40,7 +40,7 @@ import {
   type PlansRecord,
   type UsersRecord,
 } from '@landit/db';
-import { Difficulty, Icon, Panel, SportChip, Tag } from '@landit/ui-web';
+import { Difficulty, Equipment, Icon, Panel, SportChip, Tag } from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -402,7 +402,7 @@ export default async function TrickPage({ params }: Params) {
 
             <div className={styles.kit}>
               <span className={styles.kitIcon} style={{ background: sport.color }}>
-                <Icon name={SPORT_LOOKS[trick.sport].icon} size={19} strokeWidth={2.3} />
+                <Equipment name={SPORT_LOOKS[trick.sport].icon} size={22} strokeWidth={2.3} />
               </span>
               <div className={styles.kitText}>
                 <div className="lab" style={{ color: 'var(--ink-3)' }}>
