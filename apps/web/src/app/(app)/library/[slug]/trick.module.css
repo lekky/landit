@@ -33,7 +33,7 @@
  * nothing failing anywhere.
  */
 .panel {
-  --badge-w: 132px;
+  --badge-w: 158px;
 
   padding: 0;
   overflow: hidden;
@@ -52,6 +52,12 @@
 /* Locked: the same diagonal hatch the locked trick card and the skill tree use. */
 .headerLocked {
   background: repeating-linear-gradient(45deg, #efe9da 0 11px, #e5decc 11px 22px);
+}
+
+/* The name, its tags and the award line. `min-width: 0` so a long trick name
+   wraps instead of stretching the row. */
+.headerText {
+  min-width: 0;
 }
 
 .headerTags {
@@ -74,13 +80,58 @@
   margin-top: 10px;
 }
 
+/*
+ * The first-landed date in the hero, as an ink chip against the category
+ * colour. Desktop only: on a phone the hero has no width to spare and the band
+ * carries it instead.
+ */
+.heroLanded {
+  margin-left: auto;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 7px 12px 8px;
+  flex: none;
+  /*
+   * The tag treatment, scaled up: `.tag` is a 2px ink border under a
+   * 1.5px offset shadow, and this chip is roughly twice a tag's height, so it
+   * takes the border and shadow one step up (`--sh-sm`, the page's flat-panel
+   * shadow). Asked for by the owner, 2026-08-31 — "like what Flat is".
+   */
+  border: 2.5px solid var(--ink);
+  box-shadow: var(--sh-sm);
+}
+
+.heroLanded .lab {
+  color: #c9c2b4;
+}
+
+.heroLandedDate {
+  font-size: 15px;
+  /* Paper: this one sits inside the ink chip, not on the gold band. */
+  color: var(--paper);
+  margin-top: 2px;
+}
+
+/* With a chip in the row the difficulty no longer needs to push itself right. */
+.heroLanded + .difficulty {
+  margin-left: 0;
+}
+
 .difficulty {
   margin-left: auto;
   text-align: right;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  gap: 4px;
+}
+
+/* The tier as a word in its own right — "Rookie", not the tail of a label. */
+.difficultyTier {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink);
+  margin-bottom: 3px;
 }
 
 /* ------------------------------------------------------------- unlocked -- */
@@ -169,22 +220,40 @@
   pointer-events: none;
 }
 
+/*
+ * The earned stamp.
+ *
+ * **Why this is not the pack's stamp verbatim.** The pack's mask cuts the
+ * letters with 1.5px gaps every 10.5px and then fades them out radially, and it
+ * multiplies the whole thing into what is underneath. That was drawn against a
+ * *placeholder* badge — a flat diagonal-stripe fill — where there was nothing to
+ * compete with. Over T24's real artwork there is: a black-lined scooter on
+ * yellow, right where the stamp sits. Multiplied and cut about, the word became
+ * unreadable at every size (owner, 2026-08-31: "I can't even read it").
+ *
+ * So the ink is opaque and the distress is a tenth of what it was — enough to
+ * read as sprayed rather than printed, not enough to eat the letterforms. A
+ * paper halo underneath separates it from the art without putting a box behind
+ * it, which would make it a sticker rather than a stamp.
+ */
 .stamp {
-  font-size: calc(var(--badge-w) * 0.19);
+  font-size: calc(var(--badge-w) * 0.2);
   letter-spacing: 0.02em;
   color: var(--red);
   border: 4px solid var(--red);
   padding: 4px 11px 5px;
-  mix-blend-mode: multiply;
-  text-shadow: 1px 1px 0 rgb(224 57 43 / 45%);
-  -webkit-mask-image:
-    repeating-linear-gradient(58deg, #000 0 9px, transparent 9px 10.5px),
-    radial-gradient(120% 150% at 30% 40%, #000 55%, rgb(0 0 0 / 35%) 100%);
-  mask-image:
-    repeating-linear-gradient(58deg, #000 0 9px, transparent 9px 10.5px),
-    radial-gradient(120% 150% at 30% 40%, #000 55%, rgb(0 0 0 / 35%) 100%);
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
+  background: rgb(255 253 245 / 30%);
+  /*
+   * A halo, not a shadow: four offsets of paper at 1px, so the red keeps an
+   * edge wherever it crosses one of the artwork's black lines.
+   */
+  text-shadow:
+    1px 1px 0 var(--paper),
+    -1px 1px 0 var(--paper),
+    1px -1px 0 var(--paper),
+    -1px -1px 0 var(--paper);
+  -webkit-mask-image: repeating-linear-gradient(58deg, #000 0 22px, transparent 22px 23px);
+  mask-image: repeating-linear-gradient(58deg, #000 0 22px, transparent 22px 23px);
   /* Lands rather than fades when the rider crosses into Sometimes: the page
      re-renders from the server, the stamp mounts, and this plays once. */
   animation: stamp-land 180ms ease-out;
@@ -232,13 +301,23 @@
   }
 }
 
-/* The unearned mark. Same place, same angle — the badge under it is untouched. */
+/*
+ * The unearned mark. Same place, same angle — the badge under it is untouched.
+ *
+ * Legibility, same story as the stamp above it (owner, 2026-08-31). The pack
+ * has this at `--ink-3` and 75% opacity, which is a pale grey at three quarters
+ * strength; against T24's real artwork — and the art is a different colour on
+ * every badge, yellow here and blue on the next one — it disappeared. It reads
+ * now because it is opaque, in full ink, over a paper wash: a dashed label
+ * stuck to the badge rather than a wash across it. Quiet is the intent, not
+ * faint; those are different things, and only one of them can be read.
+ */
 .pending {
-  font-size: calc(var(--badge-w) * 0.15);
-  color: var(--ink-3);
-  border: 3px dashed var(--ink-3);
-  padding: 4px 10px;
-  opacity: 0.75;
+  font-size: calc(var(--badge-w) * 0.16);
+  color: var(--ink);
+  border: 3px dashed var(--ink);
+  padding: 5px 11px;
+  background: rgb(255 253 245 / 82%);
 }
 
 /*
@@ -266,7 +345,7 @@
   display: none;
   background: var(--paper-2);
   border-bottom: 3px solid var(--ink);
-  padding: 14px 14px 14px calc(var(--badge-w) + 24px);
+  padding: 14px;
 }
 
 .awardStripEarned {
@@ -336,7 +415,15 @@
 /* --------------------------------------------------------- the log band -- */
 
 /*
- * "Can you do it?" as a black band across the page, directly under the hero.
+ * "Can you do it?" as a gold band across the page, directly under the hero.
+
+ * It was ink until the owner saw it (2026-08-31): a hard offset shadow is this
+ * page's whole language for "raised", and on a black band there is no shadow
+ * colour that reads — ink disappears into it, and anything lighter stops being
+ * a shadow and starts being a glow. Gold turns that back the right way up. The
+ * band is still the loudest strip on the page; it is loud in the wordmark's own
+ * yellow now, and the lift on the current cell is the ordinary ink shadow
+ * everything else here casts.
  *
  * Until the trick-page pack this was a panel in the right column, third in a
  * stack of four. It is the only thing on the page a rider actually *does* —
@@ -348,32 +435,55 @@
  * breakpoint the badge overhangs the cream strip instead and the inset goes.
  */
 .band {
-  background: var(--ink);
+  background: var(--yellow);
   border-bottom: 3px solid var(--ink);
-  padding: 18px 22px 20px calc(var(--badge-w) + 40px);
+  padding: 18px 22px 20px;
 }
 
+/*
+ * Both the status and the buttons sit at the left on desktop (owner,
+ * 2026-08-31): the band's left inset already carries the badge's overhang, and
+ * pushing these to the far right left the middle of a very wide strip empty
+ * while the two ends did all the talking.
+ */
+/*
+ * Only this row clears the badge, and only this row needs to.
+ *
+ * The badge hangs 28px into the band — the tip of the shield, no more — which
+ * is level with this line and nothing else. Insetting the whole band for it
+ * left a 198×79 block of empty gold beside the ladder (spotted by the owner,
+ * 2026-08-31): the ladder row sits entirely below the badge and was being
+ * pushed aside by something that is not there any more. It now starts at the
+ * band's own padding and takes the width back.
+ */
 .bandHead {
+  padding-left: calc(var(--badge-w) + 18px);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-start;
+  gap: 16px;
   flex-wrap: wrap;
   margin-bottom: 10px;
 }
 
 .bandTitle {
-  color: var(--yellow);
+  color: var(--ink);
 }
 
-/* Secondary text on ink: the pack's band grey, not `--ink-3`, which is a
-   paper colour and disappears here. */
+/* On gold, the paper greys are the readable ones — the pack's band grey was
+   chosen to sit on ink and is far too pale here. */
 .bandStatus {
-  color: #c9c2b4;
+  color: var(--ink-3);
 }
 
+/*
+ * Logged reads in ink rather than in sky. Sky on gold is the one pairing in
+ * this palette that fails outright — two mid-tone brights with almost no
+ * contrast between them — and the stage's own cell is already sky, which is
+ * where that colour is doing its work.
+ */
 .bandStatusLogged {
-  color: var(--sky);
+  color: var(--ink);
 }
 
 /*
@@ -387,10 +497,22 @@
  * how the home screen and the design gallery draw, for a look only this page
  * uses (CLAUDE.md: shared code is additive-only).
  */
+/*
+ * The ladder and the actions on one row, which is what takes a row off the
+ * band (owner's layout, 2026-08-31). The ladder takes the width that is left.
+ */
+.bandMain {
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+}
+
 .ladder {
   display: flex;
   align-items: stretch;
-  border: 2.5px solid var(--paper);
+  flex: 1;
+  min-width: 0;
+  border: 2.5px solid var(--ink);
   background: var(--paper);
 }
 
@@ -427,22 +549,60 @@
   background: var(--paper);
 }
 
-/* Passed: filled dot on cream. */
+/*
+ * The tick on a stage already behind the rider. Sized to the dot's box (15px
+ * plus the 2.5px ring it replaces) so swapping one for the other does not
+ * shuffle the labels underneath.
+ */
+.stepTick {
+  display: block;
+  width: 20px;
+  height: 20px;
+  margin: -2px 0 -3px;
+  color: var(--ink);
+}
+
+/*
+ * Passed: ticked, on lime.
+ *
+ * Cream against paper was too close to read at a glance — two nearly-white
+ * cells either side of the sky one, and no way to tell "done" from "not yet"
+ * without looking for the tick. Lime is already this product's landed colour
+ * (the pack's `.pill.done`, and the landed prerequisite pills), so the ladder
+ * borrows it rather than inventing a fourth state colour.
+ */
 .stepPast {
-  background: var(--paper-2);
+  background: var(--lime);
 }
 
-.stepPast .stepDot {
-  background: var(--ink);
-}
-
-/* Where the rider is now: hollow dot on sky. */
+/*
+ * Where the rider is now — lifted off the ladder rather than merely coloured.
+ *
+ * Everything else on this page casts a hard offset shadow to the bottom-right;
+ * the current stage is the one cell that should look like a physical thing
+ * sitting on top of the row, so it takes the shadow, a full border where the
+ * others have only a divider, and enough scale to break the ladder's line. The
+ * `z-index` is what puts it over its neighbours rather than under them.
+ */
 .stepNow {
   background: var(--sky);
+  position: relative;
+  z-index: 2;
+  transform: scale(1.09);
+  border: 2.5px solid var(--ink);
+  /*
+   * Ink, like every other shadow on this page. It only works because the band
+   * under it is gold — on the black band it was invisible, which is what the
+   * band's own colour was changed to fix (owner, 2026-08-31).
+   */
+  box-shadow: 4px 4px 0 var(--ink);
+  font-size: 14px;
 }
 
 .stepNow .stepDot {
   background: var(--paper);
+  width: 17px;
+  height: 17px;
 }
 
 .step:hover:not(.stepNow) {
@@ -453,6 +613,14 @@
   cursor: default;
 }
 
+/* The lift is decoration; a rider who has asked not to be moved keeps the
+   colour, the border and the shadow, and loses only the scale. */
+@media (prefers-reduced-motion: reduce) {
+  .stepNow {
+    transform: none;
+  }
+}
+
 /*
  * The helper line before anything is logged, and the first-landed row after.
  * They occupy the same slot under the ladder, which is the pack's arrangement:
@@ -461,11 +629,11 @@
 .bandNote {
   margin: 12px 0 0;
   font-size: 13.5px;
-  color: #c9c2b4;
+  color: var(--ink-2);
 }
 
 .bandNote b {
-  color: var(--yellow);
+  color: var(--ink);
   font-weight: 700;
 }
 
@@ -474,7 +642,7 @@
 .bandNoteInline {
   margin: 0;
   font-size: 13.5px;
-  color: #c9c2b4;
+  color: var(--ink-2);
   max-width: 44ch;
 }
 
@@ -488,20 +656,34 @@
 }
 
 .bandLabel {
-  color: #c9c2b4;
+  color: var(--ink-3);
 }
 
 .bandDate {
   font-size: 15px;
-  color: var(--paper);
+  color: var(--ink);
   margin-top: 2px;
 }
 
+/* Before the ladder rather than after it. `order` rather than a DOM move: on a
+   phone these belong under the ladder, beside the date, and the markup is
+   already in that order. */
 .bandActions {
   display: flex;
-  align-items: center;
-  gap: 9px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  flex: none;
+  order: -1;
+}
+
+/*
+ * The first-landed date under the ladder — phone only. The hero carries it
+ * above the breakpoint (`.heroLanded`), which is the row this saves.
+ */
+.bandLanded {
+  display: none;
+  margin-top: 12px;
 }
 
 /* ---------------------------------------------------------- side panels -- */
@@ -510,21 +692,20 @@
   padding: 15px;
 }
 
-/* The signed-out band. On ink, so the copy is the band's grey and not
-   `--ink-2`, which is a colour for paper and vanishes here. */
+/* The signed-out band, on gold. */
 .signIn {
   margin: 0;
   font-size: 14px;
-  color: #c9c2b4;
+  color: var(--ink-2);
   max-width: 62ch;
 }
 
 .signIn a {
-  color: var(--yellow);
+  color: var(--orange);
 }
 
 .signIn a:hover {
-  color: var(--paper);
+  color: var(--ink);
 }
 
 .notes {
@@ -655,12 +836,78 @@
  */
 @media (max-width: 720px) {
   .panel {
-    --badge-w: 96px;
+    --badge-w: 112px;
   }
 
   .header {
-    padding: 14px 14px 22px;
+    padding: 14px 14px 16px;
     gap: 10px;
+  }
+
+  /*
+   * No overhang on a phone. The pack had the badge hanging into the cream
+   * strip with the copy set in beside it; the owner asked for that copy on the
+   * left edge (2026-08-31), and the two cannot both be there. The badge keeps
+   * its size and sits wholly in the hero instead — which also gives the strip
+   * the full width for the award name, the longest of which ("Land the
+   * Nose Manual") no longer wraps at 375px.
+   */
+  .badge {
+    margin-bottom: 0;
+  }
+
+  /*
+   * The difficulty gets its own line at the top of the hero on a phone, laid
+   * out along it rather than stacked (owner's mock-up, 2026-08-31). Stacked in
+   * the corner it was three short lines deep beside a two-line title, and the
+   * hero paid for all three; along the top it costs one line and leaves the
+   * badge and the name the width they want.
+   */
+  /*
+   * Two columns on a phone: the badge down the left across both rows, the
+   * difficulty and then the name down the right.
+   *
+   * Flex could not do this without a gap. The hero bottom-aligns its row, so a
+   * 112px badge beside a ~66px name block left 46px of green above the tags —
+   * space nothing was asking for, and the difficulty sitting on its own wrapped
+   * line above that only added to it. As a grid the badge simply spans both
+   * rows and the right-hand column packs tight against itself.
+   */
+  .header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 12px;
+    row-gap: 4px;
+    align-items: end;
+  }
+
+  .badge {
+    grid-row: 1 / span 2;
+    grid-column: 1;
+    align-self: end;
+  }
+
+  /* Rows named explicitly: auto-placement follows DOM order, which would put
+     the name above the difficulty. */
+  .difficulty {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-left: 0;
+  }
+
+  .headerText {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .difficultyTier {
+    font-size: 19px;
+    margin-bottom: 0;
   }
 
   .name {
@@ -679,6 +926,50 @@
 
   .band {
     padding: 14px;
+  }
+
+  /*
+   * On a phone the ladder needs the whole width, so the actions drop under it
+   * and share that row with the first-landed date — the arrangement in the
+   * owner's phone mock-up. The hero's chip is hidden, so the date is shown
+   * exactly once.
+   */
+  /*
+   * On a phone the ladder takes the whole width and wraps to its own line; the
+   * date and the buttons then land on the line below it, together, which is the
+   * arrangement in the owner's phone mock-up. The hero's chip is hidden, so the
+   * date is on screen exactly once.
+   */
+  .bandMain {
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+
+  .ladder {
+    flex: 1 0 100%;
+  }
+
+  .heroLanded {
+    display: none;
+  }
+
+  .bandLanded {
+    display: block;
+    flex: 1;
+  }
+
+  .bandActions {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    /* Back under the ladder on a phone, where the mock-up has them. */
+    order: 0;
+  }
+
+  .bandHead {
+    justify-content: space-between;
+    /* No overhang on a phone, so nothing to clear. */
+    padding-left: 0;
   }
 
   .step {

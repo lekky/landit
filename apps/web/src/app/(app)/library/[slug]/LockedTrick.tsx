@@ -53,16 +53,22 @@ export function LockedTrick({
 
       <Panel className={styles.panel}>
         <div className={`${styles.header} ${styles.headerLocked}`}>
-          <div style={{ minWidth: 0 }}>
+          <div className={styles.headerText}>
             <div className={styles.headerTags}>
               <Tag color={category.color}>{categoryLabel(trick.cat, trick.sport)}</Tag>
               <SportChip sport={SPORT_LOOKS[trick.sport]} />
             </div>
             <h1 className={`d ${styles.nameLocked}`}>{trick.name}</h1>
           </div>
+          {/* Stacked, matching the unlocked header above it — the two are the
+              same band and a rider moving between them should not see it
+              re-arrange itself. */}
           <div className={styles.difficulty}>
             <div className="lab" style={{ color: 'var(--ink-2)' }}>
-              Difficulty · {tier}
+              Difficulty
+            </div>
+            <div className={`d ${styles.difficultyTier}`} style={{ color: 'var(--ink-2)' }}>
+              {tier}
             </div>
             <Difficulty value={trick.diff} />
           </div>

@@ -341,7 +341,7 @@ export default async function TrickPage({ params }: Params) {
             />
           )}
 
-          <div style={{ minWidth: 0 }}>
+          <div className={styles.headerText}>
             <div className={styles.headerTags}>
               <Tag color="var(--ink)">{categoryLabel(trick.cat, trick.sport)}</Tag>
               <SportChip sport={SPORT_LOOKS[trick.sport]} />
@@ -349,10 +349,30 @@ export default async function TrickPage({ params }: Params) {
             <h1 className={`d ${styles.name}`}>{trick.name}</h1>
             {awardLine && <div className={`cond ${styles.awardLine}`}>{awardLine}</div>}
           </div>
+          {/*
+            The first-landed date, as an ink chip in the hero — desktop only
+            (see `.heroLanded`), where it saves the band a whole row. On a phone
+            `StagePanel` carries it under the ladder instead. One source, one of
+            them on screen at a time.
+          */}
+          {landedLabel && (
+            <div className={styles.heroLanded}>
+              <div className="lab">First landed</div>
+              <div className={`cond ${styles.heroLandedDate}`}>{landedLabel}</div>
+            </div>
+          )}
+
+          {/*
+            Stacked rather than "Difficulty · Rookie" on one line (owner,
+            2026-08-31). The hero's right-hand column has height to spare at
+            every width, and the tier is the half a rider actually reads — on
+            one line it was the tail of a label, here it is a word.
+          */}
           <div className={styles.difficulty}>
             <div className="lab" style={{ color: 'var(--ink)' }}>
-              Difficulty · {TIERS_LABEL[trick.diff - 1]}
+              Difficulty
             </div>
+            <div className={`d ${styles.difficultyTier}`}>{TIERS_LABEL[trick.diff - 1]}</div>
             <Difficulty value={trick.diff} />
           </div>
         </div>

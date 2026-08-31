@@ -2712,6 +2712,69 @@ Decisions taken inside this task, each because the pack could not have known the
   carries `from: 'trick'`; `sticker_shared`, `note_saved` and the video-link pair cover the rest.
   The band and the badge are a rearrangement of counted actions, not new ones.
 
+**T26a · The band and the badge, after the owner looked at it.** Five changes asked for on
+2026-08-31 once T26 was on screen, all of them presentation and none of them behavioural:
+
+- **A tick, not a filled dot, on the stages already behind the rider.** The pack drew passed
+  stages as a solid dot, which only says "not this one" — the tick says you did it, which is what
+  the row is for. It is also the mark this product already uses for landed (the library grid and
+  the prerequisite pills), so the ladder is not inventing a third vocabulary.
+- **A bigger badge** — 132px to 158px on desktop, 96px to 112px on a phone. It is the page's hero
+  object and was being out-shouted by the trick's name beside it.
+- **The current stage is lifted, not just coloured.** Scale, a full ink border where the other
+  cells have only a divider, and the page's hard offset shadow, so the cell a rider is on reads as
+  a physical thing sitting on top of the ladder.
+- **The cream strip's copy is left-aligned on a phone**, and with it the badge stops overhanging
+  there. The pack had the badge hanging into that strip with the award name set in beside it; the
+  two cannot both have the left edge, and the owner chose the copy. The badge keeps its size and
+  sits wholly in the hero instead.
+- **"Difficulty" and the tier are stacked** rather than "Difficulty · Rookie" on one line. The
+  hero's right-hand column has height to spare at every width, and the tier is the half a rider
+  reads. Applied to the locked header too, so the two do not drift apart.
+
+A second pass the same day, against the owner's own mock-ups:
+
+- **The band is two rows, not three.** The first-landed date moves up into the hero as an ink
+  chip beside the difficulty, and the Share/Stop buttons move up beside the ladder. On a phone
+  the chip is hidden and the date sits with the buttons on one line under the ladder — the same
+  `landedLabel` either way, and only ever one of them on screen.
+- **Passed cells are lime, not cream.** Cream against paper was two nearly-white cells either
+  side of the sky one; lime is already this product's landed colour (the pack's `.pill.done`),
+  so the ladder borrows it rather than inventing a fourth.
+- **The band is gold, and the lift is the ordinary ink shadow.** The first attempt kept the
+  band black and made the shadow gold; the owner's answer was that it is the *background* that
+  is wrong, not the shadow. A hard offset shadow is this page's whole language for "raised", and
+  on a black band there is no shadow colour that works — ink vanishes into it, and anything
+  lighter stops reading as a shadow and starts reading as a glow. Gold turns it back the right
+  way up: the band is still the loudest strip on the page, in the wordmark's own yellow, and the
+  current cell casts the same ink shadow as everything else here. Everything written on the band
+  was coloured for ink and is re-coloured for gold; `--sky` is dropped for the "Logged ·" status,
+  being the one pairing in this palette with almost no contrast against yellow.
+- **The band's inset is on its first row only.** The badge hangs 28px into the band — the tip of
+  the shield — which is level with "Can you do it?" and nothing else. Insetting the whole band
+  for it left a 198x79 block of empty gold beside the ladder, which the owner spotted. The ladder
+  row sits entirely below the badge and now starts at the band's own padding: the ladder went
+  from 780px to 956px wide, and the empty block is gone rather than filled.
+- **The earned and unearned marks are legible.** The pack's stamp cuts the letters with 1.5px
+  gaps every 10.5px, fades them radially and multiplies them into what is underneath; the
+  unearned mark is `--ink-3` at 75% opacity. Both were drawn against a *placeholder* badge — a
+  flat stripe fill with nothing to compete with. Over T24's real artwork, which is a different
+  colour on every badge and has black linework exactly where the mark sits, neither could be
+  read at any size. The ink is opaque now, the distress is about a tenth of what it was, and a
+  paper halo separates the letters from the art. Quiet was the intent; faint is not the same
+  thing, and only one of the two can be read.
+- **The first-landed chip takes the tag treatment** — a 2.5px ink border under the page's
+  flat-panel shadow, which is `.tag` one step up.
+- **On a phone the hero is a two-column grid**: badge down the left across both rows, difficulty
+  along the top right, name below it. Flex could not do this without a gap — the hero
+  bottom-aligns its row, so a 112px badge beside a 66px name block left 46px of dead green above
+  the tags. The hero is 145px tall with the difficulty moved, the same as it was before it moved.
+- **The status and the buttons sit left on desktop**, next to "Can you do it?" and before the
+  ladder. Pushed to opposite ends of a very wide strip they left the middle empty while the two
+  edges did all the talking. On a phone they stay where the mock-up has them.
+
+No new analytics event: none of this adds a rider action.
+
 ### Dependency graph
 
 ```

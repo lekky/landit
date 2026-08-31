@@ -172,8 +172,10 @@ test('the trick page has its Share it button now the card exists (issue #51)', a
   await arrive(page, 'Share Rider');
   const name = await landSomething(page);
 
+  // `visible: true`: the first-landed date is rendered twice and shown once —
+  // a chip in the hero above the breakpoint, under the ladder below it.
   const panel = page.locator('.panel', { hasText: 'First landed' }).first();
-  await expect(panel.getByText('First landed')).toBeVisible();
+  await expect(panel.getByText('First landed').filter({ visible: true })).toBeVisible();
   await panel.getByRole('button', { name: 'Share it' }).click();
 
   const card = page.getByRole('dialog');
