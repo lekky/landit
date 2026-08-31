@@ -2705,10 +2705,18 @@ A second pass the same day, against the owner's own mock-ups:
 - **Passed cells are lime, not cream.** Cream against paper was two nearly-white cells either
   side of the sky one; lime is already this product's landed colour (the pack's `.pill.done`),
   so the ladder borrows it rather than inventing a fourth.
-- **The current cell's shadow is gold, not ink.** Every other shadow on this page falls on
-  paper, where ink reads as depth. This one falls on the black band, where an ink shadow is
-  invisible and the lift did nothing at all. The yellow is the one already in the wordmark and
-  in the band's own "Can you do it?".
+- **The band is gold, and the lift is the ordinary ink shadow.** The first attempt kept the
+  band black and made the shadow gold; the owner's answer was that it is the *background* that
+  is wrong, not the shadow. A hard offset shadow is this page's whole language for "raised", and
+  on a black band there is no shadow colour that works — ink vanishes into it, and anything
+  lighter stops reading as a shadow and starts reading as a glow. Gold turns it back the right
+  way up: the band is still the loudest strip on the page, in the wordmark's own yellow, and the
+  current cell casts the same ink shadow as everything else here. Everything written on the band
+  was coloured for ink and is re-coloured for gold; `--sky` is dropped for the "Logged ·" status,
+  being the one pairing in this palette with almost no contrast against yellow.
+- **The status and the buttons sit left on desktop**, next to "Can you do it?" and before the
+  ladder. Pushed to opposite ends of a very wide strip they left the middle empty while the two
+  edges did all the talking. On a phone they stay where the mock-up has them.
 
 No new analytics event: none of this adds a rider action.
 

@@ -93,6 +93,7 @@
 
 .heroLandedDate {
   font-size: 15px;
+  /* Paper: this one sits inside the ink chip, not on the gold band. */
   color: var(--paper);
   margin-top: 2px;
 }
@@ -372,7 +373,15 @@
 /* --------------------------------------------------------- the log band -- */
 
 /*
- * "Can you do it?" as a black band across the page, directly under the hero.
+ * "Can you do it?" as a gold band across the page, directly under the hero.
+
+ * It was ink until the owner saw it (2026-08-31): a hard offset shadow is this
+ * page's whole language for "raised", and on a black band there is no shadow
+ * colour that reads — ink disappears into it, and anything lighter stops being
+ * a shadow and starts being a glow. Gold turns that back the right way up. The
+ * band is still the loudest strip on the page; it is loud in the wordmark's own
+ * yellow now, and the lift on the current cell is the ordinary ink shadow
+ * everything else here casts.
  *
  * Until the trick-page pack this was a panel in the right column, third in a
  * stack of four. It is the only thing on the page a rider actually *does* —
@@ -384,32 +393,44 @@
  * breakpoint the badge overhangs the cream strip instead and the inset goes.
  */
 .band {
-  background: var(--ink);
+  background: var(--yellow);
   border-bottom: 3px solid var(--ink);
   padding: 18px 22px 20px calc(var(--badge-w) + 40px);
 }
 
+/*
+ * Both the status and the buttons sit at the left on desktop (owner,
+ * 2026-08-31): the band's left inset already carries the badge's overhang, and
+ * pushing these to the far right left the middle of a very wide strip empty
+ * while the two ends did all the talking.
+ */
 .bandHead {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-start;
+  gap: 16px;
   flex-wrap: wrap;
   margin-bottom: 10px;
 }
 
 .bandTitle {
-  color: var(--yellow);
+  color: var(--ink);
 }
 
-/* Secondary text on ink: the pack's band grey, not `--ink-3`, which is a
-   paper colour and disappears here. */
+/* On gold, the paper greys are the readable ones — the pack's band grey was
+   chosen to sit on ink and is far too pale here. */
 .bandStatus {
-  color: #c9c2b4;
+  color: var(--ink-3);
 }
 
+/*
+ * Logged reads in ink rather than in sky. Sky on gold is the one pairing in
+ * this palette that fails outright — two mid-tone brights with almost no
+ * contrast between them — and the stage's own cell is already sky, which is
+ * where that colour is doing its work.
+ */
 .bandStatusLogged {
-  color: var(--sky);
+  color: var(--ink);
 }
 
 /*
@@ -438,7 +459,7 @@
   align-items: stretch;
   flex: 1;
   min-width: 0;
-  border: 2.5px solid var(--paper);
+  border: 2.5px solid var(--ink);
   background: var(--paper);
 }
 
@@ -517,12 +538,11 @@
   transform: scale(1.09);
   border: 2.5px solid var(--ink);
   /*
-   * Gold, not ink. Every other shadow on this page falls on paper, where ink
-   * reads as depth; this one falls on the black band, where an ink shadow is
-   * invisible and the lift did nothing (owner, 2026-08-31). The yellow is the
-   * one already in the wordmark and in this band's own "Can you do it?".
+   * Ink, like every other shadow on this page. It only works because the band
+   * under it is gold — on the black band it was invisible, which is what the
+   * band's own colour was changed to fix (owner, 2026-08-31).
    */
-  box-shadow: 4px 4px 0 var(--yellow);
+  box-shadow: 4px 4px 0 var(--ink);
   font-size: 14px;
 }
 
@@ -556,11 +576,11 @@
 .bandNote {
   margin: 12px 0 0;
   font-size: 13.5px;
-  color: #c9c2b4;
+  color: var(--ink-2);
 }
 
 .bandNote b {
-  color: var(--yellow);
+  color: var(--ink);
   font-weight: 700;
 }
 
@@ -569,7 +589,7 @@
 .bandNoteInline {
   margin: 0;
   font-size: 13.5px;
-  color: #c9c2b4;
+  color: var(--ink-2);
   max-width: 44ch;
 }
 
@@ -583,21 +603,25 @@
 }
 
 .bandLabel {
-  color: #c9c2b4;
+  color: var(--ink-3);
 }
 
 .bandDate {
   font-size: 15px;
-  color: var(--paper);
+  color: var(--ink);
   margin-top: 2px;
 }
 
+/* Before the ladder rather than after it. `order` rather than a DOM move: on a
+   phone these belong under the ladder, beside the date, and the markup is
+   already in that order. */
 .bandActions {
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 7px;
   flex: none;
+  order: -1;
 }
 
 /*
@@ -615,21 +639,20 @@
   padding: 15px;
 }
 
-/* The signed-out band. On ink, so the copy is the band's grey and not
-   `--ink-2`, which is a colour for paper and vanishes here. */
+/* The signed-out band, on gold. */
 .signIn {
   margin: 0;
   font-size: 14px;
-  color: #c9c2b4;
+  color: var(--ink-2);
   max-width: 62ch;
 }
 
 .signIn a {
-  color: var(--yellow);
+  color: var(--orange);
 }
 
 .signIn a:hover {
-  color: var(--paper);
+  color: var(--ink);
 }
 
 .notes {
@@ -836,6 +859,12 @@
     flex-direction: row;
     align-items: center;
     flex-wrap: wrap;
+    /* Back under the ladder on a phone, where the mock-up has them. */
+    order: 0;
+  }
+
+  .bandHead {
+    justify-content: space-between;
   }
 
   .step {
