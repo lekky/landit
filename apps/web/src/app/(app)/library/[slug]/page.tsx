@@ -341,7 +341,7 @@ export default async function TrickPage({ params }: Params) {
             />
           )}
 
-          <div style={{ minWidth: 0 }}>
+          <div className={styles.headerText}>
             <div className={styles.headerTags}>
               <Tag color="var(--ink)">{categoryLabel(trick.cat, trick.sport)}</Tag>
               <SportChip sport={SPORT_LOOKS[trick.sport]} />

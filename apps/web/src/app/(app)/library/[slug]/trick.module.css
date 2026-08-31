@@ -54,6 +54,12 @@
   background: repeating-linear-gradient(45deg, #efe9da 0 11px, #e5decc 11px 22px);
 }
 
+/* The name, its tags and the award line. `min-width: 0` so a long trick name
+   wraps instead of stretching the row. */
+.headerText {
+  min-width: 0;
+}
+
 .headerTags {
   display: flex;
   gap: 8px;
@@ -85,6 +91,14 @@
   color: var(--paper);
   padding: 7px 12px 8px;
   flex: none;
+  /*
+   * The tag treatment, scaled up: `.tag` is a 2px ink border under a
+   * 1.5px offset shadow, and this chip is roughly twice a tag's height, so it
+   * takes the border and shadow one step up (`--sh-sm`, the page's flat-panel
+   * shadow). Asked for by the owner, 2026-08-31 — "like what Flat is".
+   */
+  border: 2.5px solid var(--ink);
+  box-shadow: var(--sh-sm);
 }
 
 .heroLanded .lab {
@@ -206,22 +220,40 @@
   pointer-events: none;
 }
 
+/*
+ * The earned stamp.
+ *
+ * **Why this is not the pack's stamp verbatim.** The pack's mask cuts the
+ * letters with 1.5px gaps every 10.5px and then fades them out radially, and it
+ * multiplies the whole thing into what is underneath. That was drawn against a
+ * *placeholder* badge — a flat diagonal-stripe fill — where there was nothing to
+ * compete with. Over T24's real artwork there is: a black-lined scooter on
+ * yellow, right where the stamp sits. Multiplied and cut about, the word became
+ * unreadable at every size (owner, 2026-08-31: "I can't even read it").
+ *
+ * So the ink is opaque and the distress is a tenth of what it was — enough to
+ * read as sprayed rather than printed, not enough to eat the letterforms. A
+ * paper halo underneath separates it from the art without putting a box behind
+ * it, which would make it a sticker rather than a stamp.
+ */
 .stamp {
-  font-size: calc(var(--badge-w) * 0.19);
+  font-size: calc(var(--badge-w) * 0.2);
   letter-spacing: 0.02em;
   color: var(--red);
   border: 4px solid var(--red);
   padding: 4px 11px 5px;
-  mix-blend-mode: multiply;
-  text-shadow: 1px 1px 0 rgb(224 57 43 / 45%);
-  -webkit-mask-image:
-    repeating-linear-gradient(58deg, #000 0 9px, transparent 9px 10.5px),
-    radial-gradient(120% 150% at 30% 40%, #000 55%, rgb(0 0 0 / 35%) 100%);
-  mask-image:
-    repeating-linear-gradient(58deg, #000 0 9px, transparent 9px 10.5px),
-    radial-gradient(120% 150% at 30% 40%, #000 55%, rgb(0 0 0 / 35%) 100%);
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
+  background: rgb(255 253 245 / 30%);
+  /*
+   * A halo, not a shadow: four offsets of paper at 1px, so the red keeps an
+   * edge wherever it crosses one of the artwork's black lines.
+   */
+  text-shadow:
+    1px 1px 0 var(--paper),
+    -1px 1px 0 var(--paper),
+    1px -1px 0 var(--paper),
+    -1px -1px 0 var(--paper);
+  -webkit-mask-image: repeating-linear-gradient(58deg, #000 0 22px, transparent 22px 23px);
+  mask-image: repeating-linear-gradient(58deg, #000 0 22px, transparent 22px 23px);
   /* Lands rather than fades when the rider crosses into Sometimes: the page
      re-renders from the server, the stamp mounts, and this plays once. */
   animation: stamp-land 180ms ease-out;
@@ -269,13 +301,23 @@
   }
 }
 
-/* The unearned mark. Same place, same angle — the badge under it is untouched. */
+/*
+ * The unearned mark. Same place, same angle — the badge under it is untouched.
+ *
+ * Legibility, same story as the stamp above it (owner, 2026-08-31). The pack
+ * has this at `--ink-3` and 75% opacity, which is a pale grey at three quarters
+ * strength; against T24's real artwork — and the art is a different colour on
+ * every badge, yellow here and blue on the next one — it disappeared. It reads
+ * now because it is opaque, in full ink, over a paper wash: a dashed label
+ * stuck to the badge rather than a wash across it. Quiet is the intent, not
+ * faint; those are different things, and only one of them can be read.
+ */
 .pending {
-  font-size: calc(var(--badge-w) * 0.15);
-  color: var(--ink-3);
-  border: 3px dashed var(--ink-3);
-  padding: 4px 10px;
-  opacity: 0.75;
+  font-size: calc(var(--badge-w) * 0.16);
+  color: var(--ink);
+  border: 3px dashed var(--ink);
+  padding: 5px 11px;
+  background: rgb(255 253 245 / 82%);
 }
 
 /*
@@ -395,7 +437,7 @@
 .band {
   background: var(--yellow);
   border-bottom: 3px solid var(--ink);
-  padding: 18px 22px 20px calc(var(--badge-w) + 40px);
+  padding: 18px 22px 20px;
 }
 
 /*
@@ -404,7 +446,18 @@
  * pushing these to the far right left the middle of a very wide strip empty
  * while the two ends did all the talking.
  */
+/*
+ * Only this row clears the badge, and only this row needs to.
+ *
+ * The badge hangs 28px into the band — the tip of the shield, no more — which
+ * is level with this line and nothing else. Insetting the whole band for it
+ * left a 198×79 block of empty gold beside the ladder (spotted by the owner,
+ * 2026-08-31): the ladder row sits entirely below the badge and was being
+ * pushed aside by something that is not there any more. It now starts at the
+ * band's own padding and takes the width back.
+ */
 .bandHead {
+  padding-left: calc(var(--badge-w) + 18px);
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -803,8 +856,58 @@
     margin-bottom: 0;
   }
 
+  /*
+   * The difficulty gets its own line at the top of the hero on a phone, laid
+   * out along it rather than stacked (owner's mock-up, 2026-08-31). Stacked in
+   * the corner it was three short lines deep beside a two-line title, and the
+   * hero paid for all three; along the top it costs one line and leaves the
+   * badge and the name the width they want.
+   */
+  /*
+   * Two columns on a phone: the badge down the left across both rows, the
+   * difficulty and then the name down the right.
+   *
+   * Flex could not do this without a gap. The hero bottom-aligns its row, so a
+   * 112px badge beside a ~66px name block left 46px of green above the tags —
+   * space nothing was asking for, and the difficulty sitting on its own wrapped
+   * line above that only added to it. As a grid the badge simply spans both
+   * rows and the right-hand column packs tight against itself.
+   */
+  .header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 12px;
+    row-gap: 4px;
+    align-items: end;
+  }
+
+  .badge {
+    grid-row: 1 / span 2;
+    grid-column: 1;
+    align-self: end;
+  }
+
+  /* Rows named explicitly: auto-placement follows DOM order, which would put
+     the name above the difficulty. */
+  .difficulty {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-left: 0;
+  }
+
+  .headerText {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
   .difficultyTier {
     font-size: 19px;
+    margin-bottom: 0;
   }
 
   .name {
@@ -865,6 +968,8 @@
 
   .bandHead {
     justify-content: space-between;
+    /* No overhang on a phone, so nothing to clear. */
+    padding-left: 0;
   }
 
   .step {

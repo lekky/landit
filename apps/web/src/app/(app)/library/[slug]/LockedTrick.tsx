@@ -53,7 +53,7 @@ export function LockedTrick({
 
       <Panel className={styles.panel}>
         <div className={`${styles.header} ${styles.headerLocked}`}>
-          <div style={{ minWidth: 0 }}>
+          <div className={styles.headerText}>
             <div className={styles.headerTags}>
               <Tag color={category.color}>{categoryLabel(trick.cat, trick.sport)}</Tag>
               <SportChip sport={SPORT_LOOKS[trick.sport]} />

@@ -2714,6 +2714,25 @@ A second pass the same day, against the owner's own mock-ups:
   current cell casts the same ink shadow as everything else here. Everything written on the band
   was coloured for ink and is re-coloured for gold; `--sky` is dropped for the "Logged ·" status,
   being the one pairing in this palette with almost no contrast against yellow.
+- **The band's inset is on its first row only.** The badge hangs 28px into the band — the tip of
+  the shield — which is level with "Can you do it?" and nothing else. Insetting the whole band
+  for it left a 198x79 block of empty gold beside the ladder, which the owner spotted. The ladder
+  row sits entirely below the badge and now starts at the band's own padding: the ladder went
+  from 780px to 956px wide, and the empty block is gone rather than filled.
+- **The earned and unearned marks are legible.** The pack's stamp cuts the letters with 1.5px
+  gaps every 10.5px, fades them radially and multiplies them into what is underneath; the
+  unearned mark is `--ink-3` at 75% opacity. Both were drawn against a *placeholder* badge — a
+  flat stripe fill with nothing to compete with. Over T24's real artwork, which is a different
+  colour on every badge and has black linework exactly where the mark sits, neither could be
+  read at any size. The ink is opaque now, the distress is about a tenth of what it was, and a
+  paper halo separates the letters from the art. Quiet was the intent; faint is not the same
+  thing, and only one of the two can be read.
+- **The first-landed chip takes the tag treatment** — a 2.5px ink border under the page's
+  flat-panel shadow, which is `.tag` one step up.
+- **On a phone the hero is a two-column grid**: badge down the left across both rows, difficulty
+  along the top right, name below it. Flex could not do this without a gap — the hero
+  bottom-aligns its row, so a 112px badge beside a 66px name block left 46px of dead green above
+  the tags. The hero is 145px tall with the difficulty moved, the same as it was before it moved.
 - **The status and the buttons sit left on desktop**, next to "Can you do it?" and before the
   ladder. Pushed to opposite ends of a very wide strip they left the middle empty while the two
   edges did all the talking. On a phone they stay where the mock-up has them.
