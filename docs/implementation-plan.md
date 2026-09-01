@@ -1384,6 +1384,12 @@ session should not "fix" back to the prototype:
   palette value on its own authority. Note these are measured against `--paper` (#fffdf5), not
   pure white: on blue that is 4.46 against 4.54, which is the difference between failing and
   passing, so the token is what gets measured.
+- **The rule runs the other way too (2026-09-01, same branch).** An accent used *as text on
+  paper* fails just as white-on-accent did: the sport chip's label in the sport colour measured
+  3.06:1 (orange) and 4.46 (blue) on the top bar of every page, and the skill tree's "Landed" and
+  "Shredder" labels 2.11 and 3.42. Each now takes ink, with the keyline, the fill or the hatch
+  carrying the colour instead — the coding survives, the word becomes legible. The wider sweep of
+  that pattern is issue #279.
 
 **A seventh divergence, 2026-09-01 (Rachid, in chat): a dark theme, on a light-only design pack.**
 Riders use this outdoors at dusk on a phone, and the owner asked for it. The pack draws one theme,
