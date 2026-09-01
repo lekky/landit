@@ -4,11 +4,13 @@ import { useId } from 'react';
 
 import { cx } from '../cx';
 import { ICONS, type IconName } from '../icons';
+import { STICKER_ART_SIZES, stickerArtSrc, stickerArtSrcSet } from '../sticker-art';
 
 /**
- * The die-cut sticker, drawn entirely in SVG at render time — there are no
- * image assets for stickers. Transcribed from `StickerBadge` in
- * `design-handoff/design/landit-ui.jsx`: white die-cut edge, ink ring, a 42%
+ * The die-cut sticker. A record with printed art (T24) renders that art; a
+ * record without one is drawn in SVG at render time, transcribed from
+ * `StickerBadge` in
+ * `design-handoff/design/landit-ui.jsx` — white die-cut edge, ink ring, a 42%
  * tint of the sticker's hue, a dashed inner ring, the name curved over the top,
  * the icon in the middle, and EARNED / LOCKED curved along the bottom.
  *
@@ -38,6 +40,12 @@ export type StickerBadgeProps = {
   earned?: boolean;
   /** Plays the `pop` keyframe — scale .3, rotate −25°, 1.12 overshoot. */
   just?: boolean;
+  /**
+   * The `sizes` the printed art declares, when a caller draws it at some width
+   * other than the 160px every current one draws it at or under. Ignored by the
+   * SVG fallback, which has no fixed size to declare.
+   */
+  sizes?: string;
   onClick?: () => void;
 };
 
@@ -47,6 +55,7 @@ export function StickerBadge({
   sticker,
   earned = false,
   just = false,
+  sizes = STICKER_ART_SIZES,
   onClick,
 }: StickerBadgeProps) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
@@ -58,7 +67,25 @@ export function StickerBadge({
     // The printed award badge (T24). The art carries the name, shape and
     // stars; the locked state is the CSS treatment (`.sticker.locked img`),
     // and the label carries it for a screen reader either way.
-    <img src={`/stickers/${sticker.img}`} alt={label} loading="lazy" draggable={false} />
+    //
+    // The master PNG is the `src` and the resized WebP are only offered
+    // through `srcset`, so a browser without WebP and a record the sync step
+    // has not resized both still get a badge rather than a broken image
+    // (`sticker-art.ts`). The intrinsic `width`/`height` are the master's and
+    // are belt-and-braces: `.sticker` already carries `aspect-ratio: 1`, so the
+    // box is reserved either way, but a badge rendered outside that class
+    // should still not reflow when its art lands.
+    <img
+      src={stickerArtSrc(sticker.img)}
+      srcSet={stickerArtSrcSet(sticker.img)}
+      sizes={sizes}
+      alt={label}
+      width={512}
+      height={512}
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+    />
   ) : (
     <svg viewBox="0 0 120 120" role="img" aria-label={label}>
       <defs>

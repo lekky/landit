@@ -2676,6 +2676,23 @@ danger as a dare, and `upside` itself stays retired with a never-true rule. Anal
 catalogue events, `sticker_earned` (fired when the wall first shows the badge — the earn is
 server-side; properties are slug, stars, rarity) and `sticker_shared`.
 
+**How the art is served (2026-09-01).** The committed masters are 512px, and nothing draws a badge
+larger than 160 CSS px — 118px in the wall's grid, 150px in the detail modal, 130px on the share
+card. A sticker wall of ~65 badges was therefore fetching ~5 MB of PNG to paint 65 thumbnails, and
+took visibly long to do it on a phone (owner, 2026-09-01, in chat). `sync-stickers.mjs` now also
+writes a WebP at 160px and 320px into `public/stickers/w160/` and `w320/` (~10 KB and ~23 KB against
+the master's ~83 KB), and `StickerBadge` offers them through `srcset` while keeping the master as
+the `src` — so a browser with no WebP, and a record the sync step has not resized, both still get a
+badge rather than a broken image. `sharp` becomes a build-time dependency of `apps/web`; the
+resized copies are generated, not committed, like the copies in `public/` already are.
+
+Build-time and not `next/image`: `@landit/ui-web` may not depend on Next, and on-demand
+optimisation would put 65 resizes of 65 distinct images on the box's CPU at first paint, discarded
+on every redeploy. `/stickers/:path*` also gains `Cache-Control: public, max-age=86400` (owner,
+2026-09-01, in chat) — Next serves `public/` as `max-age=0`, so a returning rider re-validated
+every badge on the wall one by one. A day rather than a year of `immutable`, because these names
+are not content-addressed: `stickers.img` holds the file name, so re-drawing a badge keeps its URL.
+
 **T25 · The trick page's award badge.** Added after launch (Rachid, 2026-08-30, in chat), and a
 **deliberate divergence from the design pack** recorded here because the plan is what wins when the
 two disagree.

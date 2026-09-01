@@ -2,6 +2,7 @@ import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { AWARDS } from '@landit/core';
+import { STICKER_ART_WIDTHS, stickerArtSrcSet } from '@landit/ui-web';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -35,6 +36,24 @@ describe('the award art', () => {
     // full resolution.
     for (const file of readdirSync(ART_DIR)) {
       expect(statSync(join(ART_DIR, file)).size, file).toBeLessThan(250_000);
+    }
+  });
+
+  /**
+   * Small enough to ship 135 of them is still ~83KB each, and a sticker wall
+   * draws ~65 at 118px. `sync-stickers.mjs` writes the resized WebP the wall
+   * actually fetches, and `stickerArtSrcSet` in `@landit/ui-web` names them —
+   * two lists of widths in two packages, and a `srcset` candidate that 404s
+   * shows a broken image rather than falling back to the `src`. This is the
+   * only place that can see both, because `@landit/ui-web` may not import the
+   * app and the script lives here.
+   */
+  it('resizes to exactly the widths the badge asks for', async () => {
+    const { STICKER_WIDTHS } = await import('../../scripts/sync-stickers.mjs');
+    expect(STICKER_WIDTHS).toEqual([...STICKER_ART_WIDTHS]);
+
+    for (const width of STICKER_ART_WIDTHS) {
+      expect(stickerArtSrcSet('180.png')).toContain(`/w${width}/180.webp ${width}w`);
     }
   });
 });

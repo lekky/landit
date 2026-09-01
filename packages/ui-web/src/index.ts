@@ -33,6 +33,14 @@ export {
 } from './sport-art';
 
 export {
+  STICKER_ART_BASE_PATH,
+  STICKER_ART_SIZES,
+  STICKER_ART_WIDTHS,
+  stickerArtSrc,
+  stickerArtSrcSet,
+} from './sticker-art';
+
+export {
   AVATARS,
   AVATAR_GROUPS,
   AVATAR_BASE_PATH,
