@@ -1385,6 +1385,31 @@ session should not "fix" back to the prototype:
   pure white: on blue that is 4.46 against 4.54, which is the difference between failing and
   passing, so the token is what gets measured.
 
+**A seventh divergence, 2026-09-01 (Rachid, in chat): a dark theme, on a light-only design pack.**
+Riders use this outdoors at dusk on a phone, and the owner asked for it. The pack draws one theme,
+and `--ink` in it is both the text colour and the surface of some thirty panels — the top bar, the
+streak card, the sticker wall, the auth card — so a dark theme cannot keep those panels black and
+flip the text: they are one token. What holds together is the **full inversion** the language was
+already doing on its own dark panels: ink becomes the ground, paper the keyline and the panel, and
+every accent stays put. Three things a later session should know:
+
+- **It is three states, and the OS is the default.** `tokens.css` redefines the ink/paper/wash
+  tokens under `prefers-color-scheme: dark` and again under `[data-theme='dark']`; a choice from
+  Account stamps `data-theme` on `<html>` (before first paint, via `THEME_BOOT_SCRIPT` in
+  `lib/theme.ts`), and `:root:not([data-theme='light'])` is what lets a chosen light beat a dark
+  OS. The choice is `localStorage`, **per device, not per rider** — no schema change, nothing to
+  sync, and a theme belongs to the screen being looked at. Counted as `theme_changed`.
+- **Two token families exist because of this.** `--on-light` / `--on-dark` never follow the
+  theme: they are the text on a *fixed* fill (an orange tag is orange in the dark too), and
+  `foregroundFor` now answers in them rather than in `--ink` / `--paper`. `--ink-soft` /
+  `--ink-mute` / `--ink-rule` / `--ink-raise` are the prototype's greys on an ink surface, named so
+  they darken when the surface turns cream; `--hatch-a/b` and `--dot` likewise. Every colour
+  literal outside `tokens.css` that meant one of these was swapped for its token in the same
+  commit — a literal that survives is a literal that will be wrong in one theme.
+- **Verified signed-out and on `/design`; the signed-in screens are the owner's to look at.** A
+  session cannot sign in to a local account, so the top bar, the dashboard, the wall and the
+  trick page in the dark were checked as tokens and primitives, not as screens.
+
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
 to test — that is where the three-sport switch is proved against a 375px phone before `SPORT_IDS`

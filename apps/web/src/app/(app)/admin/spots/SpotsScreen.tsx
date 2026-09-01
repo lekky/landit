@@ -116,7 +116,7 @@ export function SpotsScreen({
       </div>
       <div className={styles.chipRow}>
         {row.tags.map((tag) => (
-          <Tag key={tag} color="var(--ink-3)" style={{ fontSize: 10, color: '#fff' }}>
+          <Tag key={tag} color="var(--ink-3)" style={{ fontSize: 10 }}>
             {tag}
           </Tag>
         ))}

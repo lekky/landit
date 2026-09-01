@@ -94,11 +94,11 @@
   gap: 10px;
   margin: 0 0 14px;
   padding-bottom: 8px;
-  border-bottom: 2px solid rgb(255 253 245 / 22%);
+  border-bottom: 2px solid color-mix(in srgb, var(--paper) 22%, transparent);
   color: var(--paper);
 }
 
 .groupCount {
-  color: rgb(255 253 245 / 60%);
+  color: color-mix(in srgb, var(--paper) 60%, transparent);
   letter-spacing: 0.08em;
 }

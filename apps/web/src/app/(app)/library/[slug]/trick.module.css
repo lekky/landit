@@ -51,7 +51,7 @@
 
 /* Locked: the same diagonal hatch the locked trick card and the skill tree use. */
 .headerLocked {
-  background: repeating-linear-gradient(45deg, #efe9da 0 11px, #e5decc 11px 22px);
+  background: repeating-linear-gradient(45deg, var(--hatch-a) 0 11px, var(--hatch-b) 11px 22px);
 }
 
 /* The name, its tags and the award line. `min-width: 0` so a long trick name
@@ -69,7 +69,7 @@
 
 .name {
   font-size: clamp(36px, 7vw, 64px);
-  color: #fff;
+  color: var(--on-dark);
   text-shadow: 3px 3px 0 var(--ink);
   margin-top: 10px;
 }
@@ -102,7 +102,7 @@
 }
 
 .heroLanded .lab {
-  color: #c9c2b4;
+  color: var(--ink-soft);
 }
 
 .heroLandedDate {
@@ -377,7 +377,7 @@
   display: grid;
   place-items: center;
   flex: none;
-  color: #fff;
+  color: var(--on-dark);
 }
 
 .kitText {
@@ -782,7 +782,7 @@
   display: grid;
   place-items: center;
   transform: rotate(-5deg);
-  color: #fff;
+  color: var(--on-dark);
 }
 
 .lockTitle {

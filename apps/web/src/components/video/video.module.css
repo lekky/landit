@@ -176,7 +176,7 @@
 
 .remove:hover {
   background: var(--red);
-  color: #fff;
+  color: var(--on-dark);
 }
 
 .remove:disabled,

@@ -44,7 +44,7 @@ describe('contrastRatio', () => {
   });
 
   it('returns null for anything that is not hex', () => {
-    expect(contrastRatio('var(--ink)', TOKEN.orange)).toBeNull();
+    expect(contrastRatio('var(--on-light)', TOKEN.orange)).toBeNull();
     expect(contrastRatio('rebeccapurple', TOKEN.orange)).toBeNull();
   });
 });
@@ -52,13 +52,13 @@ describe('contrastRatio', () => {
 describe('foregroundFor', () => {
   it('puts ink on the seven accents that carry it', () => {
     for (const name of ['pink', 'orange', 'yellow', 'lime', 'green', 'mint', 'sky'] as const) {
-      expect(foregroundFor(TOKEN[name]), name).toBe('var(--ink)');
+      expect(foregroundFor(TOKEN[name]), name).toBe('var(--on-light)');
     }
   });
 
   it('puts paper on the two accents that need it', () => {
-    expect(foregroundFor(TOKEN.blue)).toBe('var(--paper)');
-    expect(foregroundFor(TOKEN.violet)).toBe('var(--paper)');
+    expect(foregroundFor(TOKEN.blue)).toBe('var(--on-dark)');
+    expect(foregroundFor(TOKEN.violet)).toBe('var(--on-dark)');
   });
 
   it('clears AA on the eight accents that can', () => {
@@ -72,7 +72,7 @@ describe('foregroundFor', () => {
       'sky',
       'violet',
     ] as const) {
-      const fg = foregroundFor(TOKEN[name]) === 'var(--ink)' ? TOKEN.ink : TOKEN.paper;
+      const fg = foregroundFor(TOKEN[name]) === 'var(--on-light)' ? TOKEN.ink : TOKEN.paper;
       expect(contrastRatio(fg, TOKEN[name]), name).toBeGreaterThanOrEqual(AA);
     }
   });
@@ -93,7 +93,7 @@ describe('foregroundFor', () => {
    */
   it('records blue and red as failing whichever foreground they take', () => {
     for (const name of ['blue', 'red'] as const) {
-      const fg = foregroundFor(TOKEN[name]) === 'var(--ink)' ? TOKEN.ink : TOKEN.paper;
+      const fg = foregroundFor(TOKEN[name]) === 'var(--on-light)' ? TOKEN.ink : TOKEN.paper;
       expect(contrastRatio(fg, TOKEN[name]), name).toBeLessThan(AA);
       // Close enough that a small darkening of the token would clear it.
       expect(contrastRatio(fg, TOKEN[name]), name).toBeGreaterThan(4.1);
@@ -101,7 +101,7 @@ describe('foregroundFor', () => {
   });
 
   it('returns undefined for a CSS variable, so the stylesheet still decides', () => {
-    expect(foregroundFor('var(--ink)')).toBeUndefined();
+    expect(foregroundFor('var(--on-light)')).toBeUndefined();
     expect(foregroundFor(undefined)).toBeUndefined();
     expect(foregroundFor('')).toBeUndefined();
   });

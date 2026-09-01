@@ -1,6 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
+import { foregroundFor } from '../contrast';
 
 import { AVATAR_BASE_PATH, avatarById, avatarSrc } from '../avatars';
 
@@ -67,7 +68,9 @@ export function Avatar({
       style={{
         fontFamily: 'var(--fd)',
         fontSize: Math.round(size * 0.44),
-        color: '#fff',
+        // The initial sits on `hue`, which is a pastel or an accent - white
+        // on either is the defect this branch exists to remove.
+        color: foregroundFor(hue) ?? (hue === 'var(--pink)' ? 'var(--on-light)' : 'var(--on-dark)'),
         lineHeight: 1,
       }}
     >

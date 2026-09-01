@@ -111,7 +111,7 @@ export function RiderSheet({
           <div className="d" style={{ fontSize: 26, color: 'var(--paper)' }}>
             {rider.name}
           </div>
-          <div className="lab" style={{ color: '#C9C2B4', marginTop: 5 }}>
+          <div className="lab" style={{ color: 'var(--ink-soft)', marginTop: 5 }}>
             @{rider.handle} · joined {view?.joined ?? rider.joined} · active{' '}
             {(view?.active ?? rider.active).toLowerCase()}
           </div>

@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react';
 
+import { foregroundFor } from '../contrast';
 import { cx } from '../cx';
 import type { IconName } from '../icons';
 import { Equipment } from '../sport-art';
@@ -75,7 +76,13 @@ export function Tabs({
             className={cx('sporttab', on && 'on')}
             onClick={() => onChange(it.id)}
             style={
-              on ? { background: it.color, borderColor: 'var(--ink)', color: '#fff' } : undefined
+              on
+                ? {
+                    background: it.color,
+                    borderColor: 'var(--ink)',
+                    color: foregroundFor(it.color) ?? 'var(--on-dark)',
+                  }
+                : undefined
             }
           >
             {/*

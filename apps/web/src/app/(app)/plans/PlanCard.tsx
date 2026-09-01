@@ -1,7 +1,7 @@
 'use client';
 
 import type { BillingPeriod } from '@landit/core';
-import { Button, Icon } from '@landit/ui-web';
+import { Button, foregroundFor, Icon } from '@landit/ui-web';
 import Link from 'next/link';
 import { useActionState } from 'react';
 
@@ -73,7 +73,12 @@ export function PlanCard({
           {card.perks.map((perk) => (
             <div key={perk} className={styles.perk}>
               <span className={styles.tick} style={{ background: card.hue }}>
-                <Icon name="check" size={10} strokeWidth={3.6} style={{ color: '#fff' }} />
+                <Icon
+                  name="check"
+                  size={10}
+                  strokeWidth={3.6}
+                  style={{ color: foregroundFor(card.hue) ?? 'var(--on-dark)' }}
+                />
               </span>
               <span className={styles.perkText}>{perk}</span>
             </div>

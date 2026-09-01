@@ -229,7 +229,6 @@ export function RidersScreen({
                 color={STATUS_LOOK[rider.status].color}
                 style={{
                   fontSize: 10,
-                  color: rider.status === 'pending' ? 'var(--ink)' : '#fff',
                 }}
               >
                 {STATUS_LOOK[rider.status].label}

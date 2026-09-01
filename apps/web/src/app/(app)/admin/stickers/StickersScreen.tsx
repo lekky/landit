@@ -102,7 +102,7 @@ export function StickersScreen({ rows }: { rows: readonly AdminStickerRow[] }) {
             <span className="cond" style={{ fontSize: 13.5, color: 'var(--ink-2)' }}>
               {row.condition}
               {!row.hasRule && (
-                <Tag color="var(--red)" style={{ fontSize: 10, marginLeft: 8, color: '#fff' }}>
+                <Tag color="var(--red)" style={{ fontSize: 10, marginLeft: 8 }}>
                   No rule
                 </Tag>
               )}
@@ -121,7 +121,7 @@ export function StickersScreen({ rows }: { rows: readonly AdminStickerRow[] }) {
                 fontSize: 11.5,
                 padding: '5px 10px',
                 background: row.isLive ? 'var(--lime)' : 'var(--ink-3)',
-                color: row.isLive ? 'var(--ink)' : '#fff',
+                color: row.isLive ? 'var(--ink)' : 'var(--paper)',
               }}
             >
               {row.isLive ? 'Live' : 'Hidden'}

@@ -12,7 +12,7 @@ import {
   type SportId,
   type StanceId,
 } from '@landit/core';
-import { Avatar, Button, Equipment, Panel, avatarById } from '@landit/ui-web';
+import { Avatar, avatarById, Button, Equipment, foregroundFor, Panel } from '@landit/ui-web';
 import { useActionState, useState } from 'react';
 
 import { AvatarPicker } from '@/components/AvatarPicker';
@@ -169,7 +169,7 @@ export function ProfilePanel({
                   className={`panel flat ${styles.sportPick}`}
                   style={{
                     background: on ? sport.color : 'var(--paper)',
-                    color: on ? '#fff' : 'var(--ink)',
+                    color: on ? (foregroundFor(sport.color) ?? 'var(--on-dark)') : 'var(--ink)',
                   }}
                 >
                   <span
@@ -210,7 +210,11 @@ export function ProfilePanel({
                   onClick={() => setGoal(option.id)}
                   style={
                     goal === option.id
-                      ? { background: option.hue, color: '#fff', boxShadow: '3px 3px 0 var(--ink)' }
+                      ? {
+                          background: option.hue,
+                          color: foregroundFor(option.hue) ?? 'var(--on-dark)',
+                          boxShadow: '3px 3px 0 var(--ink)',
+                        }
                       : undefined
                   }
                 >

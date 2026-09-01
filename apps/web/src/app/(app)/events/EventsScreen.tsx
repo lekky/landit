@@ -7,7 +7,17 @@ import {
   type DistanceUnits,
   type EventKind,
 } from '@landit/core';
-import { Button, Empty, Icon, Panel, Pill, SportChip, Tag, type IconName } from '@landit/ui-web';
+import {
+  Button,
+  Empty,
+  foregroundFor,
+  Icon,
+  type IconName,
+  Panel,
+  Pill,
+  SportChip,
+  Tag,
+} from '@landit/ui-web';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
@@ -344,7 +354,11 @@ export function EventsScreen({
             key={k.id}
             on={kind === k.id}
             onClick={() => setKind(k.id)}
-            style={kind === k.id ? { background: k.color, color: '#fff' } : undefined}
+            style={
+              kind === k.id
+                ? { background: k.color, color: foregroundFor(k.color) ?? 'var(--on-dark)' }
+                : undefined
+            }
           >
             {k.id}
           </Pill>
