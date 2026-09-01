@@ -34,10 +34,24 @@ import type { CollectionName } from './generated/collections';
  * `assertSportsAccepted` below turns that into a clear failure rather than a
  * confusing 400.
  *
- * **Idempotent.** Every record is matched on its natural key and updated in
- * place, so running the seed twice is the same as running it once, and running
- * it against a database riders already use does not orphan their progress:
+ * **Idempotent, and now quiet with it.** Every record is matched on its natural
+ * key, so running the seed twice is the same as running it once, and running it
+ * against a database riders already use does not orphan their progress:
  * `trick_progress` relates to the trick *record*, and the record keeps its id.
+ * A row that already matches is **skipped**, not rewritten — see `rowMatches`.
+ * Measured against a local instance on 2026-09-01: a second run of the full
+ * seed reports `0 created, 0 updated, 564 unchanged` and writes nothing.
+ *
+ * **The canonical data wins, and that is a real edge.** Staff can edit every
+ * collection this writes (`apps/web/src/app/(app)/admin/content-actions.ts`),
+ * and the seed writes the whole row — so a seed run reverts a staff edit to
+ * seeded content. Skipping unchanged rows makes that sharper rather than
+ * softer: the only rows still written are the ones where the canonical data
+ * disagrees with the database, which is exactly the set of staff edits. It is
+ * now visible in the `updated` count instead of hidden among hundreds of
+ * no-op writes, and `--only` keeps a run from reaching collections it had no
+ * business touching. Whether "canonical wins" is the right rule at all is a
+ * product decision, not this file's — see the issue linked from plan §7.
  */
 
 /* ------------------------------------------------------------- the plan -- */
@@ -232,17 +246,124 @@ export function buildSeed(): SeedPlan {
   };
 }
 
+/* --------------------------------------------------------- choosing it -- */
+
+/** `trick_prereqs` has no `SeedTable`; it is reconciled separately. */
+export const PREREQS_TABLE = 'trick_prereqs';
+
+/** Every name `selectTables` accepts, in the order the seed writes them. */
+export function seedableTables(plan: SeedPlan = buildSeed()): string[] {
+  return [...plan.tables.map((t) => t.collection), PREREQS_TABLE];
+}
+
+/**
+ * The subset of the seed a caller asked for.
+ *
+ * Seeding is all-or-nothing by default, which is right for a fresh instance and
+ * wrong for a live one: changing one challenge should not rewrite 98 spots and
+ * 74 events, and staff can edit every one of those collections in the admin.
+ * The e2e suite already filtered the plan by hand to seed four tables; this is
+ * that, named, validated, and reachable from the CLI.
+ *
+ * An unknown name throws rather than silently seeding nothing — a typo that
+ * quietly does no work is the worst outcome for a command someone runs against
+ * production and then walks away from.
+ */
+export function selectTables(
+  only: readonly string[] | undefined,
+  plan: SeedPlan = buildSeed(),
+): { plan: SeedPlan; prereqs: boolean } {
+  if (!only || only.length === 0) return { plan, prereqs: true };
+
+  const wanted = new Set(only);
+  const known = new Set(seedableTables(plan));
+  const unknown = [...wanted].filter((name) => !known.has(name));
+  if (unknown.length) {
+    throw new Error(
+      `Not a seedable collection: ${unknown.join(', ')}. ` +
+        `Choose from: ${seedableTables(plan).join(', ')}.`,
+    );
+  }
+
+  return {
+    plan: { tables: plan.tables.filter((t) => wanted.has(t.collection)) },
+    prereqs: wanted.has(PREREQS_TABLE),
+  };
+}
+
 /* ---------------------------------------------------------- writing it -- */
 
 export interface SeedResult {
   readonly collection: string;
   readonly created: number;
+  /** Rows that existed and **differed**, so were written over. */
   readonly updated: number;
+  /** Rows that existed and already matched, so were left alone. */
+  readonly unchanged: number;
 }
 
 export interface SeedOptions {
   /** Called with each line of progress. Defaults to silence. */
   readonly log?: (message: string) => void;
+  /**
+   * Reconcile `trick_prereqs` after the tables. Default `true`.
+   *
+   * Off when a caller seeds a subset that does not include `tricks`: the edge
+   * pass resolves every canonical edge against the trick records it can find
+   * and throws when one is missing, so running it over an unseeded library
+   * fails for a reason that has nothing to do with what was asked for.
+   */
+  readonly prereqs?: boolean;
+}
+
+/**
+ * Does the record already hold what the seed would write?
+ *
+ * Exported because this is the whole risk in skipping a write, and it is
+ * testable without a database — the failure mode is not "PocketBase refused",
+ * it is "the two sides spell the same value differently and the seed rewrites
+ * every row forever" (or, worse, never writes a real change).
+ *
+ * Only the fields the seed sets are compared. Everything else on the record —
+ * `id`, `created`, `updated`, `collectionId`, and any column the canonical data
+ * has no opinion about — is none of the seed's business.
+ *
+ * The one representation that genuinely differs is **dates**. The seed writes a
+ * day key, `2026-09-13`; PocketBase stores a timestamp and hands back
+ * `2026-09-13 00:00:00.000Z`. Compared naively every challenge differs from
+ * itself on every run.
+ */
+export function rowMatches(
+  existing: Record<string, unknown>,
+  row: Record<string, unknown>,
+): boolean {
+  return Object.entries(row).every(([field, wanted]) => valueMatches(existing[field], wanted));
+}
+
+/** A PocketBase datetime, as it comes back over the API. */
+const PB_DATETIME = /^(\d{4}-\d{2}-\d{2})[T ]\d{2}:\d{2}:\d{2}/;
+
+function valueMatches(has: unknown, wanted: unknown): boolean {
+  if (Array.isArray(wanted) || Array.isArray(has)) {
+    const a = Array.isArray(has) ? has : [];
+    const b = Array.isArray(wanted) ? wanted : [];
+    // Ordered, deliberately. The seed always writes canonical order, so an
+    // out-of-order record is one the seed should correct — once.
+    return a.length === b.length && a.every((value, i) => valueMatches(value, b[i]));
+  }
+
+  if (Object.is(has, wanted)) return true;
+
+  // A day key against the timestamp PocketBase made of it.
+  if (typeof has === 'string' && typeof wanted === 'string') {
+    const stored = PB_DATETIME.exec(has);
+    if (stored && stored[1] === wanted) return true;
+  }
+
+  // Numbers and booleans survive the round trip as themselves, so a difference
+  // here is a real one. Compared as text so a `3` that came back as `"3"` from
+  // some future column type is not reported as a change every single run.
+  return String(has ?? '') === String(wanted ?? '');
 }
 
 /**
@@ -308,26 +429,34 @@ export async function seed(
     const api = records(client, table.collection);
     let created = 0;
     let updated = 0;
+    let unchanged = 0;
 
     for (const row of table.rows) {
       const filter = table.key.map((field) => `${field} = {:${field}}`).join(' && ');
       const params = Object.fromEntries(table.key.map((field) => [field, row[field] as string]));
 
       const existing = await api.first(filter, params);
-      if (existing) {
-        await api.update(existing.id, row as never);
-        updated += 1;
-      } else {
+      if (!existing) {
         await api.create(row as never);
         created += 1;
+      } else if (rowMatches(existing as unknown as Record<string, unknown>, row)) {
+        // Skipping the write is the point. Every collection the seed touches is
+        // in the audit hook's `AUDITED` list, and `onRecordUpdateRequest` there
+        // has no change check — so an unconditional update wrote an audit row
+        // carrying a full before/after snapshot of every record on every run,
+        // and buried the one line that had actually changed.
+        unchanged += 1;
+      } else {
+        await api.update(existing.id, row as never);
+        updated += 1;
       }
     }
 
-    log(`${table.collection}: ${created} created, ${updated} updated`);
-    results.push({ collection: table.collection, created, updated });
+    log(`${table.collection}: ${created} created, ${updated} updated, ${unchanged} unchanged`);
+    results.push({ collection: table.collection, created, updated, unchanged });
   }
 
-  results.push(await seedPrereqs(client, log));
+  if (options.prereqs ?? true) results.push(await seedPrereqs(client, log));
   return results;
 }
 
@@ -378,5 +507,8 @@ async function seedPrereqs(client: Client, log: (message: string) => void): Prom
   }
 
   log(`trick_prereqs: ${created} created, ${seen.size} unchanged, ${removed} removed`);
-  return { collection: 'trick_prereqs', created, updated: seen.size };
+  // `seen` are edges that already existed and were left alone, which is
+  // `unchanged` — it was reported as `updated` while `SeedResult` had nowhere
+  // else to put it, and the log line above has always called it the right name.
+  return { collection: 'trick_prereqs', created, updated: 0, unchanged: seen.size };
 }

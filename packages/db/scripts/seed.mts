@@ -4,6 +4,11 @@
  *
  *   pnpm --filter @landit/db seed              # the local dev instance
  *   pnpm --filter @landit/db seed --url https://…   # a hosted one
+ *   pnpm --filter @landit/db seed --only challenges,stickers
+ *
+ * `--only` scopes the run to named collections. Seeding everything is right for
+ * a fresh instance and heavy-handed on a live one: staff can edit all of these
+ * in the admin, and the seed writes whatever the canonical data says.
  *
  * Credentials come from the environment — `POCKETBASE_SUPERUSER_EMAIL` and
  * `POCKETBASE_SUPERUSER_PASSWORD` — never from an argument, so they do not end
@@ -19,7 +24,7 @@
 import process from 'node:process';
 
 import { createSuperuserClient } from '../src/clients.ts';
-import { seed } from '../src/seed.ts';
+import { seed, selectTables } from '../src/seed.ts';
 
 function flag(name: string): string | undefined {
   const index = process.argv.indexOf(`--${name}`);
@@ -27,14 +32,33 @@ function flag(name: string): string | undefined {
 }
 
 const url = flag('url');
+const only = flag('only')
+  ?.split(',')
+  .map((name) => name.trim())
+  .filter(Boolean);
+
+// Before the client, so a typo fails without authenticating against production.
+const { plan, prereqs } = selectTables(only);
 
 const client = await createSuperuserClient(url ? { url } : {});
-process.stderr.write(`Seeding ${client.baseURL}…\n`);
+process.stderr.write(
+  `Seeding ${client.baseURL}${
+    only
+      ? ` (${plan.tables.map((t) => t.collection).join(', ')}` +
+        `${prereqs ? ', trick_prereqs' : ''})`
+      : ''
+  }…\n`,
+);
 
-const results = await seed(client, undefined, {
+const results = await seed(client, plan, {
+  prereqs,
   log: (message) => process.stderr.write(`  ${message}\n`),
 });
 
-const created = results.reduce((sum, r) => sum + r.created, 0);
-const updated = results.reduce((sum, r) => sum + r.updated, 0);
-process.stderr.write(`Done: ${created} created, ${updated} updated.\n`);
+const total = (field: 'created' | 'updated' | 'unchanged'): number =>
+  results.reduce((sum, r) => sum + r[field], 0);
+
+process.stderr.write(
+  `Done: ${total('created')} created, ${total('updated')} updated, ` +
+    `${total('unchanged')} unchanged.\n`,
+);

@@ -1176,6 +1176,45 @@ committed file drifts, and a test runs it.
 neither of which the JSVM-side package has or should grow. The `pocketbase/seed/` placeholder from
 T0 is gone.
 
+**The seed writes only what differs, and only where it is told (2026-09-01).** It compared nothing:
+every existing row was written over unconditionally, so a run against production reported `537
+updated` when about nineteen values had actually changed. Three costs, one of them not small.
+Every collection the seed touches is in the audit hook's `AUDITED` list and
+`onRecordUpdateRequest` in `pocketbase/hooks/70_audit.pb.js` has **no change check** — unlike its
+sibling handler for user fields, which does — so each run wrote one audit row per record, each
+carrying a full `before` *and* `after` snapshot, including 97 tricks with their long prose. The
+real change was buried among hundreds of no-ops, and every `updated` timestamp churned.
+
+`rowMatches` now decides whether the write happens. It compares only the fields the seed sets, and
+the one representation that genuinely differs is dates: the seed writes `2026-09-13`, PocketBase
+returns `2026-09-13 00:00:00.000Z`, and compared naively every challenge differs from itself on
+every run. Measured against a local instance: a second full run reports `0 created, 0 updated, 564
+unchanged` and writes zero audit rows; with one row edited out of band it reports `1 updated, 44
+unchanged`. `SeedResult` gains `unchanged`, and `trick_prereqs` stops reporting its untouched edges
+as `updated` — its own log line has always called them unchanged.
+
+`--only challenges,stickers` scopes a run. Seeding everything is right for a fresh instance and
+heavy-handed on a live one, and the capability already existed — the e2e helper filtered the plan
+by hand. An unknown name throws **before the client authenticates**, because a typo that quietly
+does no work is the worst outcome for a command someone runs against production and walks away
+from. `--only` also leaves the `trick_prereqs` pass out unless asked for: it resolves every
+canonical edge against seeded trick records and throws when one is missing.
+
+**Not fixed here, because it is a product decision: the seed reverts staff edits.** Staff can edit
+all seven of these collections in the admin, and the seed writes the whole row — demonstrated
+locally, where an edited challenge title was written back to the canonical value on the next run.
+Skipping unchanged rows makes this *sharper*, not softer: the only rows still written are the ones
+where the canonical data disagrees with the database, which is exactly the set of staff edits. It
+is at least visible in the `updated` count now. Whether "canonical wins" is the right rule is the
+owner's call.
+
+**There is still no HTTP-level seed test.** `packages/db/src/seed.test.ts` claimed one existed at
+`pocketbase/tests/seed.test.ts`; that file has never existed, and the comment is corrected. The
+suite that owns a live instance is `@landit/pocketbase`, which does not depend on `@landit/db` —
+closing that gap means inverting the package boundary, which was not done unilaterally. The two
+pieces carrying real risk are pure by construction instead, and tested against representations
+read off the live API rather than invented.
+
 **Authorised additive-only exception (owner: lekky, 2026-08-16, in chat).** T4 folds in issues #8
 and #9, which together need one behaviour change to merged shared code. #9 is additive: the three
 weekly-streak fields `WeeklyStreakState` needs (`week_start`, `rides_this_week`,
