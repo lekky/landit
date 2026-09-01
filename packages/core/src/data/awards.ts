@@ -1644,7 +1644,7 @@ export const AWARDS = [
     sport: null,
     hue: '#2ec4b6',
     ico: 'star',
-    cond: 'Finish a weekly challenge',
+    cond: 'Finish a challenge',
     isLive: true,
     img: 'first-challenge.png',
     stars: 1,
