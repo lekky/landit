@@ -195,4 +195,12 @@ export {
   type StaffChange,
 } from './admin';
 
-export { buildSeed, seed, type SeedPlan, type SeedResult } from './seed';
+export {
+  buildSeed,
+  rowMatches,
+  seed,
+  seedableTables,
+  selectTables,
+  type SeedPlan,
+  type SeedResult,
+} from './seed';
