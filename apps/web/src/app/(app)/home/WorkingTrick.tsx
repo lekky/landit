@@ -68,8 +68,24 @@ export function WorkingTrick({ trick, onOpen }: { trick: TrickCardView; onOpen: 
           from: 'home',
         });
 
-        if (value) toast(`Logged as ${STAGE[value].label.toLowerCase()}`, STAGE[value].color);
-        else toast('Stopped tracking this one');
+        /*
+         * Say where it went (#190, owner's pick, 2026-09-01). "Working on it"
+         * is the `trying` slice, so any other stage takes the card out of the
+         * section under the rider's thumb — and the reward for a good session
+         * read as the thing they were working on being taken away. The move is
+         * correct; the surprise was the problem, so the toast names the
+         * destination rather than the screen holding a card the server says
+         * has gone.
+         */
+        if (value === 'trying')
+          toast(`Logged as ${STAGE[value].label.toLowerCase()}`, STAGE[value].color);
+        else if (value) {
+          const label = STAGE[value].label;
+          toast(
+            `Logged as ${label.toLowerCase()} — now under ${label} in your library`,
+            STAGE[value].color,
+          );
+        } else toast('Stopped tracking this one');
 
         const earned = result.earned ?? [];
         for (const sticker of earned) toast(`Sticker earned: ${sticker.name}`, sticker.hue);
