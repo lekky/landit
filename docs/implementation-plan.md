@@ -2586,6 +2586,8 @@ restyling the owner's assets.
 **T22 · My tricks.** Added after launch (owner, 2026-08-18, in chat), and the first task on this
 list that came from looking at the shipped product rather than from the design pack.
 
+**Decided 2026-09-01 (Rachid, in chat; issue #190): a bump that leaves "Working on it" says where it went.** The section is the `trying` slice, so moving a trick to any other stage takes its card out from under the rider's thumb — correct, and a surprise. Of the four options the issue laid out, the owner picked the toast: `Logged as sometimes — now under Sometimes in your library`. No client state disagrees with the server, the section keeps meaning "in progress", and the trick page's toast is unchanged because nothing vanishes there. `WorkingTrick.tsx`.
+
 A rider tracking twelve tricks out of thirty had no screen that showed those twelve. The library
 listed all thirty with a status filter folded into the sidebar; Progress counted them without ever
 naming them. Four placements were drawn for the owner — a switch in the library, a route of its
@@ -2833,6 +2835,8 @@ Decisions taken inside this task, each because the pack could not have known the
 
 **T26a · The band and the badge, after the owner looked at it.** Five changes asked for on
 2026-08-31 once T26 was on screen, all of them presentation and none of them behavioural:
+
+**Decided 2026-09-01 (Rachid, in chat; issues #266 and #245): the badge rule is badge-wide, and the wall is shelved.** The pack's "never desaturate, grey out or reduce the opacity of the shield" applies everywhere the badge is drawn, not only on this page. `StickerBadge` therefore no longer takes an unearned printed badge to grayscale at 45%; it keeps the colour and lays a mark over the art (`.sticker-mark`), this page's NOT YET at wall scale. The drawn SVG fallback already letters LOCKED and is unchanged. And the wall — ~65 badges per sport tab since T24 — is shelved by `stickers/groups.ts`: Earned first, then the locked awards by `AwardKind` (trick awards, milestones, streaks, challenges, out and about, crew, account). **"Nearly there" is deliberately not a shelf yet**: `@landit/core`'s `evaluateSticker` answers yes or no, and a how-close number means a progress-returning evaluator across heterogeneous rules — its own piece of work, filed rather than faked. When it exists it goes between Earned and the first locked shelf.
 
 - **A tick, not a filled dot, on the stages already behind the rider.** The pack drew passed
   stages as a solid dot, which only says "not this one" — the tick says you did it, which is what

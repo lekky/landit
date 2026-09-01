@@ -21,6 +21,7 @@ import { useToast } from '@/providers/toast';
 import { useSport } from '@/providers/sport';
 
 import { acknowledgeStickersAction } from './actions';
+import { groupWall } from './groups';
 import type { StickerView, StickerWallView } from './view';
 
 import styles from './stickers.module.css';
@@ -104,23 +105,41 @@ export function StickerWall({ view }: { view: StickerWallView }) {
         </div>
       </div>
 
+      {/*
+        Shelved, not heaped (#245): Earned first, then the locked awards by what
+        they are for — see `groups.ts` for the shelves and for why "nearly
+        there" is not one of them yet. Each shelf is a labelled section so a
+        screen reader can jump between them the way the eye does.
+      */}
       <Panel className={styles.wall}>
-        <div className={styles.grid}>
-          {wall.map((s) => (
-            <StickerBadge
-              key={s.slug}
-              sticker={{
-                name: s.name,
-                hue: s.hue,
-                ...(s.icon ? { icon: s.icon as IconName } : {}),
-                ...(s.img ? { img: s.img } : {}),
-              }}
-              earned={s.earned}
-              just={s.unannounced}
-              onClick={() => setOpen(s)}
-            />
-          ))}
-        </div>
+        {groupWall(wall).map((group) => (
+          <section
+            key={group.id}
+            className={styles.group}
+            aria-labelledby={`wall-shelf-${group.id}`}
+          >
+            <h2 id={`wall-shelf-${group.id}`} className={`lab ${styles.groupHead}`}>
+              {group.label}
+              <span className={styles.groupCount}>{group.stickers.length}</span>
+            </h2>
+            <div className={styles.grid}>
+              {group.stickers.map((s) => (
+                <StickerBadge
+                  key={s.slug}
+                  sticker={{
+                    name: s.name,
+                    hue: s.hue,
+                    ...(s.icon ? { icon: s.icon as IconName } : {}),
+                    ...(s.img ? { img: s.img } : {}),
+                  }}
+                  earned={s.earned}
+                  just={s.unannounced}
+                  onClick={() => setOpen(s)}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
       </Panel>
 
       {open && (

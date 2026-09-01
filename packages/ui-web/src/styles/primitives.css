@@ -568,15 +568,49 @@
   height: 100%;
   object-fit: contain;
 }
-.sticker.locked {
-  filter: saturate(0.8) drop-shadow(0 3px 4px rgba(18, 16, 11, 0.28));
+/*
+ * A locked badge keeps its colour.
+ *
+ * The trick-page pack's rule (owner, 2026-08-31) — "never desaturate, grey out
+ * or reduce the opacity of the shield" — and the owner's answer on 2026-09-01
+ * that it is badge-wide, not page-scoped (#266). Until then the wall took an
+ * unearned badge to grayscale at 45%, which reads as art that failed to load
+ * rather than a thing left to go and get. The colour is the offer.
+ *
+ * State moves to a mark laid over the art instead (`.sticker-mark`, drawn by
+ * `StickerBadge` for printed art; the SVG fallback letters LOCKED itself). The
+ * mark is the trick page's NOT YET at wall scale: Anton, rotated, sized from
+ * the badge's own width so a 118px cell and a 160px modal get the same look.
+ */
+.sticker {
+  position: relative;
+  container-type: inline-size;
 }
-.sticker.locked img {
-  filter: grayscale(1);
-  opacity: 0.45;
+.sticker.locked {
+  filter: drop-shadow(0 3px 4px rgba(18, 16, 11, 0.28));
 }
 .sticker.locked:hover {
   transform: none;
+}
+.sticker-mark {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  font-family: var(--fd);
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
+  /* The trick page's `.pending`, with its badge-width maths in container
+     units: 0.16 of the width, dashed ink, paper wash at 82% so it reads over
+     art that is a different colour on every badge. */
+  font-size: 16cqw;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  border: 3px dashed var(--ink);
+  padding: 4cqw 8cqw;
+  background: rgb(255 253 245 / 82%);
+  pointer-events: none;
 }
 .sticker.just {
   animation: pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
