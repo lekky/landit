@@ -305,14 +305,19 @@ describe('plans (implementation plan §2.4)', () => {
 describe('challenges', () => {
   // Counted off `SPORT_IDS`, not a literal pair: the two-sport version of this
   // was green for as long as BMX had no challenges at all (issue #80).
-  it('holds six challenges for every sport, with unique ids', () => {
-    for (const sport of SPORT_IDS) {
-      expect(
-        CHALLENGES.filter((c) => c.sport === sport),
-        sport,
-      ).toHaveLength(6);
+  //
+  // The count itself is no longer a literal either. It was six because the
+  // design pack transcribed six, and asserting six is asserting the schedule
+  // never grows — which is how a schedule quietly acquires an expiry date. What
+  // matters is that no sport is short of the others, so that is what is
+  // asserted: same number of weeks everywhere, and at least the original six.
+  it('holds the same number of challenges for every sport, with unique ids', () => {
+    const perSport = SPORT_IDS.map((sport) => CHALLENGES.filter((c) => c.sport === sport).length);
+    for (const [i, count] of perSport.entries()) {
+      expect(count, SPORT_IDS[i]).toBe(perSport[0]);
+      expect(count, SPORT_IDS[i]).toBeGreaterThanOrEqual(6);
     }
-    expect(CHALLENGES).toHaveLength(SPORT_IDS.length * 6);
+    expect(CHALLENGES).toHaveLength(SPORT_IDS.length * (perSport[0] ?? 0));
     expect(new Set(ids(CHALLENGES)).size).toBe(CHALLENGES.length);
   });
 

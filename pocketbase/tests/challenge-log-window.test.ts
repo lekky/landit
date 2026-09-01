@@ -133,7 +133,7 @@ describe('finishing a challenge awards the sticker the screen promised', () => {
       name: 'First Challenge',
       hue: '#2ec4b6',
       ico: 'star',
-      cond: 'Finish a weekly challenge',
+      cond: 'Finish a challenge',
       kind: 'challenges',
       is_live: true,
     });

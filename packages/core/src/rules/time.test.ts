@@ -117,12 +117,19 @@ describe('weeks, cut where the challenges cut them', () => {
   });
 
   it('agrees with every seeded challenge window', () => {
-    // One product, one definition of a week: the streak week must be the same
-    // seven days as the challenge week, or "this week" means two things.
+    // One product, one definition of a week: a challenge window must sit on the
+    // same grid the streak is scored on, or "this week" means two things.
+    //
+    // Sitting on the grid, not filling one cell of it. This asserted that every
+    // window was exactly `weekEnd(starts)` — true while every challenge was one
+    // week long, and false the moment the cadence went fortnightly (2026-08-19,
+    // plan §7 T12). What has to hold either way, and holds for a slot of any
+    // whole number of weeks, is that it opens on a Monday and closes on a
+    // Sunday.
     expect(WEEK_STARTS_ON).toBe(1);
     for (const challenge of CHALLENGES) {
-      expect(weekStart(challenge.starts)).toBe(challenge.starts);
-      expect(weekEnd(challenge.starts)).toBe(challenge.ends);
+      expect(weekStart(challenge.starts), `${challenge.id} opens`).toBe(challenge.starts);
+      expect(weekEnd(challenge.ends), `${challenge.id} closes`).toBe(challenge.ends);
     }
   });
 

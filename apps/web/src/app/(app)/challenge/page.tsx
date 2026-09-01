@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * The weekly challenge (`landit-screens-b.jsx`, screenshot 17).
+ * The challenge screen (`landit-screens-b.jsx`, screenshot 17).
  *
  * A server component that reads and computes over a client component that
  * renders — the sport tabs are per-device client state, and every date label on

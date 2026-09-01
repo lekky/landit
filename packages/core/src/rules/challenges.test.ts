@@ -4,6 +4,7 @@ import { CHALLENGES } from '../data/challenges';
 import { SPORT_IDS } from '../data/sports';
 import type { Challenge } from '../types';
 import { resolveStickerRule } from './stickers';
+import { addDays, compareDayKeys } from './time';
 import {
   canLogChallenge,
   challengeProgress,
@@ -207,11 +208,14 @@ describe('the shipped schedule', () => {
   // `SPORT_IDS`, never a literal pair (plan §7). The two-sport version of these
   // assertions passed happily while BMX had no challenges at all and the
   // `challenger` sticker was unearnable for a BMX-only rider (issue #80).
-  it('runs every sport’s weeks in step', () => {
-    const weeks = SPORT_IDS.map((sport) => challengesFor(sport, CHALLENGES));
-    for (const sport of weeks) expect(sport).toHaveLength(6);
-    const first = weeks[0]?.map((c) => c.starts);
-    for (const sport of weeks) expect(sport.map((c) => c.starts)).toEqual(first);
+  it('runs every sport’s slots in step', () => {
+    const perSport = SPORT_IDS.map((sport) => challengesFor(sport, CHALLENGES));
+    const first = perSport[0]?.map((c) => c.starts) ?? [];
+    // Not a literal count. It was six, because the pack transcribed six, and
+    // asserting six is asserting the schedule never grows — which is how it
+    // acquired an expiry date in the first place.
+    expect(first.length).toBeGreaterThanOrEqual(6);
+    for (const sport of perSport) expect(sport.map((c) => c.starts)).toEqual(first);
   });
 
   it('leaves no sport without a challenge to run', () => {
@@ -220,15 +224,57 @@ describe('the shipped schedule', () => {
     }
   });
 
-  it('has exactly one live week per sport on any given day', () => {
-    for (const day of ['2026-07-22', '2026-08-05', '2026-08-13', '2026-08-27']) {
-      const clock = at(`${day}T12:00:00Z`);
-      for (const sport of SPORT_IDS) {
-        const live = challengesFor(sport, CHALLENGES).filter(
-          (c) => challengeState(c, clock) === 'live',
-        );
-        expect(live).toHaveLength(1);
+  /*
+   * The three assertions below are what stop the schedule acquiring an expiry
+   * date again. The shipped set ran weeks 30-35 and stopped on 2026-08-30 —
+   * eleven days after the site went live — and nothing was red about that,
+   * because "does it end?" was never asked. Past its last Sunday `liveChallenge`
+   * falls back to the most recent finished slot and every sport shows a dead
+   * card, permanently, to real riders.
+   *
+   * None of them assumes a cadence. The shipped six run weekly, everything from
+   * 2026-08-31 runs fortnightly, and what has to be true of both is that the
+   * slots meet exactly: no gap, no overlap, no sport left behind.
+   */
+  it('runs each sport’s slots back to back, with no day off in between', () => {
+    for (const sport of SPORT_IDS) {
+      const slots = challengesFor(sport, CHALLENGES);
+      for (let i = 1; i < slots.length; i += 1) {
+        const previous = slots[i - 1];
+        const next = slots[i];
+        if (!previous || !next) throw new Error('unreachable');
+        // The day after one slot ends is the day the next one opens. Not "no
+        // overlap" — that is `challengesOverlap`'s job, and a gap passes it
+        // happily while still showing a rider a dead card.
+        expect(addDays(previous.ends, 1), `${previous.id} into ${next.id}`).toBe(next.starts);
       }
+    }
+  });
+
+  it('has exactly one live challenge per sport on every day it covers', () => {
+    // Every day the schedule claims, not a hand-picked four: a sampled date
+    // list only ever proves the dates somebody thought to type, and the four it
+    // sampled were all inside weeks that happened to be fine.
+    for (const sport of SPORT_IDS) {
+      const slots = challengesFor(sport, CHALLENGES);
+      const last = slots[slots.length - 1];
+      if (!slots[0] || !last) throw new Error('unreachable');
+
+      for (let day = slots[0].starts; compareDayKeys(day, last.ends) <= 0; day = addDays(day, 1)) {
+        const clock = at(`${day}T12:00:00Z`, 'UTC');
+        const live = slots.filter((c) => challengeState(c, clock) === 'live');
+        expect(live.length, `${sport} on ${day}`).toBe(1);
+      }
+    }
+  });
+
+  it('carries every sport to the end of 2026', () => {
+    for (const sport of SPORT_IDS) {
+      const slots = challengesFor(sport, CHALLENGES);
+      const last = slots[slots.length - 1];
+      // A string compare, not `toBeGreaterThanOrEqual` — that matcher takes
+      // numbers, and day keys sort correctly as text by construction.
+      expect(compareDayKeys(last?.ends ?? '', '2026-12-31') >= 0, sport).toBe(true);
     }
   });
 });
