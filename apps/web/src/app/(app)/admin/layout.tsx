@@ -1,6 +1,6 @@
 import { Panel, Tag } from '@landit/ui-web';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 import { ROUTES } from '@/lib/routes';
 import { requireStaff } from '@/lib/staff';
@@ -66,7 +66,16 @@ export default async function AdminLayout({ children }: { children: ReactNode })
            * why both are here rather than one.
            */}
           <SignOutForm where="admin">
-            <button type="submit" className="btn sm" style={{ background: 'var(--violet)' }}>
+            {/*
+              Violet is one of the two accents that carries paper rather than
+              ink (5.45:1 against 3.42:1), so this button opts out of the
+              primitive's default foreground rather than inheriting it.
+            */}
+            <button
+              type="submit"
+              className="btn sm"
+              style={{ background: 'var(--violet)', '--btn-fg': 'var(--paper)' } as CSSProperties}
+            >
               Sign out
             </button>
           </SignOutForm>

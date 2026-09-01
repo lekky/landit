@@ -55,9 +55,19 @@ export function AppShell({
         <ModalProvider>
           <div className="app">
             <ServiceWorkerRegistrar rider={riderId} />
+            {/*
+              Ahead of the top bar so it is the first thing a keyboard rider
+              reaches — otherwise they tab all nine destinations before the
+              screen, on every page.
+            */}
+            <a className="skiplink" href="#main">
+              Skip to content
+            </a>
             <TopBar rider={rider} />
             <OfflineBanner />
-            <main className="page">{children}</main>
+            <main id="main" className="page">
+              {children}
+            </main>
             <SiteFooter />
             <MobileNav />
           </div>
