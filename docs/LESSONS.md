@@ -952,6 +952,23 @@ them answered "no". Static assets that are not content-addressed need an explici
 explicit freshness window; the window is an owner decision, because it is exactly how long a
 re-drawn asset can be stale for.
 
+**The preview pane caches dev chunks by URL, so a green audit can be measuring the previous
+build.** `next dev` names its chunks by module path, not content — `_1j7xebs._.css` is the same
+URL before and after an edit — and the in-app browser pane has a cache in front of the server
+that keys on that URL and ignores `cache: 'no-store'`. On `fix-redesign-second-pass` (2026-09-01)
+a token file gained a dark-theme block; `curl` of the chunk returned 26,843 bytes with the block,
+the tab's own `fetch` of the same URL returned 25,404 without it, and the ETag was that stale
+length in hex. Before that was understood, the symptom got two server restarts and a 490 MB
+`.next` wipe, none of which could have helped, and a hydration warning was misread as a code bug
+when it was the server rendering new code against a client still running the old bundle. Three
+things follow. When a stylesheet or component change does not show, **`curl` the chunk from the
+shell before touching the server** — if the bytes are right, the server is not the problem.
+Any URL the pane has ever loaded is suspect for the rest of the session, so **an audit that
+must be trusted runs on a port the pane has never seen**, which makes every chunk URL new. And
+server-rendered HTML from `curl` is proof enough for a component change — it is the same code
+the browser hydrates with. None of this affects a rider: their browser talks to the server
+directly. The service-worker version of the same non-content-addressed-URL problem is #268.
+
 ## 8. Configuration that is copied between systems
 
 Turning live email on (2026-08-18) was six DNS records and no code. It took several rounds anyway,
