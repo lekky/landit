@@ -40,6 +40,21 @@ a.btn.ink:hover {
 }
 
 /*
+ * Same leak, second primitive. `.pill` sets no colour of its own — on a
+ * `<button>` it inherits ink, which is right, but on an `<a>` it inherits
+ * `a { color: var(--orange) }` from `tokens.css` and renders orange on paper at
+ * 3.06:1. Measured on `/design`, whose section nav is fifteen pill links.
+ */
+a.pill,
+a.pill:hover {
+  color: var(--ink);
+}
+a.pill.on,
+a.pill.on:hover {
+  color: var(--paper);
+}
+
+/*
  * Navigation as links (T5).
  *
  * The prototype was one page with no routes, so `.nav` and `.mobnav` style
