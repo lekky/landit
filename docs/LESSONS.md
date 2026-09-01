@@ -333,10 +333,19 @@ is exactly why the search for it took a minute rather than an afternoon.
 **Gate on exit codes, never on piped output.** A `| tail` or `| tee` returns the pipe's status,
 not the command's. This is the trap most likely to make a red build look green.
 
-**Merging is part of the task, not a follow-up.** A Wave 1 session ended its turn saying it was
-"monitoring the checks" on a PR that was already green, and stopped. The PR sat open and
-mergeable until someone noticed. Poll until every required check reports a *conclusion*, then
-merge; do not end a session with an unmerged PR unless you are reporting it as blocked.
+**Once a PR is asked for, seeing it merged is part of the task, not a follow-up.** A Wave 1
+session ended its turn saying it was "monitoring the checks" on a PR that was already green, and
+stopped. The PR sat open and mergeable until someone noticed. Poll until every required check
+reports a *conclusion*, then merge.
+
+**This paragraph was wrong for the whole of the 2026-08-31 policy and nobody noticed**, which is
+§4 happening to §4's own author. It read "do not end a session with an unmerged PR" at a time when
+ending on an unmerged PR was the rule, because the rule changed in `CLAUDE.md` and the sentence
+quoting it here did not. Restored to true on 2026-09-01, when "raise a PR" started carrying the
+merge with it (CLAUDE.md step 8). The lesson underneath is not about merging at all: **a rule
+written in two places will be changed in one.** `CLAUDE.md` is the authority on session policy;
+anything here that restates it is a copy that can rot, so quote it by reference and keep the
+reasoning, not the instruction.
 
 **Verify the merge, don't assume it.** `gh pr merge` can report an error while the merge itself
 succeeded — most often the `--delete-branch` step failing because `main` is held by another
