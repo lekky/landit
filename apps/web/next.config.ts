@@ -37,6 +37,26 @@ const nextConfig: NextConfig = {
         source: '/_next/static/:path*',
         headers: [{ key: 'Service-Worker-Allowed', value: '/' }],
       },
+
+      /**
+       * The award badges, cached for a day (owner, 2026-09-01, in chat).
+       *
+       * Next serves everything in `public/` as `Cache-Control: public,
+       * max-age=0`, so a rider returning to the sticker wall re-validated all
+       * ~65 badges on it one by one — 65 round trips to be told nothing had
+       * changed. A day of freshness turns the second visit into no requests at
+       * all.
+       *
+       * A day rather than a year of `immutable`, which is what a hashed asset
+       * would get: these names are not content-addressed. `stickers.img` holds
+       * the file name in the database, so re-drawing a badge keeps its URL, and
+       * `immutable` would strand riders on the old art until they cleared their
+       * cache. A day is the window a re-drawn badge can be stale for.
+       */
+      {
+        source: '/stickers/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=86400' }],
+      },
     ];
   },
 };

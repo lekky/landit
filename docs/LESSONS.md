@@ -918,6 +918,40 @@ returned 99/99 and settled it in three minutes. **A local suite failure that a r
 reproduce is a question about the database, not about the change** — reset it before reading the
 failure as yours.
 
+**A screen can be correct, fully tested, and still take five seconds to paint — and no gate says
+so.** The sticker wall rendered 65 award badges as plain `<img>` tags pointed at the committed
+512px masters, ~83 KB each, into a grid whose columns are 118px wide. That is ~5 MB fetched to
+draw 65 thumbnails. Every test passed, every screenshot matched, `pnpm build` was green, and the
+defect was only ever visible to somebody actually loading the page on a phone (owner, 2026-09-01,
+in chat). The rule that falls out of it: **when a screen repeats an asset, check what it weighs
+against the size it is drawn at, because nothing else will.** The repo's sync scripts are the
+place to fix it — they already run on every `dev` and `build`, so a resize step there costs the
+browser nothing and cannot drift from what shipped.
+
+Two traps inside that fix, both worth knowing before you make it:
+
+- **A `srcset` candidate that 404s does not fall back to the `src` — it renders a broken image.**
+  So the resized copies must be *offered*, never *assumed*: the master stays the `src`, the
+  `srcset` is omitted entirely for anything the resize step does not handle, and the widths the
+  script writes are checked against the widths the component asks for by a test that can see both
+  (`apps/web/src/lib/award-art.test.ts` — `@landit/ui-web` may not import the app, so the guard
+  lives beside the script, the same placement `offline.test.ts` uses and for the same reason).
+- **Judge the replacement by eye, not by PSNR.** These badges score ~31 dB against their own
+  masters, which reads as a bad encode; they are visually identical at the size they are drawn.
+  The art carries a deliberate grain texture, and a lossy encoder smooths noise first — so the
+  metric measured the one thing nobody can see. Raising quality bought 1 dB for 50% more bytes.
+  Render the candidate beside the original at the true display size and look at it.
+- **React writes the attribute as `srcSet` in server-rendered markup.** HTML attribute names are
+  case-insensitive so browsers do not care, but a test asserting lowercase `srcset` fails against
+  markup that is entirely correct. Match case-insensitively.
+
+**Next serves everything in `public/` as `Cache-Control: public, max-age=0`.** Not "no cache" —
+worse to diagnose than that, because it works: the browser keeps the file and asks every time
+whether it changed. A wall of 65 badges is 65 conditional requests on every return visit, all of
+them answered "no". Static assets that are not content-addressed need an explicit header and an
+explicit freshness window; the window is an owner decision, because it is exactly how long a
+re-drawn asset can be stale for.
+
 ## 8. Configuration that is copied between systems
 
 Turning live email on (2026-08-18) was six DNS records and no code. It took several rounds anyway,
