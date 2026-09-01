@@ -7,12 +7,15 @@ import type { SportProgressView } from '@/app/(app)/progress/view';
 import { SectionTabs } from '@/components/shell/SectionTabs';
 import { PROGRESS_TABS } from '@/components/shell/nav';
 import { SportSwitch } from '@/components/shell/SportSwitch';
-import { trickHref } from '@/lib/routes';
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { ROUTES, trickHref } from '@/lib/routes';
 import { useSport } from '@/providers/sport';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { InsightsPanel } from './InsightsPanel';
 import { PrintableSheets } from './PrintableSheets';
+import { trendLine } from './trend';
 import styles from './progress.module.css';
 
 /**
@@ -136,7 +139,33 @@ export function ProgressScreen({
                   {view.sportShort.toLowerCase()} tricks landed in the last six months
                 </span>
               </div>
-              <div className={styles.chart}>
+              {/*
+                The chart, read out. The sentence is the summary for everyone
+                and sits above the bars; the table is the data for a screen
+                reader and is visually hidden, because six rows under six
+                labelled bars would say the same thing twice to a sighted
+                rider. The bars themselves are `aria-hidden`: without it a
+                screen reader gets "4 Aug 1 Sep 0 Oct" with no structure.
+              */}
+              <p className={`cond ${styles.trend}`}>{trendLine(view.months)}</p>
+              <table className={styles.srTable}>
+                <caption>Tricks landed by month</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Month</th>
+                    <th scope="col">Landed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {view.months.map((month) => (
+                    <tr key={month.key}>
+                      <th scope="row">{month.label}</th>
+                      <td>{month.n}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className={styles.chart} aria-hidden="true">
                 {view.months.map((month) => (
                   <div key={month.key} className={styles.month}>
                     <span
@@ -183,10 +212,25 @@ export function ProgressScreen({
                   ))}
                 </div>
               ) : (
-                <p className={styles.plain}>
-                  Nothing landed on the {view.sportShort.toLowerCase()} yet. The first one dates
-                  itself.
-                </p>
+                <div>
+                  <p className={styles.plain}>
+                    Nothing landed on the {view.sportShort.toLowerCase()} yet. The first one dates
+                    itself.
+                  </p>
+                  <Link
+                    href={ROUTES.library}
+                    className="btn ghost sm"
+                    style={{ marginTop: 12 }}
+                    onClick={() =>
+                      capture(ANALYTICS_EVENTS.emptyStateAction, {
+                        screen: 'progress',
+                        action: 'library',
+                      })
+                    }
+                  >
+                    Find a trick
+                  </Link>
+                </div>
               )}
             </div>
           </div>
