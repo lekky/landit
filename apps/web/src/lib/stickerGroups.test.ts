@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { groupWall, shelfFor } from './groups';
-import type { StickerView } from './view';
+// Under `src/lib/` because that is the only place `apps/web`'s Vitest looks
+// (`vitest.config.ts`), and reaching a pure module elsewhere through `@/` is
+// the pattern that config names — `groups.ts` is a map and a filter, no JSX.
+import { groupWall, shelfFor } from '@/app/(app)/stickers/groups';
+import type { StickerView } from '@/app/(app)/stickers/view';
 
 function sticker(slug: string, kind: string, earned = false): StickerView {
   return {

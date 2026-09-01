@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { trendLine } from './trend';
+// Under `src/lib/` for the same reason as `stickerGroups.test.ts`: the web
+// package's Vitest only looks here, and `trend.ts` is pure arithmetic.
+import { trendLine } from '@/components/progress/trend';
 
 const m = (label: string, n: number) => ({ label, n });
 
