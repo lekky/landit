@@ -93,34 +93,41 @@ your merge and a live service used by children.
    section is the same TPO brief that opened the session. If the work closes an issue, put
    `Fixes #N` in the body. On a rebase conflict in a shared document, take **origin's version
    wholesale** and re-apply only your own paragraphs (LESSONS §1).
-8. **Merge policy: nothing is opened or merged without the owner saying so.** (Rachid,
-   2026-08-31, in chat, reversing the previous rule that a session self-merged on green
-   checks.) Build the work, run the gates, push the branch, and **stop there**: report what is
-   ready and wait. Green checks are not permission — they are the evidence you offer when you
-   ask for it.
+8. **Merge policy: a session never raises a PR unasked, and "raise it" carries the merge.**
+   (Rachid, 2026-09-01, in chat, amending the 2026-08-31 rule that required a second,
+   separate approval to merge — which in practice meant the owner approving the same piece of
+   work twice.) Build the work, run the gates, push the branch, and **stop there**: report
+   what is ready and wait to be asked. Green checks are not permission to raise anything —
+   they are the evidence you offer when you ask.
    - **What a session does unprompted:** build → gates → push → report, with the branch name
-     and what the checks actually say. Then wait.
-   - **What needs the owner, every time:** opening the PR, and merging it.
-   - A session may run `gh pr create` or `gh pr merge` **only after the owner has said so in
-     chat for that specific PR**, and the approval does not carry to the next one. "The checks
-     are green" is not an approval; neither is an approval of the work's *design*.
-   - There is no branch protection, so nothing but this discipline stops an unapproved merge.
+     and what the checks actually say. Then wait. **Never `gh pr create` on its own
+     initiative** — this is the gate the whole policy rests on, and it did not move.
+   - **What the owner's "raise a PR" grants:** opening that PR *and* merging it, without
+     coming back for a second yes. It is one instruction covering both.
+   - **It is per-PR, and it does not carry.** The next piece of work needs its own asking,
+     however similar. Neither "the checks are green" nor an approval of the work's *design*
+     is an instruction to raise anything.
+   - **Merge consent is not consent to merge something broken.** If the checks fail, or CI has
+     not finished, stop and report rather than merging — the owner said yes to the work, not
+     to a red build. Waiting for a run to finish is the normal case, not an exception.
+   - There is no branch protection, so nothing but this discipline stops an unasked PR.
    - Anything the owner must decide about the *work* is still raised BEFORE it is built (step
      1), because a decision reversed after the fact is a rebuild.
 
 ### Ending
 
-**A session ends on a pushed branch the owner has not merged yet, and that is correct.** The
-previous rule said the opposite; it was reversed on 2026-08-31 (step 8). Do not merge to "finish".
-Then, in order:
+**A session ends on a pushed branch nobody has been asked about yet, and that is correct.**
+Do not raise a PR to "finish". Where the owner *has* asked for one, the session sees it through
+to merged and cleans up after itself (step 8). Then, in order:
 
 9. **Verify, don't assume.** Report state as it is, read from the tool rather than assumed:
-   `gh pr checks` for the checks and `gh pr view --json state` for the PR. If the owner has
-   merged and asked for cleanup, confirm the merge the same way — `gh pr merge` can print an
-   error while the merge itself succeeded, usually `--delete-branch` failing because `main` is
-   held by another worktree (LESSONS §2).
-10. **Clean up, once the owner has merged.** A branch that is still waiting on approval keeps
-    its worktree — cleaning up before the merge throws away the thing being reviewed. After the
+   `gh pr checks` for the checks and `gh pr view --json state` for the PR. This applies to your
+   own merge as much as the owner's — `gh pr merge` can print an error while the merge itself
+   succeeded, usually `--delete-branch` failing because `main` is held by another worktree
+   (LESSONS §2). Note that CI runs on `pull_request`, so a branch that has never been raised
+   has no checks at all; say that plainly rather than implying it passed something.
+10. **Clean up, once it is merged.** A branch nobody has asked about keeps its worktree —
+    cleaning up before the merge throws away the thing being reviewed. After the
     merge: remove the worktree, delete the local branch, delete the remote branch, then
     `git worktree prune`. "No uncommitted work" is not cleanup. On Windows `git worktree
     remove` fails on nested `node_modules` with "Filename too long" — mirror an empty
