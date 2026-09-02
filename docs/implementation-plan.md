@@ -1359,6 +1359,32 @@ one-colour print. Three things follow that a later session should not "fix" back
   is separated on structure — what the die cut enclosed, and whether a hole is bordered by the
   cream cut edge or by the artist's black line.
 
+**A sixth divergence, 2026-09-01 (`fix-design-contract`): text on a colour fill takes the
+foreground that passes, which is usually ink and not white.** The prototype sets `color:#fff` on
+`.btn` and on `.tag`. Measured against this palette that is the wrong default in both places: white
+clears 4.5:1 on two of the ten accents, ink clears it on seven. The two that mattered most were the
+primary button, white on `--orange` at **3.12:1** — the landing page's only call to action, and the
+"See plans" control on the library — and the category tag on every trick card, an 11px label that
+rendered white on `--street` (3.12:1) and on `--flat` (3.36:1). Three things follow that a later
+session should not "fix" back to the prototype:
+
+- **`.btn` now defaults to `var(--ink)`**, which is 6.10:1 on the same orange and is what the rest
+  of the language already does — every stat block, chip and stage strip in the design puts black on
+  a loud colour. `--btn-fg` is the opt-out, used by the admin Sign out button because violet is one
+  of the two accents that does carry paper (5.55:1 against 3.42:1).
+- **`Tag` derives its own foreground** from a hex fill, via `foregroundFor` in
+  `packages/ui-web/src/contrast.ts`. It is arithmetic, not taste, so it lives in a tested function
+  rather than in a review checklist. A `var(--x)` fill cannot be measured there and is left to the
+  stylesheet, so no existing call site changed by accident.
+- **`--blue` and `--red` are holes and were left alone.** Blue is 4.18:1 on ink and 4.46:1 on
+  paper; red is 4.34:1 and 4.31:1. Neither reaches AA whichever way it is painted, so every Park
+  tag and every Air tag is still short, and `contrast.test.ts` asserts that rather than letting a
+  green suite imply a pass. Both miss by a whisker and both close with a small darkening of the
+  token — which is **open for the owner** (issue filed), because a session does not change a
+  palette value on its own authority. Note these are measured against `--paper` (#fffdf5), not
+  pure white: on blue that is 4.46 against 4.54, which is the difference between failing and
+  passing, so the token is what gets measured.
+
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
 to test — that is where the three-sport switch is proved against a 375px phone before `SPORT_IDS`

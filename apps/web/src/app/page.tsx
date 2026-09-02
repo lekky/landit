@@ -91,16 +91,24 @@ export default async function LandingPage() {
 
   return (
     <div className={siteStyles.wash}>
-      <div className={siteStyles.bar}>
+      <a className="skiplink" href="#main">
+        Skip to content
+      </a>
+      {/*
+        A landmark, not a div. The signed-in shell has had `<main>` since it was
+        written; the signed-out routes never did, so the landing page offered no
+        way past the bar and no structure to navigate by.
+      */}
+      <header className={siteStyles.bar}>
         <Wordmark />
         <span className={siteStyles.barEnd}>
           <Link href={ROUTES.signIn} className="btn ghost sm">
             Sign in
           </Link>
         </span>
-      </div>
+      </header>
 
-      <div className={styles.body}>
+      <main id="main" className={styles.body}>
         <div className={styles.hero}>
           <div>
             <Tag color="var(--violet)" style={{ fontSize: 12 }}>
@@ -161,12 +169,17 @@ export default async function LandingPage() {
               <div className={styles.featureIcon} style={{ background: feature.hue }}>
                 <Icon name={feature.icon} size={21} strokeWidth={2.4} />
               </div>
-              <div className={`d ${styles.featureTitle}`}>{feature.title}</div>
+              {/*
+                These four were `div`s, which left the whole landing page with a
+                single heading — the hero — and nothing for a screen reader to
+                navigate by. The class does the looking; the tag does the saying.
+              */}
+              <h2 className={`d ${styles.featureTitle}`}>{feature.title}</h2>
               <p className={styles.featureCopy}>{feature.copy}</p>
             </Panel>
           ))}
         </div>
-      </div>
+      </main>
 
       <SiteFooter />
     </div>

@@ -25,6 +25,14 @@
   font-size: clamp(42px, 7.6vw, 80px);
   margin: 16px 0 0;
   line-height: 1.02;
+  /*
+   * Anton paints well outside its line box — measured at 375px the last line
+   * occupies a 63px glyph box inside a 42.84px line box — and `.proven` adds a
+   * 4px ink shadow below that again. With no allowance the brand word overlaps
+   * the paragraph beneath it on a phone, which is the first thing a new rider
+   * sees. This is room for the ink to land in, not a spacing change.
+   */
+  padding-bottom: 0.2em;
 }
 /* Yellow on the wash, readable only because of the hard ink shadow. */
 .proven {

@@ -143,6 +143,17 @@
 }
 
 /* generic bits */
+/*
+ * The prototype sets `color:#fff` here. White on `--orange` is 3.12:1, and this
+ * is the primary button on every screen including the landing page's only call
+ * to action, so the most-clicked control in the product failed WCAG AA at 15px.
+ * Ink on the same orange is 6.10:1 and is what the rest of the visual language
+ * already does — every tag, chip and stat block in the design puts black on a
+ * loud colour. Recorded in the plan as the sixth divergence under T5.
+ *
+ * `--btn-fg` is the escape hatch: a button repainted to a dark fill sets it
+ * rather than reaching for `color`, so the pairing stays in one place.
+ */
 .btn {
   font-family: var(--fc);
   font-weight: 700;
@@ -150,7 +161,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   background: var(--orange);
-  color: #fff;
+  color: var(--btn-fg, var(--ink));
   border: var(--bd);
   box-shadow: var(--sh-sm);
   padding: 10px 20px;

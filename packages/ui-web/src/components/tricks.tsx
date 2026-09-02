@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react';
 
+import { foregroundFor } from '../contrast';
 import { cx } from '../cx';
 import { Icon, type IconName } from '../icons';
 import { Tag } from './buttons';
@@ -89,6 +90,8 @@ export function TrickCard({
 }: TrickCardProps) {
   const st = locked ? null : stage;
   const filled = Boolean(st) || locked;
+  const footFill = st ? st.color : locked ? 'var(--violet)' : 'transparent';
+  const footFg = filled ? (foregroundFor(footFill) ?? 'var(--paper)') : 'var(--ink-3)';
   return (
     <button
       type="button"
@@ -113,14 +116,16 @@ export function TrickCard({
         </div>
         {showSport && <SportChip sport={sport} small />}
       </div>
-      <div
-        className="foot"
-        style={{
-          background: st ? st.color : locked ? 'var(--violet)' : 'transparent',
-          color: filled ? '#fff' : 'var(--ink-3)',
-        }}
-      >
-        <StageDot color={filled ? '#fff' : undefined} ring={filled ? '#fff' : 'var(--ink-3)'} />
+      {/*
+        The stage strip carried `#fff` on whatever the stage's colour is, and
+        three of the five stages are light: Sometimes (2.03:1), Most times
+        (2.13:1) and Every time (3.29:1) — the three a rider sees once they are
+        actually landing things. `foregroundFor` reads the fill and answers ink
+        or paper; the locked fill is a `var()` it cannot read, so that one keeps
+        paper, which is right for violet anyway (5.45:1).
+      */}
+      <div className="foot" style={{ background: footFill, color: footFg }}>
+        <StageDot color={filled ? footFg : undefined} ring={filled ? footFg : 'var(--ink-3)'} />
         {locked ? lockLabel : st ? st.label : emptyLabel}
       </div>
     </button>
@@ -144,6 +149,14 @@ export function StagePicker({ stages, value, onPick, compact = false }: StagePic
     <div className="stages">
       {stages.map((s) => {
         const on = value === s.id;
+        /*
+          `.stagebtn.on` carries `color:#fff` in the stylesheet while the fill
+          comes from the stage, so the selected button was white on whatever
+          that stage is — Most times measured 2.17:1. Four of the five stages
+          want ink; only Want to learn (violet) keeps paper. The ring follows the
+          label so the dot does not vanish into its own fill.
+        */
+        const fg = on ? (foregroundFor(s.color) ?? 'var(--paper)') : undefined;
         return (
           <button
             type="button"
@@ -151,9 +164,9 @@ export function StagePicker({ stages, value, onPick, compact = false }: StagePic
             aria-pressed={on}
             className={cx('stagebtn', on && 'on')}
             onClick={() => onPick(on ? null : s.id)}
-            style={on ? { background: s.color, borderColor: 'var(--ink)' } : undefined}
+            style={on ? { background: s.color, borderColor: 'var(--ink)', color: fg } : undefined}
           >
-            <span className="ring" style={on ? { background: '#fff' } : undefined} />
+            <span className="ring" style={on ? { background: fg } : undefined} />
             {compact ? (s.short ?? s.label) : s.label}
           </button>
         );

@@ -2,6 +2,7 @@
 
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react';
 
+import { foregroundFor } from '../contrast';
 import { cx } from '../cx';
 
 /**
@@ -69,12 +70,25 @@ export type TagProps = {
   style?: CSSProperties;
 };
 
-/** Small uppercase label on a solid colour, with a 1.5px hard shadow. */
+/**
+ * Small uppercase label on a solid colour, with a 1.5px hard shadow.
+ *
+ * When `color` is a hex fill the tag picks its own foreground, because the
+ * stylesheet's `#fff` clears 4.5:1 on only two of the ten accents and these
+ * labels are 11px. A `var(--x)` fill cannot be measured here, so it keeps the
+ * stylesheet's default and nothing an existing caller renders changes; an
+ * explicit `style.color` still wins over both.
+ */
 export function Tag({ children, color, tilt = false, className, style }: TagProps) {
+  const fg = foregroundFor(color);
   return (
     <span
       className={cx('tag', tilt && 'tilt', className)}
-      style={color ? { background: color, ...style } : style}
+      style={{
+        ...(color ? { background: color } : null),
+        ...(fg ? { color: fg } : null),
+        ...style,
+      }}
     >
       {children}
     </span>

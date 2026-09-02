@@ -21,7 +21,14 @@
 a.btn,
 a.btn:hover {
   display: inline-block;
-  color: #fff;
+  /*
+   * Same foreground as `.btn` itself, not a second opinion about it. This rule
+   * exists only to outrank `a:hover`, so it has to repeat the primitive's value
+   * rather than restate the prototype's `#fff` — that mismatch is what kept the
+   * landing page's "Start tracking, free" white on orange (3.06:1) after the
+   * primitive had already been corrected.
+   */
+  color: var(--btn-fg, var(--ink));
 }
 a.btn.ghost,
 a.btn.ghost:hover {
@@ -29,6 +36,21 @@ a.btn.ghost:hover {
 }
 a.btn.ink,
 a.btn.ink:hover {
+  color: var(--paper);
+}
+
+/*
+ * Same leak, second primitive. `.pill` sets no colour of its own — on a
+ * `<button>` it inherits ink, which is right, but on an `<a>` it inherits
+ * `a { color: var(--orange) }` from `tokens.css` and renders orange on paper at
+ * 3.06:1. Measured on `/design`, whose section nav is fifteen pill links.
+ */
+a.pill,
+a.pill:hover {
+  color: var(--ink);
+}
+a.pill.on,
+a.pill.on:hover {
   color: var(--paper);
 }
 
@@ -315,4 +337,82 @@ a.btn.ink:hover {
 .accountmenu-item:hover,
 .accountmenu-item:focus-visible {
   background: var(--yellow);
+}
+
+/* ------------------------------------------------ reduced motion (global) -- */
+
+/*
+ * One guard for the whole product.
+ *
+ * The design's motion is real and deliberate — modals rise 26px on a springy
+ * `cubic-bezier(.2,1.3,.4,1)`, toasts slide up from the bottom, stickers pop
+ * from .3 scale through a 1.12 overshoot, buttons translate on press. Counted
+ * across the app and this package that is ~54 `transition` and `animation`
+ * declarations, and before this block `prefers-reduced-motion` was honoured in
+ * two stylesheets: the trick page and the plans page.
+ *
+ * The sticker pop is the one that decided this. It is an unprompted overshoot
+ * fired on achievement, on a product used by children, and overshoot is exactly
+ * the shape that provokes vestibular symptoms.
+ *
+ * It lives at the end of `additions.css`, which `index.css` imports last, so it
+ * wins on order without needing `!important` on every property. The two rules
+ * that already handle reduced motion themselves keep doing so; this is the
+ * floor, not a replacement.
+ *
+ * Durations go to 0.01ms rather than 0 so that `transitionend` and
+ * `animationend` still fire — a listener waiting on one is a common way for a
+ * modal to finish closing, and zeroing it outright would hang that listener.
+ * Animations are held to a single iteration at their end state rather than
+ * removed, which keeps anything that reads a final position correct.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /*
+   * The press and hover offsets are the design's signature and they are not
+   * motion in the vestibular sense — they are a static 1-2px shift with no
+   * travel a viewer tracks. They stay; only the tweening above is removed.
+   */
+}
+
+/* -------------------------------------------------------------- skip link -- */
+
+/*
+ * "Skip to content", visible only once it has focus.
+ *
+ * A keyboard rider otherwise tabs the whole top bar — nine destinations on
+ * desktop — before reaching the screen itself, on every page. Off-screen rather
+ * than `display:none` so it stays in the tab order; it takes the design's own
+ * ink-on-yellow panel when it arrives, which is 11.8:1.
+ */
+.skiplink {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--yellow);
+  color: var(--ink);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  padding: 10px 16px;
+  text-decoration: none;
+}
+.skiplink:focus {
+  left: 8px;
+  top: 8px;
 }

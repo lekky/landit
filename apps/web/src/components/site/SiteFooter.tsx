@@ -155,17 +155,29 @@ export function SiteFooter({ minimal = false }: SiteFooterProps) {
             </div>
           </div>
 
+          {/*
+            Each column is a labelled `nav`, not a bare div. The three titles
+            already read as group headings to a sighted rider; `aria-labelledby`
+            is what makes "The app", "Company" and "Legal" mean the same thing in
+            a landmark list, so the footer stops being one undifferentiated run
+            of eighteen links.
+          */}
           {!minimal &&
-            COLUMNS.map((col) => (
-              <div key={col.title}>
-                <div className={`lab ${styles.colTitle}`}>{col.title}</div>
-                <div className={styles.colLinks}>
-                  {col.links.map((link) => (
-                    <FooterLinkItem key={link.label} {...link} />
-                  ))}
-                </div>
-              </div>
-            ))}
+            COLUMNS.map((col) => {
+              const titleId = `footer-col-${col.title.toLowerCase().replace(/\s+/g, '-')}`;
+              return (
+                <nav key={col.title} aria-labelledby={titleId}>
+                  <div className={`lab ${styles.colTitle}`} id={titleId}>
+                    {col.title}
+                  </div>
+                  <div className={styles.colLinks}>
+                    {col.links.map((link) => (
+                      <FooterLinkItem key={link.label} {...link} />
+                    ))}
+                  </div>
+                </nav>
+              );
+            })}
         </div>
 
         <div className={styles.bottom}>
