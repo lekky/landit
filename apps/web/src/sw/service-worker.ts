@@ -232,21 +232,54 @@ async function handleNavigation(request: Request, url: URL): Promise<Response> {
 }
 
 /**
- * Assets: cache first, because their URLs are content-addressed.
+ * Assets: cache first in production, network first in development (#268).
  *
- * `/_next/static/…` is hashed by the bundler, so a cached copy cannot be a stale
- * version of itself — a changed file is a different URL. This is what makes an
- * offline page render with its stylesheet rather than as unstyled text.
+ * In a production build `/_next/static/…` is content-hashed, so a cached copy
+ * cannot be a stale version of itself — a changed file is a different URL —
+ * and cache-first is what makes an offline page render with its stylesheet
+ * rather than as unstyled text.
+ *
+ * Under `next dev` that assumption is false: Turbopack names a chunk by its
+ * module path, so `_1j7xebs._.css` is the same URL before and after an edit,
+ * and cache-first served the old bytes forever. It survived a server restart,
+ * a deleted `.next`, a new tab and Ctrl+Shift+R, while `curl` of the same URL
+ * returned the right file — and it was misdiagnosed the same two ways by two
+ * different sessions a week apart. So in development the network is asked
+ * first. The cache is still written on every fetch and still answers when the
+ * network fails, so the offline path `e2e/offline.spec.ts` drives against
+ * `next dev` is unchanged; only the online path differs, and only here.
  */
+/*
+ * "Development" is read off the worker's own origin, not `NODE_ENV`: this file
+ * is bundled as its own chunk, and a `process.env` reference in it makes
+ * Turbopack reach for `node:process`, which the worker's chunking context
+ * refuses ("does not support external modules") and the build fails. The origin
+ * is the honest signal anyway - `next dev` and the e2e harness both run on
+ * localhost, and a production build served there would merely be network-first,
+ * which loses nothing.
+ */
+function isLocalOrigin(): boolean {
+  const host = self.location.hostname;
+  return host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+}
+
 async function handleAsset(request: Request): Promise<Response> {
   const cache = await caches.open(SHELL_CACHE);
 
-  const cached = await cache.match(request);
-  if (cached) return cached;
+  if (!isLocalOrigin()) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+  }
 
-  const response = await fetch(request);
-  if (isKeepable(response)) await cache.put(request, await storable(response.clone()));
-  return response;
+  try {
+    const response = await fetch(request);
+    if (isKeepable(response)) await cache.put(request, await storable(response.clone()));
+    return response;
+  } catch (error) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    throw error;
+  }
 }
 
 /**
