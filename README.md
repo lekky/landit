@@ -49,6 +49,34 @@ pnpm pb:dev
 Environment files are templates only — copy `apps/web/.env.example` to
 `apps/web/.env.local` and fill it in locally. Nothing filled in is ever committed.
 
+### Running a branch you want to look at
+
+A session's work lives in a worktree under `.claude/worktrees/<branch>/`, and you can run that
+checkout beside the main one. Two cmd windows:
+
+```bash
+cd C:\Users\rotsm\Claude\landit && node pocketbase\scripts\pocketbase.mjs serve
+```
+
+```bash
+cd C:\Users\rotsm\Claude\landit\.claude\worktrees\<branch> && corepack pnpm --filter @landit/web exec next dev --port 3100
+```
+
+Then open `http://localhost:3100`. Three things to know:
+
+- **`corepack pnpm`, not `pnpm`.** On a machine where `pnpm` is not on `PATH` (Windows, with
+  Node from the installer), `corepack` is, and it runs the pinned pnpm. The `npm-shims`
+  copy of `pnpm.cmd` fails from a cmd window with "cannot find the path specified".
+- **`exec next dev --port 3100`, not `pnpm dev`.** The package's `dev` script hardcodes
+  `--port 3000`, which is what the main checkout is usually already serving.
+- **The worktree needs its own `apps/web/.env.local`** — the file is gitignored, so a fresh
+  worktree has none, and every signed-in page fails with `MissingPocketBaseUrl`. Copy the main
+  checkout's across. PocketBase itself is shared: run the one above from the main checkout and
+  both apps talk to it.
+
+If images are missing (avatars, stickers, sport art), the worktree has not run the sync
+scripts yet — `corepack pnpm build` once in the worktree populates `apps/web/public/`.
+
 ### The gates
 
 Every session runs these three before committing, and CI runs the same three on every push
