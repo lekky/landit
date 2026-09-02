@@ -76,3 +76,29 @@
   gap: 9px;
   margin-top: 20px;
 }
+
+/* --------------------------------------------------------------- shelves -- */
+
+/*
+ * The wall is shelved (#245): Earned first, then the locked awards by what
+ * they are for. On the ink panel the shelf heading is paper, with a hairline
+ * under it so the eye finds the break without a box.
+ */
+.group + .group {
+  margin-top: 30px;
+}
+
+.groupHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid color-mix(in srgb, var(--paper) 22%, transparent);
+  color: var(--paper);
+}
+
+.groupCount {
+  color: color-mix(in srgb, var(--paper) 60%, transparent);
+  letter-spacing: 0.08em;
+}

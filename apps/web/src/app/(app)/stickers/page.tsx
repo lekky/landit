@@ -115,6 +115,7 @@ export default async function StickersPage() {
       ...(record.img ? { img: record.img } : {}),
       ...(record.stars ? { stars: record.stars } : {}),
       ...(record.rarity ? { rarity: record.rarity } : {}),
+      kind: record.kind ?? '',
       sport,
       sportLabel: look ? look.label : null,
       sportColor: look ? look.color : null,

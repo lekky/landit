@@ -77,17 +77,23 @@ function ratio(a: number, b: number): number {
 /**
  * The better of ink and paper on `fill`, or `undefined` when `fill` is not hex.
  *
- * Undefined means "the stylesheet decides", which is what keeps this safe to
- * drop into an existing component.
+ * Returned as `var(--on-light)` / `var(--on-dark)` — the two tokens that do not
+ * follow the theme — because the fill is a fixed hue and so is what reads on
+ * it. Undefined means "the stylesheet decides", which is what keeps this safe
+ * to drop into an existing component.
  */
 export function foregroundFor(fill: string | undefined): string | undefined {
   if (!fill) return undefined;
   const rgb = parseHex(fill);
   if (!rgb) return undefined;
   const l = luminance(rgb);
+  // `--on-light` / `--on-dark`, not `--ink` / `--paper`: the fill this was
+  // measured against is a fixed hue, so its foreground must not follow the
+  // theme. `--ink` becomes cream in the dark and a yellow tag would go
+  // cream-on-yellow; these two tokens are the same colour in both.
   return ratio(l, luminance(parseHex(INK)!)) >= ratio(l, luminance(parseHex(PAPER)!))
-    ? 'var(--ink)'
-    : 'var(--paper)';
+    ? 'var(--on-light)'
+    : 'var(--on-dark)';
 }
 
 /**

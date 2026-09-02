@@ -92,7 +92,7 @@
   justify-content: center;
   flex: none;
   min-width: 74px;
-  color: #fff;
+  color: var(--on-dark);
 }
 
 .dateDay {
@@ -201,7 +201,7 @@
 
 .modalTitle {
   font-size: 30px;
-  color: #fff;
+  color: var(--on-dark);
   text-shadow: 2.5px 2.5px 0 var(--ink);
 }
 

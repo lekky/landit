@@ -152,13 +152,29 @@ export function StickerBadge({
 
   const className = cx('sticker', !earned && 'locked', just && 'just');
 
+  /*
+   * The printed art carries no LOCKED lettering of its own (the drawn SVG
+   * does), and the fade that used to say it is gone — the badge keeps its
+   * colour everywhere now (#266). So the state is a mark over the art, the
+   * trick page's NOT YET at wall scale. `aria-hidden`: the `alt` already says
+   * "locked", and a screen reader hearing it twice is once too often.
+   */
+  const mark =
+    !earned && sticker.img ? (
+      <span className="sticker-mark" aria-hidden="true">
+        Not yet
+      </span>
+    ) : null;
+
   return onClick ? (
     <button type="button" className={className} onClick={onClick}>
       {art}
+      {mark}
     </button>
   ) : (
     <span className={className} style={{ display: 'block' }}>
       {art}
+      {mark}
     </span>
   );
 }

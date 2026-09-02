@@ -67,7 +67,7 @@
   display: grid;
   place-items: center;
   flex: none;
-  color: #fff;
+  color: var(--on-dark);
 }
 
 .bannerText {

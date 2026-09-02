@@ -16,7 +16,7 @@
   display: flex;
   flex-direction: column;
   background: var(--wash);
-  background-image: radial-gradient(rgba(18, 16, 11, 0.07) 1.1px, transparent 1.1px);
+  background-image: radial-gradient(var(--dot) 1.1px, transparent 1.1px);
   background-size: 14px 14px;
 }
 .topbar {
@@ -81,14 +81,14 @@
   text-transform: uppercase;
   background: none;
   border: 2px solid transparent;
-  color: #c9c2b4;
+  color: var(--ink-soft);
   padding: 6px 12px;
   border-radius: 2px;
   transition: 0.15s;
 }
 .nav button:hover {
   color: var(--paper);
-  background: #2a2620;
+  background: var(--ink-raise);
 }
 .nav button.on {
   background: var(--yellow);
@@ -110,9 +110,9 @@
   font-size: 14px;
   letter-spacing: 0.06em;
   color: var(--yellow);
-  background: #231f19;
+  background: var(--ink-raise);
   padding: 5px 11px;
-  border: 2px solid #3a352c;
+  border: 2px solid var(--ink-rule);
 }
 .avatarbtn {
   width: 34px;
@@ -161,7 +161,9 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   background: var(--orange);
-  color: var(--btn-fg, var(--ink));
+  /* `--on-light`, not `--ink`: the fill is a fixed orange, and `--ink` turns
+     cream in the dark theme — which is how this measured 3.06:1 there. */
+  color: var(--btn-fg, var(--on-light));
   border: var(--bd);
   box-shadow: var(--sh-sm);
   padding: 10px 20px;
@@ -215,7 +217,7 @@
   font-size: 11px;
   letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--on-dark);
   border: 2px solid var(--ink);
   box-shadow: 1.5px 1.5px 0 var(--ink);
   padding: 2.5px 8px;
@@ -288,7 +290,7 @@
   width: 13px;
   height: 10px;
   display: block;
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--paper) 70%, transparent);
   border: 2px solid var(--ink);
   transform: skewX(-16deg);
 }
@@ -306,8 +308,8 @@
   border: 2.5px dashed var(--ink-3);
   background: repeating-linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.55) 0 14px,
-    rgba(18, 16, 11, 0.045) 14px 17px
+    color-mix(in srgb, var(--paper) 55%, transparent) 0 14px,
+    color-mix(in srgb, var(--ink) 4.5%, transparent) 14px 17px
   );
   display: grid;
   place-items: center;
@@ -458,7 +460,11 @@
  * The hatched photo placeholder, `.slot`, is a different animal: 135°, softer.
  */
 .tcard.lockd {
-  background: repeating-linear-gradient(45deg, #f1ebdc 0 9px, #e9e2d1 9px 18px) !important;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--hatch-a) 0 9px,
+    var(--hatch-b) 9px 18px
+  ) !important;
   box-shadow: 2px 2px 0 var(--ink);
 }
 .tcard.lockd .nm,
@@ -483,7 +489,7 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   background: var(--violet);
-  color: #fff;
+  color: var(--on-dark);
   border: 2px solid var(--ink);
   padding: 2px 7px;
 }
@@ -536,11 +542,11 @@
   background: var(--paper);
 }
 .stagebtn.on {
-  color: #fff;
+  color: var(--on-dark);
   box-shadow: 3px 3px 0 var(--ink);
 }
 .stagebtn.on .ring {
-  background: #fff;
+  background: var(--on-dark);
 }
 
 /* sticker */
@@ -568,15 +574,49 @@
   height: 100%;
   object-fit: contain;
 }
-.sticker.locked {
-  filter: saturate(0.8) drop-shadow(0 3px 4px rgba(18, 16, 11, 0.28));
+/*
+ * A locked badge keeps its colour.
+ *
+ * The trick-page pack's rule (owner, 2026-08-31) — "never desaturate, grey out
+ * or reduce the opacity of the shield" — and the owner's answer on 2026-09-01
+ * that it is badge-wide, not page-scoped (#266). Until then the wall took an
+ * unearned badge to grayscale at 45%, which reads as art that failed to load
+ * rather than a thing left to go and get. The colour is the offer.
+ *
+ * State moves to a mark laid over the art instead (`.sticker-mark`, drawn by
+ * `StickerBadge` for printed art; the SVG fallback letters LOCKED itself). The
+ * mark is the trick page's NOT YET at wall scale: Anton, rotated, sized from
+ * the badge's own width so a 118px cell and a 160px modal get the same look.
+ */
+.sticker {
+  position: relative;
+  container-type: inline-size;
 }
-.sticker.locked img {
-  filter: grayscale(1);
-  opacity: 0.45;
+.sticker.locked {
+  filter: drop-shadow(0 3px 4px rgba(18, 16, 11, 0.28));
 }
 .sticker.locked:hover {
   transform: none;
+}
+.sticker-mark {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  font-family: var(--fd);
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
+  /* The trick page's `.pending`, with its badge-width maths in container
+     units: 0.16 of the width, dashed ink, paper wash at 82% so it reads over
+     art that is a different colour on every badge. */
+  font-size: 16cqw;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  border: 3px dashed var(--ink);
+  padding: 4cqw 8cqw;
+  background: rgb(255 253 245 / 82%);
+  pointer-events: none;
 }
 .sticker.just {
   animation: pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
@@ -829,7 +869,7 @@
   line-height: 1;
 }
 .node.lock {
-  background: repeating-linear-gradient(45deg, #efe9da 0 8px, #e7e0cf 8px 16px);
+  background: repeating-linear-gradient(45deg, var(--hatch-a) 0 8px, var(--hatch-b) 8px 16px);
   color: var(--ink-3);
   border-style: dashed;
 }
@@ -841,7 +881,7 @@
   background: var(--lime);
 }
 .node.paid {
-  background: repeating-linear-gradient(45deg, #f1ebdc 0 8px, #e9e2d1 8px 16px);
+  background: repeating-linear-gradient(45deg, var(--hatch-a) 0 8px, var(--hatch-b) 8px 16px);
   border-style: dashed;
   border-color: var(--violet);
   color: var(--ink-3);
@@ -870,7 +910,7 @@
   }
   .filter-toggle .fcount {
     background: var(--pink);
-    color: #fff;
+    color: var(--on-dark);
     border: 2px solid var(--ink);
     padding: 1px 7px;
     font-size: 11px;
@@ -910,7 +950,7 @@
     flex-direction: column;
     align-items: center;
     gap: 3px;
-    color: #9d968a;
+    color: var(--ink-mute);
     font-family: var(--fc);
     font-weight: 700;
     font-size: 10.5px;

@@ -125,7 +125,7 @@ export function CrewScreen({ view }: { view: CrewView }) {
             </Panel>
           ) : (
             <div className={styles.grid}>
-              <Board rows={crew.board} />
+              <Board rows={crew.board} onInvite={openInvite} />
               <Feed items={crew.feed} />
             </div>
           )}
@@ -181,14 +181,35 @@ function riderCount(n: number): string {
 
 /* ----------------------------------------------------------------- board -- */
 
-function Board({ rows }: { rows: readonly BoardRowView[] }) {
+function Board({
+  rows,
+  onInvite,
+}: {
+  rows: readonly BoardRowView[];
+  /** The screen's invite flow — the empty board's one action. */
+  onInvite: () => void;
+}) {
   return (
     <Panel className={styles.panel}>
       <div className={styles.panelHead}>
         <span className="lab">This month&rsquo;s board</span>
       </div>
       {rows.length === 0 ? (
-        <p className={styles.panelEmpty}>Nobody on the board yet.</p>
+        <div className={styles.panelEmpty}>
+          <p style={{ margin: '0 0 12px' }}>
+            Nobody on the board yet. It fills up as your crew lands things this month.
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              capture(ANALYTICS_EVENTS.emptyStateAction, { screen: 'crew', action: 'invite' });
+              onInvite();
+            }}
+          >
+            Invite a mate
+          </Button>
+        </div>
       ) : (
         rows.map((row, i) => (
           <Link

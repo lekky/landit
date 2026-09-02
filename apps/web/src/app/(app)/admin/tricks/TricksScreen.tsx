@@ -44,7 +44,7 @@ import styles from '../admin.module.css';
 const TIER_LOOK: Readonly<Record<TrickTier, { label: string; background: string; color: string }>> =
   {
     free: { label: 'Rookie', background: 'var(--lime)', color: 'var(--ink)' },
-    paid: { label: 'Shredder', background: 'var(--violet)', color: '#fff' },
+    paid: { label: 'Shredder', background: 'var(--violet)', color: 'var(--on-dark)' },
     inherit: { label: 'By difficulty', background: 'var(--paper-2)', color: 'var(--ink)' },
   };
 

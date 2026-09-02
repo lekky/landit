@@ -219,6 +219,20 @@ export const ANALYTICS_EVENTS = {
   sportSwitched: 'sport_switched',
   /** A nav destination was chosen. Carries the route, which is not a rider fact. */
   navClicked: 'nav_clicked',
+  /**
+   * A rider took the one action an empty screen offers — "Find a trick" on a
+   * dashboard with nothing landed, "Invite a mate" on an empty crew. Carries
+   * which screen and which action, both catalogue facts. This is the first
+   * signal a brand-new account gives after onboarding, and the one that says
+   * whether the empty state did its job.
+   */
+  emptyStateAction: 'empty_state_action',
+  /**
+   * The theme was changed from Account. Carries the new value —
+   * `light`, `dark` or `system` — and nothing else. The system preference is
+   * never read into an event on its own; only a deliberate choice counts.
+   */
+  themeChanged: 'theme_changed',
   /** The library's sport / category / tier filters. */
   libraryFiltered: 'library_filtered',
   /**

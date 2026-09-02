@@ -106,12 +106,7 @@ export function ModerationScreen({
           {rows.map((row) => (
             <Panel key={row.id} className={`${styles.reportCard} ${pending ? styles.busy : ''}`}>
               <div className={styles.reportHead}>
-                <Tag
-                  color={STATUS_LOOK[row.status].color}
-                  style={{ color: row.status === 'reviewing' ? 'var(--ink)' : '#fff' }}
-                >
-                  {STATUS_LOOK[row.status].label}
-                </Tag>
+                <Tag color={STATUS_LOOK[row.status].color}>{STATUS_LOOK[row.status].label}</Tag>
                 <span className="cond" style={{ fontSize: 15 }}>
                   {row.reasonLabel}
                 </span>
@@ -119,11 +114,7 @@ export function ModerationScreen({
                   {row.subjectType}
                   {row.subjectId ? ` · ${row.subjectId}` : ''}
                 </span>
-                {row.complaintOf && (
-                  <Tag color="var(--violet)" style={{ color: '#fff' }}>
-                    Appeal
-                  </Tag>
-                )}
+                {row.complaintOf && <Tag color="var(--violet)">Appeal</Tag>}
                 <span className="lab" style={{ marginLeft: 'auto', color: 'var(--ink-3)' }}>
                   {row.filed}
                 </span>

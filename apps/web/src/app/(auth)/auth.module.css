@@ -23,7 +23,7 @@
   font-family: var(--fc);
   background: none;
   border: none;
-  color: #9d968a;
+  color: var(--ink-mute);
   display: flex;
   align-items: center;
   gap: 7px;
@@ -87,7 +87,7 @@
  * can hold the account with a Crew Pass." — a mechanism that no longer exists
  * (§2.4), and a minimum age we deliberately do not state (§6.2). */
 .footnote {
-  color: #7d766a;
+  color: var(--ink-mute);
   font-size: 12px;
   text-align: center;
   margin-top: 14px;
@@ -96,7 +96,7 @@
 }
 
 .footnote a {
-  color: #9d968a;
+  color: var(--ink-mute);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -145,7 +145,7 @@
 }
 
 .declined {
-  background: #ffe1d6;
+  background: color-mix(in srgb, var(--red) 16%, var(--paper));
 }
 
 .formError {

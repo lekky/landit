@@ -952,6 +952,24 @@ them answered "no". Static assets that are not content-addressed need an explici
 explicit freshness window; the window is an owner decision, because it is exactly how long a
 re-drawn asset can be stale for.
 
+**If local CSS looks stale and survives deleting `.next`, it is the service worker — check for it
+before you touch the code.** `next dev` names chunks by module path, not content, so
+`_1j7xebs._.css` is the same URL before and after an edit; and until 2026-09-01 the app's worker
+served `/_next/static/` cache-first, on the production assumption that a changed file is a
+different URL. Two sessions a week apart (#268 on 2026-08-31, `fix-redesign-second-pass` on
+2026-09-01) each lost an afternoon to it and each misdiagnosed it the same two ways — Turbopack's
+cache, then the HTTP cache — before `curl` of the chunk proved the server right: 26,843 bytes with
+the change from the shell, 25,404 without it from the tab, `no-store` ignored, an ETag that was the
+stale length in hex. The second session also blamed a "preview-pane proxy" that does not exist;
+the worker registers at scope `/` from any page inside the app shell — a signed-out `/library`
+is enough — and then intercepts every same-origin fetch, `/design` included. Three things
+follow. When a stylesheet or component change does not show, **`curl` the chunk from the shell
+first** — if the bytes are right, the server is not the problem. A different port is a different
+origin and has no worker, which is why "audit on a fresh port" worked and why it is still a fair
+trick. And the fix is in: `handleAsset` is network-first in development and cache-first only in
+production, so the trap should not recur — but a browser that already holds the old worker keeps
+it until it updates; unregister it once from DevTools → Application → Service Workers.
+
 ## 8. Configuration that is copied between systems
 
 Turning live email on (2026-08-18) was six DNS records and no code. It took several rounds anyway,

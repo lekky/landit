@@ -138,7 +138,7 @@
 }
 
 .streakLabel {
-  color: #c9c2b4;
+  color: var(--ink-soft);
   margin-top: 4px;
 }
 
@@ -161,7 +161,7 @@
 .weekCell {
   flex: 1;
   height: 26px;
-  border: 2px solid #3a352c;
+  border: 2px solid var(--ink-rule);
   background: transparent;
 }
 
@@ -178,7 +178,7 @@
 }
 
 .weekLabel {
-  color: #c9c2b4;
+  color: var(--ink-soft);
   margin-top: 8px;
 }
 
@@ -186,7 +186,7 @@
   margin: 4px 0 0;
   font-size: 13.5px;
   line-height: 1.4;
-  color: #8d8679;
+  color: var(--ink-mute);
 }
 
 /* ------------------------------------------------------ challenge card --- */
@@ -218,7 +218,7 @@
 
 .challengeTitle {
   font-size: 26px;
-  color: #fff;
+  color: var(--on-dark);
   text-shadow: 2px 2px 0 var(--ink);
 }
 

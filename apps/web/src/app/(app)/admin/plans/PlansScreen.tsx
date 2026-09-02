@@ -55,7 +55,7 @@ export function PlansScreen({ cards }: { cards: readonly AdminPlanCard[] }) {
                 </Tag>
                 <Tag
                   color={plan.unlocksPaidTricks ? 'var(--violet)' : 'var(--paper-2)'}
-                  style={{ fontSize: 10, color: plan.unlocksPaidTricks ? '#fff' : 'var(--ink)' }}
+                  style={{ fontSize: 10 }}
                 >
                   {plan.unlocksPaidTricks ? 'Unlocks paid tricks' : 'Free tier'}
                 </Tag>

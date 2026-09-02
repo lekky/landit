@@ -110,7 +110,7 @@ export function Gallery() {
               height={214}
             />
           </span>
-          <span className="lab" style={{ color: '#c9c2b4' }}>
+          <span className="lab" style={{ color: 'var(--ink-soft)' }}>
             Design system
           </span>
         </div>

@@ -48,7 +48,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <div className="d" style={{ fontSize: 26 }}>
             Admin portal
           </div>
-          <div className="lab" style={{ color: '#C9C2B4', marginTop: 4 }}>
+          <div className="lab" style={{ color: 'var(--ink-soft)', marginTop: 4 }}>
             {staff.rider.name || staff.rider.handle} · @{staff.rider.handle}
           </div>
         </div>
@@ -74,7 +74,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             <button
               type="submit"
               className="btn sm"
-              style={{ background: 'var(--violet)', '--btn-fg': 'var(--paper)' } as CSSProperties}
+              style={{ background: 'var(--violet)', '--btn-fg': 'var(--on-dark)' } as CSSProperties}
             >
               Sign out
             </button>

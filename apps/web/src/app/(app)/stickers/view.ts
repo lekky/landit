@@ -24,6 +24,12 @@ export interface StickerView {
   /** 0–3, baked into the art; carried for the detail modal and analytics. */
   readonly stars?: number;
   readonly rarity?: string;
+  /**
+   * The award's kind (`AwardKind`), or '' on a legacy record. The wall groups
+   * locked badges by it, so sixty-five of them read as a handful of shelves
+   * rather than one heap.
+   */
+  readonly kind: string;
   /** `null` for a shared sticker, which is judged against combined stats. */
   readonly sport: SportId | null;
   /** "Scooter", or nothing when the sticker is shared. */

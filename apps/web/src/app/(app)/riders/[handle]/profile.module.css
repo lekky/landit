@@ -53,7 +53,7 @@
 }
 
 .meta {
-  color: #c9c2b4;
+  color: var(--ink-soft);
   margin-top: 6px;
 }
 

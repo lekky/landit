@@ -24,6 +24,7 @@ import { DataPanel } from './DataPanel';
 import { GuardianPanel } from './GuardianPanel';
 import { PrivacyPanel } from './PrivacyPanel';
 import { ProfilePanel } from './ProfilePanel';
+import { ThemePanel } from './ThemePanel';
 
 export const metadata: Metadata = {
   title: 'Your account · Land The Trick',
@@ -102,6 +103,9 @@ export default async function AccountPage() {
         into a setting nobody consented to rather than one they were handed.
       */}
       <PrivacyPanel value={(rider.privacy || 'private') as PrivacyId} />
+
+      {/* Light or dark, per device (owner, 2026-09-01). See `lib/theme.ts`. */}
+      <ThemePanel />
 
       <Panel flat className={styles.later}>
         <div className="lab">Your profile, and who it is for</div>

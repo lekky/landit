@@ -50,6 +50,92 @@
   --bd: 3px solid var(--ink);
   --sh: 5px 5px 0 var(--ink);
   --sh-sm: 3px 3px 0 var(--ink);
+
+  /*
+   * Text on a fixed fill — a category tag, a stage strip, a primary button.
+   * These never follow the theme: an orange tag is orange in the dark too, so
+   * the ink on it stays ink. `foregroundFor` answers in these.
+   */
+  --on-light: #12100b;
+  --on-dark: #fffdf5;
+
+  /*
+   * On an ink surface — the top bar, the streak card, the sticker wall, the
+   * auth screen. The prototype wrote these as greys (#c9c2b4, #8d8679,
+   * #3a352c, #2a2620); they are named here so that when `--ink` becomes cream
+   * in the dark theme, the muted text and hairlines on it darken with it.
+   */
+  --ink-soft: #c9c2b4;
+  --ink-mute: #8d8679;
+  --ink-rule: #3a352c;
+  --ink-raise: #2a2620;
+
+  /* The paper-toned hatch on a locked card or node, and the page's dot grid. */
+  --hatch-a: #f1ebdc;
+  --hatch-b: #e9e2d1;
+  --dot: rgba(18, 16, 11, 0.07);
+
+  color-scheme: light;
+}
+
+/*
+ * The dark theme (owner, 2026-09-01, in chat; plan §7 T5, seventh divergence).
+ *
+ * The design pack is light-only, and `--ink` in it is both the text colour and
+ * the surface colour of thirty-odd panels — so a dark theme cannot keep those
+ * panels black and flip the text, because they are the same token. What holds
+ * together instead is the full inversion the language was already doing on its
+ * own dark panels: ink becomes the ground, paper becomes the keyline and the
+ * panel, and every accent stays exactly where it was. A black page with cream
+ * borders and the same loud fills is still this product.
+ *
+ * Three states, not two. An explicit choice from Account stamps
+ * `data-theme` on `<html>` before first paint (`lib/theme.ts`); with no
+ * choice the OS preference decides, and `:root:not([data-theme='light'])`
+ * is what lets a chosen light beat a dark OS. Nothing below redefines a
+ * colour that is not already defined above — a token that only existed in
+ * here would silently never apply in the un-stamped state.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --ink: #fffdf5;
+    --ink-2: #e4ddcb;
+    --ink-3: #a79e8e;
+    --paper: #1c1913;
+    --paper-2: #24201a;
+    --wash: #12100b;
+
+    --ink-soft: #4a443b;
+    --ink-mute: #6e665a;
+    --ink-rule: #d8d1bf;
+    --ink-raise: #efe8d6;
+
+    --hatch-a: #211d17;
+    --hatch-b: #2a251e;
+    --dot: rgba(255, 253, 245, 0.08);
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --ink: #fffdf5;
+  --ink-2: #e4ddcb;
+  --ink-3: #a79e8e;
+  --paper: #1c1913;
+  --paper-2: #24201a;
+  --wash: #12100b;
+
+  --ink-soft: #4a443b;
+  --ink-mute: #6e665a;
+  --ink-rule: #d8d1bf;
+  --ink-raise: #efe8d6;
+
+  --hatch-a: #211d17;
+  --hatch-b: #2a251e;
+  --dot: rgba(255, 253, 245, 0.08);
+
+  color-scheme: dark;
 }
 
 /* base */

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import '@landit/ui-web/styles.css';
 
 import { sportsList } from '@/lib/sports';
+import { THEME_BOOT_SCRIPT } from '@/lib/theme';
 
 import { fontVariables } from '../fonts';
 
@@ -55,7 +56,19 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     // `fontVariables` defines --font-anton / --font-barlow-condensed /
     // --font-archivo, which the design system's --fd / --fc / --fb read.
-    <html lang="en-GB" className={fontVariables}>
+    // `suppressHydrationWarning` because `THEME_BOOT_SCRIPT` stamps
+    // `data-theme` on this element before React arrives, and React would
+    // otherwise report the attribute it did not render as a mismatch.
+    <html lang="en-GB" className={fontVariables} suppressHydrationWarning>
+      <head>
+        {/*
+          The theme, before first paint (`lib/theme.ts`). Inline so it runs
+          ahead of every stylesheet and script: a rider who chose dark must not
+          see a cream page flash on every load. One key, one attribute, wrapped
+          so it cannot throw.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );

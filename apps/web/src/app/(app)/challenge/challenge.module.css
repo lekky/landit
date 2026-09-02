@@ -57,7 +57,7 @@
 
 .title {
   font-size: clamp(32px, 6vw, 54px);
-  color: #fff;
+  color: var(--on-dark);
   text-shadow: 3px 3px 0 var(--ink);
 }
 

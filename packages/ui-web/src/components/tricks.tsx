@@ -91,7 +91,12 @@ export function TrickCard({
   const st = locked ? null : stage;
   const filled = Boolean(st) || locked;
   const footFill = st ? st.color : locked ? 'var(--violet)' : 'transparent';
-  const footFg = filled ? (foregroundFor(footFill) ?? 'var(--paper)') : 'var(--ink-3)';
+  // Untracked: muted ink on a paper card. The landing page paints its sample
+  // cards in fixed hues, where `--ink-3` measured 2.74:1 in light and 1.28:1 in
+  // the dark (#280) - a fixed card colour gets a fixed foreground instead.
+  const footFg = filled
+    ? (foregroundFor(footFill) ?? 'var(--on-dark)')
+    : (foregroundFor(background) ?? 'var(--ink-3)');
   return (
     <button
       type="button"
@@ -156,7 +161,7 @@ export function StagePicker({ stages, value, onPick, compact = false }: StagePic
           want ink; only Want to learn (violet) keeps paper. The ring follows the
           label so the dot does not vanish into its own fill.
         */
-        const fg = on ? (foregroundFor(s.color) ?? 'var(--paper)') : undefined;
+        const fg = on ? (foregroundFor(s.color) ?? 'var(--on-dark)') : undefined;
         return (
           <button
             type="button"
@@ -202,14 +207,19 @@ export function SkillNode({ name, difficulty, state, note, onOpen }: SkillNodePr
         {state === 'paid' && (
           <span
             className="lab"
-            style={{ color: 'var(--violet)', display: 'flex', alignItems: 'center', gap: 4 }}
+            // Ink, not violet: the dashed violet border and the hatch already
+            // carry the paywall, and violet text on paper measured 3.42:1.
+            style={{ color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 4 }}
           >
             <Icon name="lock" size={12} strokeWidth={2.8} />
             {note ?? 'Shredder'}
           </span>
         )}
         {state === 'done' && (
-          <span className="lab" style={{ color: 'var(--green)' }}>
+          // Ink, not green: a done node is filled lime, and green on lime
+          // measured 2.11:1. The fill already says "landed"; the word can be
+          // legible.
+          <span className="lab" style={{ color: 'var(--on-light)' }}>
             {note ?? 'Landed'}
           </span>
         )}

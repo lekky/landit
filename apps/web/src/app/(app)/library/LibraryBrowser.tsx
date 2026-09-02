@@ -21,7 +21,7 @@ import {
   type TrickSort,
   type TrickStatusFilter,
 } from '@landit/core';
-import { Empty, Icon, Panel, Pill, TrickCard } from '@landit/ui-web';
+import { Empty, foregroundFor, Icon, Panel, Pill, TrickCard } from '@landit/ui-web';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -163,7 +163,11 @@ export function LibraryBrowser({
             }}
             style={
               category === id
-                ? { background: CATS[id].color, color: '#fff', boxShadow: '3px 3px 0 var(--ink)' }
+                ? {
+                    background: CATS[id].color,
+                    color: foregroundFor(CATS[id].color) ?? 'var(--on-dark)',
+                    boxShadow: '3px 3px 0 var(--ink)',
+                  }
                 : undefined
             }
           >

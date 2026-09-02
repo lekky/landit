@@ -18,7 +18,16 @@ import {
   type StageId,
   type StanceId,
 } from '@landit/core';
-import { Avatar, Button, Equipment, Panel, Pill, TrickCard, avatarById } from '@landit/ui-web';
+import {
+  Avatar,
+  avatarById,
+  Button,
+  Equipment,
+  foregroundFor,
+  Panel,
+  Pill,
+  TrickCard,
+} from '@landit/ui-web';
 import { useEffect, useMemo, useState } from 'react';
 
 import { AvatarPicker } from '@/components/AvatarPicker';
@@ -212,7 +221,7 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
                     className={`panel flat ${styles.sport}`}
                     style={{
                       background: on ? sport.color : 'var(--paper)',
-                      color: on ? '#fff' : 'var(--ink)',
+                      color: on ? (foregroundFor(sport.color) ?? 'var(--on-dark)') : 'var(--ink)',
                       boxShadow: on ? '5px 5px 0 var(--ink)' : '3px 3px 0 var(--ink)',
                     }}
                   >
@@ -341,7 +350,11 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
                   onClick={() => setGoal(option.id)}
                   style={
                     goal === option.id
-                      ? { background: option.hue, color: '#fff', boxShadow: '3px 3px 0 var(--ink)' }
+                      ? {
+                          background: option.hue,
+                          color: foregroundFor(option.hue) ?? 'var(--on-dark)',
+                          boxShadow: '3px 3px 0 var(--ink)',
+                        }
                       : undefined
                   }
                 >

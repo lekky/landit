@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react';
 
+import { foregroundFor } from '../contrast';
 import { cx } from '../cx';
 import type { IconName } from '../icons';
 import { Equipment } from '../sport-art';
@@ -75,7 +76,13 @@ export function Tabs({
             className={cx('sporttab', on && 'on')}
             onClick={() => onChange(it.id)}
             style={
-              on ? { background: it.color, borderColor: 'var(--ink)', color: '#fff' } : undefined
+              on
+                ? {
+                    background: it.color,
+                    borderColor: 'var(--ink)',
+                    color: foregroundFor(it.color) ?? 'var(--on-dark)',
+                  }
+                : undefined
             }
           >
             {/*
@@ -123,7 +130,12 @@ export function SportChip({ sport, small = false, className, style }: SportChipP
   return (
     <span
       className={cx('sportchip', className)}
-      style={{ borderColor: sport.color, color: sport.color, fontSize: small ? 10 : 11, ...style }}
+      // The keyline carries the sport colour; the label is ink. In the prototype
+      // the label was the sport colour too, which on paper is 3.06:1 for the
+      // scooter's orange and 4.46 for the skateboard's blue - an 11px label on
+      // the top bar of every page. The painted equipment art never took the
+      // colour (plan, fifth divergence), so the chip still reads as its sport.
+      style={{ borderColor: sport.color, color: 'var(--ink)', fontSize: small ? 10 : 11, ...style }}
     >
       <Equipment name={sport.icon} size={small ? 16 : 19} strokeWidth={2.4} />
       {sport.label}

@@ -201,7 +201,10 @@ export function HomeScreen({ view }: { view: HomeView }) {
               title="No stickers yet"
               sub="Log your first trick and the first one drops straight away."
               cta="Find a trick"
-              onCta={() => router.push(ROUTES.library)}
+              onCta={() => {
+                capture(ANALYTICS_EVENTS.emptyStateAction, { screen: 'home', action: 'library' });
+                router.push(ROUTES.library);
+              }}
             />
           )}
         </section>
@@ -242,7 +245,12 @@ export function HomeScreen({ view }: { view: HomeView }) {
             <Empty
               icon="users"
               title="No crew yet"
-              sub="Crews are invite-only — yours shows up here the moment a mate sends you a code."
+              sub="Crews are invite-only — start one and send a mate the code, or wait for theirs."
+              cta="Start a crew"
+              onCta={() => {
+                capture(ANALYTICS_EVENTS.emptyStateAction, { screen: 'home', action: 'crew' });
+                router.push(ROUTES.crew);
+              }}
             />
           )}
         </section>

@@ -79,8 +79,25 @@ export type TagProps = {
  * stylesheet's default and nothing an existing caller renders changes; an
  * explicit `style.color` still wins over both.
  */
+/*
+ * A fill named by a surface token flips with the theme - `var(--ink)` is black
+ * in the light and cream in the dark - so its foreground must flip the other
+ * way, and `foregroundFor` (hex only) cannot see that. This is the map for the
+ * surface fills a Tag is given; a fixed accent such as `var(--violet)` is not
+ * here and keeps the stylesheet's `--on-dark`.
+ */
+const SURFACE_FILL_FG: Readonly<Record<string, string>> = {
+  'var(--ink)': 'var(--paper)',
+  'var(--ink-2)': 'var(--paper)',
+  'var(--ink-3)': 'var(--paper)',
+  'var(--paper)': 'var(--ink)',
+  'var(--paper-2)': 'var(--ink)',
+  'var(--wash)': 'var(--ink)',
+};
+
 export function Tag({ children, color, tilt = false, className, style }: TagProps) {
-  const fg = foregroundFor(color);
+  const fg =
+    foregroundFor(color) ?? (color ? SURFACE_FILL_FG[color.replace(/\s+/g, '')] : undefined);
   return (
     <span
       className={cx('tag', tilt && 'tilt', className)}

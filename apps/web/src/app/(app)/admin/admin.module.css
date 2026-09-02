@@ -627,7 +627,7 @@
 
 .planName {
   font-size: 24px;
-  color: #fff;
+  color: var(--on-dark);
   text-shadow: 2px 2px 0 var(--ink);
 }
 
