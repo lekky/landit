@@ -1451,6 +1451,30 @@ The page is dark-theme-aware, which the pack could not be: everything below the 
 tokens and inverts, while the hero is a genuinely fixed dark surface and therefore declares its own
 locals rather than borrowing `--ink-soft`, which would flip and disappear into it.
 
+**A ninth divergence, 2026-09-04 (Rachid, in chat): the five legal documents get the site footer,
+which the prototype's legal screen does not have.** `landit-legal.jsx` gives that screen a thin dark
+bar and nothing at the bottom, and it was right to: there, a legal document was an overlay inside
+the single-page app and its `Back` button returned the rider wherever they came from. Built as five
+real URLs it stopped being an overlay, and the missing footer became a dead end reached *through*
+the footer — the Legal and Company columns are how a rider gets to these documents at all, and
+clicking `Privacy policy` in them took the way back with it. These were the only five pages in the
+product without one: the landing page, `/offline`, `/coming-soon`, the 404 and every signed-in
+screen (via `AppShell`) all carry it.
+
+- **The header is unchanged**, and deliberately: wordmark and `Back`, exactly as screenshot 03 shows
+  it. `Back` already serves both audiences, since `/` redirects a signed-in rider to their
+  dashboard, and once the footer is there the rest of the product is reachable from the bottom of
+  the page. Adding a `Sign in` button would mean reading the session and giving up the static
+  generation these five pages have.
+- **The pages are not moved into the `(app)` route group**, which would have supplied the whole
+  shell for free. `AppShell` registers the service worker, and it does that there specifically so
+  that a worker is never installed by a landing page, a legal document or the holding page (T19).
+  Chrome parity is not worth reversing that as a side effect.
+- `e2e/legal.spec.ts` asserts the footer on all five documents, and the index-navigation test is now
+  scoped to the index: the footer links the same five titles, so an unscoped `Safeguarding` link
+  matches twice. The index `<nav>` carries the accessible name that had been passed to `Panel`,
+  which takes no such prop and dropped it before it reached the DOM.
+
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
 to test — that is where the three-sport switch is proved against a 375px phone before `SPORT_IDS`

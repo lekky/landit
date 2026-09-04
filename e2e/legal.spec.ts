@@ -29,14 +29,36 @@ test('every document has its own URL and its own heading', async ({ page }) => {
 test('the index moves between documents and marks the current one', async ({ page }) => {
   await page.goto('/legal/privacy');
 
-  await expect(page.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute(
+  // Scoped to the index rather than the page. The site footer arrived on these
+  // documents on 2026-09-04 and its Legal and Company columns link the same five
+  // titles, so an unscoped `getByRole('link', { name: 'Safeguarding' })` now
+  // matches twice and fails on strict mode. Naming the navigation is also what
+  // the assertion means: it is the index that marks the current document.
+  const index = page.getByRole('navigation', { name: 'The small print' });
+
+  await expect(index.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute(
     'aria-current',
     'page',
   );
 
-  await page.getByRole('link', { name: 'Safeguarding' }).click();
+  await index.getByRole('link', { name: 'Safeguarding' }).click();
   await expect(page).toHaveURL('/legal/safeguarding');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Safeguarding');
+});
+
+test('every document carries the site footer (2026-09-04)', async ({ page }) => {
+  // These were the only five pages in the product without one — and the way in
+  // to them is the footer itself, whose Legal and Company columns name all five.
+  // A rider who clicked "Privacy policy" there arrived somewhere the route back
+  // had disappeared, with nothing but Back to the home page.
+  for (const [slug] of DOCS) {
+    await page.goto(`/legal/${slug}`);
+    const footer = page.locator('footer');
+    await expect(footer).toBeVisible();
+    // The other documents, and the reporting route the OSA duty needs easy.
+    await expect(footer.getByRole('link', { name: 'Terms of use' })).toBeVisible();
+    await expect(footer.getByRole('link', { name: 'Report something' })).toBeVisible();
+  }
 });
 
 test('an unknown document is a 404, not an empty page', async ({ page }) => {
