@@ -43,8 +43,12 @@ export function sportsList(ids: readonly SportId[] = SPORT_IDS): string {
  * A sport's label as it reads mid-sentence. Proper nouns keep their case, so
  * "BMX" survives while "Skateboard" becomes "skateboard" — a label is an
  * acronym when it has no lowercase letters in it.
+ *
+ * Exported since the SEO work, which needed the same rule in prose a machine
+ * reads: a trick page describing itself as "a bmx trick" is the one sentence an
+ * answer engine is most likely to quote back.
  */
-function lowerLabel(id: SportId): string {
+export function lowerLabel(id: SportId): string {
   const label = SPORTS[id].label;
   return /[a-z]/.test(label) ? label.toLowerCase() : label;
 }

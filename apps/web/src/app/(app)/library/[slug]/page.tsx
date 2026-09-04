@@ -2,6 +2,7 @@ import {
   CATS,
   DEFAULT_TIMEZONE,
   NO_VIDEO_LINKS,
+  SITE_URL,
   SPORTS,
   TIERS_LABEL,
   categoryLabel,
@@ -46,8 +47,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { shortDate } from '@/lib/dates';
+import { jsonLdText, trickHowToLd } from '@/lib/structuredData';
 import { ROUTES, trickHref } from '@/lib/routes';
-import { SPORT_LOOKS } from '@/lib/sports';
+import { SPORT_LOOKS, lowerLabel } from '@/lib/sports';
 import { anonymousClient, currentRider } from '@/lib/session';
 
 import { AwardBadge } from './AwardBadge';
@@ -275,10 +277,38 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const data = await load(slug);
   if (!data) return { title: 'Trick not found · Land The Trick' };
+  const { trick } = data;
+  // `diff` is 1-5 by its type, so the index is always in range; the fallback is
+  // what `noUncheckedIndexedAccess` wants said out loud rather than asserted.
+  const tier = (TIERS_LABEL[trick.diff - 1] ?? '').toLowerCase();
   return {
-    title: `${data.trick.name} · Land The Trick`,
-    description: `${categoryLabel(data.trick.cat, data.trick.sport)} · ${SPORTS[data.trick.sport].label} · difficulty ${TIERS_LABEL[data.trick.diff - 1]}.`,
+    title: `${trick.name} · Land The Trick`,
+    /*
+     * The lowdown, not the spec line.
+     *
+     * This used to read "Flat · Scooter · difficulty Rookie." — three facts
+     * that are all on the page already, in the tag, the chip and the meter
+     * beside the heading. It is also the sentence a search result shows and the
+     * one an answer engine reads to decide what this page is about, and on that
+     * job it says nothing: it does not tell anybody what a Bunny Hop *is*.
+     *
+     * `about` is staff copy and already does the work — "The foundation under
+     * every trick. Crouch, explode upward and pull the bars to your hips…" — so
+     * the sport and the difficulty become the frame around it rather than the
+     * whole of it. Trimmed to roughly what a result will show; the cut is on a
+     * word so it never ends mid-syllable.
+     */
+    description: `${trick.name} on a ${lowerLabel(trick.sport)}, ${tier} level. ${clamp(trick.about, 150)}`,
+    alternates: { canonical: trickHref(trick.id) },
   };
+}
+
+/** `text`, cut to at most `max` characters on a word boundary. */
+function clamp(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).replace(/[.,;:]$/, '')}…`;
 }
 
 export default async function TrickPage({ params }: Params) {
@@ -319,8 +349,29 @@ export default async function TrickPage({ params }: Params) {
    */
   const awardLine = data.award ? `The award · ${data.award.cond}` : null;
 
+  /*
+   * What this page is, said in schema.org rather than left to be inferred
+   * (`lib/structuredData.ts`). It is the same lowdown, tips and kit line the
+   * page renders below — a description of the page, not an addition to it — so
+   * a retune of staff copy reaches both at once.
+   *
+   * A locked trick never reaches here: the branch above returned `LockedTrick`,
+   * and a `HowTo` describing instructions the visitor was not shown would be
+   * exactly the mismatch the guidelines are about.
+   */
+  const howTo = trickHowToLd(trick, {
+    url: `${SITE_URL}${trickHref(trick.id)}`,
+    equipment: sport.kit,
+  });
+
   return (
     <div>
+      <script
+        type="application/ld+json"
+        // The text is escaped by `jsonLdText`; a `<` from staff copy cannot
+        // close this tag. There is no other way to put JSON-LD on a page.
+        dangerouslySetInnerHTML={{ __html: jsonLdText(howTo) }}
+      />
       <Link className={`cond ${styles.back}`} href={ROUTES.library}>
         <Icon name="back" size={16} /> All tricks
       </Link>

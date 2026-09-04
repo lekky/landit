@@ -10,6 +10,7 @@ import { eventsFromRecords, listEventAttendance, listEvents } from '@landit/db';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
+import { ROUTES } from '@/lib/routes';
 import { anonymousClient, currentRider } from '@/lib/session';
 
 import { EventsScreen } from './EventsScreen';
@@ -18,6 +19,7 @@ import { buildEventsView } from './view';
 export const metadata: Metadata = {
   title: 'Events · Land The Trick',
   description: 'Comps, coached sessions, classes and jams that staff have put on the calendar.',
+  alternates: { canonical: ROUTES.events },
 };
 
 /**

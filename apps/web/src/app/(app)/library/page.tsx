@@ -8,6 +8,7 @@ import {
 } from '@landit/db';
 import type { Metadata } from 'next';
 
+import { ROUTES } from '@/lib/routes';
 import { anonymousClient, currentRider } from '@/lib/session';
 
 import { LibraryBrowser } from './LibraryBrowser';
@@ -15,6 +16,7 @@ import { LibraryBrowser } from './LibraryBrowser';
 export const metadata: Metadata = {
   title: 'Trick library · Land The Trick',
   description: 'Every trick Land The Trick tracks, with what you can already do marked off.',
+  alternates: { canonical: ROUTES.library },
 };
 
 /**

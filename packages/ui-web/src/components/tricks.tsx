@@ -1,6 +1,6 @@
 'use client';
 
-import type { CSSProperties } from 'react';
+import type { ComponentType, CSSProperties, ReactNode } from 'react';
 
 import { foregroundFor } from '../contrast';
 import { cx } from '../cx';
@@ -39,6 +39,31 @@ export type StageLook = {
   color: string;
 };
 
+/**
+ * What `TrickCard` hands its link component. `next/link` satisfies this, which
+ * is the point — the app passes it in and the design system stays Next-free.
+ */
+export type TrickCardLinkProps = {
+  href: string;
+  className?: string;
+  style?: CSSProperties;
+  children?: ReactNode;
+};
+
+/**
+ * The default: a plain anchor. Correct on its own — it is a real link a crawler
+ * follows and a rider can middle-click — and it is what a card rendered outside
+ * the app gets. Inside the app, `next/link` is passed in so the navigation is
+ * client-side as well.
+ */
+function PlainAnchor({ href, className, style, children }: TrickCardLinkProps) {
+  return (
+    <a href={href} className={className} style={style}>
+      {children}
+    </a>
+  );
+}
+
 export type TrickCardProps = {
   name: string;
   category: CategoryLook;
@@ -63,6 +88,31 @@ export type TrickCardProps = {
   /** Card background. The landing page tilts four of these on bright colours. */
   background?: string;
   onOpen?: () => void;
+  /**
+   * Render the card as a link to this URL rather than as a button.
+   *
+   * **A crawler cannot click a button.** The library grid navigated with
+   * `router.push` on a `<button>`, so every one of the trick pages it points at
+   * was unreachable to anything that follows links — which is every search
+   * engine and every answer engine. It also cost a rider the things an anchor
+   * gives for free: middle-click, open in a new tab, copy link address, and the
+   * link semantics a screen reader announces.
+   *
+   * Optional, because two callers want the button. The landing page's four
+   * sample cards go nowhere, and the design gallery's go nowhere either.
+   */
+  href?: string;
+  /**
+   * What to render the anchor with, when `href` is set. Defaults to a plain
+   * `<a>`.
+   *
+   * This package has no Next dependency and is not getting one — it is the
+   * design system, and the app is what knows about routing (the same division
+   * `styles/additions.css` records for the nav). So the app passes `next/link`
+   * in here and the card is a real `<a href>` **and** a client-side navigation;
+   * anything else rendering a card still gets an anchor that works.
+   */
+  linkAs?: ComponentType<TrickCardLinkProps>;
   className?: string;
   style?: CSSProperties;
 };
@@ -85,6 +135,8 @@ export function TrickCard({
   showSport = true,
   background,
   onOpen,
+  href,
+  linkAs: Link = PlainAnchor,
   className,
   style,
 }: TrickCardProps) {
@@ -97,13 +149,13 @@ export function TrickCard({
   const footFg = filled
     ? (foregroundFor(footFill) ?? 'var(--on-dark)')
     : (foregroundFor(background) ?? 'var(--ink-3)');
-  return (
-    <button
-      type="button"
-      className={cx('tcard', locked && 'lockd', className)}
-      onClick={onOpen}
-      style={{ background: background ?? 'var(--paper)', ...style }}
-    >
+  const shell = {
+    className: cx('tcard', locked && 'lockd', className),
+    style: { background: background ?? 'var(--paper)', ...style } as CSSProperties,
+  };
+
+  const inner = (
+    <>
       <span className="fold" style={{ '--c': category.color } as CSSProperties} />
       {locked && (
         <span className="lockflag">
@@ -133,6 +185,26 @@ export function TrickCard({
         <StageDot color={filled ? footFg : undefined} ring={filled ? footFg : 'var(--ink-3)'} />
         {locked ? lockLabel : st ? st.label : emptyLabel}
       </div>
+    </>
+  );
+
+  /*
+   * An anchor when the card goes somewhere, a button when it only does
+   * something. Both wear `.tcard`; `styles/additions.css` gives the anchor the
+   * few declarations a `<button>` got from the user-agent stylesheet and an
+   * `<a>` does not.
+   */
+  if (href) {
+    return (
+      <Link href={href} {...shell}>
+        {inner}
+      </Link>
+    );
+  }
+
+  return (
+    <button type="button" onClick={onOpen} {...shell}>
+      {inner}
     </button>
   );
 }

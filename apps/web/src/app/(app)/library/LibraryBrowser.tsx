@@ -134,7 +134,22 @@ export function LibraryBrowser({
       stage={byId[trick.id] ? STAGE[byId[trick.id]!] : null}
       locked={isTrickLocked(trick, plan)}
       lockTier={TIERS_LABEL[trick.diff - 1]}
-      onOpen={() => router.push(trickHref(trick.id))}
+      /*
+       * A link, not a button with a `router.push` on it.
+       *
+       * This grid is the only way into the trick pages, and until now it was
+       * not a way in at all for anything that reads links rather than clicking
+       * things: every trick page was unreachable from anywhere on the site, and
+       * a crawler that arrived here left with nothing. `linkAs` hands the card
+       * `next/link`, so it is a real `<a href>` in the served HTML *and* still a
+       * client-side navigation for a rider — plus middle-click, open in a new
+       * tab, and the link semantics a screen reader announces.
+       *
+       * A locked trick links too. `/library/[slug]` answers with the locked
+       * page rather than the trick, which is a page worth reaching.
+       */
+      href={trickHref(trick.id)}
+      linkAs={Link}
     />
   );
 

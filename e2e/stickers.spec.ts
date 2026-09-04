@@ -45,6 +45,32 @@ async function arrive(page: Page, name: string): Promise<void> {
   await page.waitForURL('**/home');
 }
 
+/**
+ * Press "Sometimes" on the stage picker, and be sure the press actually landed.
+ *
+ * **A server-rendered control is visible before it works** — the same race
+ * `spots.spec.ts` names in `whenInteractive`, arriving here for a new reason.
+ * The library's cards became real `<a href>` links, so opening one is now a
+ * document navigation and the trick page arrives freshly server-rendered with
+ * its own hydration to do. Before, the card was a `<button>`: a press before
+ * hydration did nothing at all, so the spec could not move on until the library
+ * was live, and the trick page was then rendered by a React that was already
+ * running. The race was always there; the buttons were hiding it.
+ *
+ * So the press is retried rather than assumed. `aria-pressed` flipping is the
+ * proof, exactly as it is on the spots pills: the picker's state lives in
+ * React, so the attribute cannot change until the component owns the node.
+ * `toPass` stops at the first success, which matters here — pressing the
+ * selected stage a second time is how a rider *untracks* it.
+ */
+async function markSometimes(page: Page): Promise<void> {
+  const button = page.getByRole('button', { name: 'Sometimes' });
+  await expect(async () => {
+    await button.click();
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+  }).toPass({ timeout: 20_000 });
+}
+
 /** Open the first trick the library offers and mark it landed. */
 async function landSomething(page: Page): Promise<string> {
   await page.goto('/library');
@@ -52,7 +78,7 @@ async function landSomething(page: Page): Promise<string> {
   const name = await card.locator('.nm').innerText();
   await card.click();
   await page.waitForURL(/\/library\/.+/);
-  await page.getByRole('button', { name: 'Sometimes' }).click();
+  await markSometimes(page);
   // Wait for the **toast**, which is the server action having come back, not
   // for the stage note beside the picker — that one is optimistic and appears
   // on the click. Waiting on the optimistic copy navigates away mid-write, and

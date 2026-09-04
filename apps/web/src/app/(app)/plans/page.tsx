@@ -2,6 +2,7 @@ import { upgradeRouteFor, type AgeBand } from '@landit/core';
 import { getActiveSubscription, listPlans } from '@landit/db';
 import type { Metadata } from 'next';
 
+import { ROUTES } from '@/lib/routes';
 import { anonymousClient, currentRider } from '@/lib/session';
 import { stripeConfig } from '@/lib/stripe';
 
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
   title: 'Plans · Land The Trick',
   description:
     'Rookie is free forever. Shredder unlocks every trick; Legend adds flair and progress insights.',
+  alternates: { canonical: ROUTES.plans },
 };
 
 /**

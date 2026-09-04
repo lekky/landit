@@ -416,3 +416,25 @@ a.pill.on:hover {
   left: 8px;
   top: 8px;
 }
+
+/*
+ * `.tcard` on a link.
+ *
+ * The prototype's library grid navigated by calling `setRoute`, so the card was
+ * only ever a `<button>` — and a button is invisible to anything that follows
+ * links. `TrickCard` renders an `<a>` when it is given an `href`, which needs
+ * the two things an anchor does not inherit from the button it replaces: the
+ * colour — `tokens.css` paints links, and its `a:hover` rule outranks `.tcard`
+ * and would turn the trick's name pink under the cursor — and the absence of an
+ * underline.
+ *
+ * Nothing else. The box, the border, the shadow and the hover lift all come
+ * from `.tcard` in `primitives.css`, which already sets `display:flex` and so
+ * applies to either element unchanged. This block adds no appearance of its
+ * own; it only stops an anchor looking different from the button beside it.
+ */
+a.tcard,
+a.tcard:hover {
+  color: var(--ink);
+  text-decoration: none;
+}

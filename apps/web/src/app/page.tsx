@@ -55,6 +55,23 @@ import styles from './landing.module.css';
 export const metadata: Metadata = {
   title: 'Land The Trick · Track your progress and land the trick',
   description: `A trick tracker for ${sportsList()} riders. Log what you have landed, rate how solid it is, line up what is next.`,
+  /*
+   * The canonical URL for this page.
+   *
+   * The app answers on more than one host — `www.landthetrick.com` serves the
+   * whole site alongside the apex — and nothing was telling a search engine
+   * which of the two to keep, so every public page existed twice with no way to
+   * tell which was the original. A canonical says. It also folds away the query
+   * strings the app puts on its own URLs, `?mine=1` and `?next=` among them,
+   * which are views of a page rather than pages.
+   *
+   * A path, not an absolute URL: Next resolves it against the `metadataBase`
+   * that `app/layout.tsx` takes from `SITE_URL`, so the domain stays one fact
+   * in one place. The host redirect is the real fix and is infrastructure
+   * rather than code (issue filed); this is what makes the ambiguity harmless
+   * in the meantime, and it is worth having either way.
+   */
+  alternates: { canonical: ROUTES.home },
 };
 
 /** Pence to the string the FAQ says, so the copy cannot drift from checkout. */

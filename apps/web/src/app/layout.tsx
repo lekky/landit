@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import '@landit/ui-web/styles.css';
 
 import { sportsList } from '@/lib/sports';
+import { jsonLdText, organizationLd } from '@/lib/structuredData';
 
 import { fontVariables } from '../fonts';
 
@@ -66,7 +67,28 @@ export default function RootLayout({ children }: { children: ReactNode }) {
      * together; `git revert` of this commit is the whole restoration.
      */
     <html lang="en-GB" className={fontVariables}>
-      <body>{children}</body>
+      <body>
+        {/*
+          Who publishes this site, in schema.org (`lib/structuredData.ts`).
+
+          In the layout rather than on the landing page, so it is on every page
+          rather than only the one a person lands on. A trick page shared
+          straight into a chat is read without `/` ever being fetched, and this
+          is what tells whatever reads it that the page has a publisher, that
+          the publisher is a named organisation, and which social accounts are
+          the same brand. It is one small block, unchanging, and it is the
+          anchor every other page's `publisher` points back at by `@id`.
+
+          The text is escaped by `jsonLdText`, so nothing in it can close the
+          tag; `dangerouslySetInnerHTML` is the only way to put JSON-LD on a
+          page, and the string here is built from constants in this repo.
+        */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdText(organizationLd()) }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

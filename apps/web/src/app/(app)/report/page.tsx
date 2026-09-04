@@ -2,6 +2,7 @@ import { CONTACT, isReportSubject, type ReportSubjectId } from '@landit/core';
 import { Panel } from '@landit/ui-web';
 import type { Metadata } from 'next';
 
+import { ROUTES } from '@/lib/routes';
 import { currentRider } from '@/lib/session';
 
 import { ReportForm } from './ReportForm';
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
   title: 'Tell us something is wrong · Land The Trick',
   description:
     'Report a rider, a spot or anything else on Land The Trick. You do not need an account.',
+  alternates: { canonical: ROUTES.report },
 };
 
 /**

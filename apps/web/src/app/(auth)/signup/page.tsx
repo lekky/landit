@@ -14,6 +14,7 @@ import { SignUpForm } from './SignUpForm';
 export const metadata: Metadata = {
   title: 'Make an account · Land The Trick',
   description: 'Free tier, no card, keeps everything.',
+  alternates: { canonical: ROUTES.signUp },
 };
 
 export default async function SignUpPage() {
