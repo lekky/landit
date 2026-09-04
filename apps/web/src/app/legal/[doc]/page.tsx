@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import siteStyles from '@/components/site/site.module.css';
+import { SiteFooter } from '@/components/site/SiteFooter';
 import { Wordmark } from '@/components/site/Wordmark';
 import { LEGAL_DOCS, legalDoc, legalSectionId } from '@/content/legal';
 import { ROUTES, legalHref } from '@/lib/routes';
@@ -50,9 +51,17 @@ export default async function LegalDocPage(props: PageProps<'/legal/[doc]'>) {
 
       <div className={styles.body}>
         <div className={styles.grid}>
-          <Panel flat className={styles.index} aria-label="The small print">
+          <Panel flat className={styles.index}>
             <div className={`lab ${styles.indexTitle}`}>The small print</div>
-            <nav className={styles.indexLinks}>
+            {/*
+              The name goes on the nav, not the Panel. `Panel` takes children,
+              flat, className and style and nothing else, so the aria-label this
+              used to pass it was dropped before it reached the DOM — an
+              accessible name that only existed in the source. A nav is the
+              element that can carry one, and now that the site footer is on
+              this page there are two navigations to tell apart.
+            */}
+            <nav className={styles.indexLinks} aria-label="The small print">
               {LEGAL_DOCS.map((entry) => {
                 const on = entry.id === doc.id;
                 return (
@@ -117,6 +126,17 @@ export default async function LegalDocPage(props: PageProps<'/legal/[doc]'>) {
           </div>
         </div>
       </div>
+
+      {/*
+        The same footer every other page has.
+
+        The prototype's legal screen had none, because there it was an overlay
+        inside the SPA and `Back` returned you where you came from. As five real
+        URLs it read as a dead end — and a circular one, since the footer's
+        Legal and Company columns are how a rider reaches these documents in the
+        first place. Clicking Privacy policy took the way back with it.
+      */}
+      <SiteFooter />
     </div>
   );
 }
