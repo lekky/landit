@@ -3,8 +3,9 @@ import type { StickerView } from './view';
 /**
  * The wall's shelves.
  *
- * T24 took the wall from 25 stickers to 135 awards, which is ~65 per sport tab
- * in one flat grid with earned and locked mixed together (#245). The one
+ * T24 took the wall from 25 stickers to 135 awards, and T27 to 297 — well over
+ * a hundred per sport tab, in one flat grid with earned and locked mixed
+ * together (#245). The one
  * question a rider brings to the screen — "what have I got, and what's near"
  * — had no answer a glance could give.
  *

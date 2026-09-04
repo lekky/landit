@@ -67,13 +67,20 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
 
 ## Game mechanics (packages/core — pure TS, no React/DOM)
 
-- **97 tricks** (30 scooter, 31 skate, 36 BMX — the BMX set researched and cited, never invented),
-  5 categories, difficulty 1–5 (Rookie/Easy/Spicy/Gnarly/Pro), prerequisite graph.
+- **259 tricks** (84 scooter, 85 skate, 90 BMX — the 97 originals plus 162 researched and cited in
+  T27, 54 per sport, never invented), 5 categories, difficulty 1–5 (Rookie/Easy/Spicy/Gnarly/Pro),
+  prerequisite graph. An optional `supervise` flag marks flips, inverts and committed drops for the
+  coach view — set per trick, not inferred from difficulty.
+- **Ten free tricks per sport**, spread 4 Rookie / 3 Easy / 2 Spicy / 1 Gnarly and nothing at Pro
+  (T27). Every free trick's whole prerequisite chain is free, so none of them is unreachable behind
+  a paid rung; the paywall itself is enforced server-side on `trick_progress` creation.
 - **5 stages** per trick: want → trying → landed some → landed most → every time.
 - **Weekly streak**: 2 rides in a Mon–Sun week, server-owned, no grace week. (A deprecated daily
   API survives in `rules/streak.ts` for the additive-only rule; nothing calls it.)
-- **135 awards** (T24: one badge per trick plus platform/streak/contribution/completion awards,
-  printed art in `packages/ui-web/assets/stickers/`; `promoter` dormant) and 10 retired legacy stickers.
+- **297 awards** (T24's 135 plus T27's 162: one badge per trick plus platform/streak/contribution/
+  completion awards, printed art in `packages/ui-web/assets/stickers/`; `promoter` dormant, and the
+  162 T27 badges are recorded with their filenames while the art is printed) and 10 retired legacy
+  stickers.
   A trick's own badge leads its trick page (T25, moved into the hero by T26) — never greyed out,
   and stamped LANDED in red once earned, NOT YET in dashed grey until then — where the original
   design pack had a photo placeholder that was never filled.

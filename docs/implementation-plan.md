@@ -1182,7 +1182,7 @@ updated` when about nineteen values had actually changed. Three costs, one of th
 Every collection the seed touches is in the audit hook's `AUDITED` list and
 `onRecordUpdateRequest` in `pocketbase/hooks/70_audit.pb.js` has **no change check** — unlike its
 sibling handler for user fields, which does — so each run wrote one audit row per record, each
-carrying a full `before` *and* `after` snapshot, including 97 tricks with their long prose. The
+carrying a full `before` *and* `after` snapshot, including the whole trick library with its long prose. The
 real change was buried among hundreds of no-ops, and every `updated` timestamp churned.
 
 `rowMatches` now decides whether the write happens. It compares only the fields the seed sets, and
@@ -3016,6 +3016,92 @@ A second pass the same day, against the owner's own mock-ups:
   edges did all the talking. On a phone they stay where the mock-up has them.
 
 No new analytics event: none of this adds a rider action.
+
+**T27 · The trick library expansion.** Added after launch (Rachid, 2026-09-04, in chat). The
+library goes from 97 tricks to **259 — 84 scooter, 85 skate, 90 BMX** — with a badge record for
+every new one, sixteen regrades to the tricks already there, a reshaped free tier and a new
+`supervise` field. It is a content task; nothing about the paywall, the award rules or the
+prerequisite machinery changed shape to hold it.
+
+**Where the 162 came from, and what they are worth.** Six research agents, two per sport and split
+by category, each working from published coaching and tutorial sources. Every candidate that
+shipped carries at least one source; names that could not be verified were dropped rather than
+guessed at. 167 came back and 162 shipped: five medium-confidence skate entries and two BMX
+entries were cut by the owner to level the three sports at exactly 54 each. Two BMX entries were
+added in their place — see the doubles decision below. The full provenance, including the honest
+caveats, is written above the first T27 block in `packages/core/src/data/tricks.ts` rather than
+here, so that the next session to change a `diff` reads it in the file it is editing. The one
+worth repeating: **the prerequisite edges are largely inferred rather than cited**, because the
+researching agents were given trick ids and difficulties but never the existing prerequisite
+graph, so `pre` was reconstructed afterwards from the trick descriptions.
+
+**The doubles rule is scoped to flips, and only flips** (Rachid, 2026-09-04, in chat). T21's BMX
+provenance note said "handrails, double flips and brakeless variants were excluded on safety
+grounds", and a later reading took "double flips" as covering doubles of anything — which would
+have kept out the double and triple tailwhip, tricks with no inversion in them at all, sitting on
+the same ladder as the tailwhip already in the library. The owner ruled that the rule does not
+extend that far. `bmx-double-tailwhip` and `bmx-triple-tailwhip` ship; **handrails, double *flips*
+and brakeless variants stay excluded on the original grounds.** This is a scoping of the rule and
+not a reversal of it, and the T21 note in `tricks.ts` now says so in place.
+
+**Sixteen regrades, on one rule: difficulty 5 means complexity and mastery, not only danger**
+(Rachid, 2026-09-04, in chat). Up: `x-up` 1→2, `fingerwhip` 2→3, `toboggan` 3→4, `icepick` 3→4,
+`sk-blunt-fakie` 4→5, `bmx-tabletop` 3→4. Down: `scooter-flip`, `double-whip`, `whip-to-bar`,
+`sk-tailslide` and `bmx-hop-tailwhip` 5→4, `sk-nose-manual`, `bmx-smith` and `bmx-turndown` 4→3,
+`bmx-air` and `bmx-tyre-tap` 3→2. Two proposals were refused: **`bmx-truckdriver` stays at 5**,
+because its deflation was argued purely on danger and the owner's rule voids that argument, and
+**`sk-noseslide` stays at 3**, because the case for 4 was withdrawn once better evidence
+contradicted it.
+
+**The free tier is a fixed ten per sport, spread 4 Rookie / 3 Easy / 2 Spicy / 1 Gnarly, and
+nothing at Pro** (Rachid, 2026-09-04, in chat). It replaces "whatever sits at difficulty ≤ 2 plus
+some overrides", which was a free tier that grew every time the library did — 30 free tricks out
+of 97 would have become 96 out of 259 with nothing decided. The ten per sport are named in
+`tricks.ts` and pinned by tests in both `packages/core/src/rules/tricks.test.ts` (which ids) and
+`packages/core/src/data/data.test.ts` (the shape).
+
+Two rules held while choosing them. **A free trick's entire prerequisite chain is free** — the
+paywall is enforced server-side on `trick_progress` creation (§3, guarantee 3), so a rookie cannot
+land a locked prerequisite, and a free Gnarly trick whose ancestors are paid is permanently
+unreachable rather than generous. Nothing in the product checked this before; a test walks the
+closure transitively now. And **every category a sport has is enterable**, which is the argument
+the `bmx-double-peg` override already made for street, generalised.
+
+What it costs, recorded because it reverses a line T24 drew: **scooter and skate each now have two
+paid difficulty-1 tricks** (`kickturn`, `tail-tap`, `sk-curb-drop`, `sk-ramp-kickturn`), because
+both sports have six Rookie entries and only four free slots. "No difficulty-1 trick is ever paid"
+was true when BMX had exactly four; it is not a rule any more, and the four-slot count is. A
+handful of tricks that were free by difficulty are paid now and a handful that were paid are free
+— the free tier moved as a whole, deliberately.
+
+**`supervise`, a new optional field on `Trick`.** It marks a trick a guardian should know about,
+per trick rather than inferred from `diff`. The line: the rider goes upside down (a flip or an
+invert), commits to a drop they cannot step out of, or the trick's own tips send them to a foam
+pit or a resi ramp first. So the three sports' drop-ins carry one at difficulty 2, and several
+difficulty-5 flatground tricks do not. `SUPERVISED_MIN_DIFF` and `supervisedTricks()` in
+`rules/crew.ts` are untouched and still draw the coach view's line off difficulty; **switching
+that view onto this field is a separate task**, which is why both exist for now.
+
+**162 new awards, and the art lands separately.** One `kind: 'trick'` badge per new trick, on
+exactly the terms T24's 97 already follow: `stars` and `rarity` map off difficulty (1 → 1
+star/common, 2–3 → 2/uncommon, 4–5 → 3/rare) and `hue` is one of the five the committed art uses,
+read from the generator the badges are being printed against so the record and the picture agree.
+The set goes from 135 awards to **297**, and `STICKERS` from 145 to 307. The PNGs are generated by
+the owner from these exact ids, so `img` is written before the file exists;
+`apps/web/src/lib/award-art.test.ts` holds the 162 pending ids and that list is the thing to
+shorten as batches land — it can only shrink, and an id on it that is not a real trick award fails
+the test.
+
+Also folded in, on the owner's decision: six existing difficulty-2 trick awards (`sk-ollie`,
+`sk-manual`, `sk-shuvit`, `sk-fakie-ollie`, `sk-drop-in`, `sk-rock-to-fakie`) carried 1 star and
+`common` where the other thirteen at that difficulty carried 2 and `uncommon`. They are brought
+into line. `stars` and `rarity` are analytics properties and are never drawn — the printed badge
+carries its own stars — so the six pictures still show one star until they are reprinted.
+
+**No new analytics event.** This is catalogue content flowing through instrumentation that already
+exists: `trickLogged`, `libraryFiltered`, `stickerEarned` and `trickLocked` all already carry the
+catalogue facts these tricks arrive with (difficulty, sport, category, tier), so 162 new tricks
+are 162 more values in properties that are already counted, not a new thing to count.
 
 ### Dependency graph
 

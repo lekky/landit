@@ -1,14 +1,63 @@
 import type { Trick } from '../types';
 
 /**
- * The trick library: 97 tricks — 30 scooter and 31 skate transcribed from
- * `design-handoff/design/landit-data.js`, plus 36 BMX researched in T21 (see
- * the provenance note above the BMX block, which is not the same standard).
+ * The trick library: 259 tricks, 84 in scooter, 85 in skate and 90 in BMX.
+ *
+ * Ninety-seven of them are the original set — 30 scooter and 31 skate
+ * transcribed from `design-handoff/design/landit-data.js`, plus 36 BMX
+ * researched in T21 (see the provenance note above the BMX block, which is not
+ * the same standard). The other 162 were researched in T27, 54 per sport; the
+ * provenance note above the first T27 block records how and what it is worth.
  *
  * `pre` never crosses sports — the same-sport constraint is asserted by this
  * package's tests and enforced server-side by a PocketBase hook (plan §3).
- * `free` is the staff override; when it is absent a trick is free at
- * `diff <= FREE_MAX_DIFF` (see `../rules/tricks.ts`).
+ *
+ * `supervise` marks a trick a guardian should know about. It is deliberately
+ * **not** a difficulty flag: the line is that the rider goes upside down (a
+ * flip or an invert), commits to a drop they cannot step out of, or the
+ * trick's own tips send them to a foam pit or a resi ramp first. So the
+ * difficulty-2 drop-ins carry one and several difficulty-5 flatground tricks
+ * do not. `SUPERVISED_MIN_DIFF` in `../rules/crew.ts` still draws the coach
+ * view's line off difficulty; moving it onto this field is a separate task.
+ *
+ * ## The free tier
+ *
+ * Ten free tricks per sport, spread **4 Rookie / 3 Easy / 2 Spicy / 1 Gnarly,
+ * and nothing at Pro** (owner, 2026-09-04, in chat). The shape replaces the
+ * old one, where the free tier was whatever happened to sit at difficulty 1
+ * and 2 and so grew every time the library did.
+ *
+ *  - scooter: `bunny-hop`, `tic-tac`, `fakie`, `pump`, `180`, `50-50`,
+ *    `drop-in`, `tailwhip`, `bar-spin`, `360`
+ *  - skate: `sk-kickturn`, `sk-tic-tac`, `sk-fakie-roll`, `sk-pump`,
+ *    `sk-ollie`, `sk-manual`, `sk-drop-in`, `sk-kickflip`, `sk-50-50`,
+ *    `sk-wallride`
+ *  - BMX: `bmx-wheelie`, `bmx-pump`, `bmx-track-stand`, `bmx-curb-drop`,
+ *    `bmx-bunny-hop`, `bmx-drop-in`, `bmx-air`, `bmx-double-peg`,
+ *    `bmx-one-hander`, `bmx-flyout-tailwhip`
+ *
+ * Two rules held while choosing them, and a test pins both.
+ *
+ * **A free trick's entire prerequisite chain is free.** The paywall is
+ * enforced server-side on `trick_progress` creation, so a rider cannot land a
+ * locked prerequisite — a free Gnarly trick whose ancestors are paid is
+ * permanently unreachable, which is worse than not offering it at all.
+ *
+ * **Every category a sport has is enterable.** That is the argument the
+ * `bmx-double-peg` comment below already made for street, generalised: a free
+ * rider who can see a branch and never enter it has been shown a wall, not a
+ * library. It is why `bmx-one-hander` is free (BMX air) and why `sk-wallride`
+ * is (skate street above the grind).
+ *
+ * What the shape costs, recorded because it reverses a line the `bmx-x-up`
+ * comment below used to draw: **scooter and skate now each have two paid
+ * difficulty-1 tricks**, because both sports have six Rookie entries and only
+ * four free slots. "No difficulty-1 trick is ever paid" was true when BMX had
+ * exactly four; it is not a rule any more, and the four-slot count is.
+ *
+ * `free` is the override that implements all of this, and it wins either way
+ * over `diff <= FREE_MAX_DIFF` (see `../rules/tricks.ts`). Do not change
+ * `FREE_MAX_DIFF` to re-tier the library — it moves every sport at once.
  */
 export const TRICKS = [
   {
@@ -44,6 +93,8 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['bunny-hop'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
     about:
       'Balancing along on the back wheel with the nose held up, rolling as far as you can. Pure control. It lives in your hips and ankles.',
     tips: "Find the balance point and hold it with tiny ankle taps. Look ahead, not down, and you'll ride it way longer.",
@@ -55,7 +106,7 @@ export const TRICKS = [
     name: 'Fingerwhip',
     sport: 'scooter',
     cat: 'flat',
-    diff: 2,
+    diff: 3,
     pre: ['bunny-hop'],
     about:
       'Flick the deck around a full whip with your hand instead of your foot while the wheels stay on the ground. A flatground party trick.',
@@ -70,6 +121,8 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['bunny-hop'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
     about:
       'Roll under a bar or gap, jump straight off the deck and land back on it while the scooter keeps rolling underneath you.',
     tips: 'Jump up, not forward. Keep the bars steady with one hand if you need the confidence.',
@@ -81,8 +134,10 @@ export const TRICKS = [
     name: 'X-Up',
     sport: 'scooter',
     cat: 'flat',
-    diff: 1,
+    diff: 2,
     pre: [],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
     about:
       'Twist the bars a full 180° while airborne (or even standing still) and catch them backwards, then twist back before you need to steer.',
     tips: "Start standing still to learn the catch, then take it into a small hop. Keep your grip loose so the twist doesn't fight your wrists.",
@@ -135,6 +190,9 @@ export const TRICKS = [
     cat: 'street',
     diff: 2,
     pre: ['bunny-hop'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    supervise: true,
     about:
       'Clear a set of stairs, a hole or a road gap in one hop. Speed plus a solid pop and nothing else.',
     tips: 'Commit to your speed before the run-up ends. Slowing down mid-approach is what causes casing.',
@@ -146,7 +204,7 @@ export const TRICKS = [
     name: 'Icepick',
     sport: 'scooter',
     cat: 'street',
-    diff: 3,
+    diff: 4,
     pre: ['50-50'],
     about:
       'A grind on the back peg only, with the front end of the scooter tipped up above the ledge.',
@@ -199,12 +257,11 @@ export const TRICKS = [
     cat: 'park',
     diff: 3,
     pre: ['bunny-hop'],
-    // Free despite being difficulty 3, and the only scooter park trick that is:
-    // park had no free content at all, so a free rider could see the branch and
-    // never enter it. It is also the sport's rite of passage — the trick riders
+    // One of scooter's two free Spicy tricks (see the free-tier note at the top
+    // of this file). It is the sport's rite of passage — the trick riders
     // themselves treat as the milestone — and a milestone behind a paywall is an
-    // achievement for sale (issue #75). Bar spin, no-footer, toboggan, 360 and
-    // everything above them stay paid.
+    // achievement for sale (issue #75). No-footer, toboggan and everything above
+    // them stay paid; `bar-spin` is the other free Spicy trick.
     free: true,
     about:
       'The signature scooter move. Hop up, kick the deck through a full 360° loop around the headtube, then stomp it back under your feet mid-air.',
@@ -219,6 +276,8 @@ export const TRICKS = [
     cat: 'park',
     diff: 3,
     pre: ['bunny-hop'],
+    // Free by the free-tier shape at the top of this file.
+    free: true,
     about:
       "Float off the ground and spin the bars a full 360°, then catch them dead straight before you land. It's all in the wrists and timing.",
     tips: 'Throw with your lead hand, catch with the other. Keep your shoulders square. Only the bars should move, not you.',
@@ -243,7 +302,7 @@ export const TRICKS = [
     name: 'Toboggan',
     sport: 'scooter',
     cat: 'park',
-    diff: 3,
+    diff: 4,
     pre: ['no-footer'],
     about:
       'Grab the deck behind you with one hand and twist the bars, holding the shape at the peak of the jump.',
@@ -258,6 +317,8 @@ export const TRICKS = [
     cat: 'park',
     diff: 4,
     pre: ['180'],
+    // Free by the free-tier shape at the top of this file.
+    free: true,
     about:
       'A full 360° spin of you and the scooter together off a ramp or jump. Spot it, wind up, and whip the whole rotation the way round.',
     tips: 'Wind your upper body before you leave the lip and keep spotting your landing the entire way around.',
@@ -281,7 +342,7 @@ export const TRICKS = [
     name: 'Double Whip',
     sport: 'scooter',
     cat: 'park',
-    diff: 5,
+    diff: 4,
     pre: ['tailwhip'],
     about: 'Two full deck rotations in one hop. You need serious height and a fast, flat kick.',
     tips: "Kick harder and later than feels sensible, and don't reach for the first rotation.",
@@ -295,6 +356,7 @@ export const TRICKS = [
     cat: 'park',
     diff: 5,
     pre: ['360'],
+    supervise: true,
     about:
       'A spin and a half. One and a half rotations before you land, usually off a big transition.',
     tips: 'You have to over-rotate the 360 for weeks before this clicks. Keep the wind-up low and tight.',
@@ -306,7 +368,7 @@ export const TRICKS = [
     name: 'Whip to Bar',
     sport: 'scooter',
     cat: 'hybrid',
-    diff: 5,
+    diff: 4,
     pre: ['tailwhip', 'bar-spin'],
     about:
       'Catch a tailwhip and immediately throw a bar spin in the same air. Two tricks, one jump.',
@@ -332,7 +394,7 @@ export const TRICKS = [
     name: 'Scooter Flip',
     sport: 'scooter',
     cat: 'hybrid',
-    diff: 5,
+    diff: 4,
     pre: ['bri-flip'],
     about: 'The deck rotates a whip and a flip at the same time while you float above it.',
     tips: 'Learn the bri flip properly first. This is that motion plus a kick, and it punishes half-commitment.',
@@ -346,6 +408,7 @@ export const TRICKS = [
     cat: 'air',
     diff: 5,
     pre: ['360'],
+    supervise: true,
     about:
       'The big one: a full backward rotation, you and the scooter together, launched off a ramp or jump box. Total commitment required.',
     tips: 'Learn it into a foam pit or a resi ramp first. Tuck your knees, throw your head back and spot the landing on the way round.',
@@ -359,6 +422,7 @@ export const TRICKS = [
     cat: 'air',
     diff: 5,
     pre: ['backflip'],
+    supervise: true,
     about:
       'A forward rotation off a jump box. Harder to spot than a backflip because the landing hides until the last moment.',
     tips: "Foam pit only until it's automatic. Throw from the chest and keep the scooter pinned to your feet.",
@@ -385,6 +449,7 @@ export const TRICKS = [
     cat: 'air',
     diff: 5,
     pre: ['backflip', '360'],
+    supervise: true,
     about: 'A backflip with a 180 built in, landing switch out of a quarter pipe.',
     tips: 'Only after backflips are boring. Start the twist on the way up, not at the peak.',
     fact: "The flair is the standard 'final trick' of a contest run in every wheeled sport.",
@@ -397,10 +462,774 @@ export const TRICKS = [
     cat: 'air',
     diff: 5,
     pre: ['backflip', 'tailwhip'],
+    supervise: true,
     about:
       'A full flip with a tailwhip thrown inside it. Backflip or frontflip both count. Top of the pile.',
     tips: 'Both halves need to be automatic on their own before you stack them.',
     fact: 'There are still only a handful of riders who throw these in a contest run.',
+    isLive: true,
+  },
+
+  /* ------------------------------------------------ scooter, T27 additions --
+   *
+   * 162 tricks were added on 2026-09-04 (T27), 54 per sport, taking the
+   * library from 97 to 259. **Read this before changing a `diff` or a `pre`
+   * in any of the three T27 blocks.**
+   *
+   * How they were found: six research agents, two per sport and split by
+   * category, each working from published coaching and tutorial sources.
+   * Every candidate that shipped carries at least one source; names that could
+   * not be verified against a real source were dropped rather than guessed at,
+   * and a handful of medium-confidence entries were cut by the owner to level
+   * the three sports at 54 each.
+   *
+   * Three honest caveats, recorded so a later session does not read these as
+   * settled:
+   *
+   *  1. **The prerequisite edges are largely inferred, not cited.** The
+   *     researching agents were given trick ids and difficulties but not the
+   *     existing prerequisite graph, so `pre` was reconstructed afterwards
+   *     from the trick descriptions. Sources agree on what these tricks are;
+   *     they mostly do not say what comes before them.
+   *  2. **`diff` is a mapping, not a rating.** Almost no source rates
+   *     difficulty on a five-point scale. The numbers place each trick against
+   *     the tricks already in this file, which is a judgement about this
+   *     library rather than a fact about the sport.
+   *  3. **Some tricks need parts the rider may not have.** Where a trick
+   *     cannot be done without pegs — scooter `double-peg`, `nose-grind` and
+   *     `crooked-grind`, and the BMX peg grinds and stalls — the copy says so,
+   *     so a rider without them is not left wondering what they are doing
+   *     wrong.
+   *
+   * Street tricks here are scoped to ledges and low flat rails throughout.
+   * Handrails stay excluded, and the copy on anything that could read as a
+   * handrail trick says ledge or low rail in as many words.
+   */
+
+  {
+    id: 'fakie',
+    name: 'Fakie',
+    sport: 'scooter',
+    cat: 'flat',
+    diff: 1,
+    pre: [],
+    about:
+      'Rolling backwards with the tail leading. Nothing else changes — same stance, same feet — you are just going the other way and looking over your shoulder.',
+    tips: 'Ride up a gentle bank, let it push you back down and hold it instead of turning out. Look where you are going, not at the deck.',
+    fact: 'Every half cab and every fakie spin starts here. Get comfortable rolling backwards early and a whole branch of the library opens up.',
+    isLive: true,
+  },
+  {
+    id: 'kickturn',
+    name: 'Kickturn',
+    sport: 'scooter',
+    cat: 'flat',
+    diff: 1,
+    pre: [],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Weight back to lighten the front wheel, then swivel the scooter round to point somewhere else while you are still rolling. This is how you steer properly.',
+    tips: 'Roll slowly and keep the lift tiny — a centimetre is plenty. Turn your shoulders first and the scooter follows.',
+    fact: 'It is the only way to change direction on a bank or in a bowl without putting a foot down.',
+    isLive: true,
+  },
+  {
+    id: 'nose-pivot',
+    name: 'Nose Pivot',
+    sport: 'scooter',
+    cat: 'flat',
+    diff: 2,
+    pre: ['fakie'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Balance on the front wheel for a moment and swing the back of the scooter a half turn around it, landing rolling backwards.',
+    tips: 'Press down over the bars until the back wheel just clears, then turn your hips. Roll slowly for the first few.',
+    fact: 'It is a 180 you can learn without leaving the ground, which makes it a cheap way to find out which way you like to spin.',
+    isLive: true,
+  },
+  {
+    id: 'powerslide',
+    name: 'Powerslide',
+    sport: 'scooter',
+    cat: 'flat',
+    diff: 2,
+    pre: ['manual'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Kick the back wheel out sideways so it skids across the ground while the front keeps rolling, then straighten up and carry on.',
+    tips: 'Build a bit of speed and lean back as you push the tail out. Smooth concrete slides, rough tarmac grabs.',
+    fact: 'It is a stopping trick as much as a trick trick. Riders use it to scrub speed at the top of a bank.',
+    isLive: true,
+  },
+  {
+    id: 'cali-slider',
+    name: 'Cali Slider',
+    sport: 'scooter',
+    cat: 'flat',
+    diff: 2,
+    pre: ['manual'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Hook your back heel under the tail of the deck so it lifts slightly, then ride along with the tail skimming the ground behind you.',
+    tips: 'Find the hook standing still first. Lift just enough for the tail to touch — any more and the back wheel leaves the floor.',
+    fact: 'You can hold it for as long as you like, which makes it a favourite for filming a line rather than a single trick.',
+    isLive: true,
+  },
+  {
+    id: 'chairman',
+    name: 'Chairman',
+    sport: 'scooter',
+    cat: 'flat',
+    diff: 2,
+    pre: [],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Sit up on the handlebars facing forward with your legs hanging out over the front wheel, and roll along like that.',
+    tips: 'Get moving first, then hop up — do not try to set off already sitting. Keep a hand either side of the bars.',
+    fact: 'Nobody scores points for it. Everybody tries it once, usually while waiting their turn on a ramp.',
+    isLive: true,
+  },
+  {
+    id: 'body-varial',
+    name: 'Body Varial',
+    sport: 'scooter',
+    cat: 'flat',
+    diff: 3,
+    pre: ['bunny-hop'],
+    about:
+      'Hop clear of the deck, spin your body a half turn while the scooter stays where it is, and land back on it facing the other way.',
+    tips: 'Jump straight up, not sideways. Keep hold of the bars the whole time so the scooter cannot get away from you.',
+    fact: 'It is the cheapest way to find out how switch stance feels, because the scooter never actually moves.',
+    isLive: true,
+  },
+  {
+    id: 'x-ride',
+    name: 'X-Ride',
+    sport: 'scooter',
+    cat: 'flat',
+    diff: 3,
+    pre: ['x-up'],
+    about:
+      'Ride along flat ground with the bars turned right round and your arms crossed into an X, holding it there rather than snapping it back.',
+    tips: 'Learn the X-Up first, then hold it a second longer each go. Keep your weight centred or the front wheel wanders.',
+    fact: 'Holding the cross while you roll is the whole difference from an X-Up, and it is much harder than it looks.',
+    isLive: true,
+  },
+  {
+    id: 'weedwacker',
+    name: 'Weedwacker',
+    sport: 'scooter',
+    cat: 'flat',
+    diff: 3,
+    pre: ['bar-spin'],
+    about:
+      'Set the bars spinning and swing one leg over the top of them as they go round, then put the foot back on the deck. All of it with the wheels on the ground.',
+    tips: 'Get the bar spin landing consistently first. Swing the leg late — early is how you catch a shin.',
+    fact: 'It is one of very few tricks where the bars spin a full turn and your wheels never leave the floor.',
+    isLive: true,
+  },
+  {
+    id: 'foot-jam',
+    name: 'Foot Jam',
+    sport: 'scooter',
+    cat: 'flat',
+    diff: 3,
+    pre: ['nose-manual'],
+    about:
+      'Jam your front foot against the tyre behind the forks so the scooter stops dead and stalls up on the front wheel, then release it and roll away.',
+    tips: 'Roll in slowly and put the foot in gently. Wear shoes with a solid sole — this one chews them.',
+    fact: 'It is the base of the whiplash and most front-wheel tricks, and you can learn it on any flat bit of ground.',
+    isLive: true,
+  },
+  {
+    id: 'hang-5',
+    name: 'Hang-5',
+    sport: 'scooter',
+    cat: 'flat',
+    diff: 4,
+    pre: ['nose-manual'],
+    about:
+      'Roll along on the front wheel alone with one foot on the deck and the other hanging off the side. A nose manual with half your balance taken away.',
+    tips: 'Get nose manuals long and steady first. Move the free foot out slowly — a quick swing throws the whole thing sideways.',
+    fact: 'BMX has a trick with the same name that is nothing like this one. On a scooter it is a nose manual variation.',
+    isLive: true,
+  },
+  {
+    id: 'pogo',
+    name: 'Pogo',
+    sport: 'scooter',
+    cat: 'flat',
+    diff: 4,
+    pre: ['manual', 'foot-jam'],
+    about:
+      'Tuck the bars into your waist, hook your front leg under the deck and hop along on the back wheel only, like a pogo stick.',
+    tips: 'Find the upright balance point against a wall first. Small hops, and keep the bars pressed into you the whole time.',
+    fact: 'It is one of the oldest scooter tricks there is, and one of the very few where you never travel forwards.',
+    isLive: true,
+  },
+  {
+    id: 'tail-tap',
+    name: 'Tail Tap',
+    sport: 'scooter',
+    cat: 'street',
+    diff: 1,
+    pre: ['bunny-hop'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Roll at a low kerb, hop so the back wheel taps the edge of it, then come straight back down and ride away.',
+    tips: 'A kerb, not a ledge. Hop early enough that you are already on the way down when the wheel touches.',
+    fact: 'For most riders it is the first trick done on an obstacle rather than on flat ground.',
+    isLive: true,
+  },
+  {
+    id: 'acid-drop',
+    name: 'Acid Drop',
+    sport: 'scooter',
+    cat: 'street',
+    diff: 2,
+    pre: ['bunny-hop'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    supervise: true,
+    about:
+      'Roll straight off the edge of a ledge, a step or a ramp lip and land with both wheels touching down at the same moment.',
+    tips: 'Start off something knee high. Weight centred, knees soft — leaning back is what makes the front end kick up on landing.',
+    fact: 'Landing both wheels together is the whole trick. Nose first is how wrists and bars get hurt, so the height goes up slowly.',
+    isLive: true,
+  },
+  {
+    id: 'pole-tap',
+    name: 'Pole Tap',
+    sport: 'scooter',
+    cat: 'street',
+    diff: 3,
+    pre: ['tail-tap', 'bunny-hop'],
+    about:
+      'Hop towards an upright pole so the tail of the deck taps against it in mid-air, then land and ride away.',
+    tips: 'Aim to tap high on the pole rather than low, and come in at a slight angle so you are not riding straight into it.',
+    fact: 'A scaffold pole or a lamp post will do. It is one of the few street tricks that needs no ledge at all.',
+    isLive: true,
+  },
+  {
+    id: 'boardslide',
+    name: 'Boardslide',
+    sport: 'scooter',
+    cat: 'street',
+    diff: 3,
+    pre: ['bunny-hop', '50-50'],
+    about:
+      'Hop onto a low ledge sideways so the underside of the deck slides along the edge while you stay facing forwards.',
+    tips: 'A waxed ledge, low enough to step off. Land with the deck square across the edge, never at an angle.',
+    fact: 'Scooter riders took the name and the trick from skateboarding, where the deck really is the board.',
+    isLive: true,
+  },
+  {
+    id: 'double-peg',
+    name: 'Double Peg Grind',
+    sport: 'scooter',
+    cat: 'street',
+    diff: 3,
+    pre: ['50-50'],
+    about:
+      'Grind along a ledge on both pegs on one side of the scooter. You need pegs fitted to do it at all — they bolt on beside the wheels.',
+    tips: 'Wax a low ledge and land both pegs at once. If your scooter has no pegs yet, this one has to wait until it does.',
+    fact: 'Pegs are the cheapest upgrade that opens a whole category of tricks. Most street riders run two, some run four.',
+    isLive: true,
+  },
+  {
+    id: 'lipslide',
+    name: 'Lipslide',
+    sport: 'scooter',
+    cat: 'street',
+    diff: 4,
+    pre: ['boardslide'],
+    about:
+      'A boardslide entered the other way round: the back of the scooter comes over the ledge first, so you slide with your back to the obstacle.',
+    tips: 'Boardslides need to be automatic first. Bring the back end over higher than feels necessary — clipping the edge is the usual bail.',
+    fact: 'From the front it looks almost identical to a boardslide, which is exactly why riders make a point of it.',
+    isLive: true,
+  },
+  {
+    id: 'nose-grind',
+    name: 'Nose Grind',
+    sport: 'scooter',
+    cat: 'street',
+    diff: 4,
+    pre: ['50-50', 'double-peg'],
+    about:
+      'Grind a ledge balanced on the front peg alone with the back of the scooter held clear. Pegs are needed, and the front one takes the whole trick.',
+    tips: 'Keep your weight forward over the bars the entire time. The moment it drifts back the rear peg touches and you stop dead.',
+    fact: 'It is the same idea as a skateboard nosegrind, and just as unforgiving about where your weight is.',
+    isLive: true,
+  },
+  {
+    id: 'crooked-grind',
+    name: 'Crooked Grind',
+    sport: 'scooter',
+    cat: 'street',
+    diff: 4,
+    pre: ['nose-grind'],
+    about:
+      'A nose grind with the deck angled away from the ledge so only the front peg and the edge of the deck touch. Pegs needed for this one too.',
+    tips: 'Land it already crooked rather than straightening into it. Wax helps more here than on any other grind.',
+    fact: 'The angle is the point. A crooked grind that ends up straight is just a nose grind.',
+    isLive: true,
+  },
+  {
+    id: 'wallride',
+    name: 'Wallride',
+    sport: 'scooter',
+    cat: 'street',
+    diff: 4,
+    pre: ['bunny-hop', 'acid-drop'],
+    about:
+      'Ride at a wall, lean into it and roll along the vertical surface with both wheels, then come back down to the ground.',
+    tips: 'Approach at an angle rather than straight on, and commit. A wall with a bank or a kerb at the bottom is far easier than a flat one.',
+    fact: 'Speed is what holds you on the wall. Riders who bail almost always slowed down at the last second.',
+    isLive: true,
+  },
+  {
+    id: 'wall-plant',
+    name: 'Wall Plant',
+    sport: 'scooter',
+    cat: 'street',
+    diff: 4,
+    pre: ['wallride'],
+    about:
+      'Hop at a wall and plant a foot flat against it while the scooter stays in the air underneath you, then push off and land.',
+    tips: 'Plant with the ball of your foot, not the toe, and push away from the wall as much as up.',
+    fact: 'It is what lets you use a wall with nothing at the bottom of it, where a wallride would never hold.',
+    isLive: true,
+  },
+  {
+    id: 'rail-ride',
+    name: 'Rail-Ride',
+    sport: 'scooter',
+    cat: 'street',
+    diff: 4,
+    pre: ['50-50', 'manual'],
+    about:
+      'Ride along the top of a low flat rail with both wheels on it, travelling down its length rather than grinding across it.',
+    tips: 'A low flat rail or a ledge with a rounded edge, never a handrail. Get on straight and look at the far end, not at the wheels.',
+    fact: 'It is a balance trick rather than a grind — nothing slides, and the wheels do all the work.',
+    isLive: true,
+  },
+  {
+    id: 'whip-out',
+    name: 'Whip Out',
+    sport: 'scooter',
+    cat: 'street',
+    diff: 5,
+    pre: ['50-50', 'tailwhip', '180-grind-out'],
+    about:
+      'Grind a ledge, then hop out of the grind straight into a full tailwhip and catch the deck before you land.',
+    tips: 'The whip has to be automatic before you throw one out of a grind. Pop up off the end first, then kick — not both at once.',
+    fact: 'Coming out of a grind you have less pop and less time than off flat ground, which is the whole difficulty.',
+    isLive: true,
+  },
+  {
+    id: 'pump',
+    name: 'Pump',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 1,
+    pre: [],
+    about:
+      'Speed without pushing. Sink down through the bottom of a transition and stand tall as it flattens out, and the ramp hands the speed back to you.',
+    tips: 'Time it against the shape of the ramp, not against a count. Your legs do the work and the bars stay still.',
+    fact: 'Pumping is how a rider links a whole run together without ever putting a foot down for speed.',
+    isLive: true,
+  },
+  {
+    id: 'drop-in',
+    name: 'Drop In',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 2,
+    pre: ['pump'],
+    supervise: true,
+    about:
+      'Back wheel on the coping, deck hanging over the transition, then commit your weight forward and roll in.',
+    tips: 'Weight over the front, both wheels down together, and go the first time you think about it. Half-committing is what puts riders down.',
+    fact: 'It is the moment a park stops being a set of obstacles you ride around and starts being one you ride.',
+    isLive: true,
+  },
+  {
+    id: 'quarter-pipe-air',
+    name: 'Quarter Pipe Air',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 2,
+    pre: ['pump', 'fakie'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Ride up and out of the lip of a quarter pipe, turn back towards the ramp above the coping, and drop into the transition.',
+    tips: 'Start with the wheels barely leaving the coping and build up from there. Look back into the ramp as you turn.',
+    fact: 'Almost every park trick above this one is this trick with something added while you are in the air.',
+    isLive: true,
+  },
+  {
+    id: 'bank-transfer',
+    name: 'Bank Transfer',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 2,
+    pre: ['quarter-pipe-air'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Ride out of one bank or ramp and land in another, crossing the gap between them without touching the flat.',
+    tips: 'Pick two ramps that already face each other, and look at your landing rather than at the gap.',
+    fact: 'Transfers are how riders read a park as one run instead of a set of separate obstacles.',
+    isLive: true,
+  },
+  {
+    id: 'one-hander',
+    name: 'One Hander',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 2,
+    pre: ['quarter-pipe-air'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Let go with one hand at the top of an air, hold it out to the side, and get it back on the bars before you land.',
+    tips: 'Let go later than feels right and grab back early. Keep the other hand firmly in the middle of the grip.',
+    fact: 'It is the first trick where you deliberately stop holding on, and everything no-handed grows out of it.',
+    isLive: true,
+  },
+  {
+    id: 'indy-grab',
+    name: 'Indy Grab',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 2,
+    pre: ['quarter-pipe-air'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Reach down in mid-air and grab the deck between your feet on the side your toes point to, then let go again to land.',
+    tips: 'Bring the scooter up to your hand rather than reaching down for it. Suck your knees up as you go.',
+    fact: 'Grabs reached scooters from BMX and skateboarding, and this is the one nearly everybody learns first.',
+    isLive: true,
+  },
+  {
+    id: 'rock-n-roll',
+    name: "Rock 'n' Roll",
+    sport: 'scooter',
+    cat: 'park',
+    diff: 3,
+    pre: ['fakie', 'quarter-pipe-air'],
+    about:
+      'Hang the front wheel over the coping with the back wheel still in the transition, rock there for a beat, then come back down riding backwards.',
+    tips: 'Get right over the coping before you lean back, and lift the front wheel clear on the way down or it catches.',
+    fact: 'Plenty of riders call the same trick a rock to fakie. Both names describe exactly this.',
+    isLive: true,
+  },
+  {
+    id: 'half-cab',
+    name: 'Half Cab',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 3,
+    pre: ['fakie', '180'],
+    about: 'Rolling backwards, hop and turn a half rotation so you land riding forwards again.',
+    tips: 'Look over the shoulder you are turning towards before you pop. Riding fakie has to be comfortable first.',
+    fact: 'It is named after the full cab, which is the same thing with twice the spin. Most riders get the half first.',
+    isLive: true,
+  },
+  {
+    id: 'no-hander',
+    name: 'No Hander',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 3,
+    pre: ['one-hander', 'quarter-pipe-air'],
+    about:
+      'Both hands off the bars at the top of an air, arms out to the sides, feet staying on the deck, then back on the grips to land.',
+    tips: 'Squeeze the deck with your feet the whole time. Let go for a fraction of a second at first and build up.',
+    fact: 'The scooter goes exactly where you left it, which is why the feet matter far more than the hands.',
+    isLive: true,
+  },
+  {
+    id: 'tuck-no-hander',
+    name: 'Tuck No Hander',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 3,
+    pre: ['no-hander'],
+    about:
+      'Tuck the steering tube between your knees so your legs hold the scooter, then throw both arms out wide.',
+    tips: 'Pull the bars into your knees before you let go, not after. Squeeze hard — the legs are doing all the holding.',
+    fact: 'It reads much bigger than a plain no-hander, because the arms can go straight out instead of hovering near the bars.',
+    isLive: true,
+  },
+  {
+    id: 'table-top',
+    name: 'Table Top',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 3,
+    pre: ['quarter-pipe-air', 'indy-grab'],
+    about:
+      'Turn the bars and lay the scooter flat out to one side at the top of an air, so the deck lies level like a table.',
+    tips: 'Turn the bars and pull the deck up in one motion. Level it, then bring it straight back underneath you.',
+    fact: 'It is judged on how flat you get it, and a half-turned table still gets called a table by everybody watching.',
+    isLive: true,
+  },
+  {
+    id: 'can-can',
+    name: 'Can-Can',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 3,
+    pre: ['no-footer'],
+    about:
+      'Swing both legs off one side of the deck in mid-air, hold the pose, then bring them back for the landing.',
+    tips: 'Kick from the hips, not the knees. Get the feet back on early — reaching for the deck late is the usual bail.',
+    fact: 'The name comes from the dance, and the leg position is genuinely the same one.',
+    isLive: true,
+  },
+  {
+    id: 'airwalk',
+    name: 'Airwalk',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 3,
+    pre: ['no-footer'],
+    about:
+      'Kick both feet out in opposite directions mid-air, one forward and one back, then bring them together on the deck to land.',
+    tips: 'Split them properly — a small split just reads as a wobble. Hold the bars firm so the scooter stays under you.',
+    fact: 'It came from skateboarding, where the front hand grabs the nose. On a scooter the bars already do that job.',
+    isLive: true,
+  },
+  {
+    id: 'candy-bar',
+    name: 'Candy Bar',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 3,
+    pre: ['no-footer'],
+    about:
+      'Kick one foot up and over the handlebars in mid-air so the leg passes between the bars and your body, then bring it back.',
+    tips: 'Bars low and level, and lift the knee high. Catching a heel on the bar is what stops most first attempts.',
+    fact: 'It is the same shape as the BMX candybar, and one of the few tricks where the leg goes over the bars rather than the deck.',
+    isLive: true,
+  },
+  {
+    id: 'turndown',
+    name: 'Turndown',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 4,
+    pre: ['table-top', 'quarter-pipe-air'],
+    about:
+      'Kick the deck out to one side and turn the bars down sharply without crossing your hands, then straighten it all out to land.',
+    tips: 'The bars and the deck move together, and you straighten early. Being late is what turns a turndown into a crash.',
+    fact: 'Tables and turndowns look similar in a photo. The difference is the bars, which point down rather than across.',
+    isLive: true,
+  },
+  {
+    id: 'cannonball',
+    name: 'Cannonball',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 4,
+    pre: ['no-footer', 'toboggan'],
+    about:
+      'Take both feet off, grab the deck with both hands and tuck into a ball in mid-air, then find the deck again to land.',
+    tips: 'Both hands need to be on the deck before both feet come off. Tuck small and open up early.',
+    fact: 'For a moment nothing holds the scooter except your hands, which is why a no-footer has to come first.',
+    isLive: true,
+  },
+  {
+    id: '720',
+    name: 'The 720',
+    sport: 'scooter',
+    cat: 'park',
+    diff: 5,
+    pre: ['540'],
+    supervise: true,
+    about: 'Two full rotations in one air off a ramp. Riders call it a seven.',
+    tips: 'Foam pit first, then resi. Wind up hard on the way in and spot your landing on the second lap, not the first.',
+    fact: 'Two spins need the same air time as a 540 and twice the wind-up, so the ramp matters here as much as the rider.',
+    isLive: true,
+  },
+  {
+    id: 'handplant',
+    name: 'Handplant',
+    sport: 'scooter',
+    cat: 'air',
+    diff: 5,
+    pre: ['quarter-pipe-air', 'rock-n-roll'],
+    supervise: true,
+    about:
+      'Plant one hand on the coping and go upside down with the scooter held under your feet, then come back down into the ramp.',
+    tips: 'Learn the hand position on a low kerb long before you take it to coping. Helmet and pads on every attempt.',
+    fact: 'It is one of the oldest ramp tricks in any wheeled sport, and it arrived on scooters from skateboarding.',
+    isLive: true,
+  },
+  {
+    id: 'flair-whip',
+    name: 'Flair Whip',
+    sport: 'scooter',
+    cat: 'air',
+    diff: 5,
+    pre: ['flair', 'tailwhip'],
+    supervise: true,
+    about:
+      'A flair — a backflip with a half turn in it — with a tailwhip thrown during the rotation, landing back into the ramp.',
+    tips: 'Flairs have to be boring before you add a whip. Foam pit, then resi, then wood, in that order.',
+    fact: 'Two rotations on two different axes at once. Very few riders have one, and fewer still put it in a run.',
+    isLive: true,
+  },
+  {
+    id: 'backflip-no-hander',
+    name: 'Backflip No Hander',
+    sport: 'scooter',
+    cat: 'air',
+    diff: 5,
+    pre: ['backflip'],
+    supervise: true,
+    about:
+      'A backflip with both hands off the bars and the arms out to the sides, back on the grips before you land.',
+    tips: 'Backflips into foam until they are dull. Let go at the top of the flip and take the hands straight back.',
+    fact: 'Letting go upside down is as much a nerve trick as a physical one, which is why the flip comes first.',
+    isLive: true,
+  },
+  {
+    id: 'backflip-barspin',
+    name: 'Backflip Barspin',
+    sport: 'scooter',
+    cat: 'air',
+    diff: 5,
+    pre: ['backflip', 'bar-spin'],
+    supervise: true,
+    about:
+      'A backflip with a full turn of the handlebars thrown and caught while you are upside down.',
+    tips: 'Both halves have to be automatic on their own. Foam pit and resi before anything solid, every time.',
+    fact: 'Catching the bars upside down makes the spin feel like it is going the other way. That is the part riders drill.',
+    isLive: true,
+  },
+  {
+    id: 'krippleflip',
+    name: 'Krippleflip',
+    sport: 'scooter',
+    cat: 'air',
+    diff: 5,
+    pre: ['bri-flip', 'scooter-flip'],
+    about:
+      'The scooter flips backwards between your legs with both hands off the bars, and you catch it again with your feet.',
+    tips: 'Bri flips and scooter flips both need to be dialled. Learn the catch over foam or a resi landing.',
+    fact: 'The scooter does the flipping, not you, which makes it feel nothing like a backflip even though it looks close.',
+    isLive: true,
+  },
+  {
+    id: 'truck-driver',
+    name: 'Truck Driver',
+    sport: 'scooter',
+    cat: 'hybrid',
+    diff: 4,
+    pre: ['360', 'bar-spin'],
+    about: 'A full bar spin thrown and caught inside a 360. Riders also call it a 360 barspin.',
+    tips: 'Throw the bars the instant you leave the ground so you have the whole spin left to catch them in.',
+    fact: 'The name comes from the steering motion, and it is one of the most-used combinations in a contest run.',
+    isLive: true,
+  },
+  {
+    id: 'bar-to-whip',
+    name: 'Bar to Whip',
+    sport: 'scooter',
+    cat: 'hybrid',
+    diff: 4,
+    pre: ['bar-spin', 'tailwhip'],
+    about:
+      'A full bar spin thrown and caught, then a tailwhip straight after it, both inside the same jump.',
+    tips: 'You need real height for this. Get the bars round early — everything after it depends on catching them fast.',
+    fact: 'It is the reverse of a whip to bar, and most riders find one of the two much easier than the other.',
+    isLive: true,
+  },
+  {
+    id: 'full-whip',
+    name: 'Full Whip',
+    sport: 'scooter',
+    cat: 'hybrid',
+    diff: 4,
+    pre: ['tailwhip', 'heelwhip', 'bar-spin'],
+    about:
+      'A tailwhip and a bar spin at the same time, both turning the same way and both finished before you land.',
+    tips: 'Kick and throw together rather than one then the other. Spot the grip tape and the bars coming round as one thing.',
+    fact: 'Doing them at once takes less air time than doing them one after the other, which is why it needs less pop than a bar to whip.',
+    isLive: true,
+  },
+  {
+    id: 'rewind',
+    name: 'Rewind',
+    sport: 'scooter',
+    cat: 'hybrid',
+    diff: 4,
+    pre: ['tailwhip', 'heelwhip'],
+    about:
+      'Kick a whip one way, catch the deck part way round and send it back the other way before you land.',
+    tips: 'Tailwhips and heelwhips both need to be clean, because a rewind is one of each. Catch it with the front foot.',
+    fact: 'The deck never completes a full turn in either direction, which is what makes it look like a mistake being fixed.',
+    isLive: true,
+  },
+  {
+    id: '360-whip',
+    name: '360 Whip',
+    sport: 'scooter',
+    cat: 'hybrid',
+    diff: 4,
+    pre: ['360', 'tailwhip'],
+    about: 'A full 360 body rotation with a tailwhip thrown and caught inside it.',
+    tips: 'Wind up for the 360 first and kick the whip once you are already spinning. Rushing the kick stalls the spin.',
+    fact: 'The whip and your body turn the same way, so the deck comes back round sooner than you expect it to.',
+    isLive: true,
+  },
+  {
+    id: 'whiplash',
+    name: 'Whiplash',
+    sport: 'scooter',
+    cat: 'hybrid',
+    diff: 4,
+    pre: ['foot-jam', 'tailwhip'],
+    about:
+      'Stall up in a foot jam with neither foot on the deck, then swing the deck a full turn around the stem and catch it.',
+    tips: 'The foot jam has to hold rock steady before you add the swing. Kick with the free foot and catch it flat.',
+    fact: 'It is a tailwhip with the front wheel still on the ground, so balance matters more than pop.',
+    isLive: true,
+  },
+  {
+    id: 'buttercup',
+    name: 'Buttercup',
+    sport: 'scooter',
+    cat: 'hybrid',
+    diff: 5,
+    pre: ['tailwhip', 'bri-flip'],
+    about: 'A tailwhip, then a bri flip, then another tailwhip, all inside one jump.',
+    tips: 'Three separate tricks stacked, so all three have to be automatic. A big jump box gives you the air time.',
+    fact: 'Three rotations in one hop is about as much as a scooter jump allows, which is why so few riders have one.',
+    isLive: true,
+  },
+  {
+    id: 'front-bri',
+    name: 'Front Bri',
+    sport: 'scooter',
+    cat: 'hybrid',
+    diff: 5,
+    pre: ['bri-flip', 'tailwhip'],
+    about:
+      'The scooter front-flips over your head while both of your hands stay on the bars the whole way round.',
+    tips: 'Bri flips first. Then learn the front rotation into a foam pit, hands on, before you take it anywhere solid.',
+    fact: 'Keeping hold of the bars through a forward flip of the deck is the hard part, and it is what sets it apart from a bri flip.',
     isLive: true,
   },
   {
@@ -435,6 +1264,8 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: [],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
     about: "Scoop the board 180° under your feet while you hop. The board spins, you don't.",
     tips: 'Scoop back with the tail foot and lift your front foot out of the way. Stay over the board or it shoots out.',
     fact: "It's usually the first trick where a beginner has to trust a board that isn't under them.",
@@ -447,6 +1278,8 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['sk-ollie'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
     about:
       'An ollie while rolling backwards. Same motion, opposite feel, and the board wants to fly out in front of you.',
     tips: 'Pop slightly later than you think and keep your shoulders over the board.',
@@ -460,11 +1293,11 @@ export const TRICKS = [
     cat: 'flat',
     diff: 3,
     pre: ['sk-ollie', 'sk-shuvit'],
-    // One of three flatground rungs freed together. Skate is graded harder than
-    // the other two libraries — scooter and BMX put the equivalent early tricks
-    // at difficulty 2 — which left a free skate rider six tricks where a scooter
-    // rider had nine and a BMX rider fourteen (issue #75).
-    free: true,
+    // Paid from 2026-09-04. It was one of three flatground rungs freed together
+    // in T24 because skate's free tier was thin (issue #75); the six Rookie
+    // entries T27 added are what fills that gap now, so the override came off
+    // and the difficulty decides. `sk-kickflip` keeps its override — see the
+    // free-tier note at the top of this file for the ten.
     about:
       'A shuvit with an ollie pop in it, so the board spins in the air rather than on the ground.',
     tips: 'Pop and scoop in the same motion. Front foot goes up and slightly out to leave room for the spin.',
@@ -478,10 +1311,9 @@ export const TRICKS = [
     cat: 'flat',
     diff: 3,
     pre: ['sk-ollie'],
-    // Second of the three freed flatground rungs — see `sk-pop-shuvit`. This is
-    // also the gateway to riding fakie, so leaving it paid closed off a whole
-    // direction of the library rather than one trick.
-    free: true,
+    // Paid from 2026-09-04, with `sk-pop-shuvit` — see the note there. It was
+    // freed as the gateway to riding fakie; `sk-fakie-roll` is that gateway now,
+    // sits at difficulty 1, and is free.
     about:
       'You and the board turn a half rotation together and roll away fakie, with your chest opening towards the direction of travel.',
     tips: 'Wind your shoulders the opposite way first, then unwind. Turn your head and the rest follows.',
@@ -507,7 +1339,7 @@ export const TRICKS = [
     cat: 'flat',
     diff: 3,
     pre: ['sk-ollie'],
-    // Third of the three freed flatground rungs, and skate's rite of passage —
+    // One of skate's two free Spicy tricks, and the sport's rite of passage —
     // the same argument that frees the scooter `tailwhip`. Heelflip, tre flip,
     // hardflip and the rest of the flip family stay paid.
     free: true,
@@ -535,7 +1367,7 @@ export const TRICKS = [
     name: 'Nose Manual',
     sport: 'skate',
     cat: 'flat',
-    diff: 4,
+    diff: 3,
     pre: ['sk-manual'],
     about:
       'A manual on the front wheels with the tail held up behind you. Twitchier and far less forgiving.',
@@ -550,10 +1382,11 @@ export const TRICKS = [
     cat: 'street',
     diff: 3,
     pre: ['sk-ollie'],
-    // Free despite being difficulty 3, for the same reason as `bmx-double-peg`:
-    // every skate ledge and rail trick descends from this one, so leaving it
-    // paid puts no street content at all in the free tier. Boardslide,
-    // noseslide, 5-0, nosegrind, crooked and tailslide all stay paid.
+    // The other free Spicy trick, for the same reason as `bmx-double-peg`:
+    // every skate ledge trick descends from this one, so leaving it paid puts
+    // no street content at all in the free tier. Boardslide, noseslide, 5-0,
+    // nosegrind, crooked and tailslide all stay paid; `sk-wallride` is the free
+    // Gnarly trick above it.
     free: true,
     about: 'Both trucks lock onto a ledge or rail and you grind along it dead straight.',
     tips: 'Ollie level with the ledge, land on both trucks at once and stay centred. Wax makes a huge difference.',
@@ -627,7 +1460,7 @@ export const TRICKS = [
     name: 'Tailslide',
     sport: 'skate',
     cat: 'street',
-    diff: 5,
+    diff: 4,
     pre: ['sk-noseslide'],
     about: 'Slide along the ledge on the tail with the nose out over the drop, then turn back out.',
     tips: 'Turn a full 90° in the air before you land on it. Half-committing is what makes it hang up.',
@@ -641,6 +1474,7 @@ export const TRICKS = [
     cat: 'street',
     diff: 3,
     pre: ['sk-ollie'],
+    supervise: true,
     about: 'Ollie a set of stairs or a gap in one go, and roll away from the landing.',
     tips: 'Speed is safety here. Bend your knees on impact and keep rolling.',
     fact: 'The stair count arms race in the 90s is why almost every skate video has a slam section.',
@@ -653,6 +1487,7 @@ export const TRICKS = [
     cat: 'park',
     diff: 2,
     pre: [],
+    supervise: true,
     about: 'Set the tail on the coping, lean forward over the front truck and ride down the ramp.',
     tips: 'Commit forward. Leaning back is the one thing that guarantees you go down.',
     fact: "It's the single biggest confidence barrier in skateboarding, and it's over in half a second.",
@@ -665,6 +1500,8 @@ export const TRICKS = [
     cat: 'park',
     diff: 2,
     pre: ['sk-drop-in'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
     about:
       'Ride up the transition, put the middle of the board over the coping, then rock back and roll down fakie.',
     tips: 'Push the nose over properly, then lift it back before the front truck catches.',
@@ -688,7 +1525,7 @@ export const TRICKS = [
     name: 'Blunt to Fakie',
     sport: 'skate',
     cat: 'park',
-    diff: 4,
+    diff: 5,
     pre: ['sk-axle-stall'],
     about: 'Stall on the tail with the back wheels above the coping, then pop back in fakie.',
     tips: 'Pop off the tail on the way in. Just leaning back drops you straight down the ramp.',
@@ -788,6 +1625,7 @@ export const TRICKS = [
     cat: 'air',
     diff: 5,
     pre: ['sk-axle-stall'],
+    supervise: true,
     about:
       'Plant one hand on the coping, invert fully with the board grabbed above you, then come back in.',
     tips: 'Learn it on a low ramp with a spotter. The hand goes down before your body commits.',
@@ -801,9 +1639,743 @@ export const TRICKS = [
     cat: 'air',
     diff: 5,
     pre: ['sk-backside-air'],
+    supervise: true,
     about: 'An inverted one and a half rotation out of a vert ramp. Big consequences, big airtime.',
     tips: 'Only with pads, a big ramp and a lot of backside airs behind you.',
     fact: 'Mike McGill landed the first one in 1984 and it reset what a contest run could contain.',
+    isLive: true,
+  },
+
+  /* -------------------------------------------------- skate, T27 additions --
+   * Same research, same caveats: see the T27 note above the scooter block.
+   */
+
+  {
+    id: 'sk-kickturn',
+    name: 'Kick Turn',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 1,
+    pre: [],
+    about:
+      'Lean on the tail until the front wheels lift a few centimetres, swing the nose round to point somewhere new, and set it back down.',
+    tips: 'Roll slowly and lift barely at all. Look where you want to go and turn your shoulders — the board follows them.',
+    fact: 'It is the first thing that makes a board steer properly, and every 180 you ever do starts from this movement.',
+    isLive: true,
+  },
+  {
+    id: 'sk-tic-tac',
+    name: 'Tic Tac',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 1,
+    pre: ['sk-kickturn'],
+    about:
+      'Lift the nose and swing it left, then right, over and over. Each swing pushes you along, so you build speed without ever putting a foot down.',
+    tips: 'Small swings and a quick rhythm. Weight over the back foot, eyes up the path rather than down at the board.',
+    fact: 'It is a way of getting moving and a warm-up drill at the same time. Skaters still do it thirty years in.',
+    isLive: true,
+  },
+  {
+    id: 'sk-fakie-roll',
+    name: 'Riding Fakie',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 1,
+    pre: ['sk-kickturn'],
+    about:
+      'Rolling with the tail leading instead of the nose, standing exactly as you normally would. You are going backwards, not switching feet.',
+    tips: 'Ride up a bank, let it roll you back down and hold it rather than kick-turning out. Glance over your shoulder, do not twist round.',
+    fact: 'Half cabs, fakie ollies and every fakie flip trick need this first. It is the cheapest doorway in the whole library.',
+    isLive: true,
+  },
+  {
+    id: 'sk-powerslide',
+    name: 'Powerslide',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 2,
+    pre: ['sk-kickturn'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Turn the board sideways at speed so all four wheels skid across the ground, scrubbing off speed until you straighten out again.',
+    tips: 'You need real speed for the wheels to break loose — going too slow is why it grips. Crouch and push the board out with your heels.',
+    fact: 'It is how skaters stop on a hill without stepping off, and it wears a flat patch on your wheels doing it.',
+    isLive: true,
+  },
+  {
+    id: 'sk-hippie-jump',
+    name: 'Hippie Jump',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 2,
+    pre: [],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Roll straight at a low bar, jump up off the board and let it carry on rolling underneath, then land back on it on the far side.',
+    tips: 'Jump up, not forward, and keep your feet over the bolts. The board will still be there — the hard part is trusting that.',
+    fact: 'It is taught as ollie preparation, because it teaches your feet to find the board again while you are in the air.',
+    isLive: true,
+  },
+  {
+    id: 'sk-body-varial',
+    name: 'Body Varial',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 2,
+    pre: ['sk-fakie-roll'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Jump off the rolling board, spin your body a half turn, and land back on it while the board keeps pointing the same way.',
+    tips: 'Straight up, not sideways, and spin from the shoulders. Land over the bolts, not in the middle of the deck.',
+    fact: 'You end up riding fakie without the board having turned at all, which is a good way to learn what fakie feels like.',
+    isLive: true,
+  },
+  {
+    id: 'sk-caveman',
+    name: 'Caveman',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 2,
+    pre: [],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Hold the board in your hand, throw it down under you and jump onto it in one movement, rolling away.',
+    tips: 'Drop it flat and land over the bolts as it touches down. Hold it by the nose so it does not spin as it falls.',
+    fact: 'It is the quickest way onto a board from standing, and skaters use it to get straight onto a ledge or a bank.',
+    isLive: true,
+  },
+  {
+    id: 'sk-boneless',
+    name: 'Boneless',
+    sport: 'skate',
+    cat: 'park',
+    diff: 2,
+    pre: ['sk-caveman'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Grab the board with your back hand, plant your front foot on the ground, then spring off that foot back onto the board and ride away.',
+    tips: 'Grab first, plant second — doing it the other way round is how the board gets away from you. A small bank is easier than flat.',
+    fact: 'It is older than the ollie and was one of the first ways skaters got airborne over anything.',
+    isLive: true,
+  },
+  {
+    id: 'sk-no-comply',
+    name: 'No Comply',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 2,
+    pre: [],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Step your front foot down onto the ground for an instant while your back foot pops the board up, then step straight back on and roll away.',
+    tips: 'The pop and the step happen together. Keep the board close to your leg so it does not shoot out in front.',
+    fact: 'You do not need an ollie for it, which makes it one of the few real tricks available before you have one.',
+    isLive: true,
+  },
+  {
+    id: 'sk-curb-drop',
+    name: 'Curb Drop',
+    sport: 'skate',
+    cat: 'street',
+    diff: 1,
+    pre: [],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Roll straight off the edge of a low kerb and land both sets of wheels without the nose dipping.',
+    tips: 'Weight over the back foot as you go over the edge, knees soft on landing. A kerb, not a stair set.',
+    fact: 'It is the first time the board leaves the ground with you on it, and every drop and gap after it starts here.',
+    isLive: true,
+  },
+  {
+    id: 'sk-curb-ollie',
+    name: 'Curb Ollie',
+    sport: 'skate',
+    cat: 'street',
+    diff: 2,
+    pre: ['sk-ollie', 'sk-curb-drop'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Ollie up onto a kerb or low ledge and roll away on top of it, rather than rolling off one.',
+    tips: 'Come in at a slight angle and pop earlier than you think. Level the board out over the edge before you land.',
+    fact: 'It is the first rung of the whole street ladder — every ledge trick above it starts by getting on top of the ledge.',
+    isLive: true,
+  },
+  {
+    id: 'sk-ramp-kickturn',
+    name: 'Kick Turn on a Ramp',
+    sport: 'skate',
+    cat: 'park',
+    diff: 1,
+    pre: [],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Ride up a bank or a small ramp, press the tail and pivot at the top, then roll back down the way you came.',
+    tips: 'Look back down the ramp before you turn. Go higher a little at a time rather than aiming for the coping on day one.',
+    fact: 'It is what a rider does in their first hour on a ramp, and it works on every transition in the park.',
+    isLive: true,
+  },
+  {
+    id: 'sk-pump',
+    name: 'Pump a Transition',
+    sport: 'skate',
+    cat: 'park',
+    diff: 1,
+    pre: [],
+    about:
+      'Speed without pushing. Sink down through the bottom of a transition and stand tall as it rises, and the ramp gives you the speed back.',
+    tips: 'Time it against the shape of the ramp rather than counting. Your legs do the work; your arms stay quiet.',
+    fact: 'Once you can pump you can ride a bowl for as long as your legs hold out without ever touching the ground.',
+    isLive: true,
+  },
+  {
+    id: 'sk-roll-in',
+    name: 'Roll In',
+    sport: 'skate',
+    cat: 'park',
+    diff: 2,
+    pre: ['sk-ramp-kickturn', 'sk-pump'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    supervise: true,
+    about:
+      'Enter a transition with speed already on, rolling over the top edge and down the ramp rather than starting stopped on the coping.',
+    tips: 'Commit and keep your weight forward over the front foot. Slowing down at the edge is what makes the nose catch.',
+    fact: 'It is a genuinely different trick from a drop in, where you start still — here you are already moving when you go over.',
+    isLive: true,
+  },
+  {
+    id: 'sk-tail-stall',
+    name: 'Tail Stall',
+    sport: 'skate',
+    cat: 'park',
+    diff: 2,
+    pre: ['sk-drop-in', 'sk-pump'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Ride up the ramp, come to rest with the tail on the coping and the wheels off it, then drop back in.',
+    tips: 'Get all the way up so the tail lands properly on the coping, not just near it. Keep your back foot weighted.',
+    fact: 'Stalls teach you where the coping is without needing a trick over it, which is why they come before grinds.',
+    isLive: true,
+  },
+  {
+    id: 'sk-slash-grind',
+    name: 'Slash Grind',
+    sport: 'skate',
+    cat: 'park',
+    diff: 2,
+    pre: ['sk-ramp-kickturn', 'sk-pump'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Carve up to the coping so the front truck passes over it and the back truck grinds along it for a moment, then carve back into the ramp.',
+    tips: 'Speed and a carving line, not a straight one. Lean into the ramp as the truck catches so it does not throw you out.',
+    fact: 'It is usually the first coping trick a rider gets, because you never have to stop or leave the ramp to do it.',
+    isLive: true,
+  },
+  {
+    id: 'sk-no-comply-180',
+    name: 'No Comply 180',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 3,
+    pre: ['sk-no-comply', 'sk-180'],
+    about:
+      'A no comply with a half turn in it, so the board and your body rotate together off the planted foot and you roll away fakie.',
+    tips: 'Turn your shoulders before your foot leaves the ground. The plant does the pushing and the shoulders do the spinning.',
+    fact: 'It is one of the very few 180s you can learn without an ollie underneath it.',
+    isLive: true,
+  },
+  {
+    id: 'sk-bs-180',
+    name: 'Backside 180',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 3,
+    pre: ['sk-ollie', 'sk-180'],
+    about:
+      'An ollie turned a half rotation backside, so you spin with your back leading and cannot see where you are landing until late.',
+    tips: 'Wind your shoulders the opposite way first, then unwind hard. Turn your head last, not first.',
+    fact: 'Frontside and backside 180s feel nothing alike, and almost every skater is noticeably better at one of them.',
+    isLive: true,
+  },
+  {
+    id: 'sk-switch-ollie',
+    name: 'Switch Ollie',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 3,
+    pre: ['sk-ollie', 'sk-fakie-roll'],
+    about:
+      'An ollie done standing the other way round, with your feet swapped. Same trick, completely rebuilt.',
+    tips: 'Push around switch for a few sessions before you try to pop. It is the stance that needs learning, not the ollie.',
+    fact: 'Skaters describe it as writing with the other hand. It doubles the size of your trick list without adding a new motion.',
+    isLive: true,
+  },
+  {
+    id: 'sk-half-cab',
+    name: 'Half Cab',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 3,
+    pre: ['sk-fakie-ollie', 'sk-fakie-roll', 'sk-kickturn'],
+    about:
+      'Rolling fakie, pop and turn a half rotation backside so you come out riding forwards again.',
+    tips: 'Fakie ollies have to be comfortable first. Look over your shoulder into the turn before you pop, not during it.',
+    fact: 'It is named after the full cab, and the half is what nearly every skater learns first.',
+    isLive: true,
+  },
+  {
+    id: 'sk-fs-pop-shuvit',
+    name: 'Frontside Pop Shuvit',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 3,
+    pre: ['sk-pop-shuvit'],
+    about:
+      'A pop shuvit spun the other way, so the board scoops away from you frontside instead of behind you.',
+    tips: 'Scoop with the toes rather than the heel. Keep your front foot low over the board so it has somewhere to come back to.',
+    fact: 'Most skaters find one direction far easier than the other, and which one is nothing to do with your stance.',
+    isLive: true,
+  },
+  {
+    id: 'sk-rock-n-roll',
+    name: "Rock 'n' Roll",
+    sport: 'skate',
+    cat: 'park',
+    diff: 3,
+    pre: ['sk-rock-to-fakie', 'sk-ramp-kickturn'],
+    about:
+      'Push the front trucks over the coping, then lift clear and pivot a half turn on the way down so you ride away forwards.',
+    tips: 'Get the front trucks properly over before you pivot. Lifting the nose as you turn is what stops it hanging up.',
+    fact: 'It is usually rated easier than the rock to fakie, because turning out feels more natural than rolling backwards.',
+    isLive: true,
+  },
+  {
+    id: 'sk-nose-stall',
+    name: 'Nose Stall',
+    sport: 'skate',
+    cat: 'park',
+    diff: 3,
+    pre: ['sk-tail-stall', 'sk-nose-manual'],
+    about:
+      'Stall with the nose of the board resting on the coping and the wheels off it, then come back down into the ramp.',
+    tips: 'Weight forward the whole time. Come in a little slower than for a tail stall — the nose grabs more.',
+    fact: 'It is the front-foot mirror of the tail stall, and it is the stall that nosepicks and noseblunts grow out of.',
+    isLive: true,
+  },
+  {
+    id: 'sk-feeble-stall',
+    name: 'Feeble Stall',
+    sport: 'skate',
+    cat: 'park',
+    diff: 3,
+    pre: ['sk-axle-stall'],
+    about:
+      'Stall on the coping with the back truck locked on and the front truck hanging over the far side, resting on the deck.',
+    tips: 'Axle stalls need to be solid first. Drop the front truck over deliberately rather than letting it fall over.',
+    fact: 'It is usually described as the easiest step after the axle stall, and it teaches the shape of a feeble grind.',
+    isLive: true,
+  },
+  {
+    id: 'sk-fastplant',
+    name: 'Fastplant',
+    sport: 'skate',
+    cat: 'park',
+    diff: 3,
+    pre: ['sk-boneless', 'sk-ollie'],
+    about:
+      'A footplant like a boneless, but with an ollie under it and the board grabbed by the back hand rather than the front.',
+    tips: 'Ollie first, grab second, plant last. Rushing the grab is what leaves the board behind.',
+    fact: 'The different hand is what separates it from a boneless, and it lets you take it into a ramp rather than off flat.',
+    isLive: true,
+  },
+  {
+    id: 'sk-melon',
+    name: 'Melon Grab',
+    sport: 'skate',
+    cat: 'air',
+    diff: 3,
+    pre: ['sk-indy', 'sk-backside-air'],
+    about:
+      'A backside air where your front hand reaches behind your leg to grab the heel edge between your feet, then tweaks the board out.',
+    tips: 'Get backside airs clean first. Reach through early — the grab has to happen on the way up, not at the top.',
+    fact: 'Melons, mutes and methods are all the same air with a different hand in a different place, and each has its own name for it.',
+    isLive: true,
+  },
+  {
+    id: 'sk-mute',
+    name: 'Mute Grab',
+    sport: 'skate',
+    cat: 'air',
+    diff: 3,
+    pre: ['sk-indy'],
+    about:
+      'Grab the toe edge between your feet with your front hand, reaching around the front leg, while you turn backside.',
+    tips: 'Pull your knees up to the board rather than reaching down to it. Let go early enough to get your feet flat.',
+    fact: 'It is named after a skater who was deaf, and the name has stuck across skating, snowboarding and BMX.',
+    isLive: true,
+  },
+  {
+    id: 'sk-tailgrab',
+    name: 'Tail Grab',
+    sport: 'skate',
+    cat: 'air',
+    diff: 3,
+    pre: ['sk-indy'],
+    about:
+      'Grab the tail of the board with your back hand while you are in the air, then let go to land.',
+    tips: 'Suck your back knee up so the tail comes to your hand. Grabbing low and late is how the board gets pulled off your feet.',
+    fact: 'It is the grab most riders get first, because the tail is already closest to your hand when you leave the ramp.',
+    isLive: true,
+  },
+  {
+    id: 'sk-nosegrab',
+    name: 'Nose Grab',
+    sport: 'skate',
+    cat: 'air',
+    diff: 3,
+    pre: ['sk-indy'],
+    about: 'Grab the nose of the board with your front hand in the air, then let go again to land.',
+    tips: 'Lift the nose towards your hand as you leave the lip. Keep your back foot pressed down or the board tips.',
+    fact: 'It is used as much for control as for style — skaters grab the nose on a transfer to keep the board underfoot.',
+    isLive: true,
+  },
+  {
+    id: 'sk-360-shuvit',
+    name: '360 Pop Shuvit',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 4,
+    pre: ['sk-pop-shuvit'],
+    about:
+      'A pop shuvit where the board spins a full circle underneath you before you catch it and ride away.',
+    tips: 'Scoop harder and jump higher than for a pop shuvit, and lift your front foot right out of the way.',
+    fact: 'Twice the rotation needs about twice the scoop, which is why plenty of skaters have a pop shuvit and not this.',
+    isLive: true,
+  },
+  {
+    id: 'sk-nollie-kickflip',
+    name: 'Nollie Kickflip',
+    sport: 'skate',
+    cat: 'flat',
+    diff: 4,
+    pre: ['sk-nollie', 'sk-kickflip'],
+    about:
+      'A kickflip popped off the nose from the nollie stance, so the board flips from the front end.',
+    tips: 'Nollies and kickflips both need to be automatic. Flick off the tail side with your back foot — it is the mirror of a normal flick.',
+    fact: 'Nollie flip tricks get their own tutorials rather than being filed as a stance variation, because the flick genuinely changes.',
+    isLive: true,
+  },
+  {
+    id: 'sk-lipslide',
+    name: 'Lipslide',
+    sport: 'skate',
+    cat: 'street',
+    diff: 4,
+    pre: ['sk-boardslide', 'sk-180'],
+    about:
+      'A boardslide taken the other way in: the tail goes over the ledge first and you turn in, sliding on the middle of the deck.',
+    tips: 'Boardslides first. Ollie higher than feels needed so the tail clears the edge — catching it is the usual bail.',
+    fact: 'From the front it looks nearly identical to a boardslide, and skaters can always tell which one it was.',
+    isLive: true,
+  },
+  {
+    id: 'sk-feeble',
+    name: 'Feeble Grind',
+    sport: 'skate',
+    cat: 'street',
+    diff: 4,
+    pre: ['sk-50-50', 'sk-boardslide'],
+    about:
+      'The back truck grinds the ledge while the front truck hangs down over the far side of it.',
+    tips: 'A low waxed ledge, not a handrail. Lean slightly over the ledge so the back truck stays locked on.',
+    fact: 'It is one of a family of grinds that are all a 50-50 with one truck moved somewhere else.',
+    isLive: true,
+  },
+  {
+    id: 'sk-smith',
+    name: 'Smith Grind',
+    sport: 'skate',
+    cat: 'street',
+    diff: 4,
+    pre: ['sk-50-50', 'sk-5-0'],
+    about:
+      'The back truck locks onto the ledge with the front truck dipped down below it on the near side, so the board angles into the obstacle.',
+    tips: 'Keep the weight firmly on the back truck. If it drifts forward the front truck catches and stops you dead.',
+    fact: 'It is named after Mike Smith, who is one of very few people with a grind named after them.',
+    isLive: true,
+  },
+  {
+    id: 'sk-wallride',
+    name: 'Wallride',
+    sport: 'skate',
+    cat: 'street',
+    diff: 4,
+    pre: ['sk-ollie', 'sk-kickturn'],
+    // Free by the free-tier shape at the top of this file.
+    free: true,
+    about:
+      'Ride along a wall with all four wheels on the vertical surface, then come back down to the ground and roll away.',
+    tips: 'Start on a slanted wall or a bank into a wall, and come in at an angle with speed. Keep the board flat against it.',
+    fact: 'Speed is what keeps you on. Slowing down at the last second is the single most common way it goes wrong.',
+    isLive: true,
+  },
+  {
+    id: 'sk-smith-stall',
+    name: 'Smith Stall',
+    sport: 'skate',
+    cat: 'park',
+    diff: 4,
+    pre: ['sk-feeble-stall'],
+    about:
+      'Stall on the coping on the back truck with the front truck dropped below it into the ramp, then roll back in.',
+    tips: 'Feeble stalls first. The front truck goes below the coping here, not above it — that is the whole difference.',
+    fact: 'It is the stall version of the smith grind, and it is how most skaters learn where their weight has to sit for one.',
+    isLive: true,
+  },
+  {
+    id: 'sk-disaster',
+    name: 'Disaster',
+    sport: 'skate',
+    cat: 'park',
+    diff: 4,
+    pre: ['sk-rock-n-roll', 'sk-180'],
+    about:
+      'Ollie a half turn at the lip and land across it, with the back truck over the edge and the nose pointing down into the transition.',
+    tips: 'Land on the middle of the board, not the tail, then lean forward straight away to bring it back in.',
+    fact: 'The name is honest: land too far back and it hangs up on the coping, which is exactly what it sounds like.',
+    isLive: true,
+  },
+  {
+    id: 'sk-nosepick',
+    name: 'Nosepick',
+    sport: 'skate',
+    cat: 'park',
+    diff: 4,
+    pre: ['sk-nose-stall', 'sk-axle-stall'],
+    about:
+      'Stall on the front truck on the coping with the tail high and the board grabbed, then hop back into the transition.',
+    tips: 'Grab the board before the truck lands. Nose stalls and axle stalls both need to be steady first.',
+    fact: 'It came from BMX, where the same balance point on the front end has been a coping trick for decades.',
+    isLive: true,
+  },
+  {
+    id: 'sk-pivot-fakie',
+    name: 'Pivot to Fakie',
+    sport: 'skate',
+    cat: 'park',
+    diff: 4,
+    pre: ['sk-rock-to-fakie', 'sk-5-0'],
+    about:
+      'Balance on the back truck alone at the coping, pivot round on it, and ride back down the ramp backwards.',
+    tips: 'A 5-0 needs to be comfortable first — this is the same balance point, standing still. Turn your shoulders to pivot.',
+    fact: 'Balancing on one truck at the top of a ramp is filed as an expert step on every transition ladder there is.',
+    isLive: true,
+  },
+  {
+    id: 'sk-frontside-air',
+    name: 'Frontside Air',
+    sport: 'skate',
+    cat: 'air',
+    diff: 4,
+    pre: ['sk-backside-air', 'sk-indy'],
+    about:
+      'Grab the toe edge between your feet with the trailing hand, lift off the lip, turn frontside and drop back in.',
+    tips: 'Backside airs first. You are turning towards the ramp here, so look over your leading shoulder early.',
+    fact: 'It is a separate milestone from the backside air, not a variation — the grab hand and the direction both change.',
+    isLive: true,
+  },
+  {
+    id: 'sk-stalefish',
+    name: 'Stalefish',
+    sport: 'skate',
+    cat: 'air',
+    diff: 4,
+    pre: ['sk-backside-air', 'sk-melon'],
+    about:
+      'A heel-edge grab where the back hand reaches around behind the back leg to get it, while the board stays under you.',
+    tips: 'Melons first — this is the same edge with the other hand. Reach behind the leg early or you will not get there.',
+    fact: 'Tony Hawk named it after the food he was eating in Sweden in 1985 when he first tried it.',
+    isLive: true,
+  },
+  {
+    id: 'sk-method-air',
+    name: 'Method Air',
+    sport: 'skate',
+    cat: 'air',
+    diff: 4,
+    pre: ['sk-melon', 'sk-backside-air'],
+    about:
+      'A backside air where the hips straighten and the knees fold so the board comes up high behind your back.',
+    tips: 'Grab the heel edge, then push the board back and up with your legs. Height comes from the pull, not the jump.',
+    fact: 'Neil Blender is credited with it in 1985, and it is still the trick used to show off style rather than difficulty.',
+    isLive: true,
+  },
+  {
+    id: 'sk-benihana',
+    name: 'Benihana',
+    sport: 'skate',
+    cat: 'air',
+    diff: 4,
+    pre: ['sk-tailgrab', 'sk-backside-air'],
+    about:
+      'A one-footed tail grab: the back foot comes right off and kicks down while the tail is held in the back hand.',
+    tips: 'Tail grabs need to be solid first. Kick the foot straight down and bring it back before you start looking for the landing.',
+    fact: 'It is one of a small group of tricks where a foot leaves the board completely, and it is by far the most common of them.',
+    isLive: true,
+  },
+  {
+    id: 'sk-varial-heelflip',
+    name: 'Varial Heelflip',
+    sport: 'skate',
+    cat: 'hybrid',
+    diff: 4,
+    pre: ['sk-heelflip', 'sk-pop-shuvit'],
+    about:
+      'A heelflip and a frontside pop shuvit at once, so the board flips and turns a half rotation in the same jump.',
+    tips: 'Scoop and flick together. Keep your shoulders square — turning them makes the board spin past where you want it.',
+    fact: 'It is the heelflip half of the pair. The varial kickflip is the same idea flicked the other way.',
+    isLive: true,
+  },
+  {
+    id: 'sk-frontside-flip',
+    name: 'Frontside Flip',
+    sport: 'skate',
+    cat: 'hybrid',
+    diff: 4,
+    pre: ['sk-kickflip', 'sk-180'],
+    about:
+      'A kickflip and a frontside 180 in the same motion, so you and the board turn together and land rolling fakie.',
+    tips: 'Both halves first, then commit to the turn before the flick. Being timid with the shoulders is why it under-rotates.',
+    fact: 'It is one of the tricks skaters point to as the moment flip tricks and spins stopped being separate lists.',
+    isLive: true,
+  },
+  {
+    id: 'sk-bigspin',
+    name: 'Bigspin',
+    sport: 'skate',
+    cat: 'hybrid',
+    diff: 4,
+    pre: ['sk-pop-shuvit', 'sk-180'],
+    about:
+      'A backside 360 pop shuvit with a 180 body varial, so the board spins twice as far as you do.',
+    tips: 'Get 360 shuvits landing first. Turn your body only half as far as the board — over-spinning yourself is the usual miss.',
+    fact: 'The board and the rider finishing in different places is the whole trick, and it is why it reads so strangely on film.',
+    isLive: true,
+  },
+  {
+    id: 'sk-half-cab-flip',
+    name: 'Half-Cab Kickflip',
+    sport: 'skate',
+    cat: 'hybrid',
+    diff: 4,
+    pre: ['sk-kickflip', 'sk-fakie-ollie'],
+    about:
+      'Rolling fakie, pop into a half turn backside and kickflip the board part way through the rotation, landing forwards.',
+    tips: 'Half cabs and kickflips both need to be automatic. Flick after the turn has started, not before.',
+    fact: 'It is one of the most-used tricks in street skating, because it comes out of fakie and lands you back facing forwards.',
+    isLive: true,
+  },
+  {
+    id: 'sk-bluntslide',
+    name: 'Bluntslide',
+    sport: 'skate',
+    cat: 'street',
+    diff: 5,
+    pre: ['sk-tailslide', 'sk-50-50'],
+    about:
+      'Slide along the ledge on the tail with the back wheels resting up on the edge, then pop out of it at the end.',
+    tips: 'A low waxed ledge, and pop out rather than sliding off. This one hangs up hard if the wheels drop.',
+    fact: 'The back wheels being on top of the edge is what separates it from a tailslide, and it is why it stops so suddenly.',
+    isLive: true,
+  },
+  {
+    id: 'sk-noseblunt',
+    name: 'Noseblunt Slide',
+    sport: 'skate',
+    cat: 'street',
+    diff: 5,
+    pre: ['sk-noseslide', 'sk-crooked', 'sk-bluntslide'],
+    about:
+      'Slide on the nose with the front wheels resting on top of the edge of the ledge, then come out of it forwards.',
+    tips: 'Bluntslides and noseslides both first. Get right over the nose and stay there — leaning back drops you off the ledge.',
+    fact: 'It is routinely listed among the hardest ledge tricks, mostly because of how little of the board is actually on anything.',
+    isLive: true,
+  },
+  {
+    id: 'sk-airwalk',
+    name: 'Airwalk',
+    sport: 'skate',
+    cat: 'air',
+    diff: 5,
+    pre: ['sk-benihana', 'sk-frontside-air'],
+    about:
+      'A backside air with the nose grabbed in the front hand and both feet off, split wide apart, before they come back to the board.',
+    tips: 'Grab the nose properly before the feet leave. Bring them back early — reaching for the board late is how it ends.',
+    fact: 'It is one of very few no-footed vert tricks with a published step-by-step, which is why it is here and its cousins are not.',
+    isLive: true,
+  },
+  {
+    id: 'sk-backside-flip',
+    name: 'Backside Flip',
+    sport: 'skate',
+    cat: 'hybrid',
+    diff: 5,
+    pre: ['sk-frontside-flip', 'sk-kickflip'],
+    about:
+      'A kickflip merged with a backside 180, so you turn away from where the board is heading and land rolling fakie.',
+    tips: 'Frontside flips first. You cannot see the landing here until very late, so commit to the full turn from the pop.',
+    fact: 'Skaters routinely name it as the trick that took them longest, because the flick and the blind turn fight each other.',
+    isLive: true,
+  },
+  {
+    id: 'sk-inward-heelflip',
+    name: 'Inward Heelflip',
+    sport: 'skate',
+    cat: 'hybrid',
+    diff: 5,
+    pre: ['sk-heelflip', 'sk-varial-heelflip'],
+    about:
+      'A backside pop shuvit merged with a heelflip, so the board rotates in towards you while it flips.',
+    tips: 'Varial heelflips first — this is the same pair spun the other way. Keep your front foot high out of the path.',
+    fact: 'It is the heel-side counterpart of the hardflip, and skaters usually find one of the two much easier than the other.',
+    isLive: true,
+  },
+  {
+    id: 'sk-laser-flip',
+    name: 'Laser Flip',
+    sport: 'skate',
+    cat: 'hybrid',
+    diff: 5,
+    pre: ['sk-varial-heelflip', 'sk-heelflip'],
+    about:
+      'A frontside 360 shuvit and a heelflip at once — the board turns a full circle and flips heel side in the same jump.',
+    tips: 'You need a big ollie and a clean heelflip before you start. Scoop hard with the back foot and stay over the board.',
+    fact: 'It is regularly named among the hardest tricks in skateboarding, and it is the heel-side mirror of the tre flip.',
+    isLive: true,
+  },
+  {
+    id: 'sk-kickflip-50-50',
+    name: 'Kickflip 50-50',
+    sport: 'skate',
+    cat: 'hybrid',
+    diff: 5,
+    pre: ['sk-kickflip', 'sk-50-50'],
+    about:
+      'Kickflip into a 50-50, landing with both trucks locked on a ledge or a box, then grind along and ride out.',
+    tips: 'On a ledge or a box, never a handrail. Catch the flip fully before the trucks touch — a half-caught flip locks on crooked.',
+    fact: 'Flipping into a grind is the whole street trick list folded in half, and 50-50 is where riders always start doing it.',
     isLive: true,
   },
 
@@ -834,6 +2406,16 @@ export const TRICKS = [
    * tree, not a few tricks bolted onto a park and street progression.
    * Handrails, double flips and brakeless variants were excluded on safety
    * grounds, since no source gives a graduated path to them for a child.
+   *
+   * **The doubles rule is scoped to flips, and only flips** (Rachid,
+   * 2026-09-04, in chat). "Double flips" above was read by a later session as
+   * covering doubles of anything, which would have kept out the double and
+   * triple tailwhip — tricks with no inversion in them at all, sitting on the
+   * same ladder as the tailwhip already here. The owner ruled that it does
+   * not extend that far, and the two whips ship in the T27 BMX block below.
+   * Nothing else moved: handrails, double *flips* and brakeless variants stay
+   * excluded on the original grounds, and this line is the record of the
+   * scoping rather than a licence to widen it further.
    */
 
   {
@@ -908,6 +2490,8 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: [],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
     about:
       'Rolling along on the back wheel with no pedalling. You shift your hips back behind the seat and hold the bike at its balance point.',
     tips: 'Push the bike forward underneath you rather than yanking the bars back. Keep a finger on the rear brake so you can tap out if you go too far.',
@@ -921,6 +2505,7 @@ export const TRICKS = [
     cat: 'park',
     diff: 2,
     pre: ['bmx-bunny-hop'],
+    supervise: true,
     about:
       'Starting up on the deck with your back wheel on the coping, then committing forward down the ramp. It is over in a second.',
     tips: 'Small hop off the back wheel so both wheels land flat on the transition, and get your weight forward. Leaning back is the one thing that puts you down.',
@@ -934,6 +2519,8 @@ export const TRICKS = [
     cat: 'park',
     diff: 2,
     pre: ['bmx-drop-in'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
     about:
       'Rolling backwards. You ride up a quarter pipe or a wall, run out of speed and come back down the way you came without turning round.',
     tips: 'Learn it on a small quarter. Look over your shoulder, stay centred and let the bike roll — fighting it is what makes it wobble.',
@@ -947,18 +2534,16 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: [],
-    // Paid despite being difficulty 2. BMX's library grades its early tricks
-    // more generously than the other two, which left it with fourteen free
-    // tricks against ten each for scooter and skate — the free tier was
-    // lopsided by grading accident rather than by decision. Four flatground
-    // flourishes move behind the paywall to level it: this, `bmx-nollie`,
-    // `bmx-pull-up-barspin` and `bmx-footjam`.
+    // Paid, first in T24 to stop BMX's free tier being lopsided by a grading
+    // accident, and now because the free tier is a fixed ten per sport with
+    // three Easy slots (see the free-tier note at the top of this file).
     //
-    // The line held while choosing them: no difficulty-1 trick is ever paid, so
-    // the Rookie tier still means "the easiest tricks", and every foundation
-    // (bunny hop, manual) and branch entry (`bmx-double-peg` for street,
-    // `bmx-pump` and `bmx-drop-in` for park) stays free. Nothing still free
-    // depends on any of the four.
+    // The reasoning here used to say "no difficulty-1 trick is ever paid, so
+    // the Rookie tier still means the easiest tricks". That stopped being true
+    // on 2026-09-04: BMX has exactly four difficulty-1 tricks and they are all
+    // still free, but scooter and skate have six each and only four slots.
+    // `bmx-nollie`, `bmx-pull-up-barspin` and `bmx-footjam` are paid alongside
+    // this one for the same reason.
     free: false,
     about:
       'Turn the bars a full 180 degrees so your arms cross into an X, then turn them back. You can do it rolling along — no hop needed.',
@@ -973,7 +2558,7 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['bmx-bunny-hop'],
-    // Paid to level BMX's free tier with the other two sports — see `bmx-x-up`.
+    // Paid by the free-tier shape at the top of this file — see `bmx-x-up`.
     free: false,
     about:
       'A bunny hop backwards. Your weight goes forward over the front wheel and the back end comes up first.',
@@ -988,8 +2573,8 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['bmx-x-up'],
-    // Paid to level BMX's free tier with the other two sports — see `bmx-x-up`,
-    // which is also its prerequisite, so the two move together either way.
+    // Paid by the free-tier shape at the top of this file — see `bmx-x-up`, which
+    // is also its prerequisite, so the two move together either way.
     free: false,
     about:
       'Lift just the front wheel, let go of the bars and spin them a full turn, then catch them straight before the wheel touches down.',
@@ -1004,6 +2589,8 @@ export const TRICKS = [
     cat: 'street',
     diff: 2,
     pre: ['bmx-bunny-hop', 'bmx-fakie'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
     about:
       'Bunny hop and turn half way round, landing rolling backwards. Wind your shoulders one way first, then unwind them.',
     tips: 'Look over your shoulder at where you want to land and commit to the whole turn. A half-hearted 90 is how pedals catch.',
@@ -1017,7 +2604,7 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: [],
-    // Paid to level BMX's free tier with the other two sports — see `bmx-x-up`.
+    // Paid by the free-tier shape at the top of this file — see `bmx-x-up`.
     free: false,
     about:
       'Jam your front foot between the fork and the front tyre so the bike stops dead and the back wheel lifts up behind you.',
@@ -1032,10 +2619,11 @@ export const TRICKS = [
     cat: 'street',
     diff: 3,
     pre: ['bmx-bunny-hop'],
-    // Free despite being difficulty 3: every BMX street trick descends from
+    // One of BMX's two free Spicy tricks: every BMX street trick descends from
     // this one, so leaving it paid puts no street content at all in the free
     // tier — a free rider would see the branch and never be able to enter it.
-    // Feeble, smith, toothpick and icepick all stay paid.
+    // Feeble, smith, toothpick and icepick all stay paid. `bmx-one-hander` is
+    // the other, and it opens the air category on the same argument.
     free: true,
     about:
       'Hop up so both pegs on one side land on a ledge or rail, then slide along it. The grind every other grind is built from.',
@@ -1061,7 +2649,7 @@ export const TRICKS = [
     name: 'Air Out of a Quarter',
     sport: 'bmx',
     cat: 'park',
-    diff: 3,
+    diff: 2,
     pre: ['bmx-drop-in', 'bmx-pump'],
     about:
       'Ride up a quarter pipe, leave the coping with both wheels and come back down into the transition. Land on the deck instead and it is a flyout.',
@@ -1113,7 +2701,7 @@ export const TRICKS = [
     name: 'Tabletop',
     sport: 'bmx',
     cat: 'park',
-    diff: 3,
+    diff: 4,
     pre: ['bmx-air'],
     about:
       'In the air you turn the bars and lay the bike over to one side so it goes flat like a table top, then bring it back level to land.',
@@ -1139,8 +2727,10 @@ export const TRICKS = [
     name: 'Tyre Tap',
     sport: 'bmx',
     cat: 'park',
-    diff: 3,
+    diff: 2,
     pre: ['bmx-air'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
     about:
       'Pop out of a quarter pipe, kick the back wheel round onto the deck and tap it there, then come straight back in.',
     tips: 'Come in almost perpendicular to the ramp and use your back brake as the tyre lands. Learn it with brakes fitted — brakeless is a different trick entirely.',
@@ -1191,7 +2781,7 @@ export const TRICKS = [
     name: 'Smith Grind',
     sport: 'bmx',
     cat: 'street',
-    diff: 4,
+    diff: 3,
     pre: ['bmx-feeble'],
     about:
       "The feeble's mirror: the front peg grinds the edge while the back wheel rolls along the top of the ledge.",
@@ -1229,7 +2819,7 @@ export const TRICKS = [
     name: 'Turndown',
     sport: 'bmx',
     cat: 'air',
-    diff: 4,
+    diff: 3,
     pre: ['bmx-x-up', 'bmx-air'],
     about:
       'In the air you bring the bike up vertical, straighten your body out and turn the bars right down towards your back foot.',
@@ -1257,6 +2847,8 @@ export const TRICKS = [
     cat: 'park',
     diff: 4,
     pre: ['bmx-air'],
+    // Free by the free-tier shape at the top of this file.
+    free: true,
     about:
       'Air out of a quarter onto the deck and kick the frame a full lap around the bars and forks, catching it back under your feet.',
     tips: 'Any ramp with a big enough deck works, and you get to take it at your own pace. Go easy on the reps — your wrists take a beating on flyout landings.',
@@ -1268,7 +2860,7 @@ export const TRICKS = [
     name: 'Bunny Hop Tailwhip',
     sport: 'bmx',
     cat: 'park',
-    diff: 5,
+    diff: 4,
     pre: ['bmx-flyout-tailwhip', 'bmx-bunny-hop'],
     about:
       'The whole tailwhip out of a bunny hop on flat ground. Kick the frame round with your back foot and land on it as it comes back.',
@@ -1296,6 +2888,7 @@ export const TRICKS = [
     cat: 'air',
     diff: 5,
     pre: ['bmx-360', 'bmx-air'],
+    supervise: true,
     about: 'A spin and a half out of a quarter pipe, landing back in the transition.',
     tips: 'Get 360s on ramps dialled first, then take it to a big mellow quarter. Come in faster than you would for a 360, but not so fast you lose control.',
     fact: 'A bigger transition actually makes the spin easier, which is why most riders land their first 540 on the biggest ramp in the park.',
@@ -1308,6 +2901,7 @@ export const TRICKS = [
     cat: 'air',
     diff: 5,
     pre: ['bmx-air'],
+    supervise: true,
     about:
       'A full backward rotation with the bike, off a foam pit, a resi ramp or a jump box. Total commitment — hesitating halfway is what hurts.',
     tips: 'Foam pit first and nowhere else. Land ten to fifteen to your wheels in the foam before you go to resi, then ten to fifteen on resi before you go to wood.',
@@ -1321,10 +2915,735 @@ export const TRICKS = [
     cat: 'air',
     diff: 5,
     pre: ['bmx-backflip', 'bmx-180'],
+    supervise: true,
     about:
       'A backflip with a half turn built into it, so you land back in the quarter pipe facing the other way.',
     tips: 'Only once backflips are boring. A bigger quarter, around six foot, gives you both the pop and the transition to spin it.',
     fact: 'Riders who already flip onto foam, over a box or out of a flyout tend to find flairs come quickly. It is the standard run-ender at a park contest.',
+    isLive: true,
+  },
+
+  /* ---------------------------------------------------- bmx, T27 additions --
+   * Same research, same caveats: see the T27 note above the scooter block.
+   *
+   * The doubles rule is scoped, not reversed. The T21 note above says double
+   * flips were excluded on safety grounds, which read as covering doubles of
+   * anything; the owner ruled on 2026-09-04, in chat, that it covers **flips**
+   * only and does not extend to tailwhips, so `bmx-double-tailwhip` and
+   * `bmx-triple-tailwhip` ship. Nothing else moved: handrails, double flips
+   * and brakeless variants all stay excluded on the original grounds.
+   */
+
+  {
+    id: 'bmx-endo',
+    name: 'Endo',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 2,
+    pre: [],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Lift the back wheel and balance on the front one, usually by loading the front brake as you shift your weight forward. The manual, upside down.',
+    tips: 'Cover the front brake and squeeze it gently as your weight comes forward. Start with the wheel a hand-width off the ground.',
+    fact: 'It is the front-end counterpart to the manual, and it is what nosepicks and front-peg tricks are built on.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-rollback',
+    name: 'Rollback',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 2,
+    pre: ['bmx-fakie'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'After rolling backwards, pivot a half turn on the back wheel to point forwards again, without either wheel leaving the ground.',
+    tips: 'Get the weight over the back wheel and turn your shoulders. Keep it slow — speed makes the pivot into a skid.',
+    fact: 'It is the way out of a fakie that does not need a hop, which is why coaches teach it before the 180.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-half-cab',
+    name: 'Half Cab',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 3,
+    pre: ['bmx-fakie', 'bmx-bunny-hop'],
+    about: 'Rolling backwards in fakie, hop a half turn so you land rolling forwards again.',
+    tips: 'Look over the shoulder you are turning towards before you pop. Fakie has to feel normal before you add the hop.',
+    fact: 'It is the same idea as a half cab on a skateboard or a scooter, and the name travelled across all three.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-nollie-180',
+    name: 'Nollie 180',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 3,
+    pre: ['bmx-nollie', 'bmx-180', 'bmx-fakie'],
+    about:
+      'Pop off the front wheel so the back end comes up first, turn a half rotation and roll out backwards.',
+    tips: 'Nollies and 180s separately first. Get your weight properly forward — a half-hearted nollie leaves the back end behind.',
+    fact: 'It puts the rotation in from the front of the bike instead of the back, which is why it feels nothing like a hop 180.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-hop-manual',
+    name: 'Bunny Hop to Manual',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 3,
+    pre: ['bmx-bunny-hop', 'bmx-manual'],
+    about:
+      'Bunny hop up onto a ledge or a box and land straight into a manual, hold the balance point across it, then manual off the end.',
+    tips: 'Both halves need to be solid on their own. Land already at the balance point rather than hopping up and then lifting.',
+    fact: 'Landing in a manual rather than finding one afterwards is the part that takes the practice, and it is what makes it a trick.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-manual-180',
+    name: 'Manual 180',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 3,
+    pre: ['bmx-manual', 'bmx-180'],
+    about: 'Roll into a manual, then hop a half turn out of it and land rolling backwards.',
+    tips: 'Hold the manual for a beat before you spin, and start the turn from the shoulders while the front wheel is still up.',
+    fact: 'It is usually done off a kerb or into a wedge, where the drop gives you the moment you need to get round.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-full-cab',
+    name: 'Full Cab',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 4,
+    pre: ['bmx-half-cab', 'bmx-fakie'],
+    about: 'A full 360 spin out of fakie, landing rolling forwards.',
+    tips: 'Half cabs have to be comfortable first. Wind the shoulders up hard before you pop, then let them unwind all at once.',
+    fact: 'A full cab is to a half cab exactly what a 360 is to a 180 — the same trick with the spin doubled.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-backwards-manual',
+    name: 'Backwards Manual',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 4,
+    pre: ['bmx-manual', 'bmx-fakie'],
+    about: 'Hold the manual balance point while the bike rolls backwards instead of forwards.',
+    tips: 'Get manuals and fakie both dialled first. The balance point sits further back than you expect, and it moves faster.',
+    fact: 'Everything you learned about correcting a manual works in reverse here, which is why riders find it so disorienting.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-crankflip',
+    name: 'Crankflip',
+    sport: 'bmx',
+    cat: 'flat',
+    diff: 4,
+    pre: ['bmx-bunny-hop'],
+    about:
+      'Kick the cranks backwards through a full rotation in mid-air with both feet off, then find the pedals again before you land.',
+    tips: 'Learn it hopping on flat first, and wear shin pads. The pedals come back round faster than you expect.',
+    fact: 'Pedals to the shins is the standard price of learning this one, which is why riders drill it on flat before a ramp.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-hop-on-off',
+    name: 'Hop On/Off',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 2,
+    pre: ['bmx-bunny-hop'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Bunny hop up onto a kerb, ledge or box, then roll off the far side and land compressed and rolling.',
+    tips: 'Hop earlier than feels necessary and land with your knees and elbows soft. Start on a kerb, not a box.',
+    fact: 'It is the first thing you do with a bunny hop once you have one, and every ledge trick starts by getting on the ledge.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-double-peg-stall',
+    name: 'Double Peg Stall',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 2,
+    pre: ['bmx-bunny-hop'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Ride slowly at a low ledge, hop both pegs onto the edge and balance there instead of sliding along it. Pegs have to be fitted for this one.',
+    tips: 'Come in slow and square. Land both pegs together — one first is what tips you off the side.',
+    fact: 'Stalling before you grind is how riders learn where the pegs actually sit, and it costs a lot less skin.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-feeble-stall',
+    name: 'Feeble Stall',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 2,
+    pre: ['bmx-bunny-hop'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Hop onto a ledge with the back peg on the edge and the front wheel up on top of it, hold still, then drop back off. Needs a rear peg fitted.',
+    tips: 'The front wheel takes most of your weight, not the peg. Come in slowly and stop properly before you think about the exit.',
+    fact: 'It is the stall version of the feeble grind, and it teaches the same body position with none of the speed.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-peg-stall',
+    name: 'Double Peg Stall (coping)',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 2,
+    pre: ['bmx-pump', 'bmx-bunny-hop'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Ride up a quarter pipe and hop both pegs onto the coping, balance there, then drop back into the transition. Pegs are needed for it.',
+    tips: 'Get all the way up so the pegs land on top of the coping rather than against it. Lean into the ramp, not away from it.',
+    fact: 'It is the same balance as a double peg stall on a ledge, moved onto the coping where the drop back in is the hard half.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-footplant',
+    name: 'Footplant',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 2,
+    pre: ['bmx-drop-in', 'bmx-pump'],
+    // Paid by the free-tier shape at the top of this file.
+    free: false,
+    about:
+      'Ride up a ramp, step one foot off onto the deck while you hold the bike up, then hop back on and drop in again.',
+    tips: 'Keep hold of the bars the whole time and plant flat, not on your toes. A low ramp first.',
+    fact: 'On its own it is a way of stopping at the top. It is also the first half of every footplant trick above it.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-ramp-manual',
+    name: 'Ramp Manual',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 3,
+    pre: ['bmx-manual', 'bmx-air'],
+    about:
+      'Carve out of a quarter pipe onto the flat deck at the top, manual across it, then carve back into the ramp.',
+    tips: 'Come out with enough speed to cross the deck. Find the balance point as you land, not after you have rolled a metre.',
+    fact: 'It sits at the top of the coaching basics ladder — the last of the fundamentals rather than the first of the tricks.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-wall-tap',
+    name: 'Wall Tap',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 3,
+    pre: ['bmx-wallride', 'bmx-fakie'],
+    about:
+      'Ride a transition into a vertical wall above it, tap both tyres against the wall, then drop back down into a fakie.',
+    tips: 'Wallrides and fakie both need to be comfortable. Hit the wall square, and keep your weight over the bike as you come off.',
+    fact: 'The wall gives you nothing back, so all the speed for coming down has to be there before you go up.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-hip-transfer',
+    name: 'Hip Transfer',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 3,
+    pre: ['bmx-air', 'bmx-180'],
+    about:
+      'Air out of one ramp and land in another where two transitions meet at an angle, crossing the corner between them.',
+    tips: 'Look at the landing ramp from the moment you leave the first one. Come in with more speed than for a straight air.',
+    fact: 'Hips are the corners of a park, and transferring across one is how riders link a whole run rather than a single ramp.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-rail-ride',
+    name: 'Rail Ride',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 3,
+    pre: ['bmx-bunny-hop', 'bmx-manual'],
+    about:
+      'Bunny hop onto a low flat rail and ride along it on your tyres rather than your pegs, balancing down its length.',
+    tips: 'A low flat rail or a wide ledge, never a handrail. Land square along the rail and look at the far end of it.',
+    fact: 'It is a balance trick rather than a grind — nothing slides, and the tyres do all the work.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-one-hander',
+    name: 'One-Hander',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 3,
+    pre: ['bmx-air'],
+    // Free by the free-tier shape at the top of this file.
+    free: true,
+    about:
+      'Take one hand off the bars in the air, hold it out to the side, and get it back before you land.',
+    tips: 'Let go later than feels right and grab back early. Keep the other hand firmly in the middle of the grip.',
+    fact: 'It is the first trick where you deliberately let go of the bike, and everything no-handed grows out of it.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-one-footer',
+    name: 'One-Footer',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 3,
+    pre: ['bmx-air'],
+    about:
+      'Take one foot off its pedal in the air, kick it out to the side, and get it back on before you land.',
+    tips: 'Kick from the hip and bring the foot back early. Find the pedal with your heel first, then roll the foot flat.',
+    fact: 'Finding a pedal again in the air is a skill of its own, and it is the reason every no-footed trick needs this one first.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-no-footer',
+    name: 'No-Footer',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 3,
+    pre: ['bmx-one-footer', 'bmx-air'],
+    about:
+      'Both feet off the pedals in the air, kicked out to the sides, then back on the pedals before you land.',
+    tips: 'One-footers on both sides first. Take a bigger jump than you think you need — you want time to find both pedals.',
+    fact: 'Missing a pedal on the way down is the standard way this goes wrong, which is why riders learn it over a jump box.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-can-can',
+    name: 'Can-Can',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 3,
+    pre: ['bmx-one-footer', 'bmx-air'],
+    about:
+      'Take one foot off and swing that leg right over the top tube to the other side of the bike, then bring it back.',
+    tips: 'Lift the knee high so the foot clears the frame. Bring it back the moment it has crossed — do not admire it.',
+    fact: 'The name comes from the dance, and the leg goes in exactly the same place.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-seat-grab',
+    name: 'Seat Grab',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 3,
+    pre: ['bmx-one-hander', 'bmx-air'],
+    about:
+      'Let go with one hand in the air and grab the seat, then put the hand back on the bars to land.',
+    tips: 'Reach back rather than down, and keep your other arm firm so the bars stay straight while you have one hand off.',
+    fact: 'It is the base of the whole superman family, and every trick that pushes the bike away starts with this grip.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-candybar',
+    name: 'Candybar',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 3,
+    pre: ['bmx-one-footer', 'bmx-air'],
+    about:
+      'Kick one foot up and over the handlebars in the air, so the leg passes between the bars and your body, then bring it back.',
+    tips: 'Bars level and knee high. Catching a heel on the bar is what stops most first attempts, so lift more than you swing.',
+    fact: 'It looks like you are stepping through the bike, and it is one of the few tricks where a leg goes over the bars.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-abubaca',
+    name: 'Abubaca',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 4,
+    pre: ['bmx-tyre-tap', 'bmx-fakie', 'bmx-bunny-hop'],
+    about:
+      'Hop the back tyre onto the coping with the front wheel high, balance there on the brake, then hop backwards off and roll away fakie.',
+    tips: 'Tyre taps and fakie both first. The back brake holds the balance — cover it before the tyre lands.',
+    fact: 'Ron Wilkerson invented it, and it has one of the clearest prerequisite ladders of any trick in this library.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-fufanu',
+    name: 'Fufanu',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 4,
+    pre: ['bmx-tyre-tap', 'bmx-180'],
+    about:
+      'Stall the back tyre directly on the coping with the front end up, then hop a half turn back out and ride away.',
+    tips: 'Tyre taps first, then hold the stall for a beat before you spin. Turn from the shoulders with the front end still high.',
+    fact: 'It is a tyre tap that stops, and the stopping is the part that takes the practice.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-nosepick',
+    name: 'Nosepick',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 4,
+    pre: ['bmx-tyre-tap', 'bmx-toothpick', 'bmx-peg-stall'],
+    about:
+      'Stall on the front wheel on the coping with the whole back end in the air, then drop back into the transition.',
+    tips: 'Endos and tyre taps first. Cover the front brake and get your weight right over the front wheel as it lands.',
+    fact: 'Skateboarding took this one from BMX rather than the other way round, which is unusual.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-360-fakie',
+    name: '360 to Fakie',
+    sport: 'bmx',
+    cat: 'park',
+    diff: 4,
+    pre: ['bmx-360', 'bmx-fakie', 'bmx-air'],
+    about:
+      'Air out of a quarter pipe, spin a full 360, and land back in the transition rolling backwards.',
+    tips: 'Airs and 360s both need to be automatic. Wind up on the way up the ramp and spot the ramp again on the way down.',
+    fact: 'Landing fakie means you never have to complete the last part of the spin, which is why it comes before a full 360 out.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-no-hander',
+    name: 'No-Hander',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 4,
+    pre: ['bmx-tuck-no-hander', 'bmx-one-hander'],
+    about:
+      'Both hands off the bars in the air, arms out or clapped behind you, then back on the grips before you land.',
+    tips: 'Tuck no-handers first, so your knees already know how to hold the bars. Let go for a fraction of a second and build up.',
+    fact: 'It is a different trick from the tuck no-hander, not a bigger version — here nothing at all is holding the bars.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-no-foot-can-can',
+    name: 'No-Foot Can-Can',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 4,
+    pre: ['bmx-can-can', 'bmx-no-footer'],
+    about:
+      'A can-can where the second foot leaves its pedal too, so both legs end up on the same side of the bike in mid-air.',
+    tips: 'Can-cans and no-footers both first. The second foot comes off last and goes back on first.',
+    fact: 'Both feet on one side means the bike wants to tip, so the hands have to hold it level the entire time.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-nac-nac',
+    name: 'Nac-Nac',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 4,
+    pre: ['bmx-can-can'],
+    about:
+      'Swing one leg backwards over the rear of the bike in the air while you push the back end out, then bring it back.',
+    tips: 'Can-cans first. Push the bike away from you as the leg goes over, or the frame catches your foot on the way back.',
+    fact: 'It came from motocross, where riders swing a leg over the back of the bike for exactly the same reason.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-superman',
+    name: 'Superman',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 4,
+    pre: ['bmx-no-footer'],
+    about:
+      'Both feet off the pedals with the legs stretched straight out behind you and the body over the bike, then back on to land.',
+    tips: 'No-footers, on a big jump, until they are boring. Push the bike forwards rather than throwing your legs backwards.',
+    fact: 'It is the trick that made BMX dirt jumping famous, and it needs more air than almost anything else at its level.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-superman-seatgrab',
+    name: 'Superman Seatgrab',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 4,
+    pre: ['bmx-seat-grab', 'bmx-superman'],
+    about:
+      'Push the bike right out in front with your body stretched behind it, one hand on the bars and one gripping the seat.',
+    tips: 'Supermans and seat grabs both dialled first. The seat hand is what pulls the bike back — get it on before you extend.',
+    fact: 'The seat grab is not decoration. It is the only thing bringing the bike back underneath you.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-toboggan',
+    name: 'Toboggan',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 4,
+    pre: ['bmx-seat-grab', 'bmx-x-up'],
+    about:
+      'Grab the seat with one hand, turn the bars about a quarter turn and lean back behind the seat, then straighten it all out to land.',
+    tips: 'Seat grabs and X-Ups first. Turn the bars and lean back together, and start straightening before you think you need to.',
+    fact: 'It is one of the oldest air tricks in BMX and still one of the most recognisable in a photograph.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-crooked',
+    name: 'Crooked Grind',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 4,
+    pre: ['bmx-double-peg'],
+    about:
+      'Grind a narrow ledge with the front peg on one side and the rear peg on the other, so the bike straddles it. Needs pegs on both sides.',
+    tips: 'Be comfortable bailing out of a grind before you try this one. A low waxed ledge, and land both pegs at the same time.',
+    fact: 'The bike sitting across the ledge rather than beside it is what makes it grab so hard if you land it crooked.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-pedal-grind',
+    name: 'Pedal Grind',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 4,
+    pre: ['bmx-feeble'],
+    about:
+      'Grind a ledge on the rear pedal or the sprocket rather than a peg, with the back end low and the front wheel up on the ledge.',
+    tips: 'Wax the ledge properly and expect to mark your pedals. Keep your weight back so the pedal stays loaded.',
+    fact: 'It is one of very few tricks that genuinely wears out parts — riders keep an old pedal on for it.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-luc-e',
+    name: 'Luc-E Grind',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 4,
+    pre: ['bmx-feeble', 'bmx-pedal-grind'],
+    about:
+      'Grind with the rear peg and the pedal locked on the ledge together, bars turned, front wheel held clear. Pegs and a solid pedal both needed.',
+    tips: 'Feebles and pedal grinds first. The bars stay turned for the whole grind — straightening them drops the pedal off.',
+    fact: 'It is named after the rider who made it his own, and it is one of the few grinds using two different parts at once.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-feeble-180',
+    name: 'Feeble Grind to 180',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 4,
+    pre: ['bmx-bunny-hop', 'bmx-feeble', 'bmx-180', 'bmx-fakie'],
+    about:
+      'Grind a feeble, then pop the front wheel and the back peg off together into a half turn, rolling away fakie.',
+    tips: 'Feebles, 180s and fakie all have to be there first. Pop off the end of the ledge, not from the middle of it.',
+    fact: 'Its tutorial lists the four tricks you need before it, which makes it the best-documented ladder in this library.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-double-peg-hard-180',
+    name: 'Double Peg Hard 180',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 4,
+    pre: ['bmx-double-peg', 'bmx-180', 'bmx-fakie'],
+    about:
+      'Lock both pegs on a ledge, then spin a half turn the hard way off the end and roll out backwards.',
+    tips: 'The hard way means turning towards the ledge, which you cannot see. Commit to the whole turn or the pegs catch.',
+    fact: 'The same grind spun the other way is much easier, which is exactly why this one is called the hard 180.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-180-double-peg',
+    name: '180 to Double Peg Grind',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 4,
+    pre: ['bmx-double-peg', 'bmx-180'],
+    about:
+      'Hop a half turn into the ledge so you land on both pegs already backwards, grind along it, then hop off the end.',
+    tips: '180s and double pegs separately first. Get the turn finished before the pegs touch — landing mid-spin is what slips.',
+    fact: 'The rotation comes first here and the whole grind happens backwards, which makes it a different trick from a hard 180.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-fakie-wallride',
+    name: 'Fakie Wallride',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 4,
+    pre: ['bmx-wallride', 'bmx-fakie'],
+    about:
+      'Ride a bank into a wall, plant both tyres on it, then come off the wall backwards and roll away fakie.',
+    tips: 'Wallrides and fakie both first. Keep your weight over the bike as it leaves the wall — leaning back drops the front end.',
+    fact: 'Coming off a wall backwards means you cannot see the ground, so riders pick a wall they already know well.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-icepick-180',
+    name: 'Icepick to 180',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 4,
+    pre: ['bmx-icepick', 'bmx-180', 'bmx-manual'],
+    about:
+      'Grind on the rear peg alone with the front end high, then pop a half turn off the end of the ledge and ride away fakie.',
+    tips: 'Ledges and low flat rails only. Hold the front end up right through the grind — dropping it early kills the pop.',
+    fact: 'Balancing the front end through a grind and then spinning out of it is two balance problems stacked in one trick.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-barspin-fakie',
+    name: 'Barspin to Fakie',
+    sport: 'bmx',
+    cat: 'hybrid',
+    diff: 4,
+    pre: ['bmx-hop-barspin', 'bmx-fakie', 'bmx-air'],
+    about:
+      'Air out of a quarter pipe, spin the bars and catch them, then come back into the transition rolling backwards.',
+    tips: 'Hop barspins and fakie first. Throw the bars as you leave the coping so you have the whole air to catch them.',
+    fact: 'Landing fakie gives you a longer moment at the top of the ramp, which is why bars go here before they go in a 360.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-footjam-whip',
+    name: 'Footjam Tailwhip',
+    sport: 'bmx',
+    cat: 'hybrid',
+    diff: 4,
+    pre: ['bmx-footjam', 'bmx-hop-tailwhip'],
+    about:
+      'Jam a foot against the front tyre so the bike stalls, let the frame spin a full turn around the front end, then ride out.',
+    tips: 'Footjams have to be rock steady first. Kick the frame with the free foot and catch it flat before you release the jam.',
+    fact: 'The front wheel never leaves the ground, which is what puts it below an airborne tailwhip rather than above it.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-footplant-whip',
+    name: 'Footplant Tailwhip',
+    sport: 'bmx',
+    cat: 'hybrid',
+    diff: 4,
+    pre: ['bmx-footplant', 'bmx-hop-tailwhip'],
+    about:
+      'Whip the frame a full turn around the bars while one foot is planted on an obstacle, then hop back on and ride away.',
+    tips: 'Footplants and bunny hop tailwhips both dialled. Plant firmly — a slipping foot takes the whip with it.',
+    fact: 'Planting a foot buys you the time an airborne whip does not have, and takes away the height you would use to catch it.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-tooth-hanger',
+    name: 'Toothpick Hangover',
+    sport: 'bmx',
+    cat: 'street',
+    diff: 5,
+    pre: ['bmx-toothpick'],
+    about:
+      'A front-peg grind with the whole back end thrown over to hang off the far side of the ledge. Needs front pegs fitted.',
+    tips: 'Toothpick grinds first. Throw the back end over deliberately and keep your weight forward over the front peg.',
+    fact: 'The bike ends up straddling the ledge with almost nothing supporting the back, which is why it needs so much wax and nerve.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-nothing',
+    name: 'Nothing',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 5,
+    pre: ['bmx-no-hander', 'bmx-no-footer'],
+    about:
+      'Both hands off the bars and both feet off the pedals at the same time, so nothing at all is holding the bike, then all four back on.',
+    tips: 'No-handers and no-footers both automatic first, and a big jump. Everything comes off together and goes back on together.',
+    fact: 'The name is literal. For a moment the bike is flying beside you, and it is the only trick in the sport where that is true.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-handplant',
+    name: 'Handplant',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 5,
+    pre: ['bmx-air', 'bmx-peg-stall'],
+    supervise: true,
+    about:
+      'Ride up a quarter pipe, plant one hand on the coping and go upside down with the bike, then drop back into the transition.',
+    tips: 'Peg stalls and airs first. Helmet and pads on every attempt, and learn the hand position on a low ramp.',
+    fact: 'It is one of the oldest ramp tricks in the sport, from the days when BMX and skateboarding shared the same ramps.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-frontflip',
+    name: 'Frontflip',
+    sport: 'bmx',
+    cat: 'air',
+    diff: 5,
+    pre: ['bmx-backflip', 'bmx-air'],
+    supervise: true,
+    about: 'A full forward rotation off a ramp or a jump, landing back on both wheels.',
+    tips: 'Foam pit, then resi, then wood, and not one rung skipped. Backflips need to be automatic before you go forwards.',
+    fact: 'There is no gentle way in. Riders learn this one in a foam pit with a coach or they do not learn it at all.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-360-tailwhip',
+    name: '360 Tailwhip',
+    sport: 'bmx',
+    cat: 'hybrid',
+    diff: 5,
+    pre: ['bmx-360', 'bmx-hop-tailwhip', 'bmx-truckdriver'],
+    about: 'A full 360 spin with the frame completing a tailwhip around the bars at the same time.',
+    tips: 'Spin first, kick second — throwing the whip too early stalls the rotation. You need the biggest jump you can find.',
+    fact: 'Two rotations happening at once means you can only spot the landing once, right at the end of both of them.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-downside-whip',
+    name: 'Downside Tailwhip',
+    sport: 'bmx',
+    cat: 'hybrid',
+    diff: 5,
+    pre: ['bmx-hop-tailwhip', 'bmx-360-tailwhip'],
+    about:
+      'Your body spins one way while the frame whips the other, so the bike comes back underneath you from the wrong side.',
+    tips: 'Tailwhips have to be automatic. Turn your shoulders against the kick — it feels wrong, and that is the trick.',
+    fact: 'Everything you learned about catching a tailwhip arrives from the opposite direction here, which is the whole difficulty.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-decade',
+    name: 'Decade',
+    sport: 'bmx',
+    cat: 'hybrid',
+    diff: 5,
+    pre: ['bmx-hop-tailwhip', 'bmx-360'],
+    about:
+      'You and the bars swing a full turn around the bike while the back end stays where it is. A tailwhip with the roles swapped.',
+    tips: 'Tailwhips first, so you know how far a full turn is. Swing from the hips and keep the bike level under you.',
+    fact: 'It is an old trick and a rare one — riders spin around bikes far less often than they spin bikes around themselves.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-double-tailwhip',
+    name: 'Double Tailwhip',
+    sport: 'bmx',
+    cat: 'hybrid',
+    diff: 5,
+    pre: ['bmx-hop-tailwhip'],
+    about: 'Two full tailwhips around the bars in a single hop, caught on the second one.',
+    tips: 'Single whips have to be effortless and high before you kick a second. Kick harder, not later, and take the biggest jump you have.',
+    fact: 'The frame has to travel twice as far in the same air, so height is what makes it possible rather than technique.',
+    isLive: true,
+  },
+  {
+    id: 'bmx-triple-tailwhip',
+    name: 'Triple Tailwhip',
+    sport: 'bmx',
+    cat: 'hybrid',
+    diff: 5,
+    pre: ['bmx-double-tailwhip'],
+    about: 'Three full tailwhips around the bars in one hop, caught on the third.',
+    tips: 'Doubles first, on a big jump, until they are boring. Everything here comes from air time and a hard first kick.',
+    fact: 'Very few riders have one, and almost all of them learned it off a big dirt jump or a resi landing rather than a park box.',
     isLive: true,
   },
 ] as const satisfies readonly Trick[];

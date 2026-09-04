@@ -9,7 +9,7 @@
  *
  * Two halves:
  *
- * - `./data` — the canonical records: 97 tricks (30 scooter, 31 skate, 36
+ * - `./data` — the canonical records: 259 tricks (84 scooter, 85 skate, 90
  *   BMX) and their prerequisite edges, stickers, plans, spots, events,
  *   challenges, stances, goals and the avatar registry. Single source for both
  *   the database seeds and the test fixtures.

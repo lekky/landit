@@ -14,9 +14,9 @@ import { AWARDS } from './awards';
 import { STICKERS } from './stickers';
 import { TRICKS, TRICK_PREREQS } from './tricks';
 import { STICKER_RULES, resolveStickerRule } from '../rules/stickers';
-import { challengesOverlap } from '../rules/challenges';
 import { isTrickFree } from '../rules/tricks';
-import type { Plan, Spot, Sticker } from '../types';
+import { challengesOverlap } from '../rules/challenges';
+import type { Plan, Spot, Sticker, Trick } from '../types';
 
 /**
  * The canonical arrays are `as const`, so an optional field is absent from the
@@ -26,6 +26,7 @@ import type { Plan, Spot, Sticker } from '../types';
 const allStickers: readonly Sticker[] = STICKERS;
 const allPlans: readonly Plan[] = PLANS;
 const allSpots: readonly Spot[] = SPOTS;
+const allTricks: readonly Trick[] = TRICKS;
 
 /**
  * The canonical data is the single source for both the database seeds (T4) and
@@ -37,11 +38,23 @@ const allSpots: readonly Spot[] = SPOTS;
 const ids = <T extends { id: string }>(records: readonly T[]): string[] => records.map((r) => r.id);
 
 describe('the trick library', () => {
-  it('holds all 97 tricks: 30 scooter, 31 skate and 36 BMX', () => {
-    expect(TRICKS).toHaveLength(97);
-    expect(TRICKS.filter((t) => t.sport === 'scooter')).toHaveLength(30);
-    expect(TRICKS.filter((t) => t.sport === 'skate')).toHaveLength(31);
-    expect(TRICKS.filter((t) => t.sport === 'bmx')).toHaveLength(36);
+  it('holds all 259 tricks: 84 scooter, 85 skate and 90 BMX', () => {
+    expect(TRICKS).toHaveLength(259);
+    expect(TRICKS.filter((t) => t.sport === 'scooter')).toHaveLength(84);
+    expect(TRICKS.filter((t) => t.sport === 'skate')).toHaveLength(85);
+    expect(TRICKS.filter((t) => t.sport === 'bmx')).toHaveLength(90);
+  });
+
+  it('added exactly 54 per sport in T27, which is what levelled the three', () => {
+    // The owner set the T27 expansion at 54 tricks per sport and cut five skate
+    // and two BMX candidates to reach it, so an uneven count here means a
+    // record was added or dropped without that decision being revisited.
+    // Asserted as the delta from the 97 the library shipped with (30/31/36).
+    const before = { scooter: 30, skate: 31, bmx: 36 } as const;
+    for (const sport of SPORT_IDS) {
+      const now = TRICKS.filter((t) => t.sport === sport).length;
+      expect(now - before[sport], sport).toBe(54);
+    }
   });
 
   it('gives every sport a library, so none is a tab with nothing behind it', () => {
@@ -118,6 +131,67 @@ describe('the trick library', () => {
   it('ships every trick live', () => {
     expect(TRICKS.every((t) => t.isLive)).toBe(true);
   });
+
+  it('gives every sport ten free tricks, spread 4 / 3 / 2 / 1 and nothing at Pro', () => {
+    // The owner's shape (2026-09-04), written down in `./tricks.ts`. It is a
+    // count per difficulty rather than a list of ids, so a session may swap
+    // which trick fills a slot without editing this test — but not how many.
+    for (const sport of SPORT_IDS) {
+      const free = allTricks.filter((t) => t.sport === sport && isTrickFree(t));
+      expect(free.length, sport).toBe(10);
+      expect(
+        [1, 2, 3, 4, 5].map((d) => free.filter((t) => t.diff === d).length),
+        sport,
+      ).toEqual([4, 3, 2, 1, 0]);
+    }
+  });
+
+  it('keeps every free trick reachable, by making its whole prerequisite chain free', () => {
+    /*
+     * The binding constraint on the free tier, and nothing else in the product
+     * checks it. The paywall is enforced server-side on `trick_progress`
+     * creation (plan §3, guarantee 3), so a rookie cannot land a locked
+     * prerequisite — a free Gnarly trick whose ancestors are paid can never be
+     * unlocked by anybody who can see it, which is worse than not offering it.
+     *
+     * Walked transitively, not one level: a free trick two rungs above a paid
+     * one is just as stuck, and a one-level check would pass.
+     */
+    const byId = new Map(allTricks.map((t) => [t.id, t]));
+    for (const trick of allTricks) {
+      if (!isTrickFree(trick)) continue;
+      const seen = new Set<string>();
+      const queue = [...trick.pre];
+      while (queue.length) {
+        const id = queue.pop() as string;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        const prereq = byId.get(id);
+        expect(prereq, `${trick.id} → ${id}`).toBeDefined();
+        expect(isTrickFree(prereq as Trick), `${trick.id} needs paid ${id}`).toBe(true);
+        queue.push(...(prereq as Trick).pre);
+      }
+    }
+  });
+
+  it('marks tricks for supervision on consequence, not on difficulty', () => {
+    /*
+     * `supervise` exists so the coach view can stop inferring "a parent should
+     * know about this" from `diff`. The two assertions below are the whole
+     * point of the field: it has to disagree with difficulty in both
+     * directions, or it is a slower way of writing `diff >= 5`.
+     */
+    const marked = allTricks.filter((t) => t.supervise === true);
+    expect(marked.length).toBeGreaterThan(0);
+    // Something easy is marked — the drop-ins are difficulty 2 and free.
+    expect(marked.some((t) => t.diff <= 2)).toBe(true);
+    // Something hard is not — plenty of difficulty-5 tricks are feet-down.
+    expect(allTricks.some((t) => t.diff === 5 && t.supervise !== true)).toBe(true);
+    // Every sport has some, or a whole library's guardians are told nothing.
+    for (const sport of SPORT_IDS) {
+      expect(marked.filter((t) => t.sport === sport).length, sport).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe('sports, categories and stages', () => {
@@ -162,12 +236,12 @@ describe('sports, categories and stages', () => {
 
 describe('stickers', () => {
   it('holds the award set plus the retired legacy stickers, with unique ids', () => {
-    // T24: 97 trick awards, 37 platform awards (one of them — `promoter` —
-    // dormant), `supporter`, and the ten legacy stickers that retired rather
-    // than mapping onto an award. Records retire, they are never removed: the
-    // seed upserts and cannot delete (see `upside`).
-    expect(AWARDS).toHaveLength(135);
-    expect(STICKERS).toHaveLength(145);
+    // 259 trick awards (97 from T24, 162 from T27), 37 platform awards (one of
+    // them — `promoter` — dormant), `supporter`, and the ten legacy stickers
+    // that retired rather than mapping onto an award. Records retire, they are
+    // never removed: the seed upserts and cannot delete (see `upside`).
+    expect(AWARDS).toHaveLength(297);
+    expect(STICKERS).toHaveLength(307);
     expect(new Set(ids(STICKERS)).size).toBe(STICKERS.length);
   });
 
@@ -209,7 +283,7 @@ describe('stickers', () => {
      * award naming a trick that does not exist is a badge nothing can earn.
      */
     // Widened to `Sticker`, like the stars-and-rarity test below: the literal
-    // union of 135 records has no common `kind` or `trick` to read.
+    // union of 297 records has no common `kind` or `trick` to read.
     const allAwards: readonly Sticker[] = AWARDS;
     const trickAwards = allAwards.filter((a) => a.kind === 'trick');
     const trickIds = new Set(TRICKS.map((t) => t.id));
