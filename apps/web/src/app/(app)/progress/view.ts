@@ -34,7 +34,7 @@ import { shortDate } from '@/lib/dates';
  * the browser to recompute a tree per switch is a lot of bytes for a rider on a
  * phone at a skatepark. So every sport the rider tracks is computed here, once,
  * and the client picks one. What crosses the boundary is a few hundred numbers
- * and names rather than 97 tricks and their copy.
+ * and names rather than the whole library and its copy.
  *
  * Everything locale-derived is resolved here too, into plain strings: month
  * names and dates come from `@landit/core`'s table and never from ICU, because

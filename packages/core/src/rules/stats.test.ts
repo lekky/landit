@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { TRICKS } from '../data/tricks';
 import type { Challenge, RiderSnapshot, StageId, Trick } from '../types';
 import { computeSportStats, computeStats, sportsOf } from './stats';
 
@@ -65,10 +66,14 @@ describe('stats for one sport', () => {
   });
 
   it('counts the library totals per sport', () => {
-    expect(computeSportStats(snapshot(), 'scooter').total).toBe(30);
-    expect(computeSportStats(snapshot(), 'skate').total).toBe(31);
-    expect(computeSportStats(snapshot(), 'bmx').total).toBe(36);
-    expect(computeSportStats(snapshot(), null).total).toBe(97);
+    // Counted off `TRICKS` rather than written down: T27 took the library from
+    // 97 tricks to 259 and every literal here would have been wrong at once.
+    for (const sport of ['scooter', 'skate', 'bmx'] as const) {
+      expect(computeSportStats(snapshot(), sport).total, sport).toBe(
+        TRICKS.filter((t) => t.sport === sport).length,
+      );
+    }
+    expect(computeSportStats(snapshot(), null).total).toBe(TRICKS.length);
   });
 
   it('reports landed as a rounded percentage of the tricks in scope', () => {
@@ -76,7 +81,9 @@ describe('stats for one sport', () => {
       snapshot({ byId: byId({ 'bunny-hop': 'some', 'tic-tac': 'some', 'x-up': 'some' }) }),
       'scooter',
     );
-    expect(stats.pct).toBe(10); // 3 of 30
+    // 3 landed out of however many scooter tricks the library holds today.
+    const scooter = TRICKS.filter((t) => t.sport === 'scooter').length;
+    expect(stats.pct).toBe(Math.round((3 / scooter) * 100));
   });
 
   it('counts landed difficulty-5 tricks separately', () => {
@@ -88,24 +95,24 @@ describe('stats for one sport', () => {
   });
 
   it('tracks each category and marks one done only when it is complete', () => {
-    const scooterFlat = ['bunny-hop', 'tic-tac', 'manual', 'fingerwhip', 'hippie-jump', 'x-up'];
-    const partial = computeSportStats(
-      snapshot({ byId: Object.fromEntries(scooterFlat.map((id) => [id, 'some' as StageId])) }),
-      'scooter',
+    // Read off the library rather than listed: scooter flat was seven tricks
+    // when this was written and is nineteen since T27, and a hand-written list
+    // of ids is a list that quietly stops being the whole category.
+    const scooterFlat = TRICKS.filter((t) => t.sport === 'scooter' && t.cat === 'flat').map(
+      (t) => t.id,
     );
-    expect(partial.catTotal.flat).toBe(7);
-    expect(partial.catCount.flat).toBe(6);
+    const landed = (ids: readonly string[]) =>
+      computeSportStats(
+        snapshot({ byId: Object.fromEntries(ids.map((id) => [id, 'some' as StageId])) }),
+        'scooter',
+      );
+
+    const partial = landed(scooterFlat.slice(0, -1));
+    expect(partial.catTotal.flat).toBe(scooterFlat.length);
+    expect(partial.catCount.flat).toBe(scooterFlat.length - 1);
     expect(partial.catDone.flat).toBe(false);
 
-    const complete = computeSportStats(
-      snapshot({
-        byId: Object.fromEntries(
-          [...scooterFlat, 'nose-manual'].map((id) => [id, 'some' as StageId]),
-        ),
-      }),
-      'scooter',
-    );
-    expect(complete.catDone.flat).toBe(true);
+    expect(landed(scooterFlat).catDone.flat).toBe(true);
   });
 
   it('never calls an empty category done', () => {

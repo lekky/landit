@@ -99,6 +99,21 @@ export interface Trick {
    * `diff <= FREE_MAX_DIFF`. Setting it either way wins over difficulty.
    */
   readonly free?: boolean;
+  /**
+   * A trick a guardian should know about, marked per trick rather than
+   * inferred from difficulty (T27).
+   *
+   * The line: the rider goes upside down (a flip or an invert), commits to a
+   * drop they cannot step out of, or the trick's own tips send them to a foam
+   * pit or a resi ramp first. It is deliberately not a difficulty flag — a
+   * difficulty-2 drop-in carries one and several difficulty-5 flatground
+   * tricks do not.
+   *
+   * Absent means no. `supervisedTricks()` in `../rules/crew.ts` still draws
+   * the coach view's line off `SUPERVISED_MIN_DIFF`; moving it onto this field
+   * is a separate task, which is why both exist.
+   */
+  readonly supervise?: boolean;
   /** Hidden tricks stay in the database but out of the library. */
   readonly isLive: boolean;
 }

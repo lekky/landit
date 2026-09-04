@@ -1,7 +1,7 @@
 /**
  * How a printed award badge is served: which file, and at what size.
  *
- * The art (T24) is 135 square PNGs under `assets/stickers/`, on the same terms
+ * The art is square PNGs under `assets/stickers/`, one per award, on the same terms
  * as the avatars and the sport art — they live once, in the design system, and
  * `apps/web` copies them into `public/` at dev and build time (see
  * `apps/web/scripts/sync-stickers.mjs`). That is why the base path is a URL.

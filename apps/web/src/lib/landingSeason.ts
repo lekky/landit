@@ -9,7 +9,7 @@ import {
 } from '@landit/core';
 
 /*
- * `AWARDS` is a `const` tuple of 135 differently-shaped literals, so TypeScript
+ * `AWARDS` is a `const` tuple of a few hundred differently-shaped literals, so TypeScript
  * only offers the fields every one of them has — `kind` and `trick` are not
  * among them. Widening to the interface they all satisfy is what makes the two
  * optional fields readable; it costs nothing, because `data.test.ts` already

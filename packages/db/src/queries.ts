@@ -389,7 +389,7 @@ export async function listStickers(client: Client): Promise<StickersRecord[]> {
  * carries the slug rather than a relation — the awards are seeded from a
  * manifest keyed by slug, and a slug survives a reseed where a record id does
  * not. Filtered in the query rather than fetched-and-found because the trick
- * page wants one of 135 records and has no other use for the rest.
+ * page wants one of a few hundred records and has no other use for the rest.
  *
  * `null` is a real answer, not an error: a trick staff add tomorrow has no
  * award until one is seeded for it, and an award taken off `is_live` is

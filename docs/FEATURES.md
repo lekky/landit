@@ -24,7 +24,7 @@ consent gates under-threshold riders; there is deliberately no stranger-contact 
 | Marketing | `/`, `/coming-soon`, `/legal/{privacy,terms,safeguarding,cookies,about}`, `/offline` | Landing (the "wall": hero with an email shortcut into sign-up and two no-sign-up peeks at Spots and Events, four step rows, a sample season grid, FAQ, CTA band), holding page (dormant now the site is live), five legal docs, offline fallback. |
 | Auth | `/signin`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-email` | Sign-up asks country + age band (never a date of birth); verification is asked for but blocks nothing. |
 | Onboarding | `/onboarding`, `/consent/[action]/[token]` | Four-step first-run picking sport/level/goal/tricks; guardian approve/revoke landing needs no sign-in. |
-| Core loop | `/home`, `/library`, `/library/[slug]`, `/library?mine=1`, `/progress`, `/stickers`, `/challenge` | Dashboard (weekly streak, "I rode today", working trick, announcements), 97-trick library, per-trick stage ladder/notes/videos under an award-led hero (the trick's badge, stamped LANDED once earned), My Tricks, progress + skill tree + printable sheets, sticker wall, weekly challenge per sport. |
+| Core loop | `/home`, `/library`, `/library/[slug]`, `/library?mine=1`, `/progress`, `/stickers`, `/challenge` | Dashboard (weekly streak, "I rode today", working trick, announcements), 259-trick library, per-trick stage ladder/notes/videos under an award-led hero (the trick's badge, stamped LANDED once earned), My Tricks, progress + skill tree + printable sheets, sticker wall, weekly challenge per sport. |
 | World | `/spots`, `/events` | 98 researched real venues on a MapLibre/OpenFreeMap map (no key, no account) with a Plain/Detail ground toggle, opening on Detail (there is no satellite layer — see plan §7 T13) + rider submissions; on a phone the map is a sheet that comes up when a spot is chosen, docked above the nav; filtered by sport tabs covering all three sports; 74 researched events with "I'm going". Both readable signed out; distances use the reader's units; geolocation is never prompted for unless a rider presses for it (both screens re-read it on load where the browser already grants it, and the calendar says "Nearest first" while it does), announced whenever it is in hand, kept in memory only, never sent to the server. |
 | Social | `/crew`, `/join/[code]`, `/riders/[handle]` | Up to 5 owned crews, server-minted invite codes (25 uses / 14 days), crew board + fixed-sentence activity feed, public profiles. |
 | Money | `/plans`, Stripe Checkout | Rookie free / Shredder £3.99 / Legend £6.99 monthly (yearly ≈ 2 months free). Under-16s never see a payment form — the guardian gets a checkout link by email. |
@@ -67,13 +67,20 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
 
 ## Game mechanics (packages/core — pure TS, no React/DOM)
 
-- **97 tricks** (30 scooter, 31 skate, 36 BMX — the BMX set researched and cited, never invented),
-  5 categories, difficulty 1–5 (Rookie/Easy/Spicy/Gnarly/Pro), prerequisite graph.
+- **259 tricks** (84 scooter, 85 skate, 90 BMX — the 97 originals plus 162 researched and cited in
+  T27, 54 per sport, never invented), 5 categories, difficulty 1–5 (Rookie/Easy/Spicy/Gnarly/Pro),
+  prerequisite graph. An optional `supervise` flag marks flips, inverts and committed drops for the
+  coach view — set per trick, not inferred from difficulty.
+- **Ten free tricks per sport**, spread 4 Rookie / 3 Easy / 2 Spicy / 1 Gnarly and nothing at Pro
+  (T27). Every free trick's whole prerequisite chain is free, so none of them is unreachable behind
+  a paid rung; the paywall itself is enforced server-side on `trick_progress` creation.
 - **5 stages** per trick: want → trying → landed some → landed most → every time.
 - **Weekly streak**: 2 rides in a Mon–Sun week, server-owned, no grace week. (A deprecated daily
   API survives in `rules/streak.ts` for the additive-only rule; nothing calls it.)
-- **135 awards** (T24: one badge per trick plus platform/streak/contribution/completion awards,
-  printed art in `packages/ui-web/assets/stickers/`; `promoter` dormant) and 10 retired legacy stickers.
+- **297 awards** (T24's 135 plus T27's 162: one badge per trick plus platform/streak/contribution/
+  completion awards, printed art in `packages/ui-web/assets/stickers/`; `promoter` dormant, and the
+  162 T27 badges are recorded with their filenames while the art is printed) and 10 retired legacy
+  stickers.
   A trick's own badge leads its trick page (T25, moved into the hero by T26) — never greyed out,
   and stamped LANDED in red once earned, NOT YET in dashed grey until then — where the original
   design pack had a photo placeholder that was never filled.
@@ -129,7 +136,7 @@ read-only offline: the library reads at the park, writes need a connection.
 disallowed and the sitemap is empty; open, everything is allowed and robots points at the sitemap.
 The sitemap lists the public pages and every live trick read from the database — `lib/publicRoutes.ts`
 is the list of what counts as public, with a test that fails if a sign-in-gated route creeps in.
-Trick cards in the library are real `<a href>` links, which is what makes the ~97 trick pages
+Trick cards in the library are real `<a href>` links, which is what makes the trick pages
 reachable at all. Every public page carries a canonical URL; every page carries `Organization` and
 `WebSite` JSON-LD, and a trick page adds `HowTo` built from the same staff copy it renders. There is
 a `/llms.txt` site map in prose. Staff and rider-private screens carry `robots: { index: false }`.

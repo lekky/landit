@@ -23,9 +23,9 @@ import styles from './trick.module.css';
  * No shield is drawn under the art. The pack specifies one in CSS — a yellow
  * clip-path with a striped slot, a nameplate and a star — because its badges
  * were placeholders awaiting artwork. T24 already printed that artwork: every
- * one of the ninety-seven files under `/stickers/` *is* the shield with the
- * trick's name lettered across it and the star beneath. The slot takes the
- * file, and the CSS carries only the drop shadow and the mark.
+ * file under `/stickers/` *is* the shield with the trick's name lettered across
+ * it and the star beneath. The slot takes the file, and the CSS carries only
+ * the drop shadow and the mark.
  */
 export function AwardBadge({
   name,

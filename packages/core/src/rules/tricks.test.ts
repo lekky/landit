@@ -74,82 +74,105 @@ describe('the free / paid split', () => {
     expect(isTrickFree(noOverride)).toBe(true);
   });
 
-  it('splits the shipped library 30 free / 67 paid, ten free per sport', () => {
+  it('splits the shipped library 30 free / 229 paid, ten free per sport', () => {
     // Read through `Trick`: the canonical data is `as const`, so a trick with
     // no override has no `free` key in its inferred type at all.
     const library: readonly Trick[] = TRICKS;
     const free = library.filter(isTrickFree);
     expect(free).toHaveLength(30);
-    expect(library.filter((t) => !isTrickFree(t))).toHaveLength(67);
+    expect(library.filter((t) => !isTrickFree(t))).toHaveLength(library.length - 30);
 
-    // Ten free tricks per sport, deliberately equal. Difficulty alone does not
-    // produce that — the three libraries were graded separately and disagree
-    // about what an early trick is worth — so the overrides below are what hold
-    // the three free tiers level.
-    for (const sport of ['scooter', 'skate', 'bmx'] as const) {
-      expect(
-        free.filter((t) => t.sport === sport),
-        sport,
-      ).toHaveLength(10);
-    }
+    /*
+     * The free tier is a fixed ten per sport, spread 4 Rookie / 3 Easy / 2
+     * Spicy / 1 Gnarly and nothing at Pro (owner, 2026-09-04, in chat; the
+     * reasoning is written down above `TRICKS` in `../data/tricks.ts`).
+     *
+     * Named here on purpose, and this is the point of the test: `free` is how
+     * the free tier moves silently, so a swap has to be argued for in a diff
+     * rather than noticed a month later on the plans page. `../data/data.test`
+     * asserts the *shape* — the 4/3/2/1 counts and the prerequisite closure
+     * that makes every one of them reachable — which is the part that must
+     * hold whichever tricks fill the slots.
+     */
+    const freeIds = (sport: 'scooter' | 'skate' | 'bmx') =>
+      free
+        .filter((t) => t.sport === sport)
+        .map((t) => t.id)
+        .sort();
 
-    // Ten tricks override difficulty, and they are named here on purpose: an
-    // override is how the free tier silently moves, so an eleventh appearing
-    // should fail this test and be argued for rather than noticed later.
-    //
-    // Six are pulled in, to keep the sticker wall earnable without paying (#75):
-    //
-    // - `sk-50-50` and `bmx-double-peg` are the tricks their sport's entire
-    //   street branch descends from. Paid, they leave that sport with no free
-    //   street content at all — a branch you can see and never enter.
-    // - `sk-pop-shuvit`, `sk-180` and `sk-kickflip` are the beginner flatground
-    //   ladder, graded 3 in skate where scooter and BMX grade the same rungs 2.
-    // - `tailwhip` and `sk-kickflip` are their sports' rites of passage, and a
-    //   milestone behind the paywall is an achievement for sale (plan §1).
-    //
-    // Four are pushed out, because BMX's grading gave it fourteen free tricks
-    // where the others had ten. They are flatground flourishes, not foundations
-    // or branch entries, and no difficulty-1 trick is paid in any sport.
+    expect(freeIds('scooter')).toEqual(
+      [
+        'bunny-hop',
+        'tic-tac',
+        'fakie',
+        'pump',
+        '180',
+        '50-50',
+        'drop-in',
+        'tailwhip',
+        'bar-spin',
+        '360',
+      ].sort(),
+    );
+    expect(freeIds('skate')).toEqual(
+      [
+        'sk-kickturn',
+        'sk-tic-tac',
+        'sk-fakie-roll',
+        'sk-pump',
+        'sk-ollie',
+        'sk-manual',
+        'sk-drop-in',
+        'sk-kickflip',
+        'sk-50-50',
+        'sk-wallride',
+      ].sort(),
+    );
+    expect(freeIds('bmx')).toEqual(
+      [
+        'bmx-wheelie',
+        'bmx-pump',
+        'bmx-track-stand',
+        'bmx-curb-drop',
+        'bmx-bunny-hop',
+        'bmx-drop-in',
+        'bmx-air',
+        'bmx-double-peg',
+        'bmx-one-hander',
+        'bmx-flyout-tailwhip',
+      ].sort(),
+    );
+
+    /*
+     * "No difficulty-1 trick is ever paid" was true until 2026-09-04 and is
+     * not any more: scooter and skate each have six Rookie entries and only
+     * four free slots, so two of each are paid. Recorded as an assertion
+     * rather than deleted, because it is a decision and not an accident — a
+     * session that thinks it is a bug should read the note in `../data/tricks`
+     * before changing it.
+     */
+    const paidRookie = library.filter((t) => t.diff === 1 && !isTrickFree(t)).map((t) => t.id);
+    expect(paidRookie.sort()).toEqual(
+      ['kickturn', 'tail-tap', 'sk-curb-drop', 'sk-ramp-kickturn'].sort(),
+    );
+
+    // The overrides are what implement all of the above, in both directions:
+    // pulling a Spicy or Gnarly trick into the free tier, and pushing an easy
+    // one out of it. Difficulty alone decides nothing here any more.
     const overridden = library.filter((t) => t.free !== undefined);
-    expect(overridden.map((t) => t.id)).toEqual([
-      'tailwhip',
-      'sk-pop-shuvit',
-      'sk-180',
-      'sk-kickflip',
-      'sk-50-50',
-      'bmx-x-up',
-      'bmx-nollie',
-      'bmx-pull-up-barspin',
-      'bmx-footjam',
-      'bmx-double-peg',
-    ]);
-    expect(overridden.filter((t) => t.free === false).map((t) => t.sport)).toEqual([
-      'bmx',
-      'bmx',
-      'bmx',
-      'bmx',
-    ]);
+    expect(overridden.filter((t) => t.free === true).length).toBeGreaterThan(0);
+    expect(overridden.filter((t) => t.free === false).length).toBeGreaterThan(0);
+    for (const trick of overridden) expect(isTrickFree(trick), trick.id).toBe(trick.free);
 
-    // The Rookie tier still means "the easiest tricks": nothing at difficulty 1
-    // is ever paid, in any sport.
-    expect(library.filter((t) => t.diff === 1).every(isTrickFree)).toBe(true);
-
-    // Everything free is the Rookie and Easy tiers, or an override pulling a
-    // harder trick in.
+    // Anything free above the difficulty cut-off got there by an override, and
+    // anything easy that is not free was pushed out by one. Nothing is free or
+    // paid by accident.
     expect(free.every((t) => t.diff <= FREE_MAX_DIFF || t.free === true)).toBe(true);
-
-    // The converse used to hold too — every difficulty-2 trick was free — but
-    // an override can push an easy trick out as well as pull a hard one in, and
-    // `isTrickFree` has always said so. The BMX levelling is the first data to
-    // exercise that direction, so the rule is now: difficulty decides, unless
-    // an override says otherwise, and the overrides are the list above.
-    const easyButPaid = library.filter((t) => t.diff <= FREE_MAX_DIFF && !isTrickFree(t));
-    expect(easyButPaid.map((t) => t.id)).toEqual([
-      'bmx-x-up',
-      'bmx-nollie',
-      'bmx-pull-up-barspin',
-      'bmx-footjam',
-    ]);
+    expect(
+      library
+        .filter((t) => t.diff <= FREE_MAX_DIFF && !isTrickFree(t))
+        .every((t) => t.free === false),
+    ).toBe(true);
   });
 });
 
@@ -175,10 +198,12 @@ describe('the paywall', () => {
   });
 
   it('opens the whole library to a paid rider and the free tier to a rookie', () => {
-    expect(openTricks('shredder')).toHaveLength(97);
-    expect(openTricks('legend')).toHaveLength(97);
+    // Counted off `TRICKS`, not a literal: the library grew from 97 to 259 in
+    // T27 and every literal count in this file went stale in the same commit.
+    expect(openTricks('shredder')).toHaveLength(TRICKS.length);
+    expect(openTricks('legend')).toHaveLength(TRICKS.length);
     expect(openTricks('rookie').every(isTrickFree)).toBe(true);
-    expect(openTricks('rookie').length).toBeLessThan(97);
+    expect(openTricks('rookie').length).toBeLessThan(TRICKS.length);
   });
 
   it('respects a staff override at the paywall too', () => {
@@ -223,12 +248,12 @@ describe('prerequisite unlocks', () => {
     // A rookie who has landed a bunny hop has *unlocked* the bar spin and is
     // still *locked out* of it. The skill tree draws these differently.
     //
-    // This used to be written with the tailwhip, which is now free (#75). The
-    // bar spin is the same shape — difficulty 3, park, bunny hop prerequisite —
-    // and still paid, so the two locks stay genuinely independent here.
-    const barSpin = trickById('bar-spin')!;
-    expect(isTrickUnlocked(barSpin, { 'bunny-hop': 'every' })).toBe(true);
-    expect(isTrickLocked(barSpin, 'rookie')).toBe(true);
+    // Written with the tailwhip, then the bar spin, and both of those are free
+    // now (#75, then the 2026-09-04 free-tier reshape). The no-footer is the
+    // same shape — difficulty 3, park, bunny hop prerequisite — and still paid.
+    const noFooter = trickById('no-footer')!;
+    expect(isTrickUnlocked(noFooter, { 'bunny-hop': 'every' })).toBe(true);
+    expect(isTrickLocked(noFooter, 'rookie')).toBe(true);
   });
 });
 
@@ -245,18 +270,23 @@ describe('lookups and scoping', () => {
   });
 
   it('scopes by sport, and treats no sport as everything', () => {
-    expect(tricksFor('scooter')).toHaveLength(30);
-    expect(tricksFor('skate')).toHaveLength(31);
-    expect(tricksFor('bmx')).toHaveLength(36);
-    expect(tricksFor(null)).toHaveLength(97);
-    expect(tricksFor()).toHaveLength(97);
+    for (const sport of ['scooter', 'skate', 'bmx'] as const) {
+      expect(tricksFor(sport), sport).toHaveLength(TRICKS.filter((t) => t.sport === sport).length);
+      expect(tricksFor(sport).length, sport).toBeGreaterThan(0);
+    }
+    expect(tricksFor(null)).toHaveLength(TRICKS.length);
+    expect(tricksFor()).toHaveLength(TRICKS.length);
   });
 
   it('scopes by category within a sport', () => {
-    expect(tricksInCategory('flat', 'scooter')).toHaveLength(7);
-    expect(tricksInCategory('flat', 'skate')).toHaveLength(10);
-    expect(tricksInCategory('flat', 'bmx')).toHaveLength(11);
-    expect(tricksInCategory('flat')).toHaveLength(28);
+    const flat = TRICKS.filter((t) => t.cat === 'flat');
+    for (const sport of ['scooter', 'skate', 'bmx'] as const) {
+      expect(tricksInCategory('flat', sport), sport).toHaveLength(
+        flat.filter((t) => t.sport === sport).length,
+      );
+    }
+    expect(tricksInCategory('flat')).toHaveLength(flat.length);
+    expect(tricksInCategory('flat').length).toBeGreaterThan(0);
   });
 });
 
@@ -264,25 +294,27 @@ describe('what to try next', () => {
   it('suggests only tricks that are unlocked, untracked and paid for', () => {
     const suggestions = suggestedNextTricks({}, 'rookie', 'scooter');
     // Nothing landed yet, so only no-prerequisite free scooter tricks qualify.
-    expect(suggestions.map((t) => t.id).sort()).toEqual(['bunny-hop', 'tic-tac', 'x-up']);
+    // `x-up` used to be here and is paid since the 2026-09-04 free-tier shape.
+    expect(suggestions.map((t) => t.id).sort()).toEqual(['bunny-hop', 'fakie', 'pump', 'tic-tac']);
   });
 
   it('opens up the next layer once a prerequisite is landed', () => {
     const suggestions = suggestedNextTricks({ 'bunny-hop': 'some' }, 'rookie', 'scooter');
     const suggested = suggestions.map((t) => t.id);
     expect(suggested).not.toContain('bunny-hop'); // already landed
-    expect(suggested).toContain('manual'); // diff 2, prerequisite met
+    expect(suggested).toContain('50-50'); // diff 2 and free, prerequisite met
     expect(suggested).toContain('tailwhip'); // diff 3 but freed — see #75
-    expect(suggested).not.toContain('bar-spin'); // diff 3, behind the paywall
+    expect(suggested).not.toContain('manual'); // diff 2 but paid since 4 Sep
+    expect(suggested).not.toContain('no-footer'); // diff 3, behind the paywall
   });
 
   it('offers the paid rider the tricks the rookie could not have', () => {
     const suggested = suggestedNextTricks({ 'bunny-hop': 'some' }, 'shredder', 'scooter').map(
       (t) => t.id,
     );
-    // Was the tailwhip, which is now free and so proved nothing about the paid
-    // tier any more (#75). The bar spin is the same shape and still paid.
-    expect(suggested).toContain('bar-spin');
+    // Was the tailwhip, then the bar spin; both are free now and so proved
+    // nothing about the paid tier. The no-footer is the same shape and paid.
+    expect(suggested).toContain('no-footer');
   });
 
   it('ignores hidden tricks', () => {
