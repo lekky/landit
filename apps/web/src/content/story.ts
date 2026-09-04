@@ -23,8 +23,15 @@
  *
  * This is not the same page as `/legal/about`, which is the factual one — what
  * the product is, how it makes money, who to email. That page answers "what is
- * this"; this one answers "why does it exist", and the two link to each other
- * rather than being merged.
+ * this"; this one answers "why does it exist". They are kept apart rather than
+ * merged: the About document belongs in the set with the privacy policy because
+ * that is its register, and a twelve year old’s account of learning to drop in
+ * does not. The About page points here in prose and the footer lists both.
+ *
+ * Until 2026-09-04 that page carried a *different* origin story — a paper
+ * checklist on a fridge — which was a placeholder from before this one was
+ * written down (owner, in chat, issue #298). If a future session finds the two
+ * disagreeing again, this page is the one with the interview behind it.
  */
 
 /** A photo. `src` is unset while the picture is still to be taken. */

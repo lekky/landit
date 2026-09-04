@@ -336,14 +336,24 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
   {
     id: 'about',
     title: 'About Land The Trick',
-    updated: 'August 2026',
-    intro: `A trick tracker for ${sportsList()} riders, built because a paper checklist on a fridge worked better than any app we could find.`,
+    updated: 'September 2026',
+    /*
+     * Until 2026-09-04 this said the product was "built because a paper
+     * checklist on a fridge worked better than any app we could find". That was
+     * a placeholder written before anybody had written the real story down
+     * (owner, 2026-09-04, in chat, closing issue #298), and once `/story`
+     * shipped the site was telling two different origin stories one footer
+     * entry apart. The real one wins; this page keeps the factual register and
+     * sends anybody who wants the long version to `/story`.
+     */
+    intro: `A trick tracker for ${sportsList()} riders, built by a twelve year old who went looking for one, found there wasn’t one, and made it with his dad.`,
     sections: [
       {
         h: 'What it is',
         p: [
           `${libraryCount} full trick libraries, tracked through five honest stages: want it, learning it, sometimes, most times, every time.`,
           'No fake progress bars, no streak guilt, no feed of strangers doing tricks you cannot do yet.',
+          'The whole story of why it exists — the ramp, the twenty tries at a drop-in, and the search that turned up nothing — is on the Why we made this page, linked in the footer.',
         ],
       },
       {
