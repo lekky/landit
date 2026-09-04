@@ -17,8 +17,9 @@ import type { Trick } from '../types';
  * flip or an invert), commits to a drop they cannot step out of, or the
  * trick's own tips send them to a foam pit or a resi ramp first. So the
  * difficulty-2 drop-ins carry one and several difficulty-5 flatground tricks
- * do not. `SUPERVISED_MIN_DIFF` in `../rules/crew.ts` still draws the coach
- * view's line off difficulty; moving it onto this field is a separate task.
+ * do not. The coach view reads this field: `needsSupervision()` in
+ * `../rules/crew.ts` falls back to `SUPERVISED_MIN_DIFF` only for a trick that
+ * carries no flag at all, which is a database older than the column.
  *
  * ## The free tier
  *

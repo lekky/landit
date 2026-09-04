@@ -131,6 +131,12 @@ export function buildSeed(): SeedPlan {
           // The handoff's nullable `free`: absent means "inherit from diff",
           // which the empty select value is how the column spells it.
           free_override: trick.free === undefined ? '' : trick.free ? 'free' : 'paid',
+          // The guardian supervise list reads this column, not `diff`
+          // (Rachid, 2026-09-04, in chat). Absent means no, so an unmarked
+          // trick is written `false` rather than left out — the column already
+          // exists by the time this runs, and a row that says nothing is a row
+          // `supervisedTricks()` has to fall back to difficulty for.
+          supervise: trick.supervise === true,
           is_live: trick.isLive,
         })),
       },

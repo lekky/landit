@@ -69,8 +69,9 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
 
 - **259 tricks** (84 scooter, 85 skate, 90 BMX — the 97 originals plus 162 researched and cited in
   T27, 54 per sport, never invented), 5 categories, difficulty 1–5 (Rookie/Easy/Spicy/Gnarly/Pro),
-  prerequisite graph. An optional `supervise` flag marks flips, inverts and committed drops for the
-  coach view — set per trick, not inferred from difficulty.
+  prerequisite graph. A `supervise` flag marks flips, inverts and committed drops — set per trick,
+  not inferred from difficulty, and stored as its own column so the coach view's guardian list
+  reads it from the live rows. A trick that carries no flag at all falls back to difficulty 5.
 - **Ten free tricks per sport**, spread 4 Rookie / 3 Easy / 2 Spicy / 1 Gnarly and nothing at Pro
   (T27). Every free trick's whole prerequisite chain is free, so none of them is unreachable behind
   a paid rung; the paywall itself is enforced server-side on `trick_progress` creation.

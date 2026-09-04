@@ -10,6 +10,7 @@ import {
   crewSlug,
   formatInviteCode,
   isValidInviteCode,
+  needsSupervision,
   normaliseInviteCode,
   sortCrewActivity,
   supervisedTricks,
@@ -138,11 +139,45 @@ describe('sortCrewActivity', () => {
 });
 
 describe('supervisedTricks', () => {
+  /** A trick with no `supervise` key at all — a row from before the column. */
   const trick = (id: string, diff: number): Trick =>
     ({ id, name: id, sport: 'scooter', cat: 'park', diff }) as Trick;
 
-  it('is the difficulty the library itself flags for a foam pit', () => {
+  /** A trick whose flag has been answered, either way. */
+  const flagged = (id: string, diff: number, supervise: boolean): Trick =>
+    ({ id, name: id, sport: 'scooter', cat: 'park', diff, supervise }) as Trick;
+
+  it('reads the flag, not the difficulty', () => {
+    const list = [flagged('flat-five', 5, false), flagged('drop-in', 2, true)];
+    expect(supervisedTricks(list).map((t) => t.id)).toEqual(['drop-in']);
+  });
+
+  it('lists a marked trick well below difficulty 5', () => {
+    expect(needsSupervision(flagged('drop-in', 2, true))).toBe(true);
+    expect(needsSupervision(flagged('bmx-drop-in', 3, true))).toBe(true);
+  });
+
+  it('drops an unmarked difficulty-5 trick once the rows carry the flag', () => {
+    // A Truckdriver is a 360 with a barspin: difficulty 5 for complexity, not
+    // for consequence (Rachid, 2026-09-04, in chat). Nobody marked it, so the
+    // guardian is not told to stand over it.
+    expect(needsSupervision(flagged('truckdriver', 5, false))).toBe(false);
+    expect(supervisedTricks([flagged('truckdriver', 5, false)])).toEqual([]);
+  });
+
+  it('falls back to difficulty when the flag is absent, never to nothing', () => {
+    // The failure this guards: a database whose `tricks` collection predates
+    // the `supervise` column hands every rule `undefined`, and answering "no"
+    // there would tell a guardian nothing needs supervising at all.
     expect(SUPERVISED_MIN_DIFF).toBe(5);
+    expect(trick('b', 5).supervise).toBeUndefined();
+    expect(needsSupervision(trick('a', 4))).toBe(false);
+    expect(needsSupervision(trick('b', 5))).toBe(true);
     expect(supervisedTricks([trick('a', 4), trick('b', 5)]).map((t) => t.id)).toEqual(['b']);
+  });
+
+  it('mixes the two: a flagged trick and an unmigrated one both count', () => {
+    const list = [flagged('drop-in', 2, true), trick('old-pro-trick', 5), trick('old-easy', 3)];
+    expect(supervisedTricks(list).map((t) => t.id)).toEqual(['drop-in', 'old-pro-trick']);
   });
 });

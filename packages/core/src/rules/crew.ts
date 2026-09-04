@@ -201,15 +201,48 @@ export function sortCrewActivity(items: readonly CrewActivityItem[]): CrewActivi
 /* ------------------------------------------------------------- coach view -- */
 
 /**
- * The difficulty at which the coach view says "supervise".
+ * The difficulty the supervise list falls back to when a trick carries no
+ * `supervise` flag at all.
  *
- * Difficulty 4 and 5 are inverts and drops; 5 is where the library's own copy
- * tells a rider to learn it into a foam pit first, so that is the line the
- * parent-facing summary draws.
+ * It was the whole rule until 2026-09-04. It is now the **fallback**, and only
+ * that: see `needsSupervision()` for why it still exists and when it fires.
+ * Kept exported because it is part of that fallback and because other code may
+ * read the number.
  */
 export const SUPERVISED_MIN_DIFF = 5;
 
+/**
+ * Should the coach view tell a guardian about this trick?
+ *
+ * **The flag, not the difficulty** (Rachid, 2026-09-04, in chat). Difficulty 5
+ * means complexity and mastery, not only physical danger — a Truckdriver is a
+ * 360 with a barspin, hard but no more dangerous than the 360 graded 4 — so
+ * difficulty stopped being an answer to the question this list asks. `supervise`
+ * is set per trick on the line T27 drew: the rider goes upside down, commits to
+ * a drop they cannot step out of, or the trick's own tips send them to a foam
+ * pit or a resi ramp first. That is why a drop-in at difficulty 2 is on this
+ * list and several difficulty-5 flatground tricks are not.
+ *
+ * **The fallback is deliberate, and it fails in one direction on purpose.**
+ * These rules are handed *live database rows* rather than the canonical list,
+ * so a staff edit takes effect without a deploy (`rules/tricks.ts`). That means
+ * a trick can reach here from a database whose `tricks` collection predates the
+ * `supervise` column — an old row, a server running code newer than its
+ * schema — and read `undefined`. Answering "no" there would tell every guardian
+ * that nothing their child is doing needs supervising, which is the worst
+ * possible failure of a safety list. So `undefined` falls back to the rule this
+ * replaced. A guardian shown a slightly-too-long list has been over-warned; a
+ * guardian shown an empty one has been told there is nothing to worry about.
+ *
+ * `false` is an answer and is respected: once the column exists, a difficulty-5
+ * trick nobody marked is off the list.
+ */
+export function needsSupervision(trick: Trick): boolean {
+  if (trick.supervise === undefined) return trick.diff >= SUPERVISED_MIN_DIFF;
+  return trick.supervise;
+}
+
 /** The tricks on this list a parent should know about. */
 export function supervisedTricks(tricks: readonly Trick[]): Trick[] {
-  return tricks.filter((t) => t.diff >= SUPERVISED_MIN_DIFF);
+  return tricks.filter(needsSupervision);
 }

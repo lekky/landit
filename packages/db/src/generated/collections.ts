@@ -773,6 +773,7 @@ export interface TricksRecord {
   is_live: boolean;
   created: string;
   updated: string;
+  supervise: boolean;
 }
 
 /** The shape accepted when creating a `tricks` record. */
@@ -788,6 +789,7 @@ export interface TricksCreate {
   fact?: string;
   free_override?: TricksFreeOverride;
   is_live?: boolean;
+  supervise?: boolean;
 }
 
 /** The shape accepted when updating a `tricks` record. */

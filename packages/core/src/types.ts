@@ -109,9 +109,10 @@ export interface Trick {
    * difficulty-2 drop-in carries one and several difficulty-5 flatground
    * tricks do not.
    *
-   * Absent means no. `supervisedTricks()` in `../rules/crew.ts` still draws
-   * the coach view's line off `SUPERVISED_MIN_DIFF`; moving it onto this field
-   * is a separate task, which is why both exist.
+   * Absent means no — with one exception that is the whole reason the type is
+   * optional. `supervisedTricks()` in `../rules/crew.ts` reads this field, and
+   * treats *absent* as "this database has no such column" rather than as "no",
+   * falling back to `SUPERVISED_MIN_DIFF` there.
    */
   readonly supervise?: boolean;
   /** Hidden tricks stay in the database but out of the library. */
