@@ -170,7 +170,27 @@ export default async function LandingPage() {
         <div className={styles.scrim} aria-hidden="true" />
 
         <div className={styles.heroIn}>
-          <h1 className={styles.headline}>Track your progress and</h1>
+          {/*
+           * Three lines, in this order, and the breaks are deliberate rather
+           * than left to wrapping (Rachid, 2026-09-04, in chat): "Track your" /
+           * "progress and" / the logo. Left to itself the line broke wherever
+           * the viewport put it — "TRACK YOUR PROGRESS" over a lonely "AND" at
+           * 1280, something else at every other width — which read as an
+           * accident above a lockup that is the third line of the same
+           * sentence.
+           */}
+          <h1 className={styles.headline}>
+            {/*
+             * The trailing space before the break is load-bearing, not stray
+             * formatting: a `<br>` contributes nothing to `textContent`, so
+             * without it the heading reads "Track yourprogress and" to anything
+             * matching on text — the e2e assertion, and any reader that
+             * flattens the element rather than rendering it.
+             */}
+            {'Track your '}
+            <br />
+            {'progress and'}
+          </h1>
 
           {/*
            * The wordmark is the second half of the headline — the sentence
