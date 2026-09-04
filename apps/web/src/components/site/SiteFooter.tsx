@@ -57,6 +57,11 @@ const COLUMNS: readonly FooterColumn[] = [
   {
     title: 'Company',
     links: [
+      // Two entries, two pages, on purpose: the story is why this exists and
+      // the About document is what it is. Merging them would put a twelve year
+      // old's account of learning to drop in inside the set that holds the
+      // privacy policy.
+      { label: 'Why we made this', href: ROUTES.story },
       { label: 'About Land The Trick', href: legalHref('about') },
       // Was the top of the same page as the entry above it, which made two
       // footer entries one destination and left "Contact" reading as a stub for

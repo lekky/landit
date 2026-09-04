@@ -21,7 +21,7 @@ consent gates under-threshold riders; there is deliberately no stranger-contact 
 
 | Area | Routes | What a rider gets |
 | --- | --- | --- |
-| Marketing | `/`, `/coming-soon`, `/legal/{privacy,terms,safeguarding,cookies,about}`, `/offline` | Landing (the "wall": hero with an email shortcut into sign-up and two no-sign-up peeks at Spots and Events, four step rows, a sample season grid, FAQ, CTA band), holding page (dormant now the site is live), five legal docs, offline fallback. |
+| Marketing | `/`, `/story`, `/coming-soon`, `/legal/{privacy,terms,safeguarding,cookies,about}`, `/offline` | Landing (the "wall": hero with an email shortcut into sign-up and two no-sign-up peeks at Spots and Events, four step rows, a sample season grid, FAQ, CTA band), the founding story told by the 12-year-old rider whose idea the product was (`/story`, static, distinct from the factual `/legal/about`), holding page (dormant now the site is live), five legal docs, offline fallback. |
 | Auth | `/signin`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-email` | Sign-up asks country + age band (never a date of birth); verification is asked for but blocks nothing. |
 | Onboarding | `/onboarding`, `/consent/[action]/[token]` | Four-step first-run picking sport/level/goal/tricks; guardian approve/revoke landing needs no sign-in. |
 | Core loop | `/home`, `/library`, `/library/[slug]`, `/library?mine=1`, `/progress`, `/stickers`, `/challenge` | Dashboard (weekly streak, "I rode today", working trick, announcements), 259-trick library, per-trick stage ladder/notes/videos under an award-led hero (the trick's badge, stamped LANDED once earned), My Tricks, progress + skill tree + printable sheets, sticker wall, weekly challenge per sport. |
