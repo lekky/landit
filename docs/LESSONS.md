@@ -367,6 +367,15 @@ robocopy <empty-dir> <worktree-path> /MIR ; Remove-Item <worktree-path> -Recurse
 
 Then `git worktree prune`. Two separate sessions hit this and each rediscovered the fix.
 
+**Do not reach for `git worktree remove` after the mirror.** `/MIR` deletes `.git` along with
+everything else, so the remove refuses with *"validation failed, cannot remove working tree:
+'…/.git' does not exist"* — and `git branch -D` then fails too, because the branch is still
+registered to a worktree git has not been told is gone. Neither is a problem to solve: `git
+worktree prune` deregisters it, and the branch delete succeeds straight after. The order that
+works is **mirror → `Remove-Item` → `prune` → `branch -D`**. Cost a session two confused retries
+on 2026-09-04, because `CLAUDE.md` step 10 named `git worktree remove` and the mirror in the same
+breath; the step now spells the sequence out.
+
 **The shell matters, and getting it wrong looks like the fix working.** Run through the Bash
 tool, MSYS path conversion rewrites `/MIR` as a path and robocopy refuses the whole command:
 
