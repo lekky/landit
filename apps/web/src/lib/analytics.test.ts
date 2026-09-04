@@ -253,7 +253,6 @@ describe('the event catalogue', () => {
         'sport_switched',
         'sticker_earned',
         'sticker_shared',
-        'theme_changed',
         'trick_logged',
         'upgrade_started',
         'verification_resent',

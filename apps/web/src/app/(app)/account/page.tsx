@@ -24,7 +24,6 @@ import { DataPanel } from './DataPanel';
 import { GuardianPanel } from './GuardianPanel';
 import { PrivacyPanel } from './PrivacyPanel';
 import { ProfilePanel } from './ProfilePanel';
-import { ThemePanel } from './ThemePanel';
 
 export const metadata: Metadata = {
   title: 'Your account · Land The Trick',
@@ -104,9 +103,13 @@ export default async function AccountPage() {
       */}
       <PrivacyPanel value={(rider.privacy || 'private') as PrivacyId} />
 
-      {/* Light or dark, per device (owner, 2026-09-01). See `lib/theme.ts`. */}
-      <ThemePanel />
-
+      {/*
+       * A theme picker sat here from 2026-09-01 until 2026-09-04, offering
+       * "Match my device", "Always light" and "Always dark". The product is
+       * light-only again (Rachid, in chat), and a control with one working
+       * option is worse than no control: it advertises a choice and then
+       * refuses it. Removed with the theme rather than left switched off.
+       */}
       <Panel flat className={styles.later}>
         <div className="lab">Your profile, and who it is for</div>
         <div className={styles.profileLinks}>

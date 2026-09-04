@@ -79,64 +79,31 @@
 }
 
 /*
- * The dark theme (owner, 2026-09-01, in chat; plan §7 T5, seventh divergence).
+ * **Light only, for now** (Rachid, 2026-09-04, in chat: "disable dark mode
+ * we're not ready for it yet. only use light mode").
  *
- * The design pack is light-only, and `--ink` in it is both the text colour and
- * the surface colour of thirty-odd panels — so a dark theme cannot keep those
- * panels black and flip the text, because they are the same token. What holds
- * together instead is the full inversion the language was already doing on its
- * own dark panels: ink becomes the ground, paper becomes the keyline and the
- * panel, and every accent stays exactly where it was. A black page with cream
- * borders and the same loud fills is still this product.
+ * The dark theme shipped in #283 as the seventh divergence under T5, and the
+ * two blocks that made it work — a `prefers-color-scheme: dark` query and a
+ * `:root[data-theme='dark']` override, both redefining the ink/paper/wash
+ * family — stood here until this commit. They are removed rather than
+ * commented out: a stylesheet is not a place to keep a feature switched off,
+ * and `git revert` brings the whole thing back in one move, plumbing and all.
  *
- * Three states, not two. An explicit choice from Account stamps
- * `data-theme` on `<html>` before first paint (`lib/theme.ts`); with no
- * choice the OS preference decides, and `:root:not([data-theme='light'])`
- * is what lets a chosen light beat a dark OS. Nothing below redefines a
- * colour that is not already defined above — a token that only existed in
- * here would silently never apply in the un-stamped state.
+ * **What this leaves behind is deliberate and should stay.** Everything #283
+ * did apart from the two blocks is worth keeping in a light-only product:
+ *
+ *  - `--on-light` / `--on-dark` are the text on a *fixed* fill — an orange tag,
+ *    a stage strip, the yellow CTA band — and `foregroundFor` answers in them.
+ *    They never followed the theme, so they are unaffected by its removal and
+ *    are load-bearing for contrast either way.
+ *  - `--ink-soft` / `--ink-mute` / `--ink-rule` / `--ink-raise` are the greys on
+ *    an ink surface, and `--hatch-a/b` and `--dot` likewise. They are correct as
+ *    they stand; naming them is what let the literals go, and a literal that
+ *    came back would be wrong again the day the theme returns.
+ *
+ * `color-scheme: light` above is now the whole story: form controls, scrollbars
+ * and the canvas stay light whatever the device is set to.
  */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --ink: #fffdf5;
-    --ink-2: #e4ddcb;
-    --ink-3: #a79e8e;
-    --paper: #1c1913;
-    --paper-2: #24201a;
-    --wash: #12100b;
-
-    --ink-soft: #4a443b;
-    --ink-mute: #6e665a;
-    --ink-rule: #d8d1bf;
-    --ink-raise: #efe8d6;
-
-    --hatch-a: #211d17;
-    --hatch-b: #2a251e;
-    --dot: rgba(255, 253, 245, 0.08);
-
-    color-scheme: dark;
-  }
-}
-
-:root[data-theme='dark'] {
-  --ink: #fffdf5;
-  --ink-2: #e4ddcb;
-  --ink-3: #a79e8e;
-  --paper: #1c1913;
-  --paper-2: #24201a;
-  --wash: #12100b;
-
-  --ink-soft: #4a443b;
-  --ink-mute: #6e665a;
-  --ink-rule: #d8d1bf;
-  --ink-raise: #efe8d6;
-
-  --hatch-a: #211d17;
-  --hatch-b: #2a251e;
-  --dot: rgba(255, 253, 245, 0.08);
-
-  color-scheme: dark;
-}
 
 /* base */
 * {

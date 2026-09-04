@@ -3,20 +3,25 @@
  * screenshots 01–05 desktop and mobile).
  *
  * Two rules run through the whole file and explain most of the choices in it.
+ * The product is light-only (Rachid, 2026-09-04, in chat), and both rules are
+ * written so that they were right under the dark theme and stay right without
+ * it — which is the point of them.
  *
- * **Tokens, not the pack's hex values.** The pack is light-only and was drawn
- * before the dark theme (T5, seventh divergence). Everything below the hero is
- * paper and ink, so it is written in `--ink` / `--paper` / `--wash` and inverts
- * with the rest of the product for free. The pack's literals survive only where
- * the surface is genuinely fixed — see the next rule.
+ * **Tokens, not the pack's hex values.** Everything below the hero is paper and
+ * ink, so it is written in `--ink` / `--paper` / `--wash`. That was what made
+ * the page invert for free while a dark theme existed; with the theme gone it
+ * is simply how every other screen is written, and it is what would make this
+ * one come back with the rest if the theme returns. The pack's literals survive
+ * only where the surface is genuinely fixed — see the next rule.
  *
- * **The hero is a fixed dark surface, so its text does not follow the theme.**
- * `#0f0d09` is the hero's ground in light and in dark alike, which means
- * `--ink-soft` and friends are exactly wrong there: they flip to a dark grey
- * and vanish into it. The hero declares its own locals (`--hero-*`) and uses
- * `--on-dark` for anything that has to read white on that ground. This is the
- * same trap the dark-theme commit called out — "a flipping token on a fixed
- * fill" — and the reason `foregroundFor` answers in `--on-light` / `--on-dark`.
+ * **The hero is a fixed dark surface.** `#0f0d09` is its ground whatever else
+ * the product does, so its text takes `--on-dark` and its softer greys are
+ * declared as hero locals (`--hero-*`) rather than borrowed from `--ink-soft`.
+ * `--on-light` / `--on-dark` are the pair that never followed a theme even when
+ * there was one — they are the text on a *fixed* fill, which is what
+ * `foregroundFor` answers in — so this is unaffected by the theme's removal and
+ * is still what keeps the contrast right on the peeks, the stage tiles and the
+ * yellow CTA band.
  */
 
 .page {
@@ -70,9 +75,10 @@
   position: relative;
   overflow: hidden;
   /*
-   * Fixed in both themes. In the dark theme `--wash` is #12100b, so the hero
-   * and the page ground nearly meet — the bottom border and the stripe are
-   * what keep the edge, which is why the border is a literal too.
+   * A fixed dark ground, on a light page. The edge below it therefore has to
+   * be drawn rather than implied — hence the literal black border and the
+   * four-bar stripe — and the same held when a dark theme existed and put
+   * `--wash` at #12100b, near enough this to have merged with it.
    */
   --hero-ground: #0f0d09;
   --hero-body: #d8d2c6;
@@ -854,7 +860,17 @@
   .peeks {
     flex-direction: column;
   }
+  /*
+   * `flex` has to be reset here, not just `max-width`.
+   *
+   * The 960px block above sets `flex: 1 1 240px` to make the two buttons share
+   * a row. `flex-basis` resolves against the *main* axis, so the moment this
+   * block turns the container into a column that 240px becomes a **height**,
+   * and `flex-grow: 1` holds it there — 240px-tall buttons around 35px of
+   * content, on every phone. Shipped that way in #287 and caught here.
+   */
   .peek {
+    flex: 0 0 auto;
     max-width: none;
     width: 100%;
   }
