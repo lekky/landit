@@ -16,6 +16,7 @@ import { redirect } from 'next/navigation';
 
 import { ROUTES, safeReturnTo } from '@/lib/routes';
 import { SESSION_COOKIE, sessionCookieOptions } from '@/lib/session';
+import { SIGNUP_EMAIL_COOKIE } from '@/lib/signupHandoff';
 
 /**
  * Signing up, signing in, signing out.
@@ -115,6 +116,11 @@ export async function signUpAction(
   } catch (error) {
     return { errors: { form: serverMessage(error, 'We could not make that account.') } };
   }
+
+  // The account exists, so the landing page's hand-over has done its job and the
+  // address it parked is no longer needed (`app/landingActions.ts`). Its
+  // ten-minute expiry is the backstop; this is the ordinary path.
+  (await cookies()).delete(SIGNUP_EMAIL_COOKIE);
 
   // Deliberately not awaited into the outcome: a confirmation email that fails
   // to send has not stopped an account being made, and nothing in the product

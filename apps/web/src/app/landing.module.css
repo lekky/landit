@@ -1,110 +1,961 @@
 /*
- * The signed-out landing page (screenshots 01 and 02).
+ * The landing page — "the wall" (design pack `design_handoff_landing_wall`,
+ * screenshots 01–05 desktop and mobile).
  *
- * Every value here is the inline style it replaces in
- * `design-handoff/design/landit-auth.jsx`. Only the two grid collapses were
- * media queries there, injected through a `<style>` tag; they are ordinary
- * rules now.
+ * Two rules run through the whole file and explain most of the choices in it.
+ *
+ * **Tokens, not the pack's hex values.** The pack is light-only and was drawn
+ * before the dark theme (T5, seventh divergence). Everything below the hero is
+ * paper and ink, so it is written in `--ink` / `--paper` / `--wash` and inverts
+ * with the rest of the product for free. The pack's literals survive only where
+ * the surface is genuinely fixed — see the next rule.
+ *
+ * **The hero is a fixed dark surface, so its text does not follow the theme.**
+ * `#0f0d09` is the hero's ground in light and in dark alike, which means
+ * `--ink-soft` and friends are exactly wrong there: they flip to a dark grey
+ * and vanish into it. The hero declares its own locals (`--hero-*`) and uses
+ * `--on-dark` for anything that has to read white on that ground. This is the
+ * same trap the dark-theme commit called out — "a flipping token on a fixed
+ * fill" — and the reason `foregroundFor` answers in `--on-light` / `--on-dark`.
  */
 
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ------------------------------------------------------------------ top bar */
+
+/*
+ * The bar the pack draws: wordmark, four nav links, then Sign in and Start
+ * free. It composes `site.module.css`'s `.bar` rather than editing it — that
+ * class is shared with `/legal`, `/offline`, `/coming-soon` and the 404, none
+ * of which want a marketing nav.
+ */
+.nav {
+  display: flex;
+  gap: 22px;
+  margin-left: 26px;
+}
+.navLink {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.navLink:hover {
+  color: var(--yellow);
+}
+.barEnd {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* The pack hides the nav below 900px; the two buttons stay. */
+@media (max-width: 900px) {
+  .nav {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------- hero */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  /*
+   * Fixed in both themes. In the dark theme `--wash` is #12100b, so the hero
+   * and the page ground nearly meet — the bottom border and the stripe are
+   * what keep the edge, which is why the border is a literal too.
+   */
+  --hero-ground: #0f0d09;
+  --hero-body: #d8d2c6;
+  --hero-meta: #c9c2b4;
+  --hero-edge: #000;
+  --gyellow: #ffc22e;
+  --gteal: #2ec4b6;
+  --gpink: #f5266e;
+  background: var(--hero-ground);
+  border-bottom: 3px solid var(--hero-edge);
+}
+
+/* 1. the wall of trick names, rotated and dimmed. Decorative, `aria-hidden`. */
+.wall {
+  position: absolute;
+  inset: -46px -12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 9px;
+  transform: rotate(-4deg) scale(1.18);
+  opacity: 0.3;
+}
+.wall b {
+  display: block;
+  border: 2.5px solid rgba(255, 253, 245, 0.4);
+  height: 64px;
+  padding: 8px 9px;
+  font-family: var(--fd);
+  font-size: 14px;
+  line-height: 1;
+  text-transform: uppercase;
+  color: rgba(255, 253, 245, 0.72);
+  overflow: hidden;
+}
+.wall b:nth-child(7n) {
+  border-color: var(--gteal);
+  color: var(--gteal);
+}
+.wall b:nth-child(11n) {
+  border-color: var(--gyellow);
+  color: var(--gyellow);
+}
+.wall b:nth-child(17n) {
+  border-color: var(--gpink);
+  color: var(--gpink);
+}
+
+/* 2. paint splats */
+.splat {
+  position: absolute;
+  border-radius: 52% 44% 60% 42% / 48% 56% 42% 54%;
+  pointer-events: none;
+  filter: blur(1px);
+}
+.s1 {
+  width: 170px;
+  height: 132px;
+  background: var(--gteal);
+  opacity: 0.42;
+  top: 8%;
+  left: 5%;
+  transform: rotate(-14deg);
+}
+.s2 {
+  width: 128px;
+  height: 112px;
+  background: var(--gyellow);
+  opacity: 0.34;
+  bottom: 14%;
+  right: 9%;
+  transform: rotate(18deg);
+}
+.s3 {
+  width: 84px;
+  height: 76px;
+  background: var(--gpink);
+  opacity: 0.38;
+  top: 16%;
+  right: 17%;
+  transform: rotate(-8deg);
+}
+.s4 {
+  width: 46px;
+  height: 42px;
+  background: var(--gyellow);
+  opacity: 0.45;
+  bottom: 24%;
+  left: 17%;
+  transform: rotate(24deg);
+}
+
+/* 3. scrim */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 66% 78% at 50% 46%,
+    rgba(15, 13, 9, 0.94) 34%,
+    rgba(15, 13, 9, 0.76) 68%,
+    rgba(15, 13, 9, 0.6) 100%
+  );
+}
+
+/* 4. content */
+.heroIn {
+  position: relative;
+  z-index: 2;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 74px 18px 84px;
+  text-align: center;
+  color: var(--on-dark);
+}
+.headline {
+  font-family: var(--fd);
+  font-size: clamp(44px, 8vw, 88px);
+  line-height: 0.94;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow:
+    5px 5px 0 #000,
+    -1px -1px 0 #000,
+    1px -1px 0 #000;
+  margin: 0;
+}
+
+/* The logo lockup, and the sparkle centred on its crown. */
+.lockup {
+  position: relative;
+  display: block;
+  width: min(620px, 86%);
+  margin: 14px auto 0;
+}
+.lockup img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(5px 5px 0 rgba(0, 0, 0, 0.85));
+}
+.gleam {
+  position: absolute;
+  left: 50%;
+  top: 21%;
+  width: 15%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.gleam::after {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.75),
+    rgba(255, 194, 46, 0.4) 40%,
+    transparent 70%
+  );
+  animation: gleam 4.6s ease-in-out infinite;
+}
+.gleam i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, transparent, #fff 42%, #fff 58%, transparent);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
+  transform: translate(-50%, -50%);
+  animation: gleam 4.6s ease-in-out infinite;
+}
+.gleam i + i {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+@keyframes gleam {
+  0%,
+  66% {
+    opacity: 0;
+    scale: 0.25;
+  }
+  80% {
+    opacity: 1;
+    scale: 1;
+  }
+  94%,
+  100% {
+    opacity: 0;
+    scale: 0.5;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gleam i,
+  .gleam::after {
+    animation: none;
+    opacity: 0.85;
+    scale: 1;
+  }
+}
+
+.lede {
+  margin: 22px auto 26px;
+  max-width: 540px;
+  font-size: 18.5px;
+  line-height: 1.55;
+  color: var(--hero-body);
+}
+
+/* The email shortcut into sign-up. */
+.form {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.form input {
+  font-family: var(--fb);
+  font-size: 16px;
+  padding: 14px 16px;
+  border: 3px solid #fff;
+  background: rgba(255, 253, 245, 0.07);
+  color: #fff;
+  width: 290px;
+  box-shadow: 5px 5px 0 #000;
+}
+.form input::placeholder {
+  color: #9d968a;
+}
+.form input:focus {
+  outline: none;
+  border-color: var(--gyellow);
+  box-shadow: 5px 5px 0 var(--gteal);
+}
+.form button {
+  background: var(--gyellow);
+  color: var(--on-light);
+  border-color: #000;
+  box-shadow: 5px 5px 0 #000;
+}
+.form button:hover {
+  background: #fff;
+}
+
+.trust {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 20px;
+}
+.trust span {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hero-meta);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The two no-sign-up doors into Spots and Events. */
+.peeks {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.peek {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 3px solid #000;
+  background: var(--gteal);
+  color: var(--on-light);
+  box-shadow: 5px 5px 0 #000;
+  text-decoration: none;
+  transition: 0.14s;
+}
+/*
+ * The pack paints this one white on pink. Measured, that is 3.83:1 — under AA
+ * for the 11px sub-label, and only passing on the 19px Anton line because bold
+ * text that size counts as large. Ink on the same pink is 4.87:1 and passes
+ * outright, which is what `foregroundFor` answers for this fill and the rule
+ * PR #282 settled: "text on a colour fill takes the foreground that passes".
+ *
+ * So the button keeps the pink and loses the white. Recorded in the plan as a
+ * divergence under T5 rather than done quietly, because it is a visible
+ * departure from a pack the contract calls high-fidelity.
+ */
+.peekEvents {
+  background: var(--gpink);
+  color: var(--on-light);
+}
+.peek:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0 #000;
+  filter: brightness(1.08);
+}
+.peekIcon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2.5px solid currentColor;
+  flex: none;
+}
+.peekText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+}
+.peekText b {
+  font-family: var(--fd);
+  font-size: 19px;
+  text-transform: uppercase;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+/*
+ * The pack sets this line to `opacity: .8`. At 11px that is small text by every
+ * measure, and the fade costs 0.8 of a contrast ratio it does not have to give
+ * — 4.87 → 4.05 on the pink. The hierarchy is already carried by the size and
+ * the family: 11px condensed under a 19px Anton line reads as secondary
+ * without being faded.
+ */
+.peekText span {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.peekArrow {
+  font-family: var(--fd);
+  font-size: 22px;
+  line-height: 1;
+  transition: transform 0.14s;
+}
+.peek:hover .peekArrow {
+  transform: translateX(4px);
+}
+
+/* 5. the four-bar stripe under the hero */
+.stripe {
+  display: flex;
+  height: 12px;
+}
+.stripe i {
+  flex: 1;
+  display: block;
+}
+
+/* ------------------------------------------------------------- feature rows */
+
 .body {
-  max-width: 1100px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: 40px 18px 80px;
   width: 100%;
 }
 
-.hero {
+.row {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 40px;
   align-items: center;
 }
-
-.headline {
-  font-size: clamp(42px, 7.6vw, 80px);
-  margin: 16px 0 0;
-  line-height: 1.02;
-  /*
-   * Anton paints well outside its line box — measured at 375px the last line
-   * occupies a 63px glyph box inside a 42.84px line box — and `.proven` adds a
-   * 4px ink shadow below that again. With no allowance the brand word overlaps
-   * the paragraph beneath it on a phone, which is the first thing a new rider
-   * sees. This is room for the ink to land in, not a spacing change.
-   */
-  padding-bottom: 0.2em;
+.row + .row {
+  margin-top: 34px;
 }
-/* Yellow on the wash, readable only because of the hard ink shadow. */
-.proven {
-  color: var(--yellow);
-  text-shadow: 4px 4px 0 var(--ink);
+.rowFlip > div:first-child {
+  order: 2;
 }
-
-.lede {
-  font-size: 18px;
-  line-height: 1.45;
-  max-width: 470px;
-  margin: 18px 0 24px;
+.rowText {
+  max-width: 460px;
+}
+.rowText h3 {
+  font-family: var(--fd);
+  font-size: clamp(28px, 3.8vw, 42px);
+  text-transform: uppercase;
+  line-height: 0.96;
+  margin: 6px 0 13px;
+}
+.rowText p {
+  margin: 0;
+  font-size: 16.5px;
+  line-height: 1.6;
   color: var(--ink-2);
 }
-
-.ctas {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.cta {
-  font-size: 17px;
-  padding: 14px 26px;
-}
-/*
- * Sign-up is T6. Until it exists the calls to action say so rather than
- * pointing at a page that is not there — see `lib/routes.ts`. This note goes
- * when `AUTH_ROUTES_LIVE` does.
- */
-.ctaNote {
-  margin: 12px 0 0;
-  font-size: 12.5px;
-  letter-spacing: 0.05em;
+.cap {
+  display: block;
+  margin-top: 16px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--ink-3);
 }
-
-.cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.features {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 16px;
-  margin-top: 62px;
-}
-.feature {
-  padding: 18px;
-}
-.featureIcon {
-  width: 40px;
-  height: 40px;
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 18px;
   border: 2.5px solid var(--ink);
+  background: var(--paper-2);
+  padding: 8px 13px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.shots {
+  display: flex;
+  justify-content: center;
+}
+.phone {
+  width: 262px;
+  flex: none;
+  border: 3px solid var(--ink);
+  border-radius: 32px;
+  background: var(--ink);
+  padding: 9px 9px 11px;
+  box-shadow: 9px 9px 0 var(--ink);
+}
+.phone img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 23px;
+}
+/* Alternating tilt. Kept in `transform` so the drift can own `translate`. */
+.tiltA {
+  transform: rotate(-1.6deg);
+}
+.tiltB {
+  transform: rotate(1.6deg);
+}
+
+/* ------------------------------------------------------- one rider, one season */
+
+.section {
+  margin-top: 56px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  gap: 10px;
+}
+.tile {
+  position: relative;
+  border: 2.5px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  padding: 10px 11px 9px;
+  min-height: 78px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--paper);
+}
+.tileName {
+  font-family: var(--fd);
+  font-size: 15px;
+  line-height: 0.96;
+  text-transform: uppercase;
+}
+.tileStage {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+/* A dashed tile has no fill and no shadow — nothing has happened on it yet. */
+.tileEmpty {
+  border-style: dashed;
+  border-color: var(--ink-3);
+  box-shadow: none;
+  background: transparent;
+}
+.tileEmpty .tileName,
+.tileEmpty .tileStage {
+  color: var(--ink-3);
+}
+/* Landed tiles carry a fixed stage colour, so their text comes from
+ * `foregroundFor` as an inline style, not from a theme token. */
+.tileHasBadge .tileName {
+  padding-right: 24px;
+}
+
+/*
+ * The award the trick earned, overhanging the corner.
+ *
+ * The pack drew a coloured disc with a line icon and said, at the top of its
+ * README, that it was a stand-in for the real artwork. This is the real
+ * artwork: square shield PNGs from `/stickers/`, so the `border-radius:50%`
+ * the pack's disc had is gone, exactly as the README instructed. The ink
+ * keyline and the 2px offset shadow stay.
+ */
+.badge {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  width: 34px;
+  height: 34px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
   display: grid;
   place-items: center;
-  margin-bottom: 11px;
+  z-index: 2;
+  box-shadow: 2px 2px 0 var(--ink);
 }
-.featureTitle {
-  font-size: 19px;
-  margin-bottom: 6px;
-}
-.featureCopy {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--ink-2);
+.badge img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
-@media (max-width: 820px) {
-  .hero {
+.legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 14px;
+}
+.legend span {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.legend i {
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid var(--ink);
+  display: block;
+}
+.legend i.legendEmpty {
+  border-style: dashed;
+  border-color: var(--ink-3);
+}
+.gridNote {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-top: 12px;
+}
+
+/* ---------------------------------------------------------------------- FAQ */
+
+.faq {
+  border: var(--bd);
+  box-shadow: var(--sh);
+  background: var(--paper);
+}
+.faq details {
+  border-bottom: 3px solid var(--ink);
+}
+.faq details:last-child {
+  border-bottom: none;
+}
+.faq summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 16px 18px;
+  font-family: var(--fd);
+  font-size: 19px;
+  text-transform: uppercase;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+}
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+.faq summary::after {
+  content: '+';
+  font-family: var(--fd);
+  font-size: 26px;
+  line-height: 1;
+  color: var(--orange);
+}
+.faq details[open] summary::after {
+  content: '–';
+}
+.faq details[open] summary {
+  background: var(--paper-2);
+}
+/* Full panel width — the pack is explicit that these answers take no measure cap. */
+.faq p {
+  margin: 0;
+  padding: 0 18px 18px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: none;
+}
+
+/* ----------------------------------------------------------------- CTA band */
+
+.ctaBand {
+  background: var(--yellow);
+  border: var(--bd);
+  box-shadow: var(--sh);
+  padding: 26px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  /* A fixed yellow fill in both themes, so its text is `--on-light`, not ink. */
+  color: var(--on-light);
+}
+.ctaText {
+  flex: 1;
+  min-width: 260px;
+}
+.ctaText h2 {
+  font-family: var(--fd);
+  font-size: clamp(26px, 4vw, 40px);
+  text-transform: uppercase;
+  line-height: 0.95;
+  margin: 0;
+}
+.ctaText p {
+  margin: 6px 0 0;
+  font-size: 14.5px;
+  max-width: 520px;
+  /* Softened against the yellow without leaving the fixed pair. */
+  opacity: 0.82;
+}
+
+/* ------------------------------------------------------------ scroll reveal */
+
+/*
+ * Additive and fail-open, which the pack is emphatic about and which matters
+ * more here than anywhere else in the product: this is the page a stranger
+ * sees first. The resting state is visible. The hidden state lives under
+ * `.anim`, a class the client component adds to `<html>` only once its
+ * observer is wired, so a JS failure leaves a fully readable page rather than
+ * a blank one.
+ */
+.rv {
+  opacity: 1;
+  transform: none;
+}
+:global(html.anim) .rv {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.55s ease,
+    transform 0.65s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+:global(html.anim) .slideLeft {
+  transform: translateX(-38px);
+}
+:global(html.anim) .slideRight {
+  transform: translateX(38px);
+}
+/*
+ * The revealed state is an *attribute*, not a class, and that is load-bearing.
+ *
+ * This was written as `.rv.in` first, with `LandingMotion` adding the string
+ * `'in'`. CSS Modules hashes every class it sees, so the rule compiled to
+ * `.landing-module__hash__rv.landing-module__hash__in` while the script kept
+ * adding a plain `in` — the two could never match, and the entire page below
+ * the hero stayed at `opacity: 0` for anyone whose JS ran and who had not asked
+ * for reduced motion. It only looked fine because the fail-open default hid the
+ * bug whenever the observer had not started.
+ *
+ * `[data-rv='in']` is not rewritten by the module, so what the script writes and
+ * what the stylesheet matches are the same string by construction.
+ */
+:global(html.anim) .rv[data-rv='in'] {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :global(html.anim) .rv {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* --------------------------------------------------------------- responsive */
+
+@media (max-width: 960px) {
+  .row {
     grid-template-columns: 1fr;
+    gap: 26px;
+    justify-items: center;
+  }
+  .row + .row {
+    margin-top: 44px;
+  }
+  .rowFlip > div:first-child {
+    order: 0;
+  }
+  .rowText {
+    max-width: 520px;
+  }
+  .s1,
+  .s3 {
+    display: none;
+  }
+  .peek {
+    flex: 1 1 240px;
+    max-width: 340px;
+    justify-content: flex-start;
+  }
+}
+
+/*
+ * The pack's mobile design (390px). Same content and same order, restructured:
+ * the form and the peeks stack full width, the phone frames become flat
+ * bordered crops, and the season grid goes to three columns.
+ */
+@media (max-width: 620px) {
+  .heroIn {
+    padding: 46px 16px 54px;
+  }
+  .headline {
+    font-size: 42px;
+  }
+  .lockup {
+    width: 100%;
+  }
+  .gleam i {
+    height: 2.5px;
+  }
+  .lede {
+    font-size: 15.5px;
+    margin: 18px auto 22px;
+  }
+  .wall {
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 7px;
+  }
+  .wall b {
+    height: 46px;
+    font-size: 12px;
+    padding: 6px 7px;
+  }
+  .form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .form input,
+  .form button {
+    width: 100%;
+  }
+  .trust {
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+  }
+  .trust span {
+    font-size: 11.5px;
+  }
+  .peeks {
+    flex-direction: column;
+  }
+  .peek {
+    max-width: none;
+    width: 100%;
+  }
+  .peekArrow {
+    margin-left: auto;
+  }
+  .stripe {
+    height: 9px;
+  }
+
+  .body {
+    padding: 26px 16px 54px;
+  }
+  .row + .row,
+  .section {
+    margin-top: 34px;
+  }
+  .rowText h3 {
+    font-size: 29px;
+  }
+  .rowText p {
+    font-size: 15.5px;
+  }
+  /*
+   * The pack drops the device bezel on mobile for a flat bordered frame with
+   * the shot cropped at the fold — a 262px phone rendered at 390px wide would
+   * be most of the screen's height for one image.
+   */
+  .phone {
+    width: 100%;
+    max-width: 340px;
+    border-radius: 0;
+    padding: 0;
+    height: 300px;
+    overflow: hidden;
+    box-shadow: var(--sh);
+    background: var(--paper);
+  }
+  .phoneTall {
+    height: 340px;
+  }
+  .phone img {
+    border-radius: 0;
+  }
+  .tiltA,
+  .tiltB {
+    transform: none;
+  }
+
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .tile {
+    min-height: 62px;
+    padding: 8px 9px 7px;
+  }
+  .tileName {
+    font-size: 12.5px;
+  }
+  .tileStage {
+    font-size: 8.5px;
+    letter-spacing: 0.1em;
+  }
+  .badge {
+    width: 28px;
+    height: 28px;
+    top: -8px;
+    right: -8px;
+  }
+  .tileHasBadge .tileName {
+    padding-right: 18px;
+  }
+  .legend {
+    gap: 10px;
+  }
+  .legend span {
+    font-size: 10.5px;
+  }
+
+  .faq summary {
+    font-size: 17px;
+    padding: 14px 15px;
+  }
+  .faq p {
+    padding: 0 15px 15px;
+  }
+
+  .ctaBand {
+    /* The pack's mobile CTA is the ink band, not the yellow one. */
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .ctaText h2 {
+    font-size: 31px;
+  }
+  .ctaText p {
+    color: var(--ink-soft);
+    opacity: 1;
+  }
+  .ctaBand > a {
+    width: 100%;
   }
 }

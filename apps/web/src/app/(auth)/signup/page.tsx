@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { ROUTES, legalHref } from '@/lib/routes';
 import { currentRider } from '@/lib/session';
+import { SIGNUP_EMAIL_COOKIE } from '@/lib/signupHandoff';
 
 import { AuthCard } from '../AuthCard';
 
@@ -16,6 +18,17 @@ export const metadata: Metadata = {
 
 export default async function SignUpPage() {
   if (await currentRider()) redirect(ROUTES.dashboard);
+
+  /*
+   * The address the landing page's hero field parked for us, if there is one
+   * (`app/landingActions.ts`). Read here rather than passed in a query string,
+   * so it never reaches the URL bar, the browser history or a referrer header.
+   *
+   * Not cleared here: a server component may read cookies but not write them.
+   * `signUpAction` deletes it once it has been used, and the ten-minute
+   * `maxAge` is the backstop for a visitor who never finishes the form.
+   */
+  const prefillEmail = (await cookies()).get(SIGNUP_EMAIL_COOKIE)?.value ?? '';
 
   return (
     <AuthCard
@@ -40,7 +53,7 @@ export default async function SignUpPage() {
         </>
       }
     >
-      <SignUpForm />
+      <SignUpForm defaultEmail={prefillEmail} />
     </AuthCard>
   );
 }

@@ -227,6 +227,27 @@ export const ANALYTICS_EVENTS = {
   /** A nav destination was chosen. Carries the route, which is not a rider fact. */
   navClicked: 'nav_clicked',
   /**
+   * Something on the signed-out landing page was pressed.
+   *
+   * Carries `target` — where it goes (`signup`, `signin`, `library`, `spots`,
+   * `events`, `plans`) — and `place`, which of the page's three zones it
+   * was pressed in (`bar`, `hero`, `band`). Both are fixed strings chosen here,
+   * so neither can carry anything a visitor typed.
+   *
+   * **Emphatically not the email address.** The hero's field is a sign-up
+   * shortcut, and this event fires on the press, never with its contents; the
+   * address reaches the server as a form field and nothing else. A visitor to
+   * this page has no account, so there is no rider to describe even if the rule
+   * above allowed it.
+   *
+   * It exists because the top of the funnel was the one part of the product
+   * with no measurement at all — every event in this file needs a rider, and
+   * this page's whole job is to produce one. Which of the two no-sign-up peeks
+   * a stranger takes is the question the hero was designed around and nothing
+   * could answer.
+   */
+  landingCta: 'landing_cta',
+  /**
    * A rider took the one action an empty screen offers — "Find a trick" on a
    * dashboard with nothing landed, "Invite a mate" on an empty crew. Carries
    * which screen and which action, both catalogue facts. This is the first
