@@ -365,9 +365,35 @@
   margin: 7px 0 0;
 }
 
-.profileActions {
+/*
+ * The panel's title row, and the one line that reports what the panel just did.
+ * There is no Save button under this form any more, so this is the whole of the
+ * feedback: it sits at the top because the controls a rider reaches for most —
+ * the picture and the sports — are the ones beside it.
+ */
+.profileHead {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.profileStatus {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  /* Holds its height when empty, so a save does not shunt the panel. */
+  min-height: 24px;
+}
+
+/*
+ * An answer that is not finished yet — not a failure, so not `--red`. The rider
+ * has cleared their goal or not typed one; the panel is telling them what it is
+ * waiting for, not reporting that something went wrong.
+ */
+.profileBlocked {
+  color: var(--ink);
+  font-size: 13.5px;
 }

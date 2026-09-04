@@ -2670,9 +2670,19 @@ reported.
 - **It folds into `/account`, above the privacy panel**, rather than taking a route of its own. The
   privacy control is already a profile setting on that screen, and two settings screens is one more
   than a rider should have to find. `PrivacyPanel` is untouched.
-- **One form, one Save**, where the prototype writes on every tap. The prototype has no server; here
-  each tap is a round trip, and a half-applied profile — the new sports stored, the goal that
-  depended on them not — is a state worth not having.
+- **Every answer saves as it is made, and there is no Save button** — the prototype's behaviour,
+  restored (Rachid, 2026-09-04, in chat). T23 shipped as one form with one Save, reasoning that each
+  tap would be a round trip and that a half-applied profile — the new sports stored, the goal that
+  depended on them not — was a state worth not having. The first reason was worth less than the
+  defect it bought: a rider chose a picture, closed the picker, saw their new avatar in the panel and
+  left, and nothing had been written. The second never needed a button, because `saveProfileAction`
+  writes the whole profile every time — posting the *complete* draft on every change is what makes a
+  half-applied profile unreachable, and deferring the write was never the part doing that work. Two
+  rules replace the button: an **incomplete draft is held, not posted** (checked with the same
+  `profileChoiceProblem` the server re-runs, so what is stored survives an unfinished answer), and a
+  **failed write stays pending** behind a "Try again", because there is no longer a button to press.
+  `PrivacyPanel` keeps its Save deliberately: who can see a child changes when a rider says so, not
+  when a finger lands on a list while scrolling.
 - **Turning a sport off hides, it does not delete.** `sports` decides which libraries, stickers and
   challenges a rider is shown; their `trick_progress` rows are untouched and all of it comes back
   when they turn it on again. The copy on the panel says so, because a rider who thinks it deletes

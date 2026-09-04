@@ -154,6 +154,13 @@ export const ANALYTICS_EVENTS = {
   passwordResetRequested: 'password_reset_requested',
   passwordResetCompleted: 'password_reset_completed',
   verificationResent: 'verification_resent',
+  /**
+   * A profile answer was stored. The panel autosaves, so this fires once per
+   * control a write covered — `field` is one of `avatar`, `sports`, `goal`,
+   * `goal_text`, `stance`, `level`, and `outcome` is `saved` or `failed`.
+   * The name of the control only: never the goal a rider wrote, never which
+   * picture or which sports they chose.
+   */
   profileSaved: 'profile_saved',
   /** A privacy toggle moved. Carries which setting and its new value. */
   privacySet: 'privacy_set',
