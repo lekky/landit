@@ -123,9 +123,12 @@ test('a rookie is told what their plan covers, without being leant on', async ({
   await page.goto('/library');
 
   await expect(page.getByText('You’re on Rookie')).toBeVisible();
-  await expect(
-    page.getByText(`The ${TIERS_LABEL[2]}, ${TIERS_LABEL[3]} and ${TIERS_LABEL[4]}`),
-  ).toBeVisible();
+  // Not a tier list any more: the free tier is a hand-picked ten per sport,
+  // not everything below a line (issue #286, `PLANS` in `@landit/core`). What
+  // the banner owes a rider is the shape of what they have and where the rest
+  // is, and this asserts both halves of that sentence.
+  await expect(page.getByText('Ten hand-picked tricks in every sport are yours')).toBeVisible();
+  await expect(page.getByText('The rest of the library opens up on Shredder')).toBeVisible();
 
   // Plan §6.4, standard 13: no loss framing, no countdown, nothing that reads
   // as a squeeze. A copy edit that adds one has to fail here.
@@ -140,11 +143,12 @@ test('a rookie opening a paid trick gets the lock, not the trick', async ({ page
   await page.goto(`/library/${lockedTrick.id}`);
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText(lockedTrick.name);
-  await expect(
-    page.getByText(`${TIERS_LABEL[lockedTrick.diff - 1]} tier is on Shredder`),
-  ).toBeVisible();
+  // "This one", not "{tier} tier": a locked trick's tier says nothing about
+  // whether its neighbours are locked, because the free tier is a spread and
+  // not a line (issue #286).
+  await expect(page.getByText('This one is on Shredder')).toBeVisible();
 
-  // The tier is what is behind the paywall, so none of it is on the page: not
+  // The trick is what is behind the paywall, so none of it is on the page: not
   // the lowdown, not the tips, and not a stage picker to write with.
   const body = await page.locator('body').innerText();
   expect(body).not.toContain(lockedTrick.about.slice(0, 40));
