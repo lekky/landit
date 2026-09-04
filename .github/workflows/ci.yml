@@ -114,7 +114,9 @@ jobs:
           # including the holding page, so a body-text match cannot tell the two
           # apart — which is exactly how the first version of this check went
           # green against the wrong page.
-          curl -s http://localhost:3000/ | grep -q 'Every trick you can do, proven' || {
+          # The string tracks `metadata.title` in `apps/web/src/app/page.tsx`;
+          # it changed with the landing rebuild and this moved with it.
+          curl -s http://localhost:3000/ | grep -q 'Track your progress and land the trick' || {
             echo "::error::200, but that is not the landing page"
             docker logs landit-web-ci; exit 1;
           }

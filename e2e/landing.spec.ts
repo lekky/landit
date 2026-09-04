@@ -19,7 +19,12 @@ test('the hero renders, headline through to the footer', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Track your progress and');
   // The wordmark is the second half of that sentence, so it carries alt text
   // rather than being decorative.
-  await expect(page.getByAltText('land the trick')).toBeVisible();
+  //
+  // `exact` matters: the mark appears three times on this page — top bar, hero
+  // and footer — and the other two are `Wordmark`, alt "Land The Trick". Without
+  // it this matches all three case-insensitively and fails on strict mode. The
+  // lower-case alt is what makes the hero's the one that reads as a sentence.
+  await expect(page.getByAltText('land the trick', { exact: true })).toBeVisible();
 
   await expect(page.getByRole('contentinfo')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Privacy policy' })).toBeVisible();
@@ -87,6 +92,10 @@ test('the season grid shows real tricks, and a sticker only on a landed one', as
 
 test('the FAQ quotes the price the product actually charges', async ({ page }) => {
   await page.goto('/');
+
+  // Both prices live in the fourth FAQ answer, and only the first row is open on
+  // load — a closed `<details>` is `hidden`, so this has to open it first.
+  await page.getByText('What do the paid plans add?').click();
 
   // Derived from `PLANS`, not typed into the page — so a price change in one
   // place cannot leave the marketing copy quoting the old one at a customer.
