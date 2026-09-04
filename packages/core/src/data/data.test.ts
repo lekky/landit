@@ -15,6 +15,7 @@ import { STICKERS } from './stickers';
 import { TRICKS, TRICK_PREREQS } from './tricks';
 import { STICKER_RULES, resolveStickerRule } from '../rules/stickers';
 import { challengesOverlap } from '../rules/challenges';
+import { isTrickFree } from '../rules/tricks';
 import type { Plan, Spot, Sticker } from '../types';
 
 /**
@@ -298,6 +299,98 @@ describe('plans (implementation plan §2.4)', () => {
     for (const plan of PLANS) {
       if (plan.id === 'rookie') continue; // The free plan may mention the wall.
       for (const perk of plan.perks) expect(perk).not.toMatch(forbidden);
+    }
+  });
+
+  /*
+   * The four tests below pin the 2026-09-04 card rewrite (issue #286). They are
+   * here for the reason `e2e/legal.spec.ts` pins the legal rewrite: none of
+   * these sentences fails a build on its own, and every one of them was false
+   * on a live paid page for months before anybody checked it against the
+   * library (LESSONS §3a, "copy decisions get tests, or they get quietly
+   * reverted").
+   */
+
+  const everyLine = (plan: Plan): readonly string[] => [...plan.perks, ...plan.missing, plan.pitch];
+
+  it('describes the paywall as a spread, never as a tier line (issue #286)', () => {
+    // The free tier is a hand-picked ten per sport, not "everything up to
+    // Easy": four BMX difficulty-2 tricks are paid, and every sport has free
+    // tricks above Easy. So a card that names a tier as the boundary is false
+    // in one direction or the other, whichever side it is written from.
+    //
+    // Named phrasings rather than a clever regex, because the tier labels
+    // collide with words the cards legitimately use — `Rookie` is also a plan
+    // name ("Everything in Rookie"), `Easy` and `Pro` are also ordinary
+    // adjectives. A pattern loose enough to catch the untruth catches those
+    // too, and a test that has to be argued with gets deleted.
+    const tierLine = TIERS_LABEL.join('|');
+    const retired: readonly [string, RegExp][] = [
+      [
+        'a tier named as the boundary',
+        new RegExp(`\\b(${tierLine})\\b[^.]{0,20}\\btiers?\\b`, 'i'),
+      ],
+      [
+        'a tier named as the boundary',
+        new RegExp(`\\btiers?\\b[^.]{0,20}\\b(${tierLine})\\b`, 'i'),
+      ],
+      ['"up to the … tier"', /\bup to the\b/i],
+      ['"every Rookie and Easy trick"', new RegExp(`every (${tierLine}) and (${tierLine})`, 'i')],
+      [
+        'the paid tiers enumerated',
+        new RegExp(`(${tierLine}), (${tierLine}) and (${tierLine})`, 'i'),
+      ],
+    ];
+    for (const plan of allPlans) {
+      for (const line of everyLine(plan)) {
+        for (const [why, pattern] of retired) {
+          expect(line, `${plan.id}: ${why}`).not.toMatch(pattern);
+        }
+      }
+    }
+  });
+
+  it('never names a proper subset of the sports (issue #286)', () => {
+    // "Scooter and skateboard libraries" and "Every trick, both sports" were
+    // live on /plans for the whole of BMX's life. A card may name all three
+    // sports or none; naming some of them tells a BMX rider the product is not
+    // for them. Counted off SPORT_IDS so a fourth sport fails this too.
+    for (const plan of allPlans) {
+      for (const line of everyLine(plan)) {
+        const named = SPORT_IDS.filter((id) =>
+          new RegExp(`\\b${SPORTS[id].label}\\b`, 'i').test(line),
+        );
+        expect(named.length === 0 || named.length === SPORT_IDS.length).toBe(true);
+        expect(line).not.toMatch(/\bboth (sports|libraries)\b/i);
+      }
+    }
+  });
+
+  it('promises exactly the number of free tricks the library actually holds', () => {
+    // The one number the cards are allowed to quote, and this is what makes it
+    // allowed (issue #10): it is per-sport, deliberate and asserted, so it
+    // cannot drift the way a library count would. If `tricks.ts` moves off ten
+    // in any sport, the copy is what needs rewriting — not this test.
+    const FREE_PER_SPORT = 10;
+    for (const id of SPORT_IDS) {
+      const free = TRICKS.filter((t) => t.sport === id && isTrickFree(t));
+      expect(free, `free tricks in ${id}`).toHaveLength(FREE_PER_SPORT);
+    }
+
+    const claim = PLAN.rookie.perks.filter((p) => /\bten\b/i.test(p));
+    expect(claim).toHaveLength(1);
+    expect(PLAN.rookie.pitch).toMatch(/\bten\b/i);
+  });
+
+  it('sells no avatar, because no avatar is gated on a plan', () => {
+    // "Exclusive avatar drops" was a Legend perk until 2026-09-04 and nothing
+    // in the product ever implemented it: AVATARS carries no plan field and no
+    // caller filters by one, so every rider sees all of them. If exclusive
+    // avatars are ever built, this test is the thing that says the copy may
+    // come back.
+    for (const avatar of AVATARS) expect(avatar).not.toHaveProperty('plan');
+    for (const plan of allPlans) {
+      for (const line of everyLine(plan)) expect(line).not.toMatch(/avatar/i);
     }
   });
 });

@@ -350,7 +350,13 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         h: 'How we make money',
         p: [
           'Subscriptions, and eventually posted sticker packs. Not advertising, and not by selling data about children.',
-          'The free tier is a real one. It covers every library up to the Easy tier and it does not expire.',
+          // Not "up to the Easy tier": the free tier has never been a tier
+          // boundary and stopped even approximating one on 2026-09-04, when it
+          // became a hand-picked spread of ten tricks per sport reaching past
+          // the easy end (`PLANS` in `@landit/core`, issue #286). A published
+          // document is the worst place for a claim about what is free to be
+          // stale, so it says the shape rather than a boundary.
+          'The free tier is a real one. It covers ten hand-picked tricks in every sport, easy ones and hard ones, and it does not expire.',
         ],
       },
       {
