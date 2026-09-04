@@ -8,6 +8,7 @@ import { listSpots } from '@landit/db';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
+import { ROUTES } from '@/lib/routes';
 import { anonymousClient, currentRider } from '@/lib/session';
 
 import { SpotsScreen, type SpotView } from './SpotsScreen';
@@ -15,6 +16,7 @@ import { SpotsScreen, type SpotView } from './SpotsScreen';
 export const metadata: Metadata = {
   title: 'Spots · Land The Trick',
   description: 'Parks, street spots and bowls riders have put on the map.',
+  alternates: { canonical: ROUTES.spots },
 };
 
 /**

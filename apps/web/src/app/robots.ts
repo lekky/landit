@@ -1,3 +1,4 @@
+import { SITE_URL } from '@landit/core';
 import type { MetadataRoute } from 'next';
 
 import { isLiveFromEnv } from '@/lib/siteLive';
@@ -16,10 +17,14 @@ import { isLiveFromEnv } from '@/lib/siteLive';
  *   its own as well, because `robots.txt` asks a crawler not to *fetch* a page
  *   and a `noindex` tag tells it not to *list* one, and a URL that is only
  *   disallowed can still turn up in results on the strength of inbound links.
- * - **Gate open** — allow everything, which is exactly what no `robots.txt` at
- *   all already meant. Going live changes nothing here, deliberately: a real
- *   crawl policy and a sitemap are their own piece of work, not something to
- *   smuggle in behind a launch flag.
+ * - **Gate open** — allow everything, and say where the sitemap is.
+ *
+ * The sitemap line is the half that was missing. `robots.txt` is the first file
+ * a crawler asks for and the only one it is guaranteed to look at, so a sitemap
+ * nothing points at is a sitemap most crawlers never fetch. It is only offered
+ * once the gate is open, because behind the gate everything is disallowed and
+ * `sitemap.ts` answers empty — advertising it there would be the two files
+ * contradicting each other.
  */
 
 /*
@@ -36,5 +41,8 @@ export default function robots(): MetadataRoute.Robots {
     return { rules: { userAgent: '*', disallow: '/' } };
   }
 
-  return { rules: { userAgent: '*', allow: '/' } };
+  return {
+    rules: { userAgent: '*', allow: '/' },
+    sitemap: `${SITE_URL}/sitemap.xml`,
+  };
 }

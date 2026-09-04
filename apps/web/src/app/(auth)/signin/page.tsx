@@ -12,6 +12,7 @@ import { SignInForm } from './SignInForm';
 export const metadata: Metadata = {
   title: 'Sign in · Land The Trick',
   description: 'Pick up where you left off.',
+  alternates: { canonical: ROUTES.signIn },
 };
 
 /**

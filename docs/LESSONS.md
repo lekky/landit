@@ -328,6 +328,17 @@ The reverse duty holds too, and it is cheaper: **when you ship a feature in a di
 its surface does not exist yet, say in the comment which task will make it live** — T18's did, which
 is exactly why the search for it took a minute rather than an afternoon.
 
+**The preview pane's dev server serves the root checkout, not your worktree.** `preview_start`
+reads `.claude/launch.json`, which lives in the primary working directory, so the server it starts
+runs from `C:/Users/rotsm/Claude/landit` — `main` — however deep in a worktree the session is. The
+SEO session (2026-09-04) started it, fetched the two routes it had just written, got 404 on both,
+and spent a minute treating that as its own bug. It was `main` answering, correctly, that those
+routes do not exist there. The tell is a 404 on something the build you just ran clearly listed.
+Start the server from the worktree yourself, on a port nothing else holds, and point the pane at
+the URL. This is issue #267's hazard wearing a different hat: **anything that defaults to port 3000
+or to the repo root is testing somebody else's checkout.** Check the ports are free before you
+start, so a green result cannot be another session's.
+
 ## 2. Gates, merging and cleanup
 
 **Gate on exit codes, never on piped output.** A `| tail` or `| tee` returns the pipe's status,
@@ -662,6 +673,26 @@ browser's console error (it never happens headless). The reason is worth knowing
 created** — the entire failure path this bug lives on does not exist in e2e. The test that shipped
 covers what it can, and says in its own comment what it cannot, so the next person does not read
 green as proof the map draws. A blank basemap has to be caught by eye.
+
+**Do not attribute a flaky failure to your change until you have reproduced it on `main`.** The
+SEO session made the library's trick cards `<a href>` links, and three `stickers.spec.ts` tests
+failed. Reverting one file made them pass, and it declared the cause confirmed — on a single run of
+each. Re-running told a different story every time: three failures, then one, then none. Only
+stashing the whole change and running the **full** suite on `main` settled it, and that showed one
+sporadic failure per run either way, on different tests (issue #165). The change had in fact broken
+`stickers.spec.ts` — reproduced 3/3 and fixed — and had nothing to do with `profile.spec.ts` or
+`offline.spec.ts`, which is not what one comparison run suggested. **A single passing run is not a
+baseline.** When a suite is flaky, the only honest comparison is the same command, the same scope,
+run more than once, on both trees.
+
+**A control that is visible is not yet a control that works, and changing how a page is reached can
+expose that.** Those same failures had one real cause: a `<button>` that navigates swallows a press
+made before hydration, so the spec could not move on until React was live; a real `<a href>` does a
+document navigation, and the destination arrives freshly server-rendered with its own hydration to
+do. The race was always there — the buttons were hiding it. `spots.spec.ts` had already named this
+exact thing in `whenInteractive` ("a press that used to land after hydration by luck"), which is the
+argument for **reading the specs near yours before deciding a failure is novel**: the fix was
+already written down, one file away.
 
 **A test that can skip is not a guarantee.** The PocketBase tests need a binary CI must download;
 CI caches it keyed on `pocketbase.version` and the suite is required, so the guarantees run on
