@@ -8,19 +8,20 @@ import {
   SPORT_IDS,
   STANCES,
   goalsFor,
+  profileChoiceProblem,
   type LevelId,
   type SportId,
   type StanceId,
 } from '@landit/core';
-import { Avatar, avatarById, Button, Equipment, foregroundFor, Panel } from '@landit/ui-web';
-import { useActionState, useState } from 'react';
+import { Avatar, Button, Equipment, Panel, avatarById } from '@landit/ui-web';
+import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
 
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { SPORT_LOOKS, countWord } from '@/lib/sports';
 
-import { saveProfileAction, type ProfileFormState } from './actions';
+import { saveProfileAction } from './actions';
 
-import { ANALYTICS_EVENTS, capture, useFailureCapture } from '@/lib/analyticsClient';
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 
 import styles from './account.module.css';
 
@@ -35,18 +36,94 @@ import styles from './account.module.css';
  * the screen that already holds the privacy control rather than given a route
  * of their own.
  *
- * **One form, one Save**, where the prototype saved on every tap. The prototype
- * has no server; here each tap would be a round trip, and a half-applied
- * profile — new sports stored, the goal that depended on them not — is a state
- * worth not having. It also reads consistently with the privacy control
- * directly below, which posts rather than saving onChange for its own and
- * stronger reason.
+ * **Every answer saves as it is made**, which is the prototype's behaviour and,
+ * on reflection, the owner's (Rachid, 2026-09-04, in chat). This panel shipped
+ * with one form and one Save button, reasoning that a tap-per-round-trip was
+ * expensive and that a half-applied profile — new sports stored, the goal that
+ * depended on them not — was a state worth not having. The first half was worth
+ * less than the defect it bought: a rider opened the picker, chose a face,
+ * closed it, saw their new avatar sitting in the panel and left, and nothing
+ * had been written. The second half never needed a button, because
+ * `saveProfileAction` writes the whole profile every time. Posting the
+ * *complete* draft on every change is what makes a half-applied profile
+ * unreachable — deferring the write was never the part doing that work.
  *
- * Every picker is a button over hidden state rather than a radio, because two
- * of the five are clearable by tapping the chosen answer again (stance, per the
- * prototype) and one is a multi-select with a floor of one (sports). The form
- * posts the hidden inputs, and `saveProfileAction` re-checks all of it.
+ * Two rules follow from having no button:
+ *
+ * 1. **An incomplete draft is never posted.** `profileChoiceProblem` — the same
+ *    function the server re-runs, and the one onboarding uses — is checked here
+ *    first, and a draft that fails it is held rather than sent. Tapping
+ *    "Something else" before typing a goal is not an error a rider should be
+ *    shouted at for; it is an answer they have not finished. So the panel says
+ *    what is missing and writes nothing, leaving whatever is stored intact
+ *    until there is a complete answer to replace it with.
+ * 2. **A failed write has to be recoverable**, because there is no longer a
+ *    button to press again. The draft stays pending on failure, and "Try again"
+ *    re-posts it.
+ *
+ * Every picker is a button over local state rather than a radio, because two of
+ * the five are clearable by tapping the chosen answer again (stance, per the
+ * prototype) and one is a multi-select with a floor of one (sports).
+ *
+ * The privacy control below deliberately keeps its button. That one is not a
+ * preference but a setting about who can see a child, and it changes when a
+ * rider says so rather than when a finger lands on a list while scrolling.
  */
+
+/**
+ * The six answers this panel owns, held as one value.
+ *
+ * Six `useState` calls would mean building each save out of five stale closure
+ * variables and one fresh one. One value means a save posts exactly the draft
+ * the rider just produced.
+ */
+interface Draft {
+  sports: SportId[];
+  level: LevelId | null;
+  goal: string | null;
+  custom: string;
+  stance: StanceId | null;
+  avatarKey: string | null;
+}
+
+/**
+ * Which control a rider touched, for the counter.
+ *
+ * These are catalogue facts — the name of a control, never the value chosen in
+ * it, and `goal_text` never carries a word of what was typed.
+ */
+type Field = 'avatar' | 'sports' | 'goal' | 'goal_text' | 'stance' | 'level';
+
+type Status =
+  | { kind: 'idle' }
+  | { kind: 'saving' }
+  | { kind: 'saved' }
+  /** The write was attempted and failed. Recoverable, so it offers a retry. */
+  | { kind: 'error'; message: string }
+  /** Not written, because it is not yet a complete answer. Not a failure. */
+  | { kind: 'blocked'; message: string };
+
+/**
+ * How long a typed goal sits still before it is written.
+ *
+ * Only the free-text field is debounced. Taps post immediately, so a rider who
+ * picks a picture and closes the tab has it saved; the ordering guard below is
+ * what makes a burst of taps safe, rather than a delay in front of every one.
+ */
+const TYPING_DELAY = 700;
+
+/** What `saveProfileAction` reads: the whole profile, every time. */
+function formDataFor(draft: Draft): FormData {
+  const form = new FormData();
+  for (const sport of draft.sports) form.append('sports', sport);
+  form.set('level', draft.level ?? '');
+  form.set('goal', draft.goal ?? '');
+  form.set('goal_custom', draft.custom);
+  form.set('stance', draft.stance ?? '');
+  form.set('avatar_key', draft.avatarKey ?? '');
+  return form;
+}
+
 export function ProfilePanel({
   name,
   sports: savedSports,
@@ -64,78 +141,187 @@ export function ProfilePanel({
   stance: StanceId | null;
   avatarKey: string | null;
 }) {
-  const [state, save, saving] = useActionState<ProfileFormState | undefined, FormData>(
-    saveProfileAction,
-    undefined,
-  );
-
-  useFailureCapture(ANALYTICS_EVENTS.profileSaved, state?.error);
-
-  const [sports, setSports] = useState<SportId[]>([...savedSports]);
-  const [level, setLevel] = useState<LevelId | null>(savedLevel);
-  const [goal, setGoal] = useState<string | null>(savedGoal);
-  const [custom, setCustom] = useState(savedGoalCustom);
-  const [stance, setStance] = useState<StanceId | null>(savedStance);
-  const [avatarKey, setAvatarKey] = useState<string | null>(savedAvatarKey);
+  const [draft, setDraft] = useState<Draft>(() => ({
+    sports: [...savedSports],
+    level: savedLevel,
+    goal: savedGoal,
+    custom: savedGoalCustom,
+    stance: savedStance,
+    avatarKey: savedAvatarKey,
+  }));
+  const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [picking, setPicking] = useState(false);
 
-  const goals = goalsFor(sports);
+  /**
+   * The newest draft not yet safely stored, and which controls produced it.
+   *
+   * It survives a failed write so "Try again" has something to send, and it
+   * survives a blocked one so that finishing the answer writes the whole
+   * change — the sport toggle *and* the goal it forced, in a single post.
+   */
+  const pending = useRef<{ draft: Draft; fields: Set<Field> } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Every write takes a ticket, and only the newest one's answer is allowed to
+   * land. Two taps can be in flight at once and come back in either order;
+   * without this, the older reply would get to set the line the rider reads.
+   */
+  const issued = useRef(0);
+
+  const flush = useCallback(() => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    const job = pending.current;
+    if (!job) return;
+
+    // Rule 1: an incomplete answer is held, not posted. This is the function
+    // the server re-runs, so what is refused here is what it would refuse.
+    const problem = profileChoiceProblem({
+      sports: job.draft.sports,
+      level: job.draft.level,
+      goal: job.draft.goal,
+      goalCustom: job.draft.custom,
+      stance: job.draft.stance,
+      avatarKey: job.draft.avatarKey,
+    });
+    if (problem) {
+      setStatus({ kind: 'blocked', message: problem });
+      return;
+    }
+
+    const ticket = ++issued.current;
+    setStatus({ kind: 'saving' });
+
+    /*
+     * A Server Function reached from an event handler rather than a `<form
+     * action>` has to be wrapped in a transition — that is what a form prop
+     * does for you, and it is how the router receives the payload
+     * `revalidatePath` produces (`next/dist/docs/01-app/01-getting-started/
+     * 07-mutating-data.md`). Without it the write lands and the rest of the
+     * page keeps rendering the profile it had.
+     */
+    startTransition(async () => {
+      const result = await saveProfileAction(undefined, formDataFor(job.draft));
+
+      // A later change is already on its way; its answer is the true one.
+      if (ticket !== issued.current) return;
+
+      // One event per control the write covered, so the field breakdown adds
+      // up to the number of saves rather than under-counting a coalesced one.
+      for (const field of job.fields) {
+        capture(ANALYTICS_EVENTS.profileSaved, {
+          field,
+          outcome: result?.error ? 'failed' : 'saved',
+        });
+      }
+
+      if (result?.error) {
+        // Rule 2: leave it pending, so "Try again" has the draft to re-post.
+        setStatus({ kind: 'error', message: result.error });
+        return;
+      }
+      // Clear only what this write actually stored. Anything the rider changed
+      // while it was in flight is a newer job, with a timer of its own.
+      if (pending.current === job) pending.current = null;
+      setStatus({ kind: 'saved' });
+    });
+  }, []);
+
+  const change = useCallback(
+    (next: Draft, field: Field, delay = 0) => {
+      setDraft(next);
+      const fields = new Set<Field>(pending.current?.fields);
+      fields.add(field);
+      pending.current = { draft: next, fields };
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => flush(), delay);
+    },
+    [flush],
+  );
+
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
+
+  const goals = goalsFor(draft.sports);
 
   /**
    * Turning a sport off takes a goal that belonged to it.
    *
    * "Land a kickflip" is a skate goal, and a rider who has just turned skate off
-   * would otherwise be looking at a selected goal the page no longer offers,
-   * then be told to pick one by an error after saving. It is cleared here, in
-   * the browser, on a change the rider just made — the server keeps whatever is
-   * already stored (`profileChoiceProblem` does not narrow goals by sport), so
-   * merely opening this screen loses nobody their goal.
+   * would otherwise be looking at a selected goal the page no longer offers. It
+   * is cleared here, in the browser, on a change the rider just made — which
+   * leaves the draft incomplete, so the sport change is held alongside it until
+   * they pick a new goal and both are written together. The server keeps
+   * whatever is already stored in the meantime, so merely opening this screen
+   * and changing your mind loses nobody their goal.
    */
   function toggleSport(id: SportId) {
-    const next = sports.includes(id) ? sports.filter((s) => s !== id) : [...sports, id];
+    const next = draft.sports.includes(id)
+      ? draft.sports.filter((s) => s !== id)
+      : [...draft.sports, id];
     // Never empty: every screen in the product is scoped to what a rider rides,
     // so no sports is a product with nothing in it. The button is disabled too;
     // this is the half that does not depend on the button.
     if (!next.length) return;
-    setSports(next);
-    if (goal && goal !== CUSTOM_GOAL_ID && !goalsFor(next).some((g) => g.id === goal)) {
-      setGoal(null);
-    }
+    const orphaned = Boolean(
+      draft.goal &&
+      draft.goal !== CUSTOM_GOAL_ID &&
+      !goalsFor(next).some((g) => g.id === draft.goal),
+    );
+    change({ ...draft, sports: next, goal: orphaned ? null : draft.goal }, 'sports');
   }
 
   return (
     <Panel flat className={styles.profile}>
-      <div className="lab">Your profile</div>
+      <div className={styles.profileHead}>
+        <div className="lab">Your profile</div>
+        {/*
+          The one place the panel reports itself. It is announced as well as
+          shown, because with no Save button the rider's own tap is the whole of
+          their evidence, and this panel is taller than a phone — the control
+          they touched is often nowhere near this line.
+        */}
+        <div className={styles.profileStatus} aria-live="polite">
+          {status.kind === 'saving' ? <span className="lab">Saving…</span> : null}
+          {status.kind === 'saved' ? (
+            <span className={`lab ${styles.privacySaved}`}>Saved</span>
+          ) : null}
+          {status.kind === 'blocked' ? (
+            <span className={styles.profileBlocked}>{status.message}</span>
+          ) : null}
+          {status.kind === 'error' ? (
+            <>
+              <span className={styles.privacyError}>{status.message}</span>
+              <button type="button" className="btn sm" onClick={() => flush()}>
+                Try again
+              </button>
+            </>
+          ) : null}
+        </div>
+      </div>
       <p className={styles.profileLede}>
-        What you told us when you signed up. Change any of it whenever you like — nothing you have
-        already tracked is affected.
+        What you told us when you signed up. Change any of it whenever you like — it saves as you
+        go, and nothing you have already tracked is affected.
       </p>
 
-      <form
-        action={save}
-        className={styles.profileForm}
-        onSubmit={() => capture(ANALYTICS_EVENTS.profileSaved, { outcome: 'attempted' })}
-      >
-        {/* What the pickers above actually post. */}
-        <input type="hidden" name="avatar_key" value={avatarKey ?? ''} />
-        <input type="hidden" name="level" value={level ?? ''} />
-        <input type="hidden" name="goal" value={goal ?? ''} />
-        <input type="hidden" name="stance" value={stance ?? ''} />
-        {sports.map((sport) => (
-          <input key={sport} type="hidden" name="sports" value={sport} />
-        ))}
-
+      <div className={styles.profileForm}>
         {/* ------------------------------------------------------- picture -- */}
         <div className={styles.avatarRow}>
-          <Avatar avatarId={avatarKey} name={name} size={60} ringWidth={3} />
+          <Avatar avatarId={draft.avatarKey} name={name} size={60} ringWidth={3} />
           <div className={styles.avatarText}>
             <div className="lab">Your picture</div>
             <p className={styles.subtle}>
-              {avatarById(avatarKey)?.name ?? 'Your initial, until you pick one'}
+              {avatarById(draft.avatarKey)?.name ?? 'Your initial, until you pick one'}
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setPicking(true)}>
-            {avatarKey ? 'Change picture' : 'Choose a picture'}
+            {draft.avatarKey ? 'Change picture' : 'Choose a picture'}
           </Button>
         </div>
 
@@ -144,8 +330,8 @@ export function ProfilePanel({
           <div className={styles.groupHead}>
             <span className="lab">What you ride</span>
             <span className={`lab ${styles.groupAside}`}>
-              {sports.length > 1
-                ? `${countWord(sports.length)} libraries on, every page tabbed`
+              {draft.sports.length > 1
+                ? `${countWord(draft.sports.length)} libraries on, every page tabbed`
                 : 'One library'}
             </span>
           </div>
@@ -156,8 +342,8 @@ export function ProfilePanel({
           <div className={styles.sportPicks}>
             {SPORT_IDS.map((id) => {
               const sport = SPORTS[id];
-              const on = sports.includes(id);
-              const only = on && sports.length === 1;
+              const on = draft.sports.includes(id);
+              const only = on && draft.sports.length === 1;
               return (
                 <button
                   key={id}
@@ -169,7 +355,7 @@ export function ProfilePanel({
                   className={`panel flat ${styles.sportPick}`}
                   style={{
                     background: on ? sport.color : 'var(--paper)',
-                    color: on ? (foregroundFor(sport.color) ?? 'var(--on-dark)') : 'var(--ink)',
+                    color: on ? '#fff' : 'var(--ink)',
                   }}
                 >
                   <span
@@ -206,15 +392,11 @@ export function ProfilePanel({
                   key={option.id}
                   type="button"
                   className="pill"
-                  aria-pressed={goal === option.id}
-                  onClick={() => setGoal(option.id)}
+                  aria-pressed={draft.goal === option.id}
+                  onClick={() => change({ ...draft, goal: option.id }, 'goal')}
                   style={
-                    goal === option.id
-                      ? {
-                          background: option.hue,
-                          color: foregroundFor(option.hue) ?? 'var(--on-dark)',
-                          boxShadow: '3px 3px 0 var(--ink)',
-                        }
+                    draft.goal === option.id
+                      ? { background: option.hue, color: '#fff', boxShadow: '3px 3px 0 var(--ink)' }
                       : undefined
                   }
                 >
@@ -224,10 +406,10 @@ export function ProfilePanel({
               <button
                 type="button"
                 className="pill"
-                aria-pressed={goal === CUSTOM_GOAL_ID}
-                onClick={() => setGoal(CUSTOM_GOAL_ID)}
+                aria-pressed={draft.goal === CUSTOM_GOAL_ID}
+                onClick={() => change({ ...draft, goal: CUSTOM_GOAL_ID }, 'goal')}
                 style={
-                  goal === CUSTOM_GOAL_ID
+                  draft.goal === CUSTOM_GOAL_ID
                     ? { background: 'var(--ink)', color: 'var(--paper)' }
                     : undefined
                 }
@@ -235,18 +417,23 @@ export function ProfilePanel({
                 + Something else
               </button>
             </div>
-            {goal === CUSTOM_GOAL_ID ? (
+            {draft.goal === CUSTOM_GOAL_ID ? (
               <div className={styles.goalOwn}>
                 <label className="lab" htmlFor="account-goal-custom">
                   Your goal
                 </label>
                 <input
                   id="account-goal-custom"
-                  name="goal_custom"
                   className={styles.goalInput}
-                  value={custom}
+                  value={draft.custom}
                   maxLength={CUSTOM_GOAL_MAX_LENGTH}
-                  onChange={(event) => setCustom(event.target.value)}
+                  onChange={(event) =>
+                    change({ ...draft, custom: event.target.value }, 'goal_text', TYPING_DELAY)
+                  }
+                  // Leaving the field is a rider saying they are done with it,
+                  // and it beats the debounce — so clicking away writes, rather
+                  // than racing a timer the page may not be around to fire.
+                  onBlur={() => flush()}
                   placeholder="Land a bri flip before the summer holidays"
                 />
                 <p className={styles.subtle}>
@@ -268,11 +455,16 @@ export function ProfilePanel({
                   key={option.id}
                   type="button"
                   className="pill"
-                  aria-pressed={stance === option.id}
+                  aria-pressed={draft.stance === option.id}
                   title={option.sub}
-                  onClick={() => setStance(stance === option.id ? null : option.id)}
+                  onClick={() =>
+                    change(
+                      { ...draft, stance: draft.stance === option.id ? null : option.id },
+                      'stance',
+                    )
+                  }
                   style={
-                    stance === option.id
+                    draft.stance === option.id
                       ? { background: 'var(--ink)', color: 'var(--paper)' }
                       : undefined
                   }
@@ -281,9 +473,9 @@ export function ProfilePanel({
                 </button>
               ))}
             </div>
-            {stance ? (
+            {draft.stance ? (
               <p className={`cond ${styles.chosen}`}>
-                {STANCES.find((option) => option.id === stance)?.sub}
+                {STANCES.find((option) => option.id === draft.stance)?.sub}
               </p>
             ) : null}
           </div>
@@ -297,11 +489,11 @@ export function ProfilePanel({
                   key={option.id}
                   type="button"
                   className="pill"
-                  aria-pressed={level === option.id}
+                  aria-pressed={draft.level === option.id}
                   title={option.sub}
-                  onClick={() => setLevel(option.id)}
+                  onClick={() => change({ ...draft, level: option.id }, 'level')}
                   style={
-                    level === option.id
+                    draft.level === option.id
                       ? { background: option.hue, boxShadow: '3px 3px 0 var(--ink)' }
                       : undefined
                   }
@@ -310,28 +502,20 @@ export function ProfilePanel({
                 </button>
               ))}
             </div>
-            {level ? (
+            {draft.level ? (
               <p className={`cond ${styles.chosen}`}>
-                {LEVELS.find((option) => option.id === level)?.sub}
+                {LEVELS.find((option) => option.id === draft.level)?.sub}
               </p>
             ) : null}
           </div>
         </div>
-
-        <div className={styles.profileActions}>
-          <button type="submit" className="btn sm" disabled={saving}>
-            {saving ? 'Saving…' : 'Save changes'}
-          </button>
-          {state?.saved ? <span className={`lab ${styles.privacySaved}`}>Saved</span> : null}
-          {state?.error ? <span className={styles.privacyError}>{state.error}</span> : null}
-        </div>
-      </form>
+      </div>
 
       {picking ? (
         <AvatarPicker
-          value={avatarKey}
+          value={draft.avatarKey}
           name={name}
-          onPick={(id) => setAvatarKey(id)}
+          onPick={(id) => change({ ...draft, avatarKey: id }, 'avatar')}
           onClose={() => setPicking(false)}
         />
       ) : null}
