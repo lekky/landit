@@ -5,7 +5,6 @@ import type { ReactNode } from 'react';
 import '@landit/ui-web/styles.css';
 
 import { sportsList } from '@/lib/sports';
-import { THEME_BOOT_SCRIPT } from '@/lib/theme';
 
 import { fontVariables } from '../fonts';
 
@@ -54,21 +53,19 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    // `fontVariables` defines --font-anton / --font-barlow-condensed /
-    // --font-archivo, which the design system's --fd / --fc / --fb read.
-    // `suppressHydrationWarning` because `THEME_BOOT_SCRIPT` stamps
-    // `data-theme` on this element before React arrives, and React would
-    // otherwise report the attribute it did not render as a mismatch.
-    <html lang="en-GB" className={fontVariables} suppressHydrationWarning>
-      <head>
-        {/*
-          The theme, before first paint (`lib/theme.ts`). Inline so it runs
-          ahead of every stylesheet and script: a rider who chose dark must not
-          see a cream page flash on every load. One key, one attribute, wrapped
-          so it cannot throw.
-        */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
-      </head>
+    /*
+     * `fontVariables` defines --font-anton / --font-barlow-condensed /
+     * --font-archivo, which the design system's --fd / --fc / --fb read.
+     *
+     * There was an inline boot script here until 2026-09-04, stamping
+     * `data-theme` before first paint so a rider who had chosen dark did not
+     * see a cream flash. The product is light-only again (Rachid, in chat), so
+     * there is no attribute to stamp and no flash to prevent — and
+     * `suppressHydrationWarning` went with it, since nothing now writes to this
+     * element before React arrives. If the theme comes back, both return
+     * together; `git revert` of this commit is the whole restoration.
+     */
+    <html lang="en-GB" className={fontVariables}>
       <body>{children}</body>
     </html>
   );

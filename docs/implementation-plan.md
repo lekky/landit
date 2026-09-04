@@ -1391,6 +1391,25 @@ session should not "fix" back to the prototype:
   carrying the colour instead — the coding survives, the word becomes legible. The wider sweep of
   that pattern is issue #279.
 
+> **Reversed on 2026-09-04 (Rachid, in chat): "disable dark mode we're not ready for it yet. only
+> use light mode".** The two token blocks below — the `prefers-color-scheme: dark` query and the
+> `[data-theme='dark']` override — are gone from `tokens.css`, and with them the boot script in the
+> root layout, the Account picker, `lib/theme.ts` and the `theme_changed` event. The product is
+> light-only whatever the device is set to. **The rest of what this divergence bought stays**, and
+> deliberately: `--on-light` / `--on-dark` (text on a *fixed* fill, which `foregroundFor` answers
+> in), the `--ink-soft` / `--ink-mute` / `--ink-rule` / `--ink-raise` greys, `--hatch-a/b`, `--dot`,
+> and the sweep that replaced every colour literal outside `tokens.css` with its token — all of
+> that is right in a light-only product too, and re-introducing a literal now would make the theme
+> harder to bring back, not easier.
+>
+> **This was a behaviour change to `packages/ui-web`, which is additive-only once merged.** The
+> instruction above is the owner's, in chat, on the date given; it cannot be satisfied without
+> editing `tokens.css`, so it is recorded here as what authorised it. Nothing was removed from the
+> package's exported surface — every token name still exists and resolves — so no consumer breaks.
+>
+> The account below is kept rather than deleted because the theme is expected back ("not ready
+> *yet*"), and reverting the disabling commit restores it whole.
+
 **A seventh divergence, 2026-09-01 (Rachid, in chat): a dark theme, on a light-only design pack.**
 Riders use this outdoors at dusk on a phone, and the owner asked for it. The pack draws one theme,
 and `--ink` in it is both the text colour and the surface of some thirty panels — the top bar, the

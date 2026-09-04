@@ -255,12 +255,13 @@ export const ANALYTICS_EVENTS = {
    * whether the empty state did its job.
    */
   emptyStateAction: 'empty_state_action',
-  /**
-   * The theme was changed from Account. Carries the new value —
-   * `light`, `dark` or `system` — and nothing else. The system preference is
-   * never read into an event on its own; only a deliberate choice counts.
+  /*
+   * `theme_changed` was here from 2026-09-01 until 2026-09-04, counting the
+   * Account theme picker. The product is light-only again (Rachid, in chat) and
+   * the picker is gone, so nothing fires it. Removed rather than left in place:
+   * this catalogue is the record of what the product actually measures, and a
+   * name nobody fires is a funnel somebody will one day go looking for.
    */
-  themeChanged: 'theme_changed',
   /** The library's sport / category / tier filters. */
   libraryFiltered: 'library_filtered',
   /**
