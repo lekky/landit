@@ -46,7 +46,19 @@ import styles from '../auth.module.css';
  *   COPPA's verifiable parental consent is a different and much heavier
  *   mechanism than an approval email, and we are not building it at launch.
  */
-export function SignUpForm() {
+export type SignUpFormProps = {
+  /**
+   * The address typed into the landing page's hero field, handed over in a
+   * short-lived httpOnly cookie rather than a query string
+   * (`app/landingActions.ts`). Empty for anyone who arrived any other way.
+   *
+   * `defaultValue`, not `value`: it is a starting point the rider can type
+   * over, and the field stays uncontrolled like every other one here.
+   */
+  defaultEmail?: string;
+};
+
+export function SignUpForm({ defaultEmail = '' }: SignUpFormProps) {
   const [state, action, pending] = useActionState<AuthFormState | undefined, FormData>(
     signUpAction,
     undefined,
@@ -86,7 +98,13 @@ export function SignUpForm() {
 
       <div className="field">
         <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" placeholder="you@example.com" />
+        <input
+          id="email"
+          name="email"
+          type="email"
+          placeholder="you@example.com"
+          defaultValue={defaultEmail}
+        />
         {errors.email ? <span className="err">{errors.email}</span> : null}
       </div>
 

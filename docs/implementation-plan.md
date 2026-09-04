@@ -1416,6 +1416,41 @@ every accent stays put. Three things a later session should know:
   session cannot sign in to a local account, so the top bar, the dashboard, the wall and the
   trick page in the dark were checked as tokens and primitives, not as screens.
 
+**An eighth divergence, 2026-09-04 (Rachid, in chat): the landing page is rebuilt to the "wall"
+pack, and four of its instructions are not followed.** `design_handoff_landing_wall` replaces the
+hero-and-four-panels landing page with a single scroll — wall hero, four step rows, a season grid,
+an FAQ and a CTA band. The pack is recreated closely; these five departures are deliberate and each
+was a decision rather than a slip:
+
+- **The FAQ does not promise vinyl stickers in the post.** The pack's fourth answer had Legend
+  "posts your earned stickers out as real vinyl". `PLANS` carries no such perk and issue #181
+  records that the product does not do it, so the clause is dropped — a claim about what money buys
+  does not go on a live page with a live checkout behind it. `e2e/landing.spec.ts` asserts the words
+  stay off the page, because the pack's wording is one paste away from returning.
+- **Prices are read from `PLANS`, not typed.** The pack fixes £3.99 and £6.99 in the copy. The page
+  derives both from `priceMonthlyPence`, so the marketing copy cannot quote a customer a price the
+  checkout has stopped charging. (GBP-only remains issue #170's problem, not this page's.)
+- **"What's on" is ink on pink, not white on pink.** Measured, the pack's white is 3.83:1 — under AA
+  for the 11px sub-label — and ink on the same pink is 4.87:1. This is the sixth divergence's rule
+  run again, and `foregroundFor` gives the same answer. The `opacity: .8` the pack puts on that
+  sub-label goes with it, for the 0.8 of a ratio it was spending on a hierarchy the type sizes
+  already carry.
+- **The season grid is labelled sample data.** The pack asks for a real rider's tracked tricks, and
+  allows clearly-labelled sample instead; the owner picked the label. Names, stages, colours and
+  badges are all real — resolved from `TRICKS`, `STAGES` and `AWARDS` by id, never hand-picked — but
+  no rider's data is on the page and there is no database read on it. A badge appears only where the
+  trick is at a stage `LANDED_STAGES` counts, so the grid cannot show a sticker for something
+  nobody landed. `lib/landingSeason.ts`, with tests.
+- **The hero's email field hands over in a cookie, never a query string.** Sign-up needs four more
+  fields than the hero collects, so the field is a shortcut into `/signup`, not a second way to make
+  an account. The address travels in a ten-minute httpOnly `sameSite=strict` cookie
+  (`lib/signupHandoff.ts`) because `?email=` would put a child's address in their history, in a
+  referrer and in any log that records paths. `signUpAction` deletes it once used.
+
+The page is dark-theme-aware, which the pack could not be: everything below the hero is written in
+tokens and inverts, while the hero is a genuinely fixed dark surface and therefore declares its own
+locals rather than borrowing `--ink-soft`, which would flip and disappear into it.
+
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
 to test — that is where the three-sport switch is proved against a 375px phone before `SPORT_IDS`

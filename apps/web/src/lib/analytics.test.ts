@@ -227,6 +227,10 @@ describe('the event catalogue', () => {
         'guardian_asked',
         'insights_set',
         'invite_minted',
+        // The signed-out landing page's calls to action. The only event in the
+        // catalogue fired by somebody who has no account, which is the whole
+        // reason for it: everything else here needs a rider to already exist.
+        'landing_cta',
         'library_filtered',
         'nav_clicked',
         'nearby_sort_used',
