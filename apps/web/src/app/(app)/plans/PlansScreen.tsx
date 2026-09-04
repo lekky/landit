@@ -34,6 +34,13 @@ import styles from './plans.module.css';
  * pricing decision the owner reserved, and it is filed as an issue. So these
  * cards are currently accurate and thin, which is the right way round.
  *
+ * **They were not accurate, though, until 2026-09-04.** Every card described
+ * the paywall as a tier line ("up to the Easy tier", "unlocks the Spicy,
+ * Gnarly and Pro tiers") when it has never been one, and two of them still
+ * named two sports on a three-sport product (issue #286). The lede and the
+ * FAQ answer below were part of that and were rewritten with the cards;
+ * `PLANS` in `@landit/core` carries the reasoning and the tests that pin it.
+ *
  * **The FAQ is a rewrite, not a transcription**, for the reason T5's legal
  * pages were: two of the prototype's four answers sell Crew Pass and one
  * promises vinyl stickers through the letterbox, which nobody has decided to
@@ -58,7 +65,7 @@ const FAQ: readonly { readonly q: string; readonly a: string }[] = [
   },
   {
     q: 'Do stickers come faster on a paid plan?',
-    a: 'No. Stickers and stages are earned by riding, on every plan, and none of them is ever for sale. Paying opens the harder tricks and the progress insights.',
+    a: 'No. Stickers and stages are earned by riding, on every plan, and none of them is ever for sale. Paying opens the rest of the library and the progress insights.',
   },
   {
     q: 'Can I cancel?',
@@ -82,8 +89,9 @@ export function PlansScreen({ view }: { view: PlansView }) {
         <span className="eyebrow">Membership</span>
         <h1 className={`d ${styles.title}`}>A free tier that isn&rsquo;t a trial</h1>
         <p className={styles.lede}>
-          Both libraries up to the Easy tier, full tracking and the sticker wall cost nothing,
-          forever. Paying opens the harder tiers and shows you the numbers behind your riding.
+          Ten hand-picked tricks in every sport, full tracking and the sticker wall cost nothing,
+          forever. Paying opens the rest of the library and shows you the numbers behind your
+          riding.
         </p>
 
         <div className={styles.toggleRow}>

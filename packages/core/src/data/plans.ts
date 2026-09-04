@@ -50,6 +50,40 @@ const GB = 1024 * 1024 * 1024;
  *
  * Copy is the plan's pitch rendered into the prototype's card shape; T15 owns
  * the final wording of the plans page.
+ *
+ * ---
+ *
+ * **What the free tier actually is, and why the copy says what it says**
+ * (rewritten 2026-09-04, `chore-plan-card-rewrite`, closing issue #286).
+ *
+ * Rookie is **not a tier boundary**, and describing it as one was false in both
+ * directions for months. "Every Rookie and Easy trick" was wrong because four
+ * BMX difficulty-2 tricks carry `free: false`; "Spicy, Gnarly and Pro tricks"
+ * as the missing line was wrong because a skater already gets four Spicy tricks
+ * free, a scooter rider gets the Tailwhip and a BMX rider the Double Peg Grind.
+ * Shredder's "unlocks the Spicy, Gnarly and Pro tiers" was the same untruth
+ * read from the other side. A parent comparing the cards against the library
+ * would have found the cards wrong.
+ *
+ * The free tier is instead a **deliberate hand-picked spread: ten tricks in
+ * each sport, weighted towards the easy end but reaching past it** (owner's
+ * decision, 2026-09-04 — the shape is 4 Rookie / 3 Easy / 2 Spicy / 1 Gnarly
+ * per sport, nothing free at Pro, implemented in `./tricks.ts`). The reason is
+ * a product one: an experienced rider on the free plan who only ever sees
+ * tricks they landed years ago is shown nothing, and they are the person most
+ * able to pay.
+ *
+ * So the copy names **ten**, and it names **three sports**, and it names no
+ * tier at all. Two rules govern it:
+ *
+ * - **"Ten" is safe to write down; a library count is not.** It is a
+ *   deliberated, per-sport, tested number — `data.test.ts` fails if any sport
+ *   drifts off it — which is exactly the condition `./stickers.ts` sets for a
+ *   name that quotes a value (issue #10). A line saying "87 paid tricks" would
+ *   go stale the next time staff add one, so nothing here counts the library.
+ * - **No line names a tier as the boundary**, because the boundary is not a
+ *   tier and cannot become one again without this comment and those tests
+ *   changing on purpose.
  */
 /**
  * The allowance each plan grants, and the one place the numbers live.
@@ -70,17 +104,18 @@ export const PLANS = [
     id: 'rookie',
     name: 'Rookie',
     hue: '#10A06A',
-    pitch: 'Both libraries, up to the Easy tier, tracked properly. No trial, no card.',
+    pitch:
+      'Ten hand-picked tricks in every sport, easy ones and hard ones, tracked properly. No trial, no card.',
     perks: [
-      'Scooter and skateboard libraries',
-      'Every Rookie and Easy trick',
+      'Scooter, skateboard and BMX libraries',
+      'Ten free tricks in each sport, not just the beginner ones',
       'Track every trick through 5 stages',
       'Digital sticker wall',
       "This week's challenge",
       'Spots map and your crew',
     ],
     missing: [
-      'Spicy, Gnarly and Pro tricks',
+      'Every other trick in the library',
       'Progress insights',
       videoLinkAllowanceLabel(VIDEO_LINKS.rookie),
     ],
@@ -98,13 +133,12 @@ export const PLANS = [
     name: 'Shredder',
     hue: '#FF5A1F',
     popular: true,
-    pitch: 'Unlocks the Spicy, Gnarly and Pro tiers. The whips, flips and tre flips.',
+    pitch: 'The whole library, not just the ten we picked for you. The whips, flips and tre flips.',
     perks: [
       'Everything in Rookie',
-      'Every trick, both sports',
-      'Spicy, Gnarly and Pro unlocked',
-      'Challenge history + progress stats',
-      'Custom printable sheets',
+      'Every trick in all three sports, nothing locked',
+      'Challenge history kept, week after week',
+      'Custom printable trick sheets',
       `${videoLinkAllowanceLabel(VIDEO_LINKS.shredder)}, private until you say otherwise`,
     ],
     missing: ['Legend flair', 'Progress insights'],
@@ -122,11 +156,20 @@ export const PLANS = [
     name: 'Legend',
     hue: '#8A3BE0',
     pitch: 'Everything unlocked, plus the numbers behind your riding.',
+    // "Exclusive avatar drops" was here until 2026-09-04 and was never true:
+    // `./avatars.ts` gates nothing on a plan, and no hook, screen or rule reads
+    // a plan when it lists avatars — every rider on every tier sees all 36. It
+    // is removed rather than rewritten because there is nothing to rewrite it
+    // to. The three lines that replaced it are the three things
+    // `progressInsights` actually returns (`../rules/progress.ts`: `trends`,
+    // `records`, `next`), which is Legend's real differentiator alongside
+    // unlimited video links — issue #129 asks whether that is worth £6.99, and
+    // that is the owner's question, not this file's.
     perks: [
       'Everything in Shredder',
       'Legend flair on your profile and crew board',
-      'Exclusive avatar drops',
-      'Progress insights: per-category trends and personal records',
+      'Progress insights: which categories you are speeding up in',
+      'Personal records: best month, longest run, hardest landing',
       'Next-trick suggestions from the skill tree',
       videoLinkAllowanceLabel(VIDEO_LINKS.legend),
     ],

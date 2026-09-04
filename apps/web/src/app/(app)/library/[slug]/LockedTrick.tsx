@@ -10,7 +10,11 @@ import { PaywallSeen } from './PaywallSeen';
 import styles from './trick.module.css';
 
 /**
- * What a rookie sees when they open a Spicy, Gnarly or Pro trick (screenshot 10).
+ * What a rookie sees when they open a locked trick (screenshot 10). Not "a
+ * Spicy, Gnarly or Pro trick", which is what this said until 2026-09-04: the
+ * free tier is a hand-picked spread rather than a tier line, so a locked trick
+ * can sit at any difficulty and a free one can sit well above Easy (`PLANS` in
+ * `@landit/core`, issue #286).
  *
  * Two things this page deliberately does **not** do. It does not hide the trick
  * — the name, the category, the sport and the difficulty are all here, because
@@ -78,10 +82,22 @@ export function LockedTrick({
           <span className={styles.lockMark}>
             <Icon name="lock" size={27} strokeWidth={2.4} />
           </span>
-          <div className={`d ${styles.lockTitle}`}>{tier} tier is on Shredder</div>
+          {/*
+            Not "{tier} tier is on Shredder" / "Rookie covers the Rookie and
+            Easy tiers", which is what this said until 2026-09-04. Both were
+            false: the free tier is a hand-picked spread of ten tricks per sport
+            reaching well past Easy, so a Spicy trick may be free and an Easy
+            one may be locked (`PLANS` in `@landit/core`, issue #286). This is
+            the screen where a rider decides whether to ask a parent for £3.99,
+            which makes it the worst place in the product for a claim about what
+            is free to be wrong. It now says what is true of *this* trick and
+            makes no promise about its neighbours.
+          */}
+          <div className={`d ${styles.lockTitle}`}>This one is on Shredder</div>
           <p className={styles.lockCopy}>
-            Rookie covers the {TIERS_LABEL[0]} and {TIERS_LABEL[1]} tiers. The lowdown, the tips and
-            the tracking for this one come with Shredder, along with the rest of the {tier} tier.
+            Rookie covers ten hand-picked tricks in every sport, and this is not one of them. The
+            lowdown, the tips and the tracking for it come with Shredder, along with every other
+            trick in the library.
           </p>
           <div className={styles.lockActions}>
             {/*
