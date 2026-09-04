@@ -71,7 +71,7 @@ landit/
     mobile/              Expo — Phase 7, not now
   packages/
     core/                types, trick graph, stage + sticker + stats + streak logic. Pure TS.
-                         also the canonical data: tricks (97 — 30 scooter, 31 skate, 36 BMX),
+                         also the canonical data: tricks (259 — 84 scooter, 85 skate, 90 BMX),
                          stickers, plans, spots, events, challenges
     db/                  PocketBase client wrappers, generated collection types, query functions,
                          and the seed scripts that load core's canonical data (see T4)
@@ -257,7 +257,7 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 | Collection | Purpose |
 | --- | --- |
 | `users` | PocketBase auth collection, extended with the profile fields: name, handle, town, stance, level, goal, avatar, privacy, `sports`, the weekly-streak fields, last_ride, timezone, role, plan-facing fields. Email stays a hidden field |
-| `tricks` | 97 records — 30 scooter, 31 skate, 36 BMX (the BMX block researched and shipped by T21, 2026-08-16). `sport`, `cat`, `diff 1..5`, `about`, `tips`, `fact`, nullable `free` override, `is_live` |
+| `tricks` | 259 records — 84 scooter, 85 skate, 90 BMX (the BMX block researched and shipped by T21, 2026-08-16; 162 of the 259 researched and shipped by T27, 2026-09-04). `sport`, `cat`, `diff 1..5`, `about`, `tips`, `fact`, nullable `free` override, `is_live`. `@landit/core` also carries an optional `supervise` flag per trick; it has no column yet, because nothing server-side reads it |
 | `trick_prereqs` | Edge collection (`trick`, `prereq`). Same-sport constraint enforced in a hook |
 | `trick_progress` | `(user, trick) → stage`. The `byId` map |
 | `trick_log` | Append-only. `(user, trick, stage, at, estimated)`. Drives every date in the app |
