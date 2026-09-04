@@ -97,7 +97,7 @@ export async function listTrickPrereqs(client: Client): Promise<TrickPrereqsReco
 /**
  * `tricks` rows as the `Trick` shape every rule in `@landit/core` takes.
  *
- * The mapping, not a rule: two columns spell things differently from the
+ * The mapping, not a rule: three columns spell things differently from the
  * canonical shape and this is the one place that knows it.
  *
  * - **`id` is the slug.** The rules, the seeds and the fixtures all key tricks
@@ -106,6 +106,10 @@ export async function listTrickPrereqs(client: Client): Promise<TrickPrereqsReco
  * - **`free_override` is the handoff's nullable `free`.** The empty select
  *   value means "inherit from `diff`", which is `undefined` in the rule shape —
  *   not `false`, which would push every trick in the library onto the paid tier.
+ * - **`supervise` is copied only when the column is there.** It drives the
+ *   guardian supervise list, and the difference between "staff said no" and
+ *   "this database has no such column" is the difference between a correct list
+ *   and an empty one.
  *
  * Passing the result into a rule is what makes a staff edit take effect without
  * a deploy: every function in `@landit/core` takes an optional trick list, and
@@ -138,6 +142,12 @@ export function tricksFromRecords(
     tips: row.tips,
     fact: row.fact,
     ...(row.free_override ? { free: row.free_override === 'free' } : {}),
+    // Present-or-absent, not truthy-or-not: `false` is an answer the coach view
+    // must respect, and a *missing* column is the one case where it must not
+    // (see `needsSupervision` in `@landit/core`). A row from a database that
+    // predates `1788134400_trick_supervise.js` has no key here at all, so the
+    // rule falls back to difficulty rather than reading it as "no".
+    ...('supervise' in row ? { supervise: row.supervise === true } : {}),
     isLive: row.is_live,
   }));
 }

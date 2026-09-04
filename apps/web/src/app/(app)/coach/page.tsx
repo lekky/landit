@@ -4,6 +4,7 @@ import {
   SPORTS,
   categoryLabel,
   currentWeeklyStreak,
+  needsSupervision,
   rodeToday,
   sortTricks,
   supervisedTricks,
@@ -116,7 +117,7 @@ export default async function CoachViewPage() {
     ['Streak', `${weeks} ${weeks === 1 ? 'week' : 'weeks'}`, 'var(--paper-2)'],
     ['Rides', sports.length ? sportsList(sports) : 'Not set', 'var(--paper-2)'],
     ['Tricks landed', `${landedSlugs.length} of ${totalInSports}`, 'var(--sky)'],
-    ['Difficulty 5 tricks', String(riskyCount), riskyCount ? '#FFB3C9' : 'var(--paper-2)'],
+    ['Tricks to supervise', String(riskyCount), riskyCount ? '#FFB3C9' : 'var(--paper-2)'],
   ];
 
   return (
@@ -160,7 +161,7 @@ export default async function CoachViewPage() {
                 <SportChip sport={SPORT_LOOKS[trick.sport]} small />
                 <span className={styles.rule} />
                 <Difficulty value={trick.diff} small />
-                {trick.diff >= 5 ? (
+                {needsSupervision(trick) ? (
                   <span className={`lab ${styles.supervise}`}>Supervise</span>
                 ) : null}
               </div>
@@ -168,9 +169,11 @@ export default async function CoachViewPage() {
           </div>
         )}
         <p className={styles.note}>
-          Difficulty 4 and 5 tricks involve inverts and drops. The library flags which of those
-          should be learned into a foam pit or a resi ramp first, and says so on the trick&rsquo;s
-          own page.
+          A trick is flagged &ldquo;Supervise&rdquo; when the rider goes upside down, commits to a
+          drop they cannot step out of, or the trick should be learned into a foam pit or a resi
+          ramp first. That is marked per trick rather than read off the difficulty, so it is not the
+          same list as &ldquo;the hardest tricks&rdquo;. Each trick&rsquo;s own page carries the
+          tips for learning it safely.
         </p>
       </Panel>
     </div>

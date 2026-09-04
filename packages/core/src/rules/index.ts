@@ -113,6 +113,7 @@ export {
   crewSlug,
   formatInviteCode,
   isValidInviteCode,
+  needsSupervision,
   normaliseInviteCode,
   sortCrewActivity,
   supervisedTricks,

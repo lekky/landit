@@ -257,7 +257,7 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 | Collection | Purpose |
 | --- | --- |
 | `users` | PocketBase auth collection, extended with the profile fields: name, handle, town, stance, level, goal, avatar, privacy, `sports`, the weekly-streak fields, last_ride, timezone, role, plan-facing fields. Email stays a hidden field |
-| `tricks` | 259 records — 84 scooter, 85 skate, 90 BMX (the BMX block researched and shipped by T21, 2026-08-16; 162 of the 259 researched and shipped by T27, 2026-09-04). `sport`, `cat`, `diff 1..5`, `about`, `tips`, `fact`, nullable `free` override, `is_live`. `@landit/core` also carries an optional `supervise` flag per trick; it has no column yet, because nothing server-side reads it |
+| `tricks` | 259 records — 84 scooter, 85 skate, 90 BMX (the BMX block researched and shipped by T21, 2026-08-16; 162 of the 259 researched and shipped by T27, 2026-09-04). `sport`, `cat`, `diff 1..5`, `about`, `tips`, `fact`, nullable `free` override, `supervise`, `is_live`. `supervise` marks a trick a guardian should know about and is what the coach view reads (`feat-supervise-list`, §7); `1788134400_trick_supervise.js` adds the column and backfills every `diff >= 5` row to `true`, so a database migrated but not yet re-seeded shows the list it showed before rather than an empty one |
 | `trick_prereqs` | Edge collection (`trick`, `prereq`). Same-sport constraint enforced in a hook |
 | `trick_progress` | `(user, trick) → stage`. The `byId` map |
 | `trick_log` | Append-only. `(user, trick, stage, at, estimated)`. Drives every date in the app |
@@ -3078,9 +3078,9 @@ handful of tricks that were free by difficulty are paid now and a handful that w
 per trick rather than inferred from `diff`. The line: the rider goes upside down (a flip or an
 invert), commits to a drop they cannot step out of, or the trick's own tips send them to a foam
 pit or a resi ramp first. So the three sports' drop-ins carry one at difficulty 2, and several
-difficulty-5 flatground tricks do not. `SUPERVISED_MIN_DIFF` and `supervisedTricks()` in
-`rules/crew.ts` are untouched and still draw the coach view's line off difficulty; **switching
-that view onto this field is a separate task**, which is why both exist for now.
+difficulty-5 flatground tricks do not. T27 left `SUPERVISED_MIN_DIFF` and `supervisedTricks()` in
+`rules/crew.ts` untouched, drawing the coach view's line off difficulty, and named the switch as a
+separate task. That task is `feat-supervise-list`, below.
 
 **162 new awards, and the art lands separately.** One `kind: 'trick'` badge per new trick, on
 exactly the terms T24's 97 already follow: `stars` and `rarity` map off difficulty (1 → 1
@@ -3102,6 +3102,41 @@ carries its own stars — so the six pictures still show one star until they are
 exists: `trickLogged`, `libraryFiltered`, `stickerEarned` and `trickLocked` all already carry the
 catalogue facts these tricks arrive with (difficulty, sport, category, tier), so 162 new tricks
 are 162 more values in properties that are already counted, not a new thing to count.
+
+**`feat-supervise-list` · The guardian supervise list reads the flag.** Added after launch
+(Rachid, 2026-09-04, in chat), as the second half of T27's `supervise` field. Two decisions, both
+the owner's and both made in chat on 2026-09-04:
+
+- **Difficulty 5 means complexity and mastery, not only physical danger.** This is the rule the
+  sixteen T27 regrades were made on, and it is what breaks the old supervise list: on that
+  reading, `bmx-truckdriver` — a 360 with a barspin, no more dangerous than the 360 graded 4 —
+  would tell a parent to stand over their child, while the list exists to be about consequence.
+- **The guardian supervise list therefore gets its own flag rather than borrowing difficulty.**
+  `supervisedTricks()` reads `Trick.supervise`, and the coach view's per-trick "Supervise" badge
+  reads the same rule through the new `needsSupervision()` export.
+
+This changes the behaviour of a merged function in `packages/core`, which the additive-only rule
+would otherwise refuse (`CLAUDE.md`, rule 5). The owner's decision above is the exception, and the
+signature does not move. `SUPERVISED_MIN_DIFF` stays exported.
+
+**The fallback is the safety-critical part.** The rules layer is deliberately handed *live rows*
+rather than the canonical list, so a staff edit takes effect without a deploy. A field the database
+has no column for reads `undefined` on every trick, and answering "no" there would tell every
+guardian that nothing their child is doing needs supervising — worse than the over-warning it
+replaces. So `undefined` falls back to `diff >= SUPERVISED_MIN_DIFF`; `false` is respected. Three
+places had to move together for that to be true: the column
+(`pocketbase/migrations/1788134400_trick_supervise.js`, which also backfills `diff >= 5` rows so a
+migrated-but-unseeded database is not empty), the seed (`packages/db/src/seed.ts`) and the row
+mapping (`packages/db/src/queries.ts`, which copies the field only when the column is present).
+
+`packages/core/src/rules/stats.ts` still reads `diff === 5` for `hardLanded` and `hardMastered`.
+Those are award statistics, about achievement rather than about consequence, and they are correct
+on the difficulty reading. They are deliberately not changed.
+
+**No new analytics event.** The coach view is the signed-in rider's own screen, shown to a grown-up
+and shared with nobody, and issue #111 already questions whether it earns its place. Instrumenting
+it here would be measuring a screen that may not survive; nothing about what a rider *does*
+changed.
 
 ### Dependency graph
 

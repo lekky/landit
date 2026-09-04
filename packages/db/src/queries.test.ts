@@ -1,4 +1,11 @@
-import { challengeState, eventsFor, isTrickFree, isTrickLocked, trickById } from '@landit/core';
+import {
+  challengeState,
+  eventsFor,
+  isTrickFree,
+  isTrickLocked,
+  supervisedTricks,
+  trickById,
+} from '@landit/core';
 import { describe, expect, it } from 'vitest';
 
 import type {
@@ -30,6 +37,7 @@ const row = (over: Partial<TricksRecord> & Pick<TricksRecord, 'id' | 'slug'>): T
   tips: '',
   fact: '',
   free_override: '' as TricksRecord['free_override'],
+  supervise: false,
   is_live: true,
   created: '',
   updated: '',
@@ -78,6 +86,30 @@ describe('tricksFromRecords', () => {
     expect(isTrickFree(tricks[0]!)).toBe(true);
     expect(isTrickLocked(tricks[0]!, 'rookie')).toBe(false);
     expect(isTrickLocked(tricks[1]!, 'rookie')).toBe(true);
+  });
+
+  it('carries the supervise flag through in both directions', () => {
+    const tricks = tricksFromRecords([
+      row({ id: 'rec1', slug: 'drop-in', diff: 2, supervise: true }),
+      row({ id: 'rec2', slug: 'truckdriver', diff: 5, supervise: false }),
+    ]);
+    expect(supervisedTricks(tricks).map((t) => t.id)).toEqual(['drop-in']);
+  });
+
+  it('leaves supervise absent when the row has no such column', () => {
+    // A row read from a database that predates
+    // `1788134400_trick_supervise.js`. `false` would be a lie about what staff
+    // said, and `supervisedTricks()` needs to see the difference so it can fall
+    // back to difficulty instead of telling a guardian there is nothing to
+    // watch. Built by deleting the key, which is what PocketBase does when the
+    // column is not in the collection.
+    const old = row({ id: 'rec1', slug: 'pro-trick', diff: 5 });
+    delete (old as { supervise?: boolean }).supervise;
+
+    const tricks = tricksFromRecords([old]);
+    expect(tricks[0]?.supervise).toBeUndefined();
+    expect(Object.hasOwn(tricks[0]!, 'supervise')).toBe(false);
+    expect(supervisedTricks(tricks).map((t) => t.id)).toEqual(['pro-trick']);
   });
 
   it('honours a staff override in both directions', () => {
