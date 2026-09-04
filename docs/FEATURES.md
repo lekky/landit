@@ -123,6 +123,21 @@ Installable manifest (start URL is the dashboard), generated icons (a designed i
 #141), service worker with two caches (build assets + rendered pages, wiped on rider change),
 read-only offline: the library reads at the park, writes need a connection.
 
+## Discoverability (search engines and answer engines)
+
+`robots.txt` and `sitemap.xml` are both live-gated off `LANDIT_SITE_LIVE`: shut, everything is
+disallowed and the sitemap is empty; open, everything is allowed and robots points at the sitemap.
+The sitemap lists the public pages and every live trick read from the database — `lib/publicRoutes.ts`
+is the list of what counts as public, with a test that fails if a sign-in-gated route creeps in.
+Trick cards in the library are real `<a href>` links, which is what makes the ~97 trick pages
+reachable at all. Every public page carries a canonical URL; every page carries `Organization` and
+`WebSite` JSON-LD, and a trick page adds `HowTo` built from the same staff copy it renders. There is
+a `/llms.txt` site map in prose. Staff and rider-private screens carry `robots: { index: false }`.
+
+Not done: `www.landthetrick.com` still serves a full duplicate of the site rather than redirecting
+(canonicals mitigate it; the redirect is infrastructure), and the AI-crawler policy is the blanket
+`Allow: /` rather than a stated decision.
+
 ## Tests and CI
 
 ~1000 Vitest cases (core rules, db, generated-type drift, web libs), 21 PocketBase HTTP suites
