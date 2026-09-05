@@ -225,9 +225,15 @@ test('the footer has no dead labels, and Contact lands on the addresses', async 
 
   await expect(footer).not.toContainText('Staff');
 
-  for (const name of ['Instagram', 'YouTube', 'TikTok']) {
+  for (const name of ['Instagram', 'TikTok']) {
     await expect(footer.getByRole('link', { name })).toHaveAttribute('href', /landthetrick/);
   }
+
+  // A YouTube tag was in that list until 2026-09-05, pointing at a channel that
+  // was never claimed (owner, in chat). Asserted absent rather than just dropped
+  // from the loop, because the failure this guards against is the link coming
+  // back, not the link going missing.
+  await expect(footer.getByRole('link', { name: 'YouTube' })).toHaveCount(0);
 
   await expect(footer.getByRole('link', { name: 'Contact', exact: true })).toHaveAttribute(
     'href',

@@ -52,11 +52,7 @@ export function organizationLd(): JsonLdNode {
         url: SITE_URL,
         logo: `${SITE_URL}/icon.png`,
         email: CONTACT.hello,
-        sameAs: [
-          'https://instagram.com/landthetrick',
-          'https://youtube.com/@landthetrick',
-          'https://tiktok.com/@landthetrick',
-        ],
+        sameAs: ['https://instagram.com/landthetrick', 'https://tiktok.com/@landthetrick'],
       },
       {
         '@type': 'WebSite',
