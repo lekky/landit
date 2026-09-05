@@ -88,7 +88,13 @@ const COLUMNS: readonly FooterColumn[] = [
 ];
 
 /**
- * The real accounts, one handle across all three (owner, 2026-08-30, in chat).
+ * The real accounts, one handle across both (owner, 2026-08-30, in chat).
+ *
+ * A YouTube row sat here until 2026-09-05, pointing at a `@landthetrick`
+ * channel that does not exist — a footer link to nothing (owner, in chat). Only
+ * accounts that are actually claimed go in this list; the same entries are
+ * restated as `sameAs` in `lib/structuredData.ts`, so an account gained or lost
+ * is edited in both.
  *
  * External, so plain anchors rather than `Link` — `typedRoutes` types `href` as
  * an internal route and there is nothing for Next to prefetch. `rel` is the
@@ -96,7 +102,6 @@ const COLUMNS: readonly FooterColumn[] = [
  */
 const SOCIALS: readonly { name: string; href: string }[] = [
   { name: 'Instagram', href: 'https://instagram.com/landthetrick' },
-  { name: 'YouTube', href: 'https://youtube.com/@landthetrick' },
   { name: 'TikTok', href: 'https://tiktok.com/@landthetrick' },
 ];
 
