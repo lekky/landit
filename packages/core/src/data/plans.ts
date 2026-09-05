@@ -92,6 +92,13 @@ const GB = 1024 * 1024 * 1024;
  * `videoLinkAllowanceLabel`, rather than being typed out beside them, so a card
  * cannot advertise a number the hook does not enforce. Moving Shredder's cap is
  * `SHREDDER_VIDEO_LINK_CAP` and nothing else.
+ *
+ * **One exception, and it is deliberate:** Rookie's *missing* line is the
+ * literal `'Video links'`. `missing` is struck through on the card, so the
+ * negated label this used to render — "No video links" — read as *you do get
+ * video links* once crossed out. There is no number in that line to drift,
+ * because Rookie's cap is zero; if that ever changes, the line has to go back
+ * to being derived. See the comment beside it.
  */
 const VIDEO_LINKS = {
   rookie: { cap: 0, unlimited: false },
@@ -117,7 +124,20 @@ export const PLANS = [
     missing: [
       'Every other trick in the library',
       'Progress insights',
-      videoLinkAllowanceLabel(VIDEO_LINKS.rookie),
+      /*
+       * Not `videoLinkAllowanceLabel(VIDEO_LINKS.rookie)`, which returns "No
+       * video links". `missing` is rendered struck through, so a label that is
+       * already negative double-negates: a crossed-out "No video links" reads
+       * as *you do get video links*, the opposite of what Rookie grants. Every
+       * other line here is a positive noun phrase being crossed out, and this
+       * one now matches them.
+       *
+       * A literal is safe **only because Rookie's cap is zero**, so there is no
+       * number to drift out of step with the hook — which is the reason the
+       * other three video-link lines are rendered rather than typed. If Rookie
+       * ever grants a non-zero allowance this must go back to being derived.
+       */
+      'Video links',
     ],
     priceMonthlyPence: 0,
     priceYearlyPence: 0,
