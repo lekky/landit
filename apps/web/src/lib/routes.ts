@@ -71,6 +71,16 @@ export const ROUTES = {
    */
   plans: '/plans',
   /**
+   * Why the product exists, told by the rider whose idea it was.
+   *
+   * A route of its own rather than a sixth legal document. `/legal/about` is
+   * the factual page — what this is, how it makes money, who to email — and it
+   * sits in a set with the privacy policy and the terms because that is the
+   * register it is written in. The story is a different kind of page and would
+   * have had to borrow that one's index down the left to live there.
+   */
+  story: '/story',
+  /**
    * The staff portal (T16), and the one route here that is not for riders.
    *
    * Deliberately **not** wired into `components/shell/nav.ts`. Partly for the
