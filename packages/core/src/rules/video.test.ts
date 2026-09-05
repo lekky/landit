@@ -191,11 +191,31 @@ describe('the per-plan allowance', () => {
     // The number on the card is rendered from the number the hook enforces
     // (`VIDEO_LINKS` in `data/plans.ts`), so a card cannot promise a cap that
     // does not exist. This is the test that notices if somebody types one in.
+    //
+    // A zero cap is the one case where the rendered label is not required, and
+    // it is the only case where nothing can drift: there is no number in
+    // "No video links" to disagree with the hook. Rookie's line is the literal
+    // `'Video links'`, because `missing` is struck through and a negated label
+    // crossed out reads as the opposite of what it grants (2026-09-05). The
+    // card must still *say* something about video links, which is what the
+    // weaker assertion below holds — the guard against an invented number is
+    // untouched for every plan that has one.
     for (const id of PLAN_IDS) {
       const plan = PLAN[id];
-      const label = videoLinkAllowanceLabel(videoLinkAllowance(plan));
+      const allowance = videoLinkAllowance(plan);
       const lines = [...plan.perks, ...plan.missing];
-      expect(lines.some((line) => line.includes(label))).toBe(true);
+      if (allowance.unlimited || allowance.cap > 0) {
+        const label = videoLinkAllowanceLabel(allowance);
+        expect(
+          lines.some((line) => line.includes(label)),
+          `${id}: "${label}"`,
+        ).toBe(true);
+      } else {
+        expect(
+          lines.some((line) => /video links?/i.test(line)),
+          `${id}`,
+        ).toBe(true);
+      }
     }
   });
 

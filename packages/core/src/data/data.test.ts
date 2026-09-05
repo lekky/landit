@@ -440,6 +440,19 @@ describe('plans (implementation plan §2.4)', () => {
     }
   });
 
+  it('states every `missing` line positively, because the card strikes them through', () => {
+    // `missing` renders struck through, so the line has to be the thing you do
+    // NOT get, phrased positively. Rookie's video-link line was
+    // `videoLinkAllowanceLabel(VIDEO_LINKS.rookie)` — "No video links" — which
+    // crossed out reads as *you do get video links*, on the pricing page, on a
+    // live product. A negation here always means the opposite of what is meant.
+    for (const plan of allPlans) {
+      for (const line of plan.missing) {
+        expect(line, `${plan.id}: "${line}"`).not.toMatch(/^(no|not|never)\b/i);
+      }
+    }
+  });
+
   it('promises exactly the number of free tricks the library actually holds', () => {
     // The one number the cards are allowed to quote, and this is what makes it
     // allowed (issue #10): it is per-sport, deliberate and asserted, so it

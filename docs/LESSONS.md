@@ -1092,3 +1092,35 @@ something with an `enqueue` method" — or read the debug log the library alread
 died with exit 144 before this was obvious: the `pkill -f "next dev"` matched, and took down the
 process group running the command that issued it. Kill in one call, start in the next, or use the
 tool's own background mode.
+
+## 10. Verifying work done in bulk
+
+**When an artefact carries its own identity, read the identity — never infer it from ordering.**
+`chore-badge-art` (2026-09-05) filed 162 generated badge PNGs against trick ids by inferring the
+mapping from download order: the files grouped by timestamp into exactly the `[10,10,10,10,10,4] x 3`
+shape of the 18 prompt batches, and each carried a `(1)`–`(10)` index, so group *N* was taken to be
+batch *N*. It was not. The batches had been generated out of order — scooter ran 1, 3, 4, 2, 5, 6 —
+and one batch came back internally reordered as well, so neither the group order nor the index
+within a group meant what it appeared to. **Thirty-three badges were filed under the wrong trick**,
+and `boardslide.png` went in carrying the Drop In badge.
+
+Every one of those badges has its trick's name lettered across it. The identity was printed on the
+artefact the whole time, and reading it would have cost one pass.
+
+**A sample drawn from the same assumption as the work cannot test the work.** Five spot checks were
+run before committing — first and last of the first batch, first of each sport, the very last file
+— and all five passed, because they happened to fall in the groups where the assumption held. The
+sample was not independent of the error: it was chosen by position, and position was the thing that
+was wrong. When checking bulk work, sample against the *property that would be violated* (here, does
+the picture say what the filename claims?), not against the mechanism that produced it.
+
+**Contact sheets make a 162-item visual check affordable.** The whole set was verified by compositing
+the badges twelve to a page with `sharp` and reading fourteen images. A per-item check that is too
+expensive to do is a check that does not happen — so make it cheaper rather than skipping it, and
+say plainly how much was actually looked at.
+
+**Say what was verified, not what was done.** The first report of this work said the badges were
+filed and the gates were green, both true, and implied a completeness the five spot checks did not
+support. The owner asked a passing question — "if you need me to regenerate images give me the
+prompt" — and that question, not the process, is what surfaced thirty-three wrong files on a live
+service used by children.
