@@ -2,9 +2,10 @@ import { SITE_URL } from '@landit/core';
 import type { MetadataRoute } from 'next';
 
 import { PUBLIC_ROUTES } from '@/lib/publicRoutes';
-import { ROUTES, eventHref, trickHref } from '@/lib/routes';
+import { ROUTES, eventHref, spotHref, trickHref } from '@/lib/routes';
 import { isLiveFromEnv } from '@/lib/siteLive';
 import { publicEvents } from '@/lib/publicEvents';
+import { publicSpots } from '@/lib/publicSpots';
 import { publicTricks } from '@/lib/publicTricks';
 
 /**
@@ -98,6 +99,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
    */
   const [tricks, events] = await Promise.all([publicTricks(), publicEvents()]);
 
+  /*
+   * The spots, on the same terms as the tricks — from the database, live rows
+   * only, and never at the cost of the whole file (`publicSpots`).
+   *
+   * **Only spots staff have approved**, which is the same rule the page itself
+   * keeps (Rachid, 2026-09-06, in chat: pages exist for spots confirmed by us).
+   * A rider's pending submission still shows on `/spots` exactly as it did, to
+   * that rider; it has no page, so it has no business in a file whose entire
+   * content is a claim that these URLs are worth indexing.
+   *
+   * A spot with no slug is skipped rather than linked to `/spots/`. Every row
+   * gets one on the way in (`pocketbase/hooks/63_spot_slugs.pb.js`) and the
+   * migration filled the rest, so this guards a database that is mid-deploy
+   * rather than a case anybody expects.
+   */
+  const spots = await publicSpots();
+
   return [
     ...fixed,
     ...tricks.map((trick) => ({
@@ -123,5 +141,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly' as const,
       priority: 0.6,
     })),
+    ...spots
+      .filter((spot) => spot.slug)
+      .map((spot) => ({
+        url: url(spotHref(spot.slug)),
+        lastModified: spot.updated ? new Date(spot.updated) : now,
+        changeFrequency: 'monthly' as const,
+        priority: 0.6,
+      })),
   ];
 }

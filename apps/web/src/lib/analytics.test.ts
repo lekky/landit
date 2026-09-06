@@ -248,6 +248,7 @@ describe('the event catalogue', () => {
         'signed_in',
         'signed_out',
         'signed_up',
+        'spot_page_opened',
         'spot_submitted',
         'spots_map_ground',
         'spots_map_sheet_opened',

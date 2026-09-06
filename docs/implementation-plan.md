@@ -3139,6 +3139,88 @@ and shared with nobody, and issue #111 already questions whether it earns its pl
 it here would be measuring a screen that may not survive; nothing about what a rider *does*
 changed.
 
+**Spot pages (`feat-spot-pages`, 2026-09-06).** A public page per spot at `/spots/[slug]`, from the
+"Event & Spot Pages" design handoff (Screen 2). Added after launch, at the owner's ask, alongside
+`feat-event-pages`; not a numbered task.
+
+**The problem it exists to solve, because it shapes every decision in it.** A `spots` row holds a
+name, a town, a type, a coordinate pair and a handful of tags — roughly twenty-five words. Ninety-odd
+pages built from that much data each is the doorway pattern, and it can pull a whole domain's
+standing down rather than adding to it. The answer is **the "What's here" grid**: the tag array stops
+being a filter facet and becomes an explanation of what a bowl, a ledge, a spine or a foam pit
+actually is. Those explanations are **one per feature type, held centrally** in
+`packages/core/src/data/spot-features.ts` — never per spot, because we know what a ledge is and know
+nothing about *that* ledge beyond the tag. Thirty feature types are covered, which is every tag the
+researched spots carry; a tag with no entry still renders as a feature and simply has no sentence.
+That grid is the page's weight, and nothing else on the page is padded to fill space.
+
+- **Only `status = 'live'` gets a page** (Rachid, 2026-09-06, in chat: pages for spots "confirmed by
+  us only"). `getSpotBySlug` narrows to live rows, which is deliberately *stricter* than the
+  collection's own view rule — that rule also shows a rider their own `pending` submission, which is
+  right for the list and wrong for a public artefact. A pending spot still appears on `/spots`
+  exactly as before, has a slug, has no page, and is not in the sitemap. Proven end to end before
+  merge, not inferred.
+- **`submitted_by` is never rendered** — not the name, not the handle, not an id, not "submitted by a
+  rider in Ventnor" — and it is absent from the metadata, the JSON-LD and the analytics event too.
+  `SpotLdSource` in `lib/structuredData.ts` is a structural type that does not carry the field, so it
+  cannot be passed in by accident.
+- **`spots.slug`, new and additive** (`1788220800_spot_slug.js`): a nullable column, every existing
+  row backfilled deterministically in creation order, and a **partial** unique index
+  (`WHERE slug != ''`) for the reason `idx_users_handle_nocase` is partial. Every new row is slugged
+  on the way in by `pocketbase/hooks/63_spot_slugs.pb.js` — a model hook, not a request hook, so the
+  seed's superuser goes through it exactly as a rider does. Slugs are name-plus-town because spot
+  names are not unique (several "Skatepark"), and a genuine clash counts up `-2`, `-3` rather than
+  randomising, so a reseed lands on the same URLs.
+- **The slug is built from an allowlist, because the name is text a child typed.**
+  `packages/core/src/rules/slug.ts` is the definition and argues it at length; the hook and the
+  migration are the enforcement (§3's pattern), and `pocketbase/tests/spot-slugs.test.ts` holds the
+  three copies in step and drives eleven kinds of hostile name over HTTP. What it deliberately does
+  *not* do is judge the words — an offensive name makes a tidy slug of offensive English, and the
+  thing that stops it reaching a reader is the `live` gate above, set by a human.
+- **`?cat=` on `/library`**, new. The grid's "Bowl tricks →" link needs a *narrowed library it can
+  address*, and the category pills were client state. The mapping from feature to category is a pure
+  table in `packages/core` pointing at a filter the library already has — **no feature-to-trick
+  relation and no new field**. Where no category is honestly the answer the link is omitted rather
+  than invented: `Pump track`, `Moguls` and `Bike run` have none.
+- **`spot_page_opened`** carries `origin: 'researched' | 'submitted'` and the spot **type**, and
+  never the name or the slug — a submitted spot's slug is a child's words with the punctuation taken
+  out, so it is a rider fact wearing a product fact's clothes. The cost is that the event cannot say
+  *which* spot was read; what it answers is whether anybody reads a rider-submitted listing at all,
+  which is the question the page had to earn.
+
+*Deliberate divergences from the handoff, recorded here rather than discovered later*
+
+- **Both variants keep the same `--blue` band.** The handoff gives its sparse example a `--violet`
+  band. Violet is this system's paywall and staff colour, and more to the point a band coloured by
+  variant encodes *how complete our own record is* as though it were a property of the place — a
+  street spot with two features is not a lesser kind of spot. The content carries the difference,
+  which is what the handoff's own "the sparse variant never pretends" paragraph asks for.
+- **The band and the summary strip are panels, not full-bleed bars.** The prototype is a standalone
+  page; this route renders inside `AppShell`'s capped, padded `<main class="page">`. Same collision
+  and same resolution as `components/verify/verify.module.css` records: faking full bleed with
+  `calc(50% - 50vw)` margins overflows by the width of the scrollbar on every desktop browser.
+- **The "What's here" hairlines are each cell's own borders, not an ink background showing through
+  gaps.** The handoff's technique is correct for its fact grid, which is always six cells in three
+  columns. This grid holds one to eight features against a responsive column count, and a short last
+  row turns the ink from a hairline into a slab the width of the missing cells.
+- **The map is the real `SpotMap`, not the handoff's CSS schematic** — its own README says the
+  schematic stands in for whatever map component the target has. The claim that *is* part of the
+  design comes with it: "the pin is exact", which is true of a spot and is precisely what an event
+  page may not say.
+- **No distance line.** The handoff's strip reads "about 4 miles away". Distance belongs to the
+  reader, and this page is server-rendered for a reader whose position we do not have and will not
+  ask a child for (§6.4 standard 10). The onward list's distances are spot-to-spot, both points held
+  exactly, and the page says so in a line under it. Issue filed to bring the reader's own distance
+  in from the list screen.
+- **No "On here soon" section.** There is no spot-to-event relation in the data, and matching an
+  event's free-text `venue` against a spot name would be a join that silently finds nothing for most
+  spots — the kind of invention the spot research was told not to make. It also wants
+  `/events/[slug]`, which `feat-event-pages` owns. Issue filed.
+
+Wiring the spots list into these pages — the card-click conflict the handoff's Screen 4 resolves —
+is deliberately **not** in this PR and belongs to a later session. The page is reachable by URL and
+by sitemap, which is the whole of what it needs to be crawlable.
+
 ### Dependency graph
 
 ```

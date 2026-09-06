@@ -1,4 +1,4 @@
-import type { PlanId, StageId } from '@landit/core';
+import { CATEGORY_IDS, type PlanId, type StageId } from '@landit/core';
 import {
   listTrickPrereqs,
   listTrickProgress,
@@ -46,7 +46,19 @@ export default async function LibraryPage({
   // would render the full library, then swap to the rider's own tricks a frame
   // later — a flash of the wrong list on the screen most likely to be opened
   // from a bookmark (LESSONS §3a on server/client agreement).
-  const mine = (await searchParams).mine === '1';
+  const params = await searchParams;
+  const mine = params.mine === '1';
+
+  /*
+   * `?cat=park`, from a spot page's "What's here" grid.
+   *
+   * Validated against `CATEGORY_IDS` rather than cast, because the value is a
+   * query parameter and therefore whatever a stranger put in the address bar.
+   * An unknown one opens the plain library, which is what a reader who mangled
+   * a link wants — not an error, and not an empty grid.
+   */
+  const requested = Array.isArray(params.cat) ? params.cat[0] : params.cat;
+  const cat = CATEGORY_IDS.find((id) => id === requested) ?? null;
 
   const [trickRecords, prereqRecords] = await Promise.all([
     listTricks(client),
@@ -67,6 +79,7 @@ export default async function LibraryPage({
       plan={(session?.rider.plan ?? 'rookie') as PlanId}
       signedIn={!!session}
       initialMine={mine && !!session}
+      initialCategory={cat}
     />
   );
 }

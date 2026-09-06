@@ -4,7 +4,9 @@ import {
   SPORTS,
   TIERS_LABEL,
   eventSourceLink,
+  spotLatLng,
   type LandItEvent,
+  type SpotLike,
   type Trick,
 } from '@landit/core';
 
@@ -129,6 +131,115 @@ export function trickHowToLd(trick: Trick, context: TrickHowToContext): JsonLdNo
       { '@type': 'HowToStep', name: 'The lowdown', text: trick.about },
       { '@type': 'HowToStep', name: 'Tips', text: trick.tips },
     ],
+  };
+}
+
+/**
+ * The half of a `spots` row this describes.
+ *
+ * A structural type rather than `SpotsRecord`, so this module keeps its promise
+ * of importing nothing but `@landit/core` — and so the shape it needs is
+ * written down in one place where a reader can see that `submitted_by` is not
+ * in it, and could not be passed in even by accident.
+ */
+export type SpotLdSource = SpotLike & {
+  readonly type?: string;
+  readonly address?: string;
+  readonly phone?: string;
+  readonly country?: string;
+};
+
+/** What `spotPlaceLd` needs that is not on the `spots` row. */
+export type SpotPlaceContext = {
+  /** The page's own absolute URL. */
+  url: string;
+  /** The page's own description, so the graph and the meta tag agree. */
+  description: string;
+};
+
+/**
+ * One spot, as a `SkateboardPark`.
+ *
+ * **The type is a claim and it is chosen carefully.** schema.org has
+ * `SkateboardPark`, a subtype of `SportsActivityLocation`, and both are
+ * declared: a spot in this product is a place people go to ride, which is
+ * exactly what those two mean, and being specific is the whole value of doing
+ * this at all. It is used for street spots as well as parks, which is the one
+ * looseness worth naming — a plaza with a good ledge is not a facility anybody
+ * built, and schema.org has no better word for it. `additionalType` carries the
+ * spot's own kind in our words so the distinction is not lost.
+ *
+ * **Only what the page already carries**, which is the rule at the head of this
+ * file and matters more here than anywhere else in it. A spot record is about
+ * twenty-five words, and the fields a `Place` invites — opening hours, a
+ * telephone, an address, a price range, a review — are mostly fields we do not
+ * have. Every one below is conditional, so a spot with no address emits no
+ * `address` rather than an empty one, and nothing here is written out a second
+ * time in prose the page does not show.
+ *
+ * **The coordinates are exact, and that is a real difference from an event.**
+ * An event page holds a town, so it says so and declines to plot a pin. A spot
+ * is stored as a latitude and longitude somebody read off a map and checked
+ * against the venue's own page (`SPOTS` in `@landit/core`), so `geo` is a true
+ * statement about the place and the map caption on the page says the same
+ * thing. Emitted only when `hasCoords` agrees the pair is usable — `0, 0` is
+ * how an unset number field reads, not a place anybody rides.
+ *
+ * **`submitted_by` is not here and must never be.** A spot record may carry the
+ * rider who put it forward; the page does not render them and neither does
+ * this. There is no schema.org field for it that would not be a disclosure.
+ */
+export function spotPlaceLd(spot: SpotLdSource, context: SpotPlaceContext): JsonLdNode {
+  const point = spotLatLng(spot);
+  const features = (spot.tags ?? []).filter((tag) => tag.trim().length > 0);
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': ['SkateboardPark', 'SportsActivityLocation'],
+    name: spot.name,
+    url: context.url,
+    description: context.description,
+    inLanguage: 'en-GB',
+    publisher: { '@id': `${SITE_URL}/#organization` },
+    /*
+     * Free to visit as far as this page is concerned: every spot listed is one
+     * a rider can turn up at, and nothing on the page is behind the paywall.
+     * A private indoor park's own admission charge is not ours to state and is
+     * not stated — this says the *page* costs nothing, which is `isAccessibleForFree`'s
+     * meaning here as it is on a trick.
+     */
+    isAccessibleForFree: true,
+    ...(spot.type ? { additionalType: spot.type } : {}),
+    ...(point
+      ? { geo: { '@type': 'GeoCoordinates', latitude: point.lat, longitude: point.lng } }
+      : {}),
+    ...(spot.address || spot.town || spot.country
+      ? {
+          address: {
+            '@type': 'PostalAddress',
+            ...(spot.address ? { streetAddress: spot.address } : {}),
+            ...(spot.town ? { addressLocality: spot.town } : {}),
+            ...(spot.country ? { addressCountry: spot.country } : {}),
+          },
+        }
+      : {}),
+    ...(spot.phone ? { telephone: spot.phone } : {}),
+    /*
+     * The tag list, as amenities. `amenityFeature` is the field that means
+     * "this place has one of these", which is what a bowl or a set of ledges
+     * is, and it is the only structured field that says anything the page's
+     * "What's here" grid says. The explanation beside each one on the page is
+     * ours rather than the place's, so it stays out of the graph.
+     */
+    ...(features.length
+      ? {
+          amenityFeature: features.map((tag) => ({
+            '@type': 'LocationFeatureSpecification',
+            name: tag,
+            value: true,
+          })),
+        }
+      : {}),
   };
 }
 

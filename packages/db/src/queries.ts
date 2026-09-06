@@ -469,6 +469,38 @@ export async function listSpots(client: Client, sport?: SportId): Promise<SpotsR
   });
 }
 
+/**
+ * One **approved** spot, by the slug in its URL, or `null`.
+ *
+ * **`status = 'live'` is in the filter on purpose, and it is not the same thing
+ * as the API rule.** The collection's `viewRule` also lets a rider read their
+ * own `pending` submission, which is right for the list — a rider should see
+ * the spot they put forward waiting to be checked — and wrong for a page. A
+ * page is a public artefact: it is linkable, it is crawlable, and its whole
+ * point is to be shared. Land The Trick publishes a page for a place a human
+ * has confirmed and for nothing else (Rachid, 2026-09-06, in chat), so the
+ * narrowing happens here rather than being left to the caller to remember.
+ *
+ * `null` rather than a throw, because "no such spot" is an ordinary answer this
+ * route gives all day — a mistyped URL, a spot staff rejected — and the page
+ * turns it into a 404.
+ */
+export async function getSpotBySlug(client: Client, slug: string): Promise<SpotsRecord | null> {
+  if (!slug) return null;
+  return records(client, 'spots').first(`slug = {:slug} && status = 'live'`, { slug });
+}
+
+/**
+ * Every approved spot, for the sitemap.
+ *
+ * Same narrowing and the same reason as `getSpotBySlug`: a sitemap is a claim
+ * that a URL is worth indexing, and a rider's unreviewed submission has no URL
+ * to claim. Sorted by name so the file is stable between fetches.
+ */
+export async function listLiveSpots(client: Client): Promise<SpotsRecord[]> {
+  return records(client, 'spots').list({ filter: `status = 'live'`, sort: 'name' });
+}
+
 export async function listEvents(client: Client, sport?: SportId): Promise<EventsRecord[]> {
   const clauses = ['is_live = true'];
   if (sport) clauses.push('sports ?= {:sport}');
