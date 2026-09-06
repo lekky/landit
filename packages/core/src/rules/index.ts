@@ -44,6 +44,7 @@ export {
 export {
   EVENT_KIND_COLORS,
   EVENT_KIND_IDS,
+  EVENT_REFERRAL_SOURCE,
   eventAgoLabel,
   eventArchiveIndex,
   eventBySlug,
@@ -63,6 +64,7 @@ export {
   eventPhoneLink,
   eventSourceHost,
   eventSourceLink,
+  eventSourceReferralLink,
   eventTownSlug,
   eventsAtVenue,
   eventsFor,

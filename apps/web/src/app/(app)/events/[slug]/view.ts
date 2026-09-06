@@ -10,7 +10,7 @@ import {
   eventMapsLink,
   eventPhoneLink,
   eventSourceHost,
-  eventSourceLink,
+  eventSourceReferralLink,
   eventsAtVenue,
   eventsNear,
   nearestFirst,
@@ -266,9 +266,16 @@ export function buildEventPageView(input: EventPageInput): EventPageView {
     address: event.address ?? '',
     phone: event.phone ?? '',
     phoneLink: eventPhoneLink(event.phone),
-    // Scheme-checked once, between the data and the DOM, exactly as the list's
-    // view does it — no component may be handed an unchecked `href`.
-    sourceUrl: eventSourceLink(event.sourceUrl),
+    /*
+     * Scheme-checked once, between the data and the DOM, exactly as the list's
+     * view does it — no component may be handed an unchecked `href`. The
+     * referral variant, because this string only ever becomes an anchor a rider
+     * follows: `rel="noreferrer"` means the organiser cannot otherwise tell we
+     * sent them, and `utm_source` is a fact about this site rather than about
+     * the reader. The JSON-LD `sameAs` keeps the untagged URL — see
+     * `eventSourceReferralLink`.
+     */
+    sourceUrl: eventSourceReferralLink(event.sourceUrl),
     sourceHost: eventSourceHost(event.sourceUrl),
     mapsUrl: eventMapsLink(event),
     state,
