@@ -1,3 +1,5 @@
+import { HEARD_ABOUT_IDS } from '@landit/core';
+
 import type { Client } from './clients';
 import {
   records,
@@ -354,6 +356,28 @@ export interface AdminRiderCounts {
   readonly bySport: Readonly<Record<string, number>>;
   /** Riders who ride more than one sport. */
   readonly multiSport: number;
+  /**
+   * Riders per `heard_about` id, keyed by the ids in `HEARD_ABOUT_IDS`.
+   *
+   * Only riders who answered are in here at all; `heardAboutAnswered` is the
+   * total and is the denominator the Overview draws the bars against. Counting
+   * them against every rider instead would draw nine slivers beside one huge
+   * unanswered bar — an artefact of the question having been added on
+   * 2026-09-06, when every account older than that had already been through
+   * onboarding and will never be asked.
+   */
+  readonly byHeardAbout: Readonly<Record<string, number>>;
+  /**
+   * Of those, the ones on a plan that unlocks paid tricks.
+   *
+   * Empty unless the caller passed `paidPlanSlugs` — this package holds no
+   * opinion about which plan is paid, because that is a staff-editable fact on
+   * the plan record (plan §2.4) and comparing a slug in code is what §2.4
+   * forbids.
+   */
+  readonly paidByHeardAbout: Readonly<Record<string, number>>;
+  /** How many riders have answered "where did you find us?" at all. */
+  readonly heardAboutAnswered: number;
 }
 
 /**
@@ -371,6 +395,12 @@ export async function adminRiderCounts(
   planSlugs: readonly string[],
   sportIds: readonly string[],
   since: Date,
+  /**
+   * Which plan slugs count as paid, for the `heard_about` split. Optional so
+   * the signature stays what it was for every existing caller; omitted means
+   * `paidByHeardAbout` comes back empty rather than guessed at.
+   */
+  paidPlanSlugs: readonly string[] = [],
 ): Promise<AdminRiderCounts> {
   const [total, activeToday, suspended, pendingConsent, planCounts, sportRows] = await Promise.all([
     countRiders(client),
@@ -382,7 +412,13 @@ export async function adminRiderCounts(
         countRiders(client, { filter: 'plan = {:plan}', params: { plan: slug } }),
       ),
     ),
-    records(client, 'users').list({ fields: 'sports' }),
+    // Three columns now, still one request. `heard_about` is a select and the
+    // paid split is a cross-tab of two fields, so neither can be grouped by the
+    // API any more than the sports could — and tallying them in the loop that
+    // already walks these rows costs nothing beyond two more columns on the
+    // wire, where eighteen more filtered counts would have cost eighteen
+    // round trips.
+    records(client, 'users').list({ fields: 'sports,heard_about,plan' }),
   ]);
 
   const byPlan: Record<string, number> = {};
@@ -392,7 +428,15 @@ export async function adminRiderCounts(
 
   const bySport: Record<string, number> = {};
   for (const id of sportIds) bySport[id] = 0;
+  const byHeardAbout: Record<string, number> = {};
+  const paidByHeardAbout: Record<string, number> = {};
+  for (const id of HEARD_ABOUT_IDS) {
+    byHeardAbout[id] = 0;
+    paidByHeardAbout[id] = 0;
+  }
+  const paid = new Set(paidPlanSlugs);
   let multiSport = 0;
+  let heardAboutAnswered = 0;
   for (const row of sportRows) {
     const sports = row.sports ?? [];
     if (sports.length > 1) multiSport += 1;
@@ -402,9 +446,30 @@ export async function adminRiderCounts(
       // cannot reappear in the chart as an unlabelled bar.
       if (sport in bySport) bySport[sport] = (bySport[sport] ?? 0) + 1;
     }
+
+    // Same rule, same reason: an id retired from `HEARD_ABOUT` is not counted
+    // into a bar nobody drew. An unanswered row is simply not an answer, so it
+    // is absent from both tallies rather than counted as a tenth option.
+    const heard = row.heard_about;
+    if (heard && heard in byHeardAbout) {
+      byHeardAbout[heard] = (byHeardAbout[heard] ?? 0) + 1;
+      heardAboutAnswered += 1;
+      if (paid.has(row.plan)) paidByHeardAbout[heard] = (paidByHeardAbout[heard] ?? 0) + 1;
+    }
   }
 
-  return { total, activeToday, suspended, pendingConsent, byPlan, bySport, multiSport };
+  return {
+    total,
+    activeToday,
+    suspended,
+    pendingConsent,
+    byPlan,
+    bySport,
+    multiSport,
+    byHeardAbout,
+    paidByHeardAbout,
+    heardAboutAnswered,
+  };
 }
 
 /**

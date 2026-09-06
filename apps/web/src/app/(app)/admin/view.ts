@@ -1,3 +1,4 @@
+import { HEARD_ABOUT } from '@landit/core';
 import type { SportLook } from '@landit/ui-web';
 
 /**
@@ -96,6 +97,96 @@ export interface AdminBar {
   readonly label: string;
   readonly count: number;
   readonly color: string;
+  /**
+   * A second line under the bar — "3 on a paid plan".
+   *
+   * Optional, and absent means absent rather than zero: the "how riders found
+   * us" panel withholds this line below a threshold, and a bar that printed
+   * "0 on a paid plan" where the truth is "too few riders to say" would be
+   * reporting a suppression as a finding.
+   */
+  readonly sub?: string;
+}
+
+/* --------------------------------------------------- how riders found us -- */
+
+/**
+ * How many riders must have picked an option before its paid share is shown.
+ *
+ * **Ten, set by the owner on 2026-09-06 in chat**, when the panel was asked for
+ * (issue #323). The *count* is always shown; it is the **split** that is
+ * withheld, because a bar reading "1 rider, 1 on a paid plan" beside the Riders
+ * tab is two facts about one identifiable child on a service used by children.
+ * A staff screen is not a public one, but "only staff can see it" is the
+ * argument that ends with a portal that quietly knows everything, and the
+ * number costs nothing to respect.
+ *
+ * Raising it is safe. Lowering it is a decision for the owner, not a tidy-up.
+ */
+export const PAID_SHARE_FLOOR = 10;
+
+/** The date the question started being asked, for the panel's own note. */
+const HEARD_ABOUT_SINCE = '6 September 2026';
+
+export interface HeardAboutPanel {
+  readonly bars: readonly AdminBar[];
+  readonly note: string;
+  /** The denominator the bars are drawn against — riders who answered. */
+  readonly of: number;
+}
+
+export interface HeardAboutCounts {
+  readonly total: number;
+  readonly answered: number;
+  readonly byOption: Readonly<Record<string, number>>;
+  readonly paidByOption: Readonly<Record<string, number>>;
+}
+
+/**
+ * The "How riders found us" panel, built where it can be tested (§323).
+ *
+ * Three decisions live in here rather than in the page, because each one is a
+ * judgement that could be quietly reversed by an edit that still rendered:
+ *
+ * 1. **The denominator is riders who answered**, not every rider. The question
+ *    is asked once, at the end of onboarding, so every account older than it
+ *    will never be asked — drawing nine slivers against a giant unanswered bar
+ *    would report the rollout rather than the channels.
+ * 2. **A bar below `PAID_SHARE_FLOOR` gets no `sub` at all**, rather than one
+ *    reading "0 on a paid plan". Printing a zero there would report a
+ *    suppression as a finding, which is worse than saying nothing.
+ * 3. **Every option draws a bar**, including the ones nobody picked, because
+ *    "nothing came from TikTok" is a finding and a chart that omitted it would
+ *    read as though the option was never offered.
+ */
+export function heardAboutPanel(counts: HeardAboutCounts): HeardAboutPanel {
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+  const bars: AdminBar[] = HEARD_ABOUT.map((option) => {
+    const count = counts.byOption[option.id] ?? 0;
+    return {
+      label: option.label,
+      count,
+      // One colour for all nine, on purpose. The plan and sport panels colour
+      // their bars because those colours mean something everywhere else in the
+      // product; there is no colour language for a channel, and inventing one
+      // would make nine arbitrary hues look like categories somebody decided on.
+      color: 'var(--mint)',
+      ...(count >= PAID_SHARE_FLOOR
+        ? { sub: `${counts.paidByOption[option.id] ?? 0} on a paid plan` }
+        : {}),
+    };
+  });
+
+  const unanswered = Math.max(0, counts.total - counts.answered);
+  const note =
+    counts.answered === 0
+      ? `Nobody has answered yet. The question was added on ${HEARD_ABOUT_SINCE} and is asked once, at the end of onboarding, so only accounts made since then are ever asked.`
+      : `Shares are of the ${plural(counts.answered, 'rider who has', 'riders who have')} answered. ` +
+        `${plural(unanswered, 'rider has', 'riders have')} not — the question is asked once, at the end of onboarding, so an account made before ${HEARD_ABOUT_SINCE} was never asked. ` +
+        `A paid split is shown only where at least ${PAID_SHARE_FLOOR} riders picked an option.`;
+
+  return { bars, note, of: counts.answered };
 }
 
 export interface AdminAttentionRow {
