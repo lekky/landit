@@ -50,6 +50,9 @@ export default async function SpotsPage() {
 
   const spots: SpotView[] = records.map((record) => ({
     id: record.id,
+    // `''` for a row the slug hook has not reached — a card with none renders
+    // no link rather than one to `/spots/` (`sitemap.ts` guards the same way).
+    slug: record.slug || '',
     name: record.name,
     town: record.town,
     type: record.type,

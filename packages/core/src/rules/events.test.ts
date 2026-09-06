@@ -5,6 +5,7 @@ import type { LandItEvent } from '../types';
 import {
   EVENT_KIND_COLORS,
   eventAgoLabel,
+  eventArchiveIndex,
   eventBySlug,
   eventCountriesPresent,
   eventDateBlock,
@@ -21,6 +22,7 @@ import {
   eventPhoneLink,
   eventSourceHost,
   eventSourceLink,
+  eventTownSlug,
   eventsAtVenue,
   eventsFor,
   eventsNear,
@@ -28,8 +30,11 @@ import {
   isEventPast,
   nearestFirst,
   nearnessBetween,
+  pastEvents,
+  pastEventsIn,
   sortEventsByDistance,
   sortedEvents,
+  upcomingEvents,
 } from './events';
 
 const event = (over: Partial<LandItEvent> & Pick<LandItEvent, 'id' | 'date'>): LandItEvent => ({
@@ -454,5 +459,102 @@ describe('near, when all you hold is a town and a country', () => {
     expect(eventBySlug('live-one', list)?.id).toBe('live-one');
     expect(eventBySlug('hidden-one', list)).toBe(null);
     expect(eventBySlug('nothing-like-it', list)).toBe(null);
+  });
+});
+
+describe('the archive: upcoming and past are two halves of one cut', () => {
+  const clock = at('2026-09-05T09:00:00Z');
+
+  /*
+   * The listing this suite is about. Two events have gone, two have not, one is
+   * today (which is upcoming, not past — `isEventPast` is the definition and it
+   * is strictly "before today"), and one is hidden by staff so it belongs in
+   * neither half.
+   */
+  const list = [
+    event({ id: 'gone-jun', date: '2026-06-13', town: 'Ventnor', country: 'United Kingdom' }),
+    event({ id: 'gone-may', date: '2026-05-02', town: 'Ventnor', country: 'United Kingdom' }),
+    event({ id: 'gone-2025', date: '2025-08-01', town: 'Corby', country: 'United Kingdom' }),
+    event({ id: 'today', date: '2026-09-05', town: 'Corby', country: 'United Kingdom' }),
+    event({ id: 'soon', date: '2026-09-26', town: 'Ventnor', country: 'United Kingdom' }),
+    event({ id: 'hidden-past', date: '2026-01-01', town: 'Ventnor', isLive: false }),
+  ];
+
+  /*
+   * The bug the design handoff records: the prototype's upcoming list carried
+   * events that had already happened and its archive carried ones that had not.
+   * These two assertions are the whole of that, stated as the property rather
+   * than as a pair of examples — no row may be on the wrong side, whatever the
+   * filters above it are doing.
+   */
+  it('never lets a past event into the upcoming list', () => {
+    expect(upcomingEvents(list, clock).map((e) => e.id)).toEqual(['today', 'soon']);
+    for (const e of upcomingEvents(list, clock)) expect(isEventPast(e, clock)).toBe(false);
+  });
+
+  it('never lets an upcoming event into the archive', () => {
+    expect(pastEvents(list, clock).map((e) => e.id)).toEqual(['gone-jun', 'gone-may', 'gone-2025']);
+    for (const e of pastEvents(list, clock)) expect(isEventPast(e, clock)).toBe(true);
+  });
+
+  it('splits the live list in two with nothing shared and nothing dropped', () => {
+    const upcoming = upcomingEvents(list, clock).map((e) => e.id);
+    const past = pastEvents(list, clock).map((e) => e.id);
+    // Disjoint...
+    expect(upcoming.filter((id) => past.includes(id))).toEqual([]);
+    // ...and, between them, the whole of the live calendar.
+    expect([...upcoming, ...past].sort()).toEqual(
+      sortedEvents(list)
+        .map((e) => e.id)
+        .sort(),
+    );
+  });
+
+  it('reads the archive most recent first, and the calendar soonest first', () => {
+    expect(pastEvents(list, clock)[0]?.id).toBe('gone-jun');
+    expect(upcomingEvents(list, clock)[0]?.id).toBe('today');
+  });
+
+  it('keeps a hidden event out of both halves', () => {
+    const ids = [...upcomingEvents(list, clock), ...pastEvents(list, clock)].map((e) => e.id);
+    expect(ids).not.toContain('hidden-past');
+  });
+
+  it('indexes only the year and town corners that actually hold events', () => {
+    const index = eventArchiveIndex(list, clock);
+    expect(index.years).toEqual([2026, 2025]);
+    expect(index.towns.map((t) => t.townSlug)).toEqual(['corby', 'ventnor']);
+    expect(index.combinations.map((c) => `${c.year}/${c.townSlug}:${c.count}`)).toEqual([
+      '2026/ventnor:2',
+      '2025/corby:1',
+    ]);
+    // The cross-product would be four; the cap is the whole point (Rachid,
+    // 2026-09-06). 2026/Corby has only a *future* event and 2025/Ventnor has
+    // none at all, so neither is published or advertised.
+    expect(index.combinations).toHaveLength(2);
+    for (const combination of index.combinations) expect(combination.count).toBeGreaterThan(0);
+  });
+
+  it('narrows to one corner exactly, and answers an empty corner with nothing', () => {
+    expect(pastEventsIn({ year: 2026, townSlug: 'ventnor' }, list, clock).map((e) => e.id)).toEqual(
+      ['gone-jun', 'gone-may'],
+    );
+    expect(pastEventsIn({ year: 2024, townSlug: 'ventnor' }, list, clock)).toEqual([]);
+    expect(pastEventsIn({ year: 2026, townSlug: 'nowhere' }, list, clock)).toEqual([]);
+    // A narrowing is never a way back to an upcoming event.
+    expect(pastEventsIn({ townSlug: 'corby' }, list, clock).map((e) => e.id)).toEqual([
+      'gone-2025',
+    ]);
+  });
+
+  it('matches a town whole, never as a prefix', () => {
+    const towns = [
+      event({ id: 'newport', date: '2026-06-01', town: 'Newport' }),
+      event({ id: 'pagnell', date: '2026-06-02', town: 'Newport Pagnell' }),
+    ];
+    expect(eventTownSlug('Newport Pagnell')).toBe('newport-pagnell');
+    expect(pastEventsIn({ townSlug: 'newport' }, towns, clock).map((e) => e.id)).toEqual([
+      'newport',
+    ]);
   });
 });

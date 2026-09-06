@@ -225,6 +225,10 @@ describe('the event catalogue', () => {
         'empty_state_action',
         'event_attendance_set',
         'event_page_opened',
+        // The segmented control between the calendar and the archive — the
+        // only thing that can say whether keeping finished events online is
+        // read by anybody through the product's own front door.
+        'events_view_switched',
         'guardian_asked',
         'insights_set',
         'invite_minted',
@@ -248,6 +252,7 @@ describe('the event catalogue', () => {
         'signed_in',
         'signed_out',
         'signed_up',
+        'spot_map_selected',
         'spot_page_opened',
         'spot_submitted',
         'spots_map_ground',

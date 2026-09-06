@@ -1,8 +1,9 @@
-import { SITE_URL } from '@landit/core';
+import { SITE_URL, eventArchiveIndex } from '@landit/core';
+import { eventsFromRecords } from '@landit/db';
 import type { MetadataRoute } from 'next';
 
 import { PUBLIC_ROUTES } from '@/lib/publicRoutes';
-import { ROUTES, eventHref, spotHref, trickHref } from '@/lib/routes';
+import { ROUTES, eventHref, pastEventsHref, spotHref, trickHref } from '@/lib/routes';
 import { isLiveFromEnv } from '@/lib/siteLive';
 import { publicEvents } from '@/lib/publicEvents';
 import { publicSpots } from '@/lib/publicSpots';
@@ -140,6 +141,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: event.updated ? new Date(event.updated) : now,
       changeFrequency: 'weekly' as const,
       priority: 0.6,
+    })),
+    /*
+     * The archive's year-and-town corners — **only the ones that hold events**
+     * (Rachid, 2026-09-06, in chat).
+     *
+     * `eventArchiveIndex` is the same list the index panel on `/events/past`
+     * renders, which is the point of it being one function: a sitemap and a
+     * navigation panel that derive "which corners exist" separately are two
+     * answers waiting to disagree. The cross-product — every town crossed with
+     * every year — would be a few hundred URLs of which a couple of dozen have
+     * anything on them, which is the doorway pattern this file exists to avoid
+     * rather than to build. A corner a reader types by hand still answers, with
+     * the empty state and `robots: index: false`, so it can never be indexed.
+     *
+     * The records go through `eventsFromRecords` rather than being read
+     * field-by-field here, so this file has no second opinion about what a
+     * `date` column means.
+     */
+    ...eventArchiveIndex(eventsFromRecords(events)).combinations.map((combination) => ({
+      url: url(pastEventsHref({ year: combination.year, townSlug: combination.townSlug })),
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.4,
     })),
     ...spots
       .filter((spot) => spot.slug)

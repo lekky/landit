@@ -75,12 +75,25 @@
 }
 
 /*
- * A past event stays on the list when the rider asks for it, but reads as
- * done. Opacity only — the buttons still work, because taking yourself off
- * something you did not go to is a reasonable thing to want.
+ * A finished event, as the design draws it: `--wash` behind the row, an ink
+ * date block with a paper month, and the title dropped to `--ink-2`.
+ *
+ * **It used to be `opacity: .62` on the whole row**, which was right when a
+ * past event was an occasional greyed row inside the calendar. The archive is
+ * now a whole screen of them, and a page rendered entirely at 62% is a page
+ * that reads as broken — worse, the fade took the red "Over" tag down with it,
+ * which is the one thing on the row that has to be legible in a thumbnail.
  */
 .rowPast {
-  opacity: 0.62;
+  background: var(--wash);
+}
+
+.rowPast .name {
+  color: var(--ink-2);
+}
+
+.rowPast .dateMonth {
+  color: var(--paper);
 }
 
 .date {
@@ -386,4 +399,263 @@
   text-align: center;
   flex: 1;
   min-width: 12ch;
+}
+
+/* ----------------------------------------------- upcoming | past ---------
+   The segmented control between the calendar and the archive. Two links, one
+   ink-filled segment, 3px keyline between them — the design's `.viewsw`. The
+   44px minimum height is the accessibility floor the handoff sets for every
+   control on a phone, and this is one a thumb has to hit. */
+
+.viewSwitch {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  border: 3px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  background: var(--paper);
+}
+
+.viewSwitchItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 9px 18px;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  border-right: 3px solid var(--ink);
+}
+
+.viewSwitchItem:last-child {
+  border-right: 0;
+}
+
+/* The global `a:hover { color: var(--pink) }` outranks a single class, so the
+   hover is stated on the element itself (issue #297, and the same trap
+   LESSONS §3a records for `.btn`). */
+.viewSwitchItem:hover {
+  color: var(--ink);
+  background: var(--yellow);
+}
+
+.viewSwitchItem[aria-current='page'],
+.viewSwitchItem[aria-current='page']:hover {
+  background: var(--ink);
+  color: var(--on-dark);
+}
+
+.viewSwitchCount {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
+.viewSwitchItem[aria-current='page'] .viewSwitchCount {
+  color: var(--on-dark);
+  opacity: 0.75;
+}
+
+/* ------------------------------------------------- the archive index -----
+   Ink panel, paper text: the one dark block on the screen, because it is an
+   index rather than a row of results and should not read as one. */
+
+.archive {
+  background: var(--ink);
+  color: var(--on-dark);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.archiveHead {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.archiveTitle {
+  font-size: clamp(20px, 2.4vw, 26px);
+  color: var(--on-dark);
+  margin: 0;
+  flex: 1 1 240px;
+}
+
+.archiveNote {
+  margin: 0;
+  flex: 2 1 320px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--paper-2);
+}
+
+.archiveRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.archiveYear {
+  color: var(--paper-2);
+  min-width: 3.2rem;
+}
+
+/* `.pill` is styled for a paper ground; on ink it needs its own keyline and
+   fill or it disappears into the panel. */
+.archivePill {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.archivePill:hover {
+  color: var(--ink);
+  background: var(--yellow);
+}
+
+.archiveCount {
+  color: var(--ink-3);
+  font-size: 11px;
+}
+
+/* -------------------------------------------- an empty corner ------------
+   A year and town with nothing in it. No illustration and no shrug: the panel
+   says what is missing and offers the two ways on. */
+
+.emptyCorner {
+  background: var(--paper-2);
+  padding: 26px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.emptyCornerTitle {
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 0.95;
+  max-width: 28ch;
+  margin: 0;
+}
+
+.emptyCornerNote {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  max-width: 56ch;
+}
+
+.emptyCornerActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ----------------------------------------- the modal's new furniture -----
+   The row name is a link now, and so is the modal's title; both need the
+   colour stating on the element, for issue #297's reason. */
+
+/*
+ * The row title is an `<a>` now, so it needs its colour stating twice: once
+ * because a link's default here is orange and the design's row title is ink,
+ * and once for the hover, because the global `a:hover { color: var(--pink) }`
+ * outranks a single class (issue #297; LESSONS §3a's "check the selector, not
+ * just the class name").
+ */
+.name {
+  display: inline-block;
+  color: var(--ink);
+}
+
+.name:hover {
+  color: var(--orange);
+}
+
+/* The design's 760px, over the primitive's 520 — this dialog carries a
+   two-column fact grid and a three-control footer. */
+.modal {
+  width: min(760px, 100%);
+}
+
+.modalTitleLink {
+  color: var(--on-dark);
+}
+
+.modalTitleLink:hover {
+  color: var(--yellow);
+}
+
+.modalActions {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.modalRight {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* The full-page CTA. Yellow, so it reads as the other thing you can do here
+   rather than as a second "I'm going". */
+.fullCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 15px;
+  background: var(--yellow);
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+
+.fullCta:hover {
+  color: var(--ink);
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.fullCta:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.ctaHint {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+@media (max-width: 560px) {
+  .modalRight {
+    width: 100%;
+  }
+
+  .modalRight > * {
+    flex: 1 1 100%;
+  }
+
+  .push {
+    margin-left: 0;
+  }
 }

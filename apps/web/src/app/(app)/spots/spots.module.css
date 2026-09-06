@@ -146,18 +146,60 @@
 }
 
 /*
- * A card that can be plotted is a control, and says so the way every other
- * control in this design says it: the -1px lift and the grown shadow of a
- * button under the pointer. The button inside it keeps its own hover, which is
- * the same move at a smaller size, so the two do not fight.
+ * The card is a link now (design handoff, "Screen 4 — the conflict and the
+ * resolution"), so it says so the way every other control in this design says
+ * it: the -2px lift and the grown shadow of a button under the pointer. The
+ * "Show on map" button inside keeps its own hover, which is the same move at a
+ * smaller size, so the two do not fight.
  */
-.cardTap {
-  cursor: pointer;
+.card {
+  position: relative;
 }
 
-.cardTap:hover {
-  transform: translate(-1px, -1px);
+/* Only a card that actually goes somewhere lifts. A rider's own pending
+   submission has no page and no link, so it stays put rather than promising a
+   press that does nothing. */
+.cardLinked:hover {
+  transform: translate(-2px, -2px);
   box-shadow: var(--sh);
+}
+
+/*
+ * The stretched link.
+ *
+ * Over the whole card rather than around it, because a card holds three other
+ * controls — Report, Directions, "Show on map" — and none of them can live
+ * inside an `<a>`. Those sit above it on `z-index`, so a press on one of them
+ * never reaches the link underneath.
+ */
+.cardLink {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+/* The link's whole accessible name. Visible text in the footer is decorative. */
+.cardLinkLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/*
+ * Everything a rider can press has to be above the stretched link. Stated on
+ * the card's own children rather than one class per control, so a fourth
+ * control added later is covered without anybody remembering to opt it in.
+ */
+.card a:not(.cardLink),
+.card button {
+  position: relative;
+  z-index: 2;
 }
 
 /* The selected card: paper-2 and the full 5px shadow, as the prototype had it. */
@@ -266,6 +308,54 @@
 .directions {
   font-size: 13px;
   letter-spacing: 0.05em;
+}
+
+/* Pushes the map button hard left and the page hint and Directions right. */
+.cardActionsPush {
+  flex: 1;
+}
+
+/*
+ * "Show on map" — the explicit control that replaced the whole-card gesture.
+ * The 44px floor is the handoff's accessibility line for a phone, and this is
+ * the control that most needs it now the card is not the target.
+ */
+.mapPick {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mapPickOn,
+.mapPick:hover {
+  background: var(--sky);
+  color: var(--ink);
+}
+
+/* The rotated orange diamond the design puts inside the button. */
+.mapPickMark {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  background: var(--orange);
+  border: 2px solid var(--ink);
+  transform: rotate(45deg);
+}
+
+/*
+ * "Spot page →". Decorative — `aria-hidden`, because the stretched link above
+ * already carries the card's real name and a second announcement of an arrow
+ * helps nobody.
+ */
+.pageHint {
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  color: var(--ink-3);
+}
+
+.card:hover .pageHint {
+  color: var(--orange);
 }
 
 /* The one control under the cards, as wide as they are. */
@@ -503,9 +593,39 @@
   letter-spacing: 0.03em;
 }
 
+/*
+ * The way from the map into the spot's own page.
+ *
+ * Above the map's footer note and, in the sheet, above Directions and Report —
+ * the design's ordering, and the reason for it is the thumb: in a sheet the
+ * list is behind the map, so this is the only link to the page a rider is
+ * looking at and it must not be the thing they have to hunt for.
+ */
+.mapActions {
+  padding: 12px 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mapOpen {
+  min-height: 44px;
+  text-align: center;
+}
+
+/*
+ * Directions and Report, side by side. **The sheet's only** — on a wide screen
+ * both are already on the card the rider can see, and a second copy beside the
+ * map would be two of each on one screen.
+ */
+.sheetActions {
+  display: none;
+}
+
 .mapFoot {
   padding: 10px 14px;
   border-top: 3px solid var(--ink);
+  margin-top: 12px;
 }
 
 .mapNote {
@@ -750,5 +870,34 @@
    */
   .mapColumn {
     gap: 0;
+  }
+
+  /*
+   * In the sheet the list is behind the map, so this block is the only way to
+   * the spot's own page, to directions and to reporting it. Full-width link
+   * first, the two smaller controls under it — the design's order, and the
+   * reason is the thumb: the thing a rider most often wants is not the thing
+   * they should have to hunt for behind a map.
+   */
+  .mapActions {
+    padding: 10px 12px 0;
+    flex: none;
+  }
+
+  .sheetActions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .sheetActions > * {
+    flex: 1;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mapFoot {
+    margin-top: 10px;
   }
 }

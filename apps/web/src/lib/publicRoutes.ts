@@ -30,6 +30,14 @@ export const PUBLIC_ROUTES: readonly Route[] = [
   ROUTES.library,
   ROUTES.spots,
   ROUTES.events,
+  /*
+   * The archive's front door. Indexed on purpose: past event pages are kept
+   * online and kept in the sitemap (Rachid, 2026-09-06, in chat), and this is
+   * the only crawlable link into the older half of them. The narrowed corners
+   * are added to the sitemap from the data rather than listed here, because
+   * only the ones that hold events exist.
+   */
+  ROUTES.eventsPast,
   ROUTES.plans,
   ROUTES.report,
   ...LEGAL_DOC_IDS.map((id) => legalHref(id)),

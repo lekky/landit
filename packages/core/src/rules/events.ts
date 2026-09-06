@@ -1,6 +1,7 @@
 import { EVENTS } from '../data/events';
 import type { EventKind, LandItEvent, LatLng, SportId } from '../types';
 import { MONTH_LABELS } from './progress';
+import { slugify } from './slug';
 import {
   distanceLabelIn,
   hasCoords,
@@ -477,4 +478,154 @@ export function eventBySlug(
   events: readonly LandItEvent[] = EVENTS,
 ): LandItEvent | null {
   return sortedEvents(events).find((event) => event.id === slug) ?? null;
+}
+
+/* ------------------------------------------------------- the archive ------ */
+
+/**
+ * The calendar, split in two, from **one** definition of "gone by".
+ *
+ * `/events` and `/events/past` are two views over the same collection, and the
+ * prototype had them overlapping: an event that had happened showed up in the
+ * upcoming list, and the archive carried things that had not happened yet. That
+ * is not a filtering bug so much as a *two filters* bug — the moment each view
+ * decides for itself what "past" means, the two answers drift, and a rider is
+ * told an event is both coming up and over.
+ *
+ * So both halves are cut here, with `filterEvents`'s `upcomingOnly` doing the
+ * cutting on one side and its exact complement on the other. `upcomingEvents`
+ * and `pastEvents` are guaranteed disjoint and, between them, complete over
+ * `sortedEvents` — `events.test.ts` asserts both properties rather than trusting
+ * the two bodies to stay in step.
+ *
+ * The orders differ because the questions do. Upcoming is soonest-first: the
+ * next thing you could go to is the top row. The archive is **most recent
+ * first**: the thing somebody is looking up is almost always the last one that
+ * happened, not the first one we ever listed.
+ */
+export function upcomingEvents(
+  events: readonly LandItEvent[] = EVENTS,
+  clock: RiderClock = {},
+): LandItEvent[] {
+  return filterEvents({ upcomingOnly: true, clock }, events);
+}
+
+export function pastEvents(
+  events: readonly LandItEvent[] = EVENTS,
+  clock: RiderClock = {},
+): LandItEvent[] {
+  const upcoming = new Set(upcomingEvents(events, clock).map((event) => event.id));
+  return sortedEvents(events)
+    .filter((event) => !upcoming.has(event.id))
+    .reverse();
+}
+
+/**
+ * A past event's town as a URL segment — `/events/past/2026/ventnor`.
+ *
+ * The same `slugify` every other public URL in the product is built with, so a
+ * town with an accent or a hyphen in it resolves the same way here as it does
+ * for a spot. Matching is done slug-to-slug rather than by comparing the
+ * display names, because the segment is the only thing the reader's browser
+ * sends back.
+ */
+export function eventTownSlug(town: string): string {
+  return slugify(town ?? '');
+}
+
+/** One year-and-town corner of the archive that genuinely holds something. */
+export interface EventArchiveCombination {
+  readonly year: number;
+  readonly town: string;
+  readonly townSlug: string;
+  readonly country: string;
+  /** How many past events are behind it. Never zero — see {@link eventArchiveIndex}. */
+  readonly count: number;
+}
+
+export interface EventArchiveIndex {
+  /** Years with a past event in them, most recent first. */
+  readonly years: readonly number[];
+  /** Towns with a past event in them, alphabetically, with their country. */
+  readonly towns: readonly { readonly town: string; readonly townSlug: string }[];
+  /** Every combination that holds at least one event, most recent year first. */
+  readonly combinations: readonly EventArchiveCombination[];
+}
+
+/**
+ * What the archive index is allowed to offer.
+ *
+ * **Only combinations that actually contain events** (Rachid, 2026-09-06, in
+ * chat). The obvious index is a year row crossed with a town row, and it is the
+ * wrong one: eighty towns across four years is three hundred and twenty URLs of
+ * which a couple of dozen hold anything, and the rest are thin pages a search
+ * engine reads as a doorway pattern. The cap is not a display trick either —
+ * `combinations` is what the index panel renders *and* what `sitemap.ts`
+ * advertises, so there is one list and it cannot drift from the other.
+ *
+ * A combination a reader types by hand still resolves: the page renders the
+ * design's empty state rather than a 500, and carries `robots: index: false` so
+ * an empty corner can never become an indexed thin page. That is the page's
+ * job, not this function's; what this guarantees is that nothing we *publish*
+ * points at one.
+ *
+ * `en` is passed to `localeCompare` explicitly. The default reads the host's
+ * locale, which differs between the server that renders the panel and the
+ * browser that hydrates it, and a list in two orders across that boundary
+ * throws the tree away rather than warning (LESSONS §3a).
+ */
+export function eventArchiveIndex(
+  events: readonly LandItEvent[] = EVENTS,
+  clock: RiderClock = {},
+): EventArchiveIndex {
+  const past = pastEvents(events, clock);
+
+  const byKey = new Map<string, { year: number; town: string; country: string; count: number }>();
+  for (const event of past) {
+    const town = (event.town ?? '').trim();
+    if (!town) continue;
+    const townSlug = eventTownSlug(town);
+    if (!townSlug) continue;
+    const year = Number(event.date.slice(0, 4));
+    if (!Number.isFinite(year)) continue;
+    const key = `${year}/${townSlug}`;
+    const found = byKey.get(key);
+    if (found) found.count += 1;
+    else byKey.set(key, { year, town, country: (event.country ?? '').trim(), count: 1 });
+  }
+
+  const combinations: EventArchiveCombination[] = [...byKey.values()]
+    .map((entry) => ({ ...entry, townSlug: eventTownSlug(entry.town) }))
+    .sort((a, b) => b.year - a.year || a.town.localeCompare(b.town, 'en'));
+
+  const years = [...new Set(combinations.map((entry) => entry.year))].sort((a, b) => b - a);
+
+  const townsBySlug = new Map<string, string>();
+  for (const entry of combinations)
+    if (!townsBySlug.has(entry.townSlug)) townsBySlug.set(entry.townSlug, entry.town);
+  const towns = [...townsBySlug.entries()]
+    .map(([townSlug, town]) => ({ town, townSlug }))
+    .sort((a, b) => a.town.localeCompare(b.town, 'en'));
+
+  return { years, towns, combinations };
+}
+
+/**
+ * The past events in one corner of the archive.
+ *
+ * Both narrowings are optional and both are exact: a year is compared as a
+ * number and a town slug-to-slug, so "Newport" cannot pick up "Newport Pagnell"
+ * the way a prefix match would. An unknown year or town returns `[]`, which is
+ * the empty state and not an error.
+ */
+export function pastEventsIn(
+  where: { readonly year?: number | null; readonly townSlug?: string | null },
+  events: readonly LandItEvent[] = EVENTS,
+  clock: RiderClock = {},
+): LandItEvent[] {
+  return pastEvents(events, clock).filter((event) => {
+    if (where.year != null && Number(event.date.slice(0, 4)) !== where.year) return false;
+    if (where.townSlug && eventTownSlug(event.town) !== where.townSlug) return false;
+    return true;
+  });
 }

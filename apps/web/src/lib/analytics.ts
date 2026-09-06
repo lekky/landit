@@ -220,6 +220,24 @@ export const ANALYTICS_EVENTS = {
    * — which are opposite answers with opposite next steps.
    */
   eventPageOpened: 'event_page_opened',
+  /**
+   * The calendar was switched between its two halves — Upcoming and the
+   * archive.
+   *
+   * Carries `view`, which is `'upcoming'` or `'past'`: the half being moved
+   * *to*, and one of two fixed strings chosen here. Nothing else — not which
+   * events were on screen, not the filters, not the reader.
+   *
+   * It exists because keeping finished events online is a bet, and this is the
+   * only thing that settles it. The archive costs a route, a sitemap section
+   * and an index panel on the reasoning that riders still look up what happened
+   * at their park last summer; if the segmented control is never pressed, the
+   * traffic is arriving on the event pages from search and the archive's own
+   * front door is furniture. Those are opposite findings and neither is
+   * guessable from `event_page_opened`, which cannot tell an archive reader
+   * from anybody else.
+   */
+  eventsViewSwitched: 'events_view_switched',
 
   /* ------------------------------------------------------------- awards -- */
   /**
@@ -349,6 +367,24 @@ export const ANALYTICS_EVENTS = {
    * chosen in this repository, so neither can carry anything anybody typed.
    */
   spotPageOpened: 'spot_page_opened',
+  /**
+   * A spot was put on the map from the list — the "Show on map" button on a
+   * card, or a pin.
+   *
+   * Carries `via`: `'card'` for the button in a card's footer, `'pin'` for a
+   * press on the map itself. Two fixed strings chosen here; never the spot's
+   * name or slug, for the reason `spot_page_opened` above sets out at length,
+   * and never a position.
+   *
+   * It exists because this gesture just got smaller. The whole card used to
+   * select the map; the card is now a link to the spot's page (the design
+   * handoff's "the conflict and the resolution"), so map selection has shrunk
+   * from a card-sized target to a button. That is a deliberate trade — the
+   * frequent gesture got the big target and a real URL — and this is the only
+   * way to find out whether the map survived it or whether riders simply
+   * stopped reaching the map at all.
+   */
+  spotMapSelected: 'spot_map_selected',
 } as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];
