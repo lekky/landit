@@ -172,6 +172,7 @@ export {
   adminRiderCounts,
   applyStaffChange,
   createStaffRecord,
+  deleteRider,
   deleteStaffRecord,
   getReport,
   landedCountsFor,

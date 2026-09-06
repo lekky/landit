@@ -146,6 +146,16 @@ export interface RiderSheetView {
   readonly tracked: readonly TrackedTrickView[];
   readonly landed: number;
   readonly clips: number;
+  /**
+   * Whether the viewer may delete this account permanently.
+   *
+   * Computed on the server per sheet, never inferred in the browser: the
+   * owner-only rule lives on the deploy (`LANDIT_OWNER_ID`) and a client has no
+   * way to know it. False for everybody but the owner, and false for the
+   * owner's own row. It decides whether the button *renders*; the action
+   * re-checks the same rule, because a hidden button is not a gate.
+   */
+  readonly canDelete: boolean;
 }
 
 export interface AdminActivityRow {

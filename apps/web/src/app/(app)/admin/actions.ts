@@ -2,6 +2,8 @@
 
 import { LANDED_STAGES, STAGE, type StageId } from '@landit/core';
 import {
+  deleteRider,
+  getActiveSubscription,
   getRider,
   listTrickProgress,
   listTricks,
@@ -15,7 +17,7 @@ import { revalidatePath } from 'next/cache';
 import { monthYear, relativeTime } from '@/lib/dates';
 import { ROUTES } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
-import { requireStaff } from '@/lib/staff';
+import { isOwner, requireStaff } from '@/lib/staff';
 
 import { bandLabel, type RiderSheetView, type TrackedTrickView } from './view';
 
@@ -117,6 +119,7 @@ export async function riderSheetAction(userId: string): Promise<RiderSheetView |
     tracked,
     landed: tracked.filter((t) => t.landed).length,
     clips: clips.totalItems,
+    canDelete: isOwner(staff.rider) && rider.id !== staff.rider.id,
   };
 }
 
@@ -178,6 +181,77 @@ export async function setRiderSuspendedAction(
     await setRiderSuspended(staff.superuser, staff.actor, userId, suspended);
   } catch {
     return { ok: false, message: 'That did not save. Try again in a moment.' };
+  }
+
+  revalidateAdmin();
+  return { ok: true };
+}
+
+/**
+ * Delete an account permanently. **The owner's action, not staff's.**
+ *
+ * Everything else on this screen is reversible: a plan override can be moved
+ * back, a suspension restored. This is not, and it cascades — `trick_progress`,
+ * `clips`, `crew_members`, `guardian_consents` and `subscriptions` all carry
+ * `cascadeDelete: true` on their `user` relation, so the row takes a rider's
+ * whole history with it. Three rails stand in front of it, and each one is
+ * there for a failure that has a name:
+ *
+ * 1. **Only the owner.** `isOwner` reads a record id off the deploy and fails
+ *    closed when it is unset. A staff role is granted from the superuser
+ *    dashboard to several people; this is one account.
+ * 2. **Never your own row**, for the same reason suspension refuses it — and
+ *    worse here, because there is no undoing it from the dashboard afterwards.
+ * 3. **Never an account with a live subscription.** `subscriptions.external_id`
+ *    is the only link we hold to the Stripe subscription, and it cascades away
+ *    with the rider. Delete first and the subscription keeps running on
+ *    Stripe's side with nothing on ours pointing at it — an account nobody can
+ *    find still being billed, which is the one failure here that costs a real
+ *    person real money. Cancel in Stripe, then delete.
+ *
+ * The handle has to be typed back. Not security — the owner has already passed
+ * every gate above by this point — but the difference between meaning to delete
+ * this account and meaning to delete the one below it in a table of forty.
+ *
+ * No analytics event: this is a staff-only screen and the audit log is the
+ * record that matters (`deleteRider` writes it before the row goes).
+ */
+export async function deleteRiderAction(
+  userId: string,
+  confirmHandle: string,
+): Promise<StaffWriteResult> {
+  const staff = await requireStaff();
+
+  if (!isOwner(staff.rider)) {
+    return { ok: false, message: 'Only the account owner can delete an account.' };
+  }
+  if (userId === staff.rider.id) {
+    return { ok: false, message: 'You cannot delete your own account.' };
+  }
+
+  const rider = await getRider(staff.superuser, userId).catch(() => null);
+  if (!rider) {
+    return { ok: false, message: 'That account no longer exists.' };
+  }
+
+  // Compared case-insensitively and trimmed: the confirmation is a guard
+  // against the wrong row, not a spelling test.
+  if (confirmHandle.trim().toLowerCase() !== (rider.handle || '').toLowerCase()) {
+    return { ok: false, message: `Type @${rider.handle} exactly to confirm.` };
+  }
+
+  const subscription = await getActiveSubscription(staff.superuser, userId).catch(() => null);
+  if (subscription) {
+    return {
+      ok: false,
+      message: 'Cancel this rider’s subscription in Stripe first — deleting now would orphan it.',
+    };
+  }
+
+  try {
+    await deleteRider(staff.superuser, staff.actor, userId);
+  } catch {
+    return { ok: false, message: 'That did not delete. Try again in a moment.' };
   }
 
   revalidateAdmin();

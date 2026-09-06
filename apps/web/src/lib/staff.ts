@@ -73,3 +73,44 @@ export async function requireStaff(returnTo: string = ROUTES.admin): Promise<Sta
     actor: { id: session.rider.id, label: session.rider.handle || session.rider.email || 'staff' },
   };
 }
+
+/**
+ * The owner's own account id, from the deploy environment. Empty when unset.
+ *
+ * **An id, not an email address** (owner decision, Rachid, 2026-09-06, in
+ * chat). A PocketBase record id is immutable and meaningless outside the
+ * database; an email address is neither. `users.email` can be changed — by the
+ * account itself through the confirmation flow, and by anybody holding the
+ * superuser dashboard — so an email gate is a gate whose key can be recut,
+ * and the recutting would not look like a privilege change to anyone reading
+ * the audit log. It would also put a personal address in the repository, which
+ * is the one thing `.env` files exist to avoid.
+ *
+ * Read through a function rather than captured at module scope so a test can
+ * set it per case, and so the value is never baked into a build: this is a
+ * server file, but `process.env` reads that Next can see at build time are
+ * inlined, and a gate that inlines is a gate that needs a rebuild to rotate.
+ */
+function ownerId(): string {
+  return (process.env.LANDIT_OWNER_ID ?? '').trim();
+}
+
+/**
+ * Is this the owner — the only account that may delete another?
+ *
+ * **Unset fails closed, and that is the important half.** A box with no
+ * `LANDIT_OWNER_ID` answers `false` for everybody, so a deploy that has never
+ * been configured has the destructive action switched off rather than open to
+ * whoever asks first. The alternative — treating "no owner configured" as "any
+ * staff member will do" — turns a missing environment variable into a silent
+ * privilege grant on a live box, which is the failure you find out about
+ * afterwards.
+ *
+ * Deliberately narrower than `isStaff`. Staff is a role several people can
+ * hold and is granted from the superuser dashboard; this is one account, named
+ * on the deploy, and holding it is not something the product can hand out.
+ */
+export function isOwner(rider: Pick<UsersRecord, 'id'> | null | undefined): boolean {
+  const owner = ownerId();
+  return owner.length > 0 && !!rider && rider.id === owner;
+}

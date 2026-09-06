@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applyStaffChange,
+  deleteRider,
   deleteStaffRecord,
   landedCountsFor,
   listAdminAnnouncements,
@@ -435,5 +436,59 @@ describe('the content-tab writes', () => {
     // A decision reversed with the old sentence still attached is a record that
     // says two different things about the same report.
     expect(records['reports:r1']?.outcome).toBe('');
+  });
+});
+
+describe('deleteRider', () => {
+  it('logs before it deletes, because nothing else records that the account existed', async () => {
+    const { client, calls } = fakeClient({
+      'users:u1': { id: 'u1', handle: 'testpayer', email: 'test@example.com', plan: 'legend' },
+    });
+
+    await deleteRider(client, actor, 'u1');
+
+    const logged = calls.findIndex((c) => c.collection === 'audit_log' && c.method === 'create');
+    const deleted = calls.findIndex((c) => c.collection === 'users' && c.method === 'delete');
+
+    expect(logged).toBeGreaterThanOrEqual(0);
+    expect(deleted).toBeGreaterThanOrEqual(0);
+    // The inversion of `applyStaffChange`'s order, and the reason is in the
+    // docstring: `users` is not in the hook's `AUDITED` list, so this row is
+    // the only trace. Logging second loses it if the process dies mid-call.
+    expect(logged).toBeLessThan(deleted);
+  });
+
+  it('keeps the whole record in `before`, because after this there is nowhere else to find it', async () => {
+    const { client, calls } = fakeClient({
+      'users:u1': { id: 'u1', handle: 'testpayer', email: 'test@example.com', plan: 'legend' },
+    });
+
+    await deleteRider(client, actor, 'u1');
+
+    const [row] = auditRows(calls);
+    expect(row?.action).toBe('admin.account_delete');
+    expect(row?.entity).toBe('users');
+    expect(row?.entity_id).toBe('u1');
+    expect(row?.after).toBeNull();
+    expect(row?.before).toMatchObject({ handle: 'testpayer', email: 'test@example.com' });
+  });
+
+  it('names the staff member who did it, not the superuser that made the call', async () => {
+    const { client, calls } = fakeClient({ 'users:u1': { id: 'u1', handle: 'testpayer' } });
+
+    await deleteRider(client, actor, 'u1');
+
+    const [row] = auditRows(calls);
+    expect(row?.actor).toBe('staff1');
+    expect(row?.actor_kind).toBe('staff');
+  });
+
+  it('does not delete when the record cannot be read, so a typo removes nothing', async () => {
+    const { client, calls } = fakeClient({});
+
+    await expect(deleteRider(client, actor, 'nope')).rejects.toThrow();
+
+    expect(calls.some((c) => c.method === 'delete')).toBe(false);
+    expect(auditRows(calls)).toHaveLength(0);
   });
 });

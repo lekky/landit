@@ -455,6 +455,57 @@ export async function setRiderSuspended(
   });
 }
 
+/**
+ * Delete a rider's account row outright, and log what was destroyed.
+ *
+ * **This is not what a rider's own erasure does, and the difference matters.**
+ * `POST /api/landit/account/delete` is anonymise-and-retain (owner decision,
+ * Rachid, 2026-08-17; the reasoning is in `pocketbase/hooks/lib/erasure.js`),
+ * because a cascade delete turns a pseudonymous moderation trail into an
+ * unreadable one and takes the guardian consent record with it. Nothing a rider
+ * can reach calls this. It is the operator's tool for the case
+ * `1787702400_users_no_self_delete.js` names in as many words — "test accounts,
+ * a bad import" — where the row is not evidence about a person and leaving it
+ * costs more than removing it.
+ *
+ * **The audit row is written before the delete, which is the opposite of
+ * `applyStaffChange`.** That function logs second on purpose: a log written
+ * first invents changes that did not happen, and for an update that is the
+ * worse failure. A delete inverts the arithmetic. `users` is not in the audit
+ * hook's `AUDITED` list, so unlike a spot or a trick there is no row written
+ * inside the transaction underneath this one — this row is the *only* trace
+ * that the account existed. Logging second means a process dying between the
+ * delete and the write leaves an account gone with nothing anywhere saying so,
+ * and no record left to reconstruct it from. Logging first can at worst leave a
+ * row describing a deletion that failed, and that is a row you can disprove by
+ * observing the account is still there. An overstated log beats a vanished one.
+ *
+ * `before` is the whole record rather than a narrowed patch, because after this
+ * call there is nowhere else to find any of it.
+ *
+ * Who may call this is not decided here — `packages/db` holds no rules (see the
+ * head of this file). The gate is `requireOwner` in `apps/web/src/lib/staff.ts`.
+ */
+export async function deleteRider(
+  client: Client,
+  actor: StaffActor,
+  userId: string,
+): Promise<void> {
+  const table = records(client, 'users');
+  const before = await table.get(userId);
+
+  await writeStaffAudit(client, {
+    actor,
+    action: 'admin.account_delete',
+    entity: 'users',
+    entityId: userId,
+    before,
+    after: null,
+  });
+
+  await table.remove(userId);
+}
+
 // -------------------------------------------------------------- catalogue --
 
 /**
