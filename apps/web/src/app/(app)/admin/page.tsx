@@ -14,7 +14,13 @@ import type { Metadata } from 'next';
 import { shortDateTime } from '@/lib/dates';
 import { requireStaff } from '@/lib/staff';
 
-import type { AdminActivityRow, AdminAttentionRow, AdminBar, AdminStatCard } from './view';
+import {
+  heardAboutPanel,
+  type AdminActivityRow,
+  type AdminAttentionRow,
+  type AdminBar,
+  type AdminStatCard,
+} from './view';
 
 import styles from './admin.module.css';
 
@@ -91,21 +97,26 @@ export default async function AdminOverviewPage() {
     listStaffAudit(pb, { limit: 8 }),
   ]);
 
+  // "On a paid plan", resolved from the plan record's own entitlement rather
+  // than from the string `rookie`. Which tier is free is a staff-editable fact
+  // (plan §6.6) and comparing a plan id in code is exactly what §2.4 forbids.
+  // Read before the counts because the "how riders found us" split is a
+  // cross-tab against it, and `@landit/db` deliberately holds no opinion about
+  // which plan is paid.
+  const paidSlugs = new Set(plans.filter((p) => p.unlocks_paid_tricks).map((p) => p.slug));
+
   const counts = await adminRiderCounts(
     pb,
     plans.map((p) => p.slug),
     SPORT_IDS,
     activeSince,
+    [...paidSlugs],
   );
 
   const tricks = tricksFromRecords(trickRecords);
   const live = tricks.filter((t) => t.isLive);
   const locked = live.filter((t) => !isTrickFree(t)).length;
 
-  // "On a paid plan", resolved from the plan record's own entitlement rather
-  // than from the string `rookie`. Which tier is free is a staff-editable fact
-  // (plan §6.6) and comparing a plan id in code is exactly what §2.4 forbids.
-  const paidSlugs = new Set(plans.filter((p) => p.unlocks_paid_tricks).map((p) => p.slug));
   const paid = plans.reduce(
     (n, p) => n + (paidSlugs.has(p.slug) ? (counts.byPlan[p.slug] ?? 0) : 0),
     0,
@@ -169,6 +180,16 @@ export default async function AdminOverviewPage() {
 
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
+  // How riders say they found us (issue #323). Built in `view.ts`, where the
+  // denominator and the suppression floor are unit-tested — both are judgements
+  // an edit could reverse while still rendering a chart that looked fine.
+  const heard = heardAboutPanel({
+    total: counts.total,
+    answered: counts.heardAboutAnswered,
+    byOption: counts.byHeardAbout,
+    paidByOption: counts.paidByHeardAbout,
+  });
+
   const attention: AdminAttentionRow[] = [
     {
       label: `${plural(spotsPending.totalItems, 'spot', 'spots')} awaiting review`,
@@ -191,7 +212,17 @@ export default async function AdminOverviewPage() {
     when: shortDateTime(row.created),
   }));
 
-  const barsPanel = (title: string, bars: readonly AdminBar[], note?: string) => (
+  /**
+   * `of` is the denominator. It defaults to every rider, which is what the plan
+   * and sport panels want; the "how riders found us" panel passes the number
+   * who answered instead, because most riders were never asked.
+   */
+  const barsPanel = (
+    title: string,
+    bars: readonly AdminBar[],
+    note?: string,
+    of: number = counts.total,
+  ) => (
     <Panel flat style={{ padding: 18 }}>
       <div className="lab" style={{ marginBottom: 13 }}>
         {title}
@@ -207,11 +238,8 @@ export default async function AdminOverviewPage() {
                 {bar.count}
               </span>
             </div>
-            <Bar
-              pct={counts.total > 0 ? (bar.count / counts.total) * 100 : 0}
-              color={bar.color}
-              height={13}
-            />
+            <Bar pct={of > 0 ? (bar.count / of) * 100 : 0} color={bar.color} height={13} />
+            {bar.sub && <div className={styles.barSub}>{bar.sub}</div>}
           </div>
         ))}
         {note && <div className={styles.barNote}>{note}</div>}
@@ -242,6 +270,8 @@ export default async function AdminOverviewPage() {
           sportBars,
           `${plural(counts.multiSport, 'rider rides', 'riders ride')} more than one.`,
         )}
+
+        {barsPanel('How riders found us', heard.bars, heard.note, heard.of)}
 
         <Panel flat style={{ padding: 18 }}>
           <div className="lab" style={{ marginBottom: 13 }}>

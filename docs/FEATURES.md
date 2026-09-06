@@ -106,7 +106,9 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
 ## Staff portal
 
 `/admin` (role gate, 404 to non-staff, role settable only from the PocketBase superuser
-dashboard): overview; riders (sheet with email/age/plan, plan override, suspend); tricks, stickers,
+dashboard): overview (rider/trick/spot counts, riders by plan, by sport and by how they found us —
+the last with a paid split withheld below 10 riders per option); riders (sheet with
+email/age/plan, plan override, suspend); tricks, stickers,
 spots (approve/reject), events, challenges, notices, plans (copy + display prices only —
 entitlement flags read-only); moderation queue for reports/appeals. Every mutation is audited
 twice (app layer + hook layer).
