@@ -48,6 +48,17 @@ export const ROUTES = {
    */
   challenge: '/challenge',
   events: '/events',
+  /**
+   * The archive — every event that has already happened, at an address of its
+   * own rather than as a filter buried in the calendar's pill row.
+   *
+   * A route rather than client state because it is the half of the calendar
+   * worth *arriving* on: a rider looking up what happened at their park last
+   * summer is coming from a search result, and there was nothing for one to
+   * point at. `/events/past/[year]/[town]` narrows it, and only the corners
+   * that hold events are ever published (`eventArchiveIndex`).
+   */
+  eventsPast: '/events/past',
   /** T10's sticker wall. Same rule as above: the nav entry is wired separately. */
   stickers: '/stickers',
   crew: '/crew',
@@ -205,6 +216,36 @@ export type EventPageSource = 'list' | 'modal_cta';
 
 export const eventHrefFrom = (slug: string, source: EventPageSource): Route =>
   `${eventHref(slug)}?from=${source}`;
+
+/**
+ * The Details modal, at an address (Rachid, 2026-09-06, in chat).
+ *
+ * A query parameter over `/events`, not an intercepted route. The modal is the
+ * quick look *over the list a rider has already filtered* — their sport tab,
+ * their search, their page and their optimistic "I'm going" all belong to the
+ * client component underneath it, and an intercepted `(.)events/[slug]` would
+ * render a second, server-side tree that has none of that. It would also show
+ * the wrong thing: `/events/[slug]` is a full page with a rail, a map and three
+ * onward blocks, deliberately not the modal's content.
+ *
+ * What the parameter buys is everything the design asked for — the modal is
+ * linkable, and Back closes it, because opening it pushes one history entry.
+ */
+export const eventModalHref = (slug: string): Route =>
+  `${ROUTES.events}?event=${encodeURIComponent(slug)}`;
+
+/**
+ * One corner of the archive, or the whole of it.
+ *
+ * Both segments or neither: a year without a town would be a third page shape
+ * to design, and the index panel does that job by filtering the list in place.
+ * The town travels as a slug because that is the only form the reader's browser
+ * sends back (`eventTownSlug`).
+ */
+export const pastEventsHref = (where?: { year: number; townSlug: string }): Route =>
+  where
+    ? `${ROUTES.eventsPast}/${where.year}/${encodeURIComponent(where.townSlug)}`
+    : ROUTES.eventsPast;
 
 /** A guardian's link from the consent email (plan §6.2). */
 export const consentHref = (action: 'approve' | 'revoke', token: string): Route =>

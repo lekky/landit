@@ -13,13 +13,13 @@ import {
 } from '@landit/core';
 import { Button, Empty, Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web';
 import Link from 'next/link';
-import { type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { SectionTabs } from '@/components/shell/SectionTabs';
 import { SportSwitch } from '@/components/shell/SportSwitch';
 import { WHATS_ON_TABS } from '@/components/shell/nav';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
-import { reportHref } from '@/lib/routes';
+import { reportHref, spotHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { useSport } from '@/providers/sport';
 
@@ -31,6 +31,12 @@ import styles from './spots.module.css';
 /** A `spots` row, flattened to what a screen needs. */
 export interface SpotView {
   readonly id: string;
+  /**
+   * The slug its own page lives at. `''` for a row that has none — a rider's
+   * pending submission has no page, and a card with no `slug` gets no link
+   * rather than one to `/spots/`.
+   */
+  readonly slug: string;
   readonly name: string;
   readonly town: string;
   readonly type: string;
@@ -214,7 +220,7 @@ export function SpotsScreen({
   );
 
   const cards = useRef(new Map<string, HTMLElement>());
-  const select = useCallback((id: string) => {
+  const select = useCallback((id: string, via: 'card' | 'pin') => {
     setSelectedId(id);
     /*
      * **Choosing a spot brings the map to it, rather than leaving a rider to go
@@ -233,6 +239,17 @@ export function SpotsScreen({
     // cards carry a `scroll-margin-bottom` on narrow screens so this never
     // parks the chosen one underneath the sheet.
     cards.current.get(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+    /*
+     * Counted, because this gesture just got smaller. The whole card used to
+     * select the map; the card is now a link to the spot's page (design
+     * handoff, "the conflict and the resolution"), so selecting has shrunk to a
+     * button in the footer and a pin. `via` separates the two, and nothing
+     * about the spot or the rider travels — the catalogue rule in
+     * `analytics.ts` rules out the name and the slug, and standard 10 rules out
+     * a position.
+     */
+    capture(ANALYTICS_EVENTS.spotMapSelected, { via });
   }, []);
 
   /*
@@ -272,28 +289,25 @@ export function SpotsScreen({
   }, [mapOpen]);
 
   /*
-   * The whole card is the target, not just the button inside it — a rider
-   * looking for a park aims at the box.
+   * **Navigation owns the card; the map is an explicit button** (design
+   * handoff, "Screen 4 — the conflict and the resolution").
    *
-   * **The button stays, and is still the only keyboard path.** A card is a
-   * `div` because the two links in it cannot live inside a `button`, so this
-   * handler is a pointer affordance layered over a real control rather than a
-   * replacement for one; dropping the button would leave the card unreachable
-   * by keyboard and unnamed to a screen reader, and would take the label that
-   * says which spot is currently on the map with it.
+   * A press on a spot card could mean "show me this on the map" or "open this
+   * spot's page", and it cannot mean both. It used to mean the first: the whole
+   * box selected the map, and the page a rider actually wanted was a 12px hint
+   * — or, until spot pages existed, nowhere at all. Navigation gets the box
+   * because it is the frequent gesture and the one that needs a real URL: a
+   * hover target, a middle-click, a crawl path, something to share. What
+   * selection loses in target size it gets back in being *stated* — "Show on
+   * map" says what it does, which the invisible card handler never did.
    *
-   * The `closest` check is what stops "Directions" and "Report" moving the map
-   * on their way out. One rule in one place, rather than `stopPropagation` on
-   * each link: a third link added to a card is covered without anyone
-   * remembering to opt it out.
+   * The link is stretched over the card (`.cardLink`, `inset: 0`) rather than
+   * wrapping it, because a card holds three other controls and none of them can
+   * live inside an `<a>`. Everything that must stay pressable sits above it on
+   * `z-index`, and the link carries a visually-hidden name of its own so a
+   * screen reader hears "Ventnor Skatepark, Ventnor — open spot page" instead
+   * of a decorative arrow.
    */
-  const selectFromCard = useCallback(
-    (event: MouseEvent<HTMLDivElement>, id: string) => {
-      if ((event.target as HTMLElement).closest('a, button')) return;
-      select(id);
-    },
-    [select],
-  );
 
   /*
    * How many live spots each sport has, for the tab row's note.
@@ -438,10 +452,22 @@ export function SpotsScreen({
                   else cards.current.delete(spot.id);
                 }}
                 className={`panel flat ${styles.card} ${on ? styles.cardOn : ''} ${
-                  plottable ? styles.cardTap : ''
+                  spot.slug ? styles.cardLinked : ''
                 }`}
-                onClick={plottable ? (event) => selectFromCard(event, spot.id) : undefined}
               >
+                {/*
+                  The stretched link. Its text is the whole accessible name of
+                  the card — the visible "Spot page →" in the footer is
+                  decorative, and a screen reader would otherwise announce a
+                  link called "→".
+                */}
+                {spot.slug && (
+                  <Link className={styles.cardLink} href={spotHref(spot.slug)}>
+                    <span className={styles.cardLinkLabel}>
+                      {[spot.name, spot.town].filter(Boolean).join(', ')} — open spot page
+                    </span>
+                  </Link>
+                )}
                 <span className={styles.cardIcon}>
                   <Icon name="map" size={20} strokeWidth={2.2} />
                 </span>
@@ -513,6 +539,33 @@ export function SpotsScreen({
                   </div>
                   {plottable && (
                     <div className={styles.cardActions}>
+                      {/*
+                        A real `<button>`, not a div and not the card: it is the
+                        one control that changes the map, it says so, and it is
+                        the keyboard path to a gesture that has no other one.
+                        `--sky` while it is the chosen spot, which is the
+                        design's active state.
+                      */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`${styles.mapPick} ${on ? styles.mapPickOn : ''}`}
+                        onClick={() => select(spot.id, 'card')}
+                        aria-pressed={on}
+                      >
+                        <span className={styles.mapPickMark} aria-hidden="true" />
+                        {on ? 'On the map' : 'Show on map'}
+                      </Button>
+                      <span className={styles.cardActionsPush} />
+                      {/*
+                        Decorative: the stretched link above already carries the
+                        card's name, and this only says where the box goes.
+                      */}
+                      {spot.slug && (
+                        <span className={`cond ${styles.pageHint}`} aria-hidden="true">
+                          Spot page →
+                        </span>
+                      )}
                       <a
                         className={`cond ${styles.directions}`}
                         href={mapsLink(spot)}
@@ -521,14 +574,6 @@ export function SpotsScreen({
                       >
                         Directions
                       </a>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => select(spot.id)}
-                        aria-pressed={on}
-                      >
-                        {on ? 'On the map' : 'Show on map'}
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -616,9 +661,46 @@ export function SpotsScreen({
             <SpotMap
               spots={plotted}
               selectedId={selected?.id ?? null}
-              onSelect={select}
+              onSelect={(id) => select(id, 'pin')}
               here={here.point}
             />
+
+            {/*
+              The way out of the map and into the spot.
+
+              **First, and full width, because of where it is read.** In the
+              sheet — a phone, everything below the map hidden behind it — this
+              is the only link to the page a rider is looking at, and the design
+              puts it above Directions and Report so a thumb never hunts for it
+              behind the map. On a wide screen it is the same button doing the
+              same job beside the list; the Directions and Report row below it
+              is the sheet's only, because on desktop both are already on the
+              card the rider can see.
+            */}
+            {selected && selected.slug && (
+              <div className={styles.mapActions}>
+                <Link className={`btn wide ${styles.mapOpen}`} href={spotHref(selected.slug)}>
+                  Open {selected.name} page →
+                </Link>
+                <div className={styles.sheetActions}>
+                  <a
+                    className="btn sm ghost"
+                    href={mapsLink(selected)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Directions
+                  </a>
+                  <Link
+                    className="btn sm ghost"
+                    href={reportHref({ type: 'spot', id: selected.id })}
+                    aria-label={`Report ${selected.name}`}
+                  >
+                    Report
+                  </Link>
+                </div>
+              </div>
+            )}
 
             <div className={styles.mapFoot}>
               {/*
@@ -635,9 +717,17 @@ export function SpotsScreen({
                 Directions takes them out of the product entirely. It is the
                 short wording, because a sheet has no room for the long one.
               */}
+              {/*
+                **Re-worded when the card became a link** (2026-09-06). It used
+                to read "tap a pin or a card — they follow each other", which
+                was true while the whole card selected the map and stopped being
+                true the moment it started navigating instead. A note explaining
+                a behaviour is a dated claim about the product, and this one's
+                date had passed (LESSONS §4).
+              */}
               <p className={`cond ${styles.mapNote}`}>
-                Every live spot on this list is on the map. Tap a pin or a card — they follow each
-                other.
+                Every live spot on this list is on the map. Cards are links, so the map only moves
+                when you ask it to — press <strong>Show on map</strong> on a card, or a pin.
               </p>
               <p className={styles.mapWarn}>
                 <strong>Check before you travel:</strong> Spots may not be verified.

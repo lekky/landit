@@ -336,16 +336,44 @@ test.describe('where to ride', () => {
     await expect(chosen.getByRole('button', { name: 'On the map' })).toBeVisible();
   });
 
-  test('puts a spot on the map from anywhere in its card', async ({ page }) => {
+  /*
+   * **Navigation owns the card; the map is an explicit button** (design
+   * handoff, "Screen 4 — the conflict and the resolution"). The whole box used
+   * to select the map, which left the spot's own page — the thing that has a
+   * URL, a share and a crawl path — behind a 12px hint. The trade is deliberate
+   * and this is the pair of assertions that pins it: pressing the card
+   * navigates, and the map only moves when a rider asks it to.
+   */
+  test('the card is a link to the spot page, and does not move the map', async ({ page }) => {
     await page.goto('/spots');
-
-    // The name, not the button beneath it: the whole box is the control, which
-    // is the only part of this a rider on a phone can reliably hit.
     const chosen = await findSpot(page, scooterSpot.name);
-    await chosen.getByText(scooterSpot.name, { exact: true }).click();
+
+    // The stretched link's accessible name is the card's, not an arrow: the
+    // visible "Spot page →" is decorative and hidden from assistive tech.
+    const link = chosen.getByRole('link', { name: /open spot page$/i });
+    await expect(link).toHaveAttribute('href', /^\/spots\/[a-z0-9-]+$/);
+
+    // Nothing was selected on the way: the map is still waiting to be asked.
+    await expect(page.getByRole('link', { name: 'Open in Maps' })).toHaveCount(0);
+
+    await link.click();
+    await page.waitForURL('**/spots/**');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(scooterSpot.name);
+  });
+
+  test('"Show on map" is the one control that moves the map', async ({ page }) => {
+    await page.goto('/spots');
+    const chosen = await findSpot(page, scooterSpot.name);
+
+    await expect(page.getByRole('link', { name: 'Open in Maps' })).toHaveCount(0);
+    await chosen.getByRole('button', { name: 'Show on map' }).click();
 
     await expect(chosen.getByRole('button', { name: 'On the map' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Open in Maps' })).toBeVisible();
+    // And the map panel offers the page too, which is the sheet's first control
+    // on a phone — the thumb never hunts for the link behind the map.
+    await expect(
+      page.getByRole('link', { name: new RegExp(`Open ${scooterSpot.name} page`) }),
+    ).toBeVisible();
   });
 
   test('a link inside a card goes to its own place and leaves the map alone', async ({

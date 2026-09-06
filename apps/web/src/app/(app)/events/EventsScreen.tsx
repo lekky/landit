@@ -19,14 +19,14 @@ import {
   Tag,
 } from '@landit/ui-web';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
 import { SectionTabs } from '@/components/shell/SectionTabs';
 import { WHATS_ON_TABS } from '@/components/shell/nav';
 import { SportSwitch } from '@/components/shell/SportSwitch';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
-import { ROUTES, signInHref } from '@/lib/routes';
-import { useModal } from '@/providers/modal';
+import { ROUTES, eventHrefFrom, pastEventsHref, signInHref } from '@/lib/routes';
 import { useSport } from '@/providers/sport';
 import { useToast } from '@/providers/toast';
 
@@ -42,20 +42,26 @@ import styles from './events.module.css';
 import type { EventsView, EventView } from './view';
 
 /**
- * Events (screenshot 18).
+ * Events (screenshot 18; `design-handoff/event-spot-pages`, "Screen 3").
  *
- * The filter row and the detail modal are the prototype's, with two
+ * The filter row and the detail modal are the prototype's, with three
  * differences worth naming:
  *
  * - **The list is filtered in the browser**, over rows the server shaped. It is
  *   a few dozen events; a round trip per pill would make the row feel broken.
- * - **A past event is dimmed rather than dropped.** "What's coming up" is the
- *   heading, but a rider who said they were going to something last weekend
- *   should still see it — silently removing a row a child ticked reads as a
- *   bug. **Upcoming only is the state the page lands in**, and the pill now
- *   renders *on* while it is doing that: it was previously drawn in the off
- *   state while reading "Upcoming only", so an active filter looked like an
- *   available one, and the list looked short for no visible reason.
+ * - **The two halves of the calendar are two routes**, `/events` and
+ *   `/events/past`, switched by the segmented control below the heading. It
+ *   used to be a pair of pills over one list. The archive is the half worth
+ *   *arriving* on — somebody looking up what happened at their park last summer
+ *   comes from a search result — and a pill has no address. It also closes the
+ *   bug the design handoff records: a view that cannot express "both" cannot
+ *   leak a finished event into the calendar, and the split is made once, in
+ *   `@landit/core` (`upcomingEvents` / `pastEvents`), with a property test
+ *   beside it rather than two filters that have to stay in step.
+ * - **The Details modal has a URL** (Rachid, 2026-09-06, in chat). It is still
+ *   the quick look and it still holds "I'm going", so the common case never
+ *   leaves the list; what it gained is `?event=slug`, which makes it shareable
+ *   and closes on Back. See `EventDetailModal`.
  *
  * **Distances are approximate, and say so.** Organisers publish addresses, not
  * coordinates, so an event's point comes from looking its address or town up in
@@ -124,10 +130,12 @@ export function EventsScreen({
   readonly signedIn: boolean;
 }) {
   const { sport } = useSport();
-  const { openModal, closeModal } = useModal();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const here = useHereOnce({ resumeWhenGranted: true });
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const past = view.scope === 'past';
 
   /*
    * Nearest-first happened — counted once per position held, and tagged with
@@ -153,7 +161,6 @@ export function EventsScreen({
 
   const [kind, setKind] = useState<EventKind | null>(null);
   const [mySportOnly, setMySportOnly] = useState(true);
-  const [showPast, setShowPast] = useState(false);
   const [country, setCountry] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
@@ -166,7 +173,6 @@ export function EventsScreen({
     const narrowed = view.events.filter((event) => {
       if (kind && event.kind !== kind) return false;
       if (mySportOnly && !event.sportIds.includes(sport)) return false;
-      if (!showPast && event.past) return false;
       if (country && event.country !== country) return false;
       if (needle) {
         const haystack =
@@ -177,7 +183,8 @@ export function EventsScreen({
     });
 
     // Nearest first only while the rider is actually sharing a position.
-    // Without one the list stays in date order, which is the page's promise.
+    // Without one the list stays in the order the server shaped — soonest first
+    // on the calendar, most recent first in the archive.
     if (!here.point) return narrowed;
     const from = here.point;
     return [...narrowed]
@@ -196,7 +203,7 @@ export function EventsScreen({
         return gap === 0 ? a.index - b.index : gap;
       })
       .map((entry) => entry.event);
-  }, [view.events, kind, mySportOnly, showPast, sport, country, search, here.point]);
+  }, [view.events, kind, mySportOnly, sport, country, search, here.point]);
 
   const pageCount = Math.max(1, Math.ceil(list.length / PER_PAGE));
 
@@ -243,24 +250,55 @@ export function EventsScreen({
     });
   };
 
-  const openDetails = (event: EventView) => {
-    openModal(
-      <EventDetail
-        event={event}
-        distance={here.point ? distanceLabelIn(here.point, event, units) : null}
-        signedIn={signedIn}
-        going={going.has(event.id)}
-        onToggle={() => {
-          toggle(event);
-          closeModal();
-        }}
-        onClose={closeModal}
-      />,
-      { width: 460, label: event.name },
-    );
-  };
+  /*
+   * The modal's open/closed state is the URL's `?event=`, and nothing else
+   * holds it.
+   *
+   * **Why the History API rather than `router.push`.** Both give a shareable
+   * address and a working Back button; `router.push` also asks the server for a
+   * fresh render of this route, which for a quick look at a row already on
+   * screen is a network round trip a rider waits through. Next.js reflects a
+   * native `pushState` in `useSearchParams`, so the modal opens in the same
+   * frame and the address bar still changes. `openedHere` is what keeps Close
+   * honest: it goes *back* when this session pushed the entry, and replaces the
+   * address when the rider arrived on the link, so Close never walks somebody
+   * off the site.
+   */
+  const openSlug = params.get('event');
+  const openedHere = useRef(false);
+  const open = useMemo(
+    () => (openSlug ? (view.events.find((event) => event.id === openSlug) ?? null) : null),
+    [openSlug, view.events],
+  );
+
+  const openDetails = useCallback(
+    (event: EventView) => {
+      openedHere.current = true;
+      window.history.pushState(null, '', `${pathname}?event=${encodeURIComponent(event.id)}`);
+    },
+    [pathname],
+  );
+
+  const closeDetails = useCallback(() => {
+    if (openedHere.current) {
+      openedHere.current = false;
+      window.history.back();
+      return;
+    }
+    window.history.replaceState(null, '', pathname);
+  }, [pathname]);
 
   const goingCount = going.size;
+  const archive = view.archive;
+  const where = archive?.where ?? null;
+
+  /*
+   * The archive's empty state, which is a real answer rather than a 404: a
+   * reader can type `/events/past/2024/ventnor` and the corner may hold
+   * nothing. The page it sits on carries `robots: index: false` in that case,
+   * so an empty corner can never become an indexed thin page.
+   */
+  const emptyCorner = past && where !== null && view.events.length === 0;
 
   return (
     <div className={styles.page}>
@@ -270,14 +308,44 @@ export function EventsScreen({
 
       <div className={styles.headRow}>
         <div>
-          <span className="eyebrow">Events</span>
-          <h1 className={`d ${styles.head}`}>What&rsquo;s coming up</h1>
+          <span className="eyebrow">{past ? 'The archive' : 'Events'}</span>
+          <h1 className={`d ${styles.head}`}>
+            {past ? 'Events that have already happened' : 'What’s coming up'}
+          </h1>
         </div>
         <p className={styles.lede}>
-          Comps, coached sessions and one-skill classes near you. Staff add them, so the list stays
-          real.
+          {past
+            ? 'Nothing here is happening. Kept online because riders still look these up.'
+            : 'Comps, coached sessions and one-skill classes near you. Staff add them, so the list stays real.'}
         </p>
       </div>
+
+      {/*
+        The two halves, as two links.
+
+        Links rather than buttons because they are two addresses: a crawler
+        follows them, a rider can middle-click them, and the archive has a page
+        to be shared. `aria-current="page"` is what says which half you are on,
+        so the ink fill is not carrying the meaning on its own.
+      */}
+      <nav className={styles.viewSwitch} aria-label="Upcoming or past events">
+        <Link
+          href={ROUTES.events}
+          className={`cond ${styles.viewSwitchItem}`}
+          aria-current={past ? undefined : 'page'}
+          onClick={() => capture(ANALYTICS_EVENTS.eventsViewSwitched, { view: 'upcoming' })}
+        >
+          Upcoming <span className={styles.viewSwitchCount}>{view.upcomingCount}</span>
+        </Link>
+        <Link
+          href={pastEventsHref()}
+          className={`cond ${styles.viewSwitchItem}`}
+          aria-current={past ? 'page' : undefined}
+          onClick={() => capture(ANALYTICS_EVENTS.eventsViewSwitched, { view: 'past' })}
+        >
+          Past <span className={styles.viewSwitchCount}>{view.pastCount}</span>
+        </Link>
+      </nav>
 
       <div className={`search ${styles.search}`}>
         <Icon name="search" size={19} strokeWidth={2.6} />
@@ -364,39 +432,47 @@ export function EventsScreen({
           </Pill>
         ))}
         <span className={styles.spacer} />
-        {/*
-          Two pills rather than one toggle. This filter is *on* when the page
-          loads, and a single pill drawn in the off state while reading
-          "Upcoming only" said the opposite — it read as a filter waiting to be
-          applied, so a rider seeing a short list had no way to tell that past
-          events were already hidden.
-        */}
-        <Pill on={!showPast} onClick={() => setShowPast(false)}>
-          Upcoming only
-        </Pill>
-        <Pill on={showPast} onClick={() => setShowPast(true)}>
-          Including past
-        </Pill>
         <Pill on={mySportOnly} onClick={() => setMySportOnly((v) => !v)}>
           {mySportOnly ? `Good for ${SPORTS[sport].short}` : 'Every sport'}
         </Pill>
       </div>
 
-      {list.length ? (
+      {archive && <ArchiveIndex archive={archive} />}
+
+      {emptyCorner ? (
+        <EmptyCorner town={where?.town ?? ''} year={where?.year ?? 0} narrowedTo={Boolean(where)} />
+      ) : list.length ? (
         <div className={styles.list}>
           {/*
-            Said only while it is true, so the screen gains nothing in its
-            ordinary state and says the one thing that changed when it changes.
-            First child of the list, so it takes the list's own 12px gap.
+            How the list is ordered, said only where it is not the obvious
+            thing. "Nearest first" is the one that matters — on a resume the
+            rider pressed nothing, so the badge alone would not tell them their
+            calendar had been re-sorted — and the archive says its own order
+            because "most recent first" is the opposite of the calendar's.
           */}
-          {here.state === 'on' && <div className={`lab ${styles.order}`}>Nearest first</div>}
+          {here.state === 'on' ? (
+            <div className={`lab ${styles.order}`}>Nearest first</div>
+          ) : past ? (
+            <div className={`lab ${styles.order}`}>
+              Most recent first
+              {where && where.town ? ` · ${where.town}, ${where.year}` : ''}
+            </div>
+          ) : null}
           {shown.map((event) => (
             <Panel
               flat
               key={event.id}
               className={`${styles.row} ${event.past ? styles.rowPast : ''}`}
             >
-              <div className={styles.date} style={{ background: event.kindColor }}>
+              {/*
+                The date block wears the kind's colour — except on a finished
+                event, where the design drops it to ink so the row reads as done
+                before a word of it is read.
+              */}
+              <div
+                className={styles.date}
+                style={{ background: event.past ? 'var(--ink)' : event.kindColor }}
+              >
                 <span className={`d ${styles.dateDay}`}>{event.day}</span>
                 <span className={`lab ${styles.dateMonth}`}>{event.month}</span>
               </div>
@@ -404,6 +480,16 @@ export function EventsScreen({
               <div className={styles.rowBody}>
                 <div className={styles.rowMain}>
                   <div className={styles.chips}>
+                    {/*
+                      "Over" first, in red, on a finished event. Colour never
+                      carries the meaning on its own here — the word is the
+                      signal and the red is the emphasis.
+                    */}
+                    {event.past && (
+                      <Tag color="var(--red)" style={{ fontSize: 10 }}>
+                        Over
+                      </Tag>
+                    )}
                     <Tag color={event.kindColor} style={{ fontSize: 10 }}>
                       {event.kind}
                     </Tag>
@@ -414,13 +500,30 @@ export function EventsScreen({
                         sport={{ label: s.label, color: s.color, icon: s.icon as IconName }}
                       />
                     ))}
-                    {event.past && <span className={`lab ${styles.muted}`}>Been and gone</span>}
                   </div>
-                  <div className={`d ${styles.name}`}>{event.name}</div>
+                  {/*
+                    The event's name is a link to its own page.
+
+                    That is the one change to a row design that is otherwise
+                    exactly as it shipped, and it buys three things a `<button>`
+                    could not: a URL on hover, a middle-click, and a path a
+                    crawler can follow into `/events/[slug]`. `?from=list`
+                    is how `event_page_opened` tells this door from the modal's
+                    — three fixed strings decided on the server, never anything
+                    a reader typed (`sourceOf` in the page).
+                  */}
+                  <Link
+                    className={`d ${styles.name}`}
+                    href={eventHrefFrom(event.id, 'list')}
+                    onClick={(clicked) => clicked.stopPropagation()}
+                  >
+                    {event.name}
+                  </Link>
                   <div className={`lab ${styles.meta}`}>
                     {[event.venue, event.town, event.country, event.level]
                       .filter(Boolean)
                       .join(' · ')}
+                    {event.past && event.ago && <> · {event.ago}</>}
                     {here.point && distanceLabelIn(here.point, event, units) && (
                       <> · about {distanceLabelIn(here.point, event, units)} away</>
                     )}
@@ -436,7 +539,17 @@ export function EventsScreen({
                   <Button size="sm" variant="ghost" onClick={() => openDetails(event)}>
                     Details
                   </Button>
-                  {signedIn ? (
+                  {/*
+                    "I'm going" is meaningless once an event is over, so a
+                    finished row offers the page instead — which is where the
+                    archive actually leads somebody: what is on at that venue
+                    next, and what else is near.
+                  */}
+                  {event.past ? (
+                    <Link className="btn sm ink" href={eventHrefFrom(event.id, 'list')}>
+                      Full page →
+                    </Link>
+                  ) : signedIn ? (
                     <Button
                       size="sm"
                       disabled={pending}
@@ -459,15 +572,18 @@ export function EventsScreen({
       ) : (
         <Empty
           icon="flag"
-          title="Nothing listed yet"
-          sub={`No ${SPORTS[sport].short.toLowerCase()} events on the calendar for that filter. Try every sport, or check back.`}
+          title={past ? 'Nothing in the archive for that' : 'Nothing listed yet'}
+          sub={
+            past
+              ? `No past ${SPORTS[sport].short.toLowerCase()} events match that filter. Try every sport, or widen it.`
+              : `No ${SPORTS[sport].short.toLowerCase()} events on the calendar for that filter. Try every sport, or check back.`
+          }
           cta="Show everything"
           onCta={() => {
             setKind(null);
             setMySportOnly(false);
             setCountry('');
             setSearch('');
-            setShowPast(false);
           }}
         />
       )}
@@ -514,7 +630,7 @@ export function EventsScreen({
         organiser&rsquo;s link before you set off, and ring ahead where there is a number.
       </p>
 
-      {goingCount > 0 && (
+      {!past && goingCount > 0 && (
         <Panel className={styles.tally}>
           <span className={styles.tallyIcon}>
             <Icon name="flag" size={21} strokeWidth={2.3} />
@@ -530,13 +646,144 @@ export function EventsScreen({
           </div>
         </Panel>
       )}
+
+      {open && (
+        <EventDetailModal
+          event={open}
+          distance={here.point ? distanceLabelIn(here.point, open, units) : null}
+          signedIn={signedIn}
+          going={going.has(open.id)}
+          onToggle={() => {
+            toggle(open);
+            closeDetails();
+          }}
+          onClose={closeDetails}
+        />
+      )}
     </div>
   );
 }
 
 /**
+ * "Browse by year and town" — the archive's index panel.
+ *
+ * **Only corners that hold events** (Rachid, 2026-09-06, in chat). The
+ * prototype draws a year row crossed with a town row, and taken literally that
+ * is a cross-product: eighty towns over four years is three hundred and twenty
+ * addresses of which two dozen hold anything, and the rest are thin pages a
+ * search engine reads as a doorway pattern. So the panel keeps the design's
+ * shape — a year label with a row of town pills beside it — and repeats it per
+ * year, with every pill pointing at a page that genuinely has events on it.
+ * `eventArchiveIndex` is the single list behind both this panel and
+ * `sitemap.ts`, so the two cannot drift into disagreeing about what exists.
+ */
+function ArchiveIndex({ archive }: { readonly archive: NonNullable<EventsView['archive']> }) {
+  const { index, where } = archive;
+  if (!index.combinations.length) return null;
+
+  return (
+    <Panel className={styles.archive}>
+      <div className={styles.archiveHead}>
+        <h2 className={`d ${styles.archiveTitle}`}>Browse by year and town</h2>
+        <p className={styles.archiveNote}>
+          The archive is a real index, not just a search result. Past events never appear in the
+          upcoming calendar.
+        </p>
+      </div>
+
+      {index.years.map((year) => (
+        <div key={year} className={styles.archiveRow}>
+          <span className={`lab ${styles.archiveYear}`}>{year}</span>
+          {index.combinations
+            .filter((combination) => combination.year === year)
+            .map((combination) => {
+              const on = where?.year === year && where.townSlug === combination.townSlug;
+              return (
+                <Link
+                  key={combination.townSlug}
+                  href={pastEventsHref({ year, townSlug: combination.townSlug })}
+                  className={`pill ${on ? 'on' : ''} ${styles.archivePill}`}
+                  aria-current={on ? 'page' : undefined}
+                >
+                  {combination.town}{' '}
+                  <span className={styles.archiveCount}>{combination.count}</span>
+                </Link>
+              );
+            })}
+        </div>
+      ))}
+
+      {where && (
+        <div className={styles.archiveRow}>
+          <Link href={pastEventsHref()} className={`pill ${styles.archivePill}`}>
+            All past events →
+          </Link>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+/**
+ * A year and town corner of the archive with nothing in it.
+ *
+ * A real answer rather than a 404 — a reader can reasonably type one, and a
+ * page that explains itself and offers two ways on is better than an error. The
+ * page carrying it is `noindex`, so this can never become an indexed thin page.
+ *
+ * **The town is named only where we hold it.** `where.town` comes from an event
+ * in the archive, never from the URL segment, so nothing a reader typed is
+ * echoed back into the page's own copy.
+ */
+function EmptyCorner({
+  town,
+  year,
+  narrowedTo,
+}: {
+  readonly town: string;
+  readonly year: number;
+  readonly narrowedTo: boolean;
+}) {
+  if (!narrowedTo) return null;
+  return (
+    <Panel flat className={styles.emptyCorner}>
+      <span className="eyebrow">{town ? `${town} · ${year}` : String(year)}</span>
+      <h2 className={`d ${styles.emptyCornerTitle}`}>
+        {town ? `No past events listed in ${town} for ${year}` : `Nothing listed for ${year} there`}
+      </h2>
+      <p className={styles.emptyCornerNote}>
+        The archive only holds what we have listed, and this corner of it is empty. Try another year
+        or town from the index above, or look at what is coming up instead.
+      </p>
+      <div className={styles.emptyCornerActions}>
+        <Link className="btn sm" href={ROUTES.events}>
+          See upcoming events
+        </Link>
+        <Link className="btn sm ghost" href={pastEventsHref()}>
+          All past events
+        </Link>
+      </div>
+    </Panel>
+  );
+}
+
+/** Everything inside the dialog that a Tab can land on. */
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+/**
  * The detail modal — the screen's decision point, and therefore where the
  * address, the phone number, the organiser's page and the caution all live.
+ *
+ * **It has its own dialog rather than the shell's `useModal`**, and the reason
+ * is the URL. This modal's open state is `?event=slug` (see `openDetails`), so
+ * it is rendered from the list's own tree rather than pushed into a host that
+ * knows nothing about the address bar. Owning the element is also what lets it
+ * carry the four things the design asks for and the shared `Modal` does not
+ * have: `aria-labelledby` on the real title, focus moved to Close on open,
+ * focus returned to the Details button that opened it, and a focus trap. None
+ * of those could be added to `packages/ui-web`'s `Modal` without changing how
+ * every other modal in the product behaves, which is not this session's to do.
  *
  * Every row here is conditional on having a value. An event researched without
  * a phone renders no phone row rather than a "Call" label with nothing after
@@ -549,7 +796,7 @@ export function EventsScreen({
  * organiser's referrer log — this is a children's product, and where a child
  * browsed from is not the organiser's business.
  */
-function EventDetail({
+function EventDetailModal({
   event,
   distance,
   signedIn,
@@ -565,120 +812,206 @@ function EventDetail({
   readonly onToggle: () => void;
   readonly onClose: () => void;
 }) {
+  const panel = useRef<HTMLDivElement>(null);
+  const titleId = `event-modal-${event.id}`;
+
+  /*
+   * Focus in on open and back where it came from on close.
+   *
+   * The element that had focus is captured on mount rather than passed in,
+   * because the thing that opened this is a row's Details button and the row is
+   * still mounted underneath — so the reference is still good when the dialog
+   * goes. Restoring it is what stops a keyboard rider being dumped at the top
+   * of the document every time they look at an event and change their mind.
+   */
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    // Close, by the marker on it rather than by a ref: `Button` is a plain
+    // function component in `packages/ui-web` and giving it one would be a
+    // change to shared code this session does not own.
+    panel.current?.querySelector<HTMLElement>('[data-modal-close]')?.focus();
+    return () => {
+      if (opener && document.contains(opener)) opener.focus();
+    };
+  }, []);
+
+  /*
+   * Escape closes, and Tab cannot leave. A dialog a screen reader can tab out
+   * of into the page behind it is a dialog in name only — `aria-modal` says the
+   * rest of the document is inert and this is what makes that true.
+   */
+  useEffect(() => {
+    const onKey = (key: KeyboardEvent) => {
+      if (key.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (key.key !== 'Tab' || !panel.current) return;
+      const stops = [...panel.current.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
+        (node) => node.offsetParent !== null || node === document.activeElement,
+      );
+      if (!stops.length) return;
+      const first = stops[0] as HTMLElement;
+      const last = stops[stops.length - 1] as HTMLElement;
+      if (key.shiftKey && document.activeElement === first) {
+        key.preventDefault();
+        last.focus();
+      } else if (!key.shiftKey && document.activeElement === last) {
+        key.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   return (
-    <div>
-      <div className={styles.modalHead} style={{ background: event.kindColor }}>
-        <div className={styles.chips}>
-          <Tag color="var(--ink)">{event.kind}</Tag>
-          {event.sports.map((s) => (
-            <Tag key={s.id} color="var(--paper)" className={styles.tagInk}>
-              {s.label}
-            </Tag>
-          ))}
-        </div>
-        <div className={`d ${styles.modalTitle}`}>{event.name}</div>
-        <div className={`lab ${styles.modalDate}`}>{event.fullDate}</div>
-      </div>
-
-      <div className={styles.modalBody}>
-        {event.blurb && <p className={styles.modalBlurb}>{event.blurb}</p>}
-        <div className={styles.facts}>
-          {(
-            [
-              ['Where', [event.venue, event.town, event.country].filter(Boolean).join(', ')],
-              ['Who for', event.level],
-              ['Cost', event.price],
-              ['Places', event.places],
-              ...(distance ? ([['Distance', `About ${distance} away`]] as const) : []),
-            ] as const
-          ).map(([label, value]) => (
-            <div key={label}>
-              <div className={`lab ${styles.muted}`}>{label}</div>
-              <div className={`cond ${styles.factValue}`}>{value}</div>
-            </div>
-          ))}
-        </div>
-
-        {(event.address || event.phone || event.sourceUrl) && (
-          <div className={styles.contact}>
-            {event.address && (
-              <div className={styles.contactRow}>
-                <span className={`lab ${styles.muted}`}>Address</span>
-                <span className={styles.contactValue}>
-                  {event.address}
-                  {event.mapsUrl && (
-                    <>
-                      {' '}
-                      <a
-                        href={event.mapsUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={`cond ${styles.contactLink}`}
-                      >
-                        Open in maps
-                      </a>
-                    </>
-                  )}
-                </span>
-              </div>
-            )}
-
-            {event.phone && (
-              <div className={styles.contactRow}>
-                <span className={`lab ${styles.muted}`}>Phone</span>
-                <span className={styles.contactValue}>
-                  {/* Shown exactly as the venue publishes it; only the href is normalised. */}
-                  {event.phoneLink ? (
-                    <a href={event.phoneLink} className={`cond ${styles.contactLink}`}>
-                      {event.phone}
-                    </a>
-                  ) : (
-                    event.phone
-                  )}
-                </span>
-              </div>
-            )}
-
-            {event.sourceUrl && (
-              <div className={styles.contactRow}>
-                <span className={`lab ${styles.muted}`}>Listing</span>
-                <span className={styles.contactValue}>
-                  <a
-                    href={event.sourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={`cond ${styles.contactLink}`}
-                  >
-                    {event.sourceHost || 'Organiser’s page'}
-                  </a>
-                </span>
-              </div>
-            )}
+    <div className="scrim" onClick={onClose}>
+      <div
+        ref={panel}
+        className={`modal ${styles.modal}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(clicked) => clicked.stopPropagation()}
+      >
+        <div className={styles.modalHead} style={{ background: event.kindColor }}>
+          <div className={styles.chips}>
+            <Tag color="var(--ink)">{event.kind}</Tag>
+            {event.sports.map((s) => (
+              <Tag key={s.id} color="var(--paper)" className={styles.tagInk}>
+                {s.label}
+              </Tag>
+            ))}
           </div>
-        )}
-
-        <p className={styles.verifyNote}>
-          We researched this from the organiser&rsquo;s own page, and details change. Check the
-          listing before you set off — dates, prices and age limits move, and a session can be
-          cancelled without us knowing.
-        </p>
-        <div className={styles.modalActions}>
-          <Button variant="ghost" onClick={onClose}>
-            Close
-          </Button>
-          {signedIn ? (
-            <Button
-              className={styles.push}
-              onClick={onToggle}
-              style={going ? { background: 'var(--green)' } : undefined}
-            >
-              {going ? "✓ You're going" : "I'm going"}
-            </Button>
-          ) : (
-            <Link className={`btn ${styles.push}`} href={signInHref(ROUTES.events)}>
-              Sign in to save
+          {/*
+            The title is the link to the full page as well as the dialog's
+            accessible name — the design's "modal title as a link", so the
+            biggest thing in the dialog is also a way to the thing it is about.
+          */}
+          <h2 id={titleId} className={`d ${styles.modalTitle}`}>
+            <Link className={styles.modalTitleLink} href={eventHrefFrom(event.id, 'modal_cta')}>
+              {event.name}
             </Link>
+          </h2>
+          <div className={`lab ${styles.modalDate}`}>{event.fullDate}</div>
+        </div>
+
+        <div className={styles.modalBody}>
+          {event.blurb && <p className={styles.modalBlurb}>{event.blurb}</p>}
+          <div className={styles.facts}>
+            {(
+              [
+                ['Where', [event.venue, event.town, event.country].filter(Boolean).join(', ')],
+                ['Who for', event.level],
+                ['Cost', event.price],
+                ['Places', event.places],
+                ...(distance ? ([['Distance', `About ${distance} away`]] as const) : []),
+              ] as const
+            ).map(([label, value]) => (
+              <div key={label}>
+                <div className={`lab ${styles.muted}`}>{label}</div>
+                <div className={`cond ${styles.factValue}`}>{value}</div>
+              </div>
+            ))}
+          </div>
+
+          {(event.address || event.phone || event.sourceUrl) && (
+            <div className={styles.contact}>
+              {event.address && (
+                <div className={styles.contactRow}>
+                  <span className={`lab ${styles.muted}`}>Address</span>
+                  <span className={styles.contactValue}>
+                    {event.address}
+                    {event.mapsUrl && (
+                      <>
+                        {' '}
+                        <a
+                          href={event.mapsUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={`cond ${styles.contactLink}`}
+                        >
+                          Open in maps
+                        </a>
+                      </>
+                    )}
+                  </span>
+                </div>
+              )}
+
+              {event.phone && (
+                <div className={styles.contactRow}>
+                  <span className={`lab ${styles.muted}`}>Phone</span>
+                  <span className={styles.contactValue}>
+                    {/* Shown exactly as the venue publishes it; only the href is normalised. */}
+                    {event.phoneLink ? (
+                      <a href={event.phoneLink} className={`cond ${styles.contactLink}`}>
+                        {event.phone}
+                      </a>
+                    ) : (
+                      event.phone
+                    )}
+                  </span>
+                </div>
+              )}
+
+              {event.sourceUrl && (
+                <div className={styles.contactRow}>
+                  <span className={`lab ${styles.muted}`}>Listing</span>
+                  <span className={styles.contactValue}>
+                    <a
+                      href={event.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`cond ${styles.contactLink}`}
+                    >
+                      {event.sourceHost || 'Organiser’s page'}
+                    </a>
+                  </span>
+                </div>
+              )}
+            </div>
           )}
+
+          <p className={styles.verifyNote}>
+            We researched this from the organiser&rsquo;s own page, and details change. Check the
+            listing before you set off — dates, prices and age limits move, and a session can be
+            cancelled without us knowing.
+          </p>
+          <div className={styles.modalActions}>
+            <Button data-modal-close variant="ghost" onClick={onClose}>
+              Close
+            </Button>
+            <span className={`${styles.push} ${styles.modalRight}`}>
+              {/*
+                The full-page CTA the design puts beside "I'm going". `?from=`
+                is the only way `event_page_opened` can tell this door from the
+                row's link — the two answer opposite questions about whether the
+                modal is enough on its own.
+              */}
+              <Link className={styles.fullCta} href={eventHrefFrom(event.id, 'modal_cta')}>
+                View full page →
+              </Link>
+              {event.past ? null : signedIn ? (
+                <Button
+                  onClick={onToggle}
+                  style={going ? { background: 'var(--green)' } : undefined}
+                  aria-pressed={going}
+                >
+                  {going ? "✓ You're going" : "I'm going"}
+                </Button>
+              ) : (
+                <Link className="btn" href={signInHref(ROUTES.events)}>
+                  Sign in to save
+                </Link>
+              )}
+            </span>
+            <p className={styles.ctaHint}>
+              The full page adds the map, what else is on nearby, other events at this venue, and a
+              link you can share.
+            </p>
+          </div>
         </div>
       </div>
     </div>

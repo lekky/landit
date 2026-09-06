@@ -11,8 +11,10 @@ import { seedSchedule } from './support/seed-schedule';
  *
  * - **"I'm going" survives a reload**, which is the difference between a row in
  *   `event_attendance` and a `useState`.
- * - **A past event is hidden by default and can be brought back**, rather than
- *   dropped. A row a child ticked that silently disappears reads as a bug.
+ * - **A finished event is only ever in the archive**, and the calendar never
+ *   carries one. The two halves are two routes now (`/events` and
+ *   `/events/past`), cut once in `@landit/core`, which is what closes the bug
+ *   the design handoff records in the prototype.
  * - **A visitor who is not signed in reads the whole calendar**, because the
  *   `events` rule is `is_live = true` with no auth arm and a live event is
  *   public data. Only "I'm going" needs an account, and it is a sign-in link
@@ -147,31 +149,147 @@ test('"I’m going" sticks across a reload', async ({ page }) => {
   await expect(page.getByText(/You’re down for 1 event/)).toBeVisible();
 });
 
-test('an event that has been and gone is hidden until it is asked for', async ({ page }) => {
+/*
+ * The archive (`feat-events-archive`).
+ *
+ * The design handoff records the prototype's bug as a real one: its upcoming
+ * list carried events that had already happened and its past view carried ones
+ * that had not. The cut itself is proved as a property in
+ * `packages/core/src/rules/events.test.ts`; what these assert is that the
+ * *screens* are wired to it — a correct rule reached through the wrong route
+ * would pass there and fail here.
+ */
+test('a finished event is only ever in the archive', async ({ page }) => {
   await newRider(page);
   await page.goto('/events');
 
+  await expect(page.getByText('E2E Northern Jam')).toBeVisible();
   await expect(page.getByText('E2E Last Month Session')).toHaveCount(0);
 
-  // "Upcoming only" is the state the page lands in and is now drawn as such;
-  // the pill that changes it is the other one.
-  await page.getByRole('button', { name: 'Including past' }).click();
+  await page.getByRole('link', { name: /^Past/ }).click();
+  await page.waitForURL('**/events/past');
+
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(
+    'Events that have already happened',
+  );
   await expect(page.getByText('E2E Last Month Session')).toBeVisible();
-  await expect(page.getByText('Been and gone')).toBeVisible();
+  // And never the other way round: the calendar's event is not in the archive.
+  await expect(page.getByText('E2E Northern Jam')).toHaveCount(0);
+
+  // "Over" in words, not only in red — colour never carries meaning alone.
+  await expect(page.getByText('Over', { exact: true })).toBeVisible();
+  // "I'm going" is meaningless once it has happened; the page is offered instead.
+  await expect(page.getByRole('link', { name: 'Full page →' })).toBeVisible();
+  await expect(page.getByRole('button', { name: "I'm going" })).toHaveCount(0);
 });
 
-test('the kind filter narrows the list and every pill finds something', async ({ page }) => {
+test('the archive index only offers corners that hold something', async ({ page }) => {
+  await newRider(page);
+  await page.goto('/events/past');
+
+  const year = new Date(Date.now() - 20 * 86_400_000).getUTCFullYear();
+
+  // Sheffield in that year holds the seeded past session, so it is a pill.
+  const corner = page.getByRole('link', { name: /Sheffield/ });
+  await expect(corner).toBeVisible();
+  await corner.click();
+  await page.waitForURL(`**/events/past/${year}/sheffield`);
+  await expect(page.getByText('E2E Last Month Session')).toBeVisible();
+  // A published corner is a real page and stays crawlable — the whole reason
+  // for keeping finished events online.
+  await expect(page.locator('meta[name="robots"][content*="noindex"]')).toHaveCount(0);
+
+  /*
+   * A corner nobody has published still answers, with the design's empty state
+   * rather than a 500 — and it carries `noindex`, so a hand-typed combination
+   * can never become an indexed thin page (Rachid, 2026-09-06, in chat).
+   */
+  const response = await page.goto('/events/past/2019/sheffield');
+  expect(response?.status()).toBe(200);
+  await expect(
+    page.getByRole('heading', { level: 2, name: /No past events listed/ }),
+  ).toBeVisible();
+  await expect(page.locator('meta[name="robots"][content*="noindex"]')).toHaveCount(1);
+});
+
+test('the kind pills offer the kinds the half on screen actually holds', async ({ page }) => {
   await newRider(page);
   await page.goto('/events');
 
-  // "Including past", so both seeded kinds are in scope for the pills.
-  await page.getByRole('button', { name: 'Including past' }).click();
+  // The calendar holds a Comp and nothing else, so no pill on it can find
+  // nothing — and the archive's Session is not offered here.
+  await page.getByRole('button', { name: 'Comp', exact: true }).click();
+  await expect(page.getByText('E2E Northern Jam')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Session', exact: true })).toHaveCount(0);
 
+  await page.goto('/events/past');
   await page.getByRole('button', { name: 'Session', exact: true }).click();
   await expect(page.getByText('E2E Last Month Session')).toBeVisible();
-  await expect(page.getByText('E2E Northern Jam')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Comp', exact: true })).toHaveCount(0);
+});
 
-  await page.getByRole('button', { name: 'Everything' }).click();
+test('an event row is a link to its own page, and says which door it is', async ({ page }) => {
+  await newRider(page);
+  await page.goto('/events');
+
+  // `?from=list` is what lets `event_page_opened` tell a row from the modal's
+  // CTA. Three fixed strings decided on the server; nothing a reader typed.
+  await expect(page.getByRole('link', { name: 'E2E Northern Jam' })).toHaveAttribute(
+    'href',
+    '/events/e2e-jam?from=list',
+  );
+});
+
+test('the Details modal has an address, and the back button closes it', async ({ page }) => {
+  await newRider(page);
+  await page.goto('/events');
+
+  const details = page.getByRole('button', { name: 'Details' }).first();
+  await details.click();
+
+  // Linkable (Rachid, 2026-09-06, in chat).
+  await expect(page).toHaveURL(/\?event=e2e-jam$/);
+  const modal = page.getByRole('dialog');
+  await expect(modal).toBeVisible();
+  await expect(modal.getByRole('link', { name: 'View full page →' })).toHaveAttribute(
+    'href',
+    '/events/e2e-jam?from=modal_cta',
+  );
+  // The title is a link to the same page, which is the design's second door.
+  await expect(modal.getByRole('link', { name: 'E2E Northern Jam' })).toHaveAttribute(
+    'href',
+    '/events/e2e-jam?from=modal_cta',
+  );
+
+  // Back closes it, because opening pushed exactly one history entry.
+  await page.goBack();
+  await expect(modal).toHaveCount(0);
+  await expect(page).toHaveURL(/\/events$/);
+
+  // Escape closes it too, and puts focus back on the button that opened it.
+  await details.click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(details).toBeFocused();
+});
+
+test('the modal opens from its own address, for somebody arriving on the link', async ({
+  page,
+}) => {
+  await newRider(page);
+  await page.goto('/events?event=e2e-jam');
+
+  const modal = page.getByRole('dialog');
+  await expect(modal).toBeVisible();
+  await expect(modal.getByText('Projekts MCR, Manchester')).toBeVisible();
+
+  /*
+   * Close on a modal nobody navigated to must not walk the reader off the site.
+   * It replaces the address rather than going back, so the list is still there.
+   */
+  await modal.getByRole('button', { name: 'Close' }).click();
+  await expect(modal).toHaveCount(0);
   await expect(page.getByText('E2E Northern Jam')).toBeVisible();
 });
 
@@ -194,8 +312,11 @@ test('a visitor who is not signed in reads the whole calendar', async ({ page })
   await expect(page.getByRole('heading', { level: 1 })).toContainText('What’s coming up');
   await expect(page.getByText('E2E Northern Jam')).toBeVisible();
 
-  // Every filter still works without an account.
-  await page.getByRole('button', { name: 'Including past' }).click();
+  // Every filter still works without an account, and so does the archive:
+  // `/events/past` is public for exactly the reason the calendar is, and it is
+  // the half a search result is most likely to land a stranger on.
+  await page.getByRole('link', { name: /^Past/ }).click();
+  await page.waitForURL('**/events/past');
   await expect(page.getByText('E2E Last Month Session')).toBeVisible();
 });
 

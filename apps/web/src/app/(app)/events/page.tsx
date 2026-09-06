@@ -1,20 +1,9 @@
-import {
-  DEFAULT_TIMEZONE,
-  SPORT_IDS,
-  regionFromAcceptLanguage,
-  sportsOf,
-  unitsForCountry,
-  type SportId,
-} from '@landit/core';
-import { eventsFromRecords, listEventAttendance, listEvents } from '@landit/db';
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
 
 import { ROUTES } from '@/lib/routes';
-import { anonymousClient, currentRider } from '@/lib/session';
 
 import { EventsScreen } from './EventsScreen';
-import { buildEventsView } from './view';
+import { loadEvents } from './load';
 
 export const metadata: Metadata = {
   title: 'Events · Land The Trick',
@@ -39,55 +28,35 @@ export const metadata: Metadata = {
  * onboarding settles for this screen is which sport tab opens — which has a
  * sensible answer for a visitor anyway.
  *
- * **Distances are in the reader's units, resolved here, on the server**, from
- * two signals with the weaker consulted only when the stronger is missing: a
- * signed-in rider's declared country wins, and a visitor is read from
- * `Accept-Language`, which is a browser setting rather than a location and is
- * therefore the guess. Neither is stored. Reading the units in the browser
+ * **Upcoming only, and it cannot be otherwise.** This route used to carry a
+ * pair of pills that let a finished event onto the calendar; the archive is now
+ * `/events/past`, its own address, and the split is made once in
+ * `@landit/core`. A view that cannot express "both" cannot mix the two, which
+ * is the bug the design handoff records — proved as a property in
+ * `packages/core/src/rules/events.test.ts` rather than left to two filters that
+ * have to stay in step.
+ *
+ * **Distances are in the reader's units, resolved on the server** (`loadEvents`),
+ * from two signals with the weaker consulted only when the stronger is
+ * missing: a signed-in rider's declared country wins, and a visitor is read
+ * from `Accept-Language`, which is a browser setting rather than a location and
+ * is therefore the guess. Neither is stored. Reading the units in the browser
  * instead would make the first paint disagree with the second (LESSONS §3a),
  * and the rider's *position* never comes near this file: "Near me" is asked
  * for, and answered, entirely in the component, and no coordinate of theirs is
  * sent anywhere (plan §6.4 standard 10).
  */
+
+/*
+ * The Details modal's state is `?event=slug` (Rachid, 2026-09-06, in chat), so
+ * this route is read with a query string. Nothing on the server reads it — the
+ * modal opens in the browser from `useSearchParams`, which is what keeps it
+ * instant — but a route with a search param that renders statically would be
+ * frozen with somebody's parameter baked in.
+ */
+export const dynamic = 'force-dynamic';
+
 export default async function EventsPage() {
-  const session = await currentRider();
-  const client = session?.client ?? anonymousClient();
-
-  /*
-   * A visitor has no attendance to fetch — and asking anyway would be a request
-   * the `OWN` rule can only answer with an empty list. The two reads are still
-   * one round trip for a rider.
-   */
-  const [eventRecords, attendance] = await Promise.all([
-    listEvents(client),
-    session ? listEventAttendance(client, session.rider.id) : Promise.resolve([]),
-  ]);
-
-  // Attendance relates to the event *record*; everything else here keys by
-  // slug, so the two are joined once, in the one place that knows both.
-  const slugOf = new Map(eventRecords.map((e) => [e.id, e.slug]));
-  const going = new Set<string>();
-  for (const row of attendance) {
-    const slug = slugOf.get(row.event);
-    if (slug) going.add(slug);
-  }
-
-  const region = session
-    ? session.rider.country || regionFromAcceptLanguage((await headers()).get('accept-language'))
-    : regionFromAcceptLanguage((await headers()).get('accept-language'));
-
-  const view = buildEventsView({
-    events: eventsFromRecords(eventRecords),
-    /*
-     * A visitor gets every sport, not `sportsOf`'s lone-rider default of
-     * scooter: the shell shows a visitor all three tabs, and a tab whose note
-     * is missing from `countBySport` reads as "0 on" — a calendar that looks
-     * empty for skate and BMX before anybody has filtered anything.
-     */
-    sports: session ? sportsOf({ sports: session.rider.sports as SportId[] }) : [...SPORT_IDS],
-    going,
-    clock: { timezone: session?.rider.timezone || DEFAULT_TIMEZONE },
-  });
-
-  return <EventsScreen view={view} units={unitsForCountry(region)} signedIn={Boolean(session)} />;
+  const { view, units, signedIn } = await loadEvents('upcoming');
+  return <EventsScreen view={view} units={units} signedIn={signedIn} />;
 }
