@@ -1001,6 +1001,22 @@ trick. And the fix is in: `handleAsset` is network-first in development and cach
 production, so the trap should not recur — but a browser that already holds the old worker keeps
 it until it updates; unregister it once from DevTools → Application → Service Workers.
 
+**A worktree preview can serve you another checkout's JavaScript, and look completely normal
+doing it.** Verifying GA in the browser (2026-09-06, §9a below) began with twenty minutes of a
+client change that would not appear: the server was demonstrably the right worktree — its
+server-rendered HTML carried the new copy — while the client bundle was the version from before
+the edit. Turbopack names **dev** chunks after their source path, not their content
+(`apps_web_src_0_e4bus._.js`), so the URL is identical across checkouts and across edits, and
+whatever holds an HTTP cache keeps serving the first one it saw. Deleting `.next`, restarting the
+server and re-fetching with `cache: 'reload'` all failed to shift it.
+
+Two ways out, and the second is the reliable one. Grep the served chunk for a string only the new
+code contains — that is what turns "my change is not working" into "my change is not loaded", and
+they have nothing in common. Then **verify against a production build** (`next build` +
+`next start`): production chunks are content-hashed, so a changed file is a changed URL and no
+cache can shadow it. The build costs a minute and removes the entire class of doubt, which is
+worth it for anything you intend to write down as verified.
+
 ## 8. Configuration that is copied between systems
 
 Turning live email on (2026-08-18) was six DNS records and no code. It took several rounds anyway,
