@@ -26,7 +26,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Streak shape | **A weekly target, not a consecutive-day count** (2026-08-16). A rider keeps the streak by riding **at least 2 times in a week**; the streak counts consecutive weeks that met the target, and missing a week breaks it. "I rode today" stays a plain button — no spot attached, no location captured | The audience is children who realistically ride at weekends: a daily streak punishes a school week, and is the engagement mechanic §6.4 Standard 13 warns about. Weeks are Monday-to-Sunday — the boundary the weekly challenges already use, so a rider never has two different "this week"s. **Two numbers here are tunable defaults, not deliberated decisions: the target of 2** (a weekend alone reaches it; 3 would force a weekday ride) **and no grace week** (the weekly target is itself the forgiveness — a grace week on top would make the streak nearly unbreakable). Both are constants in `packages/core` (`WEEKLY_RIDE_TARGET`, `WEEKLY_STREAK_GRACE_WEEKS`) and options on every function, so moving either is a one-line change plus this row. This supersedes the daily-streak and grace-period framing throughout: the daily functions in `core` stay exported but deprecated, and T8 wires the weekly ones. Stored shape in §3; that spots never record where a rider has been is §6.4 Standard 10 and T13. |
 | Staff portal placement | **Route group in the web app**, hard role gate, full audit log | Handoff prefers a separate app; see §6.10. |
 | Error reporting | **Sentry** | Already connected; PII scrubbed. See §2.5. |
-| Analytics | **PostHog EU (free tier), alone** | **Changed 2026-08-21 (Rachid, in chat); was PostHog EU + Cloudflare Web Analytics, decided 2026-08-15.** Cloudflare's beacon was there for plain traffic counts, because the cookie-less PostHog config first shipped could only count page loads, not people. `cookieless_mode: 'always'` counts riders with a server-side daily hash instead, so the beacon has nothing left to add — and dropping it is one fewer processor on a product with four Article 28 contracts outstanding (§6.5). PostHog carries both jobs: product events (onboarding funnel, upgrades) and traffic. Cookie-less, no device storage, no ad identifiers, no person profiles. The cost is that unique means unique *per day* (§6.8). |
+| Analytics | **PostHog EU (free tier) + Google Analytics 4, both cookie-less** | **Changed 2026-08-21 (Rachid, in chat); was PostHog EU + Cloudflare Web Analytics, decided 2026-08-15.** Cloudflare's beacon was there for plain traffic counts, because the cookie-less PostHog config first shipped could only count page loads, not people. `cookieless_mode: 'always'` counts riders with a server-side daily hash instead, so the beacon has nothing left to add — and dropping it is one fewer processor on a product with four Article 28 contracts outstanding (§6.5). PostHog carries both jobs: product events (onboarding funnel, upgrades) and traffic. Cookie-less, no device storage, no ad identifiers, no person profiles. The cost is that unique means unique *per day* (§6.8). **GA4 was added 2026-09-06 (Rachid, in chat), which reverses the "alone" half of this decision three weeks after it was made** — recorded rather than quietly amended, because the 2026-08-21 change dropped a second analytics processor for the express reason of having one. The reason is that the owner works in GA day to day and wants these numbers in that interface; PostHog stays because it is the only one of the two that can count unique riders at all. GA runs with Consent Mode defaulting `analytics_storage` to denied, no Google signals and no ad personalisation, so it writes no cookie and needs no consent banner — the cookie'd configuration would need one in both the UK and the EU, and consent is the wrong instrument for an audience who mostly cannot give it (§6.8). It is the first processor on this list outside the EU/UK, which is a real cost against the residency thread that picked PostHog EU, R2 EU and MailerSend. |
 | Transactional email | **MailerSend** | **Changed 2026-08-16 (Rachid); was Resend, confirmed 2026-08-15.** Resend is already in use on another product and its free tier carries one sending domain, so Land The Trick would have meant paying before launch for a service sending dozens of emails a month. MailerSend's free tier (500/month, one domain) covers launch volume many times over, and it is EU-based — the same reason PostHog EU and R2 EU were chosen (§6.5). **Nothing in the codebase names a provider:** PocketBase sends over plain SMTP, so this is five environment values and no code change, and switching again costs the same. Rolling our own on box1 was considered and rejected — a cold shared IP that also carries the other products, and the guardian-consent email is the one that must not land in spam. |
 | Pricing | **Rookie free; Shredder £3.99/mo · £39.99/yr; Legend £6.99/mo · £69.99/yr** | Confirmed 2026-08-15. Yearly ≈ 2 months free. Crew Pass dropped, replaced by the single-rider Legend tier — see §2.4. |
 | Achievements | **The printed award set replaces the 25 drawn stickers** (Rachid, 2026-08-30, in chat) | One badge per trick in the library plus platform, streak, contribution and completion awards — 135 records, art committed under `packages/ui-web/assets/stickers/`, built as T24. Three owner decisions ride with it, each a *scoped* amendment to "achievements are never for sale" rather than a reversal: the **`supporter`** badge exists (earned by being on a paid plan — recognition of backing, 0 stars, and it may never gate or rank anything); the **clip awards** (`first-clip`, `clipped-up`) count a paid-capped feature, so Rookie riders cannot start them; and the **completion awards** count whole categories, which the difficulty-≥3 paywall keeps out of free reach. The free floor is pinned by tests instead: entry awards, the volume ladder to `rolling-deep`, and each sport's rite of passage stay free-earnable. `promoter` ships dormant (no rider event submissions yet). Fifteen legacy stickers whose conditions matched an award became that award in place (earned rows carry over); ten retired. |
@@ -755,8 +755,10 @@ None of this is agent-session work, and none of it blocks a build session. All o
   the product can ship to a UK-only paying audience while it is outstanding. Stripe Tax can
   calculate the VAT but does not file it. Needs the accountant, and it is the one item here whose
   answer might change what the upgrade flow is allowed to offer and to whom.
-- **Processor list, Article 28 contracts and a ROPA** for MailerSend, PostHog, Sentry and
-  Cloudflare. *(Mapbox left this list on 2026-08-17 with the move to OpenFreeMap, §1: it received
+- **Processor list, Article 28 contracts and a ROPA** for MailerSend, PostHog, Sentry,
+  Cloudflare and **Google** (added 2026-09-06 with GA4, §6.8 — the one processor on this list
+  outside the EU/UK, and the one whose entry has to describe a transfer rather than assume one
+  is not happening). *(Mapbox left this list on 2026-08-17 with the move to OpenFreeMap, §1: it received
   a rider's IP on every tile request and now nothing does — one fewer processor to contract with,
   which was a side benefit of that decision rather than its reason.)* PostHog EU and R2 EU already
   keep transfers simple — that call was right, and
@@ -1012,6 +1014,70 @@ the dashboard stays empty.
 spec can prove delivery without either masking that signal or setting
 `opt_out_useragent_filter: true` — and the second would make real bot traffic count as riders.
 That is why delivery is proven by the record in LESSONS §9 rather than by a spec in `e2e/`.
+
+**Google Analytics 4 was added alongside on 2026-09-06 (Rachid, in chat), and PostHog stayed.**
+This reverses the "alone" half of the 2026-08-21 decision (§1) three weeks after it was made, and
+is written down rather than folded in quietly: that change dropped Cloudflare Web Analytics for
+the express reason of getting to one analytics processor, and this puts a second one back. The
+reason is preference of interface, not a defect in PostHog — the owner works in GA day to day.
+PostHog keeps the daily-unique count, which is the one thing the GA configuration cannot produce.
+
+- **Nothing in the app changed shape.** All 41 call sites already went through `capture()`, so the
+  work was one function fanning out to two SDKs. The event catalogue is untouched and every name
+  in it is already GA4-legal; no event was added, renamed or dropped. Each service is switched on
+  by its own environment variable and either can run alone.
+- **Cookie-less, and that is what keeps the no-banner position.** Consent Mode, set before
+  `config` and before gtag.js runs, defaulting `analytics_storage` and the three advertising
+  storages to `denied`; plus no Google signals and no ad personalisation. Nothing is stored on or
+  read from the device, so PECR regulation 6 and ePrivacy Article 5(3) do not engage — the same
+  footing PostHog is on.
+- **`client_storage: 'none'` was the first attempt and it silently does nothing.** It is a
+  Universal Analytics parameter; GA4 accepts it and ignores it. Caught in a real browser before
+  merge, not by a unit test and not by any error: cookies were cleared, the page reloaded, and
+  GA4 wrote a fresh `_ga` and `_ga_<id>` pair regardless. Had it shipped, a children's product
+  with no banner would have been setting an analytics cookie — the exact thing this decision
+  rules out — and every test and document here would have said it was not. The parameter is
+  now absent rather than merely superseded, and `analytics.test.ts` asserts its absence, because
+  a setting whose name states the guarantee and whose effect is nil is worse than none.
+- **GA4 with its `_ga` cookie was considered and is not open to this product.** It would need
+  consent in the UK and the EU. The UK's new statistical-purposes exception (DUAA 2025 Sch A1
+  para 5, ICO guidance 2026-04-29) lets first-party analytics run on information-plus-opt-out
+  with no banner, but is drawn to exclude user-level tracking, cross-site tracking and
+  advertising measurement, and a two-year per-device client id is user-level tracking by design.
+  Consent is then the wrong instrument anyway: UK GDPR Article 8 puts the digital-consent age at
+  13, so most riders here cannot give it, and the ICO Children's Code says this collection should
+  be off by default under 18. A banner our own users cannot answer buys nothing. Supplying a
+  stable client id of our own was refused for the same reasons — it needs device storage or a
+  fingerprint, and the fingerprint is the worse of the two things to do to a child.
+- **The cost is that GA counts page loads, not people.** With no storage it mints a fresh client
+  id per page load, so its "users" figure is page loads and no funnel it draws across two of them
+  is real. Event counts and traffic are sound; retention is PostHog's question. **The two
+  dashboards will therefore disagree permanently and by design** — that is the price of the
+  decision above, and this paragraph is where somebody reading them in six months finds out why.
+- **Guarantee 4 needed its own answer here.** gtag attaches `page_location` to *every* event, not
+  only to pageviews, and reads it from `location.href` unless told otherwise — so an event fired
+  from `/consent/approve/<token>` would carry a live credential. `send_page_view: false` stops
+  gtag's own pageview, and `gaPageContext` sets a scrubbed location and referrer globally through
+  `gtag('set', …)`. Pageviews on client-side navigation are sent by hand, because GA has no
+  equivalent of PostHog's `capture_pageview: 'history_change'`.
+- **Three settings live in the GA property and cannot be set from the repo, and all three fail
+  silently.** **Enhanced measurement must be off** — it is on by default and it is GA's
+  autocapture, including *site search*, which reads the query string and would send words a child
+  typed to Google; this is the same refusal as `autocapture: false` and it is the highest-risk
+  setting in the integration. **Google-products data sharing must be off.** **Custom dimensions
+  must be registered**, or event counts appear with none of their properties. `.env.example`
+  carries the operating detail.
+- **Google sees the request whatever we configure.** gtag.js is fetched from googletagmanager.com,
+  so Google receives a rider's IP and user agent on every page load. That is inherent to
+  client-side GA, it is a new third party in a child's request path, and it is why
+  `/legal/cookies` now names Google rather than saying "our analytics service". Moving to the
+  server-side Measurement Protocol would remove it and is the obvious future move if that matters
+  more than the effort; it was out of scope here.
+
+**What remains is not code, again.** Google needs its Article 28 contract and ROPA entry (§6.5),
+the three property settings above need setting before the measurement id goes on a deploy, and
+the revised `/legal/cookies` wording is the owner's to approve — it is a public promise on a
+child-facing product, and a session drafted it rather than decided it.
 
 ### 6.9 Hosting
 

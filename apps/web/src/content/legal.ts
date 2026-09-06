@@ -302,7 +302,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
   {
     id: 'cookies',
     title: 'Cookies',
-    updated: 'August 2026',
+    updated: 'September 2026',
     intro: 'We use as few as we can get away with.',
     sections: [
       {
@@ -315,9 +315,10 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
       {
         h: 'Counting who uses what',
         p: [
-          'We count how many people open each page, so we know which parts of the app to improve.',
-          'It is set up without cookies and without advertising identifiers. Nothing is stored on your device to do it: instead, the day you visit, our analytics service works out a scrambled code from things your browser sends anyway, and counts that. The code is built with a secret that is thrown away at the end of each day, so it cannot be turned back into you, and tomorrow the same phone gets a different one.',
+          'We count how many people open each page, so we know which parts of the app to improve. Two services do the counting: PostHog, whose computers are in Europe, and Google Analytics.',
+          'Neither of them uses cookies, neither uses advertising identifiers, and neither stores anything on your device. PostHog counts you with a scrambled code it works out, on the day you visit, from things your browser sends anyway; the code is built with a secret that is thrown away at the end of each day, so it cannot be turned back into you, and tomorrow the same phone gets a different one. Google Analytics is set to store nothing at all, with its advertising features switched off, so what it counts is pages being opened rather than people.',
           'That is deliberate, and it costs us something: we can tell how many people used the app today, but not whether you are the same person who used it last week. We would rather know less. There is no per-rider analytics profile here — not one to look at, not one to switch off, and not one to ask us for.',
+          'One thing worth saying plainly, because Google Analytics is Google’s: loading it means Google’s computers see the address your internet connection is using and which browser you are on, the same as on any site that uses it. We do not send them your name, your rider handle, your email, or anything you type into the app.',
         ],
       },
       {
