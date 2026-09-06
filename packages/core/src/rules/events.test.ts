@@ -4,21 +4,30 @@ import { EVENTS } from '../data/events';
 import type { LandItEvent } from '../types';
 import {
   EVENT_KIND_COLORS,
+  eventAgoLabel,
+  eventBySlug,
   eventCountriesPresent,
   eventDateBlock,
+  eventDateState,
+  eventDaysAway,
   eventDistanceLabel,
   eventHasCoords,
   eventKindColor,
   eventKindsPresent,
+  eventLongDate,
   eventMapsLink,
   eventMatchesCountry,
   eventMatchesSearch,
   eventPhoneLink,
   eventSourceHost,
   eventSourceLink,
+  eventsAtVenue,
   eventsFor,
+  eventsNear,
   filterEvents,
   isEventPast,
+  nearestFirst,
+  nearnessBetween,
   sortEventsByDistance,
   sortedEvents,
 } from './events';
@@ -317,5 +326,133 @@ describe('the seeded events', () => {
       expect(Math.abs(e.lat as number)).toBeLessThanOrEqual(90);
       expect(Math.abs(e.lng as number)).toBeLessThanOrEqual(180);
     }
+  });
+});
+
+describe('an event as its own page', () => {
+  const clock = at('2026-09-05T09:00:00Z');
+
+  it('reads the three states off the date and the rider clock, never off a flag', () => {
+    expect(eventDateState(event({ id: 'a', date: '2026-09-26' }), clock)).toBe('upcoming');
+    expect(eventDateState(event({ id: 'b', date: '2026-09-05' }), clock)).toBe('today');
+    expect(eventDateState(event({ id: 'c', date: '2026-06-13' }), clock)).toBe('over');
+  });
+
+  it('agrees with isEventPast, so the page and the list can never disagree', () => {
+    for (const date of ['2026-06-13', '2026-09-04', '2026-09-05', '2026-09-06']) {
+      const one = event({ id: date, date });
+      expect(eventDateState(one, clock) === 'over').toBe(isEventPast(one, clock));
+    }
+  });
+
+  it('turns over at midnight where the rider is, not where the server is', () => {
+    // 22:00 UTC on the 5th is already the 6th in Auckland, so an event on the
+    // 5th is over there and still happening in London.
+    const one = event({ id: 'a', date: '2026-09-05' });
+    expect(eventDateState(one, at('2026-09-05T22:00:00Z'))).toBe('today');
+    expect(eventDateState(one, at('2026-09-05T22:00:00Z', 'Pacific/Auckland'))).toBe('over');
+  });
+
+  it('counts whole days away, and goes negative once it has been', () => {
+    expect(eventDaysAway(event({ id: 'a', date: '2026-09-26' }), clock)).toBe(21);
+    expect(eventDaysAway(event({ id: 'b', date: '2026-09-05' }), clock)).toBe(0);
+    expect(eventDaysAway(event({ id: 'c', date: '2026-09-04' }), clock)).toBe(-1);
+  });
+
+  it('writes the long date with its year, because the page outlives the year', () => {
+    expect(eventLongDate('2026-09-26')).toBe('Saturday 26 September 2026');
+  });
+
+  it('coarsens how long ago it was, and says nothing about a date still to come', () => {
+    const ago = (date: string) => eventAgoLabel(event({ id: date, date }), clock);
+    expect(ago('2026-09-04')).toBe('yesterday');
+    expect(ago('2026-09-01')).toBe('4 days ago');
+    expect(ago('2026-06-13')).toBe('12 weeks ago');
+    expect(ago('2025-09-05')).toBe('12 months ago');
+    expect(ago('2024-01-05')).toBe('2 years ago');
+    expect(ago('2026-09-05')).toBe('');
+    expect(ago('2026-09-26')).toBe('');
+  });
+});
+
+describe('near, when all you hold is a town and a country', () => {
+  const clock = at('2026-09-05T09:00:00Z');
+
+  it('matches a town whole and case-insensitively, never as a prefix', () => {
+    expect(nearnessBetween({ town: 'Ventnor' }, { town: 'ventnor ' })).toBe('town');
+    expect(nearnessBetween({ town: 'Ventnor' }, { town: 'Ventnorville' })).toBe(null);
+    expect(
+      nearnessBetween({ town: 'A', country: 'India' }, { town: 'B', country: 'Indonesia' }),
+    ).toBe(null);
+  });
+
+  it('treats a missing field as matching nothing rather than as matching everything', () => {
+    expect(nearnessBetween({ town: '' }, { town: '' })).toBe(null);
+    expect(nearnessBetween({ town: 'Ventnor' }, {})).toBe(null);
+  });
+
+  it('puts the same town first, then the rest of the country, and drops the rest', () => {
+    const here = { town: 'Ventnor', country: 'United Kingdom' };
+    const places = [
+      { id: 'far', town: 'Tallinn', country: 'Estonia' },
+      { id: 'uk', town: 'Newport', country: 'United Kingdom' },
+      { id: 'home', town: 'Ventnor', country: 'United Kingdom' },
+    ];
+    expect(nearestFirst(here, places).map((p) => p.id)).toEqual(['home', 'uk']);
+  });
+
+  it('offers only upcoming events, and never the one being read', () => {
+    const here = event({
+      id: 'this',
+      date: '2026-06-13',
+      town: 'Ventnor',
+      country: 'United Kingdom',
+      venue: 'Ventnor Skatepark',
+    });
+    const list = [
+      here,
+      event({ id: 'gone', date: '2026-07-01', town: 'Ventnor', country: 'United Kingdom' }),
+      event({ id: 'soon', date: '2026-09-19', town: 'Newport', country: 'United Kingdom' }),
+      event({ id: 'home', date: '2026-10-11', town: 'Ventnor', country: 'United Kingdom' }),
+      event({ id: 'abroad', date: '2026-09-20', town: 'Tallinn', country: 'Estonia' }),
+      event({ id: 'hidden', date: '2026-09-18', town: 'Ventnor', isLive: false }),
+    ];
+    expect(eventsNear(here, list, { clock }).map((e) => e.id)).toEqual(['home', 'soon']);
+  });
+
+  it('keeps the venue block and the nearby block from listing the same row twice', () => {
+    const here = event({
+      id: 'this',
+      date: '2026-09-26',
+      town: 'Ventnor',
+      country: 'United Kingdom',
+      venue: 'Ventnor Skatepark',
+    });
+    const alsoHere = event({
+      id: 'same-park',
+      date: '2026-11-07',
+      town: 'Ventnor',
+      country: 'United Kingdom',
+      venue: 'ventnor skatepark',
+    });
+    const list = [here, alsoHere];
+    expect(eventsAtVenue(here, list, { clock }).map((e) => e.id)).toEqual(['same-park']);
+    expect(eventsNear(here, list, { clock }).map((e) => e.id)).toEqual([]);
+  });
+
+  it('will not join two skateparks of the same name in different towns', () => {
+    const here = event({ id: 'a', date: '2026-09-26', town: 'Ventnor', venue: 'Riverside' });
+    const elsewhere = event({ id: 'b', date: '2026-09-27', town: 'Ryde', venue: 'Riverside' });
+    expect(eventsAtVenue(here, [here, elsewhere], { clock }).map((e) => e.id)).toEqual([]);
+  });
+
+  it('finds a live event by slug and refuses a hidden one', () => {
+    const list = [
+      event({ id: 'live-one', date: '2026-09-26' }),
+      event({ id: 'hidden-one', date: '2026-09-27', isLive: false }),
+    ];
+    expect(eventBySlug('live-one', list)?.id).toBe('live-one');
+    expect(eventBySlug('hidden-one', list)).toBe(null);
+    expect(eventBySlug('nothing-like-it', list)).toBe(null);
   });
 });

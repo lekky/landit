@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Skateparks and street spots — Land The Trick</title>
+<link rel="stylesheet" href="pages.css">
+<style>
+.head{max-width:1180px;margin:0 auto;padding:24px 18px 0;display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.head h1{font-family:var(--fd);text-transform:uppercase;line-height:.92;font-size:clamp(30px,4.6vw,46px);max-width:24ch}
+.head p{font-size:14.5px;line-height:1.45;color:var(--ink-2);max-width:42ch;margin-bottom:5px}
+.controls{max-width:1180px;margin:0 auto;padding:16px 18px 0;display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.controls input{border:2.5px solid var(--ink);background:var(--paper);box-shadow:var(--sh-sm);padding:9px 12px;font-family:var(--fb);font-size:14.5px;min-width:220px;flex:1;max-width:330px}
+.locOn{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border:2.5px solid var(--ink);background:var(--lime);box-shadow:var(--sh-sm);font-family:var(--fc);font-weight:700;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}
+.locOn i{width:10px;height:10px;background:var(--ink);border-radius:50%;flex:none}
+.body2{max-width:1180px;margin:0 auto;padding:16px 18px 44px;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:24px;align-items:start}
+.count{font-family:var(--fc);font-weight:600;font-size:13px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px;display:block}
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{position:relative;background:var(--paper);border:var(--bd);box-shadow:var(--sh-sm);padding:13px 15px 12px;transition:transform .12s,box-shadow .12s}
+.card:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+.card.sel{background:var(--paper-2);box-shadow:6px 6px 0 var(--ink)}
+.card.sel::before{content:"";position:absolute;left:-3px;top:-3px;bottom:-3px;width:9px;background:var(--yellow);border:3px solid var(--ink);border-right:0}
+.stretch{position:absolute;inset:0;z-index:1}
+.stretch span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.card .top2{display:flex;align-items:flex-start;gap:12px}
+.card .ico{width:44px;height:44px;border:2.5px solid var(--ink);background:var(--paper-2);display:grid;place-items:center;flex:none;font-family:var(--fd);font-size:19px;box-shadow:2px 2px 0 var(--ink)}
+.card h2{font-family:var(--fd);font-size:23px;text-transform:uppercase;line-height:.95}
+.card .meta{font-family:var(--fc);font-weight:600;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin-top:5px}
+.card .addr{font-size:14px;color:var(--ink-2);margin-top:7px;line-height:1.4}
+.card .chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.ttag{font-family:var(--fc);font-weight:700;font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:2px solid var(--ink);background:var(--paper-2);padding:2.5px 8px}
+.card .foot{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:12px;padding-top:11px;border-top:2px solid var(--wash);position:relative;z-index:2}
+.card .foot .push{margin-left:auto;display:flex;gap:8px;align-items:center}
+.mapbtn{position:relative;z-index:2;display:inline-flex;align-items:center;gap:7px;font-family:var(--fc);font-weight:700;font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;border:2.5px solid var(--ink);background:var(--paper);box-shadow:2px 2px 0 var(--ink);padding:7px 12px;transition:.12s}
+.mapbtn:hover{background:var(--sky)}
+.mapbtn.on{background:var(--sky)}
+.mapbtn i{width:11px;height:11px;background:var(--orange);border:2px solid var(--ink);transform:rotate(45deg);flex:none}
+.reportc{position:absolute;top:11px;right:13px;z-index:2}
+.linkhint{font-family:var(--fc);font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.card:hover .linkhint{color:var(--orange)}
+.mappanel{position:sticky;top:16px}
+.mappanel .map{height:430px}
+.mappanel .map .area{display:none}
+.mappanel .pin2{position:absolute;width:17px;height:17px;background:var(--paper);border:2.5px solid var(--ink);transform:rotate(45deg);box-shadow:2px 2px 0 var(--ink)}
+.mappanel .pin2.on{background:var(--orange);width:22px;height:22px}
+.sheet{display:none}
+@media(max-width:900px){
+  .body2{grid-template-columns:minmax(0,1fr)}
+  .mappanel{display:none}
+  .sheet{display:block;position:fixed;left:0;right:0;bottom:56px;background:var(--paper);border-top:3px solid var(--ink);box-shadow:0 -5px 0 var(--ink);z-index:39;transform:translateY(calc(100% - 46px));transition:transform .2s}
+  body.sheet-open .sheet{transform:translateY(0)}
+  .sheet .handle{border-bottom:3px solid var(--ink);background:var(--ink);color:var(--paper);padding:11px 15px;display:flex;align-items:center;gap:10px;font-family:var(--fc);font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;width:100%;text-align:left}
+  .sheet .handle .bar{width:34px;height:5px;background:var(--paper);flex:none}
+  .sheet .in{padding:14px 15px 16px;display:flex;flex-direction:column;gap:11px}
+  .sheet .map{height:190px}
+  body{padding-bottom:104px}
+  .head h1{font-size:32px}
+}
+</style>
+</head>
+<body>
+<div class="proto"><div class="in"><span class="lab">Prototype — spots list</span><a href="?sheet=0" data-s="0">Map idle</a><a href="?sheet=1" data-s="1">Spot chosen (map sheet up on mobile)</a></div></div>
+<header class="top"><div class="in"><a class="mark" href="#"><i></i>Land The Trick</a><nav class="nav"><a href="#">Tricks</a><a href="Spots List.html" aria-current="page">Spots</a><a href="Events List.html">Events</a><a href="#">Awards</a><a class="btn sm" href="#">Sign up free</a></nav></div></header>
+
+<div class="head">
+<div><span class="eyebrow">98 spots</span><h1>Skateparks and street spots</h1></div>
+<p>Parks, bowls and street spots riders have put on the map. Every spot has its own page &mdash; free to read, no account.</p>
+</div>
+<div class="controls">
+<input type="search" placeholder="Search town or spot name" aria-label="Search spots">
+<span class="lab muted">Good for</span><a class="pill on" href="#">All</a><a class="pill" href="#">Scooter</a><a class="pill" href="#">Skate</a><a class="pill" href="#">BMX</a>
+<span class="locOn"><i></i>Near me: on</span>
+</div>
+
+<div class="body2">
+<div>
+<span class="count">12 spots near you · nearest first · distances are approximate</span>
+<div class="cards">
+
+<article class="card sel">
+<a class="stretch" href="Spot Page.html"><span>Ventnor Skatepark, Ventnor — open spot page</span></a>
+<a class="reportlink reportc" href="#">Report</a>
+<div class="top2"><span class="ico">C</span><div style="min-width:0"><h2>Ventnor Skatepark</h2><div class="meta">Ventnor, United Kingdom · Concrete · about 4 miles away</div><p class="addr">Southgrove Rd, Ventnor PO38 1LG · 01983 855 123</p></div></div>
+<div class="chips"><span class="ttag">Bowl</span><span class="ttag">Ledges</span><span class="ttag">Rails</span><span class="ttag">Banks</span><span class="ttag">Mini</span><span class="sportchip scooter">Scooter</span><span class="sportchip skate">Skate</span><span class="sportchip bmx">BMX</span></div>
+<div class="foot"><button class="mapbtn on"><i></i>On the map</button><span class="push"><a class="linkhint" href="Spot Page.html">Spot page &rarr;</a><a class="btn sm ghost" href="#">Directions</a></span></div>
+</article>
+
+<article class="card">
+<a class="stretch" href="Spot Page.html?v=sparse"><span>Esplanade Ledges, Ventnor — open spot page</span></a>
+<a class="reportlink reportc" href="#">Report</a>
+<div class="top2"><span class="ico">S</span><div style="min-width:0"><h2>Esplanade Ledges</h2><div class="meta">Ventnor, United Kingdom · Street spot · about 4 miles away</div><p class="addr muted">No address or phone listed</p></div></div>
+<div class="chips"><span class="ttag">Ledges</span><span class="ttag">Flat</span><span class="sportchip scooter">Scooter</span><span class="sportchip skate">Skate</span></div>
+<div class="foot"><button class="mapbtn"><i></i>Show on map</button><span class="push"><a class="linkhint" href="Spot Page.html?v=sparse">Spot page &rarr;</a><a class="btn sm ghost" href="#">Directions</a></span></div>
+</article>
+
+<article class="card">
+<a class="stretch" href="#"><span>Sandown Indoor Park, Sandown — open spot page</span></a>
+<a class="reportlink reportc" href="#">Report</a>
+<div class="top2"><span class="ico">I</span><div style="min-width:0"><h2>Sandown Indoor Park</h2><div class="meta">Sandown, United Kingdom · Indoor park · about 8 miles away</div><p class="addr">Fort St, Sandown PO36 8AH · 01983 402 118</p></div></div>
+<div class="chips"><span class="ttag">Mini</span><span class="ttag">Vert</span><span class="ttag">Flat</span><span class="sportchip scooter">Scooter</span><span class="sportchip bmx">BMX</span></div>
+<div class="foot"><button class="mapbtn"><i></i>Show on map</button><span class="push"><a class="linkhint" href="#">Spot page &rarr;</a><a class="btn sm ghost" href="#">Directions</a></span></div>
+</article>
+
+<article class="card">
+<a class="stretch" href="#"><span>Newport Bowl, Newport — open spot page</span></a>
+<a class="reportlink reportc" href="#">Report</a>
+<div class="top2"><span class="ico">C</span><div style="min-width:0"><h2>Newport Bowl</h2><div class="meta">Newport, United Kingdom · Concrete · about 9 miles away</div><p class="addr">Seaclose Park, Newport PO30 2EF</p></div></div>
+<div class="chips"><span class="ttag">Bowl</span><span class="ttag">Banks</span><span class="sportchip skate">Skate</span><span class="sportchip bmx">BMX</span></div>
+<div class="foot"><button class="mapbtn"><i></i>Show on map</button><span class="push"><a class="linkhint" href="#">Spot page &rarr;</a><a class="btn sm ghost" href="#">Directions</a></span></div>
+</article>
+
+</div>
+</div>
+
+<aside class="mappanel panel">
+<div class="pt krow"><span class="lab">The map</span><span class="lab muted" style="margin-left:auto">12 spots</span></div>
+<div class="map"><span class="grid"></span><span class="sea"></span><span class="rd a"></span><span class="rd b"></span><span class="rd c"></span>
+<span class="pin2 on" style="left:48%;top:42%"></span><span class="pin2" style="left:63%;top:55%"></span><span class="pin2" style="left:30%;top:63%"></span><span class="pin2" style="left:71%;top:26%"></span>
+<span class="mnote">Chosen: Ventnor Skatepark · pins are exact</span></div>
+<div class="pb stack">
+<div class="krow"><span class="tag ink">Chosen</span><span class="cond" style="font-size:15px">Ventnor Skatepark</span></div>
+<p class="note">Cards are links, so the map only changes when you ask it to &mdash; use <strong>Show on map</strong> on a card, or a pin.</p>
+<a class="btn sm wide" href="Spot Page.html">Open Ventnor Skatepark page &rarr;</a>
+</div>
+</aside>
+</div>
+
+<div class="sheet">
+<button class="handle" id="sheetToggle"><span class="bar"></span><span>Map · Ventnor Skatepark</span><span style="margin-left:auto">Close</span></button>
+<div class="in">
+<div class="map"><span class="grid"></span><span class="sea"></span><span class="rd a"></span><span class="rd b"></span><span class="pin"></span><span class="mnote">Ventnor Skatepark · pin is exact</span></div>
+<a class="btn wide" href="Spot Page.html">Open spot page &rarr;</a>
+<div class="krow"><a class="btn sm ghost" href="#" style="flex:1">Directions</a><a class="btn sm ghost" href="#" style="flex:1">Report</a></div>
+</div>
+</div>
+
+<footer class="foot"><div class="in">
+<div class="col"><span class="eyebrow">Find</span><a href="Spots List.html">Spots map</a><a href="Events List.html">Events calendar</a><a href="Events List.html?view=past">Past events</a></div>
+<div class="col"><span class="eyebrow">Types</span><a href="#">Concrete parks</a><a href="#">Indoor parks</a><a href="#">Street spots</a></div>
+<div class="col"><span class="eyebrow">About</span><a href="#">How listings work</a><a href="#">Add a spot</a><a href="#">Contact</a></div>
+</div></footer>
+<nav class="btm"><a href="#">Tricks</a><a href="Spots List.html" aria-current="page">Spots</a><a href="Events List.html">Events</a><a href="#">You</a></nav>
+<script>
+(function(){var s=new URLSearchParams(location.search).get('sheet')==='1';if(s)document.body.classList.add('sheet-open');
+document.querySelectorAll('.proto a').forEach(function(a){if(a.dataset.s===(s?'1':'0'))a.setAttribute('aria-current','true')});
+document.querySelectorAll('.mapbtn').forEach(function(b){b.addEventListener('click',function(e){e.preventDefault();
+document.querySelectorAll('.mapbtn').forEach(function(o){o.classList.remove('on');o.lastChild.textContent='Show on map'});
+document.querySelectorAll('.card').forEach(function(c){c.classList.remove('sel')});
+b.classList.add('on');b.lastChild.textContent='On the map';b.closest('.card').classList.add('sel');
+document.body.classList.add('sheet-open');})});
+var t=document.getElementById('sheetToggle');t.addEventListener('click',function(){document.body.classList.toggle('sheet-open')});})();
+</script>
+</body>
+</html>

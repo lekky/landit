@@ -1,4 +1,12 @@
-import { CONTACT, SITE_URL, SPORTS, TIERS_LABEL, type Trick } from '@landit/core';
+import {
+  CONTACT,
+  SITE_URL,
+  SPORTS,
+  TIERS_LABEL,
+  eventSourceLink,
+  type LandItEvent,
+  type Trick,
+} from '@landit/core';
 
 import { lowerLabel } from '@/lib/sports';
 
@@ -135,4 +143,82 @@ export function trickHowToLd(trick: Trick, context: TrickHowToContext): JsonLdNo
  */
 export function jsonLdText(node: JsonLdNode): string {
   return JSON.stringify(node).replace(/</g, '\\u003c');
+}
+
+/** What `eventLd` needs that is not on the event record. */
+export type EventLdContext = {
+  /** The page's own absolute URL. */
+  url: string;
+};
+
+/**
+ * One event, as an `Event`.
+ *
+ * **Every field is on the page, and the interesting part is the ones that are
+ * not here.** The doctrine at the top of this file is easy to hold when a field
+ * is simply missing; it is worth spelling out where the temptation is to fill
+ * one in because a richer graph looks better:
+ *
+ *  - **No `geo`.** An event's coordinates are its *town*, not its venue (issue
+ *    #210, and `data/events.ts` says so in its own header). `geo` on a `Place`
+ *    means where that place is, and publishing a town centre as a skatepark's
+ *    position is exactly the pin the map caption on this page refuses to draw.
+ *    The postal address we hold is published by the organiser and is the honest
+ *    half; it goes in, and the point does not.
+ *  - **No `offers`.** `price` is display copy — "Free for spectators", "£25
+ *    early bird, £35 on the door". An `Offer` wants an amount and a currency,
+ *    and deriving either from that string is a guess about money.
+ *  - **No `eventStatus`.** We do not know whether an organiser has cancelled;
+ *    the page says as much out loud ("a session can be cancelled without us
+ *    knowing"), so claiming `EventScheduled` would contradict our own copy.
+ *  - **No `endDate` and no time of day.** `startDate` is a calendar day because
+ *    a calendar day is all the listing carries.
+ *
+ * **A finished event keeps its markup.** Past events stay indexed on purpose
+ * (Rachid, 2026-09-06, in chat: riders keep looking them up), and a page that
+ * silently stopped describing itself the morning after would be a page that
+ * gets summarised by guesswork for the rest of its life. Nothing here claims
+ * the event is upcoming, so nothing has to be taken back.
+ */
+export function eventLd(event: LandItEvent, context: EventLdContext): JsonLdNode {
+  const address: JsonLdNode = {
+    '@type': 'PostalAddress',
+    ...(event.address ? { streetAddress: event.address } : {}),
+    addressLocality: event.town,
+    ...(event.country ? { addressCountry: event.country } : {}),
+  };
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: event.name,
+    url: context.url,
+    // A calendar day, exactly as stored. Schema.org accepts a bare date, and a
+    // bare date is what this listing knows.
+    startDate: event.date,
+    // The page is a physical listing with a venue on it and nothing to attend
+    // online, which is the one thing this field is for.
+    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+    location: {
+      '@type': 'Place',
+      name: event.venue,
+      address,
+    },
+    ...(event.blurb ? { description: event.blurb } : {}),
+    inLanguage: 'en-GB',
+    publisher: { '@id': `${SITE_URL}/#organization` },
+    /*
+     * The organiser's own page for this event: the receipt the listing was
+     * researched from, and on the page as the "Listing" row. `sameAs` is the
+     * field for "this is the same thing, over there", which is what that link
+     * is — we are not the organiser and this does not say we are.
+     */
+    ...(eventSourceLink(event.sourceUrl) ? { sameAs: [eventSourceLink(event.sourceUrl)] } : {}),
+    /*
+     * The sport chips in the header band, said in a field. Written from
+     * `SPORTS` rather than out by hand, so a fourth sport reaches this the way
+     * it reaches everything else (LESSONS §4).
+     */
+    about: event.sports.map((id) => ({ '@type': 'Thing', name: `${SPORTS[id].label} tricks` })),
+  };
 }

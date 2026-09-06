@@ -1,0 +1,752 @@
+/*
+ * One event, as its own page.
+ *
+ * Transcribed from `design-handoff/event-spot-pages/Event Page.html` and its
+ * `pages.css`, checked against `screenshots/event-page-{upcoming,today,over}.png`.
+ * Every value here is the design's; the tokens and the primitives are the
+ * repo's own (`@landit/ui-web`), because that bundle's `pages.css` is a
+ * transcription of them and its README says not to port it.
+ *
+ * **The band is a bordered block rather than a full-bleed strip.** In the
+ * prototype the page owns the whole viewport, so its header colour runs edge to
+ * edge. Inside this app the shell's `.page` is a centred 1180px column, so a
+ * "full-bleed" band would stop dead at 1180px on a wide screen and read as a
+ * mistake rather than as a device. It keeps everything else the design asks of
+ * it — the colour, the 3px ink keyline, the hard offset shadow, the H1 scale
+ * and the 3px rule between the band and the status strip — which is the same
+ * treatment the events modal's coloured header already uses.
+ *
+ * Radius is 0 everywhere. The two exceptions the design allows are both on the
+ * map: the dashed circle, and the dot in nothing else.
+ *
+ * **Every link styled here also states its `:hover` colour.** `tokens.css` has
+ * a global `a:hover { color: var(--pink) }` whose specificity beats a single
+ * class, which has already broken three CTAs (issue #297).
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ---------------------------------------------------------- breadcrumb --- */
+
+.crumb {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.crumb a,
+.crumb a:hover {
+  color: var(--ink);
+}
+
+.crumb a:hover {
+  color: var(--orange);
+}
+
+/* ------------------------------------------------- band and status strip -- */
+
+/* The two together are one surface, split by a 3px ink rule. */
+.head {
+  padding: 0;
+  overflow: hidden;
+}
+
+.band {
+  padding: 24px 18px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  border-bottom: 3px solid var(--ink);
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: clamp(30px, 5vw, 56px);
+  color: var(--on-dark);
+  text-shadow: 3px 3px 0 var(--ink);
+  max-width: 20ch;
+}
+
+/*
+ * White with a hard ink shadow, which is what the handoff's prose specifies —
+ * and where it and the prototype's own stylesheet disagree, the prose is right.
+ * The prototype paints this line `--ink`, which reads on the pink band it was
+ * captured against and fails on the two darkest kind colours: this product's
+ * Jam is `--violet` (`EVENT_KIND_COLORS`, not the handoff's pink), and ink on
+ * violet is 4.2:1 for a 15px label. White on the same fill is 5.6:1 and the
+ * shadow keeps it off the lighter kinds. The `--over` rule below still takes it
+ * to yellow once the band drops to ink.
+ */
+.sub {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--on-dark);
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+/*
+ * State C, signal one of three: the band drops from its kind colour to ink and
+ * the sub-line turns yellow, so a finished event is legible in a thumbnail
+ * without reading a word of it.
+ */
+.bandOver .sub {
+  color: var(--yellow);
+}
+
+.status {
+  padding: 15px 18px;
+  display: flex;
+  align-items: center;
+  gap: 18px 26px;
+  flex-wrap: wrap;
+}
+
+.statusUpcoming {
+  background: var(--paper-2);
+}
+
+/* The only lime band on the site, and it means exactly one thing. */
+.statusToday {
+  background: var(--lime);
+}
+
+.statusOver {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.big {
+  font-size: clamp(22px, 3.2vw, 36px);
+}
+
+.statusOver .big {
+  color: var(--on-dark);
+}
+
+.when {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.statusToday .when {
+  color: var(--ink);
+}
+
+.statusOver .when {
+  color: var(--yellow);
+}
+
+.count {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.countN {
+  font-size: clamp(34px, 4.6vw, 54px);
+  line-height: 0.8;
+}
+
+.countLabel {
+  font-size: 22px;
+}
+
+.push {
+  margin-left: auto;
+  display: flex;
+  gap: 10px 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.onwardLink,
+.onwardLink:hover {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--paper);
+  border-bottom: 2px solid var(--yellow);
+  padding-bottom: 2px;
+}
+
+.onwardLink:hover {
+  color: var(--yellow);
+}
+
+/* ------------------------------------------------------ two column body --- */
+
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 350px;
+  gap: 26px;
+  align-items: start;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+/*
+ * State C, signal three: the onward blocks come up above the blurb, so the
+ * first thing under the stamp is somewhere else to go. The stamp stays first —
+ * it is what explains why the page is reordered.
+ */
+.stamp {
+  order: -2;
+  background: var(--red);
+  color: var(--on-dark);
+  border: 3px solid var(--ink);
+  box-shadow: var(--sh-sm);
+  padding: 11px 15px;
+  font-size: clamp(19px, 2.4vw, 26px);
+  line-height: 1;
+}
+
+.mainOver .onward {
+  order: -1;
+}
+
+.lede {
+  margin: 0;
+  font-size: 16.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 60ch;
+}
+
+/* ------------------------------------------------------------ fact grid --- */
+
+/*
+ * An ink hairline grid: the cells are paper-2 and the 3px gaps let the ink
+ * background show through as rules.
+ */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  background: var(--ink);
+  border: 3px solid var(--ink);
+  box-shadow: var(--sh-sm);
+}
+
+.fact {
+  background: var(--paper-2);
+  padding: 13px 14px;
+  min-width: 0;
+}
+
+/*
+ * The last cell fills the rest of its row rather than leaving a bar of ink
+ * where a sixth cell would be. The design's grid is drawn with six; this page
+ * has five, because the sixth was Distance and this screen never learns where
+ * the reader is (see `page.tsx`).
+ */
+.fact:last-child:nth-child(3n + 1) {
+  grid-column: span 3;
+}
+
+.fact:last-child:nth-child(3n + 2) {
+  grid-column: span 2;
+}
+
+.factValue {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.factNote {
+  margin: 3px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.4;
+}
+
+/* --------------------------------------------------- getting there rows --- */
+
+.panelHead {
+  border-bottom: 2.5px solid var(--ink);
+  padding: 10px 14px;
+  background: var(--paper-2);
+}
+
+.panelBody {
+  padding: 14px;
+}
+
+.panelBody.tight {
+  padding: 12px 14px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 6.6rem minmax(0, 1fr);
+  gap: 14px;
+  padding: 12px 0;
+  border-top: 2px solid var(--wash);
+  align-items: baseline;
+}
+
+.row:first-child {
+  border-top: 0;
+}
+
+.rowValue {
+  font-size: 14.5px;
+  overflow-wrap: anywhere;
+}
+
+.und,
+.und:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.und:hover {
+  color: var(--orange);
+}
+
+/*
+ * Missing data is stated, never hidden and never faked. A dashed keyline says
+ * "we looked and there was nothing" in a way an absent row cannot.
+ */
+.notListed {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 2px dashed var(--ink-3);
+  padding: 2px 9px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.note {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-3);
+  max-width: 64ch;
+}
+
+.noteSpaced {
+  margin-top: 14px;
+}
+
+/* ------------------------------------------------------- onward blocks ---- */
+
+.onward {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.olist {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: var(--ink);
+  border: 3px solid var(--ink);
+  box-shadow: var(--sh-sm);
+}
+
+.olistRow,
+.olistRow:hover {
+  background: var(--paper);
+  padding: 11px 14px;
+  display: flex;
+  gap: 13px;
+  align-items: center;
+  color: var(--ink);
+  min-width: 0;
+}
+
+a.olistRow:hover {
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.lead {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  width: 5.4rem;
+  flex: none;
+  color: var(--ink-3);
+}
+
+a.olistRow:hover .lead {
+  color: var(--ink);
+}
+
+.olistName {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 15.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex: 1;
+  min-width: 0;
+}
+
+.olistMeta {
+  font-size: 13px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+a.olistRow:hover .olistMeta {
+  color: var(--ink-2);
+}
+
+.blockNote {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-3);
+  max-width: 64ch;
+}
+
+/* ------------------------------------------------------------ the rail ---- */
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  padding: 10px 12px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 14.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+
+.toggle:hover {
+  background: var(--paper-2);
+}
+
+.toggle:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.toggle[disabled] {
+  opacity: 0.6;
+}
+
+.toggleBox {
+  width: 19px;
+  height: 19px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+
+.toggle[aria-pressed='true'] {
+  background: var(--lime);
+}
+
+.toggle[aria-pressed='true'] .toggleBox {
+  background: var(--ink);
+}
+
+.toggle[aria-pressed='true'] .toggleBox::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: var(--lime);
+}
+
+/*
+ * The load-bearing sentence beside the toggle. It is the only place on a public
+ * page that says what "I'm going" does and does not do, and there is nothing on
+ * this screen that could contradict it: `event_attendance` is `OWN`, so an
+ * attendee list is not withheld here, it does not exist (plan §6.1).
+ */
+.privateNote {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  display: flex;
+  gap: 8px;
+  margin: 0;
+}
+
+.privateDot {
+  width: 9px;
+  height: 9px;
+  background: var(--violet);
+  border: 2px solid var(--ink);
+  flex: none;
+  margin-top: 5px;
+}
+
+.wentRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wentNote {
+  font-size: 14px;
+}
+
+/* ----------------------------------------------------------- the map ------ */
+
+/*
+ * A CSS schematic, not a tile layer, and that is deliberate on this page.
+ * `SpotMap` is MapLibre in a client component; here the map has one job — to
+ * say roughly where this is and to be honest about how roughly — and it has to
+ * do it in server-rendered markup on a page a crawler reads, with no GPU, no
+ * sprite fetch that can fail (issue #223) and no second network dependency on a
+ * child's page. "Open in maps" is the real map, and it is one tap away.
+ *
+ * **The caption is the design.** An event's coordinates are its town, not its
+ * venue (issue #210), so the circle is an area and the page says so twice.
+ */
+.map {
+  position: relative;
+  height: 200px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper-2);
+  overflow: hidden;
+}
+
+.mapGrid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(18, 16, 11, 0.11) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(18, 16, 11, 0.11) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.mapSea {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -24px;
+  height: 74px;
+  background: var(--sky);
+  border-top: 2.5px solid var(--ink);
+  transform: rotate(-3deg);
+}
+
+.mapRoad {
+  position: absolute;
+  background: var(--paper);
+  border-top: 2.5px solid var(--ink);
+  border-bottom: 2.5px solid var(--ink);
+  height: 13px;
+}
+
+.mapRoadA {
+  left: -8%;
+  right: -8%;
+  top: 38%;
+  transform: rotate(-6deg);
+}
+
+.mapRoadB {
+  left: -8%;
+  right: -8%;
+  top: 64%;
+  transform: rotate(4deg);
+}
+
+.mapRoadC {
+  width: 13px;
+  height: 150%;
+  top: -25%;
+  left: 31%;
+  border: 0;
+  border-left: 2.5px solid var(--ink);
+  border-right: 2.5px solid var(--ink);
+  transform: rotate(9deg);
+}
+
+/* The area, not the gate. The one curve the design allows. */
+.mapArea {
+  position: absolute;
+  width: 132px;
+  height: 132px;
+  left: 50%;
+  top: 44%;
+  transform: translate(-50%, -50%);
+  border: 2.5px dashed var(--ink);
+  border-radius: 50%;
+  background: rgba(255, 194, 63, 0.34);
+}
+
+.mapPin {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: var(--orange);
+  border: 2.5px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.mapCaption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 5px 9px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+/* -------------------------------------------------------- signup, report -- */
+
+/* The only marketing on the page, and it never gates a word of the listing. */
+.signup {
+  background: var(--yellow);
+}
+
+.signupHead {
+  font-size: 22px;
+  line-height: 0.95;
+}
+
+.signupCopy {
+  font-size: 14px;
+  color: var(--ink-2);
+  margin: 7px 0 12px;
+  line-height: 1.45;
+}
+
+.report {
+  background: var(--paper-2);
+}
+
+/* Deliberately quiet: the way to tell us something is wrong, not a call to action. */
+.reportLink,
+.reportLink:hover {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.reportLink:hover {
+  color: var(--red);
+}
+
+/* --------------------------------------------------------------- mobile --- */
+
+@media (max-width: 820px) {
+  .cols {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .rail {
+    order: 2;
+  }
+
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fact:last-child:nth-child(3n + 1),
+  .fact:last-child:nth-child(3n + 2) {
+    grid-column: auto;
+  }
+
+  .fact:last-child:nth-child(2n + 1) {
+    grid-column: span 2;
+  }
+
+  .band {
+    padding: 18px 16px 22px;
+  }
+
+  .olistRow {
+    flex-wrap: wrap;
+    gap: 6px 12px;
+  }
+
+  .olistMeta {
+    white-space: normal;
+  }
+}

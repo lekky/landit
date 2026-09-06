@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ventnor Skatepark, Ventnor — Land The Trick</title>
+<link rel="stylesheet" href="pages.css">
+<style>
+.only-rich,.only-sparse{display:none}
+body.v-rich .only-rich,body.v-sparse .only-sparse{display:revert}
+body.v-sparse .band{--bandc:var(--violet)}
+.band{--bandc:var(--blue)}
+.band .sub{color:#fff;text-shadow:2px 2px 0 var(--ink)}
+.strip{background:var(--paper-2);border-bottom:3px solid var(--ink)}
+.strip .in{max-width:1180px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:14px 26px;flex-wrap:wrap}
+.strip .item{display:flex;align-items:baseline;gap:9px}
+.strip .item .v{font-family:var(--fc);font-weight:700;font-size:16px;letter-spacing:.05em;text-transform:uppercase}
+.strip .push{margin-left:auto;display:flex;gap:9px;flex-wrap:wrap}
+.whats{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:3px;background:var(--ink);border:var(--bd);box-shadow:var(--sh-sm)}
+.whats .t{background:var(--paper);padding:14px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.whats .t h3{font-family:var(--fd);font-size:24px;text-transform:uppercase;line-height:.9}
+.whats .t p{font-size:13.5px;line-height:1.45;color:var(--ink-2)}
+.whats .t .bar{height:9px;border:2px solid var(--ink);background:var(--yellow)}
+.whats .t a{font-family:var(--fc);font-weight:700;font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink);text-decoration:underline;text-underline-offset:3px;margin-top:auto}
+.whats .t a:hover{color:var(--orange)}
+.bigmap{height:340px}
+.bigmap .area{display:none}
+.bigmap .pin{width:26px;height:26px;box-shadow:3px 3px 0 var(--ink)}
+body.v-sparse .bigmap{height:380px}
+.mapfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border-top:2.5px solid var(--ink);background:var(--paper-2)}
+.mapfoot .push{margin-left:auto}
+.gap{display:flex;gap:12px;align-items:flex-start}
+.gap i{width:11px;height:11px;background:var(--sky);border:2px solid var(--ink);flex:none;margin-top:5px}
+</style>
+</head>
+<body class="v-rich">
+<div class="proto"><div class="in"><span class="lab">Prototype — spot page, two real listings</span><a href="?v=rich" data-v="rich">Five tags, full address, phone</a><a href="?v=sparse" data-v="sparse">Two tags, no address, no phone</a></div></div>
+<header class="top"><div class="in"><a class="mark" href="#"><i></i>Land The Trick</a><nav class="nav"><a href="#">Tricks</a><a href="Spots List.html" aria-current="page">Spots</a><a href="Events List.html">Events</a><a href="#">Awards</a><a class="btn sm" href="#">Sign up free</a></nav></div></header>
+<div class="crumb"><div class="in"><a href="Spots List.html">Spots</a><span>/</span><a href="Spots List.html">United Kingdom</a><span>/</span><span>Ventnor</span></div></div>
+
+<div class="band"><div class="in">
+<div class="chips">
+<span class="tag ink only-rich">Concrete</span><span class="tag ink only-sparse">Street spot</span>
+<span class="sportchip scooter">Scooter</span><span class="sportchip skate">Skate</span><span class="sportchip bmx only-rich">BMX</span>
+</div>
+<h1 class="only-rich">Ventnor Skatepark, Ventnor</h1>
+<h1 class="only-sparse">Esplanade Ledges, Ventnor</h1>
+<div class="sub">Ventnor, United Kingdom</div>
+</div></div>
+
+<div class="strip"><div class="in">
+<div class="item"><span class="lab muted">Type</span><span class="v only-rich">Concrete park</span><span class="v only-sparse">Street spot</span></div>
+<div class="item"><span class="lab muted">What&rsquo;s here</span><span class="v only-rich">5 features</span><span class="v only-sparse">2 features</span></div>
+<div class="item"><span class="lab muted">Distance</span><span class="v">About 4 miles away</span></div>
+<div class="push"><a class="btn sm" href="#map">Directions &rarr;</a></div>
+</div></div>
+
+<div class="cols">
+<main class="main">
+<p class="lede only-rich">A concrete park in Ventnor with a bowl, ledges, rails, banks and a mini ramp. Ridden by scooter, skate and BMX riders. This page is built from what riders have told us about the spot — the features below are the whole of it.</p>
+<p class="lede only-sparse">A street spot in Ventnor: ledges and flat ground, no park features. Ridden by scooter and skate riders. Two features is all this one has, and that is worth knowing before you travel across town for it.</p>
+
+<section>
+<div class="sechead"><h2>What&rsquo;s here</h2><span class="rule"></span><span class="more only-rich">5 features</span><span class="more only-sparse">2 features</span></div>
+<div class="whats">
+<div class="t only-rich"><span class="bar"></span><h3>Bowl</h3><p>Curved concrete you carry speed around. Transitions, no flat bottom to land on.</p><a href="#">Bowl tricks &rarr;</a></div>
+<div class="t"><span class="bar" style="background:var(--sky)"></span><h3>Ledges</h3><p>Low straight edges for grinds and slides. The first place most riders learn a 50-50.</p><a href="#">Ledge tricks &rarr;</a></div>
+<div class="t only-rich"><span class="bar" style="background:var(--pink)"></span><h3>Rails</h3><p>Round bar, usually flat and low here. Grinds and stalls.</p><a href="#">Rail tricks &rarr;</a></div>
+<div class="t only-rich"><span class="bar" style="background:var(--lime)"></span><h3>Banks</h3><p>Straight slopes rather than curves. Good for airs and first drops.</p><a href="#">Bank tricks &rarr;</a></div>
+<div class="t only-rich"><span class="bar" style="background:var(--violet)"></span><h3>Mini</h3><p>Small ramp with coping both sides. Where most air tricks start.</p><a href="#">Mini ramp tricks &rarr;</a></div>
+<div class="t only-sparse"><span class="bar" style="background:var(--lime)"></span><h3>Flat</h3><p>Smooth open ground. Flat tricks, manuals, whips — and space to try them without queueing.</p><a href="#">Flat tricks &rarr;</a></div>
+</div>
+</section>
+
+<section class="panel" id="map">
+<div class="pt"><span class="lab">Where it is</span></div>
+<div class="map bigmap"><span class="grid"></span><span class="sea"></span><span class="rd a"></span><span class="rd b"></span><span class="rd c"></span><span class="pin"></span><span class="mnote">Ventnor, Isle of Wight — pin is the spot itself</span></div>
+<div class="mapfoot">
+<div><div class="lab muted">Distance</div><div class="cond" style="font-size:15px">About 4 miles away</div></div>
+<div class="push krow"><a class="btn sm ghost" href="#">Copy coordinates</a><a class="btn sm" href="#">Open in maps &rarr;</a></div>
+</div>
+</section>
+
+<section>
+<div class="sechead"><h2>On here soon</h2><span class="rule"></span><a class="more" href="Events List.html">All events</a></div>
+<div class="olist only-rich">
+<a href="Event Page.html"><span class="dt">Sat 26 Sep</span><span class="nm">Ride The Wight Jam</span><span class="mt">Jam · free · at this spot</span></a>
+<a href="Event Page.html?state=up"><span class="dt">Every Wed</span><span class="nm">Ventnor Youth Session</span><span class="mt">Session · free · at this spot</span></a>
+</div>
+<div class="olist only-sparse">
+<a href="Event Page.html"><span class="dt">Sat 26 Sep</span><span class="nm">Ride The Wight Jam</span><span class="mt">Jam · about 1 mile away</span></a>
+</div>
+<p class="note only-sparse" style="margin-top:10px">Nothing is listed at this spot itself. These are the nearest events instead — a street spot rarely hosts anything.</p>
+</section>
+
+<section>
+<div class="sechead"><h2>Other spots near Ventnor</h2><span class="rule"></span><a class="more" href="Spots List.html">Spots map</a></div>
+<div class="olist">
+<a href="?v=sparse"><span class="dt">Street</span><span class="nm">Esplanade Ledges</span><span class="mt">Ledges · Flat · about 4 miles</span></a>
+<a href="#"><span class="dt">Indoor</span><span class="nm">Sandown Indoor Park</span><span class="mt">Mini · Vert · Flat · about 8 miles</span></a>
+<a href="#"><span class="dt">Concrete</span><span class="nm">Newport Bowl</span><span class="mt">Bowl · Banks · about 9 miles</span></a>
+</div>
+</section>
+</main>
+
+<aside class="rail">
+<section class="panel flat"><div class="pt"><span class="lab">The listing</span></div><div class="pb">
+<div class="rows">
+<div class="row2"><span class="lab muted">Town</span><div class="v">Ventnor, United Kingdom</div></div>
+<div class="row2"><span class="lab muted">Type</span><div class="v only-rich">Concrete park</div><div class="v only-sparse">Street spot</div></div>
+<div class="row2 only-rich"><span class="lab muted">Address</span><div class="v">Southgrove Rd, Ventnor PO38 1LG</div></div>
+<div class="row2 only-sparse"><span class="lab muted">Address</span><div class="v"><span class="nolisted">No address listed</span><p class="note" style="margin-top:6px">The map pin is exact, so directions still work.</p></div></div>
+<div class="row2 only-rich"><span class="lab muted">Phone</span><div class="v"><a class="und" href="tel:+441983855123">01983 855 123</a></div></div>
+<div class="row2 only-sparse"><span class="lab muted">Phone</span><div class="v"><span class="nolisted">No phone — street spot</span></div></div>
+<div class="row2"><span class="lab muted">Good for</span><div class="v krow" style="gap:6px"><span class="sportchip scooter">Scooter</span><span class="sportchip skate">Skate</span><span class="sportchip bmx only-rich">BMX</span></div></div>
+</div>
+</div></section>
+
+<section class="panel flat p2 only-sparse"><div class="pb tight stack">
+<span class="lab">Know this spot?</span>
+<p class="note">If there is more here than ledges and flat, tell us and we&rsquo;ll add it. We never publish who sent a spot in.</p>
+<a class="btn sm ghost wide" href="#">Suggest a feature</a>
+</div></section>
+
+<section class="panel signup"><div class="pb">
+<h3>Ridden here?</h3>
+<p>Log the tricks you land at this spot, work through the stages and pick up awards. Free to start — this page stays open either way.</p>
+<a class="btn ink wide" href="#">Sign up free</a>
+</div></section>
+
+<section class="panel flat"><div class="pb tight stack">
+<div class="gap"><i></i><p class="note">Spots are kept up by riders. Gates get locked, parks get resurfaced, ledges get knobbed.</p></div>
+<a class="reportlink" href="#">Report a problem with this spot</a>
+</div></section>
+</aside>
+</div>
+
+<footer class="foot"><div class="in">
+<div class="col"><span class="eyebrow">Find</span><a href="Spots List.html">Spots map</a><a href="Events List.html">Events calendar</a><a href="Events List.html?view=past">Past events</a></div>
+<div class="col"><span class="eyebrow">Ride</span><a href="#">Trick list</a><a href="#">Stages</a><a href="#">Awards</a></div>
+<div class="col"><span class="eyebrow">About</span><a href="#">How listings work</a><a href="#">Add a spot</a><a href="#">Contact</a></div>
+</div></footer>
+<nav class="btm"><a href="#">Tricks</a><a href="Spots List.html" aria-current="page">Spots</a><a href="Events List.html">Events</a><a href="#">You</a></nav>
+<script>
+(function(){var v=new URLSearchParams(location.search).get('v')||'rich';document.body.className='v-'+v;
+document.title=(v==='sparse'?'Esplanade Ledges':'Ventnor Skatepark')+', Ventnor — Land The Trick';
+document.querySelectorAll('.proto a').forEach(function(a){if(a.dataset.v===v)a.setAttribute('aria-current','true')});})();
+</script>
+</body>
+</html>

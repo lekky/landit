@@ -152,6 +152,30 @@ export const libraryHref = (options: { mine?: boolean } = {}): Route =>
  */
 export const trickHref = (slug: string): Route => `/library/${encodeURIComponent(slug)}`;
 
+/**
+ * One event, by its **slug** — `events.slug`, the same key `event_attendance`
+ * is toggled with and the same one the seed's natural key is built on.
+ *
+ * A record id would work and would be worse: it changes on a reseed, it means
+ * nothing to a rider reading the address bar, and it is the sort of value that
+ * ends up in somebody's network tab (`events/actions.ts` makes the same
+ * argument about the form value).
+ */
+export const eventHref = (slug: string): Route => `/events/${encodeURIComponent(slug)}`;
+
+/**
+ * The same page, told where the reader came from, for `event_page_opened`.
+ *
+ * A query parameter rather than a referrer check: the two doors into this page
+ * that we want to tell apart — a row in the list and the modal's full-page CTA
+ * — are both on `/events`, so a referrer cannot separate them. `direct` needs
+ * no parameter, which keeps the shared and canonical URL the plain one.
+ */
+export type EventPageSource = 'list' | 'modal_cta';
+
+export const eventHrefFrom = (slug: string, source: EventPageSource): Route =>
+  `${eventHref(slug)}?from=${source}`;
+
 /** A guardian's link from the consent email (plan §6.2). */
 export const consentHref = (action: 'approve' | 'revoke', token: string): Route =>
   `/consent/${action}/${encodeURIComponent(token)}`;
