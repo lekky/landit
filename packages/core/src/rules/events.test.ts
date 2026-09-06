@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { EVENTS } from '../data/events';
 import type { LandItEvent } from '../types';
 import {
+  EVENT_REFERRAL_SOURCE,
   EVENT_KIND_COLORS,
   eventAgoLabel,
   eventArchiveIndex,
@@ -22,6 +23,7 @@ import {
   eventPhoneLink,
   eventSourceHost,
   eventSourceLink,
+  eventSourceReferralLink,
   eventTownSlug,
   eventsAtVenue,
   eventsFor,
@@ -289,6 +291,43 @@ describe('links out of a researched listing', () => {
     expect(eventSourceLink('not a url at all')).toBe('');
     expect(eventSourceLink('')).toBe('');
     expect(eventSourceLink(undefined)).toBe('');
+  });
+
+  it('carries our referral, because rel="noreferrer" means nothing else does', () => {
+    const link = eventSourceReferralLink('https://example.org/e');
+    const params = new URL(link).searchParams;
+    expect(params.get('utm_source')).toBe(EVENT_REFERRAL_SOURCE);
+    // Without a medium the visit is filed under "(not set)" and nobody reads it.
+    expect(params.get('utm_medium')).toBe('referral');
+  });
+
+  it('keeps the organiser\u2019s own query string and fragment', () => {
+    const link = eventSourceReferralLink('https://example.org/e?id=7#tickets');
+    const url = new URL(link);
+    expect(url.searchParams.get('id')).toBe('7');
+    expect(url.searchParams.get('utm_source')).toBe(EVENT_REFERRAL_SOURCE);
+    expect(url.hash).toBe('#tickets');
+  });
+
+  it('leaves a link the organiser has already tagged exactly as it is', () => {
+    // Their campaign, not ours. Overwriting `utm_source` would move the visit
+    // out of the campaign they built and into ours.
+    const theirs = 'https://example.org/e?utm_source=newsletter&utm_campaign=spring';
+    expect(eventSourceReferralLink(theirs)).toBe(theirs);
+    expect(eventSourceReferralLink('https://example.org/e?UTM_Source=newsletter')).toBe(
+      'https://example.org/e?UTM_Source=newsletter',
+    );
+  });
+
+  it('applies the same scheme check before it tags anything', () => {
+    expect(eventSourceReferralLink('javascript:alert(1)')).toBe('');
+    expect(eventSourceReferralLink('')).toBe('');
+    expect(eventSourceReferralLink(undefined)).toBe('');
+  });
+
+  it('never tags the URL that structured data claims is the organiser\u2019s page', () => {
+    // `sameAs` says "this URL *is* them". A tagged copy is a different URL.
+    expect(eventSourceLink('https://example.org/e')).toBe('https://example.org/e');
   });
 
   it('names the host so a rider can see where a link goes first', () => {

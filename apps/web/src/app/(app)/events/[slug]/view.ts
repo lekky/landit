@@ -5,23 +5,25 @@ import {
   eventDateState,
   eventDaysAway,
   eventKindColor,
+  eventLatLng,
   eventLongDate,
   eventMapsLink,
   eventPhoneLink,
   eventSourceHost,
-  eventSourceLink,
+  eventSourceReferralLink,
   eventsAtVenue,
   eventsNear,
   nearestFirst,
   weekdayName,
   type EventDateState,
   type LandItEvent,
+  type LatLng,
   type Spot,
   type SportId,
 } from '@landit/core';
 import type { Route } from 'next';
 
-import { ROUTES, eventHref } from '@/lib/routes';
+import { ROUTES, eventHref, spotHref } from '@/lib/routes';
 
 /**
  * One event, shaped for its own page.
@@ -117,6 +119,13 @@ export interface EventPageView {
    * #210), and the map has to say so where a reader can see it.
    */
   readonly mapCaption: string;
+  /**
+   * The point the map is drawn on, or `null` when there is nothing to draw.
+   *
+   * It is the event's **town**, not its venue (issue #210), which is why the
+   * page draws an area around it rather than a pin on it — see `EventArea`.
+   */
+  readonly point: LatLng | null;
 
   readonly onward: readonly OnwardBlock[];
 }
@@ -125,8 +134,15 @@ export interface EventPageInput {
   readonly event: LandItEvent;
   /** Every live event, for the two onward blocks that read them. */
   readonly events: readonly LandItEvent[];
-  /** Live spots only — a pending submission is not a place to send anybody. */
-  readonly spots: readonly Spot[];
+  /**
+   * Live spots only — a pending submission is not a place to send anybody.
+   *
+   * Each carries the slug of its own page so the rows below can link to it.
+   * The slug stays optional: `Spot` in `@landit/core` has no such field (a spot
+   * is a place, not a record), so this is the caller handing over what it read
+   * off the row it already had.
+   */
+  readonly spots: readonly (Spot & { readonly slug?: string })[];
   readonly clock: { readonly timezone: string };
 }
 
@@ -207,14 +223,21 @@ export function buildEventPageView(input: EventPageInput): EventPageView {
     onward.push({
       id: 'spots',
       heading: `Spots near ${event.town}`,
-      more: { label: 'All spots', href: ROUTES.spots },
+      /*
+       * Linked, now that `/spots/[slug]` exists. This block shipped as plain
+       * rows with a note saying spots had no pages yet, because that page was
+       * being built beside it (LESSONS §3a) — it has since landed, and a row
+       * that stays a row once its destination exists is a dead end with an
+       * out-of-date apology under it. A spot with no slug is still a row.
+       */
       rows: nearbySpots.map((spot) => ({
         key: `${spot.name}-${spot.town}`,
         lead: spot.type,
         name: spot.name,
         meta: [spot.town, ...spot.tags.slice(0, 2)].filter(Boolean).join(' · '),
+        ...(spot.slug ? { href: spotHref(spot.slug) } : {}),
       })),
-      note: 'Spots do not have their own pages yet — these are on the map.',
+      more: { label: 'All spots', href: ROUTES.spots },
     });
   }
 
@@ -243,9 +266,16 @@ export function buildEventPageView(input: EventPageInput): EventPageView {
     address: event.address ?? '',
     phone: event.phone ?? '',
     phoneLink: eventPhoneLink(event.phone),
-    // Scheme-checked once, between the data and the DOM, exactly as the list's
-    // view does it — no component may be handed an unchecked `href`.
-    sourceUrl: eventSourceLink(event.sourceUrl),
+    /*
+     * Scheme-checked once, between the data and the DOM, exactly as the list's
+     * view does it — no component may be handed an unchecked `href`. The
+     * referral variant, because this string only ever becomes an anchor a rider
+     * follows: `rel="noreferrer"` means the organiser cannot otherwise tell we
+     * sent them, and `utm_source` is a fact about this site rather than about
+     * the reader. The JSON-LD `sameAs` keeps the untagged URL — see
+     * `eventSourceReferralLink`.
+     */
+    sourceUrl: eventSourceReferralLink(event.sourceUrl),
     sourceHost: eventSourceHost(event.sourceUrl),
     mapsUrl: eventMapsLink(event),
     state,
@@ -257,6 +287,7 @@ export function buildEventPageView(input: EventPageInput): EventPageView {
     mapCaption: eventMapsLink(event)
       ? `${[event.town, country].filter(Boolean).join(', ')} — town-accurate, not the exact venue`
       : '',
+    point: eventLatLng(event),
     onward,
   };
 }

@@ -16,6 +16,7 @@ import { ROUTES, eventHref, reportHref, signInHref } from '@/lib/routes';
 import { anonymousClient, currentRider } from '@/lib/session';
 import { eventLd, jsonLdText } from '@/lib/structuredData';
 
+import { EventArea } from './EventArea';
 import { GoingToggle } from './GoingToggle';
 import { PageOpened } from './PageOpened';
 import { buildEventPageView, type EventPageView, type OnwardBlock } from './view';
@@ -30,6 +31,9 @@ import styles from './event.module.css';
  * modal's design is good and is the starting point — plus the four things a
  * modal cannot carry: a real `<h1>`, the map and its caption, a rail, and
  * somewhere to go next when the answer is "not this one".
+ *
+ * **The map is the real one** (`EventArea`), drawn as an area rather than a
+ * pin, because an event's coordinates are its town and not its gate.
  *
  * **Readable signed out**, on exactly the terms `/events` already is: the
  * `events` collection's list rule is `is_live = true` with no auth arm, so a
@@ -115,9 +119,12 @@ async function load(slug: string) {
   const record = eventRecords.find((row) => row.slug === slug);
   if (!record) return null;
 
-  const spots: Spot[] = spotRecords
+  const spots: (Spot & { slug: string })[] = spotRecords
     .filter((row) => row.status === 'live')
     .map((row) => ({
+      // The slug is the row's, not the place's: `Spot` in `@landit/core` has no
+      // such field, and the "spots near" block needs one to link with.
+      slug: row.slug,
       name: row.name,
       town: row.town,
       type: row.type,
@@ -275,18 +282,21 @@ export default async function EventPage({ params, searchParams }: Params) {
                     {view.address ? (
                       <>
                         {view.address}
+                        {/*
+                          On its own line rather than trailing the address.
+                          Inline, it read as the last clause of the street —
+                          "…, M5 4BE Open in maps →" — and on a phone the arrow
+                          wrapped away from its own words.
+                        */}
                         {view.mapsUrl && (
-                          <>
-                            {' '}
-                            <a
-                              className={`cond ${styles.und}`}
-                              href={view.mapsUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Open in maps &rarr;
-                            </a>
-                          </>
+                          <a
+                            className={`cond ${styles.und} ${styles.rowAction}`}
+                            href={view.mapsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Open in maps &rarr;
+                          </a>
                         )}
                       </>
                     ) : (
@@ -424,21 +434,22 @@ export default async function EventPage({ params, searchParams }: Params) {
             </Panel>
           )}
 
-          {view.mapsUrl && (
-            <Panel>
+          {view.point && (
+            <Panel className={styles.mapPanel}>
               <div className={styles.panelHead}>
                 <span className="lab">Roughly here</span>
               </div>
-              <div className={styles.map}>
-                <span className={styles.mapGrid} />
-                <span className={styles.mapSea} />
-                <span className={`${styles.mapRoad} ${styles.mapRoadA}`} />
-                <span className={`${styles.mapRoad} ${styles.mapRoadB}`} />
-                <span className={`${styles.mapRoad} ${styles.mapRoadC}`} />
-                <span className={styles.mapArea} />
-                <span className={styles.mapPin} />
-                <span className={styles.mapCaption}>{view.mapCaption}</span>
+              <div className={styles.mapStage}>
+                <EventArea lat={view.point.lat} lng={view.point.lng} town={view.town} />
               </div>
+              {/*
+                Under the map rather than floating on it. The claim is the
+                design (`view.mapCaption`), and a caption sitting over the
+                bottom of a live map is a caption a rider can pan the ground
+                out from under — and one that covers the attribution the tiles
+                are used on condition of.
+              */}
+              <p className={styles.mapCaption}>{view.mapCaption}</p>
               <div className={`${styles.panelBody} ${styles.tight} ${styles.stack}`}>
                 <a
                   className="btn sm ghost wide"

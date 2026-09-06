@@ -230,3 +230,93 @@ export function describeMapError(event: MapErrorEvent | undefined): string {
         : 'no error was attached';
   return `${scope}: ${message}`;
 }
+
+/* ------------------------------------------------------- an area, drawn -- */
+
+/**
+ * A circle on the map, in metres, for a point we only know roughly.
+ *
+ * **This is the event page's shape, not the spots screen's.** A spot's
+ * coordinates were read off a source and checked against the venue's own page,
+ * so a spot is a pin. An event holds its *town* (issue #210), and the design
+ * for that page draws an area with the venue somewhere inside it rather than a
+ * pin that would claim to be the gate.
+ */
+export interface MapArea {
+  readonly lat: number;
+  readonly lng: number;
+  /** How wide the claim is, in metres. */
+  readonly radiusM: number;
+}
+
+/**
+ * How roughly an event's point is known, in metres.
+ *
+ * 1.5km, because that is about the half-width of the towns this list is full of
+ * and the circle has to be believable at that size: too small and it reads as a
+ * venue, too large and it stops saying anything. It is one number rather than a
+ * per-event field on purpose — we do not know the accuracy of any individual
+ * row, and inventing a tighter one for a town we happen to recognise would be
+ * exactly the fabrication the page's caption promises we do not do.
+ */
+export const EVENT_AREA_RADIUS_M = 1500;
+
+/** Metres per degree of latitude — WGS84's mean, which is all this needs. */
+const METRES_PER_DEGREE = 111_320;
+
+/**
+ * The ring of `[lng, lat]` pairs approximating `area`, closed at the start.
+ *
+ * **A polygon rather than a `circle` layer** because MapLibre's circles are
+ * sized in screen pixels: one would grow and shrink against the ground as a
+ * rider zoomed, and a claim about a real distance that changes with the zoom
+ * level is not a claim at all. These vertices are in degrees, so the shape is
+ * fixed to the map and 1.5km stays 1.5km.
+ *
+ * The longitude radius is divided by `cos(lat)` because degrees of longitude
+ * narrow towards the poles; without it a circle over the UK draws as an ellipse
+ * about a third too wide. Latitude is clamped short of the poles so the cosine
+ * can never reach zero and hand back an infinite radius.
+ */
+export function circlePolygon(area: MapArea, steps = 96): [number, number][] {
+  const latitude = Math.min(Math.max(area.lat, -89.9), 89.9);
+  const dLat = area.radiusM / METRES_PER_DEGREE;
+  const dLng = dLat / Math.cos((latitude * Math.PI) / 180);
+
+  const ring: [number, number][] = [];
+  for (let step = 0; step < steps; step += 1) {
+    const angle = (step / steps) * 2 * Math.PI;
+    ring.push([area.lng + dLng * Math.cos(angle), latitude + dLat * Math.sin(angle)]);
+  }
+  // GeoJSON wants the ring closed: the last position repeats the first.
+  ring.push(ring[0]!);
+  return ring;
+}
+
+/** `[[west, south], [east, north]]` — what the camera has to hold to show it all. */
+export function circleBounds(area: MapArea): [[number, number], [number, number]] {
+  const ring = circlePolygon(area, 96);
+  const lngs = ring.map(([lng]) => lng);
+  const lats = ring.map(([, lat]) => lat);
+  return [
+    [Math.min(...lngs), Math.min(...lats)],
+    [Math.max(...lngs), Math.max(...lats)],
+  ];
+}
+
+/**
+ * The value of a design token, resolved to something a WebGL layer can use.
+ *
+ * MapLibre paints on a canvas, so `var(--yellow)` means nothing to it — a layer
+ * needs a concrete colour. Reading the custom property off the document keeps
+ * `tokens.css` the single source of truth anyway, rather than pasting a hex
+ * literal into a component and letting the two drift.
+ *
+ * The fallback is for the one case the read cannot answer: a server render, or
+ * a browser that has not applied the stylesheet yet.
+ */
+export function tokenColour(name: string, fallback: string): string {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}

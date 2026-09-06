@@ -234,6 +234,59 @@ export function eventSourceLink(url: string | null | undefined): string {
   return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.href : '';
 }
 
+/**
+ * How Land The Trick names itself in somebody else's analytics.
+ *
+ * **A literal, and it must stay one.** It is tempting to derive this from
+ * `SITE_URL` — one fact, one place — but this string is a key in a stranger's
+ * reporting, not a fact about our deployment. Pointed at a staging host it
+ * would quietly split an organiser's referral figures in two, and a rename
+ * would orphan every visit recorded before it.
+ */
+export const EVENT_REFERRAL_SOURCE = 'landthetrick.com';
+
+/**
+ * The organiser's page with our referral on it, for an anchor a rider follows.
+ *
+ * **Why this exists at all.** Every outbound link on an event carries
+ * `rel="noreferrer"`, deliberately: this is a children's product and the page a
+ * child browsed from is not the organiser's business. The cost of that is that
+ * an organiser sees our traffic as "direct" and has no way to know we sent it,
+ * which is a poor answer for a list built out of their listings. These
+ * parameters buy the credit back without the header: `utm_source` names *us*,
+ * which is a fact about this site and not about the reader, and nothing else
+ * travels — no event id, no page, no rider, no position.
+ *
+ * **`utm_medium=referral` because a source with no medium is filed under
+ * "(not set)"** in GA4 and most of what else organisers run, which is a
+ * statistic nobody reads. The two together put it in the referral report where
+ * somebody will actually see it.
+ *
+ * **A URL that is already tagged is left exactly as it is.** Some researched
+ * links are the organiser's own campaign URLs, tags and all; overwriting
+ * `utm_source` there would move their visits out of the campaign they built and
+ * into ours, which is worse for them than no credit at all. Their tagging wins.
+ *
+ * **Not for the maps links, and not for JSON-LD.** A `utm_source` on a Google
+ * Maps search is noise, and `sameAs` in structured data is a claim about which
+ * URL *is* the organiser's page — a tagged copy is a different URL and would be
+ * a false one. Both keep `eventSourceLink` above, which is why this is a second
+ * function rather than a change to that one.
+ */
+export function eventSourceReferralLink(url: string | null | undefined): string {
+  const link = eventSourceLink(url);
+  if (!link) return '';
+
+  const parsed = new URL(link);
+  for (const key of parsed.searchParams.keys()) {
+    if (key.toLowerCase().startsWith('utm_')) return parsed.href;
+  }
+
+  parsed.searchParams.set('utm_source', EVENT_REFERRAL_SOURCE);
+  parsed.searchParams.set('utm_medium', 'referral');
+  return parsed.href;
+}
+
 /** The bare host, so a rider can see where a link goes before following it. */
 export function eventSourceHost(url: string | null | undefined): string {
   const link = eventSourceLink(url);

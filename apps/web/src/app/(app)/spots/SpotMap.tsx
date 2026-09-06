@@ -10,8 +10,12 @@ import {
   MAP_DEFAULT_ZOOM,
   MAP_STYLES,
   MAP_WORKER_URL,
+  circleBounds,
+  circlePolygon,
   describeMapError,
   isTileScopedMapError,
+  tokenColour,
+  type MapArea,
   type MapErrorEvent,
   type MapStyleId,
 } from '@/lib/map';
@@ -73,11 +77,25 @@ export function SpotMap({
   selectedId,
   onSelect,
   here,
+  area = null,
+  label = 'Map of spots',
 }: {
   readonly spots: readonly Plottable[];
   readonly selectedId: string | null;
   readonly onSelect: (id: string) => void;
   readonly here: LatLng | null;
+  /**
+   * An area to draw instead of a pin, for a point that is only known roughly.
+   *
+   * Optional and absent on the spots screen, which is the whole difference
+   * between the two callers: a spot is a checked coordinate and gets a marker,
+   * an event holds a town and gets a circle (see `MapArea`). Given one, the map
+   * opens on it, the ground toggle is not offered (below), and the circle is
+   * re-drawn whenever the style changes under it.
+   */
+  readonly area?: MapArea | null;
+  /** What a screen reader is told this map is. */
+  readonly label?: string;
 }) {
   const container = useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = useState(false);
@@ -111,6 +129,23 @@ export function SpotMap({
    */
   const drawn = useRef<MapStyleId>(MAP_DEFAULT_STYLE);
 
+  /*
+   * The area the map was built on, readable from inside the build effect.
+   *
+   * Same reasoning as `drawn` above: that effect runs once and does an `await
+   * import()` first, so it cannot close over a prop and still be correct. The
+   * effect that sets this is declared *before* the build effect, and effects in
+   * one commit run in declaration order, so the ref is current by the time the
+   * map is constructed.
+   */
+  const areaRef = useRef<MapArea | null>(area);
+  useEffect(() => {
+    areaRef.current = area;
+  }, [area]);
+
+  /** Has the rider moved the camera themselves? See the resize handler below. */
+  const moved = useRef(false);
+
   // The imperative half lives in one ref-holding object so the effects below
   // stay readable. `any` because the module is only ever loaded inside an
   // effect — importing its types at the top would pull maplibre-gl into every
@@ -140,8 +175,20 @@ export function SpotMap({
         const instance = new maplibregl.Map({
           container: node,
           style: MAP_STYLES[drawn.current].url,
-          center: [MAP_DEFAULT_CENTRE.lng, MAP_DEFAULT_CENTRE.lat],
+          center: areaRef.current
+            ? [areaRef.current.lng, areaRef.current.lat]
+            : [MAP_DEFAULT_CENTRE.lng, MAP_DEFAULT_CENTRE.lat],
           zoom: MAP_DEFAULT_ZOOM,
+          // Built straight onto the area when there is one, rather than easing
+          // there from the default centre: a rail-width map that flies across
+          // the country on load reads as a glitch, and there is nothing here
+          // for the animation to explain.
+          ...(areaRef.current
+            ? {
+                bounds: circleBounds(areaRef.current),
+                fitBoundsOptions: { padding: AREA_PADDING },
+              }
+            : {}),
           // Nothing on this map is worth a 3D tilt, and a child dragging a
           // two-finger rotate into an upside-down map cannot easily undo it.
           pitchWithRotate: false,
@@ -180,14 +227,50 @@ export function SpotMap({
          * which is exactly the kind of bug nobody reports because every
          * developer resizes their window.
          */
-        const resize = new ResizeObserver(() => instance.resize());
+        const resize = new ResizeObserver(() => {
+          instance.resize();
+          /*
+           * And re-frame the area, because the width it was framed against was
+           * the wrong one. The camera is fitted at construction, when this
+           * panel is still narrower than it ends up — so a circle fitted to a
+           * 128px box stayed at that zoom in a 344px one and spilled over
+           * every edge. Refitting on resize is the same correction `instance
+           * .resize()` above already makes for the canvas.
+           *
+           * **Only until the rider takes over.** `moved` is set by the camera
+           * events that carry an `originalEvent` — a drag or a scroll — never
+           * by our own `fitBounds`, so a resize after somebody has panned
+           * leaves their view alone rather than snapping it back.
+           */
+          if (areaRef.current && !moved.current) fitArea(instance, areaRef.current);
+        });
         resize.observe(node);
+        /*
+         * The rider taking the camera. `originalEvent` is present only when a
+         * gesture caused the move, so our own `fitBounds` never sets this.
+         * Written out rather than looped because MapLibre types `on` against a
+         * union of literal event names.
+         */
+        const claim = (event: { originalEvent?: unknown }) => {
+          if (event.originalEvent) moved.current = true;
+        };
+        instance.on('dragstart', claim);
+        instance.on('zoomstart', claim);
+        instance.on('rotatestart', claim);
+
+        /*
+         * The circle is a source and two layers, and a style swap throws both
+         * away — so it is painted on every `styledata` rather than once. The
+         * guard inside `paintArea` makes the repeats free.
+         */
+        instance.on('styledata', () => paintArea(instance, areaRef.current));
 
         control.current = { maplibregl, instance, markers: new Map(), here: null, resize };
         if (cancelled) return;
         // Plot whatever is already selected, without waiting for a state change.
         sync(control.current, spots, selectedId, onSelect);
         drawHere(control.current, here);
+        paintArea(instance, areaRef.current);
       } catch (error) {
         if (!cancelled) {
           console.error('[map] could not be built', error);
@@ -254,6 +337,14 @@ export function SpotMap({
     withMap((map) => drawHere(map, here));
   }, [here, withMap]);
 
+  /* A moved or resized area is re-drawn, and re-framed, where it is now. */
+  useEffect(() => {
+    withMap((map) => {
+      paintArea(map.instance, area);
+      if (area && !moved.current) fitArea(map.instance, area);
+    });
+  }, [area, withMap]);
+
   /*
    * Carry a ground change into the map.
    *
@@ -305,7 +396,7 @@ export function SpotMap({
 
   return (
     <div key="canvas" className={styles.mapStage}>
-      <div ref={container} className={styles.mapCanvas} aria-label="Map of spots" role="group" />
+      <div ref={container} className={styles.mapCanvas} aria-label={label} role="group" />
 
       {/*
         Plain or Detail, over the canvas rather than in the panel's header bar.
@@ -321,29 +412,40 @@ export function SpotMap({
         exactly one is true at a time, and `aria-checked` says which — which is
         also what a keyboard rider needs to hear when they arrive on it.
       */}
-      <div className={styles.ground} role="radiogroup" aria-label="Map detail">
-        {Object.values(MAP_STYLES).map((option) => {
-          const on = option.id === styleId;
-          return (
-            <button
-              key={option.id}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              className={`${styles.groundButton} ${on ? styles.groundButtonOn : ''}`}
-              onClick={() => {
-                if (on) return;
-                // Which ground, and nothing else. A style id is one of two fixed
-                // strings and the same for everybody — no spot, no position.
-                capture(ANALYTICS_EVENTS.spotsMapGround, { ground: option.id });
-                setStyleId(option.id);
-              }}
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
+      {/*
+        **Not offered on an area map**, which is the one place the choice buys
+        nothing. The toggle exists because riders asked for imagery to read a
+        spot's surface against (`ANALYTICS_EVENTS.spotsMapGround`); an event's
+        circle is 1.5km of town and there is no surface in it to read. It would
+        also file its presses under the spots screen's own count, where they
+        would answer a question nobody asked.
+      */}
+      {!area && (
+        <div className={styles.ground} role="radiogroup" aria-label="Map detail">
+          {Object.values(MAP_STYLES).map((option) => {
+            const on = option.id === styleId;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                className={`${styles.groundButton} ${on ? styles.groundButtonOn : ''}`}
+                onClick={() => {
+                  if (on) return;
+                  // Which ground, and nothing else. A style id is one of two
+                  // fixed strings and the same for everybody — no spot, no
+                  // position.
+                  capture(ANALYTICS_EVENTS.spotsMapGround, { ground: option.id });
+                  setStyleId(option.id);
+                }}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -471,4 +573,120 @@ function drawHere(control: MapControl, here: LatLng | null): void {
 
   // Already on the map, so this is just a move.
   control.here.setLngLat([here.lng, here.lat]);
+}
+
+/* ------------------------------------------------------------- the area -- */
+
+/**
+ * Frame the whole circle, with room around it.
+ *
+ * The padding is generous on purpose: fitted tight, the circle fills the frame
+ * edge to edge and there is no town left around it to recognise — which is the
+ * one thing a reader is looking at this for.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function fitArea(instance: any, area: MapArea): void {
+  if (!instance) return;
+  instance.fitBounds(circleBounds(area), { padding: AREA_PADDING, duration: 0 });
+}
+
+/** Pixels of ground kept visible around a fitted area. */
+const AREA_PADDING = 44;
+
+const AREA_SOURCE = 'landit-area';
+const AREA_FILL = 'landit-area-fill';
+const AREA_EDGE = 'landit-area-edge';
+const AREA_CENTRE = 'landit-area-centre';
+
+/**
+ * Draw (or move, or remove) the "roughly here" circle.
+ *
+ * **Layers rather than a marker**, because a marker is a DOM element pinned to
+ * a point and would keep its size as the map zoomed — a 1.5km claim that is
+ * 1.5km at one zoom level and 15km at another. These vertices are in degrees
+ * (`circlePolygon`), so the circle is stuck to the ground the way a real area
+ * is.
+ *
+ * **Called on every `styledata`, and safe to be.** Swapping the basemap
+ * discards every source and layer the style did not bring with it, so the only
+ * reliable place to add these is after each style load; the `getSource` check
+ * turns every repeat into a `setData`. `isStyleLoaded` is the guard for the
+ * calls that arrive mid-load, where `addLayer` would throw.
+ *
+ * Colours come from `tokens.css` through `tokenColour` — a canvas cannot read
+ * `var(--yellow)`, and a hex literal here would be a second copy of a token.
+ */
+function paintArea(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  instance: any,
+  area: MapArea | null,
+): void {
+  if (!instance || typeof instance.isStyleLoaded !== 'function' || !instance.isStyleLoaded())
+    return;
+
+  if (!area) {
+    for (const id of [AREA_CENTRE, AREA_EDGE, AREA_FILL]) {
+      if (instance.getLayer(id)) instance.removeLayer(id);
+    }
+    if (instance.getSource(AREA_SOURCE)) instance.removeSource(AREA_SOURCE);
+    return;
+  }
+
+  const data = {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        properties: { kind: 'area' },
+        geometry: { type: 'Polygon', coordinates: [circlePolygon(area)] },
+      },
+      {
+        type: 'Feature',
+        properties: { kind: 'centre' },
+        geometry: { type: 'Point', coordinates: [area.lng, area.lat] },
+      },
+    ],
+  };
+
+  const existing = instance.getSource(AREA_SOURCE);
+  if (existing) {
+    existing.setData(data);
+    return;
+  }
+
+  const ink = tokenColour('--ink', '#12100b');
+  const yellow = tokenColour('--yellow', '#ffc23f');
+  const orange = tokenColour('--orange', '#ff5a1f');
+
+  instance.addSource(AREA_SOURCE, { type: 'geojson', data });
+  instance.addLayer({
+    id: AREA_FILL,
+    type: 'fill',
+    source: AREA_SOURCE,
+    filter: ['==', ['get', 'kind'], 'area'],
+    paint: { 'fill-color': yellow, 'fill-opacity': 0.34 },
+  });
+  instance.addLayer({
+    id: AREA_EDGE,
+    type: 'line',
+    source: AREA_SOURCE,
+    filter: ['==', ['get', 'kind'], 'area'],
+    // Dashed, which is the design's one way of saying "this edge is not a fact".
+    paint: { 'line-color': ink, 'line-width': 2.5, 'line-dasharray': [2, 2] },
+  });
+  instance.addLayer({
+    id: AREA_CENTRE,
+    type: 'circle',
+    source: AREA_SOURCE,
+    filter: ['==', ['get', 'kind'], 'centre'],
+    // The point we actually hold — a town centre. Sized in pixels on purpose:
+    // it is a mark, not a measurement, and the circle around it carries the
+    // claim about distance.
+    paint: {
+      'circle-radius': 7,
+      'circle-color': orange,
+      'circle-stroke-color': ink,
+      'circle-stroke-width': 2.5,
+    },
+  });
 }

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { MAP_DEFAULT_STYLE, MAP_STYLES, describeMapError, isTileScopedMapError } from './map';
+import {
+  MAP_DEFAULT_STYLE,
+  MAP_STYLES,
+  circleBounds,
+  circlePolygon,
+  describeMapError,
+  isTileScopedMapError,
+  tokenColour,
+} from './map';
 
 /**
  * Sorting a MapLibre `error` event into "one tile" and "the map" (issue #219).
@@ -111,5 +119,60 @@ describe('the two grounds', () => {
     for (const style of Object.values(MAP_STYLES)) {
       expect(style.url.startsWith('https://tiles.openfreemap.org/styles/')).toBe(true);
     }
+  });
+});
+
+describe('circlePolygon', () => {
+  const salford = { lat: 53.4836, lng: -2.27589, radiusM: 1500 };
+
+  it('closes the ring, so the polygon is valid GeoJSON', () => {
+    const ring = circlePolygon(salford, 32);
+    expect(ring).toHaveLength(33);
+    expect(ring.at(-1)).toEqual(ring[0]);
+  });
+
+  it('draws a circle on the ground rather than an ellipse', () => {
+    // Every vertex should be the same distance from the centre in metres, not
+    // in degrees — which is the whole reason for the cosine.
+    const ring = circlePolygon(salford, 64);
+    const metres = ring.map(([lng, lat]) => {
+      const dy = (lat - salford.lat) * 111_320;
+      const dx = (lng - salford.lng) * 111_320 * Math.cos((salford.lat * Math.PI) / 180);
+      return Math.hypot(dx, dy);
+    });
+    for (const distance of metres) expect(distance).toBeCloseTo(1500, 0);
+  });
+
+  it('survives a point at the pole rather than dividing by zero', () => {
+    const ring = circlePolygon({ lat: 90, lng: 0, radiusM: 1500 }, 8);
+    for (const [lng, lat] of ring) {
+      expect(Number.isFinite(lng)).toBe(true);
+      expect(Number.isFinite(lat)).toBe(true);
+    }
+  });
+});
+
+describe('circleBounds', () => {
+  it('holds the whole circle', () => {
+    const area = { lat: 53.4836, lng: -2.27589, radiusM: 1500 };
+    const [[west, south], [east, north]] = circleBounds(area);
+    expect(west).toBeLessThan(area.lng);
+    expect(east).toBeGreaterThan(area.lng);
+    expect(south).toBeLessThan(area.lat);
+    expect(north).toBeGreaterThan(area.lat);
+    for (const [lng, lat] of circlePolygon(area)) {
+      expect(lng).toBeGreaterThanOrEqual(west);
+      expect(lng).toBeLessThanOrEqual(east);
+      expect(lat).toBeGreaterThanOrEqual(south);
+      expect(lat).toBeLessThanOrEqual(north);
+    }
+  });
+});
+
+describe('tokenColour', () => {
+  it('falls back when the property is not set', () => {
+    // jsdom resolves an unknown custom property to the empty string, which is
+    // the same answer a server render gives.
+    expect(tokenColour('--not-a-token', '#12100b')).toBe('#12100b');
   });
 });

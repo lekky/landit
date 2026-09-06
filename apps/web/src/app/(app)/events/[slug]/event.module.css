@@ -77,11 +77,33 @@
   flex-wrap: wrap;
 }
 
+/*
+ * **`line-height` is set here and not left to `.d`.** The shared display class
+ * runs at 0.92, which is right for the one-line headings it was written for and
+ * wrong for anything that wraps: this H1 carries a 3px hard shadow, so at 0.92
+ * the shadow of each line lands inside the caps of the next and a three-line
+ * title reads as one smeared block ("Graystone Clash Scooter Competition,
+ * Salford" on a phone).
+ *
+ * **1.14 rather than something tighter, because the calendar is worldwide.**
+ * Latin caps in Anton only need about 1.06 to clear a 3px shadow. A Japanese
+ * title — and there are several — is set in a fallback face whose glyphs fill
+ * the whole em box, so the shadow of one line printed straight through the next
+ * ("AJSA2026 中部アマチュアサーキット第3戦, Seki, Gifu"). This is the smallest
+ * value that clears a full-height glyph plus its shadow at every size in the
+ * clamp.
+ *
+ * `text-wrap: balance` evens the lines out where the browser supports it, so a
+ * wrapped title does not end on a single orphaned word; where it does not, the
+ * title wraps exactly as it did before.
+ */
 .title {
   font-size: clamp(30px, 5vw, 56px);
+  line-height: 1.14;
   color: var(--on-dark);
   text-shadow: 3px 3px 0 var(--ink);
   max-width: 20ch;
+  text-wrap: balance;
 }
 
 /*
@@ -98,6 +120,7 @@
   font-family: var(--fc);
   font-weight: 700;
   font-size: 15px;
+  line-height: 1.35;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--on-dark);
@@ -111,6 +134,17 @@
  */
 .bandOver .sub {
   color: var(--yellow);
+}
+
+/*
+ * The 3px rule that splits the band from the status strip is ink, which is
+ * right on every kind colour and invisible in this one state — where the strip
+ * below is ink too, and the two merged into one unexplained black slab with a
+ * void in the middle of it. `--ink-rule` is the token for a hairline *on* an
+ * ink surface, which is exactly what this becomes.
+ */
+.bandOver {
+  border-bottom-color: var(--ink-rule);
 }
 
 .status {
@@ -135,8 +169,10 @@
   color: var(--paper);
 }
 
+/* Two lines on a phone ("This event has finished"), so not at `.d`'s 0.92. */
 .big {
   font-size: clamp(22px, 3.2vw, 36px);
+  line-height: 1.04;
 }
 
 .statusOver .big {
@@ -235,7 +271,7 @@
   box-shadow: var(--sh-sm);
   padding: 11px 15px;
   font-size: clamp(19px, 2.4vw, 26px);
-  line-height: 1;
+  line-height: 1.06;
 }
 
 .mainOver .onward {
@@ -346,6 +382,15 @@
   overflow-wrap: anywhere;
 }
 
+/*
+ * A link that belongs under its row's value rather than after it — the address
+ * row's "Open in maps", which read as the tail of the street when it sat inline.
+ */
+.rowAction {
+  display: inline-block;
+  margin-top: 7px;
+}
+
 .und,
 .und:hover {
   color: var(--ink);
@@ -435,20 +480,33 @@ a.olistRow:hover .lead {
   color: var(--ink);
 }
 
+/*
+ * `overflow-wrap` because `min-width: 0` lets this flex item shrink below its
+ * longest word, and the text then simply ran on **underneath** the meta beside
+ * it — "Cantelowes Skatepark" printed over "Camden, London · Bowl · Vert".
+ * Shrinking is what keeps the row on one line; wrapping is what makes shrinking
+ * safe.
+ */
 .olistName {
   font-family: var(--fc);
   font-weight: 700;
   font-size: 15.5px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  line-height: 1.25;
   flex: 1;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .olistMeta {
   font-size: 13px;
   color: var(--ink-3);
   white-space: nowrap;
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 a.olistRow:hover .olistMeta {
@@ -561,113 +619,57 @@ a.olistRow:hover .olistMeta {
 /* ----------------------------------------------------------- the map ------ */
 
 /*
- * A CSS schematic, not a tile layer, and that is deliberate on this page.
- * `SpotMap` is MapLibre in a client component; here the map has one job — to
- * say roughly where this is and to be honest about how roughly — and it has to
- * do it in server-rendered markup on a page a crawler reads, with no GPU, no
- * sprite fetch that can fail (issue #223) and no second network dependency on a
- * child's page. "Open in maps" is the real map, and it is one tap away.
+ * The real map, not a picture of one.
  *
- * **The caption is the design.** An event's coordinates are its town, not its
- * venue (issue #210), so the circle is an area and the page says so twice.
+ * This panel used to draw the handoff's schematic in CSS — a dotted grid, three
+ * rotated roads and a band of sea — which meant every event in the country was
+ * illustrated with the same imaginary coastline under a caption naming its own
+ * town. `EventArea` puts `SpotMap` here instead, the way `/spots/[slug]`
+ * already does, and the claim the schematic carried travels with it: an event
+ * holds a **town**, so the map draws a 1.5km area rather than a pin.
+ *
+ * The panel is a column of four bands with the map as the only flexible one:
+ * header, map, the caption, then the footer. `SpotMap` brings its own
+ * `min-height`, so the stage only has to let it fill the width.
  */
-.map {
-  position: relative;
-  height: 200px;
-  border: 2.5px solid var(--ink);
-  background: var(--paper-2);
+.mapPanel {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
   overflow: hidden;
 }
 
-.mapGrid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(18, 16, 11, 0.11) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(18, 16, 11, 0.11) 1px, transparent 1px);
-  background-size: 22px 22px;
-}
-
-.mapSea {
-  position: absolute;
-  left: -10%;
-  right: -10%;
-  bottom: -24px;
-  height: 74px;
-  background: var(--sky);
-  border-top: 2.5px solid var(--ink);
-  transform: rotate(-3deg);
-}
-
-.mapRoad {
-  position: absolute;
-  background: var(--paper);
-  border-top: 2.5px solid var(--ink);
+/*
+ * **The height is stated here, and it has to be.** `SpotMap` carries its own
+ * 320px floor, but `spots.module.css` takes that floor off below 860px —
+ * correctly, because on the spots screen the map lives in a fixed-height sheet
+ * that would otherwise push its own footer off the bottom. Any other caller
+ * inheriting that override gets a map 0px tall on every phone, so the wrapper
+ * owns the height instead. `/spots/[slug]` does the same thing for the same
+ * reason.
+ */
+.mapStage {
+  display: flex;
+  min-height: 300px;
   border-bottom: 2.5px solid var(--ink);
-  height: 13px;
 }
 
-.mapRoadA {
-  left: -8%;
-  right: -8%;
-  top: 38%;
-  transform: rotate(-6deg);
-}
-
-.mapRoadB {
-  left: -8%;
-  right: -8%;
-  top: 64%;
-  transform: rotate(4deg);
-}
-
-.mapRoadC {
-  width: 13px;
-  height: 150%;
-  top: -25%;
-  left: 31%;
-  border: 0;
-  border-left: 2.5px solid var(--ink);
-  border-right: 2.5px solid var(--ink);
-  transform: rotate(9deg);
-}
-
-/* The area, not the gate. The one curve the design allows. */
-.mapArea {
-  position: absolute;
-  width: 132px;
-  height: 132px;
-  left: 50%;
-  top: 44%;
-  transform: translate(-50%, -50%);
-  border: 2.5px dashed var(--ink);
-  border-radius: 50%;
-  background: rgba(255, 194, 63, 0.34);
-}
-
-.mapPin {
-  position: absolute;
-  left: 50%;
-  top: 44%;
-  width: 20px;
-  height: 20px;
-  transform: translate(-50%, -50%) rotate(45deg);
-  background: var(--orange);
-  border: 2.5px solid var(--ink);
-  box-shadow: 2px 2px 0 var(--ink);
-}
-
+/*
+ * The claim, in the design's own inverted bar — now a real element under the
+ * map rather than an overlay on it. Wrapping is the point: "Ventnor, Isle of
+ * Wight, United Kingdom — town-accurate, not the exact venue" is a long line in
+ * a 350px rail, and the version of this that could not wrap simply lost its
+ * ending off the right-hand edge.
+ */
 .mapCaption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  margin: 0;
   background: var(--ink);
   color: var(--paper);
-  padding: 5px 9px;
+  padding: 7px 10px;
   font-family: var(--fc);
   font-weight: 700;
-  font-size: 10px;
+  font-size: 10.5px;
+  line-height: 1.45;
   letter-spacing: 0.13em;
   text-transform: uppercase;
 }
@@ -681,7 +683,7 @@ a.olistRow:hover .olistMeta {
 
 .signupHead {
   font-size: 22px;
-  line-height: 0.95;
+  line-height: 1.02;
 }
 
 .signupCopy {
@@ -741,12 +743,66 @@ a.olistRow:hover .olistMeta {
     padding: 18px 16px 22px;
   }
 
-  .olistRow {
-    flex-wrap: wrap;
-    gap: 6px 12px;
+  /*
+   * Stacked, not wrapped. `flex-wrap` left the name sharing a line with the
+   * meta and the two fighting over ~200px: the name was squeezed to one word
+   * per line ("House / Comp / 2026") and, where a word would not fit at all,
+   * ran on underneath the meta. A row on a phone is three stacked lines —
+   * when, what, where — each with the full width.
+   */
+  .olistRow,
+  .olistRow:hover {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    padding: 12px 14px;
+  }
+
+  .lead {
+    width: auto;
+  }
+
+  .olistName {
+    flex: none;
   }
 
   .olistMeta {
     white-space: normal;
+    max-width: 100%;
+    overflow: visible;
+  }
+
+  /*
+   * The label above its value rather than beside it. A 6.6rem column took a
+   * third of the width and left a full postal address wrapping four times in
+   * what was left of it.
+   */
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .status {
+    gap: 12px 20px;
+  }
+
+  /* Nothing to push against once the strip has wrapped onto its own line. */
+  .push {
+    margin-left: 0;
+  }
+
+  /*
+   * The shared section head puts a 3px rule between the heading and its "All
+   * events" link, and gives it whatever width is left. On a phone that is about
+   * twenty pixels, so a device that reads as a long horizontal rule on a desk
+   * reads as a stray hyphen in a headline. It comes out here rather than in
+   * `primitives.css`, which other screens share and this page does not own.
+   */
+  .onward :global(.sechead .rule) {
+    display: none;
+  }
+
+  .onward :global(.sechead .more) {
+    margin-left: auto;
   }
 }

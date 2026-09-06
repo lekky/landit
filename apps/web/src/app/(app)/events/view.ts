@@ -9,7 +9,7 @@ import {
   eventMapsLink,
   eventPhoneLink,
   eventSourceHost,
-  eventSourceLink,
+  eventSourceReferralLink,
   eventTownSlug,
   eventsFor,
   isEventPast,
@@ -220,7 +220,9 @@ export function buildEventsView(input: EventsViewInput): EventsView {
       // Scheme-checked here, once, so no component can render an unchecked
       // `href` — the check belongs between the data and the DOM, not in a
       // component that might be copied without it.
-      sourceUrl: eventSourceLink(event.sourceUrl),
+      // Tagged, for the same reason the event page's view is — and it has to be
+      // both, or the organiser's referral figure counts one of our two doors.
+      sourceUrl: eventSourceReferralLink(event.sourceUrl),
       sourceHost: eventSourceHost(event.sourceUrl),
       mapsUrl: eventMapsLink(event),
       ...(event.lat === undefined ? {} : { lat: event.lat }),
