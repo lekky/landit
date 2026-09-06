@@ -5,7 +5,12 @@ import { useEffect, useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
 
-import { riderSheetAction, setRiderPlanAction, setRiderSuspendedAction } from '../actions';
+import {
+  deleteRiderAction,
+  riderSheetAction,
+  setRiderPlanAction,
+  setRiderSuspendedAction,
+} from '../actions';
 import type { AdminPlanOption, AdminRiderRow, RiderSheetView } from '../view';
 
 import styles from '../admin.module.css';
@@ -84,6 +89,34 @@ export function RiderSheet({
         );
         setView((v) => (v ? { ...v, suspended: next } : v));
         onChanged();
+      } else {
+        toast(result.message, 'var(--red)');
+      }
+    });
+  };
+
+  /**
+   * Deleting is two deliberate steps, and the second one is typing.
+   *
+   * `armed` opens the confirmation; nothing is sent until the handle matches.
+   * The comparison is repeated on the server — this one only decides whether
+   * the button is enabled, so the rider cannot be deleted by a stray Enter on
+   * an empty field.
+   */
+  const [armed, setArmed] = useState(false);
+  const [typed, setTyped] = useState('');
+  const handleMatches = typed.trim().toLowerCase() === rider.handle.toLowerCase();
+
+  const onDelete = () => {
+    if (!handleMatches) return;
+    startTransition(async () => {
+      const result = await deleteRiderAction(rider.id, typed);
+      if (result.ok) {
+        toast(`@${rider.handle} deleted`, 'var(--red)');
+        onChanged();
+        // The sheet is a view of a row that no longer exists, so it closes
+        // rather than sitting there offering actions against a gone account.
+        onClose();
       } else {
         toast(result.message, 'var(--red)');
       }
@@ -224,6 +257,62 @@ export function RiderSheet({
             Close
           </button>
         </div>
+
+        {view?.canDelete && (
+          <div className={styles.dangerZone}>
+            {!armed ? (
+              <button
+                type="button"
+                className="btn sm"
+                disabled={pending}
+                style={{ background: 'var(--red)' }}
+                onClick={() => setArmed(true)}
+              >
+                Delete account permanently
+              </button>
+            ) : (
+              <div className={styles.dangerBox}>
+                <p className={styles.quiet}>
+                  <strong>This cannot be undone.</strong> Deleting @{rider.handle} removes their
+                  progress, videos, crew memberships, subscription record and guardian consent
+                  record along with the account. Type <strong>@{rider.handle}</strong> to confirm.
+                </p>
+                <div className={styles.dangerConfirm}>
+                  <input
+                    className={styles.dangerInput}
+                    value={typed}
+                    disabled={pending}
+                    autoComplete="off"
+                    spellCheck={false}
+                    aria-label={`Type @${rider.handle} to confirm deletion`}
+                    placeholder={`@${rider.handle}`}
+                    onChange={(e) => setTyped(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn sm"
+                    disabled={pending || !handleMatches}
+                    style={{ background: 'var(--red)' }}
+                    onClick={onDelete}
+                  >
+                    {pending ? 'Deleting…' : 'Delete for good'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn sm ghost"
+                    disabled={pending}
+                    onClick={() => {
+                      setArmed(false);
+                      setTyped('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {rider.isMe && (
           <p className={styles.quiet}>

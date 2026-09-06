@@ -416,6 +416,54 @@
   flex-wrap: wrap;
 }
 
+/*
+ * The delete confirmation, opened from the sheet's actions and closed again
+ * without leaving the modal.
+ *
+ * Deliberately loud and deliberately *below* the actions rather than beside
+ * them: an irreversible control that sits in the same row as "Plan override"
+ * gets clicked by muscle memory aimed at the thing next to it. The red rule on
+ * the left is the same offset-block language as the rest of the portal, not a
+ * rounded alert box borrowed from somewhere else.
+ */
+.dangerZone {
+  border-top: 2.5px solid var(--wash);
+  margin-top: 16px;
+  padding-top: 16px;
+}
+
+.dangerBox {
+  border-left: 5px solid var(--red);
+  background: var(--wash);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dangerConfirm {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/*
+ * `font-family: var(--fc)` rather than the body face: the value being typed is
+ * a handle, and it is being compared character by character against one shown
+ * two lines above it.
+ */
+.dangerInput {
+  font-family: var(--fc);
+  font-size: 15px;
+  padding: 9px 11px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  min-width: 190px;
+  flex: 1;
+}
+
 /* ------------------------------------------------------- content tabs -- */
 
 /*
