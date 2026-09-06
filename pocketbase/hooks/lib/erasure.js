@@ -130,6 +130,7 @@ function anonymiseAccount(app, rider, by) {
   rider.set('town', '');
   rider.set('goal', '');
   rider.set('goal_custom', '');
+  rider.set('heard_about', '');
   rider.set('avatar_key', '');
   rider.set('avatar', '');
   rider.set('stance', '');
@@ -336,6 +337,7 @@ function exportFor(app, rider) {
       level: labels.labelFor(labels.LEVEL_LABELS, rider.getString('level')),
       goal: labels.labelFor(labels.GOAL_LABELS, rider.getString('goal')),
       goal_custom: rider.getString('goal_custom'),
+      heard_about: labels.labelFor(labels.HEARD_ABOUT_LABELS, rider.getString('heard_about')),
       avatar_key: rider.getString('avatar_key'),
       privacy: labels.labelFor(labels.PRIVACY_LABELS, rider.getString('privacy')),
       sports: sportsRidden,

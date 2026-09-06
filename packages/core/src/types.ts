@@ -447,6 +447,27 @@ export interface Goal {
   readonly hue: string;
 }
 
+/**
+ * Where a rider says they found Land The Trick. A closed list on purpose —
+ * there is no "other, tell us" box, because a box is a place a child writes
+ * something about themselves and this answer is only ever a channel.
+ */
+export type HeardAboutId =
+  | 'friend'
+  | 'skatepark'
+  | 'youtube'
+  | 'tiktok'
+  | 'instagram'
+  | 'coach'
+  | 'family'
+  | 'search'
+  | 'elsewhere';
+
+export interface HeardAbout {
+  readonly id: HeardAboutId;
+  readonly label: string;
+}
+
 export interface Avatar {
   readonly id: string;
   readonly name: string;

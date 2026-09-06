@@ -1,4 +1,4 @@
-import type { Goal, Level, Privacy, PrivacyId, Stance } from '../types';
+import type { Goal, HeardAbout, HeardAboutId, Level, Privacy, PrivacyId, Stance } from '../types';
 
 /** Stance question at onboarding, skippable. */
 export const STANCES = [
@@ -92,6 +92,54 @@ export const CUSTOM_GOAL_ID = 'custom' as const;
 
 /** How long a written goal may be. It goes on the dashboard, so keep it blunt. */
 export const CUSTOM_GOAL_MAX_LENGTH = 60;
+
+/* ------------------------------------------------------------ where from -- */
+
+/**
+ * "Where did you find us?", the last thing onboarding asks.
+ *
+ * **A closed list, and no free-text box.** Every other question this product
+ * asks a child either has fixed answers or is a goal they chose to write on
+ * their own dashboard; a "tell us where" box would be a new place for a child
+ * to type something about themselves — a school's name, a shop, a person — into
+ * a field whose only purpose is to tell us which channel works. `elsewhere`
+ * costs us the long tail and is the right trade.
+ *
+ * The ids are stored on `users.heard_about` and are the only thing the
+ * `heard_about` analytics event ever carries, which is what makes them safe to
+ * send: they are nine strings chosen here, not nine things a rider wrote.
+ *
+ * **The order is the answer's likelihood, not the alphabet.** A child reading
+ * a list on a phone picks from the top, so a list that opens with "Searching
+ * for it" would measure the list rather than the channel. Friends and parks
+ * first because this product spreads at parks.
+ *
+ * Adding an option is a schema change as well as an edit here: the values are
+ * pinned by the `users.heard_about` select in
+ * `pocketbase/migrations/1788307200_users_heard_about.js` and mirrored by
+ * `HEARD_ABOUT_LABELS` in `pocketbase/hooks/lib/labels.js`, so a rider's data
+ * export stays readable. A test holds all three together.
+ */
+export const HEARD_ABOUT = [
+  { id: 'friend', label: 'A friend or someone I ride with' },
+  { id: 'skatepark', label: 'At a skatepark or a shop' },
+  { id: 'youtube', label: 'YouTube' },
+  { id: 'tiktok', label: 'TikTok' },
+  { id: 'instagram', label: 'Instagram' },
+  { id: 'coach', label: 'A coach, club or lesson' },
+  { id: 'family', label: 'A parent or someone in my family' },
+  { id: 'search', label: 'Searching for it' },
+  { id: 'elsewhere', label: 'Somewhere else' },
+] as const satisfies readonly HeardAbout[];
+
+export const HEARD_ABOUT_IDS: readonly HeardAboutId[] = Object.freeze(
+  HEARD_ABOUT.map((entry) => entry.id),
+);
+
+/** Whether a string is one of the nine. Used either side of the request. */
+export function isHeardAboutId(value: string): value is HeardAboutId {
+  return (HEARD_ABOUT_IDS as readonly string[]).includes(value);
+}
 
 /* ---------------------------------------------------------------- handles -- */
 

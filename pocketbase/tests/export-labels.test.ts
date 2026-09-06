@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { GOALS, LEVELS, PRIVACY, STANCES } from '../../packages/core/src/data/profile';
+import { GOALS, HEARD_ABOUT, LEVELS, PRIVACY, STANCES } from '../../packages/core/src/data/profile';
 import { SPORTS } from '../../packages/core/src/data/sports';
 import { STAGES } from '../../packages/core/src/data/stages';
 
@@ -29,6 +29,7 @@ interface HookLabels {
   AGE_BAND_LABELS: Record<string, string>;
   CONSENT_LABELS: Record<string, string>;
   GOAL_LABELS: Record<string, string>;
+  HEARD_ABOUT_LABELS: Record<string, string>;
   LEVEL_LABELS: Record<string, string>;
   PRIVACY_LABELS: Record<string, string>;
   SPORT_LABELS: Record<string, string>;
@@ -56,6 +57,7 @@ const mirrors = [
   { what: 'levels', core: LEVELS, map: hook.LEVEL_LABELS },
   { what: 'goals', core: GOALS, map: hook.GOAL_LABELS },
   { what: 'privacy settings', core: PRIVACY, map: hook.PRIVACY_LABELS },
+  { what: 'ways a rider found us', core: HEARD_ABOUT, map: hook.HEARD_ABOUT_LABELS },
 ] as const satisfies readonly {
   what: string;
   core: readonly { id: string; label: string }[];

@@ -222,6 +222,9 @@ function assertHandleAllowed(handle) {
  *
  * The weekly streak (`USER_STREAK_FIELDS`) joined them on 2026-08-16: it feeds
  * two sticker rules, so a writable streak is a forgeable achievement (issue #8).
+ *
+ * `heard_about` is guarded here too, but under a softer rule — write-once
+ * rather than never — for a reason spelled out at the check itself.
  */
 function guardUserWrite(e, isCreate) {
   const record = e.record;
@@ -260,6 +263,17 @@ function guardUserWrite(e, isCreate) {
     if (String(record.get(field)) !== String(original.get(field))) {
       throw new ForbiddenError(`"${field}" is not something an account can change about itself.`);
     }
+  }
+
+  // `heard_about` is write-once, which is a weaker rule than the list above and
+  // a different one: nobody gains by forging where they came from. It is here
+  // because the answer is only worth holding if it means what it says. Filling
+  // an empty one is onboarding's own write and is allowed; rewriting an answer
+  // would turn a record of how a rider arrived into a field about how they feel
+  // today, and nothing in the product offers to do it.
+  const heardBefore = original.getString('heard_about');
+  if (heardBefore && record.getString('heard_about') !== heardBefore) {
+    throw new ForbiddenError('"heard_about" is answered once, when the account is set up.');
   }
 }
 

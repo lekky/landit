@@ -10,7 +10,7 @@ import { Onboarding, type OnboardingTrick } from './Onboarding';
 
 export const metadata: Metadata = {
   title: 'Getting set up · Land The Trick',
-  description: 'Four steps and you are riding.',
+  description: 'Five steps and you are riding.',
 };
 
 /**

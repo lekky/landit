@@ -20,7 +20,8 @@
  * The mirrors and their sources:
  * - `STAGE_LABELS`   ← `packages/core/src/data/stages.ts`
  * - `SPORT_LABELS`   ← `packages/core/src/data/sports.ts`
- * - `STANCE_LABELS`, `LEVEL_LABELS`, `GOAL_LABELS`, `PRIVACY_LABELS`
+ * - `STANCE_LABELS`, `LEVEL_LABELS`, `GOAL_LABELS`, `PRIVACY_LABELS`,
+ *   `HEARD_ABOUT_LABELS`
  *                    ← `packages/core/src/data/profile.ts`
  *
  * `AGE_BAND_LABELS` and `CONSENT_LABELS` have no core counterpart — the app
@@ -68,6 +69,19 @@ const GOAL_LABELS = {
   flip: 'Go upside down',
   bowl: 'Drop in and ride bowls',
   all: 'Tick off the whole list',
+};
+
+/** `packages/core/src/data/profile.ts`. */
+const HEARD_ABOUT_LABELS = {
+  friend: 'A friend or someone I ride with',
+  skatepark: 'At a skatepark or a shop',
+  youtube: 'YouTube',
+  tiktok: 'TikTok',
+  instagram: 'Instagram',
+  coach: 'A coach, club or lesson',
+  family: 'A parent or someone in my family',
+  search: 'Searching for it',
+  elsewhere: 'Somewhere else',
 };
 
 /** `packages/core/src/data/profile.ts`. */
@@ -138,6 +152,7 @@ function readableDate(raw) {
 module.exports = {
   AGE_BAND_LABELS,
   CONSENT_LABELS,
+  HEARD_ABOUT_LABELS,
   GOAL_LABELS,
   LEVEL_LABELS,
   PRIVACY_LABELS,

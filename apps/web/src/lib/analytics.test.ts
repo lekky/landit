@@ -230,6 +230,9 @@ describe('the event catalogue', () => {
         // read by anybody through the product's own front door.
         'events_view_switched',
         'guardian_asked',
+        // "Where did you find us?" — the last thing onboarding asks, and the
+        // only measure of how riders arrive that survives having no cookies.
+        'heard_about',
         'insights_set',
         'invite_minted',
         // The signed-out landing page's calls to action. The only event in the

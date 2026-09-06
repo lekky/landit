@@ -138,6 +138,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
           'Your country, and an age band: under 13, 13 to 15, 16 to 17, or adult. Signing up asks for your date of birth, works the band out on your own device, and then throws the date away. It is never sent to us, so there is no birth date here to lose.',
           'The tricks you track, the stages you set, your streak, your stickers and any notes you add. This is the point of the app.',
           'Optional details you choose to add: your picture, stance, riding level, goal and the events you mark yourself down for.',
+          'How you found us, if you tell us. Setting up your account ends by asking, and you pick from a short list — a friend, YouTube, a skatepark and so on. There is nothing to type, you can skip it, and we keep only which one you tapped. It is there so we know what is worth doing more of.',
           'Basic technical data every website gets: device type, browser and rough region, used to keep the service running and secure.',
           'If you are young enough to need a parent or guardian to approve the account, their email address, so we can ask them. See Younger riders below.',
         ],

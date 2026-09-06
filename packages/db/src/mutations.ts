@@ -225,6 +225,10 @@ export async function removeVideoLink(client: Client, videoLinkId: string): Prom
  * `suspended`, the age fields and the whole streak tuple are all refused by the
  * guard hook, so offering them here would only produce a 403 at runtime — this
  * way it does not compile.
+ *
+ * `heard_about` is here because onboarding writes it, but it is **write-once**
+ * in the same hook: a second value over an existing one is a 403, which the
+ * type cannot express. Nothing but onboarding sends it.
  */
 export type ProfileEdit = Partial<
   Pick<
@@ -241,6 +245,7 @@ export type ProfileEdit = Partial<
     | 'sports'
     | 'timezone'
     | 'onboarded'
+    | 'heard_about'
   >
 >;
 

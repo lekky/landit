@@ -5,7 +5,16 @@ import { CATEGORY_IDS, CATS, TIERS_LABEL, categoryLabel } from './categories';
 import { CHALLENGES } from './challenges';
 import { EVENTS } from './events';
 import { PLAN, PLANS } from './plans';
-import { DEFAULT_PRIVACY, GOALS, LEVELS, PRIVACY, STANCES } from './profile';
+import {
+  DEFAULT_PRIVACY,
+  GOALS,
+  HEARD_ABOUT,
+  HEARD_ABOUT_IDS,
+  LEVELS,
+  PRIVACY,
+  STANCES,
+  isHeardAboutId,
+} from './profile';
 import { SPORTS, SPORT_IDS } from './sports';
 import { SPOTS, SPOT_TYPES, type SpotType } from './spots';
 import { SPOT_COUNTRY_BY_CODE } from '../rules/spots';
@@ -660,6 +669,32 @@ describe('spots, events and profile options', () => {
     expect(GOALS.filter((g) => g.sport === null).length).toBeGreaterThan(0);
     expect(GOALS.filter((g) => g.sport === 'scooter').length).toBeGreaterThan(0);
     expect(GOALS.filter((g) => g.sport === 'skate').length).toBeGreaterThan(0);
+  });
+
+  it('offers nine ways a rider can say they found us, each one distinct', () => {
+    expect(HEARD_ABOUT).toHaveLength(9);
+    expect(new Set(ids(HEARD_ABOUT)).size).toBe(HEARD_ABOUT.length);
+    expect(HEARD_ABOUT_IDS).toEqual(ids(HEARD_ABOUT));
+  });
+
+  it('keeps the list closed, with no option that asks a rider to type', () => {
+    // The safety argument for holding the answer at all: a fixed id can be
+    // stored and counted, a sentence a child wrote can be neither. An option
+    // whose label invites free text is the shape of the mistake — "Other
+    // (tell us)" — and `elsewhere` is deliberately a dead end.
+    expect(ids(HEARD_ABOUT)).toContain('elsewhere');
+    for (const option of HEARD_ABOUT) {
+      expect(option.label).not.toMatch(/tell us|type|which|specify|write/i);
+    }
+  });
+
+  it('recognises its own ids and nothing else', () => {
+    for (const id of HEARD_ABOUT_IDS) expect(isHeardAboutId(id)).toBe(true);
+    // Both sides of the request lean on this: the browser to know what it may
+    // send, the server action to drop anything else before it reaches the row.
+    expect(isHeardAboutId('')).toBe(false);
+    expect(isHeardAboutId('constructor')).toBe(false);
+    expect(isHeardAboutId('a friend at school called Ollie')).toBe(false);
   });
 });
 

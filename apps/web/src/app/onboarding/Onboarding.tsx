@@ -5,6 +5,7 @@ import {
   CUSTOM_GOAL_ID,
   CUSTOM_GOAL_MAX_LENGTH,
   FREE_MAX_DIFF,
+  HEARD_ABOUT,
   LEVELS,
   SPORTS,
   SPORT_IDS,
@@ -13,6 +14,7 @@ import {
   goalsFor,
   type CategoryId,
   type Difficulty,
+  type HeardAboutId,
   type LevelId,
   type SportId,
   type StageId,
@@ -40,7 +42,7 @@ import { finishOnboarding } from './actions';
 import styles from './onboarding.module.css';
 
 /**
- * The four steps (screenshot 05 is the first of them).
+ * The five steps (screenshot 05 is the first of them).
  *
  * Two differences from the prototype, both the plan's:
  *
@@ -50,6 +52,13 @@ import styles from './onboarding.module.css';
  *   A pick has to be written as `trick_progress`, which keys off a record id, so
  *   the tricks come down with the page. An unseeded database shows an honest
  *   empty state rather than cards that cannot be saved.
+ *
+ * **Step 5 is ours, not the rider's** — "where did you find us?" is the one
+ * question here that helps us rather than them, which is why it is last, why it
+ * says so, and why skipping it costs nothing. It sits after the account exists
+ * rather than on the sign-up form (owner, 2026-09-06, in chat): sign-up already
+ * carries six fields plus the age-band and guardian copy, and it is the one
+ * form in the product where another field is measured in accounts not made.
  */
 
 /** A trick as step 4 needs it: identity for the write, look for the card. */
@@ -66,6 +75,7 @@ const STEPS = [
   "Where you're at",
   "What you're after",
   'First few tricks',
+  'Where you found us',
 ] as const;
 
 /** How hard a suggestion goes, by how far along the rider says they are. */
@@ -81,6 +91,7 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
   const [avatarKey, setAvatarKey] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [picks, setPicks] = useState<Record<string, StageId>>({});
+  const [heardAbout, setHeardAbout] = useState<HeardAboutId | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   /**
@@ -161,6 +172,13 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
       avatar_picked: avatarKey !== null,
     });
 
+    // A separate event rather than a property on the one above, and only when
+    // there is an answer: skipping is a real outcome, and folding it in as
+    // `source: null` would make the skip rate something you have to subtract
+    // rather than something you can see. The id is one of nine fixed strings —
+    // never a word a rider wrote, because there is nowhere here to write one.
+    if (heardAbout) capture(ANALYTICS_EVENTS.heardAbout, { source: heardAbout });
+
     const result = await finishOnboarding({
       sports,
       stance,
@@ -169,6 +187,7 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
       goalCustom: custom,
       avatarKey,
       picks,
+      heardAbout,
       timezone: browserTimezone(),
     });
     // A successful finish redirects, so anything that comes back is a problem.
@@ -433,6 +452,41 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
                 })}
               </div>
             )}
+          </div>
+        ) : null}
+
+        {step === 4 ? (
+          <div>
+            <h1 className={`d ${styles.head}`}>
+              Last one.
+              <br />
+              How did you find us?
+            </h1>
+            <p className={styles.lede}>
+              This one is for us, not for you — it tells us which of these is worth doing more of.
+              Tap one, or skip it and go riding.
+            </p>
+
+            <div className={styles.pills}>
+              {HEARD_ABOUT.map((option) => (
+                <Pill
+                  key={option.id}
+                  on={heardAbout === option.id}
+                  // Tapping the chosen one again clears it, so a mis-tap is not
+                  // a fact about a rider we then keep for the life of the
+                  // account — there is no other way to unsay it, because the
+                  // answer is write-once once it is saved.
+                  onClick={() => setHeardAbout(heardAbout === option.id ? null : option.id)}
+                >
+                  {option.label}
+                </Pill>
+              ))}
+            </div>
+
+            <p className={`cond ${styles.note}`}>
+              We keep the one you tap and nothing else — no box to type in, and nothing about it
+              goes to anybody outside Land The Trick.
+            </p>
           </div>
         ) : null}
 
