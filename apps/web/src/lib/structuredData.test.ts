@@ -1,7 +1,7 @@
 import { SITE_URL, SPORTS, TIERS_LABEL, TRICKS, type Trick } from '@landit/core';
 import { describe, expect, it } from 'vitest';
 
-import { jsonLdText, organizationLd, trickHowToLd } from './structuredData';
+import { jsonLdText, organizationLd, spotPlaceLd, trickHowToLd } from './structuredData';
 
 /**
  * A malformed graph fails silently — a search engine ignores it and nobody is
@@ -75,5 +75,81 @@ describe('jsonLdText', () => {
       expect(text).not.toContain('<');
       expect(() => JSON.parse(text)).not.toThrow();
     }
+  });
+});
+
+describe('spotPlaceLd', () => {
+  const rich = {
+    name: 'Ventnor Skatepark',
+    town: 'Ventnor',
+    country: 'United Kingdom',
+    type: 'Concrete',
+    lat: 50.5936,
+    lng: -1.2921,
+    tags: ['Bowl', 'Ledges', 'Rails'],
+    address: 'Southgrove Rd, Ventnor PO38 1LG',
+    phone: '01983 855 123',
+  };
+
+  const sparse = {
+    name: 'Esplanade Ledges',
+    town: 'Ventnor',
+    type: 'Street spot',
+    lat: 50.5921,
+    lng: -1.2895,
+    tags: ['Ledges', 'Flat'],
+  };
+
+  const context = { url: 'https://example.test/spots/ventnor-skatepark', description: 'A park.' };
+
+  it('says what kind of place it is, in schema.org terms and in ours', () => {
+    const node = spotPlaceLd(rich, context);
+    expect(node['@type']).toEqual(['SkateboardPark', 'SportsActivityLocation']);
+    expect(node.additionalType).toBe('Concrete');
+    expect(node.name).toBe('Ventnor Skatepark');
+    expect(node.url).toBe(context.url);
+  });
+
+  it('plots the pin, because a spot coordinate is exact', () => {
+    const geo = spotPlaceLd(rich, context).geo as Record<string, unknown>;
+    expect(geo.latitude).toBe(rich.lat);
+    expect(geo.longitude).toBe(rich.lng);
+  });
+
+  it('plots nothing for a spot with no usable coordinates', () => {
+    expect(spotPlaceLd({ ...sparse, lat: 0, lng: 0 }, context).geo).toBeUndefined();
+    expect(spotPlaceLd({ name: 'Nowhere' }, context).geo).toBeUndefined();
+  });
+
+  it('omits the rows the record does not have rather than emitting empty ones', () => {
+    const node = spotPlaceLd(sparse, context);
+    expect(node.telephone).toBeUndefined();
+    const address = node.address as Record<string, unknown>;
+    expect(address.streetAddress).toBeUndefined();
+    expect(address.addressLocality).toBe('Ventnor');
+    expect(address.addressCountry).toBeUndefined();
+  });
+
+  it('emits no address at all when there is nothing to put in one', () => {
+    expect(spotPlaceLd({ name: 'Nowhere' }, context).address).toBeUndefined();
+  });
+
+  it('lists the features the page lists, and no explanation of them', () => {
+    const features = spotPlaceLd(rich, context).amenityFeature as { name: string }[];
+    expect(features.map((f) => f.name)).toEqual(['Bowl', 'Ledges', 'Rails']);
+  });
+
+  it('never carries the submitter, whatever is handed to it', () => {
+    const node = spotPlaceLd({ ...rich, submitted_by: 'rider_abc123' } as never, context);
+    expect(JSON.stringify(node)).not.toContain('rider_abc123');
+    expect(JSON.stringify(node)).not.toContain('submitted_by');
+  });
+
+  it('survives a hostile name without producing a raw bracket', () => {
+    const text = jsonLdText(
+      spotPlaceLd({ ...rich, name: '</script><img src=x onerror=alert(1)>' }, context),
+    );
+    expect(text).not.toContain('<');
+    expect(() => JSON.parse(text)).not.toThrow();
   });
 });

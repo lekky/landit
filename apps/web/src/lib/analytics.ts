@@ -327,6 +327,28 @@ export const ANALYTICS_EVENTS = {
    * riders on phones now reach the map.
    */
   spotsMapSheetOpened: 'spots_map_sheet_opened',
+  /**
+   * A spot's own page was opened — `/spots/[slug]`, the crawlable page behind
+   * the list.
+   *
+   * Carries two things. `origin` is `'researched'` or `'submitted'`: whether
+   * this is a place staff put on the map or one a rider put forward and staff
+   * approved. That is the question the page exists to answer — a page built
+   * from a rider's twenty-five words has to earn its place, and this is the
+   * only way to find out whether anybody reads one. `type` is the spot's kind
+   * (`Concrete`, `Street spot`, `Indoor park`), which is a facet the list
+   * already filters by.
+   *
+   * **Never the spot's name and never its slug**, and this one needs saying
+   * because the slug looks like a harmless product fact. It is not: a submitted
+   * spot's name is text a child typed, and its slug is that text with the
+   * punctuation taken out. Sending either would put a rider's own words in a
+   * third party's event store through the back door — exactly what the rule at
+   * the head of this list forbids, and exactly why `spot_submitted` above
+   * carries neither. The two properties here are both drawn from fixed sets
+   * chosen in this repository, so neither can carry anything anybody typed.
+   */
+  spotPageOpened: 'spot_page_opened',
 } as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];

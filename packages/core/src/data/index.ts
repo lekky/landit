@@ -41,6 +41,14 @@ export {
 } from './profile';
 export { SPORT_IDS, SPORTS } from './sports';
 export { SPOTS, SPOT_TYPES, type SpotType } from './spots';
+export {
+  SPOT_FEATURES,
+  SPOT_FEATURE_LIST,
+  spotFeature,
+  spotFeatureId,
+  type SpotFeature,
+  type SpotFeatureAccent,
+} from './spot-features';
 export { LANDED_STAGES, STAGE, STAGE_IDS, STAGES } from './stages';
 export { AWARDS, type AwardId } from './awards';
 export { STICKERS, type StickerId } from './stickers';

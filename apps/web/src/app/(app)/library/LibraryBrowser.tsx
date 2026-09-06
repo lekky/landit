@@ -56,6 +56,7 @@ export function LibraryBrowser({
   plan,
   signedIn,
   initialMine = false,
+  initialCategory = null,
 }: {
   /** Every live trick, from the database, so a staff edit shows up here. */
   tricks: readonly Trick[];
@@ -65,12 +66,22 @@ export function LibraryBrowser({
   signedIn: boolean;
   /** `?mine=1` on the way in, resolved on the server. Never true signed out. */
   initialMine?: boolean;
+  /**
+   * `?cat=` on the way in, resolved and validated on the server.
+   *
+   * A spot page's "What's here" grid links each feature to the tricks you
+   * would do on it, and this is what lets that link *land* on the narrowed
+   * grid. Read on the server for the reason `mine` is: filtering after
+   * hydration would paint the whole library and then take most of it away, on
+   * the one arrival that came asking for a subset.
+   */
+  initialCategory?: CategoryId | null;
 }) {
   const router = useRouter();
   const { sport } = useSport();
 
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState<CategoryId | null>(null);
+  const [category, setCategory] = useState<CategoryId | null>(initialCategory);
   const [difficulty, setDifficulty] = useState<number | null>(null);
   const [status, setStatus] = useState<TrickStatusFilter>('all');
   const [sort, setSort] = useState<TrickSort>('easiest');
@@ -114,7 +125,9 @@ export function LibraryBrowser({
    */
   const setMine = (next: boolean) => {
     setMineState(next);
-    router.replace(libraryHref({ mine: next }), { scroll: false });
+    // The category rides along so a rider who arrived on `?cat=park` from a
+    // spot page still has that address after flipping the switch.
+    router.replace(libraryHref({ mine: next, cat: category ?? undefined }), { scroll: false });
   };
 
   const reset = () => {

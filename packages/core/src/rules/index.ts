@@ -249,6 +249,14 @@ export {
   type SpotSubmissionDraft,
   type SpotSubmissionProblems,
 } from './spots';
+export {
+  RESERVED_SLUGS,
+  SLUG_FALLBACK,
+  SLUG_MAX_LENGTH,
+  slugify,
+  spotSlug,
+  uniqueSlug,
+} from './slug';
 export { computeSportStats, computeStats, sportsOf, type StatsCatalogue } from './stats';
 export {
   FOUNDER_JOINED_BY,

@@ -1,3 +1,4 @@
+import type { CategoryId } from '@landit/core';
 import type { Route } from 'next';
 
 import type { LegalDocId } from '@/content/legal';
@@ -142,8 +143,37 @@ export const legalHref = (doc: LegalDocId, sectionId?: string): Route =>
  * Absent rather than `mine=0` when off, so the plain library keeps the plain
  * URL and nothing has to strip a default out of a shared link.
  */
-export const libraryHref = (options: { mine?: boolean } = {}): Route =>
-  options.mine ? `${ROUTES.library}?mine=1` : ROUTES.library;
+export const libraryHref = (options: { mine?: boolean; cat?: CategoryId } = {}): Route => {
+  const query = new URLSearchParams();
+  if (options.mine) query.set('mine', '1');
+  /*
+   * `?cat=` joined `?mine=1` when spot pages landed (2026-09-06). A spot page's
+   * "What's here" grid ends each feature with a link to the tricks you would do
+   * on it, and there was no way to *address* a narrowed library — the category
+   * pills are client state, so every one of those links would have opened the
+   * whole library and left the reader to find the filter themselves.
+   *
+   * A parameter rather than a route, for the reason `mine` gives above: it is
+   * the same library with the same pills still applying, and the reader can
+   * clear it in one press. What it buys is that "Bowl tricks →" goes somewhere
+   * specific, and that a rider can bookmark or share the park tricks.
+   */
+  if (options.cat) query.set('cat', options.cat);
+  const search = query.toString();
+  return search ? (`${ROUTES.library}?${search}` as Route) : ROUTES.library;
+};
+
+/**
+ * One spot, by the slug on its record.
+ *
+ * A slug rather than the record id, for the reason `trickHref` gives: an id is
+ * fifteen random characters that say nothing in a shared link and do not
+ * survive a reseed, and this URL's entire job is to be shared and crawled.
+ * Only spots staff have approved have a page at all — `getSpotBySlug` is where
+ * that is enforced — so a link built here for a `pending` spot lands on a 404,
+ * which is the correct answer rather than a bug.
+ */
+export const spotHref = (slug: string): Route => `/spots/${encodeURIComponent(slug)}`;
 
 /**
  * One trick, by its **slug** — the canonical data's `id`, not the database id.

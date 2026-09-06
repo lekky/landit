@@ -561,6 +561,7 @@ export interface SpotsRecord {
   address: string;
   phone: string;
   country: string;
+  slug: string;
 }
 
 /** The shape accepted when creating a `spots` record. */
@@ -579,6 +580,7 @@ export interface SpotsCreate {
   address?: string;
   phone?: string;
   country?: string;
+  slug?: string;
 }
 
 /** The shape accepted when updating a `spots` record. */

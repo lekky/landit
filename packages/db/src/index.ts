@@ -117,6 +117,8 @@ export {
   listEvents,
   listPlans,
   listRiderStickers,
+  getSpotBySlug,
+  listLiveSpots,
   listSpots,
   listStickers,
   listSubscriptions,
