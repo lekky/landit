@@ -25,7 +25,7 @@ consent gates under-threshold riders; there is deliberately no stranger-contact 
 | Auth | `/signin`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-email` | Sign-up asks country + age band (never a date of birth); verification is asked for but blocks nothing. |
 | Onboarding | `/onboarding`, `/consent/[action]/[token]` | Four-step first-run picking sport/level/goal/tricks; guardian approve/revoke landing needs no sign-in. |
 | Core loop | `/home`, `/library`, `/library/[slug]`, `/library?mine=1`, `/progress`, `/stickers`, `/challenge` | Dashboard (weekly streak, "I rode today", working trick, announcements), 259-trick library, per-trick stage ladder/notes/videos under an award-led hero (the trick's badge, stamped LANDED once earned), My Tricks, progress + skill tree + printable sheets, sticker wall, weekly challenge per sport. |
-| World | `/spots`, `/events` | 98 researched real venues on a MapLibre/OpenFreeMap map (no key, no account) with a Plain/Detail ground toggle, opening on Detail (there is no satellite layer — see plan §7 T13) + rider submissions; on a phone the map is a sheet that comes up when a spot is chosen, docked above the nav; filtered by sport tabs covering all three sports; 74 researched events with "I'm going". Both readable signed out; distances use the reader's units; geolocation is never prompted for unless a rider presses for it (both screens re-read it on load where the browser already grants it, and the calendar says "Nearest first" while it does), announced whenever it is in hand, kept in memory only, never sent to the server. |
+| World | `/spots`, `/events`, `/events/[slug]` | 98 researched real venues on a MapLibre/OpenFreeMap map (no key, no account) with a Plain/Detail ground toggle, opening on Detail (there is no satellite layer — see plan §7 T13) + rider submissions; on a phone the map is a sheet that comes up when a spot is chosen, docked above the nav; filtered by sport tabs covering all three sports; 74 researched events with "I'm going", each with a public page of its own carrying the listing, a schematic town-accurate map, and what else is on nearby (upcoming / today / over, derived per request from the reader's clock; past events keep their page and stay in the sitemap). Both readable signed out; distances use the reader's units; geolocation is never prompted for unless a rider presses for it (both screens re-read it on load where the browser already grants it, and the calendar says "Nearest first" while it does), announced whenever it is in hand, kept in memory only, never sent to the server. |
 | Social | `/crew`, `/join/[code]`, `/riders/[handle]` | Up to 5 owned crews, server-minted invite codes (25 uses / 14 days), crew board + fixed-sentence activity feed, public profiles. |
 | Money | `/plans`, Stripe Checkout | Rookie free / Shredder £3.99 / Legend £6.99 monthly (yearly ≈ 2 months free). Under-16s never see a payment form — the guardian gets a checkout link by email. |
 | Account | `/account`, `/coach`, `/report` | Profile editor (sports, avatar, level, goal, stance) that saves as a rider changes it, with no Save button — an answer that is not yet complete is held rather than written, so the stored one survives; privacy is the deliberate exception and keeps its button. Guardian panel, data export, account closure; read-only coach view (free, unlisted); report/appeal form that works signed out. |
@@ -135,11 +135,14 @@ read-only offline: the library reads at the park, writes need a connection.
 
 `robots.txt` and `sitemap.xml` are both live-gated off `LANDIT_SITE_LIVE`: shut, everything is
 disallowed and the sitemap is empty; open, everything is allowed and robots points at the sitemap.
-The sitemap lists the public pages and every live trick read from the database — `lib/publicRoutes.ts`
+The sitemap lists the public pages, every live trick and every live event read from the database
+(past events included, deliberately: they keep pulling in traffic) — `lib/publicRoutes.ts`
 is the list of what counts as public, with a test that fails if a sign-in-gated route creeps in.
 Trick cards in the library are real `<a href>` links, which is what makes the trick pages
 reachable at all. Every public page carries a canonical URL; every page carries `Organization` and
-`WebSite` JSON-LD, and a trick page adds `HowTo` built from the same staff copy it renders. There is
+`WebSite` JSON-LD, and a trick page adds `HowTo` built from the same staff copy it renders, and an event page adds
+`Event` built only from what that page carries — no `geo` (coordinates are the town, not the venue),
+no `offers` (price is display copy, not a number). There is
 a `/llms.txt` site map in prose. Staff and rider-private screens carry `robots: { index: false }`.
 
 Not done: `www.landthetrick.com` still serves a full duplicate of the site rather than redirecting

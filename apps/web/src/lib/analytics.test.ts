@@ -224,6 +224,7 @@ describe('the event catalogue', () => {
         'crew_left',
         'empty_state_action',
         'event_attendance_set',
+        'event_page_opened',
         'guardian_asked',
         'insights_set',
         'invite_minted',

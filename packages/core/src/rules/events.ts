@@ -10,7 +10,7 @@ import {
   type DistanceUnits,
 } from './spots';
 import { riderToday, type RiderClock } from './streak';
-import { compareDayKeys, formatDayLong } from './time';
+import { compareDayKeys, daysBetween, formatDayLong } from './time';
 
 /**
  * Events: comps, sessions, classes and jams that staff put on the calendar.
@@ -284,4 +284,197 @@ export function eventDateBlock(date: string): EventDateBlock {
   const day = String(Number(date.slice(8, 10)));
   const month = MONTH_LABELS[Number(date.slice(5, 7)) - 1] ?? '';
   return { day, month, full: formatDayLong(date) };
+}
+
+/* ------------------------------------------- an event as its own page ----- */
+
+/**
+ * Which of the three states an event's own page is in.
+ *
+ * The date state is **derived, never stored** — an event does not change when
+ * the day turns over, the reader does. `isEventPast` is the existing rule and
+ * this adds only the middle case it cannot express on its own, so there is one
+ * definition of "gone by" and not two.
+ *
+ * `RiderClock` carries the timezone, which is the whole reason this is not a
+ * comparison against `new Date()` at the call site: an event in Auckland is
+ * "today" for a rider in Auckland hours before it is for the server.
+ */
+export type EventDateState = 'upcoming' | 'today' | 'over';
+
+export function eventDateState(event: LandItEvent, clock: RiderClock = {}): EventDateState {
+  if (isEventPast(event, clock)) return 'over';
+  return event.date === riderToday(clock) ? 'today' : 'upcoming';
+}
+
+/**
+ * Whole days from the rider's today to the event's day: `21` for three weeks
+ * off, `0` today, negative once it has been and gone.
+ *
+ * Day keys, not instants, so this is the same calendar-day arithmetic
+ * everything else in the product uses and cannot drift by a timezone.
+ */
+export function eventDaysAway(event: LandItEvent, clock: RiderClock = {}): number {
+  return daysBetween(riderToday(clock), event.date);
+}
+
+/**
+ * "Saturday 26 September 2026" — the long date **with its year**.
+ *
+ * `formatDayLong` deliberately has no year: it writes the eyebrow on a
+ * dashboard, where the year is always this one. An event page is the opposite
+ * case — it is linkable, indexable and often read about something that happened
+ * two summers ago, so a date without a year there is a date that lies by
+ * omission. Composed from the same table-driven helper rather than from ICU,
+ * for the reason `eventDateBlock` gives (LESSONS §3a).
+ */
+export function eventLongDate(date: string): string {
+  return `${formatDayLong(date)} ${date.slice(0, 4)}`;
+}
+
+function agoLabel(n: number, unit: string): string {
+  return `${n} ${unit}${n === 1 ? '' : 's'} ago`;
+}
+
+/**
+ * "12 weeks ago", for the finished-event band.
+ *
+ * Coarsens as it goes back, because that is how anybody talks about a date they
+ * have to place rather than remember: days for the last fortnight, then weeks,
+ * then months, then years. Never more precise than the underlying day key, and
+ * never a fabricated time of day.
+ *
+ * Returns `''` for a day that has not passed — a caller asking "how long ago"
+ * about tomorrow has asked the wrong question, and an empty string is a line
+ * that does not render rather than a wrong one that does.
+ */
+export function eventAgoLabel(event: LandItEvent, clock: RiderClock = {}): string {
+  const days = -eventDaysAway(event, clock);
+  if (days <= 0) return '';
+  if (days === 1) return 'yesterday';
+  if (days < 14) return `${days} days ago`;
+  if (days < 183) return agoLabel(Math.round(days / 7), 'week');
+  if (days < 730) return agoLabel(Math.round(days / 30.44), 'month');
+  return agoLabel(Math.floor(days / 365.25), 'year');
+}
+
+/**
+ * How close two listings are, given only a town and a country.
+ *
+ * **This is the honest limit of the data, written down.** Every event's
+ * coordinates are its *town*, not its venue (issue #210, and the seed's own
+ * header says so), so a radius in miles would be a number the data cannot back
+ * — "3 miles away" implying a pin we do not hold. Two bands is what a town name
+ * and a country name genuinely support, and nothing here interpolates between
+ * them.
+ *
+ * Both comparisons are whole-string and case-insensitive, the same way
+ * `eventMatchesCountry` compares: "India" must not select "Indonesia". A place
+ * missing the field being compared matches nothing, rather than being quietly
+ * filed under the reader's own town.
+ */
+export type Nearness = 'town' | 'country';
+
+export interface NearPlace {
+  readonly town?: string;
+  readonly country?: string;
+}
+
+export function nearnessBetween(here: NearPlace, there: NearPlace): Nearness | null {
+  const same = (a: string | undefined, b: string | undefined): boolean => {
+    const left = (a ?? '').trim().toLowerCase();
+    const right = (b ?? '').trim().toLowerCase();
+    return left !== '' && left === right;
+  };
+  if (same(here.town, there.town)) return 'town';
+  if (same(here.country, there.country)) return 'country';
+  return null;
+}
+
+/**
+ * The places near `here`, same town first and then the rest of the country,
+ * with everything further away dropped rather than ordered.
+ *
+ * Order **within** each band is the caller's — events arrive soonest-first from
+ * `sortedEvents` and stay that way, spots arrive alphabetically and stay that
+ * way. A stable partition, not a sort, so nothing has to invent a tie-break.
+ */
+export function nearestFirst<T extends NearPlace>(here: NearPlace, places: readonly T[]): T[] {
+  const town: T[] = [];
+  const country: T[] = [];
+  for (const place of places) {
+    const near = nearnessBetween(here, place);
+    if (near === 'town') town.push(place);
+    else if (near === 'country') country.push(place);
+  }
+  return [...town, ...country];
+}
+
+/** How many rows an onward block shows before it becomes a list of its own. */
+const ONWARD_LIMIT = 4;
+
+function isSameVenue(a: LandItEvent, b: LandItEvent): boolean {
+  const venue = (value: string): string => value.trim().toLowerCase();
+  return (
+    venue(a.venue) !== '' && venue(a.venue) === venue(b.venue) && nearnessBetween(a, b) === 'town'
+  );
+}
+
+/**
+ * Other live events a rider could go to instead of this one — the "what else is
+ * on near X" block on an event's page.
+ *
+ * **Upcoming only, whatever state the page itself is in.** The block exists to
+ * give a reader somewhere to go, and it is at its most useful on a finished
+ * event, which is exactly where a second past event would be no use at all.
+ *
+ * The event itself is excluded by slug, and so is any other listing at the same
+ * venue — those have their own block, and a row in both would read as a
+ * duplicate.
+ */
+export function eventsNear(
+  event: LandItEvent,
+  events: readonly LandItEvent[] = EVENTS,
+  options: { readonly clock?: RiderClock; readonly limit?: number } = {},
+): LandItEvent[] {
+  const clock = options.clock ?? {};
+  const others = sortedEvents(events).filter(
+    (other) => other.id !== event.id && !isEventPast(other, clock) && !isSameVenue(event, other),
+  );
+  return nearestFirst(event, others).slice(0, options.limit ?? ONWARD_LIMIT);
+}
+
+/**
+ * The other live events at this venue — "also at Ventnor Skatepark".
+ *
+ * Matched on venue **and** town together, because a venue name alone is not
+ * unique across a worldwide calendar: there is more than one Riverside
+ * Skatepark, and joining two of them into one block would put a rider on a
+ * plane.
+ */
+export function eventsAtVenue(
+  event: LandItEvent,
+  events: readonly LandItEvent[] = EVENTS,
+  options: { readonly clock?: RiderClock; readonly limit?: number } = {},
+): LandItEvent[] {
+  const clock = options.clock ?? {};
+  return sortedEvents(events)
+    .filter(
+      (other) => other.id !== event.id && isSameVenue(event, other) && !isEventPast(other, clock),
+    )
+    .slice(0, options.limit ?? ONWARD_LIMIT);
+}
+
+/**
+ * One live event by its slug, or `null`.
+ *
+ * `sortedEvents` filters to `isLive`, so an event staff have hidden is not
+ * found here — which is what makes a hidden event a 404 on its own page rather
+ * than a page that quietly still works for anyone holding the URL.
+ */
+export function eventBySlug(
+  slug: string,
+  events: readonly LandItEvent[] = EVENTS,
+): LandItEvent | null {
+  return sortedEvents(events).find((event) => event.id === slug) ?? null;
 }

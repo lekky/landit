@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scooter, skate and BMX events — Land The Trick</title>
+<link rel="stylesheet" href="pages.css">
+<style>
+.only-up,.only-past,.only-empty,.erow.only-up,.erow.only-past,.erow.only-empty,.erow.hide-empty{display:none}
+body.v-up .only-up,body.v-past .only-past,body.v-empty .only-past,body.v-empty .only-empty{display:revert}
+body.v-up .erow.only-up,body.v-past .erow.only-past,body.v-empty .erow.only-past{display:flex}
+body.v-empty .only-past.hide-empty,body.v-empty .erow.only-past.hide-empty{display:none}
+.head{max-width:1180px;margin:0 auto;padding:24px 18px 0;display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.head h1{font-family:var(--fd);text-transform:uppercase;line-height:.92;font-size:clamp(30px,4.6vw,46px);max-width:22ch}
+.head p{font-size:14.5px;line-height:1.45;color:var(--ink-2);max-width:44ch;margin-bottom:5px}
+.controls{max-width:1180px;margin:0 auto;padding:18px 18px 0;display:flex;flex-direction:column;gap:12px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.sporttab{display:flex;align-items:center;gap:8px;font-family:var(--fc);font-weight:700;font-size:14px;letter-spacing:.09em;text-transform:uppercase;border:3px solid var(--ink);background:var(--paper);box-shadow:var(--sh-sm);padding:9px 16px;transition:.12s;color:var(--ink)}
+.sporttab:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink);color:var(--ink)}
+.sporttab .n{font-size:12px;letter-spacing:.06em;opacity:.7}
+.sporttab.on{box-shadow:4px 4px 0 var(--ink);background:var(--yellow)}
+.search{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.search input{border:2.5px solid var(--ink);background:var(--paper);box-shadow:var(--sh-sm);padding:9px 12px;font-family:var(--fb);font-size:14.5px;min-width:230px;flex:1;max-width:340px}
+.locOn{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border:2.5px solid var(--ink);background:var(--lime);box-shadow:var(--sh-sm);font-family:var(--fc);font-weight:700;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}
+.locOn i{width:10px;height:10px;background:var(--ink);border-radius:50%;flex:none}
+.viewsw{display:flex;border:3px solid var(--ink);box-shadow:var(--sh-sm);background:var(--paper);width:max-content;max-width:100%}
+.viewsw a{font-family:var(--fc);font-weight:700;font-size:14px;letter-spacing:.1em;text-transform:uppercase;padding:9px 18px;color:var(--ink);border-right:3px solid var(--ink)}
+.viewsw a:last-child{border-right:0}
+.viewsw a[aria-current]{background:var(--ink);color:var(--paper)}
+.list{max-width:1180px;margin:0 auto;padding:16px 18px 40px;display:flex;flex-direction:column;gap:14px}
+.order{font-family:var(--fc);font-weight:700;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+/* --- shipped row --- */
+.erow{display:flex;align-items:stretch;background:var(--paper);border:var(--bd);box-shadow:var(--sh);min-width:0}
+.erow .date{border-right:3px solid var(--ink);padding:12px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none;width:88px;background:var(--c,var(--pink))}
+.erow .date .dd{font-family:var(--fd);font-size:40px;line-height:.86;color:#fff;text-shadow:2.5px 2.5px 0 var(--ink)}
+.erow .date .mm{font-family:var(--fc);font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin-top:5px;color:var(--ink)}
+.erow .body{padding:12px 16px 13px;display:flex;gap:12px 22px;align-items:center;flex-wrap:wrap;flex:1;min-width:0}
+.erow .m{min-width:250px;flex:1}
+.erow .chips{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:7px}
+.erow .nm{font-family:var(--fd);font-size:clamp(19px,2vw,25px);text-transform:uppercase;line-height:.95;color:var(--ink);display:block}
+a.nm:hover{color:var(--orange)}
+.erow .meta{font-family:var(--fc);font-weight:600;font-size:13px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-top:7px;line-height:1.35}
+.erow .right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-left:auto}
+.erow .money{text-align:right;min-width:0}
+.erow .money .p{font-family:var(--fc);font-weight:700;font-size:16.5px;letter-spacing:.05em;text-transform:uppercase;display:block;line-height:1.15}
+.erow .money .sub{font-family:var(--fc);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);display:block;margin-top:3px}
+.acts{display:flex;gap:10px;align-items:center;flex:none}
+.going{background:var(--green)!important;border-color:var(--ink)}
+.erow.past{background:var(--wash)}
+.erow.past .date{background:var(--ink)}
+.erow.past .date .mm{color:var(--paper)}
+.erow.past .nm{color:var(--ink-2)}
+/* --- sport chip with icon --- */
+.sportchip svg{flex:none;margin-right:1px}
+/* --- archive --- */
+.archead{max-width:1180px;margin:0 auto;padding:18px 18px 0}
+.archead .panel{padding:14px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--ink);color:var(--paper);box-shadow:var(--sh-sm)}
+.archead .panel h2{font-family:var(--fd);font-size:22px;text-transform:uppercase;line-height:.95}
+.archead .panel p{font-size:13.5px;color:var(--wash);max-width:52ch;line-height:1.45}
+.index{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.emptybox{padding:28px 22px;display:flex;flex-direction:column;gap:12px;align-items:flex-start;background:var(--paper-2)}
+.emptybox h2{font-family:var(--fd);font-size:clamp(22px,3vw,30px);text-transform:uppercase;line-height:.95;max-width:28ch}
+.emptybox p{font-size:14.5px;line-height:1.5;color:var(--ink-2);max-width:56ch}
+.pager{max-width:1180px;margin:0 auto;padding:0 18px 40px;display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap}
+.pager .c{font-family:var(--fc);font-weight:600;font-size:13px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+/* --- modal --- */
+.scrim{position:fixed;inset:0;background:rgba(18,16,11,.62);z-index:60;display:none;overflow-y:auto;padding:36px 18px}
+body.modal-open .scrim{display:block}
+.modal{max-width:760px;margin:0 auto;background:var(--paper);border:4px solid var(--ink);box-shadow:9px 9px 0 rgba(18,16,11,.5)}
+.modal .mh{background:var(--mc,var(--orange));border-bottom:4px solid var(--ink);padding:17px 22px 19px;display:flex;flex-direction:column;gap:11px}
+.modal .mh .chips{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.modal .mh h2{font-family:var(--fd);font-size:clamp(26px,3.6vw,40px);text-transform:uppercase;line-height:.92;color:#fff;text-shadow:3px 3px 0 var(--ink);max-width:24ch}
+.modal .mh a.h{color:#fff}
+.modal .mh a.h:hover{color:var(--yellow)}
+.modal .mh .dl{font-family:var(--fc);font-weight:700;font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+.modal .mb{padding:20px 22px 22px;display:flex;flex-direction:column;gap:18px}
+.modal .blurb{font-size:16px;line-height:1.55;color:var(--ink-2);max-width:62ch}
+.mfacts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 26px}
+.mfacts .f .v{font-family:var(--fc);font-weight:700;font-size:15.5px;letter-spacing:.05em;text-transform:uppercase;margin-top:4px;line-height:1.25}
+.modal .hr{height:3px;background:var(--ink)}
+.modal .rows .row2{grid-template-columns:5.6rem minmax(0,1fr)}
+.modal .disc{font-size:14px;line-height:1.55;color:var(--ink-3);max-width:64ch}
+.mfoot{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-top:4px}
+.mfoot .push{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.fullcta{display:inline-flex;align-items:center;gap:9px;font-family:var(--fc);font-weight:700;font-size:15px;letter-spacing:.1em;text-transform:uppercase;background:var(--yellow);color:var(--ink);border:3px solid var(--ink);box-shadow:var(--sh-sm);padding:10px 18px;transition:.12s}
+.fullcta:hover{color:var(--ink);transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink)}
+.ctahint{font-size:13px;line-height:1.45;color:var(--ink-3);flex-basis:100%;margin-top:-2px}
+@media(max-width:820px){
+  .erow{flex-wrap:wrap}
+  .erow .date{width:100%;flex-direction:row;gap:10px;justify-content:flex-start;border-right:0;border-bottom:3px solid var(--ink);padding:8px 14px}
+  .erow .date .dd{font-size:30px}
+  .erow .date .mm{margin-top:0}
+  .erow .right{margin-left:0;width:100%;justify-content:space-between}
+  .erow .money{text-align:left}
+  .acts{flex:1;justify-content:flex-end}
+  .head h1{font-size:32px}
+  .mfacts{grid-template-columns:minmax(0,1fr)}
+  .scrim{padding:14px 12px 70px}
+  .mfoot .push{width:100%}
+  .mfoot .push .btn,.mfoot .push .fullcta{flex:1;justify-content:center;text-align:center}
+}
+</style>
+</head>
+<body class="v-up">
+<div class="proto"><div class="in"><span class="lab">Prototype — events list</span><a href="?view=up" data-v="up">Upcoming</a><a href="?view=up&amp;modal=1" data-v="modal">Details modal open</a><a href="?view=past" data-v="past">Past events</a><a href="?view=empty" data-v="empty">Past — empty</a></div></div>
+<header class="top"><div class="in"><a class="mark" href="#"><i></i>Land The Trick</a><nav class="nav"><a href="#">Tricks</a><a href="Spots List.html">Spots</a><a href="Events List.html" aria-current="page">Events</a><a href="#">Awards</a><a class="btn sm" href="#">Sign up free</a></nav></div></header>
+
+<div class="head">
+<div><span class="eyebrow only-up">The calendar</span><span class="eyebrow only-past">The archive</span>
+<h1 class="only-up">Scooter, skate and BMX events</h1>
+<h1 class="only-past">Events that have already happened</h1></div>
+<p class="only-up">Comps, jams, classes and sessions, worldwide. Every listing has its own page, free to read.</p>
+<p class="only-past">Nothing here is happening. Kept online because riders still look these up.</p>
+</div>
+
+<div class="controls">
+<div class="viewsw"><a href="?view=up" data-v="up">Upcoming <span class="muted">74</span></a><a href="?view=past" data-v="past">Past <span class="muted">213</span></a></div>
+<div class="tabs">
+<a class="sporttab on" href="#">All sports <span class="n">74</span></a>
+<a class="sporttab" href="#"><span class="sportchip scooter" data-ico="scoot">Scooter</span><span class="n">41</span></a>
+<a class="sporttab" href="#"><span class="sportchip skate" data-ico="board">Skate</span><span class="n">38</span></a>
+<a class="sporttab" href="#"><span class="sportchip bmx" data-ico="bmx">BMX</span><span class="n">22</span></a>
+</div>
+<div class="search">
+<input type="search" placeholder="Search town, venue or event" aria-label="Search events">
+<span class="locOn"><i></i>Near me: on</span>
+<a class="pill" href="#">Comp</a><a class="pill" href="#">Jam</a><a class="pill" href="#">Class</a><a class="pill" href="#">Session</a>
+</div>
+</div>
+
+<div class="archead only-past">
+<div class="panel"><div style="flex:1;min-width:240px"><h2>Browse by year and town</h2><p>The archive is a real index, not just a search result. Past events never appear in the upcoming calendar.</p></div>
+<div class="index"><span class="lab">Year</span><a class="pill on" href="#">2026</a><a class="pill" href="#">2025</a><a class="pill" href="#">2024</a></div>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px">
+<span class="lab muted">Town</span><a class="pill on" href="#">Ventnor</a><a class="pill" href="#">Corby</a><a class="pill" href="#">Newport</a><a class="pill" href="#">Portsmouth</a><a class="pill" href="#">Brighton</a><a class="pill" href="#">All towns &rarr;</a>
+</div>
+</div>
+
+<div class="list">
+<span class="order only-up">Nearest first</span>
+<span class="order only-past hide-empty">Most recent first · Ventnor, 2026</span>
+
+<article class="erow only-up" data-id="wight" style="--c:var(--pink)">
+<div class="date"><span class="dd">26</span><span class="mm">Sep</span></div>
+<div class="body">
+<div class="m">
+<div class="chips"><span class="tag" style="background:var(--pink)">Jam</span><span class="sportchip scooter" data-ico="scoot">Scooter</span><span class="sportchip bmx" data-ico="bmx">BMX</span><span class="sportchip skate" data-ico="board">Skate</span></div>
+<a class="nm" href="Event Page.html">Ride The Wight Jam</a>
+<div class="meta">Ventnor Skatepark · Ventnor · UK · From age 6 · About 4 mi away</div>
+</div>
+<div class="right">
+<div class="money"><span class="p">Free</span><span class="sub">Drop in, no heats</span></div>
+<div class="acts"><button class="btn sm ghost det">Details</button><button class="btn sm goingbtn">I&rsquo;m going</button></div>
+</div>
+</div>
+</article>
+
+<article class="erow only-up" data-id="alley" style="--c:var(--orange)">
+<div class="date"><span class="dd">19</span><span class="mm">Sep</span></div>
+<div class="body">
+<div class="m">
+<div class="chips"><span class="tag" style="background:var(--orange)">Comp</span><span class="sportchip scooter" data-ico="scoot">Scooter</span><span class="sportchip bmx" data-ico="bmx">BMX</span><span class="sportchip skate" data-ico="board">Skate</span></div>
+<a class="nm" href="Event Page.html">Adrenaline Alley 24th Anniversary Event &ndash; Rider Pass</a>
+<div class="meta">Adrenaline Alley · Corby · UK · Under 13, 13+, pro categories · About 96 mi away</div>
+</div>
+<div class="right">
+<div class="money"><span class="p">&pound;25 early bird, &pound;35 on the door</span><span class="sub">Separate spectator pass</span></div>
+<div class="acts"><button class="btn sm ghost det">Details</button><button class="btn sm goingbtn">I&rsquo;m going</button></div>
+</div>
+</div>
+</article>
+
+<article class="erow only-up" data-id="sharman" style="--c:var(--green)">
+<div class="date"><span class="dd">27</span><span class="mm">Oct</span></div>
+<div class="body">
+<div class="m">
+<div class="chips"><span class="tag" style="background:var(--green)">Session</span><span class="sportchip scooter" data-ico="scoot">Scooter</span></div>
+<a class="nm" href="Event Page.html">Project Sharman + All Day Session</a>
+<div class="meta">Adrenaline Alley · Corby · UK · Scooter riders, all levels · About 96 mi away</div>
+</div>
+<div class="right">
+<div class="money"><span class="p">Not listed</span><span class="sub">Limited places</span></div>
+<div class="acts"><button class="btn sm ghost det">Details</button><button class="btn sm goingbtn">I&rsquo;m going</button></div>
+</div>
+</div>
+</article>
+
+<article class="erow only-up" data-id="letaz" style="--c:var(--blue)">
+<div class="date"><span class="dd">12</span><span class="mm">Sep</span></div>
+<div class="body">
+<div class="m">
+<div class="chips"><span class="tag" style="background:var(--blue)">Class</span><span class="sportchip skate" data-ico="board">Skate</span><span class="sportchip scooter" data-ico="scoot">Scooter</span></div>
+<a class="nm" href="Event Page.html">Le Taz Group Course &ndash; Saturday (Skateboard or Scooter)</a>
+<div class="meta">Le Taz Skatepark · Montr&eacute;al · Canada · Ages 6 to 13 · About 3107 mi away</div>
+</div>
+<div class="right">
+<div class="money"><span class="p">CA$150 for the session</span><span class="sub">Booked by session</span></div>
+<div class="acts"><button class="btn sm ghost det">Details</button><button class="btn sm goingbtn going" data-on="1">&#10003; Going</button></div>
+</div>
+</div>
+</article>
+
+<article class="erow past only-past hide-empty" data-id="wightpast">
+<div class="date"><span class="dd">13</span><span class="mm">Jun</span></div>
+<div class="body">
+<div class="m">
+<div class="chips"><span class="tag" style="background:var(--red)">Over</span><span class="tag ink">Jam</span><span class="sportchip scooter" data-ico="scoot">Scooter</span><span class="sportchip skate" data-ico="board">Skate</span></div>
+<a class="nm" href="Event Page.html?state=over">Ride The Wight Jam</a>
+<div class="meta">Ventnor Skatepark · Ventnor · UK · 12 weeks ago</div>
+</div>
+<div class="right">
+<div class="money"><span class="p">Free</span><span class="sub">Was drop in</span></div>
+<div class="acts"><button class="btn sm ghost det">Details</button><a class="btn sm ink" href="Event Page.html?state=over">Full page &rarr;</a></div>
+</div>
+</div>
+</article>
+
+<article class="erow past only-past hide-empty" data-id="spring">
+<div class="date"><span class="dd">02</span><span class="mm">May</span></div>
+<div class="body">
+<div class="m">
+<div class="chips"><span class="tag" style="background:var(--red)">Over</span><span class="tag ink">Comp</span><span class="sportchip bmx" data-ico="bmx">BMX</span></div>
+<a class="nm" href="Event Page.html?state=over">Ventnor Spring Comp</a>
+<div class="meta">Ventnor Skatepark · Ventnor · UK · 18 weeks ago</div>
+</div>
+<div class="right">
+<div class="money"><span class="p">&pound;5</span><span class="sub">Entry on the day</span></div>
+<div class="acts"><button class="btn sm ghost det">Details</button><a class="btn sm ink" href="Event Page.html?state=over">Full page &rarr;</a></div>
+</div>
+</div>
+</article>
+
+<div class="panel emptybox only-empty">
+<span class="eyebrow">Ventnor · 2024</span>
+<h2>No past events listed in Ventnor for 2024</h2>
+<p>We only hold events since 2025 for this town. Try another year, widen to the whole country, or look at what is coming up instead.</p>
+<div class="krow"><a class="btn sm" href="?view=up">See upcoming events</a><a class="btn sm ghost" href="?view=past">All past events in the UK</a></div>
+</div>
+</div>
+
+<div class="pager">
+<a class="btn sm ghost" href="#">&larr; Previous</a><span class="c only-up">1&ndash;4 of 74 upcoming</span><span class="c only-past">1&ndash;2 of 11 in Ventnor</span><a class="btn sm ghost" href="#">Next &rarr;</a>
+</div>
+
+<footer class="foot"><div class="in">
+<div class="col"><span class="eyebrow">Find</span><a href="?view=up">Events calendar</a><a href="?view=past">Past events</a><a href="Spots List.html">Spots map</a></div>
+<div class="col"><span class="eyebrow">Years</span><a href="?view=past">2026</a><a href="?view=past">2025</a><a href="?view=empty">2024</a></div>
+<div class="col"><span class="eyebrow">About</span><a href="#">How listings work</a><a href="#">Add an event</a><a href="#">Contact</a></div>
+</div></footer>
+<nav class="btm"><a href="#">Tricks</a><a href="Spots List.html">Spots</a><a href="Events List.html" aria-current="page">Events</a><a href="#">You</a></nav>
+
+<div class="scrim" id="scrim"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+<div class="mh" id="mh">
+<div class="chips" id="mChips"></div>
+<h2 id="mTitle"><a class="h" href="Event Page.html">Event</a></h2>
+<div class="dl" id="mDate"></div>
+</div>
+<div class="mb">
+<p class="blurb" id="mBlurb"></p>
+<div class="mfacts" id="mFacts"></div>
+<div class="hr"></div>
+<div class="rows" id="mRows"></div>
+<p class="disc">We researched this from the organiser&rsquo;s own page, and details change. Check the listing before you set off &mdash; dates, prices and age limits move, and a session can be cancelled without us knowing.</p>
+<div class="mfoot">
+<button class="btn sm ghost" id="mClose">Close</button>
+<span class="push"><a class="fullcta" id="mFull" href="Event Page.html">View full page &rarr;</a><button class="btn goingbtn" id="mGoing">I&rsquo;m going</button></span>
+<p class="ctahint">The full page adds the map, what else is on nearby, other events at this venue, and a link you can share.</p>
+</div>
+</div>
+</div></div>
+
+<script>
+const ICONS={scoot:'<circle cx="5.5" cy="18.5" r="2.6"/><circle cx="18.5" cy="18.5" r="2.6"/><path d="M5.5 18.5 L13 6 H18.5"/><path d="M9 6 H15"/>',board:'<path d="M2.5 10.5q9.5 3.2 19 0"/><path d="M7.5 12.4v1.6M16.5 12.4v1.6"/><circle cx="7.5" cy="15.8" r="1.9"/><circle cx="16.5" cy="15.8" r="1.9"/>',bmx:'<circle cx="5.5" cy="16.5" r="4.5"/><circle cx="18.5" cy="16.5" r="4.5"/><path d="M5.5 16.5 L9.5 8 H16 L18.5 16.5"/><path d="M16 8 V5.5"/><path d="M13.5 5.5 H18.5"/>'};
+const ico=(n,s)=>'<svg viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[n]||'')+'</svg>';
+document.querySelectorAll('.sportchip[data-ico]').forEach(function(c){c.insertAdjacentHTML('afterbegin',ico(c.dataset.ico,13))});
+
+const EV={
+wight:{c:'var(--pink)',kind:'Jam',kc:'var(--pink)',sports:['scoot','bmx','board'],name:'Ride The Wight Jam',date:'Saturday 26 September',href:'Event Page.html',
+blurb:'A one-day open jam across the bowl and the street section, run by the volunteers who look after the park. Riders drop in when they like \u2014 there are no heats and no entry fee. Coaches run beginner workshops through the morning and the kids zone stays open all day.',
+facts:[['Where','Ventnor Skatepark, Ventnor, UK'],['Who for','From age 6'],['Cost','Free'],['Places','Drop in \u2014 workshops need booking'],['Distance','About 4 mi away']],
+rows:[['Phone','<span class="nolisted">No phone listed</span>'],['Listing','<a class="und" href="#">ventnorskatepark.org.uk</a>']]},
+alley:{c:'var(--orange)',kind:'Comp',kc:'var(--orange)',sports:['scoot','bmx','board'],name:'Adrenaline Alley 24th Anniversary Event \u2013 Rider Pass',date:'Saturday 19 September',href:'Event Page.html',
+blurb:'A day of hosted jams from 10:30am to 7pm across scooter, BMX, skateboard, MTB airbag and WCMX, split into under 13, 13 plus and pro categories. Also on site: a car show, inflatables, face painting and food vendors.',
+facts:[['Where','Adrenaline Alley, Corby, UK'],['Who for','Under 13, 13+, pro categories'],['Cost','\u00a325 early bird, \u00a335 on the door'],['Places','Separate spectator pass'],['Distance','About 96 mi away']],
+rows:[['Phone','<a class="und" href="tel:+441536202049">+44 1536 202049</a>'],['Listing','<a class="und" href="#">adrenalinealley.co.uk</a>']]},
+sharman:{c:'var(--green)',kind:'Session',kc:'var(--green)',sports:['scoot'],name:'Project Sharman + All Day Session',date:'Tuesday 27 October',href:'Event Page.html',
+blurb:'An all-day open session with the Project Sharman crew on site. Scooter riders of any level, no heats and no judging \u2014 ride what you want for as long as the session runs.',
+facts:[['Where','Adrenaline Alley, Corby, UK'],['Who for','Scooter riders, all levels'],['Cost','Not listed'],['Places','Limited places'],['Distance','About 96 mi away']],
+rows:[['Phone','<a class="und" href="tel:+441536202049">+44 1536 202049</a>'],['Listing','<a class="und" href="#">adrenalinealley.co.uk</a>']]},
+letaz:{c:'var(--blue)',kind:'Class',kc:'var(--blue)',sports:['board','scoot'],name:'Le Taz Group Course \u2013 Saturday (Skateboard or Scooter)',date:'Saturday 12 September',href:'Event Page.html',
+blurb:'A coached Saturday course at Le Taz, taken on either a skateboard or a scooter. Groups are split by age and the price covers the whole session.',
+facts:[['Where','Le Taz Skatepark, Montr\u00e9al, Canada'],['Who for','Ages 6 to 13'],['Cost','CA$150 for the session'],['Places','Booked by session'],['Distance','About 3107 mi away']],
+rows:[['Phone','<a class="und" href="#">+1 514 284 0051</a>'],['Listing','<a class="und" href="#">taz.ca</a>']]},
+wightpast:{c:'var(--ink)',kind:'Over',kc:'var(--red)',sports:['scoot','board'],name:'Ride The Wight Jam',date:'Was Saturday 13 June \u00b7 12 weeks ago',href:'Event Page.html?state=over',
+blurb:'This event has finished. The listing is kept online because riders still look it up \u2014 the full page has what is on next at this park and nearby.',
+facts:[['Where','Ventnor Skatepark, Ventnor, UK'],['Who for','From age 6'],['Cost','Free'],['Places','Was drop in'],['Distance','About 4 mi away']],
+rows:[['Phone','<span class="nolisted">No phone listed</span>'],['Listing','<a class="und" href="#">ventnorskatepark.org.uk</a>']]},
+spring:{c:'var(--ink)',kind:'Over',kc:'var(--red)',sports:['bmx'],name:'Ventnor Spring Comp',date:'Was Saturday 2 May \u00b7 18 weeks ago',href:'Event Page.html?state=over',
+blurb:'This event has finished. Kept online for the record \u2014 nothing here is happening.',
+facts:[['Where','Ventnor Skatepark, Ventnor, UK'],['Who for','All ages, BMX'],['Cost','\u00a35'],['Places','Entry on the day'],['Distance','About 4 mi away']],
+rows:[['Phone','<span class="nolisted">No phone listed</span>'],['Listing','<a class="und" href="#">ventnorskatepark.org.uk</a>']]}};
+const SPN={scoot:['Scooter','scooter'],board:['Skate','skate'],bmx:['BMX','bmx']};
+let lastFocus=null;
+function open(id){var e=EV[id];if(!e)return;
+document.getElementById('mh').style.setProperty('--mc',e.c);
+document.getElementById('mChips').innerHTML='<span class="tag" style="background:'+e.kc+'">'+e.kind+'</span>'+e.sports.map(function(s){return '<span class="sportchip '+SPN[s][1]+'">'+ico(s,13)+SPN[s][0]+'</span>'}).join('');
+var t=document.querySelector('#mTitle a');t.textContent=e.name;t.href=e.href;
+document.getElementById('mDate').textContent=e.date;
+document.getElementById('mBlurb').textContent=e.blurb;
+document.getElementById('mFacts').innerHTML=e.facts.map(function(f){return '<div class="f"><div class="lab muted">'+f[0]+'</div><div class="v">'+f[1]+'</div></div>'}).join('');
+document.getElementById('mRows').innerHTML=e.rows.map(function(r){return '<div class="row2"><span class="lab muted">'+r[0]+'</span><div class="v">'+r[1]+'</div></div>'}).join('');
+var full=document.getElementById('mFull');full.href=e.href;full.innerHTML=(e.kind==='Over'?'View full page \u2192':'View full page \u2192');
+document.body.classList.add('modal-open');document.getElementById('mClose').focus();}
+function close(){document.body.classList.remove('modal-open');if(lastFocus)lastFocus.focus()}
+document.querySelectorAll('.det').forEach(function(b){b.addEventListener('click',function(){lastFocus=b;open(b.closest('.erow').dataset.id)})});
+document.getElementById('mClose').addEventListener('click',close);
+document.getElementById('scrim').addEventListener('click',function(e){if(e.target===this)close()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')close()});
+document.querySelectorAll('.goingbtn').forEach(function(b){b.addEventListener('click',function(){var on=b.dataset.on==='1';b.dataset.on=on?'0':'1';b.classList.toggle('going',!on);b.innerHTML=on?'I\u2019m going':'\u2713 Going'})});
+(function(){var q=new URLSearchParams(location.search);var v=q.get('view')||'up';document.body.className='v-'+v;
+document.querySelectorAll('.proto a,.viewsw a').forEach(function(a){if(a.dataset.v===v||(v==='empty'&&a.dataset.v==='past'))a.setAttribute('aria-current','true')});
+if(q.get('modal')==='1'){document.querySelectorAll('.proto a').forEach(function(a){a.removeAttribute('aria-current');if(a.dataset.v==='modal')a.setAttribute('aria-current','true')});open('alley')}})();
+</script>
+</body>
+</html>

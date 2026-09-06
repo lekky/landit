@@ -2,8 +2,9 @@ import { SITE_URL } from '@landit/core';
 import type { MetadataRoute } from 'next';
 
 import { PUBLIC_ROUTES } from '@/lib/publicRoutes';
-import { ROUTES, trickHref } from '@/lib/routes';
+import { ROUTES, eventHref, trickHref } from '@/lib/routes';
 import { isLiveFromEnv } from '@/lib/siteLive';
+import { publicEvents } from '@/lib/publicEvents';
 import { publicTricks } from '@/lib/publicTricks';
 
 /**
@@ -89,7 +90,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
    * is a promise to attach a `.catch` to. That is not hypothetical: it is what
    * this route did on first run.
    */
-  const tricks = await publicTricks();
+  /*
+   * The tricks and the events, read under the same promise and in one round
+   * trip. `publicEvents` keeps the "a sitemap that cannot reach the database is
+   * a smaller sitemap, not a 500" rule above; `Promise.all` over two never-
+   * throwing reads cannot reintroduce a rejection.
+   */
+  const [tricks, events] = await Promise.all([publicTricks(), publicEvents()]);
 
   return [
     ...fixed,
@@ -98,6 +105,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: trick.updated ? new Date(trick.updated) : now,
       changeFrequency: 'monthly' as const,
       priority: 0.8,
+    })),
+    /*
+     * Every live event, **past ones included** (Rachid, 2026-09-06, in chat).
+     * A finished event keeps its page — it is the archive, and riders keep
+     * looking these up — so dropping it from the sitemap the morning after
+     * would pull a page out of the index exactly when it starts earning its
+     * traffic. `publicEvents` says the same thing at more length.
+     *
+     * `weekly` rather than the list's `daily`: the calendar as a whole changes
+     * daily because staff add rows, but a single listing changes only when
+     * somebody edits it, and `lastModified` is the honest signal for that.
+     */
+    ...events.map((event) => ({
+      url: url(eventHref(event.slug)),
+      lastModified: event.updated ? new Date(event.updated) : now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.6,
     })),
   ];
 }

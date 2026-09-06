@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ride The Wight Jam, Ventnor — Land The Trick</title>
+<link rel="stylesheet" href="pages.css">
+<style>
+.only-up,.only-today,.only-over{display:none}
+body.st-up .only-up,body.st-today .only-today,body.st-over .only-over{display:revert}
+body.st-over .band{--bandc:var(--ink)}
+body.st-over .band .sub{color:var(--yellow)}
+body.st-today .band{--bandc:var(--pink)}
+.status{border-bottom:3px solid var(--ink)}
+.status .in{max-width:1180px;margin:0 auto;padding:15px 18px;display:flex;align-items:center;gap:18px 26px;flex-wrap:wrap}
+.status .big{font-family:var(--fd);text-transform:uppercase;line-height:.92;font-size:clamp(26px,3.6vw,42px)}
+.status .when{font-family:var(--fc);font-weight:700;font-size:15px;letter-spacing:.1em;text-transform:uppercase}
+.status .push{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.s-up{background:var(--paper-2)}
+.s-today{background:var(--lime)}
+.s-over{background:var(--ink);color:var(--paper)}
+.s-over .big{color:#fff}
+.s-over .when{color:var(--yellow)}
+.s-over .onward{font-family:var(--fc);font-weight:700;font-size:13.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--paper);border-bottom:2px solid var(--yellow);padding-bottom:2px}
+.s-over .onward:hover{color:var(--yellow)}
+.count{display:flex;align-items:baseline;gap:9px}
+.count .n{font-family:var(--fd);font-size:clamp(34px,4.6vw,54px);line-height:.8}
+body.st-over .main .onward-block{order:-1}
+body.st-over .lede,body.st-over .facts .f,body.st-over .rows{opacity:1}
+.overstamp{display:none;background:var(--red);color:#fff;border:var(--bd);box-shadow:var(--sh-sm);padding:11px 15px;font-family:var(--fd);text-transform:uppercase;font-size:clamp(19px,2.4vw,26px);line-height:1}
+body.st-over .overstamp{display:block}
+.going.past{background:var(--paper-2)}
+.privnote{font-size:13px;line-height:1.45;color:var(--ink-2);display:flex;gap:8px}
+.privnote i{width:9px;height:9px;background:var(--violet);border:2px solid var(--ink);flex:none;margin-top:5px}
+.toggle{display:flex;align-items:center;gap:11px;width:100%;background:var(--paper);border:2.5px solid var(--ink);box-shadow:2px 2px 0 var(--ink);padding:10px 12px;font-family:var(--fc);font-weight:700;font-size:14.5px;letter-spacing:.08em;text-transform:uppercase;transition:.12s}
+.toggle:hover{background:var(--paper-2)}
+.toggle .box{width:19px;height:19px;border:2.5px solid var(--ink);background:var(--paper);flex:none;display:grid;place-items:center}
+.toggle[aria-pressed=true]{background:var(--lime)}
+.toggle[aria-pressed=true] .box{background:var(--ink)}
+.toggle[aria-pressed=true] .box::after{content:"";width:7px;height:7px;background:var(--lime)}
+</style>
+</head>
+<body class="st-up">
+<div class="proto"><div class="in"><span class="lab">Prototype — event page state</span><a href="?state=up" data-st="up">A · Upcoming</a><a href="?state=today" data-st="today">B · Today</a><a href="?state=over" data-st="over">C · Over</a></div></div>
+<header class="top"><div class="in"><a class="mark" href="#"><i></i>Land The Trick</a><nav class="nav"><a href="#">Tricks</a><a href="Spots List.html">Spots</a><a href="Events List.html" aria-current="page">Events</a><a href="#">Awards</a><a class="btn sm" href="#">Sign up free</a></nav></div></header>
+<div class="crumb"><div class="in"><a href="Events List.html">Events</a><span>/</span><a href="Events List.html?view=past">United Kingdom</a><span>/</span><span>Ventnor</span></div></div>
+<div class="band"><div class="in">
+<div class="chips"><span class="tag" style="background:var(--pink)">Jam</span><span class="sportchip scooter">Scooter</span><span class="sportchip skate">Skate</span><span class="sportchip bmx">BMX</span></div>
+<h1>Ride The Wight Jam, Ventnor</h1>
+<div class="sub">Ventnor Skatepark · Ventnor, United Kingdom</div>
+</div></div>
+
+<div class="status s-up only-up"><div class="in">
+<div class="count"><span class="n">21</span><div><div class="big" style="font-size:22px">Days away</div><div class="when muted">Saturday 26 September 2026</div></div></div>
+<div class="push"><span class="lab muted">Free · No entry, no heats</span></div>
+</div></div>
+
+<div class="status s-today only-today"><div class="in">
+<div class="big">Happening today</div>
+<div class="when">Saturday 5 September 2026 · All day</div>
+<div class="push"><a class="btn sm ink" href="#map">Open in maps</a></div>
+</div></div>
+
+<div class="status s-over only-over"><div class="in">
+<div><div class="big">This event has finished</div><div class="when">Was Saturday 13 June 2026 · 12 weeks ago</div></div>
+<div class="push"><a class="onward" href="#near">What&rsquo;s on near Ventnor &rarr;</a><a class="onward" href="#venue">Next at this park &rarr;</a></div>
+</div></div>
+
+<div class="cols">
+<main class="main">
+<div class="overstamp">Kept online for the record. Nothing here is happening.</div>
+<p class="lede">A one-day open jam across the bowl and the street section, run by the volunteers who look after the park. Riders drop in when they like — there are no heats and no entry fee. Coaches run beginner workshops through the morning and the kids zone stays open all day.</p>
+
+<div class="facts">
+<div class="f"><div class="lab muted">Where</div><div class="v">Ventnor Skatepark</div><p>Ventnor, United Kingdom</p></div>
+<div class="f"><div class="lab muted">Who for</div><div class="v">From age 6</div><p>Kids zone for ages 3&ndash;6</p></div>
+<div class="f"><div class="lab muted">Cost</div><div class="v">Free</div><p>As listed by the organiser</p></div>
+<div class="f"><div class="lab muted">Places</div><div class="v">Drop in</div><p>Workshops need booking</p></div>
+<div class="f"><div class="lab muted">Distance</div><div class="v">About 4 miles</div><p>From your last known town</p></div>
+<div class="f"><div class="lab muted">Date</div><div class="v only-up">26 Sep 2026</div><div class="v only-today">5 Sep 2026</div><div class="v only-over">13 Jun 2026</div><p class="only-up">Saturday, all day</p><p class="only-today">Today, all day</p><p class="only-over">Finished</p></div>
+</div>
+
+<section class="panel flat">
+<div class="pt"><span class="lab">Getting there &amp; who runs it</span></div>
+<div class="pb">
+<div class="rows">
+<div class="row2"><span class="lab muted">Address</span><div class="v">Southgrove Rd, Ventnor PO38 1LG &nbsp;<a class="und" href="#">Open in maps &rarr;</a></div></div>
+<div class="row2"><span class="lab muted">Phone</span><div class="v"><span class="nolisted">No phone listed</span></div></div>
+<div class="row2"><span class="lab muted">Listing</span><div class="v"><a class="und" href="#">ventnorskatepark.org.uk</a> <span class="muted">— the organiser&rsquo;s own page</span></div></div>
+</div>
+<p class="note" style="margin-top:14px">Every detail here comes from the organiser&rsquo;s listing. We add nothing they haven&rsquo;t published, so some rows read &ldquo;not listed&rdquo;. Check with them before travelling.</p>
+</div>
+</section>
+
+<div class="onward-block" style="display:flex;flex-direction:column;gap:24px">
+<section id="near">
+<div class="sechead"><h2>What else is on near Ventnor</h2><span class="rule"></span><a class="more" href="Events List.html">All UK events</a></div>
+<div class="olist">
+<a href="#"><span class="dt">Sat 19 Sep</span><span class="nm">Island Street Comp</span><span class="mt">Newport · about 9 miles</span></a>
+<a href="#"><span class="dt">Sun 11 Oct</span><span class="nm">Beginners Scooter Class</span><span class="mt">Ryde · about 12 miles</span></a>
+<a href="#"><span class="dt">Sat 24 Oct</span><span class="nm">Solent Bowl Session</span><span class="mt">Portsmouth · about 22 miles</span></a>
+</div>
+</section>
+<section id="venue">
+<div class="sechead"><h2>Also at Ventnor Skatepark</h2><span class="rule"></span><a class="more" href="Spot Page.html">The park&rsquo;s spot page</a></div>
+<div class="olist">
+<a href="#"><span class="dt">Every Wed</span><span class="nm">Ventnor Youth Session</span><span class="mt">Session · free</span></a>
+<a href="#"><span class="dt">Sat 7 Nov</span><span class="nm">Wight Winter Jam</span><span class="mt">Jam · free</span></a>
+</div>
+</section>
+<section>
+<div class="sechead"><h2>Spots near Ventnor</h2><span class="rule"></span><a class="more" href="Spots List.html">All spots</a></div>
+<div class="olist">
+<a href="Spot Page.html"><span class="dt">Concrete</span><span class="nm">Ventnor Skatepark</span><span class="mt">Bowl · Ledges · Rails · about 4 miles</span></a>
+<a href="Spot Page.html?v=sparse"><span class="dt">Street</span><span class="nm">Esplanade Ledges</span><span class="mt">Ledges · Flat · about 4 miles</span></a>
+<a href="Spot Page.html"><span class="dt">Indoor</span><span class="nm">Sandown Indoor Park</span><span class="mt">Mini · Vert · about 8 miles</span></a>
+</div>
+</section>
+</div>
+</main>
+
+<aside class="rail">
+<section class="panel going only-up"><div class="pt"><span class="lab">Your own note</span></div><div class="pb stack">
+<button class="toggle" aria-pressed="false"><span class="box"></span><span>I&rsquo;m going to this</span></button>
+<div class="privnote"><i></i><span><strong>Private.</strong> Only you can see this. Land The Trick has no attendee list and never shows who is going.</span></div>
+</div></section>
+<section class="panel going only-today"><div class="pt"><span class="lab">Your own note</span></div><div class="pb stack">
+<button class="toggle" aria-pressed="true"><span class="box"></span><span>You&rsquo;re going today</span></button>
+<div class="privnote"><i></i><span><strong>Private.</strong> Only you can see this. Nobody is told you marked it.</span></div>
+</div></section>
+<section class="panel going past only-over"><div class="pt"><span class="lab">Your own note</span></div><div class="pb stack">
+<div class="krow"><span class="tag ink">Went</span><span class="cond" style="font-size:14px">You marked this one</span></div>
+<div class="privnote"><i></i><span><strong>Private.</strong> Still only visible to you.</span></div>
+<a class="btn sm ghost wide" href="#">Log what you landed</a>
+</div></section>
+
+<section class="panel" id="map"><div class="pt"><span class="lab">Roughly here</span></div>
+<div class="map"><span class="grid"></span><span class="sea"></span><span class="rd a"></span><span class="rd b"></span><span class="rd c"></span><span class="area"></span><span class="pin"></span><span class="mnote">Ventnor, PO38 — town-accurate, not the exact venue</span></div>
+<div class="pb tight stack"><a class="btn sm ghost wide" href="#">Open in maps &rarr;</a><p class="note">We hold the town, not a pin. The circle is the area, not the gate.</p></div>
+</section>
+
+<section class="panel signup"><div class="pb">
+<h3>Track what you land</h3>
+<p>Riders use Land The Trick to log tricks, work through stages and collect awards. Free to start, and nothing on this page is behind it.</p>
+<a class="btn ink wide" href="#">Sign up free</a>
+</div></section>
+
+<section class="panel flat p2"><div class="pb tight stack">
+<span class="lab muted">Something wrong?</span>
+<p class="note">Date moved, event cancelled, wrong address?</p>
+<a class="reportlink" href="#">Report a problem with this listing</a>
+</div></section>
+</aside>
+</div>
+
+<footer class="foot"><div class="in">
+<div class="col"><span class="eyebrow">Find</span><a href="Events List.html">Events calendar</a><a href="Events List.html?view=past">Past events</a><a href="Spots List.html">Spots map</a></div>
+<div class="col"><span class="eyebrow">Ride</span><a href="#">Trick list</a><a href="#">Stages</a><a href="#">Awards</a></div>
+<div class="col"><span class="eyebrow">About</span><a href="#">How listings work</a><a href="#">Add an event</a><a href="#">Contact</a></div>
+</div></footer>
+<nav class="btm"><a href="#">Tricks</a><a href="Spots List.html">Spots</a><a href="Events List.html" aria-current="page">Events</a><a href="#">You</a></nav>
+<script>
+(function(){var s=new URLSearchParams(location.search).get('state')||'up';document.body.className='st-'+s;
+document.querySelectorAll('.proto a').forEach(function(a){if(a.dataset.st===s)a.setAttribute('aria-current','true')});
+document.querySelectorAll('.toggle').forEach(function(b){b.addEventListener('click',function(){var on=b.getAttribute('aria-pressed')==='true';b.setAttribute('aria-pressed',String(!on));b.lastElementChild.textContent=!on?'You\u2019re going':'I\u2019m going to this'})});})();
+</script>
+</body>
+</html>

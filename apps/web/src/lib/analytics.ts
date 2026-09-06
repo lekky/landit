@@ -202,6 +202,24 @@ export const ANALYTICS_EVENTS = {
   spotSubmitted: 'spot_submitted',
   /** Going / not going on an event. */
   eventAttendanceSet: 'event_attendance_set',
+  /**
+   * An event's own page was opened, and how the reader got to it.
+   *
+   * Carries `source` — `'list'`, `'modal_cta'` or `'direct'`, three fixed
+   * strings chosen here — and the event's `kind`, which is catalogue copy
+   * ("Jam", "Comp"). Never the event's name, never its town, and nothing about
+   * who was reading: an event page is public, so most of the people this counts
+   * have no account at all.
+   *
+   * It exists because we kept the Details modal **and** added a full page, and
+   * that is a decision with no obvious right answer. The modal is the quick
+   * look and holds "I'm going"; the page is the thing you can share, crawl and
+   * come back to. `source` is the only way to find out whether the full-page
+   * CTA earns the room it takes in the modal footer, or whether riders were
+   * happy in the modal and every real arrival comes from a link somebody sent
+   * — which are opposite answers with opposite next steps.
+   */
+  eventPageOpened: 'event_page_opened',
 
   /* ------------------------------------------------------------- awards -- */
   /**

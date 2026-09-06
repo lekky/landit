@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Land The Trick — event &amp; spot pages</title>
+<link rel="stylesheet" href="pages.css">
+<style>
+body{background:#8f887a;background-image:none}
+.frame{position:absolute;border:3px solid var(--ink);box-shadow:8px 8px 0 rgba(18,16,11,.55);background:var(--paper)}
+.frame iframe{display:block;border:0;width:100%;height:1400px}
+.flabel{position:absolute;top:-42px;left:0;display:flex;align-items:baseline;gap:10px;white-space:nowrap}
+.flabel .n{font-family:var(--fd);font-size:22px;text-transform:uppercase;color:#fff;text-shadow:2px 2px 0 var(--ink)}
+.flabel .s{font-family:var(--fc);font-weight:700;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+.rowhead{position:absolute;display:flex;flex-direction:column;gap:8px;width:1100px}
+.rowhead h2{font-family:var(--fd);font-size:44px;text-transform:uppercase;line-height:.92;color:#fff;text-shadow:4px 4px 0 var(--ink)}
+.rowhead p{font-size:16px;line-height:1.5;color:var(--ink);max-width:88ch;background:var(--paper-2);border:3px solid var(--ink);box-shadow:var(--sh);padding:12px 15px}
+.note{position:absolute;width:430px;background:var(--paper);border:3px solid var(--ink);box-shadow:var(--sh)}
+.note .h{background:var(--yellow);border-bottom:3px solid var(--ink);padding:11px 15px;font-family:var(--fd);font-size:21px;text-transform:uppercase;line-height:.95}
+.note .b{padding:15px;display:flex;flex-direction:column;gap:11px;font-size:14.5px;line-height:1.5;color:var(--ink-2)}
+.note .b strong{color:var(--ink)}
+.note .pick{display:inline-block;font-family:var(--fc);font-weight:700;font-size:12px;letter-spacing:.13em;text-transform:uppercase;background:var(--lime);border:2.5px solid var(--ink);padding:3px 9px;color:var(--ink);width:max-content}
+.note .drop{background:var(--wash);border:2.5px solid var(--ink-3);padding:9px 12px;font-size:13.5px;color:var(--ink-3)}
+.title{position:absolute;left:80px;top:60px;width:1180px}
+.title h1{font-family:var(--fd);font-size:76px;text-transform:uppercase;line-height:.9;color:#fff;text-shadow:5px 5px 0 var(--ink)}
+.title p{margin-top:14px;background:var(--paper);border:3px solid var(--ink);box-shadow:var(--sh);padding:14px 17px;font-size:16px;line-height:1.55;color:var(--ink-2)}
+</style>
+</head>
+<body>
+<div class="title">
+<h1>Event &amp; spot pages</h1>
+<p>Four public pages, no photography anywhere. Desktop is 1180px of content with 18px side padding; the mobile frames are the same documents at 390px. Every frame below is the live page — the prototype bar at the top of each is a switcher for these states, not part of the page. All four link to each other with real hrefs.</p>
+</div>
+
+<div class="rowhead" style="left:80px;top:420px">
+<h2>1 · Event page</h2>
+<p>The events-list modal promoted to a page: same header band, same fact grid, same address / phone / listing rows. What the page adds is a status band that survives being screenshotted out of context, a real H1 naming event and town, a private &ldquo;I&rsquo;m going&rdquo; note, and three onward routes. Missing fields get a dashed &ldquo;not listed&rdquo; chip rather than an empty row.</p>
+</div>
+<div class="frame" style="left:80px;top:660px;width:1216px"><div class="flabel"><span class="n">A · Upcoming</span><span class="s">21 days away</span></div><iframe src="Event Page.html?state=up" title="Event page, upcoming"></iframe></div>
+<div class="frame" style="left:1400px;top:660px;width:1216px"><div class="flabel"><span class="n">B · Today</span><span class="s">Loudest state — lime band</span></div><iframe src="Event Page.html?state=today" title="Event page, today"></iframe></div>
+<div class="frame" style="left:2720px;top:660px;width:1216px"><div class="flabel"><span class="n">C · Over</span><span class="s">Ink band, red stamp, onward links first</span></div><iframe src="Event Page.html?state=over" title="Event page, over"></iframe></div>
+<div class="frame" style="left:4040px;top:660px;width:390px"><div class="flabel"><span class="n">Mobile</span><span class="s">Over</span></div><iframe src="Event Page.html?state=over" title="Event page, over, mobile"></iframe></div>
+<div class="frame" style="left:4500px;top:660px;width:390px"><div class="flabel"><span class="n">Mobile</span><span class="s">Upcoming</span></div><iframe src="Event Page.html?state=up" title="Event page, upcoming, mobile"></iframe></div>
+<div class="note" style="left:4980px;top:660px">
+<div class="h">Why &ldquo;over&rdquo; reads first</div>
+<div class="b">
+<p>Three signals fire before any reading happens: the band drops from pink to <strong>ink</strong>, a <strong>red stamp</strong> sits where the blurb starts, and the status line states the date plus &ldquo;12 weeks ago&rdquo;. Nothing else on the page is red or black-banded, so the state is legible in a thumbnail.</p>
+<p>The page still earns the visit: in state C the three onward blocks (near this town / at this venue / spots nearby) move <strong>above</strong> the blurb, so the first thing under the stamp is somewhere else to go.</p>
+<p>The private note becomes a &ldquo;Went&rdquo; record with a link to log tricks. Still private — no attendee list exists anywhere.</p>
+<div class="drop">Not built, deliberately: no attendee list, no ticketing, no comments.</div>
+</div>
+</div>
+
+<div class="rowhead" style="left:80px;top:4860px">
+<h2>2 · Spot page</h2>
+<p>About 25 words of unique data, so the structure carries it. Tags become a real &ldquo;what&rsquo;s here&rdquo; section — one cell per feature, each explaining the feature and linking to the tricks it suits — and the map gets the weight a photo would have had. Submitters are never shown.</p>
+</div>
+<div class="frame" style="left:80px;top:5100px;width:1216px"><div class="flabel"><span class="n">Five tags</span><span class="s">Full address + phone</span></div><iframe src="Spot Page.html?v=rich" title="Spot page, five tags"></iframe></div>
+<div class="frame" style="left:1400px;top:5100px;width:1216px"><div class="flabel"><span class="n">Two tags</span><span class="s">No address, no phone — violet band</span></div><iframe src="Spot Page.html?v=sparse" title="Spot page, two tags"></iframe></div>
+<div class="frame" style="left:2720px;top:5100px;width:390px"><div class="flabel"><span class="n">Mobile</span><span class="s">Five tags</span></div><iframe src="Spot Page.html?v=rich" title="Spot page mobile"></iframe></div>
+<div class="frame" style="left:3180px;top:5100px;width:390px"><div class="flabel"><span class="n">Mobile</span><span class="s">Two tags</span></div><iframe src="Spot Page.html?v=sparse" title="Spot page sparse mobile"></iframe></div>
+<div class="note" style="left:3660px;top:5100px">
+<div class="h">Thin listing, honest page</div>
+<div class="b">
+<p>The sparse spot doesn&rsquo;t pretend to be full: two feature cells, a line saying two features is all it has, and the map grows to fill the room the missing cells left.</p>
+<p>&ldquo;No address listed&rdquo; is followed by the reason it doesn&rsquo;t matter — the pin is exact, so directions still work. Phone reads &ldquo;no phone — street spot&rdquo;.</p>
+<p><strong>Reporting</strong> sits bottom-right on both variants, low-key and underlined, next to a line about why spots go stale.</p>
+<p>Event pins are a dashed circle labelled town-accurate; spot pins are a solid diamond labelled exact. Same map component, different claim.</p>
+</div>
+</div>
+
+<div class="rowhead" style="left:80px;top:9200px">
+<h2>3 · Events list</h2>
+<p>The shipped row is kept as it is — colour-coded date block, sport chips with icons, price, <strong>Details</strong> and <strong>I&rsquo;m going</strong>. Two things change: the event name is now a real link to the event page, and the Details modal gains a <strong>View full page</strong> CTA. Past events get their own view with a year and town index.</p>
+</div>
+<div class="frame" style="left:80px;top:9440px;width:1216px"><div class="flabel"><span class="n">Upcoming</span><span class="s">Shipped row, name is now a link</span></div><iframe src="Events List.html?view=up" title="Events list"></iframe></div>
+<div class="frame" style="left:1400px;top:9440px;width:1216px"><div class="flabel"><span class="n">Details modal</span><span class="s">With the full-page CTA</span></div><iframe src="Events List.html?view=up&amp;modal=1" title="Events list with modal open"></iframe></div>
+<div class="frame" style="left:2720px;top:9440px;width:1216px"><div class="flabel"><span class="n">Past — full</span><span class="s">Year + town index</span></div><iframe src="Events List.html?view=past" title="Events list past"></iframe></div>
+<div class="frame" style="left:4040px;top:9440px;width:1216px"><div class="flabel"><span class="n">Past — empty</span><span class="s">Ventnor, 2024</span></div><iframe src="Events List.html?view=empty" title="Events list past empty"></iframe></div>
+<div class="frame" style="left:5360px;top:9440px;width:390px"><div class="flabel"><span class="n">Mobile</span><span class="s">Modal</span></div><iframe src="Events List.html?view=up&amp;modal=1" title="Events list modal mobile"></iframe></div>
+<div class="note" style="left:5820px;top:9440px">
+<div class="h">Modal stays, page is the destination</div>
+<div class="b">
+<span class="pick">Decision: keep both, one CTA between them</span>
+<p>The modal is the quick look and it keeps <strong>I&rsquo;m going</strong>, so the common case never leaves the list. What it gains is a yellow <strong>View full page</strong> CTA beside it, plus one line naming what the page adds: the map, what else is on nearby, other events at this venue, and a link you can share.</p>
+<p>The event <strong>name in the row is a link</strong>, and so is the title inside the modal — that gives the row a hover URL, a middle-click and a crawl path, which a button-only row cannot have.</p>
+<p>On past rows <strong>I&rsquo;m going</strong> is replaced by <strong>Full page &rarr;</strong>: going is meaningless once it is over, and the onward links are the only reason to open it.</p>
+<div class="drop">Changed from the earlier pass, which retired the modal. The row itself is the shipped design, untouched.</div>
+</div>
+</div>
+
+<div class="rowhead" style="left:80px;top:12700px">
+<h2>4 · Spots list</h2>
+<p>The card click has to mean two things at once. It doesn&rsquo;t: the card is a link, the map is a button.</p>
+</div>
+<div class="frame" style="left:80px;top:12940px;width:1216px"><div class="flabel"><span class="n">Desktop</span><span class="s">Sticky map, one spot chosen</span></div><iframe src="Spots List.html?sheet=0" title="Spots list desktop"></iframe></div>
+<div class="frame" style="left:1400px;top:12940px;width:390px"><div class="flabel"><span class="n">Mobile</span><span class="s">Sheet down</span></div><iframe src="Spots List.html?sheet=0" title="Spots list mobile"></iframe></div>
+<div class="frame" style="left:1860px;top:12940px;width:390px"><div class="flabel"><span class="n">Mobile</span><span class="s">Sheet up</span></div><iframe src="Spots List.html?sheet=1" title="Spots list mobile sheet"></iframe></div>
+<div class="note" style="left:2340px;top:12940px">
+<div class="h">Card is a link, map is a button</div>
+<div class="b">
+<span class="pick">Decision: navigation owns the card</span>
+<p>The whole card body is a stretched link to the spot page — the frequent, expected gesture, and the one that needs a real URL. Selecting a spot on the map is an explicit <strong>Show on map</strong> button in the card footer, sitting above the link.</p>
+<p>The map stays useful: choosing a card marks it with a yellow keyline, the pin swells to solid orange, and the panel names the chosen spot with its own link out. Pins are clickable in the other direction.</p>
+<p><strong>On a phone</strong> the sheet is docked above the bottom nav with its handle always visible. Tapping <em>Show on map</em> raises it; the sheet leads with a full-width <em>Open spot page</em> bar, so the thumb never has to hunt for the link behind the map.</p>
+<div class="drop">Rejected: whole card selects the map, with a small &ldquo;page&rdquo; link. It buries the crawlable route in a 12px target and leaves the card with no href.</div>
+</div>
+</div>
+
+<script>
+function fit(f){try{var d=f.contentDocument;if(!d||!d.body)return;var h=Math.max(d.body.scrollHeight,d.documentElement.scrollHeight);if(h>200&&Math.abs(parseFloat(f.style.height||0)-h)>2)f.style.height=h+'px'}catch(e){}}
+function watch(f){fit(f);[100,500,1500,3000].forEach(function(t){setTimeout(function(){fit(f)},t)});
+try{var d=f.contentDocument;if(d&&window.ResizeObserver){var ro=new ResizeObserver(function(){if(f.__t)cancelAnimationFrame(f.__t);f.__t=requestAnimationFrame(function(){fit(f)})});ro.observe(d.body)}}catch(e){}}
+document.querySelectorAll('.frame iframe').forEach(function(f){watch(f);f.addEventListener('load',function(){watch(f)})});
+window.addEventListener('load',function(){document.querySelectorAll('.frame iframe').forEach(fit)});
+</script>
+</body>
+</html>
