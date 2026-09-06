@@ -9,10 +9,14 @@ import {
   listAdminEvents,
   listAdminPlans,
   listAdminRiders,
+  listAdminEventsPage,
   listAdminSpots,
+  listAdminSpotsPage,
   listAdminStickers,
   listReports,
+  relationCountsFor,
   reportCounts,
+  spotCounts,
   setReportTriage,
   setRiderPlan,
   setRiderSuspended,
@@ -325,6 +329,60 @@ describe('landedCountsFor', () => {
  * silent and looks exactly like "the record was deleted", which is why the
  * absence of a filter is asserted rather than assumed.
  */
+/**
+ * The scoped relation counter, which is what makes a paged content tab worth
+ * paging.
+ *
+ * Every content tab shows a count per row — riders going to an event, log
+ * entries against a challenge week — and each one used to read the whole join
+ * collection to work it out. Those collections are riders x items, so the read
+ * grew with the rider base however few rows were on screen. What is asserted
+ * here is the part that fixes that: one request, scoped to the ids given, with
+ * every id bound rather than concatenated.
+ */
+describe('relationCountsFor', () => {
+  it('tallies one request into a count per id', async () => {
+    const { client } = fakeClient({
+      'event_attendance:list': [
+        { event: 'e1' },
+        { event: 'e1' },
+        { event: 'e2' },
+      ] as unknown as Record<string, unknown>,
+    });
+
+    const counts = await relationCountsFor(client, 'event_attendance', 'event', ['e1', 'e2', 'e3']);
+
+    expect(counts).toEqual({ e1: 2, e2: 1 });
+    // Absent rather than zero, which is why callers read `counts[id] ?? 0`.
+    expect(counts.e3).toBeUndefined();
+  });
+
+  it('asks only about the ids on the page, and binds every one of them', async () => {
+    const { client, calls } = fakeClient();
+
+    await relationCountsFor(client, 'event_attendance', 'event', ['e1', 'e2']);
+
+    const [call] = calls.filter((c) => c.method === 'getFullList');
+    const options = call?.args[0] as { filter?: string; fields?: string };
+    // Scoped: the filter names the page's ids rather than being absent, which
+    // is the difference between this and the `getFullList` it replaced.
+    expect(options.filter).toBe('(event = {:r0} || event = {:r1})');
+    // Bound, never concatenated — the privacy rules are written in this same
+    // filter language (see `landedCountsFor` above).
+    expect(options.filter).not.toContain('e1"');
+    // Narrowed to the tallied column, so the wire carries ids not records.
+    expect(options.fields).toBe('event');
+  });
+
+  it('asks for nothing when the page is empty', async () => {
+    const { client, calls } = fakeClient();
+    await expect(relationCountsFor(client, 'event_attendance', 'event', [])).resolves.toEqual({});
+    // An empty `or` chain is `()`, a filter syntax error rather than an empty
+    // result — the early return is load-bearing.
+    expect(calls).toHaveLength(0);
+  });
+});
+
 describe('the content-tab reads', () => {
   const optionsOf = (calls: readonly Call[], method: string) =>
     (calls.find((c) => c.method === method)?.args.at(-1) ?? {}) as {
@@ -361,6 +419,80 @@ describe('the content-tab reads', () => {
     // the same rule `landedCountsFor` is held to above, and for the same reason:
     // the privacy rules are written in this filter language.
     expect(optionsOf(calls, 'getFullList').filter).toBe('status = {:status}');
+  });
+
+  it('pages spots, narrowing by status and by a search over name and town', async () => {
+    const { client, calls } = fakeClient();
+    await listAdminSpotsPage(
+      client,
+      { query: 'ramp', status: 'pending' },
+      { page: 3, perPage: 40 },
+    );
+
+    const call = calls.find((c) => c.method === 'getList');
+    expect(call?.args[0]).toBe(3);
+    expect(call?.args[1]).toBe(40);
+
+    const options = call?.args[2] as { filter?: string; params?: Record<string, unknown> };
+    // Both clauses bound, never concatenated.
+    expect(options.filter).toBe('(name ~ {:q} || town ~ {:q}) && status = {:status}');
+    // And the search reaches name and town only. The submitter is an id on this
+    // screen and searching it would make the review queue a way to look up
+    // everything one rider has ever sent in.
+    expect(options.filter).not.toContain('submitted_by');
+  });
+
+  it('leaves the spot filter off entirely when nothing was asked for', async () => {
+    const { client, calls } = fakeClient();
+    await listAdminSpotsPage(client);
+    const options = calls.find((c) => c.method === 'getList')?.args[2] as { filter?: string };
+    // The unfiltered view has to show every status: the API rule that hides
+    // pending spots from riders is exactly what this read exists to see past.
+    expect(options.filter).toBeUndefined();
+  });
+
+  it('counts each spot status under the same search the rows were filtered by', async () => {
+    const { client, calls } = fakeClient();
+    await spotCounts(client, ['pending', 'live', 'rejected'], { query: 'ramp' });
+
+    const counting = calls.filter((c) => c.method === 'getList');
+    expect(counting).toHaveLength(3);
+
+    for (const call of counting) {
+      // `perPage: 1` — the count comes back as `totalItems`, so this asks how
+      // long the queue is without fetching it.
+      expect(call.args[1]).toBe(1);
+      // The search is applied to the counts too. A pill promising more than the
+      // filter would give is a pill that lies about the queue.
+      expect((call.args[2] as { filter?: string }).filter).toContain('name ~ {:q}');
+    }
+  });
+
+  it('pages events, and keeps a taken-down event findable by default', async () => {
+    const { client, calls } = fakeClient();
+    await listAdminEventsPage(client, { query: 'jam' }, { page: 2, perPage: 25 });
+
+    const call = calls.find((c) => c.method === 'getList');
+    expect(call?.args[0]).toBe(2);
+    expect(call?.args[1]).toBe(25);
+
+    const options = call?.args[2] as { filter?: string };
+    // No `is_live` clause unless one was asked for. Removal is a hide, and an
+    // event hidden from the only screen that can restore it would make that
+    // hide irreversible by accident.
+    expect(options.filter).toBe('(name ~ {:q} || venue ~ {:q} || town ~ {:q})');
+  });
+
+  it('narrows events to one side of the calendar when asked, as a bound parameter', async () => {
+    for (const live of [true, false]) {
+      const { client, calls } = fakeClient();
+      await listAdminEventsPage(client, { live });
+      const options = calls.find((c) => c.method === 'getList')?.args[2] as {
+        filter?: string;
+        params?: Record<string, unknown>;
+      };
+      expect(options.filter).toBe('is_live = {:live}');
+    }
   });
 
   it('pages reports rather than listing them', async () => {

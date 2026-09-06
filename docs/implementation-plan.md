@@ -2619,6 +2619,40 @@ written:
   the rider-facing spots screen, nav bar and all. There is no capture of any admin content tab in
   the pack. Recorded on issue #95.
 
+**Added 2026-09-07 (`chore-admin-pagination`), and it changes one of T17's screens.** Four of the
+portal's tables now page; five deliberately do not, and the line between them is the collection's
+growth rather than its size today:
+
+- **Riders and Moderation** were paged when they were built — `users` and `reports` are the two
+  collections with no upper bound, `reports` because anyone on the internet can write to it.
+- **Spots and Events** join them. Spots is rider-submitted, so it grows the same way `reports`
+  does; events are never deleted (`event_attendance` cascades from them), so the calendar only
+  ever accumulates. Both filter and search on the server, with the state in the URL, for the
+  reason the riders table gives: the query runs in SQLite over an index rather than shipping the
+  table to a staff laptop, and a staff member can link somebody to what they are looking at.
+- **Tricks, Challenges, Stickers, Notices and Plans do not page, on purpose.** They are bounded
+  catalogues — 259, 45, 10, and a handful — that staff scan and re-filter constantly, and the
+  browser-side filter that serves them is instant where a round trip per keystroke would not be.
+  This is the split `apps/web/src/app/(app)/admin/tricks/page.tsx` already argued for; paging them
+  would be a cost with nothing bought.
+
+**The Spots tab loses its three sections, which is a real divergence from `landit-admin.jsx`.**
+The prototype rendered Waiting / Live / Rejected as three lists on one screen, and three lists have
+no single page number between them. It is now one paged table with a status filter, and the counts
+the headings used to carry ride on the filter pills instead — that was the part worth keeping, since
+a queue whose length you can only learn by clicking into it is a queue people stop working. Row
+actions come off `row.status` rather than off which list a row was in, so the mixed view offers each
+spot exactly what its own status allows.
+
+**The scaling problem was never the tables.** Events, Challenges and Notices each read a whole join
+collection — `event_attendance`, `challenge_log`, `announcement_dismissals` — with `getFullList`, to
+put one number on each row. Those are riders x items, so they outgrow the table they decorate by the
+size of the rider base, and no amount of paging the rows touches them. `relationCountsFor` in
+`@landit/db` is the fix and Events uses it, scoped to the twenty-five ids on the page. **Challenges
+and Notices still read theirs in full**, because scoping buys nothing on a tab that fetches every
+row anyway — the fix there is either paging those tabs or a cheaper count than PocketBase offers.
+Filed as an issue rather than guessed at.
+
 Issue #103 — a lowered sticker threshold not reaching riders who already qualify until their next
 write — is **not** fixed here and was not within reach: the award runs in `pocketbase/hooks`, which
 `t18-hardening` owned for the length of this session. The Stickers tab says so on the screen and in

@@ -1,11 +1,12 @@
 'use client';
 
 import { Empty, Panel, Pill, Tag } from '@landit/ui-web';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
 
+import { Pager, useTableNav } from '../Pager';
 import { setReportTriageAction } from '../content-actions';
 import type { AdminReportRow, AdminReportStatus } from '../view';
 
@@ -51,31 +52,23 @@ export function ModerationScreen({
   totalItems: number;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [pending, startTransition] = useTransition();
+  const { pending: navigating, params, setFilter, goToPage } = useTableNav();
+  // Two transitions: one for re-fetching the queue, one for a triage write. A
+  // slow triage should not disable the pager, and vice versa — but both dim the
+  // same cards, so the screen reads `pending`.
+  const [saving, startTransition] = useTransition();
+  const pending = navigating || saving;
 
   // Keyed by report id: a moderator can have a note half-typed on one card and
   // open another without the two sharing a box.
   const [outcomes, setOutcomes] = useState<Record<string, string>>({});
 
-  const go = (next: URLSearchParams) => {
-    next.delete('page');
-    startTransition(() => router.replace(`${pathname}?${next.toString()}`));
-  };
-
   const onFilter = (value: string) => {
-    const next = new URLSearchParams(searchParams.toString());
+    const next = params();
     if (value === 'all') next.delete('status');
     else next.set('status', value);
-    go(next);
-  };
-
-  const goToPage = (n: number) => {
-    const next = new URLSearchParams(searchParams.toString());
-    next.set('page', String(n));
-    startTransition(() => router.replace(`${pathname}?${next.toString()}`));
+    setFilter(next);
   };
 
   const triage = (row: AdminReportRow, to: AdminReportStatus) => {
@@ -188,32 +181,15 @@ export function ModerationScreen({
         />
       )}
 
-      <div className={styles.tableFoot}>
-        <span className="cond">
-          {totalItems === 1 ? '1 report' : `${totalItems} reports`}
-          {totalPages > 1 && ` · page ${page} of ${totalPages}`}
-        </span>
-        {totalPages > 1 && (
-          <div className={styles.pager}>
-            <button
-              type="button"
-              className="btn sm ghost"
-              disabled={page <= 1 || pending}
-              onClick={() => goToPage(page - 1)}
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              className="btn sm ghost"
-              disabled={page >= totalPages || pending}
-              onClick={() => goToPage(page + 1)}
-            >
-              Next
-            </button>
-          </div>
-        )}
-      </div>
+      <Pager
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        noun="report"
+        nounPlural="reports"
+        onPage={goToPage}
+        busy={pending}
+      />
 
       <p className={styles.footnote}>
         Triage records what staff decided about the report. It does not touch what was reported —

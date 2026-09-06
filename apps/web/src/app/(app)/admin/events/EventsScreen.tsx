@@ -1,12 +1,13 @@
 'use client';
 
 import { SPORTS, SPORT_IDS } from '@landit/core';
-import { Panel, SportChip, Tag } from '@landit/ui-web';
+import { Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
 
+import { Pager, useTableNav } from '../Pager';
 import { StaffEditor, type EditorValue } from '../StaffEditor';
 import {
   createEventAction,
@@ -26,6 +27,11 @@ import styles from '../admin.module.css';
  * erases the "I am going" of every rider who marked it. A cancelled event and
  * an event that never happened are different things, and only one of them
  * should take the riders' record of it with them.
+ *
+ * **Paged, searched and filtered on the server** (see `page.tsx`). The "Off the
+ * calendar" pill exists because of the paragraph above: a removed event is
+ * still a row, and hiding it from the only screen that can put it back would
+ * turn a reversible hide into an irreversible one by accident.
  */
 
 const SPORT_CHOICES = SPORT_IDS.map((id) => [id, SPORTS[id].label] as const);
@@ -49,18 +55,70 @@ const BLANK: EditorValue = {
   sports: [...SPORT_IDS],
 };
 
+/** The three states of the calendar filter, and what each pill says. */
+const SHOW_OPTIONS: readonly (readonly [string, string])[] = [
+  ['all', 'Everything'],
+  ['live', 'On the calendar'],
+  ['hidden', 'Off the calendar'],
+];
+
 export function EventsScreen({
   rows,
   kinds,
+  query,
+  show,
+  page,
+  totalPages,
+  totalItems,
 }: {
   rows: readonly AdminEventRow[];
   kinds: readonly string[];
+  query: string;
+  show: string;
+  page: number;
+  totalPages: number;
+  totalItems: number;
 }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [pending, startTransition] = useTransition();
+  const { pending: navigating, params, setFilter, goToPage } = useTableNav();
+  // Two transitions: one for re-fetching the table, one for a save. See
+  // `SpotsScreen` — a slow save should not disable the pager, and vice versa.
+  const [saving, startTransition] = useTransition();
+  const pending = navigating || saving;
   const [editing, setEditing] = useState<AdminEventRow | null>(null);
   const [adding, setAdding] = useState(false);
+
+  const [text, setText] = useState(query);
+
+  // Re-synced only when the server's idea of the query changes under it, and
+  // during render rather than in an effect (see `RidersScreen`).
+  const [lastQuery, setLastQuery] = useState(query);
+  if (lastQuery !== query) {
+    setLastQuery(query);
+    setText(query);
+  }
+
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => (debounce.current ? clearTimeout(debounce.current) : undefined), []);
+
+  const onSearch = (value: string) => {
+    setText(value);
+    if (debounce.current) clearTimeout(debounce.current);
+    debounce.current = setTimeout(() => {
+      const next = params();
+      if (value.trim()) next.set('q', value.trim());
+      else next.delete('q');
+      setFilter(next);
+    }, 300);
+  };
+
+  const onShowFilter = (value: string) => {
+    const next = params();
+    if (value === 'all') next.delete('show');
+    else next.set('show', value);
+    setFilter(next);
+  };
 
   const kindOptions = kinds.map((k) => [k, k] as const);
 
@@ -131,6 +189,20 @@ export function EventsScreen({
   return (
     <div className={styles.stack}>
       <div className={styles.toolbar}>
+        <div className="search" style={{ flex: 1, minWidth: 220, padding: '9px 12px' }}>
+          <Icon name="search" size={17} strokeWidth={2.6} />
+          <input
+            value={text}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder="Name, venue or town…"
+            aria-label="Search events by name, venue or town"
+          />
+        </div>
+        {SHOW_OPTIONS.map(([value, label]) => (
+          <Pill key={value} on={show === value} onClick={() => onShowFilter(value)}>
+            {label}
+          </Pill>
+        ))}
         <button
           type="button"
           className={`btn sm ${styles.toolbarEnd}`}
@@ -211,8 +283,22 @@ export function EventsScreen({
           </div>
         ))}
 
-        {!rows.length && <div className={styles.noRows}>Nothing on the calendar.</div>}
+        {!rows.length && (
+          <div className={styles.noRows}>
+            {query || show !== 'all' ? 'Nothing matches that.' : 'Nothing on the calendar.'}
+          </div>
+        )}
       </Panel>
+
+      <Pager
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        noun="event"
+        nounPlural="events"
+        onPage={goToPage}
+        busy={pending}
+      />
 
       <p className={styles.footnote}>
         Removing an event takes it off every rider&rsquo;s calendar and keeps who was going, so

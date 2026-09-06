@@ -118,6 +118,10 @@ spots (approve/reject), events, challenges, notices, plans (copy + display price
 entitlement flags read-only); moderation queue for reports/appeals. Every mutation is audited
 twice (app layer + hook layer).
 
+Four tabs page on the server with search and filters in the URL — riders (40), spots (40),
+events (25), moderation (25). The other five are bounded catalogues that fetch in full and filter
+in the browser: tricks, challenges, stickers, notices, plans.
+
 ## Money
 
 Stripe Checkout subscriptions, GBP only (issue #170), VAT-inclusive prices, metadata-keyed
