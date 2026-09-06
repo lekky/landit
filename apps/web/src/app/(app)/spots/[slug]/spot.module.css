@@ -78,12 +78,20 @@
 .title {
   font-family: var(--fd);
   font-size: clamp(32px, 5.6vw, 62px);
-  line-height: 0.92;
+  /*
+   * 1.14, not the display face's own 0.92: this line carries a 3px hard shadow,
+   * so at 0.92 a wrapped title drops each line's shadow inside the caps of the
+   * next ("Graystone Action Sports, Salford" reads as one smeared block). The
+   * event page's `.title` was corrected the same way and carries the longer
+   * note on why the value has to clear a full-height glyph, not just a cap.
+   */
+  line-height: 1.14;
   letter-spacing: 0.01em;
   text-transform: uppercase;
   max-width: 20ch;
   color: #fffdf5;
   text-shadow: 3px 3px 0 var(--ink);
+  text-wrap: balance;
 }
 
 /*
