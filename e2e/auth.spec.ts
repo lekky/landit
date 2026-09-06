@@ -1,4 +1,4 @@
-import { CONTACT, SPORTS, SPORT_IDS } from '@landit/core';
+import { CONTACT, HEARD_ABOUT, SPORTS, SPORT_IDS } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
 /**
@@ -123,6 +123,19 @@ test('sign up, onboard and land on the dashboard', async ({ page }) => {
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: 'Land my first trick' }).click();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
+
+  // Step 5, answered rather than skipped — the one walkthrough that does. It is
+  // a closed list, so what is asserted is that the nine options are all there is
+  // and that none of them opens a box: a "tell us where" field on this screen
+  // would be a place a child types about themselves, which is the thing the
+  // whole design of this question avoids.
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('How did you find us?');
+  for (const option of HEARD_ABOUT) {
+    await expect(page.getByRole('button', { name: option.label, exact: true })).toBeVisible();
+  }
+  await expect(page.getByRole('textbox')).toHaveCount(0);
+  await page.getByRole('button', { name: 'YouTube', exact: true }).click();
   await page.getByRole('button', { name: "Let's go" }).click();
 
   // T8 landed a dashboard, so that is where a finished onboarding goes.
@@ -149,6 +162,9 @@ test('a younger rider arrives at an account that says what it is waiting for', a
   await page.getByRole('button', { name: /Just started/ }).click();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: 'Land my first trick' }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  // Step 5 asks where the rider found us and is skippable, which is what these
+  // walkthroughs exercise by clicking past it. `auth.spec.ts` answers it.
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: "Let's go" }).click();
 
@@ -193,6 +209,9 @@ test('signing out ends the session', async ({ page }) => {
   await page.getByRole('button', { name: /Just started/ }).click();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: 'Land my first trick' }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  // Step 5 asks where the rider found us and is skippable, which is what these
+  // walkthroughs exercise by clicking past it. `auth.spec.ts` answers it.
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: "Let's go" }).click();
   await page.waitForURL('**/home');
@@ -244,6 +263,9 @@ test('an unverified rider is reminded, once, and can put it away', async ({ page
   await page.getByRole('button', { name: /Just started/ }).click();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: 'Land my first trick' }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  // Step 5 asks where the rider found us and is skippable, which is what these
+  // walkthroughs exercise by clicking past it. `auth.spec.ts` answers it.
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: "Let's go" }).click();
   await page.waitForURL('**/home');

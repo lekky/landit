@@ -4,7 +4,9 @@ import {
   CUSTOM_GOAL_ID,
   SPORT_IDS,
   handleCandidates,
+  isHeardAboutId,
   profileChoiceProblem,
+  type HeardAboutId,
   type LevelId,
   type SportId,
   type StageId,
@@ -39,6 +41,8 @@ export interface OnboardingInput {
   readonly avatarKey: string | null;
   /** Trick record id to the stage the rider tapped. */
   readonly picks: Readonly<Record<string, StageId>>;
+  /** Step 5's answer, or `null` when it was skipped — which is allowed. */
+  readonly heardAbout: HeardAboutId | null;
   readonly timezone: string;
 }
 
@@ -79,6 +83,15 @@ export async function finishOnboarding(input: OnboardingInput): Promise<Onboardi
       goal_custom: input.goal === CUSTOM_GOAL_ID ? input.goalCustom.trim() : '',
       avatar_key: input.avatarKey ?? '',
       ...(input.timezone ? { timezone: input.timezone } : {}),
+      // Only when there is one, and only if it is one of the nine. Sending an
+      // empty string instead would be a write of the field on every finish,
+      // which for a write-once field means a skip could quietly become the
+      // answer nobody gave. A value that is not on the list is dropped rather
+      // than refused: onboarding is the wrong place to fail over a fact we
+      // asked for out of our own interest, and the select refuses it anyway.
+      ...(input.heardAbout && isHeardAboutId(input.heardAbout)
+        ? { heard_about: input.heardAbout }
+        : {}),
       onboarded: true,
     });
   } catch {

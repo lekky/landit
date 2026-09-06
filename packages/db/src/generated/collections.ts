@@ -63,6 +63,7 @@ export type TricksFreeOverride = 'free' | 'paid';
 export type TricksSport = 'scooter' | 'skate' | 'bmx';
 export type UsersAgeBand = 'under_13' | '13_15' | '16_17' | 'adult';
 export type UsersConsentState = 'not_required' | 'pending' | 'granted' | 'revoked';
+export type UsersHeardAbout = 'friend' | 'skatepark' | 'youtube' | 'tiktok' | 'instagram' | 'coach' | 'family' | 'search' | 'elsewhere';
 export type UsersLevel = 'new' | 'some' | 'solid' | 'send';
 export type UsersPlan = 'rookie' | 'shredder' | 'legend';
 export type UsersPrivacy = 'public' | 'members' | 'private';
@@ -835,6 +836,7 @@ export interface UsersRecord {
   last_qualifying_week: string;
   insights_opt_in: boolean;
   anonymised_at: string;
+  heard_about: UsersHeardAbout;
 }
 
 /** The shape accepted when creating a `users` record. */
@@ -868,6 +870,7 @@ export interface UsersCreate {
   last_qualifying_week?: string;
   insights_opt_in?: boolean;
   anonymised_at?: string;
+  heard_about?: UsersHeardAbout;
 }
 
 /** The shape accepted when updating a `users` record. */

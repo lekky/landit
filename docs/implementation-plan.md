@@ -288,6 +288,15 @@ Additions the handoff implies but never names:
 - **`users.timezone`** (IANA string, captured at onboarding from the browser). Streaks, "rode
   today" and challenge boundaries are computed in the rider's timezone, not UTC — without this the
   streak logic in `core` has nothing to stand on.
+- **`users.heard_about`** (select, nine fixed values, optional). "Where did you find us?", asked on
+  the last step of onboarding — **added 2026-09-06 (Rachid, in chat)**, with two choices made in
+  the same conversation. It is asked **after** the account exists rather than on the sign-up form,
+  which already carries six fields plus the age-band and guardian copy and is the one form here
+  where another field is paid for in accounts not made. And it is **stored** rather than only
+  counted: analytics is cookie-less with no person profiles (§6.8), so an event can say how many
+  riders came from YouTube and can never say whether any of them stayed or paid — a column beside
+  `plan` can. A **select, never text**, so the field cannot become somewhere a child writes about
+  themselves, and write-once in the account guard, so it stays a record of how a rider arrived.
 - **The weekly-streak fields on `users`.** The streak is weekly (§1), and a weekly target cannot be
   reconstructed from a counter and a last ride: it has to know how far into *this* week the rider
   is. Four fields — `streak` (qualifying weeks in a row), `week_start` (the Monday the ride count
@@ -445,7 +454,8 @@ tricks and their prerequisite edges, design tokens as CSS custom properties, `pa
 and unit-tested against the prototype's behaviour. No screens yet.
 
 **Phase 2 — Signed out.** Landing, the five legal documents, sign in / sign up, four-step
-onboarding. *Consent constants decided 2026-08-16 (§6.2) — build against them; the counsel review
+onboarding (a fifth step, "where did you find us?", was added 2026-09-06 — see `users.heard_about`
+in §2). *Consent constants decided 2026-08-16 (§6.2) — build against them; the counsel review
 confirms them rather than unblocking them.*
 
 **Phase 3 — The core loop.** Home, trick library with filters, trick detail, locked trick, progress
@@ -1503,7 +1513,8 @@ has a third entry.
 
 **T6 · Auth + onboarding + consent.** PocketBase auth (email/password + reset, mail over SMTP —
 §1 names the provider), profile fields on `users`, handle generation, the four onboarding steps, avatar
-picker, timezone capture. Sign-up captures country and an age band computed in the browser from a
+picker, timezone capture. (A fifth step was added on 2026-09-06, after T6 shipped — it asks where
+the rider found us and is skippable; §2, `users.heard_about`.) Sign-up captures country and an age band computed in the browser from a
 date of birth that is then discarded (§3) — no minimum age is stated anywhere. Riders below their
 country's threshold enter the guardian consent flow — guardian email, approval link, account
 limited until granted, revocation link that never expires — writing `guardian_consents`.

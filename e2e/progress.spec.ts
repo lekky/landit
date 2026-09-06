@@ -60,6 +60,9 @@ async function newRider(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: 'Land my first trick' }).click();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
+  // Step 5 asks where the rider found us and is skippable, which is what these
+  // walkthroughs exercise by clicking past it. `auth.spec.ts` answers it.
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: "Let's go" }).click();
   // T8 landed the dashboard, so that is where a finished onboarding goes.
   await page.waitForURL('**/home');

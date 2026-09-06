@@ -34,10 +34,13 @@ export {
   HANDLE_MAX_LENGTH,
   HANDLE_MIN_LENGTH,
   HANDLE_PATTERN,
+  HEARD_ABOUT,
+  HEARD_ABOUT_IDS,
   LEVELS,
   PRIVACY,
   RESERVED_HANDLES,
   STANCES,
+  isHeardAboutId,
 } from './profile';
 export { SPORT_IDS, SPORTS } from './sports';
 export { SPOTS, SPOT_TYPES, type SpotType } from './spots';

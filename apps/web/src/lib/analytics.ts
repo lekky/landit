@@ -176,6 +176,23 @@ export const ANALYTICS_EVENTS = {
   /* --------------------------------------------------------- onboarding -- */
   onboardingStep: 'onboarding_step',
   onboardingFinished: 'onboarding_finished',
+  /**
+   * "Where did you find us?", answered on the last step of onboarding.
+   *
+   * Carries `source`, one of the nine ids in `HEARD_ABOUT`
+   * (`packages/core/src/data/profile.ts`) — a closed list this repo wrote, with
+   * no free-text option anywhere near it, which is what makes it sendable under
+   * the rule above. Fired only when a rider answers; skipping is silent, so the
+   * gap between this and `onboarding_finished` is the skip rate.
+   *
+   * **It is not the whole answer to "what marketing works", and is not meant to
+   * be.** Analytics here is cookieless with no person profiles, so this can only
+   * ever count channels — it cannot say whether riders from one of them stayed
+   * or paid. That question is answered from `users.heard_about`, which sits
+   * beside the plan on the rider's own row. This event exists because the count
+   * itself is worth having in the same dashboard as the funnel it ends.
+   */
+  heardAbout: 'heard_about',
 
   /* ---------------------------------------------------------- the loop -- */
   /** "I rode today" — the weekly streak, and the best signal the product has. */
