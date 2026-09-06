@@ -95,12 +95,17 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
   no "who else is going", no comments. The only rider-authored free text that leaves them goes to
   staff (reports) or stays owner-only (notes).
 - **No video hosting** (reversed 2026-08-17): riders link YouTube videos instead.
-- **No DOB stored**, no geolocation stored, no third-party map account (OpenFreeMap). PostHog is
-  wired but **cookie-less and profile-less** — no cookie, no device storage, no `identify()`, no
-  autocapture, no session replay, and inert without a key. 33 hand-written events cover nearly
-  every rider action; autocapture is refused on purpose, because it would send the text of what
-  was clicked. Riders are counted by a server-side hash that is re-salted nightly, so "unique"
-  means unique per day (Sentry is wired but inert without a DSN).
+- **No DOB stored**, no geolocation stored, no third-party map account (OpenFreeMap).
+  **Two analytics services since 2026-09-06, both cookie-less**: PostHog and Google Analytics 4,
+  each inert without its own key and each independently switchable. Neither sets a cookie, writes
+  to the device or builds a person profile; no `identify()`, no autocapture, no session replay.
+  45 hand-written events cover nearly every rider action and both services receive all of them;
+  autocapture is refused on purpose, because it would send the text of what was clicked — GA's
+  equivalent, enhanced measurement, has to be switched off in the property for the same reason.
+  PostHog counts riders by a server-side hash re-salted nightly, so "unique" means unique per day;
+  GA stores nothing at all, so its "users" figure is page loads rather than people. **There is
+  still no cookie banner, and that is what the cookie-less configuration buys.** (Sentry is wired
+  but inert without a DSN.)
 - **No minimum age statement** — by design, part of the child-safety position.
 
 ## Staff portal

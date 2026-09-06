@@ -88,6 +88,15 @@ ENV NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY}
 ARG NEXT_PUBLIC_POSTHOG_HOST
 ENV NEXT_PUBLIC_POSTHOG_HOST=${NEXT_PUBLIC_POSTHOG_HOST}
 
+# Google Analytics (§6.8), the second analytics service, with the same trap
+# again: no `ARG` here means Coolify can list the measurement id as set, the
+# deploy can succeed, and GA can receive nothing, with no error to say so.
+#
+# Safe to leave unset — no id means gtag.js is never loaded and PostHog above is
+# unaffected. The two services are independent switches.
+ARG NEXT_PUBLIC_GA_MEASUREMENT_ID
+ENV NEXT_PUBLIC_GA_MEASUREMENT_ID=${NEXT_PUBLIC_GA_MEASUREMENT_ID}
+
 RUN pnpm --filter @landit/web build
 
 # ---------------------------------------------------------------- runner --
