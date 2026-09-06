@@ -4432,6 +4432,28 @@ export const EVENTS = [
     lng: 176.91899,
     isLive: true,
   },
+  {
+    id: 'graystone-clash-scooter-2026',
+    name: 'Graystone Clash Scooter Competition',
+    kind: 'Comp',
+    town: 'Salford',
+    country: 'UK',
+    venue: 'Graystone Action Sports',
+    address: 'Graystone Action Sports, 47 Brunel Avenue, Salford, Greater Manchester, M5 4BE',
+    phone: '+44 7508 818682',
+    date: '2026-09-12',
+    sports: ['scooter'],
+    level: '11 and under, under 16, and 16 and over',
+    price: 'From £35 to compete; free to spectate',
+    spots: 'Book online',
+    blurb:
+      'A street plaza scooter competition running 2pm to 9pm, with riders taking 45-second runs judged on trick difficulty, use of the park and consistency. Three age categories compete — 11 and under, under 16, and 16 and over — and there is a best trick on the resi for the 16 and over category. Spectating is free.',
+    sourceUrl:
+      'https://www.graystoneactionsports.co.uk/graystonenewsblog/graystone-clash-scooter-comp',
+    lat: 53.4836,
+    lng: -2.27589,
+    isLive: true,
+  },
 ] as const satisfies readonly LandItEvent[];
 
 /** Every seeded event id, as a union. */

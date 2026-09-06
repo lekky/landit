@@ -3121,6 +3121,13 @@
       "country": "New Zealand",
       "sourceUrl": "https://www.freestylerollersports.co.nz/2026-scooter-nationals",
       "coordNote": "Venue-level: Napier's Marine Parade, from OpenStreetMap via Photon (Bay Skate is at 290 Marine Parade). The 2027 year is confirmed by the linking heading 'Scooter Nationals 2027' on the Freestyle Roller Sports NZ homepage; the event page itself gives only day and month."
+    },
+    {
+      "id": "graystone-clash-scooter-2026",
+      "name": "Graystone Clash Scooter Competition",
+      "country": "UK",
+      "sourceUrl": "https://www.graystoneactionsports.co.uk/graystonenewsblog/graystone-clash-scooter-comp",
+      "coordNote": "Venue-level, not town-level: the coordinate is the one already held for the Graystone Action Sports spot in SPOTS. Added 2026-09-06 after the research pass — the Europe agent reached graystoneactionsports.co.uk but the site rendered no listings to its fetcher, so the comp was missed; a direct fetch of the blog post succeeded."
     }
   ]
 }
