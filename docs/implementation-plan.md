@@ -2674,6 +2674,23 @@ which is worse than having no column, because the number still looks like a reco
 for later tasks: **nothing may write `last_seen` from a screen** — it has one writer,
 `stampLastSeen`, called from the auth hook.
 
+**Authorised behaviour change to merged shared code (owner: lekky, 2026-09-07, in chat), issue
+#345.** `toDayKey` in `packages/core` now reads `timeZone || DEFAULT_TIMEZONE` rather than relying
+on its default parameter alone. A default parameter only fires on `undefined`, and a `timezone`
+read out of `users` is `''` for an account that never finished onboarding and for every erased
+account — erasure clears the field — so it reached `Intl.DateTimeFormat` as an empty string and
+threw a `RangeError`. `feat-last-seen` found it by populating a column that had been empty on most
+rows; one erased account would have taken the whole staff Riders table down, and `pnpm build`,
+`pnpm test` and `pnpm lint` were all green while it did.
+
+The change is narrow and the distinction is the point: **an absent zone and a wrong zone are
+different questions.** `''` means "this rider has none", which is exactly what `DEFAULT_TIMEZONE`
+is documented for, and `'Mars/Olympus'` is still a `RangeError` — the half of the old contract
+worth keeping. `monthKeysBack` deliberately gained no `||` of its own: it hands its zone straight
+to `toDayKey`, and one place deciding is the whole fix. The existing `|| DEFAULT_TIMEZONE` at the
+fifteen call sites become redundant rather than load-bearing and were left alone; removing them is
+churn with no reader benefit.
+
 Issue #103 — a lowered sticker threshold not reaching riders who already qualify until their next
 write — is **not** fixed here and was not within reach: the award runs in `pocketbase/hooks`, which
 `t18-hardening` owned for the length of this session. The Stickers tab says so on the screen and in

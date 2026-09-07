@@ -581,8 +581,11 @@ field goes from usually-empty to always-populated, the change is not the field â
 that was guarded by the emptiness**, so list what now runs for the first time and look at it.
 `pnpm build`, `pnpm test` and `pnpm lint` were all green with that page 500ing; it was found by a
 throwaway Playwright spec that signed in as staff and opened the screen, written for a screenshot
-and worth more than the screenshot. The general trap in `toDayKey` itself is issue #345, which
-needs an owner decision.
+and worth more than the screenshot. The general trap in `toDayKey` itself was issue #345, closed by
+`fix-timezone-fallback` (2026-09-07): it now reads `timeZone || DEFAULT_TIMEZONE`, so an absent
+zone gets the rider's default day and only a *wrong* zone throws. **No zone and a wrong zone are
+different questions**, and a function that conflates them makes every call site responsible for
+telling them apart â€” which fifteen call sites did correctly and two did not.
 
 **Copy decisions get tests, or they get quietly reverted.** T5's legal documents are a rewrite, not
 a transcription: no minimum age, no Crew Pass, profiles private by default, reporting described as

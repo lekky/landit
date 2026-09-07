@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { PLAN_IDS } from '../data/plans';
 import { TRICKS } from '../data/tricks';
 import type { StageId, Trick, TrickLogEntry } from '../types';
+import { DEFAULT_TIMEZONE } from './time';
 import {
   MONTH_LABELS,
   insightsVisible,
@@ -65,6 +66,17 @@ describe('month labels come from data, not ICU', () => {
     const instant = at('2026-08-01T02:00:00Z');
     expect(monthKeysBack(instant, 1, 'Europe/London')).toEqual(['2026-08']);
     expect(monthKeysBack(instant, 1, 'America/Los_Angeles')).toEqual(['2026-07']);
+  });
+
+  it('treats a rider with no timezone as the default, rather than throwing', () => {
+    // Issue #345. This function deliberately has no `|| DEFAULT_TIMEZONE` of its
+    // own — `toDayKey` is the one place that decides what an absent zone means —
+    // so this is what proves the decision actually reaches the callers that pass
+    // a zone straight through. `''` is what `users.timezone` holds for an
+    // account that never finished onboarding, and for every erased account.
+    const instant = at('2026-08-01T02:00:00Z');
+    expect(monthKeysBack(instant, 2, '')).toEqual(monthKeysBack(instant, 2, DEFAULT_TIMEZONE));
+    expect(() => monthKeysBack(instant, 2, '')).not.toThrow();
   });
 });
 
