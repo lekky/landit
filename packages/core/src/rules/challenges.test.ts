@@ -11,11 +11,13 @@ import {
   challengeRangeLabel,
   challengeRewardSticker,
   challengeState,
+  challengeStateBounds,
   challengesFor,
   challengesOverlap,
   isDayInChallenge,
   liveChallenge,
   overlappingChallenges,
+  type ChallengeDateBound,
 } from './challenges';
 
 const challenge = (
@@ -36,6 +38,78 @@ const challenge = (
 
 const week = challenge({ id: 'w', starts: '2026-08-10', ends: '2026-08-16' });
 const at = (iso: string, timezone = 'Europe/London') => ({ now: Date.parse(iso), timezone });
+
+/**
+ * The two spellings of "which weeks are in this state" must agree.
+ *
+ * `challengeStateBounds` exists so a database can select what `challengeState`
+ * would have decided — the staff portal's challenges tab pages on the server,
+ * and a page cannot be filtered by a value computed after the rows come back.
+ * That makes it a second implementation of a rule, which is the shape this
+ * codebase avoids everywhere else. This test is the price of the exception: it
+ * compares the two directly, so a change to one that is not made to the other
+ * fails here rather than showing staff a week whose chip contradicts the filter
+ * that selected it.
+ */
+describe('challengeStateBounds selects what challengeState decides', () => {
+  /** Apply the bounds the way a query would, on inclusive calendar days. */
+  const matches = (c: Challenge, bounds: readonly ChallengeDateBound[]): boolean =>
+    bounds.every(({ field, op, day }) => {
+      const value = c[field];
+      if (op === '<') return value < day;
+      if (op === '<=') return value <= day;
+      if (op === '>') return value > day;
+      return value >= day;
+    });
+
+  const weeks: Challenge[] = [
+    challenge({ id: 'w1', starts: '2026-08-03', ends: '2026-08-09' }),
+    challenge({ id: 'w2', starts: '2026-08-10', ends: '2026-08-16' }),
+    challenge({ id: 'w3', starts: '2026-08-17', ends: '2026-08-23' }),
+    // A single-day week, so the two `live` bounds are tested against one date.
+    challenge({ id: 'w4', starts: '2026-08-13', ends: '2026-08-13' }),
+  ];
+
+  const days = [
+    '2026-08-02', // before everything
+    '2026-08-09', // the last day of w1
+    '2026-08-10', // the first day of w2
+    '2026-08-13', // inside w2, and the whole of w4
+    '2026-08-16', // the last day of w2
+    '2026-08-17', // the first day of w3
+    '2026-08-30', // after everything
+  ];
+
+  for (const state of ['upcoming', 'live', 'past'] as const) {
+    it(`agrees on "${state}" across the boundaries`, () => {
+      for (const today of days) {
+        // The same day for both sides — which is why `challengeStateBounds`
+        // takes `today` rather than reading a clock of its own.
+        const byRule = weeks.filter(
+          (c) => challengeState(c, at(`${today}T12:00:00Z`, 'UTC')) === state,
+        );
+        const byBounds = weeks.filter((c) => matches(c, challengeStateBounds(state, today)));
+
+        expect(
+          byBounds.map((c) => c.id).sort(),
+          `${state} on ${today}: the bounds and the rule disagree`,
+        ).toEqual(byRule.map((c) => c.id).sort());
+      }
+    });
+  }
+
+  it('covers every week exactly once across the three states', () => {
+    for (const today of days) {
+      const counted = (['upcoming', 'live', 'past'] as const).flatMap((state) =>
+        weeks.filter((c) => matches(c, challengeStateBounds(state, today))).map((c) => c.id),
+      );
+      // No week may fall through the three filters, and none may appear in two:
+      // the staff tab's pill counts are these three filters, and they are read
+      // as a breakdown of the whole.
+      expect(counted.sort()).toEqual(weeks.map((c) => c.id).sort());
+    }
+  });
+});
 
 describe('challenge state is derived, never stored', () => {
   it('is upcoming before the first day', () => {

@@ -7,6 +7,8 @@ import { useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
 
+import { Pager, useTableNav } from '../Pager';
+
 import { StaffEditor, type EditorValue } from '../StaffEditor';
 import {
   challengeLogCountAction,
@@ -85,20 +87,51 @@ const BLANK: EditorValue = {
   blurb: '',
 };
 
-export function ChallengesScreen({ rows }: { rows: readonly AdminChallengeRow[] }) {
+export function ChallengesScreen({
+  rows,
+  sport,
+  state,
+  counts,
+  featured,
+  page,
+  totalPages,
+  totalItems,
+}: {
+  rows: readonly AdminChallengeRow[];
+  sport: SportId;
+  state: string;
+  /** Keyed `sport:<id>` and `state:<id>` — see `page.tsx`. */
+  counts: Readonly<Record<string, number>>;
+  /** The week running now, else the next scheduled. Null when the sport has neither. */
+  featured: AdminChallengeRow | null;
+  page: number;
+  totalPages: number;
+  totalItems: number;
+}) {
   const router = useRouter();
   const { toast } = useToast();
-  const [pending, startTransition] = useTransition();
-
-  const [sport, setSport] = useState<SportId>(SPORT_IDS[0]);
-  const [state, setState] = useState<string>('all');
+  const { pending: navigating, params, setFilter, goToPage } = useTableNav();
+  // Two transitions: one for re-fetching the table, one for a delete. See
+  // `SpotsScreen` — a slow delete should not disable the pager, and vice versa.
+  const [saving, startTransition] = useTransition();
+  const pending = navigating || saving;
   const [editing, setEditing] = useState<AdminChallengeRow | null>(null);
   const [adding, setAdding] = useState(false);
 
-  const forSport = rows.filter((r) => r.sport === sport);
-  const list = forSport.filter((r) => state === 'all' || r.state === state);
-  const featured =
-    forSport.find((r) => r.state === 'live') ?? forSport.find((r) => r.state === 'upcoming');
+  const setSport = (id: SportId) => {
+    const next = params();
+    next.set('sport', id);
+    setFilter(next);
+  };
+
+  const setState = (value: string) => {
+    const next = params();
+    if (value === 'all') next.delete('state');
+    else next.set('state', value);
+    setFilter(next);
+  };
+
+  const list = rows;
 
   const challengeFrom = (value: EditorValue): ChallengeForm => ({
     week: String(value.week ?? ''),
@@ -149,14 +182,20 @@ export function ChallengesScreen({ rows }: { rows: readonly AdminChallengeRow[] 
       <div className={styles.toolbar}>
         {SPORT_IDS.map((id) => (
           <Pill key={id} on={sport === id} onClick={() => setSport(id)}>
-            {SPORTS[id].label} · {rows.filter((r) => r.sport === id).length}
+            {SPORTS[id].label} · {counts[`sport:${id}`] ?? 0}
           </Pill>
         ))}
         <span className={styles.toolbarSplit} />
+        {/*
+          The counts come from the server rather than from `rows`, which is now
+          one page. Counting the page would have made every pill read "25" and
+          the state pills read whatever happened to be on screen — a breakdown
+          that changes as you page is not a breakdown.
+        */}
         {STATE_FILTERS.map(([k, label]) => (
           <Pill key={k} on={state === k} onClick={() => setState(k)}>
             {label}
-            {k !== 'all' ? ` · ${forSport.filter((r) => r.state === k).length}` : ''}
+            {k !== 'all' ? ` · ${counts[`state:${k}`] ?? 0}` : ''}
           </Pill>
         ))}
         <button
@@ -278,6 +317,16 @@ export function ChallengesScreen({ rows }: { rows: readonly AdminChallengeRow[] 
 
         {!list.length && <div className={styles.noRows}>No weeks match that filter.</div>}
       </Panel>
+
+      <Pager
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        noun="week"
+        nounPlural="weeks"
+        onPage={goToPage}
+        busy={pending}
+      />
 
       <p className={styles.footnote}>
         Dates decide everything. A week goes live at midnight on its start date and closes at the

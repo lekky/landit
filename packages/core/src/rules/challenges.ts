@@ -1,6 +1,6 @@
 import { CHALLENGES } from '../data/challenges';
 import { STICKERS } from '../data/stickers';
-import type { Challenge, ChallengeState, SportId, Sticker } from '../types';
+import type { Challenge, ChallengeState, DayKey, SportId, Sticker } from '../types';
 import { riderToday, type RiderClock } from './streak';
 import { compareDayKeys, isDayWithin } from './time';
 
@@ -22,6 +22,59 @@ export function challengeState(challenge: Challenge, clock: RiderClock = {}): Ch
   if (today < challenge.starts) return 'upcoming';
   if (today > challenge.ends) return 'past';
   return 'live';
+}
+
+/**
+ * The day-key comparisons that select exactly the weeks `challengeState` would
+ * call `state`, against the same day.
+ *
+ * **This is a second spelling of the rule above, and it exists under protest.**
+ * The staff portal's challenges tab pages on the server, and a page cannot be
+ * filtered by a value computed after the rows come back — the database has to
+ * do the selecting, and the database cannot call `challengeState`. So the rule
+ * gets a second form, and the whole design of this function is about making the
+ * two impossible to drift apart:
+ *
+ * - It lives **here**, beside `challengeState`, rather than as a filter string
+ *   in `@landit/db`. Anyone changing one has the other on screen.
+ * - It returns **day keys and comparisons**, not SQL. The caller encodes them
+ *   for whatever it is querying; the rule itself stays storage-agnostic, which
+ *   is what keeps this package free of query concerns.
+ * - `challenges.test.ts` holds the equivalence directly: for every state and a
+ *   spread of dates, filtering a set with these bounds gives the same weeks as
+ *   filtering it with `challengeState`. A change to one that is not made to the
+ *   other fails there rather than in production.
+ *
+ * The caller passes `today` in rather than this reading a clock, so the page
+ * that filters and the rows it renders are resolved against **one** day. Two
+ * calls either side of midnight would otherwise select a week and then label it
+ * with a state the filter disagrees with.
+ *
+ * State is still never stored (plan §2.2, and the `challenges` migration says
+ * so). Comparing the dates is what "derived" means; a `state` column would be
+ * the thing that goes stale.
+ */
+export interface ChallengeDateBound {
+  readonly field: 'starts' | 'ends';
+  readonly op: '<' | '<=' | '>' | '>=';
+  /** An inclusive calendar day, `YYYY-MM-DD`. */
+  readonly day: DayKey;
+}
+
+export function challengeStateBounds(
+  state: ChallengeState,
+  today: DayKey,
+): readonly ChallengeDateBound[] {
+  // Read straight off `challengeState`'s three branches, in its order:
+  //   today < starts  -> upcoming
+  //   today > ends    -> past
+  //   otherwise       -> live
+  if (state === 'upcoming') return [{ field: 'starts', op: '>', day: today }];
+  if (state === 'past') return [{ field: 'ends', op: '<', day: today }];
+  return [
+    { field: 'starts', op: '<=', day: today },
+    { field: 'ends', op: '>=', day: today },
+  ];
 }
 
 /** Is the log button allowed to do anything? Only inside the live window. */
