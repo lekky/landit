@@ -174,8 +174,8 @@ Not done: `www.landthetrick.com` still serves a full duplicate of the site rathe
 
 ## Tests and CI
 
-~1000 Vitest cases (core rules, db, generated-type drift, web libs), 22 PocketBase HTTP suites
-(~310 cases) driving the real pinned binary — including one suite per security guarantee — and 15
+~1000 Vitest cases (core rules, db, generated-type drift, web libs), 29 PocketBase HTTP suites
+(384 cases) driving the real pinned binary — including one suite per security guarantee — and 15
 Playwright specs (126 tests). CI: gates (build/test/lint), Docker image checks (boots both images,
 asserts live and holding-page modes), e2e. Known coverage gaps: no specs for crews/admin/report
 flows (#98, #136, #146).
