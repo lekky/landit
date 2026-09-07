@@ -26,6 +26,7 @@ export {
 } from './countries';
 export { CHALLENGES, type ChallengeId } from './challenges';
 export { EVENTS, type EventId } from './events';
+export { GLOSSARY, type GlossaryTerm } from './glossary';
 export { PLAN, PLAN_IDS, PLANS } from './plans';
 export {
   CUSTOM_GOAL_ID,

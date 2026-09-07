@@ -27,9 +27,26 @@ export default defineConfig({
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
+  /*
+   * `tsconfig.json` here says `jsx: preserve`, which is Next's setting — Next
+   * compiles the JSX itself. Vite reads the same file and would hand a `.tsx`
+   * test on untransformed, which does not parse. Compile it here the way
+   * `packages/ui-web` does (`react-jsx`).
+   */
+  oxc: { jsx: { runtime: 'automatic' } },
   test: {
     name: '@landit/web',
-    include: ['src/lib/**/*.test.ts'],
+    /*
+     * `components/glossary` is the one component directory here, and it is
+     * not a screen: `GlossaryText` is a pure function of a string that returns
+     * markup, with no state and no hydration, and its whole job is *which
+     * words became links*. Playwright cannot see that until a page uses it,
+     * and nothing does yet (T29); a string-in, markup-out assertion is a unit
+     * test in every sense the rule above means. The glob names the directory
+     * rather than `src/components/**`, so this stays an exception and not a
+     * door.
+     */
+    include: ['src/lib/**/*.test.ts', 'src/components/glossary/**/*.test.tsx'],
     environment: 'node',
   },
 });

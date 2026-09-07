@@ -28,6 +28,7 @@ import { ROUTES, legalHref } from '@/lib/routes';
 export const PUBLIC_ROUTES: readonly Route[] = [
   ROUTES.home,
   ROUTES.library,
+  ROUTES.glossary,
   ROUTES.spots,
   ROUTES.events,
   /*

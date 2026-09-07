@@ -160,6 +160,18 @@ export {
   type TrickStatusFilter,
 } from './library';
 export {
+  GLOSSARY_LETTERS,
+  glossaryFor,
+  glossaryLetter,
+  glossaryMatches,
+  glossarySegments,
+  glossaryTerm,
+  groupGlossaryByLetter,
+  type GlossaryLetterGroup,
+  type GlossaryMatch,
+  type GlossarySegment,
+} from './glossary';
+export {
   firstLanded,
   landedByMonth,
   latestLanded,

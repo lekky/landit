@@ -229,6 +229,10 @@ describe('the event catalogue', () => {
         // only thing that can say whether keeping finished events online is
         // read by anybody through the product's own front door.
         'events_view_switched',
+        // A glossary term reached — by a deep link from a trick's copy or by a
+        // "See it in" pill. Fired by a reader who need not have an account,
+        // like `landing_cta`, because the glossary reads signed out.
+        'glossary_opened',
         'guardian_asked',
         // "Where did you find us?" — the last thing onboarding asks, and the
         // only measure of how riders arrive that survives having no cookies.
