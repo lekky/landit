@@ -392,6 +392,26 @@ Bash the flag has to be doubled (`//MIR`); from PowerShell it is as written abov
 **exits 1–7 on success** — 2 means "extra files removed", which is what a successful mirror does —
 so a `$LASTEXITCODE` check that treats non-zero as failure will report the opposite of the truth.
 
+**After a successful mirror, do not reach for `git worktree remove` — the sequence above skips it
+deliberately.** The mirror deletes the worktree's `.git` file along with everything else, so the
+command that would have removed it now refuses:
+
+```
+fatal: validation failed, cannot remove working tree:
+  '.../<worktree>/.git' does not exist
+```
+
+That reads like the cleanup has gone wrong and it has not: the mirror did its job, and the two
+steps still owed are `Remove-Item -Recurse -Force` on the directory and then `git worktree prune`,
+exactly as written above. Noticed on 2026-09-07 (`chore-admin-pagination`), by running
+`git worktree remove` out of habit between the mirror and the delete.
+
+The same session hit the exit-code trap one level up from the one described above. The Bash and
+PowerShell tools judge a command by its exit code, so `robocopy ... ; "exit: $LASTEXITCODE"`
+surfaces a *successful* mirror as a failed tool call — robocopy's 2 means "extra files removed",
+which is what mirroring an empty directory does. Pipe it to `Out-Null` and check the directory
+afterwards rather than trusting the status.
+
 **A worktree directory can also refuse to delete while empty.** After a clean mirror, `Remove-Item`
 can still return *"being used by another process"* with no `node.exe` running and no shell inside
 it. It is transient: the same command a few minutes later succeeded on both worktrees this session
