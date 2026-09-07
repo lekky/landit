@@ -113,7 +113,4 @@ shared VPS · Cloudflare R2 (database backups only — Land The Trick hosts no r
 Stripe · MailerSend (PocketBase's SMTP sender — configured in its settings database, no code
 integration) · MapLibre + OpenFreeMap · Sentry (wired, inert until a DSN is set — issue #145) ·
 PostHog EU (wired, cookie-less and inert until `NEXT_PUBLIC_POSTHOG_KEY` is set — §6.8; the
-Cloudflare beacon that used to sit beside it was dropped on 2026-08-21) · Google Analytics 4
-(added 2026-09-06 beside PostHog, equally cookie-less and inert until
-`NEXT_PUBLIC_GA_MEASUREMENT_ID` is set — three of its settings live in the GA property and are
-listed in `apps/web/.env.example`).
+Cloudflare beacon that used to sit beside it was dropped on 2026-08-21).
