@@ -6,11 +6,6 @@ import {
   analyticsHost,
   analyticsKey,
   analyticsOptions,
-  gaConsentDefaults,
-  gaEnabled,
-  gaMeasurementId,
-  gaOptions,
-  gaPageContext,
   scrubProperties,
 } from './analytics';
 
@@ -23,21 +18,11 @@ import {
  * tests is a default somebody restores. These are the assertions that make
  * changing one a deliberate act with a failing test in front of it.
  *
- * **Two services since 2026-09-06**, so each promise is asserted twice: once
- * against PostHog's options and once against Google Analytics'. A promise kept
- * by one service and not the other is not kept.
- *
- * Unlike `sentry.test.ts` there is no end-to-end delivery check here. Both
- * browser SDKs reach for `window` on import, and a fake ingest endpoint would
- * prove an SDK works rather than that our configuration is right — which is
+ * Unlike `sentry.test.ts` there is no end-to-end delivery check here. PostHog's
+ * browser SDK reaches for `window` on import, and a fake ingest endpoint would
+ * prove the SDK works rather than that our configuration is right — which is
  * the only thing this file is about. Delivery is proven by events appearing in
- * the projects.
- *
- * **Three of GA's settings cannot be tested from here at all**, because they
- * live in the GA property rather than in this repository: enhanced measurement
- * (GA's autocapture, which must be off), Google-products data sharing, and the
- * custom-dimension registration that makes properties visible. `analytics.ts`
- * says what each one is and what it breaks.
+ * the project.
  */
 
 describe('whether analytics is on', () => {
@@ -295,116 +280,5 @@ describe('the event catalogue', () => {
     for (const name of names) {
       expect(name).not.toMatch(/handle|email|name_|_name|note_text|goal|address/);
     }
-  });
-});
-
-describe('whether Google Analytics is on', () => {
-  it('is off with no measurement id, which is CI and every local checkout', () => {
-    delete process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-    expect(gaMeasurementId()).toBe('');
-    expect(gaEnabled()).toBe(false);
-  });
-
-  it('is on with one, and reads the variable the env template documents', () => {
-    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = 'G-EXAMPLE123';
-    expect(gaEnabled()).toBe(true);
-    expect(gaMeasurementId()).toBe('G-EXAMPLE123');
-    delete process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-  });
-
-  it('treats a whitespace-only id as unset, because a blank line in a dashboard is not an id', () => {
-    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = '   ';
-    expect(gaEnabled()).toBe(false);
-    delete process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-  });
-
-  it('says nothing about PostHog either way, so either service can run alone', () => {
-    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = 'G-EXAMPLE123';
-    delete process.env.NEXT_PUBLIC_POSTHOG_KEY;
-    expect(gaEnabled()).toBe(true);
-    expect(analyticsEnabled()).toBe(false);
-    delete process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-  });
-});
-
-describe('the promises the cookie policy makes, in Google Analytics', () => {
-  it('denies analytics storage, which is what actually keeps the cookie away', () => {
-    // The whole legal position turns on this one value. With GA's normal `_ga`
-    // cookie the product would need consent in both the UK and the EU — and
-    // consent is the wrong tool for an audience who mostly cannot give it
-    // (UK GDPR Art 8). See the header of `analytics.ts`.
-    expect(gaConsentDefaults().analytics_storage).toBe('denied');
-  });
-
-  it('does not set `client_storage`, which GA4 ignores and which misled us once', () => {
-    // Checked in a real browser on 2026-09-06: with `client_storage: 'none'`
-    // and nothing else, GA4 wrote `_ga` and `_ga_<id>` anyway. The parameter is
-    // Universal Analytics'. This assertion exists so nobody restores it and
-    // believes the promise is kept.
-    expect(gaOptions()).not.toHaveProperty('client_storage');
-  });
-
-  it('denies the advertising storages too, because there are no ads here', () => {
-    const consent = gaConsentDefaults();
-    expect(consent.ad_storage).toBe('denied');
-    expect(consent.ad_user_data).toBe('denied');
-    expect(consent.ad_personalization).toBe('denied');
-  });
-
-  it('denies the two storages nothing here needs, rather than leaving them granted', () => {
-    const consent = gaConsentDefaults();
-    expect(consent.functionality_storage).toBe('denied');
-    expect(consent.personalization_storage).toBe('denied');
-  });
-
-  it('refuses Google signals, which is cross-device tracking of signed-in accounts', () => {
-    expect(gaOptions().allow_google_signals).toBe(false);
-  });
-
-  it('refuses ad personalisation, which is what would make this advertising data', () => {
-    expect(gaOptions().allow_ad_personalization_signals).toBe(false);
-  });
-
-  it('sends no pageview of its own, so no unscrubbed URL leaves on config', () => {
-    // gtag would otherwise fire one from `location.href` the moment it
-    // configures. `sendPageView` in `analyticsClient.ts` does it by hand
-    // instead, from a scrubbed location.
-    expect(gaOptions().send_page_view).toBe(false);
-  });
-});
-
-describe('what Google Analytics is told about where we are', () => {
-  it('redacts a guardian-consent token, which is the whole of guarantee 4', () => {
-    // gtag attaches `page_location` to every event, not only to pageviews, so
-    // this is what stops any event fired from a consent page carrying a live
-    // credential.
-    expect(gaPageContext('https://landthetrick.com/consent/approve/abc123', '')).toEqual({
-      page_location: 'https://landthetrick.com/consent/approve/[redacted]',
-    });
-    expect(gaPageContext('https://landthetrick.com/consent/revoke/abc123', '')).toEqual({
-      page_location: 'https://landthetrick.com/consent/revoke/[redacted]',
-    });
-  });
-
-  it('strips the query string, where the rider ids are', () => {
-    expect(gaPageContext('https://landthetrick.com/report?about=profile&id=abc', '')).toEqual({
-      page_location: 'https://landthetrick.com/report',
-    });
-  });
-
-  it('scrubs the referrer too, which is the previous page and just as telling', () => {
-    expect(
-      gaPageContext(
-        'https://landthetrick.com/home',
-        'https://landthetrick.com/consent/approve/abc123',
-      ),
-    ).toEqual({
-      page_location: 'https://landthetrick.com/home',
-      page_referrer: 'https://landthetrick.com/consent/approve/[redacted]',
-    });
-  });
-
-  it('omits an empty referrer rather than sending one, which GA would take literally', () => {
-    expect(gaPageContext('https://landthetrick.com/home', '')).not.toHaveProperty('page_referrer');
   });
 });

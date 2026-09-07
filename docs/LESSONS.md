@@ -1002,10 +1002,10 @@ production, so the trap should not recur — but a browser that already holds th
 it until it updates; unregister it once from DevTools → Application → Service Workers.
 
 **A worktree preview can serve you another checkout's JavaScript, and look completely normal
-doing it.** Verifying GA in the browser (2026-09-06, §9a below) began with twenty minutes of a
-client change that would not appear: the server was demonstrably the right worktree — its
-server-rendered HTML carried the new copy — while the client bundle was the version from before
-the edit. Turbopack names **dev** chunks after their source path, not their content
+doing it.** Verifying a client change in the browser (2026-09-06) began with twenty minutes of an
+edit that would not appear: the server was demonstrably the right worktree — its server-rendered
+HTML carried the new copy — while the client bundle was the version from before the edit.
+Turbopack names **dev** chunks after their source path, not their content
 (`apps_web_src_0_e4bus._.js`), so the URL is identical across checkouts and across edits, and
 whatever holds an HTTP cache keeps serving the first one it saw. Deleting `.next`, restarting the
 server and re-fetching with `cache: 'reload'` all failed to shift it.
@@ -1014,8 +1014,7 @@ Two ways out, and the second is the reliable one. Grep the served chunk for a st
 code contains — that is what turns "my change is not working" into "my change is not loaded", and
 they have nothing in common. Then **verify against a production build** (`next build` +
 `next start`): production chunks are content-hashed, so a changed file is a changed URL and no
-cache can shadow it. The build costs a minute and removes the entire class of doubt, which is
-worth it for anything you intend to write down as verified.
+cache can shadow it.
 
 ## 8. Configuration that is copied between systems
 
@@ -1109,39 +1108,44 @@ died with exit 144 before this was obvious: the `pkill -f "next dev"` matched, a
 process group running the command that issued it. Kill in one call, start in the next, or use the
 tool's own background mode.
 
-## 9a. A third-party setting that does nothing, quietly
+## 9a. Verified to the wire is not verified to the dashboard
 
-Adding GA4 beside PostHog (2026-09-06, §6.8) turned on the whole child-safety argument for the
-change: no cookie, therefore no consent banner, therefore the published `/legal/cookies` promise
-stays true. The client was configured with `client_storage: 'none'`, which is what the name says
-and what a lot of writing about gtag says. The unit test asserted it. The plan, the env template,
-the README, `FEATURES.md` and the public cookie policy were all written around it.
+Google Analytics was added beside PostHog on 2026-09-06 and removed on 2026-09-07 (§6.8). It never
+reported a single number. Two failures, nested, and the outer one is the lesson.
 
-**It is a Universal Analytics parameter. GA4 accepts it, ignores it, and reports nothing.** In a
-real browser, with that setting and nothing else: clear the cookies, reload, and GA4 has written a
-fresh `_ga` and `_ga_<id>` pair with a new client id. The fix is Consent Mode —
-`gtag('consent', 'default', { analytics_storage: 'denied', … })`, set *before* `config` — but the
-fix is not the lesson.
+**The inner failure: a setting that does nothing, quietly.** The cookieless position was configured
+with `client_storage: 'none'` — what the name says, and what much of the writing about gtag says.
+The unit test asserted it. The plan, the env template, the README, `FEATURES.md` and the public
+cookie policy were all written around it. It is a Universal Analytics parameter; GA4 accepts it,
+ignores it, and reports nothing. In a real browser: clear the cookies, reload, and GA4 had written
+a fresh `_ga` pair. Every artefact agreed with every other and all of them were wrong, because
+they all derived from the same unchecked assumption. That was caught before merge, and the fix
+(Consent Mode) was verified the same way.
 
-**The lesson is that every artefact agreed with each other and all of them were wrong**, because
-they all derived from the same unchecked assumption. A green test suite is evidence that the code
-does what the test says; it is never evidence that the third party does what its parameter is
-named. Two rules follow, and the second is the sharper one:
+**The outer failure, which was not caught before merge: verifying delivery instead of the
+outcome.** After the fix, the integration was checked hard — hits leaving the browser, correct
+event names, consent state `gcs=G100`, no cookies, guarantee 4 proven against a live token on
+production. All true, all worth checking, and all beside the point. Nobody asked *whether a number
+would ever appear in the dashboard*. It could not: GA4 only surfaces cookieless pings through
+behavioural modelling, and modelling requires roughly a thousand daily users with consent
+**granted** before it activates. A product with no consent banner has zero granted users, forever,
+so the threshold is not "not yet" but "never". The evidence was one screen in the GA property —
+"No data received from your website yet" — and it took a day and a deploy to look at it.
+
+Three rules, and the third is the one this cost a day to learn:
 
 - **A claim about a third party's *behaviour* is verified against the third party, in a browser,
-  before it is written into a document.** This is the same lesson as §9 from the other side: there
-  the SDK silently sent nothing, here it silently did something. Both were invisible to
-  `pnpm build`, `pnpm test` and `pnpm lint`, and both were a two-minute check in a real page.
+  before it is written into a document.** The same lesson as §9 from the other side: there the SDK
+  silently sent nothing, here it silently did something. Both were invisible to `pnpm build`,
+  `pnpm test` and `pnpm lint`.
 - **When a setting turns out to be inert, delete it — do not leave it beside its replacement.** A
   parameter whose name states the guarantee and whose effect is nil is worse than no parameter,
-  because the next reader trusts the name and stops looking. `analytics.test.ts` now asserts that
-  `client_storage` is *absent*, which is the only form of this that survives somebody helpfully
-  restoring it.
-
-The general shape, for anything security- or privacy-load-bearing: **ask what observable fact would
-be different if this setting did nothing, then go and look at that fact.** Here it was one line —
-`document.cookie` — and it disproved four documents.
-
+  because the next reader trusts the name.
+- **Verify the last mile, not the first.** For anything whose value is "we can see X", the
+  acceptance test is *seeing X in the place it is meant to appear* — not the request that should
+  cause it. A payload on the wire proves the code works; it proves nothing about whether the
+  service will ever show it to you. Ask "what would I look at to know this was worth doing?" and
+  go and look at that, **before** the work is merged rather than after it is deployed.
 
 ## 10. Verifying work done in bulk
 
