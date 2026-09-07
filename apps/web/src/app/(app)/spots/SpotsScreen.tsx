@@ -8,6 +8,7 @@ import {
   mapsLink,
   sortSpotsByDistance,
   sortSpotsHomeFirst,
+  spotFeature,
   type DistanceUnits,
   type SportId,
 } from '@landit/core';
@@ -99,6 +100,7 @@ export function SpotsScreen({
   signedIn,
   units,
   homeCountry = null,
+  initialFeature = null,
 }: {
   readonly spots: readonly SpotView[];
   readonly signedIn: boolean;
@@ -110,10 +112,25 @@ export function SpotsScreen({
    * list until they ask for "Near me".
    */
   readonly homeCountry?: string | null;
+  /**
+   * A feature tag the list opens narrowed to — `/spots?feature=flat`, from a
+   * trick page's "Where to practise" line (T31). Already validated by the
+   * page; `null` is the plain list.
+   */
+  readonly initialFeature?: string | null;
 }) {
   const { sports, sport } = useSport();
 
   const [search, setSearch] = useState('');
+  /*
+   * The feature narrowing is client state seeded from the URL, like nothing
+   * else on this screen — and that is deliberate. The rider arrived here to
+   * see one kind of spot, and the pill below is how they widen it again; the
+   * URL is not rewritten when they do, because "the plain list" already has
+   * an address and this one is only ever arrived at from a link.
+   */
+  const [feature, setFeature] = useState<string | null>(initialFeature);
+  const featureLabel = feature ? (spotFeature(feature)?.label ?? feature) : null;
   const [everySport, setEverySport] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /*
@@ -156,14 +173,14 @@ export function SpotsScreen({
   const mine = useMemo(() => spots.filter((spot) => spot.status === 'pending'), [spots]);
 
   const list = useMemo(() => {
-    const narrowed = filterSpots(live, { search, sport: everySport ? null : sport });
+    const narrowed = filterSpots(live, { search, sport: everySport ? null : sport, feature });
     // Distance beats nationality the moment a rider presses for it: a rider in
     // Dublin is nearer Liverpool than parts of Ireland, and they said where
     // they are. Home-first is only what happens until then.
     return here.point
       ? sortSpotsByDistance(narrowed, here.point)
       : sortSpotsHomeFirst(narrowed, homeCountry);
-  }, [live, search, sport, everySport, here.point, homeCountry]);
+  }, [live, search, sport, everySport, feature, here.point, homeCountry]);
 
   /*
    * The list is shown a screenful at a time (2026-08-18, owner: "maybe need
@@ -189,7 +206,7 @@ export function SpotsScreen({
    * they had already scrolled past. This is React's documented "adjust state
    * when a prop changes" pattern; the extra render is discarded before paint.
    */
-  const listKey = `${search}|${sport}|${everySport}|${here.point ? 'near' : 'home'}`;
+  const listKey = `${search}|${sport}|${everySport}|${feature ?? ''}|${here.point ? 'near' : 'home'}`;
   const [lastKey, setLastKey] = useState(listKey);
   if (listKey !== lastKey) {
     setLastKey(listKey);
@@ -402,6 +419,22 @@ export function SpotsScreen({
         <Pill on={everySport} onClick={() => setEverySport(true)}>
           Every spot
         </Pill>
+        {/*
+          The feature the list arrived narrowed to, as a pill that is already
+          on. Pressing it is the only way off: there is no picker to choose a
+          different one, because this screen has no feature filter of its own
+          — the parameter exists so a trick page can point at one kind of
+          ground, and a rider who wants another types it into the search.
+        */}
+        {featureLabel && (
+          <Pill
+            on
+            onClick={() => setFeature(null)}
+            aria-label={`Showing ${featureLabel} only. Show every feature`}
+          >
+            {featureLabel} ×
+          </Pill>
+        )}
         <span className={styles.spacer} />
 
         {/*

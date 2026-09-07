@@ -9,11 +9,14 @@ import {
   computeStats,
   currentWeeklyStreak,
   firstLanded,
+  fullPrereqChain,
   isTrickLanded,
   isTrickLocked,
-  isTrickUnlocked,
   prereqTricks,
+  similarTricks,
   trickById,
+  trickHistory,
+  trickPositionFacts,
   tricksUnlockedBy,
   videoLinkAllowance,
   weeklyStreakLabel,
@@ -21,6 +24,7 @@ import {
   type PlanId,
   type StageId,
   type Trick,
+  type TrickHistory,
 } from '@landit/core';
 import {
   countVideoLinks,
@@ -53,8 +57,14 @@ import { SPORT_LOOKS, lowerLabel } from '@/lib/sports';
 import { anonymousClient, currentRider } from '@/lib/session';
 
 import { AwardBadge } from './AwardBadge';
+import { FactsStrip } from './FactsStrip';
+import { GuardianLine } from './GuardianLine';
+import { HistoryPanel } from './HistoryPanel';
 import { LockedTrick } from './LockedTrick';
 import { LogPanel, type NoteView } from './LogPanel';
+import { PractiseLine } from './PractiseLine';
+import { RoadPanel } from './RoadPanel';
+import { SimilarTricks } from './SimilarTricks';
 import { StagePanel, type TrickShareView } from './StagePanel';
 import styles from './trick.module.css';
 
@@ -68,6 +78,13 @@ import styles from './trick.module.css';
  *
  * Readable signed out, like the library: a visitor gets the trick and its
  * lowdown, and is asked to sign in where the tracking would be.
+ *
+ * T31 (2026-09-07) added everything the page could say from data it already
+ * held: the rider's history with the trick, the whole road of prerequisites,
+ * where the trick sits in its library, a guardian line on supervised tricks,
+ * four tricks like it, and where to practise it. Each is a pure rule in
+ * `@landit/core` and a small component beside this file; this file wires them
+ * and formats every date on the server (LESSONS §3a).
  */
 
 type Params = { params: Promise<{ slug: string }> };
@@ -116,6 +133,10 @@ async function load(slug: string) {
 
   if (!session) {
     const byId: Record<string, StageId> = {};
+    // The road names the plan that opens a paywalled step, and a visitor sees
+    // that too: it is a catalogue fact, and the visitor is the reader most
+    // likely to be deciding whether it is worth having.
+    const plans = await listPlans(client);
     return {
       session,
       client,
@@ -129,6 +150,8 @@ async function load(slug: string) {
       share: null,
       award,
       awardEarnedLabel: null,
+      history: null as TrickHistory | null,
+      unlockPlanName: unlockPlanName(plans),
       // A signed-out visitor gets no video surface at all, and it is worth being
       // precise about why: not because this branch chooses to hide one, but
       // because there is nothing for it to show. The `clips` view rule has no arm
@@ -159,7 +182,8 @@ async function load(slug: string) {
     ]);
 
   const byId: Record<string, StageId> = trickProgressById(progress, trickRecords);
-  const landed = firstLanded(trickLogEntries(log, trickRecords))[slug];
+  const entries = trickLogEntries(log, trickRecords);
+  const landed = firstLanded(entries)[slug];
   const timezone = session.rider.timezone || DEFAULT_TIMEZONE;
 
   return {
@@ -198,6 +222,10 @@ async function load(slug: string) {
      */
     awardEarnedLabel:
       held && held.earned_at ? `Earned ${shortDate(held.earned_at, timezone)}` : null,
+    // Every date and the summary line formatted here, in the rider's zone,
+    // from the same log rows `landedLabel` is read from (LESSONS §3a).
+    history: trickHistory(entries, slug, { timezone }) as TrickHistory | null,
+    unlockPlanName: unlockPlanName(plans),
     videos: videoLinksFromRecords(videoRecords),
     heldTotal,
     // The allowance from **our own plan record** (plan §2.4), matched by slug —
@@ -208,6 +236,16 @@ async function load(slug: string) {
       planFromRecord(plans.find((row) => row.slug === session.rider.plan)),
     ),
   };
+}
+
+/**
+ * The name of the cheapest live plan that unlocks paid tricks — what the road
+ * writes beside a paywalled step. `listPlans` sorts by clip cap, which is the
+ * plans' price order; "Shredder" is the fallback for a database whose plans
+ * have not been seeded, so the step still says something true.
+ */
+function unlockPlanName(plans: readonly PlansRecord[]): string {
+  return plans.find((row) => row.unlocks_paid_tricks)?.name ?? 'Shredder';
 }
 
 /**
@@ -350,8 +388,14 @@ export default async function TrickPage({ params }: Params) {
   const category = CATS[trick.cat];
   const sport = SPORTS[trick.sport];
   const unlocks = tricksUnlockedBy(trick.id, tricks);
-  const unlocked = isTrickUnlocked(trick, byId);
   const stage = byId[trick.id] ?? null;
+
+  // The three catalogue readings T31 added, each a pure rule over the live
+  // trick list. None of them reads the rider.
+  const road = fullPrereqChain(trick, tricks);
+  const facts = trickPositionFacts(trick, tricks);
+  const similar = similarTricks(trick, tricks);
+  const sportInSentence = lowerLabel(trick.sport);
 
   /*
    * The award line, in two places that are never both on screen: the hero
@@ -479,14 +523,12 @@ export default async function TrickPage({ params }: Params) {
 
         <div className={styles.grid}>
           <div className={styles.column}>
-            <div>
-              <div className={`lab ${styles.sectionLabel}`} style={{ color: category.color }}>
-                ◆ The lowdown
-              </div>
+            <div className={styles.secLowdown}>
+              <SectionHead color={category.color}>The lowdown</SectionHead>
               <p className={styles.prose}>{trick.about}</p>
             </div>
 
-            <div className={styles.kit}>
+            <div className={`${styles.kit} ${styles.secKit}`}>
               <span className={styles.kitIcon} style={{ background: sport.color }}>
                 <Equipment name={SPORT_LOOKS[trick.sport].icon} size={22} strokeWidth={2.3} />
               </span>
@@ -501,14 +543,22 @@ export default async function TrickPage({ params }: Params) {
               </div>
             </div>
 
-            <div>
-              <div className={`lab ${styles.sectionLabel}`} style={{ color: category.color }}>
-                ◆ Tips
+            {/* Only on a trick staff have flagged; never inferred from `diff`. */}
+            {trick.supervise && (
+              <div className={styles.secGuardian}>
+                <GuardianLine />
               </div>
+            )}
+
+            <div className={styles.secTips}>
+              <SectionHead color={category.color}>Tips</SectionHead>
               <p className={styles.prose}>{trick.tips}</p>
             </div>
 
-            <div className={styles.fact} style={{ borderLeftColor: category.color }}>
+            <div
+              className={`${styles.fact} ${styles.secFact}`}
+              style={{ borderLeftColor: category.color }}
+            >
               <span className={`d ${styles.factLabel}`} style={{ color: category.color }}>
                 Fun fact
               </span>
@@ -516,64 +566,48 @@ export default async function TrickPage({ params }: Params) {
             </div>
 
             {/*
-              What this trick is built on and what it opens up. Under the copy
-              rather than beside the videos, which is where the pack puts it:
-              these are links onward, and the end of the reading column is
-              where a rider is ready for them.
+              The road to it and what it opens up, then where to practise it.
+              Under the copy rather than beside the log, which is where the
+              pack puts them: these are links onward, and the end of the
+              reading column is where a rider is ready for them.
             */}
-            {(prereqs.length > 0 || unlocks.length > 0) && (
-              <Panel flat className={styles.sidePanel}>
-                {prereqs.length > 0 && (
-                  <>
-                    <div className="lab">{unlocked ? 'Built on' : 'Get these first'}</div>
-                    <div className={styles.pillRow}>
-                      {prereqs.map((prereq) => {
-                        const landed = landedIds.includes(prereq.id);
-                        return (
-                          <Link
-                            key={prereq.id}
-                            href={trickHref(prereq.id)}
-                            className={`pill ${styles.pillLink}${landed ? ` ${styles.pillLanded}` : ''}`}
-                          >
-                            {landed && <Icon name="check" size={12} strokeWidth={3} />}
-                            {prereq.name}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-                {unlocks.length > 0 && (
-                  <>
-                    {/* "You unlocked" once it is landed, which is the pack's
-                        wording and the honest tense for it. */}
-                    <div className={`lab ${prereqs.length ? styles.unlocksLabel : ''}`}>
-                      {isTrickLanded(byId, trick.id) ? 'You unlocked' : 'Land this and you unlock'}
-                    </div>
-                    <div className={styles.pillRow}>
-                      {unlocks.map((next) => {
-                        const locked = isTrickLocked(next, plan);
-                        const landed = isTrickLanded(byId, next.id);
-                        return (
-                          <Link
-                            key={next.id}
-                            href={trickHref(next.id)}
-                            className={`pill ${styles.pillLink}${locked ? ` ${styles.pillLocked}` : ''}${landed ? ` ${styles.pillLanded}` : ''}`}
-                          >
-                            {locked && <Icon name="lock" size={11} strokeWidth={2.8} />}
-                            {landed && <Icon name="check" size={12} strokeWidth={3} />}
-                            {next.name}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-              </Panel>
-            )}
+            <div className={styles.secRoad}>
+              <RoadPanel
+                trick={trick}
+                steps={road}
+                byId={byId}
+                plan={plan}
+                unlocks={unlocks}
+                unlockPlanName={data.unlockPlanName}
+              />
+            </div>
+
+            <div className={styles.secPractise}>
+              <PractiseLine slug={trick.id} cat={trick.cat} sport={trick.sport} />
+            </div>
           </div>
 
           <div className={styles.column}>
+            <div className={styles.secFacts}>
+              <FactsStrip
+                facts={facts}
+                categoryLabel={categoryLabel(trick.cat, trick.sport)}
+                sportLabel={sportInSentence}
+              />
+            </div>
+
+            {/*
+              The rider's own history with the trick. Signed in only, with no
+              tease for a visitor: the band above already carries the one
+              sign-in line this page needs, and "sign in to see your history"
+              would suggest there is one waiting.
+            */}
+            {data.history && (
+              <div className={styles.secHistory}>
+                <HistoryPanel history={data.history} />
+              </div>
+            )}
+
             {/*
               Video links (T15b). Signed-in only: `clips` has no rule arm a
               guest can match, so there is nothing to draw for one and no
@@ -596,7 +630,25 @@ export default async function TrickPage({ params }: Params) {
             )}
           </div>
         </div>
+
+        <SimilarTricks trick={trick} tricks={similar} byId={byId} plan={plan} />
       </Panel>
+    </div>
+  );
+}
+
+/**
+ * A reading-column heading as the 2026-09-07 pack draws it: a diamond in the
+ * category colour, the title in Anton, and an ink rule taking the rest of the
+ * row. T26's eleven-pixel "◆ The lowdown" label was fine for a column with
+ * four sections; this page now has seven, and the rule is what separates them.
+ */
+function SectionHead({ color, children }: { color: string; children: string }) {
+  return (
+    <div className={styles.sectionHead}>
+      <span className={styles.sectionDiamond} style={{ background: color }} aria-hidden="true" />
+      <h2 className={`d ${styles.sectionTitle}`}>{children}</h2>
+      <span className={styles.sectionRule} aria-hidden="true" />
     </div>
   );
 }

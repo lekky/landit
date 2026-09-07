@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { StageId, TrickLogEntry } from '../types';
-import { firstLanded, landedByMonth, latestLanded, logEntriesForTrick } from './log';
+import { firstLanded, landedByMonth, latestLanded, logEntriesForTrick, trickHistory } from './log';
 
 const on = (iso: string): number => Date.parse(iso);
 const entry = (trick: string, stage: StageId, iso: string, estimated = false): TrickLogEntry => ({
@@ -175,5 +175,79 @@ describe('undoing a tracked trick', () => {
     const remaining = log.filter((e) => !logEntriesForTrick(log, 'bunny-hop').includes(e));
     expect(firstLanded(remaining)['bunny-hop']).toBeUndefined();
     expect(firstLanded(remaining)['tic-tac']).toBeDefined();
+  });
+});
+
+describe("a rider's history with one trick (T31)", () => {
+  const now = on('2026-09-07T12:00:00Z');
+
+  it('has nothing to say before anything is logged', () => {
+    expect(trickHistory([], 'tailwhip', { now })).toEqual({
+      entries: [],
+      summary: 'Nothing logged yet',
+    });
+  });
+
+  it("lists the trick's rows oldest first, dated in the rider's zone, and marks the first landing", () => {
+    const log = [
+      entry('tailwhip', 'some', '2026-08-17T10:00:00Z'),
+      entry('tailwhip', 'want', '2026-08-03T10:00:00Z', true),
+      entry('bunny-hop', 'some', '2026-08-04T10:00:00Z'),
+      entry('tailwhip', 'trying', '2026-08-05T10:00:00Z'),
+      entry('tailwhip', 'most', '2026-09-02T10:00:00Z'),
+    ];
+    const { entries } = trickHistory(log, 'tailwhip', { now });
+    expect(entries.map((e) => [e.stage, e.dateLabel, e.estimated, e.firstLanded])).toEqual([
+      ['want', '3 Aug 2026', true, false],
+      ['trying', '5 Aug 2026', false, false],
+      ['some', '17 Aug 2026', false, true],
+      ['most', '2 Sep 2026', false, false],
+    ]);
+  });
+
+  it('measures learning to landed in weeks, from the first attempt rather than the bookmark', () => {
+    const log = [
+      entry('tailwhip', 'want', '2026-08-03T10:00:00Z'),
+      entry('tailwhip', 'trying', '2026-08-05T10:00:00Z'),
+      entry('tailwhip', 'some', '2026-08-19T10:00:00Z'),
+    ];
+    expect(trickHistory(log, 'tailwhip', { now }).summary).toBe('Learning to landed in 2 weeks');
+    // Twelve days is not two weeks, and it is not one either: whole weeks only.
+    const quick = [log[1]!, entry('tailwhip', 'some', '2026-08-17T10:00:00Z')];
+    expect(trickHistory(quick, 'tailwhip', { now }).summary).toBe('Learning to landed in 1 week');
+    const flash = [log[1]!, entry('tailwhip', 'some', '2026-08-09T10:00:00Z')];
+    expect(trickHistory(flash, 'tailwhip', { now }).summary).toBe(
+      'Learning to landed in under a week',
+    );
+  });
+
+  it('says how long it has been since learning began, in elapsed weeks', () => {
+    // 5 Aug to 7 Sep is 33 days: four whole weeks, not the five Mondays crossed.
+    const log = [
+      entry('tailwhip', 'want', '2026-08-03T10:00:00Z'),
+      entry('tailwhip', 'trying', '2026-08-05T10:00:00Z'),
+    ];
+    expect(trickHistory(log, 'tailwhip', { now }).summary).toBe('Learning since 5 Aug · 4 weeks');
+  });
+
+  it("uses the stage's own words when only a bookmark exists, and does not round a day up", () => {
+    const log = [entry('tailwhip', 'want', '2026-09-06T10:00:00Z')];
+    expect(trickHistory(log, 'tailwhip', { now }).summary).toBe(
+      'Want to learn since 6 Sep · under a week',
+    );
+  });
+
+  it('has no learning to measure when the trick was logged straight in as landed', () => {
+    const log = [entry('tailwhip', 'most', '2026-08-17T10:00:00Z')];
+    expect(trickHistory(log, 'tailwhip', { now }).summary).toBe('Landed 17 Aug');
+  });
+
+  it("dates in the rider's timezone, not the server's", () => {
+    const log = [entry('tailwhip', 'trying', '2026-08-05T23:30:00Z')];
+    const label = (timezone?: string) =>
+      trickHistory(log, 'tailwhip', { now, timezone }).entries[0]?.dateLabel;
+    expect(label('Pacific/Auckland')).toBe('6 Aug 2026');
+    expect(label()).toBe('6 Aug 2026');
+    expect(label('America/Los_Angeles')).toBe('5 Aug 2026');
   });
 });

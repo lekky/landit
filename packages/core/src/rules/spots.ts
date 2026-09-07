@@ -1,3 +1,4 @@
+import { spotFeatureId } from '../data/spot-features';
 import { SPOT_TYPES } from '../data/spots';
 import type { LatLng, SportId } from '../types';
 import { countryOf } from './consent';
@@ -177,17 +178,38 @@ export function spotMatchesSport(spot: SpotLike, sport: SportId | null): boolean
   return sports.length === 0 || sports.includes(sport);
 }
 
+/**
+ * Does this spot have that feature on its tag list?
+ *
+ * Both sides go through `spotFeatureId`, so "Foam pit", "foam  pit" and
+ * "foam pit" are one feature. No feature asked for matches everything, which
+ * is what lets the query below leave it out.
+ */
+export function spotMatchesFeature(spot: SpotLike, feature: string | null | undefined): boolean {
+  if (!feature) return true;
+  const wanted = spotFeatureId(feature);
+  return (spot.tags ?? []).some((tag) => spotFeatureId(tag) === wanted);
+}
+
 export interface SpotQuery {
   readonly search?: string;
   /** `null` is the prototype's "Every spot" pill. */
   readonly sport?: SportId | null;
+  /**
+   * A feature tag the list is narrowed to — `/spots?feature=flat`, which a
+   * trick page's "Where to practise" line opens (T31). Absent means no
+   * narrowing; the screen validates the value before it gets here.
+   */
+  readonly feature?: string | null;
 }
 
 /** The list under the search box, in the order it was given. */
 export function filterSpots<T extends SpotLike>(spots: readonly T[], query: SpotQuery): T[] {
   return spots.filter(
     (spot) =>
-      spotMatchesSearch(spot, query.search ?? '') && spotMatchesSport(spot, query.sport ?? null),
+      spotMatchesSearch(spot, query.search ?? '') &&
+      spotMatchesSport(spot, query.sport ?? null) &&
+      spotMatchesFeature(spot, query.feature ?? null),
   );
 }
 

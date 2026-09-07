@@ -1,9 +1,18 @@
+import { TIERS_LABEL } from '../data/categories';
 import { CROSS_SPORT } from '../data/cross-sport';
 import { LANDED_STAGES } from '../data/stages';
 import { SPORT_IDS } from '../data/sports';
 import { TRICKS } from '../data/tricks';
 import { PLAN } from '../data/plans';
-import type { CategoryId, PlanId, SportId, StageId, Trick, TrickMistake } from '../types';
+import type {
+  CategoryId,
+  Difficulty,
+  PlanId,
+  SportId,
+  StageId,
+  Trick,
+  TrickMistake,
+} from '../types';
 
 /**
  * The free/paid cut-off. A trick with no `free` override is free at this
@@ -224,4 +233,124 @@ export function trickContentProblems(
   }
 
   return problems;
+}
+
+/* -------------------------------------------------- the trick page (T31) -- */
+
+/**
+ * One step on the road to a trick: the trick itself, and any prerequisite of
+ * it that is not on the main line.
+ *
+ * The library's graph is, in practice, a set of chains — nearly every trick has
+ * one prerequisite, and the few with two have a "main" one whose own chain is
+ * the longer. A trick page draws that main line top to bottom and hangs the
+ * other prerequisite off the step that needs it, which is what `also` is.
+ */
+export interface RoadStep {
+  readonly trick: Trick;
+  /** Prerequisites of this step that are not on the main line. Usually empty. */
+  readonly also: readonly Trick[];
+}
+
+/**
+ * The road to a trick: every step from the root of its prerequisite chain down
+ * to the trick itself, in that order, the trick last.
+ *
+ * Where a step has more than one prerequisite the longest chain is the road and
+ * the others are that step's `also` — one line to draw, and nothing lost. A
+ * prerequisite already on the road (a diamond in the graph) is not repeated as
+ * an `also`. Hidden and unknown prerequisites are dropped the way `prereqTricks`
+ * drops them, and a cycle in the data — which would be a staff error, not a
+ * shape the library has — is cut where it closes rather than followed forever.
+ *
+ * Reads only the catalogue: which of the steps a rider has landed, and which
+ * are behind their paywall, are the page's questions to ask of `isTrickLanded`
+ * and `isTrickLocked` per step.
+ */
+export function fullPrereqChain(trick: Trick, tricks: TrickList = TRICKS): RoadStep[] {
+  const byId = new Map(tricks.map((t) => [t.id, t]));
+
+  const walk = (step: Trick, path: ReadonlySet<string>): RoadStep[] => {
+    const onPath = new Set(path);
+    onPath.add(step.id);
+    const parents = step.pre
+      .map((id) => byId.get(id))
+      .filter((p): p is Trick => !!p && p.isLive && !onPath.has(p.id));
+
+    let road: RoadStep[] = [];
+    let mainParent: Trick | null = null;
+    for (const parent of parents) {
+      const chain = walk(parent, onPath);
+      // Strictly longer, so a tie goes to the prerequisite listed first.
+      if (chain.length > road.length) {
+        road = chain;
+        mainParent = parent;
+      }
+    }
+
+    const also = parents.filter((p) => p !== mainParent && !road.some((s) => s.trick.id === p.id));
+    return [...road, { trick: step, also }];
+  };
+
+  return walk(trick, new Set());
+}
+
+/**
+ * Where a trick sits in its library, as counts.
+ *
+ * Counts and not an ordinal (Rachid, 2026-09-07, in chat): the trick page's
+ * design said "23 of 84 in the scooter library", which implies an order the
+ * library does not have — nothing ranks one trick above another, and a number
+ * that looked like a rank would be read as one. So this says how many tricks
+ * share this one's shelf, how big the sport's library is, and which tier it is
+ * on, and leaves it there.
+ */
+export interface TrickPositionFacts {
+  /** Live tricks in the same sport, category and tier — this one included. */
+  readonly peers: number;
+  /** Live tricks in the sport, this one included. */
+  readonly inSport: number;
+  /** The tier's name: "Spicy". */
+  readonly tier: string;
+  readonly diff: Difficulty;
+}
+
+export function trickPositionFacts(trick: Trick, tricks: TrickList = TRICKS): TrickPositionFacts {
+  // The trick itself always counts, live or not: a page is being drawn for it.
+  const counted = tricks.filter((t) => t.isLive || t.id === trick.id);
+  const inSport = counted.filter((t) => t.sport === trick.sport);
+  const peers = inSport.filter((t) => t.cat === trick.cat && t.diff === trick.diff);
+  return {
+    peers: Math.max(1, peers.length),
+    inSport: Math.max(1, inSport.length),
+    tier: TIERS_LABEL[trick.diff - 1] ?? '',
+    diff: trick.diff,
+  };
+}
+
+/**
+ * Tricks like this one: the same sport and category, within one difficulty
+ * step, live, and never the trick itself. Nearest difficulty first, then by
+ * name, cut to `n`.
+ *
+ * Plain string comparison for the name rather than `localeCompare`: the order
+ * renders on a page, and anything ICU decides is a hydration risk (LESSONS
+ * §3a). Trick names are ASCII and the two agree anyway; this makes it certain.
+ */
+export function similarTricks(trick: Trick, tricks: TrickList = TRICKS, n = 4): Trick[] {
+  return tricks
+    .filter(
+      (t) =>
+        t.isLive &&
+        t.id !== trick.id &&
+        t.sport === trick.sport &&
+        t.cat === trick.cat &&
+        Math.abs(t.diff - trick.diff) <= 1,
+    )
+    .sort((a, b) => {
+      const gap = Math.abs(a.diff - trick.diff) - Math.abs(b.diff - trick.diff);
+      if (gap !== 0) return gap;
+      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+    })
+    .slice(0, Math.max(0, n));
 }

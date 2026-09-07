@@ -20,6 +20,7 @@ import {
   splitSpotTags,
   SPOT_MAX_TAGS,
   spotLatLng,
+  spotMatchesFeature,
   spotMatchesSearch,
   spotMatchesSport,
   spotSubmissionProblems,
@@ -433,5 +434,30 @@ describe('readSpotOperating', () => {
   it('does not treat a substring as a match', () => {
     expect(readSpotOperating('reopened')).toBe('unknown');
     expect(readSpotOperating('open air')).toBe('unknown');
+  });
+});
+
+describe('narrowing to a feature (T31)', () => {
+  const spots = [
+    { name: 'Flat park', tags: ['Flat', 'Ledges'] },
+    { name: 'Foam park', tags: ['Foam  pit'] },
+    { name: 'Bare', tags: [] },
+    { name: 'Untagged' },
+  ];
+
+  it('matches the tag whatever its case and spacing', () => {
+    expect(spotMatchesFeature(spots[0]!, 'flat')).toBe(true);
+    expect(spotMatchesFeature(spots[1]!, 'foam pit')).toBe(true);
+    expect(spotMatchesFeature(spots[0]!, 'foam pit')).toBe(false);
+  });
+
+  it('matches everything when no feature is asked for', () => {
+    expect(spots.every((spot) => spotMatchesFeature(spot, null))).toBe(true);
+    expect(spots.every((spot) => spotMatchesFeature(spot, ''))).toBe(true);
+  });
+
+  it('narrows the list alongside the search and the sport', () => {
+    expect(filterSpots(spots, { feature: 'ledges' }).map((s) => s.name)).toEqual(['Flat park']);
+    expect(filterSpots(spots, {}).map((s) => s.name)).toHaveLength(4);
   });
 });
