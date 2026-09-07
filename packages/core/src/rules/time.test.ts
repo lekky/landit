@@ -67,6 +67,31 @@ describe('an instant becomes a different day in a different timezone', () => {
     expect(() => toDayKey('not a date', 'UTC')).toThrow(RangeError);
     expect(() => toDayKey(Date.now(), 'Mars/Olympus')).toThrow(RangeError);
   });
+
+  /**
+   * Issue #345. A default parameter only fires on `undefined`, so a `timezone`
+   * read straight out of `users` — `''` for an account that never finished
+   * onboarding, and for every erased account, since erasure clears the field —
+   * went to `Intl` as an empty string and threw. One such account was enough to
+   * take a whole staff screen down, and three green gates said nothing.
+   *
+   * No zone and a wrong zone are different questions: the first is what
+   * `DEFAULT_TIMEZONE` exists for, the second is a caller with a bug.
+   */
+  it('treats no zone as the default, and a wrong zone as an error', () => {
+    const midnightish = Date.parse('2026-08-16T23:30:00Z');
+
+    // Empty, whitespace-free and null-ish spellings of "this rider has none".
+    expect(toDayKey(midnightish, '')).toBe('2026-08-17');
+    expect(toDayKey(midnightish, undefined)).toBe('2026-08-17');
+    // Which is the same answer the default parameter gives, not a coincidence.
+    expect(toDayKey(midnightish, '')).toBe(toDayKey(midnightish));
+    expect(toDayKey(midnightish, '')).toBe(toDayKey(midnightish, DEFAULT_TIMEZONE));
+
+    // And a zone that is a mistake rather than an absence still throws.
+    expect(() => toDayKey(midnightish, 'Mars/Olympus')).toThrow(RangeError);
+    expect(() => toDayKey(midnightish, 'not/a/zone')).toThrow(RangeError);
+  });
 });
 
 describe('day arithmetic', () => {

@@ -36,6 +36,17 @@ export function isDayKey(value: unknown): value is DayKey {
  * hold either a stored datetime or a day, and neither should be reinterpreted.
  * Throws `RangeError` on an unparseable instant or an unknown timezone, rather
  * than quietly answering with the wrong day.
+ *
+ * **No zone and an unknown zone are different questions, and only one of them
+ * is a mistake.** `''` means this rider has no zone recorded — an account that
+ * never finished onboarding, and every erased account, since erasure clears
+ * `users.timezone` — and `DEFAULT_TIMEZONE` is precisely what to do about that.
+ * `'Mars/Olympus'` is a caller with a bug and still throws. The distinction
+ * matters because a default parameter only fires on `undefined`: before this,
+ * a `timezone` read straight out of the database went to `Intl` as `''` and
+ * threw, and one erased account was enough to take a whole screen down
+ * (issue #345). Owner-authorised behaviour change to merged shared code:
+ * lekky, 2026-09-07, in chat.
  */
 export function toDayKey(value: Instant, timeZone: string = DEFAULT_TIMEZONE): DayKey {
   if (isDayKey(value)) return value;
@@ -46,7 +57,7 @@ export function toDayKey(value: Instant, timeZone: string = DEFAULT_TIMEZONE): D
   }
 
   const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
+    timeZone: timeZone || DEFAULT_TIMEZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

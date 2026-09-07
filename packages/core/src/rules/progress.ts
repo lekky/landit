@@ -78,6 +78,9 @@ export function monthKeysBack(
   count = 6,
   timezone: string = DEFAULT_TIMEZONE,
 ): string[] {
+  // A zone this receives is handed straight to `toDayKey`, which is the one
+  // place that decides what an empty one means (issue #345) — so there is
+  // deliberately no `|| DEFAULT_TIMEZONE` here to disagree with it.
   const today = toDayKey(now, timezone);
   const year = Number(today.slice(0, 4));
   const month = Number(today.slice(5, 7)) - 1;
