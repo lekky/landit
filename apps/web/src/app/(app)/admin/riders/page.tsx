@@ -1,4 +1,4 @@
-import { LANDED_STAGES, toDayKey, type SportId } from '@landit/core';
+import { DEFAULT_TIMEZONE, LANDED_STAGES, toDayKey, type SportId } from '@landit/core';
 import { landedCountsFor, listAdminRiders, listPlans } from '@landit/db';
 import type { Metadata } from 'next';
 
@@ -83,12 +83,23 @@ export default async function AdminRidersPage({
   };
 
   const rows: AdminRiderRow[] = page.items.map((rider) => {
-    const active = rider.last_ride ? relativeTime(rider.last_ride, now, rider.timezone) : '—';
+    // `|| DEFAULT_TIMEZONE`, as every rider-facing screen already does it:
+    // `toDayKey`'s default parameter only fires on `undefined`, so an empty
+    // `users.timezone` reaches `Intl.DateTimeFormat` as `''` and throws a
+    // RangeError. That was survivable while this column read `last_ride`,
+    // which is empty on most rows and so never reached the formatter; with
+    // `last_seen` set for everyone who has ever signed in, one erased account
+    // (erasure clears `timezone`) would 500 the whole staff table.
+    const zone = rider.timezone || DEFAULT_TIMEZONE;
+
+    // `last_seen`, not `last_ride`: this column says when the rider last used
+    // the app, and a rider who never taps "I rode today" still uses it daily.
+    const seen = rider.last_seen ? relativeTime(rider.last_seen, now, zone) : '—';
     // Compared as day keys in the **rider's** timezone, not by reading the
     // sentence above: "3 days ago" and "20 min ago" both end in "ago", and a
     // string test that got that wrong would paint a third of the table green.
-    const activeToday = rider.last_ride
-      ? toDayKey(rider.last_ride, rider.timezone) === toDayKey(now, rider.timezone)
+    const seenToday = rider.last_seen
+      ? toDayKey(rider.last_seen, zone) === toDayKey(now, zone)
       : false;
     return {
       id: rider.id,
@@ -98,8 +109,8 @@ export default async function AdminRidersPage({
       sports: (rider.sports ?? []).map((id) => SPORT_LOOKS[id as SportId]).filter(Boolean),
       landed: landed[rider.id] ?? 0,
       joined: rider.created ? monthYear(rider.created) : '—',
-      active,
-      activeToday,
+      seen,
+      seenToday,
       ageBand: bandLabel(rider.age_band),
       plan: rider.plan,
       status: status(rider),

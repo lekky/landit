@@ -146,7 +146,7 @@ export function RidersScreen({
           <span className="lab">Landed</span>
           <span className="lab">Age band</span>
           <span className="lab">Joined</span>
-          <span className="lab">Last active</span>
+          <span className="lab">Last seen</span>
           <span className="lab">Plan override</span>
           <span className="lab">Account</span>
         </div>
@@ -187,11 +187,14 @@ export function RidersScreen({
 
             <span className={styles.muted}>{rider.joined}</span>
 
+            {/* When the rider last used the app (`users.last_seen`), which is
+                not the same question as when they last logged a ride — the
+                sheet carries that one. See `../view.ts`. */}
             <span
               className="cond"
-              style={{ fontSize: 13.5, color: rider.activeToday ? 'var(--green)' : 'var(--ink-2)' }}
+              style={{ fontSize: 13.5, color: rider.seenToday ? 'var(--green)' : 'var(--ink-2)' }}
             >
-              {rider.active}
+              {rider.seen}
             </span>
 
             <select

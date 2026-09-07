@@ -133,6 +133,43 @@ const USER_STREAK_DEFAULTS = {
   last_qualifying_week: '',
 };
 
+/**
+ * The session stamp. Server-owned: no client may write it.
+ *
+ * `last_seen` answers "has this rider used the app lately?" on the staff Riders
+ * table. A rider who could PATCH it could answer that question themselves, and
+ * a moderator looking at a suspicious account would be reading whatever that
+ * account preferred them to read. That is a worse position than having no
+ * column at all, because the number still looks like a record.
+ *
+ * It is written in one place only — `stampLastSeen`, from the auth-request hook
+ * in `10_users.pb.js` — which is the same shape the streak has: a server route
+ * runs the rule and writes the result, and this list is what makes that the
+ * only door.
+ *
+ * Owner-authorised additive-only exception (lekky, 2026-09-07, in chat) — the
+ * grant is to add this field to the guard, and nothing else about it moved.
+ */
+const USER_SESSION_FIELDS = ['last_seen'];
+
+// Pinned empty on create, for the same reason the streak is: a sign-up cannot
+// arrive claiming to have been seen already.
+const USER_SESSION_DEFAULTS = {
+  last_seen: '',
+};
+
+/**
+ * How stale a stamp has to be before authenticating rewrites it.
+ *
+ * Fifteen minutes, agreed with the owner (2026-09-07). `users` is the hottest
+ * collection in the app and `currentRider` re-authenticates on every server
+ * render, so an unthrottled stamp is a database write per page view — several
+ * per page, on a screen whose layout and body both resolve the session. Nothing
+ * reads this figure to the minute: the staff table rounds to "40 min ago" and
+ * then to days.
+ */
+const LAST_SEEN_THROTTLE_MINUTES = 15;
+
 const CONSENT_LIMITED = ['pending', 'revoked'];
 
 // ---------------------------------------------------------------- helpers --
@@ -249,6 +286,9 @@ function guardUserWrite(e, isCreate) {
       for (const field of Object.keys(USER_STREAK_DEFAULTS)) {
         record.set(field, USER_STREAK_DEFAULTS[field]);
       }
+      for (const field of Object.keys(USER_SESSION_DEFAULTS)) {
+        record.set(field, USER_SESSION_DEFAULTS[field]);
+      }
     }
     return;
   }
@@ -258,7 +298,8 @@ function guardUserWrite(e, isCreate) {
   const original = record.original();
   const frozen = Object.keys(USER_PROTECTED_DEFAULTS)
     .concat(USER_AGE_FIELDS)
-    .concat(USER_STREAK_FIELDS);
+    .concat(USER_STREAK_FIELDS)
+    .concat(USER_SESSION_FIELDS);
   for (const field of frozen) {
     if (String(record.get(field)) !== String(original.get(field))) {
       throw new ForbiddenError(`"${field}" is not something an account can change about itself.`);
@@ -275,6 +316,49 @@ function guardUserWrite(e, isCreate) {
   if (heardBefore && record.getString('heard_about') !== heardBefore) {
     throw new ForbiddenError('"heard_about" is answered once, when the account is set up.');
   }
+}
+
+/**
+ * Stamp `last_seen`, if it is stale enough to be worth a write.
+ *
+ * Called from the auth-request hook, which fires on every successful
+ * authentication — a sign-in, and every session refresh the web app makes when
+ * it renders a page for a signed-in rider. That is what makes this "last used
+ * the app" rather than "last tapped the one button that writes `last_ride`".
+ *
+ * Three things it deliberately does not do:
+ *
+ *  - **It does not touch the request.** The save is model-layer (`app.save`),
+ *    the server acting as itself, so it does not go past `guardUserWrite` — it
+ *    could not, since that guard is what freezes this field.
+ *  - **It does not fail an authentication.** A rider signing in must not be
+ *    turned away because a bookkeeping write failed, so the caller ignores the
+ *    return and this swallows nothing else: it returns false and the stamp is
+ *    simply older than it should be until the next refresh.
+ *  - **It does not record anything but the time.** No address, no user agent,
+ *    no session history — one field, overwritten. A row per visit would be a
+ *    log of a child's movements, which is not what a staff column needs and not
+ *    something this product is willing to hold (plan §6.4).
+ *
+ * Returns whether it wrote, which is what the tests assert on.
+ */
+function stampLastSeen(app, record) {
+  const now = new Date();
+  const before = record.getString('last_seen');
+
+  if (before) {
+    const then = Date.parse(before);
+    // An unparseable or future stamp is treated as due rather than trusted: a
+    // clock that ran ahead once must not freeze the column for good.
+    if (!isNaN(then) && then <= now.getTime()) {
+      const minutes = (now.getTime() - then) / 60000;
+      if (minutes < LAST_SEEN_THROTTLE_MINUTES) return false;
+    }
+  }
+
+  record.set('last_seen', new DateTime().string());
+  app.save(record);
+  return true;
 }
 
 // ------------------------------------------------------------- insights --
@@ -822,6 +906,8 @@ module.exports = {
   HANDLE_PATTERN,
   CONSENT_LIMITED,
   USER_STREAK_FIELDS,
+  USER_SESSION_FIELDS,
+  LAST_SEEN_THROTTLE_MINUTES,
   actorOf,
   assertHandleAllowed,
   challengeIsLive,
@@ -844,5 +930,6 @@ module.exports = {
   recordStaffPlanOverride,
   resolvePlanFromSubscriptions,
   resolvedPlanSlug,
+  stampLastSeen,
   writeAudit,
 };
