@@ -269,16 +269,46 @@ export function trickLogEntries(
   return entries;
 }
 
-/** A rider's own notes on a trick, or `null`. Never visible to anyone else (plan §6.1). */
+/**
+ * A rider's own notes on one trick, newest first. Never visible to anyone else
+ * (plan §6.1).
+ *
+ * Since T30 a trick holds a **log** of notes rather than one row, each dated by
+ * `created` and stamped with the stage the rider was at when it was written.
+ * Newest first is the order the log panel reads them in, and it is also what
+ * makes `getTrickNote` below mean "the latest" rather than "whichever row the
+ * database returned first".
+ */
+export async function listTrickNotes(
+  client: Client,
+  userId: string,
+  trickId: string,
+): Promise<TrickNotesRecord[]> {
+  return records(client, 'trick_notes').list({
+    filter: 'user = {:user} && trick = {:trick}',
+    params: { user: userId, trick: trickId },
+    sort: '-created',
+  });
+}
+
+/**
+ * A rider's **newest** note on a trick, or `null`.
+ *
+ * Kept with its pre-T30 signature (additive-only): callers that still think of
+ * a trick as having one note get the most recent one, which is the row the
+ * single-textarea screen would have shown had it never changed. New code reads
+ * `listTrickNotes`.
+ */
 export async function getTrickNote(
   client: Client,
   userId: string,
   trickId: string,
 ): Promise<TrickNotesRecord | null> {
-  return records(client, 'trick_notes').first('user = {:user} && trick = {:trick}', {
-    user: userId,
-    trick: trickId,
-  });
+  return records(client, 'trick_notes').first(
+    'user = {:user} && trick = {:trick}',
+    { user: userId, trick: trickId },
+    { sort: '-created' },
+  );
 }
 
 /* ------------------------------------------------------------- snapshots -- */

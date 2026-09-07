@@ -1,0 +1,439 @@
+/*
+ * "Your log" — session notes and videos in one panel (T30, trick-page
+ * enrichment handoff of 2026-09-07, artboards 1a and 1b).
+ *
+ * The design contract holds throughout: zero border radius, 2.5px/3px ink
+ * keylines, hard offset shadows that are never blurred. Every colour is a
+ * token; the one the handoff draws that had no name here — the raised ink of an
+ * inactive tab — is `--ink-raise`, which `tokens.css` already carries.
+ */
+
+.panel {
+  background: var(--paper-2);
+  padding: 0;
+}
+
+/* ---------------------------------------------------------- the ink head -- */
+
+.head {
+  background: var(--ink);
+  padding: 12px 15px 0;
+}
+
+.headRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 19px;
+  color: var(--paper);
+}
+
+.private {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink-soft);
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.tab {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  cursor: pointer;
+  border: 2.5px solid var(--ink);
+  border-bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--ink-raise);
+  color: var(--ink-soft);
+}
+
+.tab:hover {
+  color: var(--ink);
+  background: var(--yellow);
+}
+
+/* The active tab is paper on ink — the same cream the body below is, so the
+   two read as one surface with the tab standing up out of it. */
+.tabOn,
+.tabOn:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+.count {
+  font-family: var(--fd);
+  font-size: 13px;
+  padding: 1px 6px;
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.tabOn .count {
+  background: var(--ink);
+  color: var(--yellow);
+}
+
+.body {
+  padding: 15px;
+}
+
+/* --------------------------------------------------------------- compose -- */
+
+.compose {
+  display: flex;
+  gap: 7px;
+  align-items: stretch;
+}
+
+.textarea {
+  border: 2.5px solid var(--ink);
+  padding: 9px 10px;
+  font-size: 14px;
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  background: var(--paper);
+  font-family: var(--fb);
+  line-height: 1.4;
+  display: block;
+  width: 100%;
+}
+
+.textarea:focus {
+  outline: none;
+  box-shadow: 3px 3px 0 var(--yellow);
+}
+
+.textarea:disabled {
+  background: var(--wash);
+}
+
+.composeSave {
+  align-self: flex-start;
+}
+
+/* ------------------------------------------------------------- the list -- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.note {
+  border: 2.5px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  background: var(--paper);
+  padding: 10px 12px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.noteEditing {
+  background: var(--paper-2);
+}
+
+.noteHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.date {
+  color: var(--ink);
+}
+
+/* The stage the rider was at when the note was written. The fill is the
+   stage's own colour from `@landit/core`; the foreground is measured against
+   it, so "Every time" on green reads as paper and the rest as ink. */
+.stage {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: 2px solid var(--ink);
+  padding: 1px 6px;
+  color: var(--ink);
+}
+
+.noteActions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.small {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.small:hover {
+  background: var(--yellow);
+}
+
+.smallDanger:hover {
+  background: var(--red);
+  color: var(--on-dark);
+}
+
+.smallOn {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.smallOn:hover {
+  background: var(--ink);
+  color: var(--yellow);
+}
+
+.small:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.noteBody {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  text-wrap: pretty;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Applied beside `.textarea` on the inline editor. */
+.noteTextarea {
+  padding: 8px 10px;
+  line-height: 1.45;
+}
+
+.empty {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+.problem {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--red);
+}
+
+/* ------------------------------------------------------------- the pager -- */
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 2px solid var(--ink);
+}
+
+/* Under the videos grid the pager sits between the tiles and the form, and
+   the form carries the rule instead. */
+.pagerBare {
+  margin-top: 12px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.pageBtn {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 4px 9px;
+  cursor: pointer;
+}
+
+.pageBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.pageNum {
+  padding: 4px 10px;
+}
+
+.pageNumOn {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.range {
+  margin-left: auto;
+  color: var(--ink-3);
+}
+
+/* ----------------------------------------------------------- the videos -- */
+
+.videoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding-right: 3px;
+}
+
+@media (max-width: 520px) {
+  .videoGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.videoForm {
+  display: flex;
+  gap: 7px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 2px solid var(--ink);
+}
+
+.videoInput {
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: var(--fb);
+  flex: 1;
+  min-width: 0;
+}
+
+.videoInput:disabled {
+  background: var(--wash);
+}
+
+.hint {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+.locked {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+/* ----------------------------------------------------------- the confirm -- */
+
+.confirm {
+  padding: 22px 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.confirmHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.confirmMark {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--ink);
+  background: var(--red);
+  color: var(--on-dark);
+  display: grid;
+  place-items: center;
+  transform: rotate(-5deg);
+  flex: none;
+}
+
+.confirmTitle {
+  font-size: 24px;
+}
+
+.confirmQuote {
+  border: 2.5px solid var(--ink);
+  background: var(--paper-2);
+  padding: 9px 12px;
+}
+
+.confirmQuoteDate {
+  color: var(--ink-3);
+}
+
+.confirmQuoteBody {
+  margin: 3px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.confirmCopy {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.confirmActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* Red on the destructive button. `button.` for specificity over `.btn`, whose
+   fill is the orange this is not; `--btn-fg` is the hook `.btn` leaves for a
+   foreground that is not the default. */
+button.danger {
+  background: var(--red);
+  --btn-fg: var(--on-dark);
+}
+
+@media (max-width: 720px) {
+  .body {
+    padding: 12px;
+  }
+
+  .head {
+    padding: 12px 12px 0;
+  }
+}

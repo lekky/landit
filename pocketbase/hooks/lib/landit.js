@@ -532,6 +532,76 @@ function enforceVideoLink(app, record, isCreate) {
   );
 }
 
+// --------------------------------------------------------- trick notes ---
+
+/**
+ * A rider's session notes on one trick — the log, kept honest (T30).
+ *
+ * Since `1788652800_trick_notes_log.js` a rider may hold many notes on one
+ * trick, so the collection has grown two things a rule cannot express: a
+ * **count** and a **vocabulary**. Both are enforced here, on the model hooks,
+ * with no superuser bypass — a server action writing on a rider's behalf is
+ * held to exactly the same limits as the rider.
+ *
+ * 1. **The stage is one of the five, or nothing.** `stage` snapshots where the
+ *    rider was on the trick when the note was saved. The select field already
+ *    refuses a value outside its list on the request path; this repeats the
+ *    check so a write that never came through a request cannot store one
+ *    either. Empty is allowed — a note written before the field existed, or by
+ *    a rider not tracking the trick, has no stage and says so.
+ * 2. **The body fits.** 2000 characters, the field's own limit, restated so the
+ *    refusal has a sentence a rider can read rather than a validation blob.
+ * 3. **On update, `user` and `trick` are frozen.** A note may be reworded and
+ *    deleted; it may not be moved onto another rider's record or another trick.
+ *    Same reasoning as `enforceVideoLink`'s freeze.
+ * 4. **On create, the cap.** Fifty per rider per trick (Rachid, 2026-09-07, in
+ *    chat). Counted from the rows at the moment of the write, so two requests
+ *    racing cannot both pass a stale count. It is a `ForbiddenError` rather than
+ *    a 400 because nothing about the request is malformed — the rider has
+ *    simply used the room the product gives them.
+ */
+function enforceTrickNote(app, record, isCreate) {
+  const STAGE_IDS = ['want', 'trying', 'some', 'most', 'every'];
+  const NOTE_MAX_CHARS = 2000;
+  const NOTES_PER_TRICK_CAP = 50;
+
+  const stage = record.getString('stage');
+  if (stage && STAGE_IDS.indexOf(stage) === -1) {
+    throw new BadRequestError('That is not one of the five stages.');
+  }
+
+  if (record.getString('body').length > NOTE_MAX_CHARS) {
+    throw new BadRequestError(
+      `A note can be up to ${NOTE_MAX_CHARS} characters. Split this one in two.`,
+    );
+  }
+
+  if (!isCreate) {
+    const before = record.original();
+    if (before.getString('user') !== record.getString('user')) {
+      throw new ForbiddenError('A note cannot be moved to another rider.');
+    }
+    if (before.getString('trick') !== record.getString('trick')) {
+      throw new ForbiddenError('A note cannot be moved to another trick.');
+    }
+    return;
+  }
+
+  const userId = record.getString('user');
+  const trickId = record.getString('trick');
+  if (!userId || !trickId) throw new BadRequestError('A note needs a rider and a trick.');
+
+  const held = findAll(app, 'trick_notes', 'user = {:user} && trick = {:trick}', {
+    user: userId,
+    trick: trickId,
+  }).length;
+  if (held < NOTES_PER_TRICK_CAP) return;
+
+  throw new ForbiddenError(
+    `That is ${NOTES_PER_TRICK_CAP} notes on this trick, which is as many as it holds. Remove one to add another.`,
+  );
+}
+
 // ------------------------------------------------------------- prereqs ---
 
 /** Prerequisites never cross sports (handoff data model, plan §3). */
@@ -1022,6 +1092,7 @@ module.exports = {
   enforcePrereqSameSport,
   enforceSubscriptionEligibility,
   enforceTrickContentLimits,
+  enforceTrickNote,
   enforceVideoLink,
   findAll,
   guardInsightsOptIn,

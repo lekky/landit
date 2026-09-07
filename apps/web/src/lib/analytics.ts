@@ -199,8 +199,14 @@ export const ANALYTICS_EVENTS = {
   rideLogged: 'ride_logged',
   /** A rider moved a trick's stage. Carries the trick's catalogue facts. */
   trickLogged: 'trick_logged',
-  /** A note was saved against a trick. Never the note. */
+  /**
+   * A note was saved against a trick — added or reworded (T30 made notes a
+   * dated log). Never the note, and never its length. Carries the trick's
+   * catalogue facts and, for an add, the stage stamped on it.
+   */
   noteSaved: 'note_saved',
+  /** A note was removed from a trick's log. Same properties, never the note. */
+  noteRemoved: 'note_removed',
   challengeLogged: 'challenge_logged',
   /** The coach-view toggle on the progress screen. */
   insightsSet: 'insights_set',

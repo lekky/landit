@@ -9,13 +9,13 @@ import {
   type VideoLinkAllowance,
   type VideoVisibilityId,
 } from '@landit/core';
-import { Button, Panel } from '@landit/ui-web';
+import { Button } from '@landit/ui-web';
 import { useState, useTransition } from 'react';
 
 import { VideoEmbed } from '@/components/video/VideoEmbed';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 
-import styles from '@/components/video/video.module.css';
+import tile from '@/components/video/video.module.css';
 import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/providers/toast';
 
@@ -24,18 +24,26 @@ import {
   removeVideoLinkAction,
   setVideoLinkVisibilityAction,
 } from '../actions';
+import styles from './log.module.css';
+import { Pager, pageOf } from './Pager';
+
+/** Tiles per page on the videos tab — the handoff's count. */
+const VIDEOS_PER_PAGE = 4;
 
 /**
- * "Your videos" on the trick page — the surface that replaces the clips panel
- * (T15b; the clips panel's *layout* is the reference, its behaviour is void).
+ * "Your videos" — since T30 the second tab of the trick page's log panel
+ * (`LogPanel`), where until then it was a panel of its own (T15b; the clips
+ * panel's *layout* was the reference, its behaviour is void).
  *
- * The rider pastes a YouTube link, picks who can see it, and can remove it. Four
- * things about this component are deliberate:
+ * What moved is the frame: the ink head and the tab belong to `LogPanel`, and
+ * the tiles are paged four at a time. What did **not** move is everything the
+ * panel meant, and it is worth keeping the list, because each line is a
+ * guarantee rather than a style:
  *
  * - **It says "video", never "clip".** Not a style preference:
  *   `e2e/library.spec.ts` fails if the word "clip" or "vault" appears on this
  *   page, because that copy described a hosted vault the product withdrew (plan
- *   §6.6). The regression test is correct and this panel is built to live
+ *   §6.6). The regression test is correct and this tab is built to live
  *   alongside it rather than around it.
  * - **The parse runs here for UX and nowhere else for enforcement.**
  *   `parseYouTubeVideoId` is the same pure function the hook's transcription
@@ -51,6 +59,9 @@ import {
  *
  * A rider whose plan grants nothing sees one sentence and a link to `/plans`,
  * not a pitch: issue #129 reserves what the paid tiers are worth for the owner.
+ *
+ * The list is the server's — `initial` is re-read after every action's
+ * `revalidatePath`, so there is no local copy of it to fall out of step.
  */
 export function VideosPanel({
   trickId,
@@ -73,15 +84,18 @@ export function VideosPanel({
   const { toast } = useToast();
   const [link, setLink] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
   const [pending, startTransition] = useTransition();
 
   const remaining = videoLinksRemaining(allowance, heldTotal);
   const canAdd = canAddVideoLink(allowance, heldTotal);
   const grantsNone = !allowance.unlimited && allowance.cap === 0;
 
-  const countLine = allowance.unlimited
-    ? `${heldTotal} added`
-    : `${heldTotal} of ${allowance.cap} used`;
+  // "3 of 10 video links used" — the handoff's line, from the same numbers the
+  // hook counts. Across every trick, because that is what the cap is.
+  const usedLine = allowance.unlimited
+    ? `${heldTotal} video link${heldTotal === 1 ? '' : 's'} added`
+    : `${heldTotal} of ${allowance.cap} video links used`;
 
   const submit = () => {
     const pasted = link.trim();
@@ -110,6 +124,8 @@ export function VideosPanel({
         // rider's own YouTube channel is a thing about them, not the product.
         capture(ANALYTICS_EVENTS.videoLinkAdded, { slug });
         setLink('');
+        // The new video is newest, so it is on the first page.
+        setPage(0);
       } else setProblem(result.message);
     });
   };
@@ -130,22 +146,19 @@ export function VideosPanel({
     });
   };
 
-  return (
-    <Panel flat className={styles.panel}>
-      <div className={styles.head}>
-        <div className="lab">Your videos</div>
-        {!grantsNone && <span className={styles.count}>{countLine}</span>}
-      </div>
+  const shown = pageOf(initial, page, VIDEOS_PER_PAGE);
 
+  return (
+    <div>
       {initial.length > 0 && (
-        <div className={styles.grid}>
-          {initial.map((video) => (
-            <div key={video.id} className={styles.tile}>
+        <div className={styles.videoGrid}>
+          {shown.map((video) => (
+            <div key={video.id} className={tile.tile}>
               <VideoEmbed videoId={video.videoId} label={`${trickName} video`} />
-              <div className={styles.tileFoot}>
+              <div className={tile.tileFoot}>
                 <select
                   aria-label="Who can see this video"
-                  className={styles.visibility}
+                  className={tile.visibility}
                   value={video.visibility}
                   disabled={pending}
                   onChange={(event) =>
@@ -160,7 +173,7 @@ export function VideosPanel({
                 </select>
                 <button
                   type="button"
-                  className={styles.remove}
+                  className={tile.remove}
                   disabled={pending}
                   onClick={() => remove(video.id)}
                 >
@@ -172,16 +185,25 @@ export function VideosPanel({
         </div>
       )}
 
+      <Pager
+        total={initial.length}
+        perPage={VIDEOS_PER_PAGE}
+        page={page}
+        onPage={setPage}
+        bare
+        label="videos"
+      />
+
       {grantsNone ? (
         <p className={styles.locked}>
           Adding a video is part of the paid plans. <a href={ROUTES.plans}>See what they cost</a>.
         </p>
       ) : (
         <>
-          <div className={styles.form}>
+          <div className={styles.videoForm}>
             <input
               aria-label="YouTube link"
-              className={styles.input}
+              className={styles.videoInput}
               type="url"
               inputMode="url"
               placeholder="Paste a YouTube link"
@@ -204,8 +226,8 @@ export function VideosPanel({
             <p className={styles.problem}>{problem}</p>
           ) : canAdd ? (
             <p className={styles.hint}>
-              The video stays on YouTube — we only keep the link. New videos start private, and
-              nothing you add is ever visible to someone who is not signed in.
+              {usedLine}. The video stays on YouTube — we only keep the link. New videos start
+              private, and nothing you add is ever visible to someone who is not signed in.
               {remaining !== null && remaining <= 3 && ` ${remaining} left.`}
             </p>
           ) : (
@@ -215,6 +237,6 @@ export function VideosPanel({
           )}
         </>
       )}
-    </Panel>
+    </div>
   );
 }

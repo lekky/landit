@@ -125,18 +125,74 @@ export async function deleteLogEntry(client: Client, logId: string): Promise<voi
 
 /* ----------------------------------------------------------------- notes -- */
 
-/** A rider's private notebook on one trick. One row per rider per trick. */
+/*
+ * A rider's private notebook on one trick — since T30 a **log** of dated notes
+ * rather than one row (Rachid, 2026-09-07, in chat).
+ *
+ * Every write here is a rider writing to themselves, and nothing about it
+ * announces anything to anybody (plan §6.1). What the server decides rather than
+ * the client: whose row it is (`60_ownership.pb.js` sets `user` from the token),
+ * when it was written (`created` is PocketBase's), that the stage is one of the
+ * five, that the body fits, and that a rider holds at most fifty notes on one
+ * trick (`47_trick_notes.pb.js`). None of that is checked here — a copy would
+ * be the weaker one, and the one that goes stale.
+ */
+
+/**
+ * Add a note to the log.
+ *
+ * `stage` is the rider's stage on the trick **at the moment of writing**, or
+ * `null` when they are not tracking it — a snapshot, not a relation, so a note
+ * written while learning still says so after the trick is landed.
+ */
+export async function addTrickNote(
+  client: Client,
+  input: { userId: string; trickId: string; body: string; stage: StageId | null },
+): Promise<TrickNotesRecord> {
+  return records(client, 'trick_notes').create({
+    user: input.userId,
+    trick: input.trickId,
+    body: input.body,
+    ...(input.stage ? { stage: input.stage } : {}),
+  });
+}
+
+/** Reword one note. The date and the stage stamp stay as they were. */
+export async function updateTrickNote(
+  client: Client,
+  noteId: string,
+  body: string,
+): Promise<TrickNotesRecord> {
+  return records(client, 'trick_notes').update(noteId, { body });
+}
+
+/** Remove one note. There is no bin; the row goes. */
+export async function deleteTrickNote(client: Client, noteId: string): Promise<void> {
+  await records(client, 'trick_notes').remove(noteId);
+}
+
+/**
+ * The pre-T30 write, kept with its signature (additive-only).
+ *
+ * "One note per trick" is no longer true, so this now means: reword the
+ * **newest** note, or start the log with one if there is none. A caller that
+ * still treats a trick as holding a single note keeps working and touches only
+ * the row `getTrickNote` would have shown it. It writes no stage — it has no
+ * way to know one — so a note saved through this door reads as unstaged, which
+ * is honest. New code reads `addTrickNote` and `updateTrickNote`.
+ */
 export async function saveTrickNote(
   client: Client,
   input: { userId: string; trickId: string; body: string },
 ): Promise<TrickNotesRecord> {
-  const existing = await records(client, 'trick_notes').first(
+  const newest = await records(client, 'trick_notes').first(
     'user = {:user} && trick = {:trick}',
     { user: input.userId, trick: input.trickId },
+    { sort: '-created' },
   );
 
-  return existing
-    ? records(client, 'trick_notes').update(existing.id, { body: input.body })
+  return newest
+    ? records(client, 'trick_notes').update(newest.id, { body: input.body })
     : records(client, 'trick_notes').create({
         user: input.userId,
         trick: input.trickId,

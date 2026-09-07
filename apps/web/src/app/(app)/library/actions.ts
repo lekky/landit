@@ -2,13 +2,16 @@
 
 import type { StageId, VideoVisibilityId } from '@landit/core';
 import {
+  addTrickNote,
   addVideoLink,
   clearTrickStage,
+  deleteTrickNote,
   isForbidden,
   removeVideoLink,
   saveTrickNote,
   setTrickStage,
   setVideoLinkVisibility,
+  updateTrickNote,
 } from '@landit/db';
 import { revalidatePath } from 'next/cache';
 
@@ -202,7 +205,106 @@ function refusalMessage(error: unknown): string {
     : 'That did not save. Check the link and try again.';
 }
 
-/** A rider's private notebook on one trick. Nobody else can ever read it (plan §6.1). */
+/* ----------------------------------------------------------------- notes -- */
+
+/**
+ * The log's three writes (T30). Each is a rider writing to themselves — the
+ * single most private thing in the product (plan §6.1) — and each is enforced
+ * where the video-link writes above are: `47_trick_notes.pb.js` counts the cap,
+ * checks the stage and freezes the row's owner, and this file only translates a
+ * refusal into a sentence. The hook's own message is passed through when it is
+ * one of ours, exactly as `refusalMessage` does for video links, because "that
+ * is 50 notes on this trick" is the thing the rider needs to hear.
+ */
+
+export type NoteActionResult =
+  | {
+      readonly ok: true;
+      /** The row as stored — its id and server date are what the list shows. */
+      readonly note: { readonly id: string; readonly created: string };
+    }
+  | { readonly ok: false; readonly message: string };
+
+/**
+ * Add a note. `stage` is whatever the rider's ladder says right now, or `null`
+ * for a trick they are not tracking; it is stamped on the note and never moves.
+ */
+export async function addNoteAction(input: {
+  trickId: string;
+  slug: string;
+  body: string;
+  stage: StageId | null;
+}): Promise<NoteActionResult> {
+  const session = await currentRider();
+  if (!session) return { ok: false, message: 'Sign in to keep notes.' };
+
+  let note;
+  try {
+    note = await addTrickNote(session.client, {
+      userId: session.rider.id,
+      trickId: input.trickId,
+      body: input.body,
+      stage: input.stage,
+    });
+  } catch (error) {
+    return { ok: false, message: noteRefusalMessage(error) };
+  }
+
+  revalidatePath(trickHref(input.slug));
+  return { ok: true, note: { id: note.id, created: note.created } };
+}
+
+/** Reword one note. The date and the stage stamp stay as they were. */
+export async function updateNoteAction(input: {
+  noteId: string;
+  slug: string;
+  body: string;
+}): Promise<NoteActionResult> {
+  const session = await currentRider();
+  if (!session) return { ok: false, message: 'Sign in to keep notes.' };
+
+  let note;
+  try {
+    note = await updateTrickNote(session.client, input.noteId, input.body);
+  } catch (error) {
+    return { ok: false, message: noteRefusalMessage(error) };
+  }
+
+  revalidatePath(trickHref(input.slug));
+  return { ok: true, note: { id: note.id, created: note.created } };
+}
+
+/** Remove one note. There is no bin to get it back from, and the panel says so. */
+export async function removeNoteAction(input: {
+  noteId: string;
+  slug: string;
+}): Promise<VideoLinkActionResult> {
+  const session = await currentRider();
+  if (!session) return { ok: false, message: 'Sign in to keep notes.' };
+
+  try {
+    await deleteTrickNote(session.client, input.noteId);
+  } catch (error) {
+    return { ok: false, message: noteRefusalMessage(error) };
+  }
+
+  revalidatePath(trickHref(input.slug));
+  return { ok: true };
+}
+
+/** `refusalMessage`, with the generic line worded for a note rather than a link. */
+function noteRefusalMessage(error: unknown): string {
+  const message = refusalMessage(error);
+  return message === 'That did not save. Check the link and try again.'
+    ? 'That note did not save. Try again in a moment.'
+    : message;
+}
+
+/**
+ * The pre-T30 write, kept for its callers (additive-only): rewords the newest
+ * note or starts the log. Nothing on the trick page calls it since the log
+ * panel landed; `LogPanel` uses the three actions above.
+ */
 export async function saveNoteAction(input: {
   trickId: string;
   slug: string;
