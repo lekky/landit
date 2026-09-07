@@ -564,6 +564,26 @@ Playwright name is the accessible name, so a locator that cannot tell two contro
 statement that a screen reader cannot either, and that a moderator scanning a long queue at speed
 will eventually get wrong. Rename the control before you narrow the selector.
 
+**Filling a column that was usually empty runs code that was never run.** `feat-last-seen`
+(2026-09-07) replaced the staff Riders table's `last_ride` with a new `last_seen`, stamped for
+every rider who has ever signed in. Both admin screens passed `users.timezone` straight into
+`toDayKey`, whose signature is `timeZone: string = DEFAULT_TIMEZONE` — and a **default parameter
+only fires on `undefined`**, so an empty string goes on to `Intl.DateTimeFormat` and throws a
+`RangeError`. That line had been there since T17 and had never fired, because `last_ride` is empty
+on most rows and the formatter was never reached. The new field reached it on every row, and one
+erased account — erasure clears `timezone` — would have 500'd the whole staff table on a live
+service. Every rider-facing screen already wrote `rider.timezone || DEFAULT_TIMEZONE`; only the
+staff screens did not, and nothing had ever noticed.
+
+Two rules. **`|| fallback`, never a default parameter, for anything read out of a database**: a
+column's zero value is `''`, not `undefined`, and the two take different branches. And **when a
+field goes from usually-empty to always-populated, the change is not the field — it is every path
+that was guarded by the emptiness**, so list what now runs for the first time and look at it.
+`pnpm build`, `pnpm test` and `pnpm lint` were all green with that page 500ing; it was found by a
+throwaway Playwright spec that signed in as staff and opened the screen, written for a screenshot
+and worth more than the screenshot. The general trap in `toDayKey` itself is issue #345, which
+needs an owner decision.
+
 **Copy decisions get tests, or they get quietly reverted.** T5's legal documents are a rewrite, not
 a transcription: no minimum age, no Crew Pass, profiles private by default, reporting described as
 the email route that exists rather than the buttons that do not. Each of those is one careless copy
