@@ -1041,11 +1041,16 @@ under 18. A banner our own users cannot answer buys nothing.
 load — a new third party in a child's request path — and returned nothing. That is the worst
 available trade, and it is the reason this was removed at once rather than left switched off.
 
-**If the GA-shaped interface is still wanted, the answer is not GA.** Matomo, Plausible and Fathom
+**A replacement was considered and refused: PostHog alone stands** (Rachid, 2026-09-07, in chat,
+closing issue #343). Matomo, Plausible and Fathom would all have worked where GA could not — they
 count without cookies *and report it*, because they do not route cookieless data through Google's
-modelling gate. Self-hosted Matomo on box1 would also keep the data in the UK and add no processor
-at all, which is closer to what §1 wanted than Google ever was. Filed as an issue rather than
-decided here.
+modelling gate, and a self-hosted Matomo on box1 would have kept the data in the UK and added no
+processor at all. None is being pursued. **This restores the 2026-08-21 decision above intact**,
+and the whole episode is evidence for it rather than against it: the product went to one analytics
+service deliberately, tried a second, and the second could not do the job.
+
+So the answer to a future dashboard-shaped complaint is a saved view inside PostHog, not another
+service. Anyone minded to reopen this reads this section first.
 
 **The process lesson is LESSONS §9a**, and it is the more valuable half: the integration was
 verified thoroughly — payloads on the wire, consent state, guarantee 4 against a live token on
