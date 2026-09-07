@@ -408,6 +408,14 @@ export const ANALYTICS_EVENTS = {
    * chosen in this repository, so neither can carry anything anybody typed.
    */
   spotPageOpened: 'spot_page_opened',
+  /*
+   * `spot_page_opened` also carries `operating` (`open` | `closed` | `unknown`)
+   * and `indoor` (a boolean). Both are staff-set from fixed lists rather than
+   * typed, so both are catalogue facts and neither can leak what a child wrote.
+   * `operating` is the one that answers a question we cannot otherwise ask: a
+   * closed park keeps its page, and this is the only way to learn whether
+   * anybody still reads one.
+   */
   /**
    * A spot was put on the map from the list — the "Show on map" button on a
    * card, or a pin.

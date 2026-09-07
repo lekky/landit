@@ -352,6 +352,15 @@ export interface AdminSpotRow {
   readonly status: AdminSpotStatus;
   readonly lat: number;
   readonly lng: number;
+  /*
+   * Whether it is under a roof, and whether it is still standing — the second
+   * being a different question from `status` above, which is only whether staff
+   * have let the row onto the map. `operating` is a plain string rather than the
+   * narrowed union because it arrives from a select field and is validated
+   * server-side, in `spotPatch`, where every other field from that form is.
+   */
+  readonly indoor: boolean;
+  readonly operating: string;
   /** Empty when nobody submitted it — a staff-published spot has no submitter. */
   readonly submittedBy: string;
   readonly submitted: string;

@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { SPOTS, SPOT_TYPES } from '../data/spots';
 import type { SportId } from '../types';
 import {
-  SPOT_MAX_TAGS,
   distanceKm,
   distanceLabel,
   distanceLabelIn,
@@ -14,14 +13,16 @@ import {
   mapsLink,
   parseCoords,
   parseSpotLocation,
+  readSpotOperating,
   readSpotSubmission,
   regionFromAcceptLanguage,
   sortSpotsByDistance,
+  splitSpotTags,
+  SPOT_MAX_TAGS,
   spotLatLng,
   spotMatchesSearch,
   spotMatchesSport,
   spotSubmissionProblems,
-  splitSpotTags,
   unitsForCountry,
   type SpotSubmissionDraft,
 } from './spots';
@@ -388,5 +389,49 @@ describe('reading a submission', () => {
       SPOT_MAX_TAGS,
     );
     expect(splitSpotTags('x'.repeat(40))[0]).toHaveLength(24);
+  });
+});
+
+describe('readSpotOperating', () => {
+  it('keeps the three words it knows', () => {
+    expect(readSpotOperating('open')).toBe('open');
+    expect(readSpotOperating('closed')).toBe('closed');
+    expect(readSpotOperating('unknown')).toBe('unknown');
+  });
+
+  it('is forgiving about how a word is written', () => {
+    expect(readSpotOperating('  OPEN ')).toBe('open');
+    expect(readSpotOperating('Closed')).toBe('closed');
+  });
+
+  /*
+   * The direction of the default is the point of the function, so it is tested
+   * as behaviour rather than as a fallback: every unreadable input must land on
+   * 'unknown', because 'open' would be this product asserting a park is there
+   * on the strength of a word it could not read.
+   */
+  it('never guesses a park is open', () => {
+    for (const junk of [
+      'En travaux',
+      'demolished',
+      'OPENING SOON',
+      '',
+      '   ',
+      null,
+      undefined,
+      0,
+      1,
+      true,
+      {},
+      [],
+      ['open'],
+    ]) {
+      expect(readSpotOperating(junk)).toBe('unknown');
+    }
+  });
+
+  it('does not treat a substring as a match', () => {
+    expect(readSpotOperating('reopened')).toBe('unknown');
+    expect(readSpotOperating('open air')).toBe('unknown');
   });
 });

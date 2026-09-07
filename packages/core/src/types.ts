@@ -365,6 +365,26 @@ export interface Challenge {
 /** Rider submissions arrive `pending` and are approved by staff (plan §3). */
 export type SpotStatus = 'pending' | 'live' | 'rejected';
 
+/**
+ * Whether the place is still there — which is **not** `SpotStatus`.
+ *
+ * `status` is the moderation state: whether staff have let this record onto the
+ * map. `operating` is a fact about the world: whether a rider who travels there
+ * finds a skatepark. A park can be perfectly `live` in the queue and demolished
+ * on the ground, which is exactly the defect issue #326 records against Addis
+ * Skatepark — seeded live, removed by its builder in February 2026. Two axes,
+ * two fields, because collapsing them would mean hiding a closed park from the
+ * map to express its closure, and a rider who has been going there for years is
+ * better served by being told it has gone than by the listing quietly vanishing.
+ *
+ * **`'unknown'` is the honest default and the common case.** Almost no source
+ * records closure: OpenStreetMap deletes or retags a park rather than marking it
+ * shut, so an OSM-derived row can never be better than `'unknown'`. Absent means
+ * unknown too — readers treat a missing field and an explicit `'unknown'` the
+ * same way, and say nothing rather than implying the park is open.
+ */
+export type SpotOperating = 'open' | 'closed' | 'unknown';
+
 export interface Spot {
   readonly name: string;
   readonly town: string;
@@ -388,6 +408,21 @@ export interface Spot {
   readonly address?: string;
   readonly phone?: string;
   readonly country?: string;
+  /*
+   * Under a roof, and still standing. Both optional, both defaulting to "we do
+   * not know" when absent, because most of the data behind this product cannot
+   * say either way and a guess here is worse than a silence: `indoor` decides
+   * whether a rider crosses a city in the rain, and `operating` decides whether
+   * they find anything when they get there.
+   *
+   * `indoor` is deliberately not derived from `type`. 'Indoor park' is one of
+   * the three submission-form categories a human picks from (`SPOT_TYPES`), and
+   * plenty of concrete parks are partly covered while some 'Indoor park' records
+   * are really a warehouse with one side open. The flag says what the category
+   * cannot.
+   */
+  readonly indoor?: boolean;
+  readonly operating?: SpotOperating;
 }
 
 /** A plain coordinate pair. */

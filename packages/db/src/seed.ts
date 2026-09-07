@@ -221,6 +221,17 @@ export function buildSeed(): SeedPlan {
           sports: [...spot.sports],
           tags: [...spot.tags],
           status: spot.status,
+          /*
+           * `indoor` collapses to false when absent, and that is a storage
+           * limit rather than a claim: a PocketBase bool has no null, so the
+           * column means "known to be indoor", never "known to be outdoors".
+           * `operating` writes 'unknown' explicitly for the same reason the
+           * fields above write '' — an omitted key would leave a stale value
+           * behind on a re-seed, so a park that has since closed would keep
+           * saying it is open.
+           */
+          indoor: spot.indoor ?? false,
+          operating: spot.operating ?? 'unknown',
         })),
       },
       {

@@ -21,6 +21,7 @@ import {
   type TricksCat,
   type TricksSport,
 } from '@landit/db';
+import { readSpotOperating } from '@landit/core';
 import { revalidatePath } from 'next/cache';
 
 import { ROUTES } from '@/lib/routes';
@@ -369,6 +370,14 @@ export interface SpotForm {
   readonly sports: readonly string[];
   readonly lat: string;
   readonly lng: string;
+  /*
+   * Under a roof, and still standing. `operating` arrives as a string because
+   * every other field on this form does — the select's value is validated back
+   * to the three allowed words below rather than trusted, since a form field is
+   * a POST body and a POST body is whatever the caller typed.
+   */
+  readonly indoor: boolean;
+  readonly operating: string;
 }
 
 function spotPatch(form: SpotForm) {
@@ -383,6 +392,8 @@ function spotPatch(form: SpotForm) {
       .map((t) => t.trim())
       .filter(Boolean),
     sports: form.sports as SpotsSports[],
+    indoor: form.indoor,
+    operating: readSpotOperating(form.operating),
     ...(Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : {}),
   };
 }

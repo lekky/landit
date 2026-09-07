@@ -265,6 +265,8 @@ export default async function SpotPage({ params }: Params) {
          */
         origin={spot.submitted_by ? 'submitted' : 'researched'}
         type={spot.type || 'unknown'}
+        operating={spot.operating || 'unknown'}
+        indoor={Boolean(spot.indoor)}
       />
 
       <nav className={styles.crumb} aria-label="Breadcrumb">
@@ -306,6 +308,12 @@ export default async function SpotPage({ params }: Params) {
             <span className={styles.stripValue}>{typePhrase(spot.type)}</span>
           </div>
         ) : null}
+        {spot.indoor ? (
+          <div className={styles.stripItem}>
+            <span className={`lab ${styles.stripLabel}`}>Cover</span>
+            <span className={styles.stripValue}>Indoor</span>
+          </div>
+        ) : null}
         <div className={styles.stripItem}>
           <span className={`lab ${styles.stripLabel}`}>What&rsquo;s here</span>
           <span className={styles.stripValue}>
@@ -334,6 +342,20 @@ export default async function SpotPage({ params }: Params) {
 
       <div className={styles.cols}>
         <main className={styles.main}>
+          {/*
+            A closed park says so before the page says anything else, and it
+            keeps its page rather than vanishing. A rider who has ridden here
+            for years and finds the listing simply gone learns nothing; one who
+            reads this does not make the journey. `'unknown'` and absent both
+            render nothing at all — saying "we think it is open" on the strength
+            of no evidence is the failure that sends a child to a building site.
+          */}
+          {spot.operating === 'closed' ? (
+            <p className={styles.closed} role="status">
+              <strong>This spot has closed.</strong> It is kept here so the name still finds
+              something, but do not travel to it.
+            </p>
+          ) : null}
           <p className={styles.lede}>{lede(spot, tags)}</p>
 
           <section>
@@ -523,6 +545,12 @@ export default async function SpotPage({ params }: Params) {
                     )}
                   </div>
                 </div>
+                {spot.indoor ? (
+                  <div className={styles.row}>
+                    <span className={`lab ${styles.rowLabel}`}>Cover</span>
+                    <div className={styles.rowValue}>Indoor &mdash; under a roof</div>
+                  </div>
+                ) : null}
                 {sports.length ? (
                   <div className={styles.row}>
                     <span className={`lab ${styles.rowLabel}`}>Good for</span>

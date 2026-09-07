@@ -180,6 +180,38 @@
   max-width: 60ch;
 }
 
+/*
+ * A closed park, said loudly and before anything else on the page.
+ *
+ * Full `--red` on paper with the keyline and the hard shadow, because this is
+ * the one line on the page whose whole job is to stop a journey — a rider who
+ * skims past it cycles to a demolished site. It is a block, not a chip: the
+ * quiet treatments elsewhere on this page are for facts that are merely
+ * missing, and this is a fact that is present and bad.
+ *
+ * `role="status"` rather than `alert` on the element: the page has just loaded
+ * and nothing has changed, so a screen reader should reach this in reading
+ * order and announce it politely, not interrupt whatever it was saying.
+ */
+.closed {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 15.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  border: var(--bd);
+  border-left: 9px solid var(--red);
+  box-shadow: var(--sh);
+  max-width: 60ch;
+}
+
+.closed strong {
+  display: block;
+  color: var(--red);
+  letter-spacing: 0.01em;
+}
+
 /* --------------------------------------------------------- what's here -- */
 
 /*
