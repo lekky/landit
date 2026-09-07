@@ -1,0 +1,343 @@
+/*
+ * The glossary's own layout (handoff `Glossary.dc.html`, screenshots
+ * 01–02-glossary). The look — the panel, the sport tabs, the type classes —
+ * is the design system's; what is here is the strip, the letter groups, the
+ * entry grid and the "See it in" pills, with the design's numbers.
+ *
+ * Two breakpoints. Below 700px an entry drops to one column and the letter
+ * column folds into the flow, which is the handoff's `phone` tweak; below
+ * 520px the filter becomes the two-by-two grid the phone artboard draws,
+ * matching where `.sporttab` already goes `flex: 1`.
+ */
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 14px;
+  color: var(--ink-3);
+  font-size: 13.5px;
+}
+
+.back:hover {
+  color: var(--ink);
+}
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px 24px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.title {
+  font-size: clamp(40px, 6vw, 56px);
+  margin-top: 6px;
+}
+
+/* The `Tabs` row, pushed to the right and with its own bottom margin gone. */
+.filter {
+  margin: 0 0 0 auto;
+}
+
+.panel {
+  /* Everything inside scrolls under the sticky strip; nothing may overhang. */
+  overflow: clip;
+}
+
+/*
+ * The A–Z strip. Sticky under the top bar, whose height is not a token: it
+ * is padding plus the wordmark, and measures 60–63px across widths. 60px
+ * puts the strip a hair *under* the bar at every width, which is invisible;
+ * anything larger opens a gap the list scrolls through. `scrollbar-width:
+ * none` because on a phone the strip is wider than the screen and scrolls
+ * sideways; the letters are their own scrollbar.
+ */
+.strip {
+  position: sticky;
+  top: 60px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 3px solid var(--ink);
+  background: var(--paper-2);
+  padding: 8px 14px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.strip::-webkit-scrollbar {
+  display: none;
+}
+
+.letter,
+.letterOff {
+  padding: 4px 0;
+  min-width: 38px;
+  flex: 1 0 38px;
+  text-align: center;
+}
+
+/*
+ * `a.letter` for the same reason `GlossaryText` gives: the token sheet's
+ * `a:hover` outranks a class and would paint the letter pink (issue #297).
+ */
+a.letter,
+a.letter:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
+}
+
+a.letter:hover {
+  background: var(--yellow);
+}
+
+.letterOff {
+  color: var(--ink-soft);
+}
+
+.list {
+  padding: 6px 22px 26px;
+}
+
+.group {
+  display: grid;
+  grid-template-columns: minmax(64px, 96px) minmax(0, 1fr);
+  gap: 18px;
+  padding: 14px 0 8px;
+  scroll-margin-top: 130px;
+}
+
+.group + .group {
+  border-top: 3px solid var(--ink);
+}
+
+.groupLetter {
+  font-size: 40px;
+  color: var(--ink-3);
+  padding-top: 14px;
+}
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 28px;
+  align-items: start;
+  min-width: 0;
+  padding: 14px 0;
+  scroll-margin-top: 130px;
+}
+
+.entry + .entry {
+  border-top: 2px solid var(--wash);
+}
+
+/*
+ * The term a deep link landed on. Paper-2 behind it and a yellow rule down the
+ * left, bled out to the panel's padding so the band reads as the row and not
+ * as a box inside it. Pure CSS, so it is right on first paint.
+ */
+.entry:target {
+  background: var(--paper-2);
+  box-shadow: inset 6px 0 0 var(--yellow);
+  margin: 0 -22px;
+  padding-left: 22px;
+  padding-right: 22px;
+}
+
+.termRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.term {
+  font-size: 22px;
+  line-height: 0.95;
+}
+
+/* The single-sport tag: keyline in the sport's colour, label in ink. */
+.sportTag {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: 2px solid var(--ink);
+  padding: 1px 6px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.definition {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-wrap: pretty;
+  max-width: 62ch;
+  grid-column: 1;
+}
+
+.seen {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding-left: 20px;
+  border-left: 2px solid var(--wash);
+  min-width: 150px;
+}
+
+.seenLabel {
+  color: var(--ink-3);
+}
+
+/*
+ * A "See it in" pill: the library's yellow with a 2.5px keyline and the small
+ * hard shadow, pressing like every other button in the design. A link, so it
+ * needs the `a.` specificity for its colour like the strip's letters do.
+ */
+a.seenLink,
+a.seenLink:hover {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  border: 2.5px solid var(--ink);
+  background: var(--yellow);
+  box-shadow: var(--sh-sm);
+  padding: 7px 12px;
+  color: var(--ink);
+  white-space: nowrap;
+  transition: 0.12s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  box-sizing: border-box;
+}
+
+a.seenLink:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+a.seenLink:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+/* The `back` glyph, turned round to point forward. */
+.seenArrow {
+  display: inline-flex;
+  transform: rotate(180deg);
+}
+
+/* The empty state, drawn like `Empty` without a second panel around it. */
+.empty {
+  padding: 38px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.emptyIcon {
+  width: 52px;
+  height: 52px;
+  border: 3px solid var(--ink);
+  background: var(--yellow);
+  display: grid;
+  place-items: center;
+  transform: rotate(-5deg);
+}
+
+.emptyTitle {
+  font-size: 22px;
+}
+
+.emptyBody {
+  margin: 0;
+  max-width: 380px;
+  color: var(--ink-2);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .list {
+    padding: 0 14px 18px;
+  }
+
+  .group {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .entry {
+    grid-template-columns: 1fr;
+  }
+
+  .entry:target {
+    margin: 0 -14px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .seen {
+    grid-column: 1;
+    grid-row: auto;
+    align-items: stretch;
+    padding-left: 0;
+    border-left: none;
+    margin-top: 6px;
+    width: 100%;
+  }
+
+  a.seenLink,
+  a.seenLink:hover {
+    width: 100%;
+    padding: 10px 14px;
+  }
+}
+
+@media (max-width: 520px) {
+  .letter,
+  .letterOff {
+    min-width: 30px;
+    flex: none;
+  }
+
+  .filter {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+    width: 100%;
+  }
+
+  .filter :global(.sporttab) {
+    justify-content: center;
+    padding: 11px 10px;
+    font-size: 14px;
+  }
+}

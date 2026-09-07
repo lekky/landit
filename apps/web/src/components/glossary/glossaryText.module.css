@@ -1,0 +1,25 @@
+/*
+ * A glossary word inside body copy: a 2px dotted ink underline, and nothing
+ * else changes — not the colour, not the weight, not on hover (handoff,
+ * "Decisions to confirm"). The underline is the whole affordance, because a
+ * trick's tips can carry four or five of these and an orange word in every
+ * line would read as emphasis rather than as "this is explained".
+ *
+ * `a.term` rather than `.term`: the token sheet's `a:hover { color: var(--pink) }`
+ * is a tag-plus-pseudo selector and outranks a lone class on order alone
+ * (issue #297), so the colour has to be held with one more point of
+ * specificity or it turns pink the moment a rider touches it.
+ */
+a.term,
+a.term:hover {
+  color: inherit;
+  text-decoration: underline dotted var(--ink);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+/* A visible focus ring is the one state that may change how it looks. */
+a.term:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}

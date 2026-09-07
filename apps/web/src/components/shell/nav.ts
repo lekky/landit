@@ -86,7 +86,15 @@ export type NavItem = {
  */
 export const TOP_NAV: readonly NavItem[] = [
   { id: 'home', label: 'Home', icon: 'home', href: ROUTES.dashboard },
-  { id: 'library', label: 'Tricks', icon: 'grid', href: ROUTES.library },
+  {
+    id: 'library',
+    label: 'Tricks',
+    icon: 'grid',
+    href: ROUTES.library,
+    // The glossary is the library's own reference page, reached from a trick's
+    // copy and pointing back into it; it does not sit under `/library`.
+    alsoActiveFor: [ROUTES.glossary],
+  },
   { id: 'progress', label: 'Progress', icon: 'chart', href: ROUTES.progress },
   { id: 'stickers', label: 'Stickers', icon: 'star', href: ROUTES.stickers },
   {
@@ -128,7 +136,13 @@ export const MOBILE_NAV: readonly NavItem[] = [
     // the way in, so the bar stays on Home rather than blanking on `/challenge`.
     reaches: [ROUTES.challenge],
   },
-  { id: 'library', label: 'Tricks', icon: 'grid', href: ROUTES.library },
+  {
+    id: 'library',
+    label: 'Tricks',
+    icon: 'grid',
+    href: ROUTES.library,
+    alsoActiveFor: [ROUTES.glossary],
+  },
   {
     id: 'whats-on',
     label: 'What’s on',

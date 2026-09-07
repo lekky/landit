@@ -255,6 +255,24 @@ export const ANALYTICS_EVENTS = {
    * from anybody else.
    */
   eventsViewSwitched: 'events_view_switched',
+  /**
+   * A glossary term was reached — by a deep link into `/glossary#term`, or by
+   * following one of a term's "See it in" pills to a trick (T29).
+   *
+   * Carries `term` (the slug, one of the catalogue's fixed strings), `source`
+   * — `'inline'` when the reader came from a dotted word in a trick's own
+   * copy, `'page'` when they were already on the glossary — and `sport`, the
+   * active filter or `null`. Never anything a rider typed: the page has no
+   * search box, and every value here is chosen from a list we wrote.
+   *
+   * It exists because the glossary is a bet that riders will follow a word out
+   * of a trick page and back again. `source` is what tells the inline links'
+   * traffic from the footer's, and a pill press from a page nobody reads past
+   * the first screen of — which between them say whether the dotted underline
+   * earns its place on every trick's tips, or the page should stay something a
+   * curious reader finds on their own.
+   */
+  glossaryOpened: 'glossary_opened',
 
   /* ------------------------------------------------------------- awards -- */
   /**

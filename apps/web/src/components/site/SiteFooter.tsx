@@ -40,6 +40,7 @@ const COLUMNS: readonly FooterColumn[] = [
     title: 'The app',
     links: [
       { label: 'Trick library', href: ROUTES.library },
+      { label: 'Glossary', href: ROUTES.glossary },
       { label: 'Progress', href: ROUTES.progress },
       { label: 'Stickers', href: ROUTES.stickers },
       { label: 'Events', href: ROUTES.events },

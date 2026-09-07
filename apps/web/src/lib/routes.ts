@@ -1,4 +1,4 @@
-import type { CategoryId } from '@landit/core';
+import type { CategoryId, SportId } from '@landit/core';
 import type { Route } from 'next';
 
 import type { LegalDocId } from '@/content/legal';
@@ -40,6 +40,11 @@ export const ROUTES = {
   onboarding: '/onboarding',
   account: '/account',
   library: '/library',
+  /**
+   * The glossary (T29): the words riders use, readable signed out like the
+   * library. A term is addressed by hash — see `glossaryHref`.
+   */
+  glossary: '/glossary',
   progress: '/progress',
   /**
    * T12's two screens. Reachable by URL from the moment they merge; the nav
@@ -172,6 +177,36 @@ export const libraryHref = (options: { mine?: boolean; cat?: CategoryId } = {}):
   if (options.cat) query.set('cat', options.cat);
   const search = query.toString();
   return search ? (`${ROUTES.library}?${search}` as Route) : ROUTES.library;
+};
+
+/**
+ * The glossary, optionally opened at one term and told which trick the reader
+ * left to get there (T29).
+ *
+ * `from` carries a trick slug, and it is what turns "Back to the trick" on: a
+ * reader who followed a dotted word out of a trick's tips wants the way back,
+ * and a reader who arrived from the footer wants the library. A query parameter
+ * rather than a referrer check, for the reason `eventHrefFrom` gives. The hash
+ * goes after the query string, because a fragment before one is not a
+ * fragment: `/glossary?from=tailwhip#kerb`.
+ */
+export const glossaryHref = (slug?: string, from?: string): Route => {
+  const search = from ? `?from=${encodeURIComponent(from)}` : '';
+  const hash = slug ? `#${encodeURIComponent(slug)}` : '';
+  return `${ROUTES.glossary}${search}${hash}` as Route;
+};
+
+/**
+ * The glossary narrowed to one sport, or all of it — the filter row's address,
+ * so `/glossary?sport=skate` can be linked and bookmarked like `/library?mine=1`.
+ * `from` rides along so the way back survives a filter press.
+ */
+export const glossarySportHref = (sport: SportId | null, from?: string | null): Route => {
+  const params = new URLSearchParams();
+  if (sport) params.set('sport', sport);
+  if (from) params.set('from', from);
+  const search = params.toString();
+  return search ? (`${ROUTES.glossary}?${search}` as Route) : ROUTES.glossary;
 };
 
 /**

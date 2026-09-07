@@ -3442,6 +3442,67 @@ Wiring the spots list into these pages — the card-click conflict the handoff's
 is deliberately **not** in this PR and belongs to a later session. The page is reachable by URL and
 by sitemap, which is the whole of what it needs to be crawlable.
 
+**T29 · The glossary.** Added after launch (Rachid, 2026-09-07, in chat), one of four parallel
+sessions on the trick page — T28 (content), T30 (the log), T31 (the page itself) and this. It
+lands `/glossary`: **84 words riders use**, readable signed out like the library, narrowed by
+sport in the address (`?sport=skate`, on the pattern of `/library?mine=1`), jumped by an A–Z strip,
+and addressable a term at a time (`/glossary#kerb`). Beside the page, an inline component,
+`GlossaryText`, that turns the first mention of any of those words in a run of copy into a dotted
+link back to it. **The component is built, tested and exported, and used nowhere yet**: the trick
+page belongs to T31, and the wiring is a follow-up once both branches merge — the handoff draws it on
+the Tips paragraph.
+
+**Where the words came from, and what they are worth.** Researched on 2026-09-07 from the product's
+own copy — every `about`, `tips` and `fact` in the library read for the words it uses without
+explaining — and each definition then checked against a published glossary; the thirteen sources are
+listed at the top of `packages/core/src/data/glossary.ts`. A definition is a paraphrase written for
+a twelve year old, not a quotation, and where sports disagree about a word (`deck` above all) it
+says so rather than picking one. `sports` is which sports *use* the word; `seeIn` is the "See it in"
+pills, live tricks only, and every id in it is checked against the library by a test.
+
+**The matching rule, and the traps it is built around.** `glossaryMatches` in
+`packages/core/src/rules/glossary.ts` links whole words only, case-insensitively, longest phrase
+winning, **one link per term at its first mention in reading order**, and with a term's `except`
+phrases fenced off before anything is tried. The research recorded four traps and the tests pin each
+one on a sentence: `hip` must not match "hips" (the body part), `rail` must not match inside
+"handrail" (its own term), `trucks` must not match "Truck Driver" (a trick), and `deck` matches
+every sense it has. Then the matcher was run over the whole library — 1,604 links — and read, which
+is where the data was corrected rather than the rule: `set` ("a set of stairs", "set off"), `lap`
+("a full lap" is a bar spin), `grip` ("keep your grip loose") and `grips` came out as aliases;
+"car park", "run-up", "from the hip" and the adjectival `flat` ("dead flat") went in as exclusions;
+`lip` was given to Lip alone, since the research had handed it to Coping as well and one phrase can
+mean one term; and Manual came out of Park's "See it in", because the only park in that trick's copy
+is a car park. Six "See it in" links are on sense rather than wording (the copy describes the thing
+without saying it) and are named in the test as exactly six. A second test runs every trap over the
+whole library, so an alias that reintroduces one fails before it reaches a page.
+
+**Two things the component decides that the handoff did not say.** It takes the trick's `sport`
+and links only the words that sport uses, because "frame" in scooter copy is not the BMX top tube
+and "hop" in skate copy is not a bunny hop. And it is server-renderable with no state at all — a
+string in, markup out — so a trick page stays a server component when it adopts it and there is
+nothing for hydration to throw away (LESSONS §3a).
+
+**Fidelity to `Glossary.dc.html`, and the three places it was not followed literally.** The sport
+filter is the design system's `Tabs`, which already draws the handoff's buttons to the pixel and
+takes the phone's two-by-two grid from a module class. A letter with nothing under it is a `span`,
+not a link with its pointer events switched off, because that is what "greyed" means to a keyboard.
+And the empty state is drawn in place rather than through `Empty`, which would nest a second panel
+inside the first. The deep-link highlight is `:target` in CSS — right on first paint, nothing to
+hydrate.
+
+**Analytics: `glossary_opened`**, carrying `term` (the slug), `source` (`inline` from a dotted word
+in a trick's copy, `page` from the glossary's own links) and the active `sport` filter or `null`.
+Fired on a deep-link arrival and on a "See it in" press. It is what will say whether the dotted
+underline earns its place on every trick's tips, or the page should stay something a curious reader
+finds from the footer.
+
+**What it costs.** The 84 terms ride in the glossary screen's own client chunk (the filter narrows
+in the browser), which is one route's worth of definitions and nothing on any other page. The footer
+gains one entry, "Glossary", under The app; the top bar gains nothing, and the Tricks entry stays lit
+on `/glossary` (`alsoActiveFor`). `apps/web`'s Vitest include widens by exactly one directory,
+`components/glossary`, for a component that is a pure function of a string — the rule that screens
+are Playwright's is untouched, and the page has its own spec in `e2e/glossary.spec.ts`.
+
 ### Dependency graph
 
 ```
