@@ -1,4 +1,4 @@
-import { HEARD_ABOUT_IDS } from '@landit/core';
+import { HEARD_ABOUT_IDS, type ChallengeDateBound } from '@landit/core';
 
 import type { Client } from './clients';
 import {
@@ -11,6 +11,8 @@ import {
 import type {
   AnnouncementsRecord,
   AuditLogRecord,
+  ChallengesRecord,
+  ChallengesSport,
   CollectionName,
   CollectionRecords,
   EventsRecord,
@@ -312,27 +314,89 @@ export async function landedCountsFor(
 ): Promise<Readonly<Record<string, number>>> {
   if (userIds.length === 0 || stages.length === 0) return {};
 
-  // Built as a parameterised `or` chain, never by concatenating ids into the
-  // filter string — the privacy rules are written in this same filter language
-  // (see `collections.ts`).
-  const params: Record<string, string> = {};
-  const users = userIds.map((id, i) => {
-    params[`u${i}`] = id;
-    return `user = {:u${i}}`;
-  });
-  const landed = stages.map((stage, i) => {
-    params[`s${i}`] = stage;
-    return `stage = {:s${i}}`;
-  });
+  // Both halves are parameterised `or` chains, never ids concatenated into the
+  // filter string — see `orChain`.
+  const users = orChain('user', userIds, 'u');
+  const landed = orChain('stage', stages, 's');
 
   const rows = await records(client, 'trick_progress').list({
-    filter: `(${users.join(' || ')}) && (${landed.join(' || ')})`,
-    params,
+    filter: `${users.clause} && ${landed.clause}`,
+    params: { ...users.params, ...landed.params },
     fields: 'user',
   });
 
   const counts: Record<string, number> = {};
   for (const row of rows) counts[row.user] = (counts[row.user] ?? 0) + 1;
+  return counts;
+}
+
+/**
+ * A parameterised `field = {:x} || field = {:x}` chain over a list of ids.
+ *
+ * Extracted from `landedCountsFor`, which needs two of them. It exists to make
+ * one thing hard to get wrong: the ids are **bound**, never concatenated into
+ * the filter string. The privacy rules are written in this same filter language
+ * (see `collections.ts`), so a read that interpolated an id would be the
+ * PocketBase spelling of SQL injection against them.
+ *
+ * The prefix keeps two chains in one filter from sharing parameter names.
+ */
+function orChain(
+  field: string,
+  values: readonly string[],
+  prefix: string,
+): { readonly clause: string; readonly params: Record<string, string> } {
+  const params: Record<string, string> = {};
+  const clause = values
+    .map((value, i) => {
+      params[`${prefix}${i}`] = value;
+      return `${field} = {:${prefix}${i}}`;
+    })
+    .join(' || ');
+  return { clause: `(${clause})`, params };
+}
+
+/**
+ * How many rows of `collection` point at each of these ids, in one request.
+ *
+ * The shape `landedCountsFor` established, generalised for the content tabs:
+ * every one of them shows a count per row — riders going to an event, log
+ * entries against a challenge week, dismissals of an announcement — and every
+ * one of them was reading the **whole** join collection with `getFullList` to
+ * work it out. Those collections are riders x items, so they outgrow the table
+ * they decorate by the size of the rider base.
+ *
+ * Scoping the read to the ids actually on screen is what makes a paged table
+ * worth having: page the rows and this read shrinks with them, instead of the
+ * page getting cheaper to render and no cheaper to build.
+ *
+ * `fields` narrows the response to the one column being tallied, so the wire
+ * carries ids rather than whole records. Ids with no rows are absent from the
+ * result — callers read a missing key as zero.
+ */
+export async function relationCountsFor<N extends CollectionName>(
+  client: Client,
+  collection: N,
+  field: string & keyof CollectionRecords[N],
+  ids: readonly string[],
+): Promise<Readonly<Record<string, number>>> {
+  if (ids.length === 0) return {};
+
+  const { clause, params } = orChain(field, ids, 'r');
+  const rows = await records(client, collection).list({
+    filter: clause,
+    params,
+    fields: field,
+  });
+
+  const counts: Record<string, number> = {};
+  for (const row of rows) {
+    // A relation column is a string id. Anything else means `field` named a
+    // column that is not one, which is a caller's mistake rather than a row to
+    // tally — skipped rather than counted under an empty key.
+    const key: unknown = row[field];
+    if (typeof key === 'string' && key) counts[key] = (counts[key] ?? 0) + 1;
+  }
   return counts;
 }
 
@@ -622,6 +686,176 @@ export async function listAdminAnnouncements(client: Client): Promise<Announceme
 }
 
 /**
+ * What the paged challenges read narrows by.
+ *
+ * `state` is the awkward one and the reason `ChallengeDateBound` exists.
+ * `challenges` has no state column and must not gain one — whether a week is
+ * running is derived from its dates every time it is asked (plan §2.2, §3, and
+ * the collection's own migration says so) — but a *paged* tab has to select in
+ * the database, which cannot call `challengeState`. `@landit/core` therefore
+ * hands over the day comparisons that mean the same thing, and this turns them
+ * into a filter. The rule stays in core, where a test holds the two spellings
+ * equivalent; what lives here is only the encoding.
+ */
+export interface AdminChallengeFilter {
+  readonly sport?: ChallengesSport;
+  /** From `challengeStateBounds` in `@landit/core`. Never built here. */
+  readonly bounds?: readonly ChallengeDateBound[];
+}
+
+/**
+ * A `starts`/`ends` bound as a filter clause over a PocketBase `date` column.
+ *
+ * The columns store an instant, the rule speaks in inclusive calendar days, so
+ * each bound is widened to the edge of its day that keeps the comparison true
+ * whatever time of day happens to be stored. `starts <= today` becomes
+ * `starts <= today 23:59:59`; `ends >= today` becomes `ends >= today 00:00:00`.
+ * Comparing a datetime column against a bare `YYYY-MM-DD` would be a string
+ * comparison against a shorter string, which is false for the very row it is
+ * meant to match — the one starting on `today` itself.
+ */
+function boundClause(bound: ChallengeDateBound, key: string): { clause: string; value: string } {
+  const edge = bound.op === '<' || bound.op === '<=' ? '23:59:59' : '00:00:00';
+  return { clause: `${bound.field} ${bound.op} {:${key}}`, value: `${bound.day} ${edge}` };
+}
+
+function challengeFilter(filter: AdminChallengeFilter): ListOptions {
+  const clauses: string[] = [];
+  const params: Record<string, string> = {};
+
+  if (filter.sport) {
+    clauses.push('sport = {:sport}');
+    params.sport = filter.sport;
+  }
+  (filter.bounds ?? []).forEach((bound, i) => {
+    const { clause, value } = boundClause(bound, `d${i}`);
+    clauses.push(clause);
+    params[`d${i}`] = value;
+  });
+
+  return clauses.length ? { filter: clauses.join(' && '), params } : {};
+}
+
+/**
+ * One page of challenge weeks, oldest first.
+ *
+ * The sort matches `challengesFor`, so the staff tab reads a sport's calendar
+ * in the order the rider's screen walks it. `idx_challenges_sport_dates` covers
+ * exactly this filter and sort, which is not a coincidence — the index was put
+ * there when the collection was written, for reads shaped like this one.
+ */
+export async function listAdminChallengesPage(
+  client: Client,
+  filter: AdminChallengeFilter = {},
+  page: { readonly page?: number; readonly perPage?: number } = {},
+): Promise<Page<ChallengesRecord>> {
+  return records(client, 'challenges').page({
+    ...challengeFilter(filter),
+    sort: 'starts',
+    page: page.page ?? 1,
+    perPage: page.perPage ?? 25,
+  });
+}
+
+/** How many weeks match, without fetching them. One small request per filter. */
+export async function challengeCounts(
+  client: Client,
+  filters: Readonly<Record<string, AdminChallengeFilter>>,
+): Promise<Readonly<Record<string, number>>> {
+  const keys = Object.keys(filters);
+  const pages = await Promise.all(
+    keys.map((key) =>
+      records(client, 'challenges').page({
+        ...challengeFilter(filters[key] as AdminChallengeFilter),
+        perPage: 1,
+      }),
+    ),
+  );
+
+  const counts: Record<string, number> = {};
+  keys.forEach((key, i) => {
+    counts[key] = pages[i]?.totalItems ?? 0;
+  });
+  return counts;
+}
+
+/**
+ * The week to feature at the top of a sport's tab: the one running now, else
+ * the next one scheduled.
+ *
+ * One record, read separately from the page, because the featured panel is a
+ * property of the *sport* rather than of whatever page is on screen. Deriving
+ * it from `page.items` would make it appear and disappear as staff paged, which
+ * is not what a "here is the week that is live" panel means.
+ *
+ * Two small reads rather than one clever one: the live week if there is one,
+ * otherwise the earliest upcoming. `liveChallenge` in `@landit/core` also falls
+ * back to the most recent past week, and this deliberately does not — a panel
+ * headed with a finished week reads as though it were running.
+ */
+export async function featuredChallenge(
+  client: Client,
+  sport: ChallengesSport,
+  live: readonly ChallengeDateBound[],
+  upcoming: readonly ChallengeDateBound[],
+): Promise<ChallengesRecord | null> {
+  const running = await records(client, 'challenges').page({
+    ...challengeFilter({ sport, bounds: live }),
+    sort: 'starts',
+    perPage: 1,
+  });
+  if (running.items[0]) return running.items[0];
+
+  const next = await records(client, 'challenges').page({
+    ...challengeFilter({ sport, bounds: upcoming }),
+    sort: 'starts',
+    perPage: 1,
+  });
+  return next.items[0] ?? null;
+}
+
+/**
+ * One page of announcements, newest first — pulled ones included by default.
+ *
+ * `live` is tri-state for the reason the events read's is: "Pull" is a hide,
+ * and a pulled banner has to stay reachable from the screen that can put it
+ * back. It matters more here than anywhere else, because a pulled banner is
+ * also the record of something the product *said* to every rider — the tab
+ * keeps it greyed rather than gone, and a filter that could not reach it would
+ * quietly undo that.
+ */
+export async function listAdminAnnouncementsPage(
+  client: Client,
+  filter: { readonly live?: boolean } = {},
+  page: { readonly page?: number; readonly perPage?: number } = {},
+): Promise<Page<AnnouncementsRecord>> {
+  return records(client, 'announcements').page({
+    ...(filter.live === undefined
+      ? {}
+      : { filter: 'is_live = {:live}', params: { live: filter.live } }),
+    sort: '-created',
+    page: page.page ?? 1,
+    perPage: page.perPage ?? 25,
+  });
+}
+
+/** How many announcements are up and how many have been pulled. */
+export async function announcementCounts(
+  client: Client,
+): Promise<{ readonly live: number; readonly pulled: number }> {
+  const [live, pulled] = await Promise.all(
+    [true, false].map((value) =>
+      records(client, 'announcements').page({
+        filter: 'is_live = {:live}',
+        params: { live: value },
+        perPage: 1,
+      }),
+    ),
+  );
+  return { live: live?.totalItems ?? 0, pulled: pulled?.totalItems ?? 0 };
+}
+
+/**
  * Spots at any status, newest first.
  *
  * The rider-facing `listSpots` cannot do this job at all: `spots` is filtered by
@@ -633,6 +867,151 @@ export async function listAdminSpots(client: Client, status?: SpotsStatus): Prom
     filter: status ? 'status = {:status}' : undefined,
     params: status ? { status } : undefined,
     sort: '-created',
+  });
+}
+
+/**
+ * What the paged spots read narrows by.
+ *
+ * `query` matches the two fields staff can actually see on a row — the name and
+ * the town. Deliberately not the submitter: the queue shows a submitter as an
+ * id and nothing else (see `apps/web`'s spots page), and a search that reached
+ * that field would make the review screen a way to look up everything one rider
+ * has ever sent in, which is a rider-browsing surface on a screen that is not
+ * allowed to be one.
+ */
+export interface AdminSpotFilter {
+  readonly status?: SpotsStatus;
+  /** Matched against name and town. */
+  readonly query?: string;
+}
+
+function spotFilter(filter: AdminSpotFilter): ListOptions {
+  const clauses: string[] = [];
+  const params: Record<string, string> = {};
+
+  const query = filter.query?.trim();
+  if (query) {
+    clauses.push('(name ~ {:q} || town ~ {:q})');
+    params.q = query;
+  }
+  if (filter.status) {
+    clauses.push('status = {:status}');
+    params.status = filter.status;
+  }
+
+  return clauses.length ? { filter: clauses.join(' && '), params } : {};
+}
+
+/**
+ * One page of spots at any status, newest first.
+ *
+ * The paged twin of `listAdminSpots`, and the one the staff screen uses. Spots
+ * are rider-submitted, so the collection has no more of an upper bound on it
+ * than `users` does — a queue screen built on `getFullList` gets slower with
+ * every submission, which is the failure mode the riders table was paged to
+ * avoid and the same one waiting here.
+ *
+ * Newest first, which puts a fresh submission at the top of the unfiltered view
+ * without needing a sort control: a spot arrives `pending`, so the queue is
+ * where the newest rows already are.
+ */
+export async function listAdminSpotsPage(
+  client: Client,
+  filter: AdminSpotFilter = {},
+  page: { readonly page?: number; readonly perPage?: number } = {},
+): Promise<Page<SpotsRecord>> {
+  return records(client, 'spots').page({
+    ...spotFilter(filter),
+    sort: '-created',
+    page: page.page ?? 1,
+    perPage: page.perPage ?? 40,
+  });
+}
+
+/**
+ * How many spots sit at each of these statuses, honouring the same search.
+ *
+ * One small request per status — `perPage: 1` returns `totalItems` and one row
+ * rather than the pile. It exists because paging the table takes the three
+ * section headings away, and a queue whose length you can only discover by
+ * clicking into it is a queue people stop working. The counts go on the filter
+ * pills, so "twelve waiting" is visible from whichever status is being read.
+ *
+ * The search is applied to the counts as well as the rows, so a filtered view
+ * cannot show a pill promising more than the filter would give.
+ */
+export async function spotCounts(
+  client: Client,
+  statuses: readonly SpotsStatus[],
+  filter: Omit<AdminSpotFilter, 'status'> = {},
+): Promise<Readonly<Record<string, number>>> {
+  const pages = await Promise.all(
+    statuses.map((status) =>
+      records(client, 'spots').page({ ...spotFilter({ ...filter, status }), perPage: 1 }),
+    ),
+  );
+
+  const counts: Record<string, number> = {};
+  statuses.forEach((status, i) => {
+    counts[status] = pages[i]?.totalItems ?? 0;
+  });
+  return counts;
+}
+
+/**
+ * What the paged events read narrows by.
+ *
+ * `live` is a tri-state on purpose: `undefined` means "both", which is what the
+ * tab has always shown. An event taken off the calendar still has to be findable
+ * from the screen that took it down, or "Remove" becomes a delete with extra
+ * steps — see `EventsScreen` on why removal is a hide.
+ */
+export interface AdminEventFilter {
+  /** Matched against name, venue and town. */
+  readonly query?: string;
+  /** `true` on the calendar, `false` taken down, omitted for both. */
+  readonly live?: boolean;
+}
+
+function eventFilter(filter: AdminEventFilter): ListOptions {
+  const clauses: string[] = [];
+  const params: Record<string, string | boolean> = {};
+
+  const query = filter.query?.trim();
+  if (query) {
+    clauses.push('(name ~ {:q} || venue ~ {:q} || town ~ {:q})');
+    params.q = query;
+  }
+  if (filter.live !== undefined) {
+    clauses.push('is_live = {:live}');
+    params.live = filter.live;
+  }
+
+  return clauses.length ? { filter: clauses.join(' && '), params } : {};
+}
+
+/**
+ * One page of events, soonest first.
+ *
+ * The paged twin of `listAdminEvents`. The calendar is the collection that only
+ * ever grows: an event that has happened is not deleted — `event_attendance`
+ * cascades from it, so removing a past comp would erase the "I was going" of
+ * every rider who marked it — so every season adds rows and none ever leave.
+ *
+ * The sort is `listAdminEvents`', kept rather than improved on, so the paged
+ * table reads in the same order the tab has always read in.
+ */
+export async function listAdminEventsPage(
+  client: Client,
+  filter: AdminEventFilter = {},
+  page: { readonly page?: number; readonly perPage?: number } = {},
+): Promise<Page<EventsRecord>> {
+  return records(client, 'events').page({
+    ...eventFilter(filter),
+    sort: 'date',
+    page: page.page ?? 1,
+    perPage: page.perPage ?? 25,
   });
 }
 

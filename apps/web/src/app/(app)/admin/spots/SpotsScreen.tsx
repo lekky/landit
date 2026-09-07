@@ -1,12 +1,13 @@
 'use client';
 
 import { SPORTS, SPORT_IDS } from '@landit/core';
-import { Empty, Panel, Pill, SectionHead, SportChip, Tag } from '@landit/ui-web';
+import { Empty, Icon, Panel, Pill, SectionHead, SportChip, Tag } from '@landit/ui-web';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
 
 import { useToast } from '@/providers/toast';
 
+import { Pager, useTableNav } from '../Pager';
 import { StaffEditor, type EditorValue } from '../StaffEditor';
 import {
   createSpotAction,
@@ -28,6 +29,17 @@ import styles from '../admin.module.css';
  * that a human looked at a stranger's submission and decided, which is the
  * evidence the review queue exists to produce, and a rejected row is also the
  * only thing that could ever tell its submitter what happened (issue #107).
+ *
+ * **One paged table with a status filter, where there were three sections.**
+ * The sections could not survive paging — three lists on one screen have no
+ * single page number between them — and the collection outgrew them anyway
+ * (see `page.tsx`). The filter pills carry the counts the headings used to
+ * carry, which is the part that mattered: staff need to see there are twelve
+ * spots waiting without first going to look.
+ *
+ * Row actions come off `row.status` rather than off which list the row was in.
+ * That is the same three sets of buttons as before, decided per row, so a
+ * mixed "Everything" page offers each spot exactly what its own status allows.
  */
 
 const SPORT_CHOICES = SPORT_IDS.map((id) => [id, SPORTS[id].label] as const);
@@ -48,28 +60,78 @@ const BLANK_ADD = {
   sports: [...SPORT_IDS] as string[],
 };
 
+/** The pills, in the order a spot travels through them. */
+const STATUSES: readonly AdminSpotStatus[] = ['pending', 'live', 'rejected'];
+
 export function SpotsScreen({
   rows,
   types,
+  counts,
+  query,
+  status,
+  page,
+  totalPages,
+  totalItems,
 }: {
   rows: readonly AdminSpotRow[];
   types: readonly string[];
+  counts: Readonly<Record<string, number>>;
+  query: string;
+  status: string;
+  page: number;
+  totalPages: number;
+  totalItems: number;
 }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [pending, startTransition] = useTransition();
+  const { pending: navigating, params, setFilter, goToPage } = useTableNav();
+  // Two transitions, deliberately: one is "the table is being re-fetched", the
+  // other is "a spot is being moved". They dim the same rows, so the screen
+  // reads from `pending`, but keeping them apart means a slow approval does not
+  // disable the pager and a slow page does not disable Approve.
+  const [saving, startSaving] = useTransition();
+  const pending = navigating || saving;
   const [editing, setEditing] = useState<AdminSpotRow | null>(null);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState(BLANK_ADD);
 
-  const waiting = rows.filter((r) => r.status === 'pending');
-  const live = rows.filter((r) => r.status === 'live');
-  const rejected = rows.filter((r) => r.status === 'rejected');
+  const [text, setText] = useState(query);
 
-  const move = (row: AdminSpotRow, status: AdminSpotStatus, said: string) => {
-    startTransition(async () => {
-      const result = await setSpotStatusAction(row.id, status);
-      if (result.ok) toast(`${row.name} ${said}`, STATUS_LOOK[status].color);
+  // Re-synced only when the *server's* idea of the query changes under it — a
+  // back button, a shared link — never on every render, which would fight the
+  // person typing. Adjusted during render rather than in an effect, so there is
+  // no flash of the stale value and no second commit (see `RidersScreen`).
+  const [lastQuery, setLastQuery] = useState(query);
+  if (lastQuery !== query) {
+    setLastQuery(query);
+    setText(query);
+  }
+
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => (debounce.current ? clearTimeout(debounce.current) : undefined), []);
+
+  const onSearch = (value: string) => {
+    setText(value);
+    if (debounce.current) clearTimeout(debounce.current);
+    debounce.current = setTimeout(() => {
+      const next = params();
+      if (value.trim()) next.set('q', value.trim());
+      else next.delete('q');
+      setFilter(next);
+    }, 300);
+  };
+
+  const onStatusFilter = (value: string) => {
+    const next = params();
+    if (value === 'all') next.delete('status');
+    else next.set('status', value);
+    setFilter(next);
+  };
+
+  const move = (row: AdminSpotRow, to: AdminSpotStatus, said: string) => {
+    startSaving(async () => {
+      const result = await setSpotStatusAction(row.id, to);
+      if (result.ok) toast(`${row.name} ${said}`, STATUS_LOOK[to].color);
       else toast(result.message, 'var(--red)');
       router.refresh();
     });
@@ -88,7 +150,7 @@ export function SpotsScreen({
   });
 
   const onAdd = () => {
-    startTransition(async () => {
+    startSaving(async () => {
       const result = await createSpotAction({ ...form, sports: form.sports });
       if (result.ok) {
         toast(`${form.name.trim()} is on the map`, 'var(--green)');
@@ -114,6 +176,17 @@ export function SpotsScreen({
         </div>
         <div className={styles.rowId}>{spotLine(row)}</div>
       </div>
+      {/*
+        The status on the row, which it never needed when the section heading
+        above it said so. "Everything" mixes all three, and a row whose buttons
+        are the only clue to its state asks staff to read the buttons backwards
+        to find out what they are looking at.
+      */}
+      <span>
+        <Tag color={STATUS_LOOK[row.status].color} style={{ fontSize: 10 }}>
+          {STATUS_LOOK[row.status].label}
+        </Tag>
+      </span>
       <div className={styles.chipRow}>
         {row.tags.map((tag) => (
           <Tag key={tag} color="var(--ink-3)" style={{ fontSize: 10 }}>
@@ -128,112 +201,130 @@ export function SpotsScreen({
     </div>
   );
 
+  /** What a row may do, decided by its own status rather than by its section. */
+  const actionsFor = (row: AdminSpotRow): ReactNode => {
+    if (row.status === 'pending') {
+      return (
+        <>
+          <button
+            type="button"
+            className="btn sm ink"
+            disabled={pending}
+            onClick={() => move(row, 'live', 'is on the map')}
+          >
+            Approve
+          </button>
+          <button
+            type="button"
+            className="btn sm ghost"
+            disabled={pending}
+            onClick={() => setEditing(row)}
+          >
+            Edit first
+          </button>
+          <button
+            type="button"
+            className="btn sm ghost"
+            disabled={pending}
+            onClick={() => move(row, 'rejected', 'rejected')}
+          >
+            Reject
+          </button>
+        </>
+      );
+    }
+
+    if (row.status === 'live') {
+      return (
+        <>
+          <button
+            type="button"
+            className="btn sm ghost"
+            style={{ fontSize: 11, padding: '4px 9px' }}
+            onClick={() => setEditing(row)}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            className="btn sm"
+            disabled={pending}
+            style={{ fontSize: 11, padding: '4px 9px', background: 'var(--red)' }}
+            onClick={() => move(row, 'rejected', 'is off the map')}
+          >
+            Take down
+          </button>
+        </>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        className="btn sm ghost"
+        disabled={pending}
+        style={{ fontSize: 11, padding: '4px 9px' }}
+        onClick={() => move(row, 'pending', 'is back in the queue')}
+      >
+        Back to the queue
+      </button>
+    );
+  };
+
+  const emptyCopy =
+    query || status !== 'all'
+      ? { title: 'Nothing matches that', sub: 'Try another search, or a different status.' }
+      : {
+          title: 'No spots yet',
+          sub: 'Rider submissions land here before they go on the map.',
+        };
+
   return (
     <div className={styles.stack}>
-      <div>
-        <SectionHead>Waiting for review</SectionHead>
-        {waiting.length ? (
-          <Panel className={`${styles.table} ${pending ? styles.busy : ''}`}>
-            {waiting.map((row) =>
-              spotRow(
-                row,
-                <>
-                  <button
-                    type="button"
-                    className="btn sm ink"
-                    disabled={pending}
-                    onClick={() => move(row, 'live', 'is on the map')}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    type="button"
-                    className="btn sm ghost"
-                    disabled={pending}
-                    onClick={() => setEditing(row)}
-                  >
-                    Edit first
-                  </button>
-                  <button
-                    type="button"
-                    className="btn sm ghost"
-                    disabled={pending}
-                    onClick={() => move(row, 'rejected', 'rejected')}
-                  >
-                    Reject
-                  </button>
-                </>,
-              ),
-            )}
-          </Panel>
-        ) : (
-          <Empty
-            icon="map"
-            title="Queue is clear"
-            sub="Rider submissions land here before they go on the map."
+      <div className={styles.filters}>
+        <div className="search" style={{ flex: 1, minWidth: 220, padding: '9px 12px' }}>
+          <Icon name="search" size={17} strokeWidth={2.6} />
+          <input
+            value={text}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder="Name or town…"
+            aria-label="Search spots by name or town"
           />
-        )}
-      </div>
-
-      <div>
-        <SectionHead>Live spots</SectionHead>
-        {live.length ? (
-          <Panel className={`${styles.table} ${pending ? styles.busy : ''}`}>
-            {live.map((row) =>
-              spotRow(
-                row,
-                <>
-                  <button
-                    type="button"
-                    className="btn sm ghost"
-                    style={{ fontSize: 11, padding: '4px 9px' }}
-                    onClick={() => setEditing(row)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="btn sm"
-                    disabled={pending}
-                    style={{ fontSize: 11, padding: '4px 9px', background: 'var(--red)' }}
-                    onClick={() => move(row, 'rejected', 'is off the map')}
-                  >
-                    Take down
-                  </button>
-                </>,
-              ),
-            )}
-          </Panel>
-        ) : (
-          <Empty
-            icon="map"
-            title="No spots on the map"
-            sub="Approve one from the queue, or add one below."
-          />
-        )}
-      </div>
-
-      {rejected.length > 0 && (
-        <div>
-          <SectionHead>Rejected</SectionHead>
-          <Panel className={`${styles.table} ${pending ? styles.busy : ''}`}>
-            {rejected.map((row) =>
-              spotRow(
-                row,
-                <button
-                  type="button"
-                  className="btn sm ghost"
-                  disabled={pending}
-                  style={{ fontSize: 11, padding: '4px 9px' }}
-                  onClick={() => move(row, 'pending', 'is back in the queue')}
-                >
-                  Back to the queue
-                </button>,
-              ),
-            )}
-          </Panel>
         </div>
-      )}
+        <Pill on={status === 'all'} onClick={() => onStatusFilter('all')}>
+          Everything
+        </Pill>
+        {STATUSES.map((s) => (
+          <Pill key={s} on={status === s} onClick={() => onStatusFilter(s)}>
+            {STATUS_LOOK[s].label} · {counts[s] ?? 0}
+          </Pill>
+        ))}
+      </div>
+
+      <div>
+        {/* The heading names what is on screen, because the pills changed it.
+            Three sections used to say so by being three sections. */}
+        <SectionHead>
+          {status === 'all' ? 'Every spot' : STATUS_LOOK[status as AdminSpotStatus].label}
+        </SectionHead>
+        {rows.length ? (
+          <Panel className={`${styles.table} ${pending ? styles.busy : ''}`}>
+            {rows.map((row) => spotRow(row, actionsFor(row)))}
+          </Panel>
+        ) : (
+          <Empty icon="map" title={emptyCopy.title} sub={emptyCopy.sub} />
+        )}
+      </div>
+
+      <Pager
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        noun="spot"
+        nounPlural="spots"
+        onPage={goToPage}
+        busy={pending}
+      />
 
       <div>
         <SectionHead>Add a spot yourself</SectionHead>

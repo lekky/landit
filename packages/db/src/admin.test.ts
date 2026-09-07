@@ -1,18 +1,28 @@
+import { challengeStateBounds } from '@landit/core';
 import { describe, expect, it } from 'vitest';
 
 import {
+  announcementCounts,
   applyStaffChange,
+  challengeCounts,
   deleteRider,
   deleteStaffRecord,
+  featuredChallenge,
   landedCountsFor,
   listAdminAnnouncements,
+  listAdminAnnouncementsPage,
+  listAdminChallengesPage,
   listAdminEvents,
   listAdminPlans,
   listAdminRiders,
+  listAdminEventsPage,
   listAdminSpots,
+  listAdminSpotsPage,
   listAdminStickers,
   listReports,
+  relationCountsFor,
   reportCounts,
+  spotCounts,
   setReportTriage,
   setRiderPlan,
   setRiderSuspended,
@@ -49,10 +59,24 @@ interface Call {
  */
 function fakeClient(records: Record<string, Record<string, unknown>> = {}) {
   const calls: Call[] = [];
+  const bindings: Record<string, unknown>[] = [];
   let nextId = 1;
 
   const client = {
-    filter: (expression: string) => expression,
+    /**
+     * Identity, so a test can assert on the placeholders in the filter rather
+     * than on whatever the real escaper produces — every assertion below about
+     * `{:name}` depends on that.
+     *
+     * The bindings are recorded on the side, because for one read they *are*
+     * the behaviour: `boundClause` widens an inclusive calendar day to the edge
+     * of its day, and the whole of that decision lives in the bound value,
+     * which never reaches `getList`.
+     */
+    filter: (expression: string, params?: Record<string, unknown>) => {
+      if (params) bindings.push(params);
+      return expression;
+    },
     collection(name: string) {
       return {
         async getOne(id: string) {
@@ -101,7 +125,7 @@ function fakeClient(records: Record<string, Record<string, unknown>> = {}) {
     },
   };
 
-  return { client: client as unknown as Client, calls, records };
+  return { client: client as unknown as Client, calls, records, bindings };
 }
 
 const actor: StaffActor = { id: 'staff1', label: 'miles' };
@@ -325,6 +349,60 @@ describe('landedCountsFor', () => {
  * silent and looks exactly like "the record was deleted", which is why the
  * absence of a filter is asserted rather than assumed.
  */
+/**
+ * The scoped relation counter, which is what makes a paged content tab worth
+ * paging.
+ *
+ * Every content tab shows a count per row — riders going to an event, log
+ * entries against a challenge week — and each one used to read the whole join
+ * collection to work it out. Those collections are riders x items, so the read
+ * grew with the rider base however few rows were on screen. What is asserted
+ * here is the part that fixes that: one request, scoped to the ids given, with
+ * every id bound rather than concatenated.
+ */
+describe('relationCountsFor', () => {
+  it('tallies one request into a count per id', async () => {
+    const { client } = fakeClient({
+      'event_attendance:list': [
+        { event: 'e1' },
+        { event: 'e1' },
+        { event: 'e2' },
+      ] as unknown as Record<string, unknown>,
+    });
+
+    const counts = await relationCountsFor(client, 'event_attendance', 'event', ['e1', 'e2', 'e3']);
+
+    expect(counts).toEqual({ e1: 2, e2: 1 });
+    // Absent rather than zero, which is why callers read `counts[id] ?? 0`.
+    expect(counts.e3).toBeUndefined();
+  });
+
+  it('asks only about the ids on the page, and binds every one of them', async () => {
+    const { client, calls } = fakeClient();
+
+    await relationCountsFor(client, 'event_attendance', 'event', ['e1', 'e2']);
+
+    const [call] = calls.filter((c) => c.method === 'getFullList');
+    const options = call?.args[0] as { filter?: string; fields?: string };
+    // Scoped: the filter names the page's ids rather than being absent, which
+    // is the difference between this and the `getFullList` it replaced.
+    expect(options.filter).toBe('(event = {:r0} || event = {:r1})');
+    // Bound, never concatenated — the privacy rules are written in this same
+    // filter language (see `landedCountsFor` above).
+    expect(options.filter).not.toContain('e1"');
+    // Narrowed to the tallied column, so the wire carries ids not records.
+    expect(options.fields).toBe('event');
+  });
+
+  it('asks for nothing when the page is empty', async () => {
+    const { client, calls } = fakeClient();
+    await expect(relationCountsFor(client, 'event_attendance', 'event', [])).resolves.toEqual({});
+    // An empty `or` chain is `()`, a filter syntax error rather than an empty
+    // result — the early return is load-bearing.
+    expect(calls).toHaveLength(0);
+  });
+});
+
 describe('the content-tab reads', () => {
   const optionsOf = (calls: readonly Call[], method: string) =>
     (calls.find((c) => c.method === method)?.args.at(-1) ?? {}) as {
@@ -361,6 +439,161 @@ describe('the content-tab reads', () => {
     // the same rule `landedCountsFor` is held to above, and for the same reason:
     // the privacy rules are written in this filter language.
     expect(optionsOf(calls, 'getFullList').filter).toBe('status = {:status}');
+  });
+
+  it('pages spots, narrowing by status and by a search over name and town', async () => {
+    const { client, calls } = fakeClient();
+    await listAdminSpotsPage(
+      client,
+      { query: 'ramp', status: 'pending' },
+      { page: 3, perPage: 40 },
+    );
+
+    const call = calls.find((c) => c.method === 'getList');
+    expect(call?.args[0]).toBe(3);
+    expect(call?.args[1]).toBe(40);
+
+    const options = call?.args[2] as { filter?: string; params?: Record<string, unknown> };
+    // Both clauses bound, never concatenated.
+    expect(options.filter).toBe('(name ~ {:q} || town ~ {:q}) && status = {:status}');
+    // And the search reaches name and town only. The submitter is an id on this
+    // screen and searching it would make the review queue a way to look up
+    // everything one rider has ever sent in.
+    expect(options.filter).not.toContain('submitted_by');
+  });
+
+  it('leaves the spot filter off entirely when nothing was asked for', async () => {
+    const { client, calls } = fakeClient();
+    await listAdminSpotsPage(client);
+    const options = calls.find((c) => c.method === 'getList')?.args[2] as { filter?: string };
+    // The unfiltered view has to show every status: the API rule that hides
+    // pending spots from riders is exactly what this read exists to see past.
+    expect(options.filter).toBeUndefined();
+  });
+
+  it('counts each spot status under the same search the rows were filtered by', async () => {
+    const { client, calls } = fakeClient();
+    await spotCounts(client, ['pending', 'live', 'rejected'], { query: 'ramp' });
+
+    const counting = calls.filter((c) => c.method === 'getList');
+    expect(counting).toHaveLength(3);
+
+    for (const call of counting) {
+      // `perPage: 1` — the count comes back as `totalItems`, so this asks how
+      // long the queue is without fetching it.
+      expect(call.args[1]).toBe(1);
+      // The search is applied to the counts too. A pill promising more than the
+      // filter would give is a pill that lies about the queue.
+      expect((call.args[2] as { filter?: string }).filter).toContain('name ~ {:q}');
+    }
+  });
+
+  it('pages events, and keeps a taken-down event findable by default', async () => {
+    const { client, calls } = fakeClient();
+    await listAdminEventsPage(client, { query: 'jam' }, { page: 2, perPage: 25 });
+
+    const call = calls.find((c) => c.method === 'getList');
+    expect(call?.args[0]).toBe(2);
+    expect(call?.args[1]).toBe(25);
+
+    const options = call?.args[2] as { filter?: string };
+    // No `is_live` clause unless one was asked for. Removal is a hide, and an
+    // event hidden from the only screen that can restore it would make that
+    // hide irreversible by accident.
+    expect(options.filter).toBe('(name ~ {:q} || venue ~ {:q} || town ~ {:q})');
+  });
+
+  it('narrows events to one side of the calendar when asked, as a bound parameter', async () => {
+    for (const live of [true, false]) {
+      const { client, calls } = fakeClient();
+      await listAdminEventsPage(client, { live });
+      const options = calls.find((c) => c.method === 'getList')?.args[2] as {
+        filter?: string;
+        params?: Record<string, unknown>;
+      };
+      expect(options.filter).toBe('is_live = {:live}');
+    }
+  });
+
+  it('pages challenge weeks, turning the day bounds from core into a date filter', async () => {
+    const { client, calls } = fakeClient();
+    await listAdminChallengesPage(
+      client,
+      { sport: 'scooter', bounds: challengeStateBounds('live', '2026-09-07') },
+      { page: 2, perPage: 25 },
+    );
+
+    const call = calls.find((c) => c.method === 'getList');
+    expect(call?.args[0]).toBe(2);
+    expect(call?.args[1]).toBe(25);
+
+    const options = call?.args[2] as { filter?: string; params?: Record<string, unknown> };
+    // The rule itself is `challengeStateBounds`', not this package's — what is
+    // asserted here is only that both of `live`'s bounds survive the encoding
+    // and that the sport rides alongside them, all bound.
+    expect(options.filter).toBe('sport = {:sport} && starts <= {:d0} && ends >= {:d1}');
+  });
+
+  it('widens each day bound to the edge of its day, because the column stores an instant', async () => {
+    const { client, bindings } = fakeClient();
+    await listAdminChallengesPage(client, { bounds: challengeStateBounds('live', '2026-09-07') });
+
+    const bound = bindings.at(-1);
+
+    // `starts <= today` has to admit a week starting *on* today, whose stored
+    // value is `2026-09-07 00:00:00`. Compared against the bare day key
+    // `2026-09-07` that is a longer string with the same prefix, so it sorts
+    // *after* — the comparison would be false for the very row it must match.
+    expect(bound?.d0).toBe('2026-09-07 23:59:59');
+    // And `ends >= today` has to admit a week ending on today, by the mirror
+    // argument.
+    expect(bound?.d1).toBe('2026-09-07 00:00:00');
+  });
+
+  it('features the running week, and falls back to the next scheduled one', async () => {
+    const live = challengeStateBounds('live', '2026-09-07');
+    const upcoming = challengeStateBounds('upcoming', '2026-09-07');
+
+    // Nothing running: both reads happen, and the upcoming one decides.
+    const { client, calls } = fakeClient();
+    await featuredChallenge(client, 'scooter', live, upcoming);
+    expect(calls.filter((c) => c.method === 'getList')).toHaveLength(2);
+    // `perPage: 1` — the panel wants one week, not a page of them.
+    expect(calls.find((c) => c.method === 'getList')?.args[1]).toBe(1);
+  });
+
+  it('pages announcements, keeping a pulled banner reachable by default', async () => {
+    const { client, calls } = fakeClient();
+    await listAdminAnnouncementsPage(client, {}, { page: 1, perPage: 20 });
+
+    const options = calls.find((c) => c.method === 'getList')?.args[2] as { filter?: string };
+    // No `is_live` clause unless asked. A pulled banner is the record of
+    // something the product said to every rider; a default that hid it would
+    // quietly undo the reason "Pull" is a hide rather than a delete.
+    expect(options.filter).toBeUndefined();
+  });
+
+  it('counts announcements on both sides of the pull', async () => {
+    const { client, calls } = fakeClient();
+    await announcementCounts(client);
+
+    const counting = calls.filter((c) => c.method === 'getList');
+    expect(counting).toHaveLength(2);
+    for (const call of counting) expect(call.args[1]).toBe(1);
+  });
+
+  it('counts challenge weeks per named filter, without fetching them', async () => {
+    const { client, calls } = fakeClient();
+    await challengeCounts(client, {
+      'sport:scooter': { sport: 'scooter' },
+      'state:live': { sport: 'scooter', bounds: challengeStateBounds('live', '2026-09-07') },
+    });
+
+    const counting = calls.filter((c) => c.method === 'getList');
+    expect(counting).toHaveLength(2);
+    // The pill counts are a breakdown of the whole collection, not of the page
+    // on screen — which is the entire reason they are separate requests.
+    for (const call of counting) expect(call.args[1]).toBe(1);
   });
 
   it('pages reports rather than listing them', async () => {

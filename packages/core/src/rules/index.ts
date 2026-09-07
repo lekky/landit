@@ -34,11 +34,13 @@ export {
   challengeRangeLabel,
   challengeRewardSticker,
   challengeState,
+  challengeStateBounds,
   challengesFor,
   challengesOverlap,
   isDayInChallenge,
   liveChallenge,
   overlappingChallenges,
+  type ChallengeDateBound,
   type ChallengeProgress,
 } from './challenges';
 export {

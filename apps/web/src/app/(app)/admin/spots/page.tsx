@@ -1,5 +1,5 @@
 import { SPOT_TYPES, type SportId } from '@landit/core';
-import { listAdminSpots } from '@landit/db';
+import { listAdminSpotsPage, spotCounts, type SpotsStatus } from '@landit/db';
 import type { Metadata } from 'next';
 
 import { shortDate } from '@/lib/dates';
@@ -23,6 +23,20 @@ import { SpotsScreen } from './SpotsScreen';
  * a handle would be a second read per row and would turn the queue into a way
  * to browse rider records sideways — staff who need the rider open the Riders
  * tab, which is the screen that is allowed to know about riders.
+ *
+ * **Paged, and the status is a filter rather than three headings.** The screen
+ * used to render every spot at once under Waiting / Live / Rejected, which was
+ * right for a seeded map and stops being right the moment riders submit: this
+ * is the collection strangers write to, so it grows the way `users` and
+ * `reports` do, and those are the two tabs that were already paged. Status and
+ * search go in the URL for the reason the riders table does — the query runs in
+ * SQLite over an index instead of shipping the whole map to a staff laptop, and
+ * a staff member can send somebody a link to what they are looking at.
+ *
+ * What the three headings were *for* is kept: the counts ride on the filter
+ * pills, so "twelve waiting" is legible from whichever status is on screen. A
+ * queue whose length you can only discover by clicking into it is a queue
+ * people stop working.
  */
 export const dynamic = 'force-dynamic';
 
@@ -31,11 +45,33 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AdminSpotsPage() {
-  const staff = await requireStaff();
-  const spots = await listAdminSpots(staff.superuser);
+const STATUSES: readonly SpotsStatus[] = ['pending', 'live', 'rejected'];
 
-  const rows: AdminSpotRow[] = spots.map((record) => ({
+/** One page of the table. Spot rows are short, so this is about two screens. */
+const PER_PAGE = 40;
+
+export default async function AdminSpotsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string; page?: string }>;
+}) {
+  const staff = await requireStaff();
+  const pb = staff.superuser;
+  const params = await searchParams;
+
+  const query = (params.q ?? '').slice(0, 60);
+  const pageNumber = Math.max(1, Number(params.page) || 1);
+  // A status from the query string is honoured only if it names a real one.
+  // Anything else shows every status rather than an empty screen that reads as
+  // "no spots", which on this tab would read as "the map is empty".
+  const status = STATUSES.find((s) => s === params.status);
+
+  const [page, counts] = await Promise.all([
+    listAdminSpotsPage(pb, { query, status }, { page: pageNumber, perPage: PER_PAGE }),
+    spotCounts(pb, STATUSES, { query }),
+  ]);
+
+  const rows: AdminSpotRow[] = page.items.map((record) => ({
     id: record.id,
     name: record.name,
     town: record.town,
@@ -52,5 +88,16 @@ export default async function AdminSpotsPage() {
     submitted: record.created ? shortDate(record.created) : '—',
   }));
 
-  return <SpotsScreen rows={rows} types={[...SPOT_TYPES]} />;
+  return (
+    <SpotsScreen
+      rows={rows}
+      types={[...SPOT_TYPES]}
+      counts={counts}
+      query={query}
+      status={status ?? 'all'}
+      page={page.page}
+      totalPages={page.totalPages}
+      totalItems={page.totalItems}
+    />
+  );
 }

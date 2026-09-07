@@ -1,12 +1,13 @@
 'use client';
 
 import { SPORTS, SPORT_IDS } from '@landit/core';
-import { Empty, Panel, Tag } from '@landit/ui-web';
+import { Empty, Panel, Pill, Tag } from '@landit/ui-web';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
 
+import { Pager, useTableNav } from '../Pager';
 import { postNoticeAction, setNoticeLiveAction } from '../content-actions';
 import type { AdminNoticeRow, AdminPlanOption } from '../view';
 
@@ -32,18 +33,45 @@ const BLANK = {
  * product said, and a portal that can make it never have been said is a portal
  * that can rewrite what riders were told. The row stays, greyed, with the count
  * of how many people dismissed it while it was up.
+ *
+ * That is also why the list pages rather than the tab dropping old banners:
+ * nothing here is ever removed, so the column only grows, and "Live now" over a
+ * `getFullList` was a list with no end to it. The two headings become a filter
+ * with the counts on it — the same move the Spots queue made, for the same
+ * reason (see `page.tsx`).
  */
 export function NoticesScreen({
   rows,
   plans,
+  counts,
+  show,
+  page,
+  totalPages,
+  totalItems,
 }: {
   rows: readonly AdminNoticeRow[];
   plans: readonly AdminPlanOption[];
+  counts: { readonly live: number; readonly pulled: number };
+  show: string;
+  page: number;
+  totalPages: number;
+  totalItems: number;
 }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [pending, startTransition] = useTransition();
+  const { pending: navigating, params, setFilter, goToPage } = useTableNav();
+  // Two transitions: one for re-fetching the list, one for posting or pulling.
+  // See `SpotsScreen` — a slow post should not disable the pager, and vice versa.
+  const [saving, startTransition] = useTransition();
+  const pending = navigating || saving;
   const [form, setForm] = useState(BLANK);
+
+  const onShowFilter = (value: string) => {
+    const next = params();
+    if (value === 'all') next.delete('show');
+    else next.set('show', value);
+    setFilter(next);
+  };
 
   const post = () => {
     startTransition(async () => {
@@ -66,9 +94,6 @@ export function NoticesScreen({
       router.refresh();
     });
   };
-
-  const live = rows.filter((r) => r.isLive);
-  const pulled = rows.filter((r) => !r.isLive);
 
   const card = (row: AdminNoticeRow) => (
     <Panel
@@ -200,25 +225,42 @@ export function NoticesScreen({
         </Panel>
 
         <div className={styles.column}>
-          <div className="lab">Live now</div>
-          {live.length ? (
-            live.map(card)
+          {/*
+            A filter where two headings used to be. The counts are the server's,
+            not this page's — counting `rows` would count one page and report
+            twenty banners as the whole history.
+          */}
+          <div className={styles.toolbar}>
+            <Pill on={show === 'all'} onClick={() => onShowFilter('all')}>
+              Everything · {counts.live + counts.pulled}
+            </Pill>
+            <Pill on={show === 'live'} onClick={() => onShowFilter('live')}>
+              Live now · {counts.live}
+            </Pill>
+            <Pill on={show === 'pulled'} onClick={() => onShowFilter('pulled')}>
+              Pulled · {counts.pulled}
+            </Pill>
+          </div>
+
+          {rows.length ? (
+            rows.map(card)
           ) : (
             <Empty
               icon="bolt"
-              title="Nothing posted"
+              title={show === 'all' ? 'Nothing posted' : 'Nothing at that state'}
               sub="Announcements you post show up here and on every rider's dashboard."
             />
           )}
 
-          {pulled.length > 0 && (
-            <>
-              <div className="lab" style={{ marginTop: 8 }}>
-                Pulled
-              </div>
-              {pulled.map(card)}
-            </>
-          )}
+          <Pager
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            noun="announcement"
+            nounPlural="announcements"
+            onPage={goToPage}
+            busy={pending}
+          />
         </div>
       </div>
 

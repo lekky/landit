@@ -2619,6 +2619,58 @@ written:
   the rider-facing spots screen, nav bar and all. There is no capture of any admin content tab in
   the pack. Recorded on issue #95.
 
+**Added 2026-09-07 (`chore-admin-pagination`), and it changes three of T17's screens.** Six of the
+portal's nine tables now page, all on the server with their filters in the URL:
+
+- **Riders and Moderation** were paged when they were built — `users` and `reports` are the two
+  collections with no upper bound, `reports` because anyone on the internet can write to it.
+- **Spots and Events** joined them. Spots is rider-submitted, so it grows the same way `reports`
+  does; events are never deleted (`event_attendance` cascades from them), so the calendar only
+  ever accumulates.
+- **Challenges and Notices** followed (issue #340, owner's call in chat on 2026-09-07, choosing to
+  page them over the three other options the issue set out). Neither collection is large today —
+  45 weeks, a handful of banners — but both only grow, and paging them is what let their per-row
+  counts be scoped; see the third note below, which is the reason the owner asked.
+- **Tricks, Stickers and Plans do not page.** They are bounded catalogues — 259, 10, and a
+  handful — that staff scan and re-filter constantly, and the browser-side filter that serves them
+  is instant where a round trip per keystroke would not be. This is the split
+  `apps/web/src/app/(app)/admin/tricks/page.tsx` already argued for.
+
+Server filtering has a real cost on the Challenges tab and it is worth writing down: the pill
+counts are a breakdown of the whole collection rather than of the page, so they are six small
+`perPage: 1` requests (three sports, three states) plus up to two for the featured week. Nine
+round trips where there were two. They are index-covered and tiny, and the alternative — counting
+the page — is a breakdown that changes as you page, which is not a breakdown.
+
+**The Spots tab loses its three sections, which is a real divergence from `landit-admin.jsx`.**
+The prototype rendered Waiting / Live / Rejected as three lists on one screen, and three lists have
+no single page number between them. It is now one paged table with a status filter, and the counts
+the headings used to carry ride on the filter pills instead — that was the part worth keeping, since
+a queue whose length you can only learn by clicking into it is a queue people stop working. Row
+actions come off `row.status` rather than off which list a row was in, so the mixed view offers each
+spot exactly what its own status allows.
+
+**The scaling problem was never the tables, and this is what issue #340 was about.** Events,
+Challenges and Notices each read a whole join collection — `event_attendance`, `challenge_log`,
+`announcement_dismissals` — with `getFullList`, to put one number on each row. Those are riders x
+items, so they outgrow the table they decorate by the size of the rider base, and no amount of
+paging the rows touches them *unless the count is scoped to the page too*. `relationCountsFor` in
+`@landit/db` does that, and all three tabs now use it. Scoping is only worth anything on a tab that
+pages, which is why #340 could not be closed without paging Challenges and Notices — the two were
+one decision, not two.
+
+**A challenge's state is still derived and still never stored, but it now has a second spelling.**
+A paged tab selects in the database, and the database cannot call `challengeState`. `@landit/core`
+therefore also exports `challengeStateBounds`, which returns the day comparisons that mean the same
+thing, and `challenges.test.ts` holds the two equivalent across every boundary — a change to one
+that is not made to the other fails there. Three things keep the exception honest: the second form
+lives *beside* `challengeState` rather than as a filter string in `@landit/db`; it returns day keys
+and comparisons rather than SQL, so the rule stays storage-agnostic and `packages/db` owns only the
+encoding; and the page resolves the filter and every row's chip against **one** instant, so a
+request straddling midnight cannot select a week and then label it with a state the filter
+disagrees with. A `state` column would still be the thing that goes stale — comparing the dates is
+what "derived" means, and `idx_challenges_sport_dates` was put there for reads shaped like this.
+
 Issue #103 — a lowered sticker threshold not reaching riders who already qualify until their next
 write — is **not** fixed here and was not within reach: the award runs in `pocketbase/hooks`, which
 `t18-hardening` owned for the length of this session. The Stickers tab says so on the screen and in

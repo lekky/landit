@@ -1,5 +1,5 @@
 import { EVENT_KIND_IDS, eventDateBlock, eventKindColor, type SportId } from '@landit/core';
-import { listAdminEvents, records } from '@landit/db';
+import { listAdminEventsPage, relationCountsFor } from '@landit/db';
 import type { Metadata } from 'next';
 
 import { SPORT_LOOKS } from '@/lib/sports';
@@ -18,6 +18,19 @@ import { EventsScreen } from './EventsScreen';
  * calendar fills. It is on the screen because it is the number that makes
  * "take this off the calendar" a decision rather than a click — an event with
  * forty riders going is not the same thing as one with none.
+ *
+ * **That pass is now scoped to the page, and this is the half of the change
+ * that actually mattered.** It used to read `event_attendance` in full — every
+ * "I am going" ever marked, by every rider, for every event — to put one number
+ * on each of a few hundred rows. That collection is riders × events, so it
+ * outgrows the table it decorates by the size of the rider base, and no amount
+ * of paging the rows would have touched it. `relationCountsFor` takes the
+ * twenty-five ids on screen and asks about those, so the read shrinks with the
+ * page instead of the page getting cheaper to render and no cheaper to build.
+ *
+ * Paged and searchable because the calendar is the collection that only ever
+ * grows: an event that has happened is never deleted (`event_attendance`
+ * cascades from it), so every season adds rows and none leave.
  */
 export const dynamic = 'force-dynamic';
 
@@ -26,17 +39,39 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AdminEventsPage() {
+/** Event rows are tall — a name, a venue and five chips — so fewer than Spots'. */
+const PER_PAGE = 25;
+
+export default async function AdminEventsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; show?: string; page?: string }>;
+}) {
   const staff = await requireStaff();
   const pb = staff.superuser;
+  const params = await searchParams;
 
-  const events = await listAdminEvents(pb);
-  const attendance = await records(pb, 'event_attendance').list({ fields: 'event' });
+  const query = (params.q ?? '').slice(0, 60);
+  const pageNumber = Math.max(1, Number(params.page) || 1);
+  // Three states, and "both" is the default the tab has always had. An event
+  // taken off the calendar has to stay findable from the screen that took it
+  // down, or "Remove" becomes a delete with extra steps.
+  const show = params.show === 'live' || params.show === 'hidden' ? params.show : undefined;
 
-  const going = new Map<string, number>();
-  for (const row of attendance) going.set(row.event, (going.get(row.event) ?? 0) + 1);
+  const page = await listAdminEventsPage(
+    pb,
+    { query, ...(show ? { live: show === 'live' } : {}) },
+    { page: pageNumber, perPage: PER_PAGE },
+  );
 
-  const rows: AdminEventRow[] = events.map((record) => {
+  const going = await relationCountsFor(
+    pb,
+    'event_attendance',
+    'event',
+    page.items.map((e) => e.id),
+  );
+
+  const rows: AdminEventRow[] = page.items.map((record) => {
     const day = record.date ? record.date.slice(0, 10) : '';
     // `eventDateBlock` is `@landit/core`'s, so the staff table and the rider's
     // calendar say the same words about the same date — and neither goes near
@@ -72,9 +107,19 @@ export default async function AdminEventsPage() {
         .map((id) => SPORT_LOOKS[id as SportId])
         .filter((look) => look !== undefined),
       isLive: record.is_live,
-      attending: going.get(record.id) ?? 0,
+      attending: going[record.id] ?? 0,
     };
   });
 
-  return <EventsScreen rows={rows} kinds={[...EVENT_KIND_IDS]} />;
+  return (
+    <EventsScreen
+      rows={rows}
+      kinds={[...EVENT_KIND_IDS]}
+      query={query}
+      show={show ?? 'all'}
+      page={page.page}
+      totalPages={page.totalPages}
+      totalItems={page.totalItems}
+    />
+  );
 }

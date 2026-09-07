@@ -1,11 +1,12 @@
 'use client';
 
 import { Avatar, Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
 
+import { Pager, useTableNav } from '../Pager';
 import { setRiderPlanAction } from '../actions';
 import type { AdminPlanOption, AdminRiderRow, AdminRiderStatus } from '../view';
 
@@ -47,9 +48,12 @@ export function RidersScreen({
   totalItems: number;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [pending, startTransition] = useTransition();
+  const { pending: navigating, params, setFilter, goToPage } = useTableNav();
+  // Two transitions: one for re-fetching the table, one for a plan change. A
+  // slow save should not disable the pager, and a slow page should not disable
+  // the plan selects — but both dim the same rows, so the screen reads `pending`.
+  const [saving, startTransition] = useTransition();
+  const pending = navigating || saving;
   const { toast } = useToast();
 
   const [text, setText] = useState(query);
@@ -69,15 +73,6 @@ export function RidersScreen({
     setText(query);
   }
 
-  const push = (next: URLSearchParams) => {
-    // Any change to what is being looked at returns to the first page. Staying
-    // on page 4 of a filter that now matches six riders shows an empty table.
-    next.delete('page');
-    startTransition(() => {
-      router.replace(`${pathname}?${next.toString()}`);
-    });
-  };
-
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => (debounce.current ? clearTimeout(debounce.current) : undefined), []);
 
@@ -85,26 +80,20 @@ export function RidersScreen({
     setText(value);
     if (debounce.current) clearTimeout(debounce.current);
     debounce.current = setTimeout(() => {
-      const next = new URLSearchParams(searchParams.toString());
+      const next = params();
       if (value.trim()) next.set('q', value.trim());
       else next.delete('q');
-      push(next);
+      // `setFilter` returns to page one: staying on page 4 of a filter that now
+      // matches six riders shows an empty table.
+      setFilter(next);
     }, 300);
   };
 
   const onPlanFilter = (slug: string) => {
-    const next = new URLSearchParams(searchParams.toString());
+    const next = params();
     if (slug === 'all') next.delete('plan');
     else next.set('plan', slug);
-    push(next);
-  };
-
-  const goToPage = (n: number) => {
-    const next = new URLSearchParams(searchParams.toString());
-    next.set('page', String(n));
-    startTransition(() => {
-      router.replace(`${pathname}?${next.toString()}`);
-    });
+    setFilter(next);
   };
 
   const onPlanChange = (rider: AdminRiderRow, slug: string) => {
@@ -254,32 +243,15 @@ export function RidersScreen({
         )}
       </Panel>
 
-      <div className={styles.tableFoot}>
-        <span className="cond">
-          {totalItems === 1 ? '1 rider' : `${totalItems} riders`}
-          {totalPages > 1 && ` · page ${page} of ${totalPages}`}
-        </span>
-        {totalPages > 1 && (
-          <div className={styles.pager}>
-            <button
-              type="button"
-              className="btn sm ghost"
-              disabled={page <= 1 || pending}
-              onClick={() => goToPage(page - 1)}
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              className="btn sm ghost"
-              disabled={page >= totalPages || pending}
-              onClick={() => goToPage(page + 1)}
-            >
-              Next
-            </button>
-          </div>
-        )}
-      </div>
+      <Pager
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        noun="rider"
+        nounPlural="riders"
+        onPage={goToPage}
+        busy={pending}
+      />
 
       <p className={styles.footnote}>
         A plan override takes effect on the rider&rsquo;s next request and skips billing entirely —
