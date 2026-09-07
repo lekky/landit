@@ -123,6 +123,7 @@ export {
   listStickers,
   listSubscriptions,
   listTrickLog,
+  listTrickNotes,
   listTrickPrereqs,
   listTrickProgress,
   listTricks,
@@ -140,6 +141,7 @@ export {
 } from './queries';
 
 export {
+  addTrickNote,
   addVideoLink,
   attendEvent,
   clearTrickStage,
@@ -147,6 +149,7 @@ export {
   createCrewInvite,
   deleteCrewInvite,
   deleteLogEntry,
+  deleteTrickNote,
   dismissAnnouncement,
   joinCrew,
   leaveCrew,
@@ -161,6 +164,7 @@ export {
   submitSpot,
   unattendEvent,
   updateProfile,
+  updateTrickNote,
   upsertSubscription,
   type ProfileEdit,
   type StageChange,

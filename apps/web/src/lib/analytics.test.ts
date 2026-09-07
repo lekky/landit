@@ -246,6 +246,9 @@ describe('the event catalogue', () => {
         'library_filtered',
         'nav_clicked',
         'nearby_sort_used',
+        // T30: session notes became a dated log, so a note can now be removed
+        // as well as saved. Neither event carries a word of the note.
+        'note_removed',
         'note_saved',
         'onboarding_finished',
         'onboarding_step',

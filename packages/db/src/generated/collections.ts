@@ -57,6 +57,7 @@ export type SubscriptionsPayerKind = 'rider' | 'guardian';
 export type SubscriptionsSource = 'stripe' | 'apple' | 'google' | 'staff';
 export type SubscriptionsStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'expired';
 export type TrickLogStage = 'want' | 'trying' | 'some' | 'most' | 'every';
+export type TrickNotesStage = 'want' | 'trying' | 'some' | 'most' | 'every';
 export type TrickProgressStage = 'want' | 'trying' | 'some' | 'most' | 'every';
 export type TricksCat = 'flat' | 'street' | 'park' | 'hybrid' | 'air';
 export type TricksFreeOverride = 'free' | 'paid';
@@ -703,6 +704,7 @@ export interface TrickNotesRecord {
   body: string;
   created: string;
   updated: string;
+  stage: TrickNotesStage;
 }
 
 /** The shape accepted when creating a `trick_notes` record. */
@@ -711,6 +713,7 @@ export interface TrickNotesCreate {
   user: string;
   trick: string;
   body?: string;
+  stage?: TrickNotesStage;
 }
 
 /** The shape accepted when updating a `trick_notes` record. */

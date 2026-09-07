@@ -26,9 +26,9 @@ import {
   countVideoLinks,
   getRiderSticker,
   getTrickAward,
-  getTrickNote,
   listPlans,
   listTrickLog,
+  listTrickNotes,
   listTrickPrereqs,
   listTrickProgress,
   listTricks,
@@ -54,9 +54,8 @@ import { anonymousClient, currentRider } from '@/lib/session';
 
 import { AwardBadge } from './AwardBadge';
 import { LockedTrick } from './LockedTrick';
-import { NotesPanel } from './NotesPanel';
+import { LogPanel, type NoteView } from './LogPanel';
 import { StagePanel, type TrickShareView } from './StagePanel';
-import { VideosPanel } from './VideosPanel';
 import styles from './trick.module.css';
 
 /**
@@ -125,7 +124,8 @@ async function load(slug: string) {
       record,
       byId,
       landedLabel: null,
-      note: '',
+      notes: [] as NoteView[],
+      todayLabel: '',
       share: null,
       award,
       awardEarnedLabel: null,
@@ -141,11 +141,12 @@ async function load(slug: string) {
     };
   }
 
-  const [progress, log, noteRecord, snapshot, videoRecords, heldTotal, plans, held] =
+  const [progress, log, noteRecords, snapshot, videoRecords, heldTotal, plans, held] =
     await Promise.all([
       listTrickProgress(client, session.rider.id),
       listTrickLog(client, session.rider.id),
-      getTrickNote(client, session.rider.id, record.id),
+      // Newest first — the log panel's order (T30).
+      listTrickNotes(client, session.rider.id, record.id),
       riderSnapshot(client, session.rider.id),
       listVideoLinks(client, { userId: session.rider.id, trickId: record.id }),
       // Across every trick, because the cap is per rider and not per trick — the
@@ -171,7 +172,21 @@ async function load(slug: string) {
     landedLabel: landed
       ? `${formatDate(landed.at, timezone)}${landed.estimated ? ' (estimated)' : ''}`
       : null,
-    note: noteRecord?.body ?? '',
+    /*
+     * The log (T30): every note dated here, on the server, in the rider's
+     * timezone — `shortDate`, the no-ICU helper the sticker wall uses, so it
+     * reads "2 Sep 2026" the way the rest of the product does (LESSONS §3a).
+     * The stage is read straight off the row: it is the stage they were at when
+     * they wrote it, not the one they are at now. `todayLabel` is for the note
+     * the panel shows before the server has dated it.
+     */
+    notes: noteRecords.map((row): NoteView => ({
+      id: row.id,
+      body: row.body,
+      stage: row.stage || null,
+      dateLabel: shortDate(row.created, timezone),
+    })),
+    todayLabel: shortDate(new Date(), timezone),
     share: buildShare(trick, session.rider, snapshot, tricks, timezone),
     award,
     /*
@@ -316,7 +331,7 @@ export default async function TrickPage({ params }: Params) {
   const data = await load(slug);
   if (!data) notFound();
 
-  const { trick, record, byId, landedLabel, note, session, tricks } = data;
+  const { trick, record, byId, landedLabel, session, tricks } = data;
   const plan = (session?.rider.plan ?? 'rookie') as PlanId;
   const prereqs = prereqTricks(trick, tricks);
   const landedIds = prereqs.filter((p) => isTrickLanded(byId, p.id)).map((p) => p.id);
@@ -566,17 +581,19 @@ export default async function TrickPage({ params }: Params) {
               suggests a rider has videos on it.
             */}
             {session && (
-              <VideosPanel
+              <LogPanel
                 trickId={record.id}
                 slug={trick.id}
+                sport={trick.sport}
                 trickName={trick.name}
-                initial={data.videos}
+                stage={stage}
+                notes={data.notes}
+                todayLabel={data.todayLabel}
+                videos={data.videos}
                 allowance={data.allowance}
                 heldTotal={data.heldTotal}
               />
             )}
-
-            {session && <NotesPanel trickId={record.id} slug={trick.id} initial={note} />}
           </div>
         </div>
       </Panel>

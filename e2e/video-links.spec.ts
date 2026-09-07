@@ -108,9 +108,19 @@ async function signUpRookie(page: Page): Promise<void> {
 
 const trickUrl = `/library/${freeTrick.id}`;
 
+/**
+ * The videos live on the second tab of the trick page's log panel (T30), so a
+ * test has to open that tab before the form or the paywall line is on screen.
+ * One helper rather than six clicks, so the tab's name lives in one place.
+ */
+async function openVideos(page: Page): Promise<void> {
+  await page.goto(trickUrl);
+  await page.getByRole('tab', { name: /Your videos/ }).click();
+}
+
 test('a paid rider adds a YouTube link and it starts private', async ({ page }) => {
   await signUpPaid(page);
-  await page.goto(trickUrl);
+  await openVideos(page);
 
   await expect(page.getByText('Your videos')).toBeVisible();
   await page.getByLabel('YouTube link').fill(`https://www.youtube.com/watch?v=${VIDEO}&t=30s`);
@@ -120,12 +130,12 @@ test('a paid rider adds a YouTube link and it starts private', async ({ page }) 
   // code asks for (plan §6.4 standard 7) — not "not public", the value itself.
   await expect(page.getByRole('button', { name: /^Play / })).toBeVisible();
   await expect(page.getByLabel('Who can see this video')).toHaveValue('private');
-  await expect(page.getByText(`1 of ${SHREDDER_VIDEO_LINK_CAP} used`)).toBeVisible();
+  await expect(page.getByText(`1 of ${SHREDDER_VIDEO_LINK_CAP} video links used`)).toBeVisible();
 });
 
 test('NOTHING reaches Google until the rider presses play', async ({ page }) => {
   await signUpPaid(page);
-  await page.goto(trickUrl);
+  await openVideos(page);
   await page.getByLabel('YouTube link').fill(`https://youtu.be/${VIDEO}`);
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   // Setup waits on the *tile*, not on the Play button, for the reason spelled out
@@ -141,7 +151,7 @@ test('NOTHING reaches Google until the rider presses play', async ({ page }) => 
     if (GOOGLE.test(`${host}.`)) reached.push(request.url());
   });
 
-  await page.goto(trickUrl);
+  await openVideos(page);
   //
   // **The two network assertions come before anything about the Play button, and
   // that order is deliberate.** Removing the click-to-play gate was tried, and
@@ -171,7 +181,7 @@ test('NOTHING reaches Google until the rider presses play', async ({ page }) => 
 
 test('a rider changes who can see a video, and removes it', async ({ page }) => {
   await signUpPaid(page);
-  await page.goto(trickUrl);
+  await openVideos(page);
   await page.getByLabel('YouTube link').fill(VIDEO);
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.getByLabel('Who can see this video')).toHaveValue('private');
@@ -181,12 +191,12 @@ test('a rider changes who can see a video, and removes it', async ({ page }) => 
 
   await page.getByRole('button', { name: 'Remove' }).click();
   await expect(page.getByRole('button', { name: /^Play / })).toHaveCount(0);
-  await expect(page.getByText(`0 of ${SHREDDER_VIDEO_LINK_CAP} used`)).toBeVisible();
+  await expect(page.getByText(`0 of ${SHREDDER_VIDEO_LINK_CAP} video links used`)).toBeVisible();
 });
 
 test('a link that is not a YouTube link is refused, and says why', async ({ page }) => {
   await signUpPaid(page);
-  await page.goto(trickUrl);
+  await openVideos(page);
 
   await page.getByLabel('YouTube link').fill('https://vimeo.com/123456789');
   await page.getByRole('button', { name: 'Add', exact: true }).click();
@@ -197,7 +207,7 @@ test('a link that is not a YouTube link is refused, and says why', async ({ page
 
 test('a rookie is told videos are a paid perk, and is given no form', async ({ page }) => {
   await signUpRookie(page);
-  await page.goto(trickUrl);
+  await openVideos(page);
 
   await expect(page.getByText(/Adding a video is part of the paid plans/i)).toBeVisible();
   await expect(page.getByLabel('YouTube link')).toHaveCount(0);

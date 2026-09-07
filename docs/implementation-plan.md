@@ -261,7 +261,7 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 | `trick_prereqs` | Edge collection (`trick`, `prereq`). Same-sport constraint enforced in a hook |
 | `trick_progress` | `(user, trick) → stage`. The `byId` map |
 | `trick_log` | Append-only. `(user, trick, stage, at, estimated)`. Drives every date in the app |
-| `trick_notes` | Per-rider session notes |
+| `trick_notes` | Per-rider session notes. Since T30 (2026-09-07) a **dated log** — many rows per rider per trick, each stamped with the nullable `stage` the rider was at when it was written; the unique `(user, trick)` index is gone (`1788652800_trick_notes_log.js`). Owner-only on every rule, unchanged. Capped at 50 per rider per trick in `47_trick_notes.pb.js` |
 | `clips` | **No file field since 2026-08-17** (§6.6) — Land The Trick stores no video. Extended by `t15b-video-links` the same day into the video-link row it always was going to be: `user`, `trick`, `at`, plus **`video_id`** (the parsed 11-character YouTube id, never a URL) and **`visibility`** (`private \| members`, no `public`). `createRule` reopened to the owner-and-consented rule with the cap enforced in a hook; `updateRule` allows a visibility change and nothing else. **Kept its name deliberately** — renaming a merged collection would break the five things that read it (sticker hook, `riderSnapshot`, the staff rider sheet, `reports`' `clip` subject) to improve a word (§6.6) |
 | `stickers` | Name, hue, icon, condition copy, editable threshold `n`, `is_live`. Rules stay in code |
 | `rider_stickers` | `earned_at` plus `seen_at`, so a sticker is never re-announced |
@@ -3502,6 +3502,63 @@ gains one entry, "Glossary", under The app; the top bar gains nothing, and the T
 on `/glossary` (`alsoActiveFor`). `apps/web`'s Vitest include widens by exactly one directory,
 `components/glossary`, for a component that is a pure function of a string — the rule that screens
 are Playwright's is untouched, and the page has its own spec in `e2e/glossary.spec.ts`.
+
+**T30 · Session notes become a log.** Added after launch (Rachid, 2026-09-07, in chat), one of
+four parallel sessions from the trick-page enrichment handoff of the same day (with T28 trick
+content, T29 the glossary and T31 the page restructure). Until now a rider held **one** note per
+trick — a single textarea, saved on blur, the unique index on `(user, trick)` making that true at
+the schema layer. The owner decided that notes become a **dated list**: every save is a new entry,
+stamped with the date and with the stage the rider was at on the trick when they wrote it, and an
+entry can be reworded or removed afterwards. Videos and session notes merge into one **"Your log"**
+panel — ink head, two tabs with count chips, three notes or four videos to a page with a pager,
+add / inline edit / remove, remove through a confirm modal — in the right column on desktop and at
+full width under the road panel on a phone (artboards 1a and 1b).
+
+**The schema moves by subtraction and one field.** `1788652800_trick_notes_log.js` drops the
+unique index and replaces it with a plain one on the same pair, and adds a nullable `stage` select
+over the five stage ids. Nothing else changes: the five owner-only rules are untouched (§3,
+guarantee 1 — a note is private to its rider at every privacy setting), the 2000-character body
+limit stands, and every existing row carries over as the first entry in its rider's list, with no
+stage because nothing recorded one at the time. It is a **snapshot** on purpose: "8 of 10 at the
+park" written while learning should still say *learning* after the trick is landed, so the stage
+is copied onto the row at save time and never follows `trick_progress` afterwards.
+
+**The cap is fifty per rider per trick** (Rachid, 2026-09-07, in chat), and it is enforced in
+`pocketbase/hooks/47_trick_notes.pb.js` on the **model** hooks with no superuser bypass — a count
+is not something a rule can express, and a request-layer check is one our own server actions could
+walk past. The same hook refuses a `stage` outside the five, restates the body limit as a sentence,
+and freezes `user` and `trick` on update so a note can be reworded and deleted but never moved.
+`pocketbase/tests/trick-notes.test.ts` drives all of it over HTTP, the cap and the vocabulary through
+a superuser token as well as a rider's, and fills a rider to fifty one write at a time rather than
+shrinking the cap to reach it (LESSONS §5).
+
+**Additive in `packages/db`.** `listTrickNotes` (newest first), `addTrickNote`, `updateTrickNote`
+and `deleteTrickNote` are new. `getTrickNote` and `saveTrickNote` keep their signatures: the first
+now means "the newest note", the second rewords the newest or starts the log, and neither writes a
+stage. The account export (`lib/erasure.js`) gains `stage` and `created` on each note row, because
+both are now things held about the rider.
+
+**The screen is optimistic and the server is the authority.** `LogPanel` uses React's
+`useOptimistic`: an add, an edit or a removal shows the instant it is asked for and reverts on its
+own when the action fails, with the hook's refusal in a toast; on success the action's
+`revalidatePath` hands back the server's list with the real id and the real date. Dates are
+`shortDate` from `lib/dates.ts`, formatted on the server and passed down — the no-ICU rule of
+LESSONS §3a — and the optimistic entry borrows a server-formatted "today" for the moment before the
+row exists. The stage tag takes its colour from `STAGES` in `@landit/core` and its foreground from
+`foregroundFor`, so "Every time" on green reads as paper.
+
+*Two divergences from the handoff, recorded here.* The handoff's inline edit toggles one button
+between "Edit" and "Done"; this ships **Save / Cancel** in the same place, as the brief asked,
+because a rider who has half-rewritten a note should have a way to put it back. And the handoff
+sends a video removal through the same confirm modal; the videos tab keeps its **immediate**
+remove, because the brief held `VideosPanel`'s behaviour fixed and a video link is one row that
+points at something still on YouTube — nothing is lost that a paste cannot restore. Whether to
+add the confirm there too is a small decision for the owner, not a session.
+
+**Analytics.** `note_saved` now fires on an add and on an edit, carrying the trick's slug and
+sport, the stage stamped on the note (or `none`), and `how: added | edited` — never the body and
+never its length. `note_removed` is new beside it with the same shape. Tab switches are not
+counted.
 
 ### Dependency graph
 

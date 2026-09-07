@@ -24,7 +24,7 @@ consent gates under-threshold riders; there is deliberately no stranger-contact 
 | Marketing | `/`, `/story`, `/coming-soon`, `/legal/{privacy,terms,safeguarding,cookies,about}`, `/offline` | Landing (the "wall": hero with an email shortcut into sign-up and two no-sign-up peeks at Spots and Events, four step rows, a sample season grid, FAQ, CTA band), the founding story told by the 12-year-old rider whose idea the product was (`/story`, static, distinct from the factual `/legal/about`), holding page (dormant now the site is live), five legal docs, offline fallback. |
 | Auth | `/signin`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-email` | Sign-up asks country + age band (never a date of birth); verification is asked for but blocks nothing. |
 | Onboarding | `/onboarding`, `/consent/[action]/[token]` | Five-step first-run picking sport/level/goal/tricks and asking where the rider found us (optional, fixed list, write-once); guardian approve/revoke landing needs no sign-in. |
-| Core loop | `/home`, `/library`, `/library/[slug]`, `/library?mine=1`, `/progress`, `/stickers`, `/challenge` | Dashboard (weekly streak, "I rode today", working trick, announcements), 259-trick library, per-trick stage ladder/notes/videos under an award-led hero (the trick's badge, stamped LANDED once earned), My Tricks, progress + skill tree + printable sheets, sticker wall, weekly challenge per sport. |
+| Core loop | `/home`, `/library`, `/library/[slug]`, `/library?mine=1`, `/progress`, `/stickers`, `/challenge` | Dashboard (weekly streak, "I rode today", working trick, announcements), 259-trick library, per-trick stage ladder under an award-led hero (the trick's badge, stamped LANDED once earned) with a "Your log" panel beside it — a dated list of session notes (each stamped with the stage the rider was at, editable, removable through a confirm, 3 to a page) and the rider's YouTube links (4 to a page) on two tabs —, My Tricks, progress + skill tree + printable sheets, sticker wall, weekly challenge per sport. |
 | Glossary | `/glossary`, `/glossary?sport=skate`, `/glossary?from=<trick>#<term>` | 84 words riders use — kerb, fakie, coping, whip — explained for a twelve year old, filtered by sport in the address, jumped by an A–Z strip, each with "See it in" links to live tricks whose copy uses the word. Readable signed out. `GlossaryText` (`components/glossary`) links the first mention of any term in a run of copy with a dotted underline, ready for the trick page to adopt (T31); the matching rule and its traps live in `@landit/core`. |
 | World | `/spots`, `/spots/[slug]`, `/events`, `/events/[slug]`, `/events/past`, `/events/past/[year]/[town]` | 98 researched real venues on a MapLibre/OpenFreeMap map (no key, no account) with a Plain/Detail ground toggle, opening on Detail (there is no satellite layer — see plan §7 T13) + rider submissions; on a phone the map is a sheet that comes up when a spot is chosen, docked above the nav; filtered by sport tabs covering all three sports. Every approved spot also has a public, crawlable page of its own at `/spots/[slug]` — a "What's here" grid explaining each feature in plain words, the exact map pin, the listing with explicit "not listed" states, and the nearest other spots; only `status = 'live'` spots get one, and the submitter is never shown. 74 researched events with "I'm going", each with a public page of its own carrying the listing, a schematic town-accurate map, and what else is on nearby (upcoming / today / over, derived per request from the reader's clock; past events keep their page and stay in the sitemap). The calendar shows upcoming events only and the archive at `/events/past` shows finished ones only — two routes over one split made in `@landit/core`, with a year-and-town index that lists **only** the corners holding events (an empty corner a reader types answers with an empty state and `noindex`). An event row's name links to its page, the Details modal is kept as the quick look and is addressable at `?event=slug`, and a spot card is a link to its page with map selection moved to an explicit "Show on map" button. Both readable signed out; distances use the reader's units; geolocation is never prompted for unless a rider presses for it (both screens re-read it on load where the browser already grants it, and the calendar says "Nearest first" while it does), announced whenever it is in hand, kept in memory only, never sent to the server. |
 | Social | `/crew`, `/join/[code]`, `/riders/[handle]` | Up to 5 owned crews, server-minted invite codes (25 uses / 14 days), crew board + fixed-sentence activity feed, public profiles. |
@@ -38,7 +38,8 @@ One `users` auth collection (handle, sports, privacy, plan, role, age band, cons
 server-owned streak tuple, server-owned `last_seen`) plus: `plans`, `subscriptions`, `guardian_consents` (token hashes only),
 `tricks` (copy, tier, `supervise`, and since T28 `mistakes` json + `hard` text — researched content the
 tricks hook holds to `TRICK_CONTENT_LIMITS`) + `trick_prereqs` + `trick_progress` + `trick_log` (append-only) + `trick_notes`
-(owner-only), `clips` (now YouTube-link rows — the name is a leftover from the reversed
+(owner-only; a dated log since 2026-09-07 — many per rider per trick, each with a nullable `stage`
+snapshot, capped at 50 per trick in a hook), `clips` (now YouTube-link rows — the name is a leftover from the reversed
 clip-hosting feature), `stickers` + `rider_stickers` (hook-written only), `crews` + `crew_members`
 + `crew_invites`, `challenges` + `challenge_log`, `spots` (pending/live/rejected), `events` +
 `event_attendance` (own-only, so "who else is going" cannot exist), `announcements` +
@@ -65,7 +66,9 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
   sticker awards; one live challenge per sport with a log window; subscription→plan resolution
   (staff overrides outrank provider rows); an audit row for every staff-collection write; the
   `users` row itself is not deletable over the API, so closure always goes through the
-  anonymise-and-retain route rather than a cascade that would take guardian consent with it.
+  anonymise-and-retain route rather than a cascade that would take guardian consent with it;
+  session notes capped at 50 per rider per trick, with the stage stamp held to the five ids and
+  a note never movable to another rider or trick.
 
 ## Game mechanics (packages/core — pure TS, no React/DOM)
 
@@ -106,7 +109,7 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
 - **No video hosting** (reversed 2026-08-17): riders link YouTube videos instead.
 - **No DOB stored**, no geolocation stored, no third-party map account (OpenFreeMap). PostHog is
   wired but **cookie-less and profile-less** — no cookie, no device storage, no `identify()`, no
-  autocapture, no session replay, and inert without a key. 33 hand-written events cover nearly
+  autocapture, no session replay, and inert without a key. 47 hand-written events cover nearly
   every rider action; autocapture is refused on purpose, because it would send the text of what
   was clicked. Riders are counted by a server-side hash that is re-salted nightly, so "unique"
   means unique per day (Sentry is wired but inert without a DSN).
@@ -171,8 +174,8 @@ Not done: `www.landthetrick.com` still serves a full duplicate of the site rathe
 
 ## Tests and CI
 
-~1000 Vitest cases (core rules, db, generated-type drift, web libs), 21 PocketBase HTTP suites
-(~295 cases) driving the real pinned binary — including one suite per security guarantee — and 15
+~1000 Vitest cases (core rules, db, generated-type drift, web libs), 29 PocketBase HTTP suites
+(384 cases) driving the real pinned binary — including one suite per security guarantee — and 15
 Playwright specs (126 tests). CI: gates (build/test/lint), Docker image checks (boots both images,
 asserts live and holding-page modes), e2e. Known coverage gaps: no specs for crews/admin/report
 flows (#98, #136, #146).

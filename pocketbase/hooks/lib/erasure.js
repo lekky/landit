@@ -372,9 +372,15 @@ function exportFor(app, rider) {
       at: on(row, 'at'),
       estimated: row.getBool('estimated'),
     })),
+    // T30: a note is one of many on a trick now, dated and stamped with the
+    // stage the rider was at. Both are things held about them, so both are in
+    // the download; `stage` reads as its label and is empty on a note written
+    // before the field existed.
     trick_notes: rows('trick_notes', (row) => ({
       trick: trickOf(row),
       body: row.getString('body'),
+      stage: stageOf(row),
+      created: on(row, 'created'),
       updated: on(row, 'updated'),
     })),
     // T15b: `video_id` and `visibility` are what a `clips` row now holds, and
