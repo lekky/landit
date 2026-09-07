@@ -1,4 +1,4 @@
-import { HEARD_ABOUT } from '@landit/core';
+import { HEARD_ABOUT, type TrickMistake } from '@landit/core';
 import type { SportLook } from '@landit/ui-web';
 
 /**
@@ -314,6 +314,10 @@ export interface AdminTrickRow {
   readonly isLive: boolean;
   readonly about: string;
   readonly tips: string;
+  /** Why the trick sits at its tier (T28). Empty when not written yet. */
+  readonly hard: string;
+  /** The common mistakes (T28), already read through `tricksFromRecords`, so malformed is empty. */
+  readonly mistakes: readonly TrickMistake[];
 }
 
 export interface AdminStickerRow {

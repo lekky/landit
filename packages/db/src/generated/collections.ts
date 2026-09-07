@@ -777,6 +777,8 @@ export interface TricksRecord {
   created: string;
   updated: string;
   supervise: boolean;
+  mistakes: unknown;
+  hard: string;
 }
 
 /** The shape accepted when creating a `tricks` record. */
@@ -793,6 +795,8 @@ export interface TricksCreate {
   free_override?: TricksFreeOverride;
   is_live?: boolean;
   supervise?: boolean;
+  mistakes?: unknown;
+  hard?: string;
 }
 
 /** The shape accepted when updating a `tricks` record. */

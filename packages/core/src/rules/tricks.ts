@@ -1,7 +1,9 @@
+import { CROSS_SPORT } from '../data/cross-sport';
 import { LANDED_STAGES } from '../data/stages';
+import { SPORT_IDS } from '../data/sports';
 import { TRICKS } from '../data/tricks';
 import { PLAN } from '../data/plans';
-import type { CategoryId, PlanId, SportId, StageId, Trick } from '../types';
+import type { CategoryId, PlanId, SportId, StageId, Trick, TrickMistake } from '../types';
 
 /**
  * The free/paid cut-off. A trick with no `free` override is free at this
@@ -123,4 +125,103 @@ export function suggestedNextTricks(
     (t) =>
       t.isLive && !isTrickLanded(byId, t.id) && isTrickUnlocked(t, byId) && !isTrickLocked(t, plan),
   );
+}
+
+/* ------------------------------------------------------------ cross-sport -- */
+
+/**
+ * The same movement in the other sports (T28): the live tricks `CROSS_SPORT`
+ * pairs this one with, in sport order — scooter, skate, BMX — so a screen can
+ * render them in the order the sport tabs use without sorting again.
+ *
+ * Read against the trick list handed in, not the map alone, so an equivalent
+ * that staff have hidden drops out rather than rendering a link to nothing.
+ * An id the map does not know returns an empty list.
+ */
+export function crossSportEquivalents(trickId: string, tricks: TrickList = TRICKS): Trick[] {
+  const pairs = CROSS_SPORT[trickId];
+  if (!pairs) return [];
+  const out: Trick[] = [];
+  for (const sport of SPORT_IDS) {
+    const id = pairs[sport];
+    if (!id) continue;
+    const trick = trickById(id, tricks);
+    if (trick && trick.isLive) out.push(trick);
+  }
+  return out;
+}
+
+/* ---------------------------------------------------------- trick content -- */
+
+/**
+ * The shape the researched per-trick content keeps to (T28): how many
+ * mistakes a trick lists, and how long each part may be, in words.
+ *
+ * The limits are the definition; `trickContentProblems` below reads them, the
+ * data tests pin the shipped library to them, and `pocketbase/hooks/lib/landit.js`
+ * repeats the same numbers to refuse a staff edit that would break them —
+ * the hook cannot import this package, so the two are held in step by the
+ * PocketBase test suite rather than by a shared constant.
+ */
+export const TRICK_CONTENT_LIMITS = {
+  /** A trick with any mistakes at all lists at least this many. */
+  mistakesMin: 3,
+  mistakesMax: 4,
+  /** `what` is a heading: at most this many words, ending in a full stop. */
+  whatMaxWords: 8,
+  /** `fix` is one sentence of at most this many words. */
+  fixMaxWords: 20,
+  /** `hard` is one or two sentences of at most this many words. */
+  hardMaxWords: 35,
+} as const;
+
+/** Words, as the limits count them: runs of non-space characters. */
+export function wordCount(text: string): number {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
+/**
+ * Everything wrong with a proposed `mistakes` list and `hard` line, in the
+ * words a staff member would be shown. Empty means it may be saved.
+ *
+ * An empty list and an empty `hard` are both allowed — that is "not written
+ * yet", the state a brand-new trick is in — but a list of one or two is not:
+ * the section is a set of the common mistakes, and one item is a caption.
+ */
+export function trickContentProblems(
+  mistakes: readonly TrickMistake[] | undefined,
+  hard: string | undefined,
+): string[] {
+  const L = TRICK_CONTENT_LIMITS;
+  const problems: string[] = [];
+  const list = mistakes ?? [];
+
+  if (list.length > 0 && (list.length < L.mistakesMin || list.length > L.mistakesMax)) {
+    problems.push(`List ${L.mistakesMin} or ${L.mistakesMax} common mistakes, or none yet.`);
+  }
+  list.forEach((m, i) => {
+    const n = i + 1;
+    const what = m.what.trim();
+    const fix = m.fix.trim();
+    if (!what || !fix) {
+      problems.push(`Mistake ${n} needs both the mistake and the fix.`);
+      return;
+    }
+    if (wordCount(what) > L.whatMaxWords) {
+      problems.push(`Mistake ${n}: keep "what" to ${L.whatMaxWords} words.`);
+    }
+    if (!what.endsWith('.')) {
+      problems.push(`Mistake ${n}: end "what" with a full stop.`);
+    }
+    if (wordCount(fix) > L.fixMaxWords) {
+      problems.push(`Mistake ${n}: keep the fix to ${L.fixMaxWords} words.`);
+    }
+  });
+
+  if (hard && wordCount(hard) > L.hardMaxWords) {
+    problems.push(`Keep "why it's this tier" to ${L.hardMaxWords} words.`);
+  }
+
+  return problems;
 }

@@ -35,7 +35,8 @@ consent gates under-threshold riders; there is deliberately no stranger-contact 
 
 One `users` auth collection (handle, sports, privacy, plan, role, age band, consent state,
 server-owned streak tuple, server-owned `last_seen`) plus: `plans`, `subscriptions`, `guardian_consents` (token hashes only),
-`tricks` + `trick_prereqs` + `trick_progress` + `trick_log` (append-only) + `trick_notes`
+`tricks` (copy, tier, `supervise`, and since T28 `mistakes` json + `hard` text — researched content the
+tricks hook holds to `TRICK_CONTENT_LIMITS`) + `trick_prereqs` + `trick_progress` + `trick_log` (append-only) + `trick_notes`
 (owner-only), `clips` (now YouTube-link rows — the name is a leftover from the reversed
 clip-hosting feature), `stickers` + `rider_stickers` (hook-written only), `crews` + `crew_members`
 + `crew_invites`, `challenges` + `challenge_log`, `spots` (pending/live/rejected), `events` +
@@ -72,6 +73,13 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
   prerequisite graph. A `supervise` flag marks flips, inverts and committed drops — set per trick,
   not inferred from difficulty, and stored as its own column so the coach view's guardian list
   reads it from the live rows. A trick that carries no flag at all falls back to difficulty 5.
+- **Per-trick content (T28)**: every trick carries three or four common mistakes with a fix and a
+  line on why it sits at its tier, researched from coaching sources (181 cited on the trick, 78 on
+  its family; all shipped for staff review) and editable in the staff portal. `TRICK_CONTENT_LIMITS`
+  holds the word limits and the tricks hook enforces them on every write. A **cross-sport map**
+  (`CROSS_SPORT`, `crossSportEquivalents()`) pairs 137 tricks with the same movement in the other
+  sports, symmetric and one per sport. Nothing rider-facing renders either yet — that is the trick
+  page's follow-up (`t31-trick-page`).
 - **Ten free tricks per sport**, spread 4 Rookie / 3 Easy / 2 Spicy / 1 Gnarly and nothing at Pro
   (T27). Every free trick's whole prerequisite chain is free, so none of them is unreachable behind
   a paid rung; the paywall itself is enforced server-side on `trick_progress` creation.
@@ -110,7 +118,8 @@ dashboard): overview (rider/trick/spot counts, riders by plan, by sport and by h
 the last with a paid split withheld below 10 riders per option); riders (last seen, from
 `users.last_seen` which the server stamps on authentication and throttles to 15 minutes — the
 column showed `last_ride` until `feat-last-seen`, and so reported rides while headed "Last active";
-sheet with email/age/last ride/plan, plan override, suspend); tricks, stickers,
+sheet with email/age/last ride/plan, plan override, suspend); tricks (copy, tier, and the T28
+content — why it's this tier, and three or four common mistakes as what/fix rows), stickers,
 spots (approve/reject), events, challenges, notices, plans (copy + display prices only —
 entitlement flags read-only); moderation queue for reports/appeals. Every mutation is audited
 twice (app layer + hook layer).

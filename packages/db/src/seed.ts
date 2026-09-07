@@ -137,6 +137,13 @@ export function buildSeed(): SeedPlan {
           // exists by the time this runs, and a row that says nothing is a row
           // `supervisedTricks()` has to fall back to difficulty for.
           supervise: trick.supervise === true,
+          // The researched content (T28). Written as the shape the column
+          // holds — an array of `{ what, fix }` and a string — and written
+          // empty rather than omitted when the data has none, so a trick whose
+          // content is later removed from the canonical list does not keep a
+          // stale copy in the database forever.
+          mistakes: (trick.mistakes ?? []).map((m) => ({ what: m.what, fix: m.fix })),
+          hard: trick.hard ?? '',
           is_live: trick.isLive,
         })),
       },
@@ -349,6 +356,10 @@ export function rowMatches(
 /** A PocketBase datetime, as it comes back over the API. */
 const PB_DATETIME = /^(\d{4}-\d{2}-\d{2})[T ]\d{2}:\d{2}:\d{2}/;
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function valueMatches(has: unknown, wanted: unknown): boolean {
   if (Array.isArray(wanted) || Array.isArray(has)) {
     const a = Array.isArray(has) ? has : [];
@@ -359,6 +370,17 @@ function valueMatches(has: unknown, wanted: unknown): boolean {
   }
 
   if (Object.is(has, wanted)) return true;
+
+  // A json column holding an object — one entry of `tricks.mistakes` (T28).
+  // Compared key by key, because the text fallback below reads every object as
+  // `[object Object]` and would call any two of them the same, which is a
+  // corrected mistake the seed never writes.
+  if (isPlainObject(wanted) || isPlainObject(has)) {
+    const a = isPlainObject(has) ? has : {};
+    const b = isPlainObject(wanted) ? wanted : {};
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    return [...keys].every((key) => valueMatches(a[key], b[key]));
+  }
 
   // A day key against the timestamp PocketBase made of it.
   if (typeof has === 'string' && typeof wanted === 'string') {

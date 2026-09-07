@@ -21,11 +21,18 @@ import { SPOT_COUNTRY_BY_CODE } from '../rules/spots';
 import { STAGES } from './stages';
 import { AWARDS } from './awards';
 import { STICKERS } from './stickers';
+import { CROSS_SPORT } from './cross-sport';
 import { TRICKS, TRICK_PREREQS } from './tricks';
 import { STICKER_RULES, resolveStickerRule } from '../rules/stickers';
-import { isTrickFree } from '../rules/tricks';
+import {
+  TRICK_CONTENT_LIMITS,
+  crossSportEquivalents,
+  isTrickFree,
+  trickContentProblems,
+  wordCount,
+} from '../rules/tricks';
 import { challengesOverlap } from '../rules/challenges';
-import type { Plan, Spot, Sticker, Trick } from '../types';
+import type { Plan, SportId, Spot, Sticker, Trick } from '../types';
 
 /**
  * The canonical arrays are `as const`, so an optional field is absent from the
@@ -200,6 +207,93 @@ describe('the trick library', () => {
     for (const sport of SPORT_IDS) {
       expect(marked.filter((t) => t.sport === sport).length, sport).toBeGreaterThan(0);
     }
+  });
+
+  it('gives every live trick three or four common mistakes and a line on its tier', () => {
+    // T28's content was researched for all 259 and the owner chose to ship
+    // every entry (2026-09-07), so a trick with none is a trick that lost
+    // them, not one that never had them.
+    const L = TRICK_CONTENT_LIMITS;
+    for (const trick of allTricks.filter((t) => t.isLive)) {
+      expect(trick.mistakes?.length, trick.id).toBeGreaterThanOrEqual(L.mistakesMin);
+      expect(trick.mistakes?.length, trick.id).toBeLessThanOrEqual(L.mistakesMax);
+      expect(trick.hard?.trim().length, trick.id).toBeGreaterThan(20);
+    }
+  });
+
+  it('keeps every mistake and every tier line inside the word limits', () => {
+    // The same limits the staff editor and the tricks hook enforce on an edit,
+    // read from the one place that defines them. A `what` is a heading — eight
+    // words, ending in a full stop — a `fix` one sentence, `hard` two at most.
+    const L = TRICK_CONTENT_LIMITS;
+    for (const trick of allTricks) {
+      for (const m of trick.mistakes ?? []) {
+        expect(wordCount(m.what), `${trick.id}: "${m.what}"`).toBeLessThanOrEqual(L.whatMaxWords);
+        expect(m.what.endsWith('.'), `${trick.id}: "${m.what}"`).toBe(true);
+        expect(wordCount(m.fix), `${trick.id}: "${m.fix}"`).toBeLessThanOrEqual(L.fixMaxWords);
+      }
+      if (trick.hard) {
+        expect(wordCount(trick.hard), `${trick.id}: hard`).toBeLessThanOrEqual(L.hardMaxWords);
+      }
+      // And the validator the editor uses agrees, so the two cannot drift.
+      expect(trickContentProblems(trick.mistakes, trick.hard), trick.id).toEqual([]);
+    }
+  });
+});
+
+describe('the cross-sport map', () => {
+  // Widened on purpose: `TRICKS` is `as const`, and a map keyed on the id
+  // union would refuse the plain strings the cross-sport record holds.
+  const sportOf = new Map<string, SportId>(TRICKS.map((t) => [t.id, t.sport]));
+
+  it('points only at tricks that exist', () => {
+    for (const [id, pairs] of Object.entries(CROSS_SPORT)) {
+      expect(sportOf.has(id), id).toBe(true);
+      for (const other of Object.values(pairs)) {
+        expect(sportOf.has(other), `${id} → ${other}`).toBe(true);
+      }
+    }
+  });
+
+  it('never pairs a trick with one in its own sport, and files each under the right key', () => {
+    for (const [id, pairs] of Object.entries(CROSS_SPORT)) {
+      expect(pairs[sportOf.get(id)!], `${id} maps to its own sport`).toBeUndefined();
+      for (const [sport, other] of Object.entries(pairs)) {
+        expect(sportOf.get(other), `${id} → ${other} is filed under ${sport}`).toBe(sport);
+      }
+    }
+  });
+
+  it('is symmetric, so following a link and coming back lands where you left', () => {
+    for (const [id, pairs] of Object.entries(CROSS_SPORT)) {
+      for (const other of Object.values(pairs)) {
+        expect(
+          CROSS_SPORT[other]?.[sportOf.get(id)!],
+          `${other} does not point back at ${id}`,
+        ).toBe(id);
+      }
+    }
+  });
+
+  it('pairs a fair share of the library, and every sport with every other', () => {
+    // A count from the research, asserted so a lost block is noticed rather
+    // than an invariant: 137 tricks have at least one equivalent.
+    expect(Object.keys(CROSS_SPORT)).toHaveLength(137);
+    for (const a of SPORT_IDS) {
+      for (const b of SPORT_IDS) {
+        if (a === b) continue;
+        const linked = Object.entries(CROSS_SPORT).some(
+          ([id, pairs]) => sportOf.get(id) === a && pairs[b] !== undefined,
+        );
+        expect(linked, `${a} has no ${b} equivalents`).toBe(true);
+      }
+    }
+  });
+
+  it('resolves through the rule in sport order', () => {
+    const hop = crossSportEquivalents('bunny-hop');
+    expect(hop.map((t) => t.id)).toEqual(['sk-ollie', 'bmx-bunny-hop']);
+    expect(crossSportEquivalents('sk-ollie').map((t) => t.sport)).toEqual(['scooter', 'bmx']);
   });
 });
 

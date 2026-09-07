@@ -1,6 +1,6 @@
 'use server';
 
-import type { SportId } from '@landit/core';
+import { trickContentProblems, type SportId, type TrickMistake } from '@landit/core';
 import {
   applyStaffChange,
   createStaffRecord,
@@ -130,6 +130,14 @@ export interface TrickForm {
   readonly tier: '' | 'free' | 'paid';
   readonly about: string;
   readonly tips: string;
+  /** Why the trick sits at its tier (T28). Empty means not written yet. */
+  readonly hard: string;
+  /**
+   * The common mistakes (T28): none, or three to four. Blank rows are dropped
+   * before the count is judged, so an editor opened on a trick with none and
+   * saved untouched writes an empty list rather than three empty pairs.
+   */
+  readonly mistakes: readonly TrickMistake[];
 }
 
 /** The patch both the create and the edit build, so the two cannot drift. */
@@ -141,12 +149,33 @@ function trickPatch(form: TrickForm) {
     free_override: selectOrEmpty(form.tier),
     about: form.about,
     tips: form.tips,
+    hard: form.hard.trim(),
+    mistakes: trickMistakesOf(form),
   };
+}
+
+/** The rows that have anything in them, trimmed. */
+function trickMistakesOf(form: TrickForm): TrickMistake[] {
+  return form.mistakes
+    .map((m) => ({ what: m.what.trim(), fix: m.fix.trim() }))
+    .filter((m) => m.what || m.fix);
+}
+
+/**
+ * The content limits, checked here for the message and in
+ * `pocketbase/hooks/20_tricks.pb.js` for the guarantee. `null` means it may
+ * be saved.
+ */
+function trickContentRefusal(form: TrickForm): StaffWriteResult | null {
+  const problems = trickContentProblems(trickMistakesOf(form), form.hard.trim());
+  return problems.length ? { ok: false, message: problems.join(' ') } : null;
 }
 
 export async function saveTrickAction(id: string, form: TrickForm): Promise<StaffWriteResult> {
   const staff = await requireStaff();
   if (!form.name.trim()) return { ok: false, message: 'A trick needs a name.' };
+  const refused = trickContentRefusal(form);
+  if (refused) return refused;
 
   try {
     await applyStaffChange(staff.superuser, {
@@ -167,6 +196,8 @@ export async function saveTrickAction(id: string, form: TrickForm): Promise<Staf
 export async function createTrickAction(form: TrickForm): Promise<StaffWriteResult> {
   const staff = await requireStaff();
   if (!form.name.trim()) return { ok: false, message: 'A trick needs a name.' };
+  const refused = trickContentRefusal(form);
+  if (refused) return refused;
 
   try {
     await createStaffRecord(staff.superuser, {
