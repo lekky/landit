@@ -7,6 +7,7 @@ import {
   type StageId,
   type Trick,
   type TrickLogEntry,
+  type TrickMistake,
   type VideoLink,
 } from '@landit/core';
 
@@ -148,8 +149,47 @@ export function tricksFromRecords(
     // predates `1788134400_trick_supervise.js` has no key here at all, so the
     // rule falls back to difficulty rather than reading it as "no".
     ...('supervise' in row ? { supervise: row.supervise === true } : {}),
+    // The researched content (T28). Absent, null, empty and malformed all
+    // become *no field*, which the `Trick` type reads as "not written yet" —
+    // a database older than `1788480000_trick_content.js`, a trick staff
+    // created before writing them, and a json column somebody hand-edited
+    // into the wrong shape all render the same way: without the section.
+    // Never a throw, because one bad row would take the whole library down.
+    ...mistakesOf(row.mistakes),
+    ...(typeof row.hard === 'string' && row.hard.trim() ? { hard: row.hard } : {}),
     isLive: row.is_live,
   }));
+}
+
+/**
+ * `tricks.mistakes` as the `Trick` field, or nothing.
+ *
+ * The column is json, so what arrives could be the array the seed wrote, a
+ * string of it from an older client, `null` from a row that predates the
+ * column, or anything at all from a hand edit. Only a non-empty array of
+ * `{ what, fix }` pairs with both strings non-blank counts; a list with one
+ * bad entry is dropped whole rather than shown with a hole in it.
+ */
+function mistakesOf(raw: unknown): { mistakes: TrickMistake[] } | Record<string, never> {
+  let value = raw;
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+  if (!Array.isArray(value) || value.length === 0) return {};
+
+  const mistakes: TrickMistake[] = [];
+  for (const entry of value) {
+    if (typeof entry !== 'object' || entry === null) return {};
+    const { what, fix } = entry as { what?: unknown; fix?: unknown };
+    if (typeof what !== 'string' || typeof fix !== 'string') return {};
+    if (!what.trim() || !fix.trim()) return {};
+    mistakes.push({ what, fix });
+  }
+  return { mistakes };
 }
 
 /* ---------------------------------------------------------------- riders -- */

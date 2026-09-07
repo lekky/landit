@@ -72,6 +72,11 @@ export default async function AdminTricksPage() {
       isLive: record.is_live,
       about: record.about,
       tips: record.tips,
+      // Through the mapping rather than off the record, so a json column
+      // somebody hand-edited into the wrong shape reads as "not written yet"
+      // here exactly as it does on the trick page.
+      hard: trick?.hard ?? '',
+      mistakes: trick?.mistakes ?? [],
     };
   });
 

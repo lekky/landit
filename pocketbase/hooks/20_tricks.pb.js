@@ -36,3 +36,23 @@ onRecordUpdate((e) => {
   require(`${__hooks}/lib/landit.js`).enforcePrereqSameSport(e.app, e.record);
   e.next();
 }, 'trick_prereqs');
+
+/**
+ * The researched per-trick content keeps its shape on a staff edit (T28).
+ *
+ * `mistakes` is a json column and `hard` is free text, so nothing in the
+ * schema holds either to the limits the content was written to — three or
+ * four mistakes, a `what` of eight words ending in a full stop, a `fix` of
+ * twenty, a `hard` of thirty-five. The staff editor checks them client-side
+ * for a friendlier message; this is where they bind, on the model hooks so a
+ * superuser token and the seed go through the same door as the editor.
+ */
+onRecordCreate((e) => {
+  require(`${__hooks}/lib/landit.js`).enforceTrickContentLimits(e.record);
+  e.next();
+}, 'tricks');
+
+onRecordUpdate((e) => {
+  require(`${__hooks}/lib/landit.js`).enforceTrickContentLimits(e.record);
+  e.next();
+}, 'tricks');

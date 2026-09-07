@@ -38,6 +38,8 @@ const row = (over: Partial<TricksRecord> & Pick<TricksRecord, 'id' | 'slug'>): T
   fact: '',
   free_override: '' as TricksRecord['free_override'],
   supervise: false,
+  mistakes: null,
+  hard: '',
   is_live: true,
   created: '',
   updated: '',
@@ -94,6 +96,55 @@ describe('tricksFromRecords', () => {
       row({ id: 'rec2', slug: 'truckdriver', diff: 5, supervise: false }),
     ]);
     expect(supervisedTricks(tricks).map((t) => t.id)).toEqual(['drop-in']);
+  });
+
+  it('carries the researched content through as the Trick fields', () => {
+    const mistakes = [
+      { what: 'Leaning back.', fix: 'Shoulders forward.' },
+      { what: 'Looking down.', fix: 'Eyes up.' },
+      { what: 'Stiff legs.', fix: 'Bend the knees.' },
+    ];
+    const tricks = tricksFromRecords([
+      row({ id: 'rec1', slug: 'bunny-hop', mistakes, hard: 'Easy because it is small.' }),
+    ]);
+    expect(tricks[0]?.mistakes).toEqual(mistakes);
+    expect(tricks[0]?.hard).toBe('Easy because it is small.');
+  });
+
+  it('reads a json column that arrived as text', () => {
+    const mistakes = [{ what: 'Leaning back.', fix: 'Shoulders forward.' }];
+    const tricks = tricksFromRecords([
+      row({ id: 'rec1', slug: 'bunny-hop', mistakes: JSON.stringify(mistakes) }),
+    ]);
+    expect(tricks[0]?.mistakes).toEqual(mistakes);
+  });
+
+  it('omits the content fields — never throws — when they are absent, empty or malformed', () => {
+    // A row from a database that predates `1788480000_trick_content.js` has no
+    // key at all; a trick staff created before writing them has null and '';
+    // a hand-edited json column could hold anything. All of these are "not
+    // written yet", and none of them may take the library down.
+    const old = row({ id: 'rec0', slug: 'old' });
+    delete (old as { mistakes?: unknown }).mistakes;
+    delete (old as { hard?: unknown }).hard;
+
+    const cases = [
+      old,
+      row({ id: 'rec1', slug: 'nulls', mistakes: null, hard: '' }),
+      row({ id: 'rec2', slug: 'empty', mistakes: [], hard: '   ' }),
+      row({ id: 'rec3', slug: 'not-json', mistakes: '{not json' }),
+      row({ id: 'rec4', slug: 'not-a-list', mistakes: { what: 'x.', fix: 'y' } }),
+      row({ id: 'rec5', slug: 'bad-entry', mistakes: [{ what: 'x.' }] }),
+      row({ id: 'rec6', slug: 'blank-entry', mistakes: [{ what: '', fix: 'y' }] }),
+      row({ id: 'rec7', slug: 'wrong-types', mistakes: [{ what: 1, fix: 2 }] }),
+      row({ id: 'rec8', slug: 'a-number', mistakes: 42 }),
+    ];
+    const tricks = tricksFromRecords(cases);
+    expect(tricks).toHaveLength(cases.length);
+    for (const trick of tricks) {
+      expect(Object.hasOwn(trick, 'mistakes'), trick.id).toBe(false);
+      expect(Object.hasOwn(trick, 'hard'), trick.id).toBe(false);
+    }
   });
 
   it('leaves supervise absent when the row has no such column', () => {

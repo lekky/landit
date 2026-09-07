@@ -599,6 +599,31 @@
   flex-wrap: wrap;
 }
 
+/* The trick editor's common mistakes: rows of what / fix (T28). */
+.pairs {
+  display: grid;
+  gap: 8px;
+}
+
+.pairRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.pairRow input {
+  min-width: 0;
+}
+
+.pairHead {
+  margin-bottom: -4px;
+}
+
+.pairHead .lab {
+  color: var(--ink-3);
+}
+
 .swatch {
   width: 34px;
   height: 34px;

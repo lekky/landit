@@ -552,6 +552,111 @@ function enforcePrereqSameSport(app, record) {
   }
 }
 
+// ------------------------------------------------------- trick content ---
+
+/**
+ * The limits the researched per-trick content keeps to (T28). The definition
+ * is `TRICK_CONTENT_LIMITS` in `packages/core/src/rules/tricks.ts`; these are
+ * the same numbers, repeated because a hook cannot import the package, and
+ * `pocketbase/tests/trick-content.test.ts` holds the two in step.
+ */
+const TRICK_CONTENT_LIMITS = {
+  mistakesMin: 3,
+  mistakesMax: 4,
+  whatMaxWords: 8,
+  fixMaxWords: 20,
+  hardMaxWords: 35,
+};
+
+function wordCount(text) {
+  const trimmed = String(text || '').trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
+/**
+ * `tricks.mistakes` as a plain array, from whatever shape the json column
+ * hands back.
+ *
+ * What it actually hands back, observed against PocketBase 0.39 rather than
+ * assumed: `record.get()` on a json field is a Go `types.JSONRaw` — a byte
+ * slice, which goja reports as an *array* whose elements are bytes, with the
+ * JSON text behind its `string()` method (`getString()` returns the same
+ * text). So `Array.isArray` is the one check that cannot be trusted here: on
+ * the seed's three-entry list it says an array of 261. The text is parsed
+ * instead, and a genuine JS array — a value set by another hook — is taken as
+ * it is.
+ */
+function readTrickMistakes(record) {
+  const raw = record.get('mistakes');
+  if (raw === null || raw === undefined) return [];
+
+  let value = raw;
+  if (typeof raw === 'object' && typeof raw.string === 'function') {
+    value = raw.string();
+  } else if (Array.isArray(raw) && raw.some((entry) => typeof entry === 'number')) {
+    value = record.getString('mistakes');
+  }
+
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (!text || text === 'null') return [];
+    try {
+      value = JSON.parse(text);
+    } catch {
+      throw new BadRequestError('Common mistakes must be a list of what/fix pairs.');
+    }
+  }
+  if (value === null) return [];
+  if (!Array.isArray(value)) {
+    throw new BadRequestError('Common mistakes must be a list of what/fix pairs.');
+  }
+  return value;
+}
+
+/**
+ * Refuse a trick write whose content breaks the limits (T28). Absent and
+ * empty are both allowed — "not written yet" — but a list of one or two, an
+ * over-long line or a `what` with no full stop is not. The messages match
+ * `trickContentProblems` in `@landit/core`, which the staff editor shows
+ * before the request is made.
+ */
+function enforceTrickContentLimits(record) {
+  const L = TRICK_CONTENT_LIMITS;
+  const list = readTrickMistakes(record);
+
+  if (list.length > 0 && (list.length < L.mistakesMin || list.length > L.mistakesMax)) {
+    throw new BadRequestError(
+      `List ${L.mistakesMin} or ${L.mistakesMax} common mistakes, or none yet.`,
+    );
+  }
+  for (let i = 0; i < list.length; i++) {
+    const n = i + 1;
+    const entry = list[i];
+    if (!entry || typeof entry !== 'object') {
+      throw new BadRequestError(`Mistake ${n} needs both the mistake and the fix.`);
+    }
+    const what = String(entry.what || '').trim();
+    const fix = String(entry.fix || '').trim();
+    if (!what || !fix) {
+      throw new BadRequestError(`Mistake ${n} needs both the mistake and the fix.`);
+    }
+    if (wordCount(what) > L.whatMaxWords) {
+      throw new BadRequestError(`Mistake ${n}: keep "what" to ${L.whatMaxWords} words.`);
+    }
+    if (!what.endsWith('.')) {
+      throw new BadRequestError(`Mistake ${n}: end "what" with a full stop.`);
+    }
+    if (wordCount(fix) > L.fixMaxWords) {
+      throw new BadRequestError(`Mistake ${n}: keep the fix to ${L.fixMaxWords} words.`);
+    }
+  }
+
+  const hard = record.getString('hard');
+  if (hard && wordCount(hard) > L.hardMaxWords) {
+    throw new BadRequestError(`Keep "why it's this tier" to ${L.hardMaxWords} words.`);
+  }
+}
+
 // ---------------------------------------------------------- challenges ---
 
 /**
@@ -898,6 +1003,7 @@ function actorOf(e) {
 }
 
 module.exports = {
+  TRICK_CONTENT_LIMITS,
   FREE_MAX_DIFF,
   LANDED_STAGES,
   SPORTS,
@@ -915,6 +1021,7 @@ module.exports = {
   enforcePaywall,
   enforcePrereqSameSport,
   enforceSubscriptionEligibility,
+  enforceTrickContentLimits,
   enforceVideoLink,
   findAll,
   guardInsightsOptIn,

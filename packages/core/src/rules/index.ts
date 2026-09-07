@@ -352,6 +352,8 @@ export {
 } from './video';
 export {
   FREE_MAX_DIFF,
+  TRICK_CONTENT_LIMITS,
+  crossSportEquivalents,
   isLandedStage,
   isTrickFree,
   isTrickLanded,
@@ -363,6 +365,8 @@ export {
   sportOf,
   suggestedNextTricks,
   trickById,
+  trickContentProblems,
   tricksFor,
   tricksInCategory,
+  wordCount,
 } from './tricks';

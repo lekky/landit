@@ -257,7 +257,7 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 | Collection | Purpose |
 | --- | --- |
 | `users` | PocketBase auth collection, extended with the profile fields: name, handle, town, stance, level, goal, avatar, privacy, `sports`, the weekly-streak fields, last_ride, `last_seen` (server-stamped on authentication, `feat-last-seen`), timezone, role, plan-facing fields. Email stays a hidden field |
-| `tricks` | 259 records — 84 scooter, 85 skate, 90 BMX (the BMX block researched and shipped by T21, 2026-08-16; 162 of the 259 researched and shipped by T27, 2026-09-04). `sport`, `cat`, `diff 1..5`, `about`, `tips`, `fact`, nullable `free` override, `supervise`, `is_live`. `supervise` marks a trick a guardian should know about and is what the coach view reads (`feat-supervise-list`, §7); `1788134400_trick_supervise.js` adds the column and backfills every `diff >= 5` row to `true`, so a database migrated but not yet re-seeded shows the list it showed before rather than an empty one |
+| `tricks` | 259 records — 84 scooter, 85 skate, 90 BMX (the BMX block researched and shipped by T21, 2026-08-16; 162 of the 259 researched and shipped by T27, 2026-09-04). `sport`, `cat`, `diff 1..5`, `about`, `tips`, `fact`, nullable `free` override, `supervise`, `mistakes` (json, 3–4 `{ what, fix }`), `hard` (text), `is_live`. `supervise` marks a trick a guardian should know about and is what the coach view reads (`feat-supervise-list`, §7); `1788134400_trick_supervise.js` adds the column and backfills every `diff >= 5` row to `true`, so a database migrated but not yet re-seeded shows the list it showed before rather than an empty one. `mistakes` and `hard` are the researched per-trick content (T28, 2026-09-07; all 259 filled, 181 cited on the trick and 78 on its family); `1788480000_trick_content.js` adds both columns with no backfill, because absent reads as "not written yet" and the seed fills them; the tricks hook holds a staff edit to `TRICK_CONTENT_LIMITS` |
 | `trick_prereqs` | Edge collection (`trick`, `prereq`). Same-sport constraint enforced in a hook |
 | `trick_progress` | `(user, trick) → stage`. The `byId` map |
 | `trick_log` | Append-only. `(user, trick, stage, at, estimated)`. Drives every date in the app |
@@ -3287,6 +3287,78 @@ on the difficulty reading. They are deliberately not changed.
 and shared with nobody, and issue #111 already questions whether it earns its place. Instrumenting
 it here would be measuring a screen that may not survive; nothing about what a rider *does*
 changed.
+
+**T28 · Trick content: common mistakes and why it's this tier.** Added after launch (Rachid,
+2026-09-07, in chat), the first of four parallel sessions on the trick page — the other three being
+the glossary (`t29-glossary`), the trick log (`t30-trick-log`) and the page itself
+(`t31-trick-page`). This one is content and plumbing: every trick gains **three or four common
+mistakes, each with a fix**, and **one line on why it sits at its tier**; the library gains a
+**cross-sport map** saying which trick in another sport is the same movement; and the staff trick
+editor can correct all of it. **Nothing rider-facing renders any of this yet** — the trick page's
+"Common mistakes", "Why it's this tier" and "Same trick, other sport" sections are `t31-trick-page`'s
+to build, on the fields and the rule this task lands in the shared packages.
+
+**Where the content came from, and what it is worth.** Six research agents, two per sport and split
+by category, from published coaching sources, on 2026-09-07. **181 of the 259 entries cite a source
+that addresses the trick itself; 78 apply a source about the trick's family** — a frontside
+boardslide's mistakes from a boardslide tutorial, a BMX hop-barspin's from a barspin one. The owner
+chose to ship all 259 rather than hold the 78 back, and to review them in the staff editor, where
+each can be corrected in place (Rachid, 2026-09-07, in chat). The provenance note above the trick
+list in `packages/core/src/data/tricks.ts` says the same; the per-trick sources and which kind each
+one is live in `docs/research/trick-content-2026-09-07/sources.json` — provenance only, no copy, so
+the sources survive in the repo without becoming a second copy of the data. Two content defects the
+research turned up are logged rather than fixed here, because they are about the trick copy the
+content sits under and not the content: #349 (two tricks easier than their own prerequisite) and
+#350 (the BMX hard-180 copy turns the wrong way).
+
+**The shape, and where it binds.** `Trick` gains `mistakes?: readonly TrickMistake[]` and `hard?:
+string`, both optional for the reason `supervise` is: a database older than the columns returns
+nothing for them, and *absent* means "not written yet", never "there are none". A `what` is a
+heading of at most 8 words ending in a full stop, a `fix` one sentence of at most 20, `hard` one or
+two of at most 35. Those numbers are `TRICK_CONTENT_LIMITS` in `packages/core/src/rules/tricks.ts`
+and `trickContentProblems()` reads them; the data tests pin the shipped library to them; the staff
+editor shows them as a message before the request; and `pocketbase/hooks/20_tricks.pb.js` refuses a
+write that breaks them on the **model** hooks, so a superuser token and the seed go through the same
+door as the editor. The hook repeats the numbers because it cannot import the package, and
+`pocketbase/tests/trick-content.test.ts` holds the two in step. An empty list is allowed — that is
+the state a staff-created trick starts in — and a list of one or two is not.
+
+**Two columns, no backfill** (`1788480000_trick_content.js`). `mistakes` is json because a mistake
+is a pair and a trick has three or four of them; eight text columns would fix the count in the
+schema, where it belongs to the content rules. `hard` is text. Neither is backfilled, and that is the
+difference from `supervise`: a `bool` reads `false` on every old row and `false` there was a lie a
+guardian would act on, while an empty json column and an empty string both read as *nothing*, which
+`tricksFromRecords` turns into an absent field. A database migrated and not yet re-seeded shows a
+trick page with no mistakes section, which is what it showed before. The mapping never throws:
+absent, `null`, `[]`, a string of JSON, and a hand-edited column in the wrong shape all become "not
+written yet", because one bad row must not take the library down. The migration is safe on a
+database that already carries the columns.
+
+**A seed that could not tell a corrected mistake from the original.** `rowMatches` in
+`packages/db/src/seed.ts` compared arrays element by element and everything else as text, so two
+different `{ what, fix }` objects were both `[object Object]` and always equal — a fix to a
+mistake's wording in the canonical data would never have reached a seeded database. Plain objects
+are now compared key by key. A one-line reading of "if writing the issue takes longer than the fix,
+fix it".
+
+**The cross-sport map** (`packages/core/src/data/cross-sport.ts`, `crossSportEquivalents()`). 137 of
+the 259 tricks have at least one equivalent in another sport; the rest belong to their vehicle or
+have a namesake that is a different trick. One equivalent per sport, and the map is symmetric — where
+a library splits a movement in two (skate's frontside and backside 180, scooter's 50-50 and double
+peg grind) the base trick is mapped and the variant left out, so following a link and coming back
+lands where you left. The reasoning behind each loose pairing is a comment on the line. The rule
+reads the live rows in sport order, so a trick staff hide drops out of the result without the map
+changing.
+
+**The staff editor.** "Why it's this tier" is a textarea on both the add panel and the edit modal;
+the common mistakes are rows of what / fix in the edit modal, with Remove disabled at three and Add
+at four, opened on three empty rows for a trick that has none and saving none if every row is left
+empty. `StaffEditor` gained a `pairs` field type for it, held in the value as a flat `string[]`
+because that is the one shape `EditorValue` already had room for.
+
+**No new analytics event.** Staff-only editing, and data that nothing renders yet. The trick page
+sections that will render it are `t31-trick-page`'s, and any event they earn is theirs to add with
+them.
 
 **Spot pages (`feat-spot-pages`, 2026-09-06).** A public page per spot at `/spots/[slug]`, from the
 "Event & Spot Pages" design handoff (Screen 2). Added after launch, at the owner's ask, alongside

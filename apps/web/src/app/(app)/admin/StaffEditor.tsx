@@ -30,8 +30,13 @@ export type EditorField = {
   /** The key in the value object. */
   readonly k: string;
   readonly label: string;
-  /** `input` when omitted. */
-  readonly type?: 'input' | 'text' | 'select' | 'sports' | 'colour';
+  /**
+   * `input` when omitted. `pairs` is a list of two-part rows — the trick
+   * editor's common mistakes (T28) — held in the value as a flat `string[]`
+   * of `[first, second, first, second, …]`, which is the one shape
+   * `EditorValue` already has room for.
+   */
+  readonly type?: 'input' | 'text' | 'select' | 'sports' | 'colour' | 'pairs';
   /** Spans the whole grid. */
   readonly wide?: boolean;
   readonly placeholder?: string;
@@ -45,7 +50,20 @@ export type EditorField = {
   readonly hint?: string;
   /** `input` only; renders a native date picker. */
   readonly inputType?: 'text' | 'date' | 'number';
+  /** `pairs` only: the two column headings, and placeholders for an empty row. */
+  readonly pairLabels?: readonly [string, string];
+  readonly pairPlaceholders?: readonly [string, string];
+  /** `pairs` only: Remove is disabled at the minimum, Add at the maximum. */
+  readonly minPairs?: number;
+  readonly maxPairs?: number;
 };
+
+/** A flat `[a, b, a, b, …]` as rows. */
+function pairsOf(flat: readonly string[]): [string, string][] {
+  const rows: [string, string][] = [];
+  for (let i = 0; i < flat.length; i += 2) rows.push([flat[i] ?? '', flat[i + 1] ?? '']);
+  return rows;
+}
 
 export function StaffEditor({
   title,
@@ -148,6 +166,68 @@ export function StaffEditor({
                       </Pill>
                     );
                   })}
+                </div>
+              ) : field.type === 'pairs' ? (
+                <div className={styles.pairs} id={`editor-${field.k}`}>
+                  {(() => {
+                    const rows = pairsOf(many(field.k));
+                    const [firstLabel, secondLabel] = field.pairLabels ?? ['First', 'Second'];
+                    const [firstHint, secondHint] = field.pairPlaceholders ?? ['', ''];
+                    const min = field.minPairs ?? 0;
+                    const max = field.maxPairs ?? Number.POSITIVE_INFINITY;
+                    const write = (next: [string, string][]) => set(field.k, next.flat());
+                    return (
+                      <>
+                        <div className={`${styles.pairRow} ${styles.pairHead}`}>
+                          <span className="lab">{firstLabel}</span>
+                          <span className="lab">{secondLabel}</span>
+                          <span />
+                        </div>
+                        {rows.map(([first, second], i) => (
+                          <div key={i} className={styles.pairRow}>
+                            <input
+                              aria-label={`${firstLabel} ${i + 1}`}
+                              value={first}
+                              disabled={pending}
+                              placeholder={firstHint}
+                              onChange={(e) =>
+                                write(rows.map((r, j) => (j === i ? [e.target.value, r[1]] : r)))
+                              }
+                            />
+                            <input
+                              aria-label={`${secondLabel} ${i + 1}`}
+                              value={second}
+                              disabled={pending}
+                              placeholder={secondHint}
+                              onChange={(e) =>
+                                write(rows.map((r, j) => (j === i ? [r[0], e.target.value] : r)))
+                              }
+                            />
+                            <button
+                              type="button"
+                              className="btn sm ghost"
+                              aria-label={`Remove row ${i + 1}`}
+                              title={rows.length <= min ? `Keep at least ${min}` : 'Remove'}
+                              disabled={pending || rows.length <= min}
+                              onClick={() => write(rows.filter((_, j) => j !== i))}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                        <div>
+                          <button
+                            type="button"
+                            className="btn sm ghost"
+                            disabled={pending || rows.length >= max}
+                            onClick={() => write([...rows, ['', '']])}
+                          >
+                            + Add another
+                          </button>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               ) : field.type === 'colour' ? (
                 <div className={styles.editorChoices} id={`editor-${field.k}`}>

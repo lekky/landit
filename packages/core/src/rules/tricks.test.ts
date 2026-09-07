@@ -4,6 +4,8 @@ import { TRICKS } from '../data/tricks';
 import type { StageId, Trick } from '../types';
 import {
   FREE_MAX_DIFF,
+  TRICK_CONTENT_LIMITS,
+  crossSportEquivalents,
   isLandedStage,
   isTrickFree,
   isTrickLanded,
@@ -15,8 +17,10 @@ import {
   sportOf,
   suggestedNextTricks,
   trickById,
+  trickContentProblems,
   tricksFor,
   tricksInCategory,
+  wordCount,
 } from './tricks';
 
 const trick = (over: Partial<Trick> & Pick<Trick, 'id' | 'diff'>): Trick => ({
@@ -325,5 +329,92 @@ describe('what to try next', () => {
     expect(suggestedNextTricks({}, 'rookie', 'scooter', library).map((t) => t.id)).toEqual([
       'visible',
     ]);
+  });
+});
+
+describe('cross-sport equivalents', () => {
+  it('returns the same movement in the other sports, scooter then skate then BMX', () => {
+    expect(crossSportEquivalents('sk-ollie').map((t) => t.id)).toEqual([
+      'bunny-hop',
+      'bmx-bunny-hop',
+    ]);
+    expect(crossSportEquivalents('bmx-bunny-hop').map((t) => t.id)).toEqual([
+      'bunny-hop',
+      'sk-ollie',
+    ]);
+  });
+
+  it('returns nothing for a trick with no equivalent, or an id it does not know', () => {
+    // A fingerwhip is a scooter trick and nothing else's.
+    expect(crossSportEquivalents('fingerwhip')).toEqual([]);
+    expect(crossSportEquivalents('not-a-trick')).toEqual([]);
+  });
+
+  it('reads the live rows, so a hidden equivalent drops out', () => {
+    const live = TRICKS.map((t) => (t.id === 'sk-ollie' ? { ...t, isLive: false } : t));
+    expect(crossSportEquivalents('bunny-hop', live).map((t) => t.id)).toEqual(['bmx-bunny-hop']);
+    // And one the list does not carry at all is simply not there.
+    const without = TRICKS.filter((t) => t.id !== 'bmx-bunny-hop');
+    expect(crossSportEquivalents('bunny-hop', without).map((t) => t.id)).toEqual(['sk-ollie']);
+  });
+});
+
+describe('trick content limits', () => {
+  const ok = [
+    { what: 'Leaning back.', fix: 'Shoulders forward.' },
+    { what: 'Looking down.', fix: 'Eyes up.' },
+    { what: 'Stiff legs.', fix: 'Bend the knees.' },
+  ];
+  const words = (n: number) => Array.from({ length: n }, (_, i) => `w${i}`).join(' ');
+
+  it('counts words as runs of non-space characters', () => {
+    expect(wordCount('')).toBe(0);
+    expect(wordCount('   ')).toBe(0);
+    expect(wordCount('one')).toBe(1);
+    expect(wordCount('  two   words \n here ')).toBe(3);
+  });
+
+  it('allows nothing written yet, and three or four mistakes', () => {
+    expect(trickContentProblems(undefined, undefined)).toEqual([]);
+    expect(trickContentProblems([], '')).toEqual([]);
+    expect(trickContentProblems(ok, 'Easy.')).toEqual([]);
+    expect(trickContentProblems([...ok, ok[0]!], 'Easy.')).toEqual([]);
+  });
+
+  it('refuses one, two or five mistakes', () => {
+    expect(trickContentProblems(ok.slice(0, 1), '')).toHaveLength(1);
+    expect(trickContentProblems(ok.slice(0, 2), '')).toHaveLength(1);
+    expect(trickContentProblems([...ok, ok[0]!, ok[1]!], '')).toHaveLength(1);
+  });
+
+  it('holds each part to its limit, and accepts the edge', () => {
+    const L = TRICK_CONTENT_LIMITS;
+    const at = [
+      { what: `${words(L.whatMaxWords - 1)}.`, fix: words(L.fixMaxWords) },
+      ...ok.slice(1),
+    ];
+    expect(trickContentProblems(at, words(L.hardMaxWords))).toEqual([]);
+
+    const over = (m: (typeof ok)[number]) => trickContentProblems([m, ...ok.slice(1)], '');
+    expect(over({ what: `${words(L.whatMaxWords + 1)}.`, fix: 'Fix.' })).toEqual([
+      `Mistake 1: keep "what" to ${L.whatMaxWords} words.`,
+    ]);
+    expect(over({ what: 'No stop', fix: 'Fix.' })).toEqual([
+      'Mistake 1: end "what" with a full stop.',
+    ]);
+    expect(over({ what: 'Short.', fix: words(L.fixMaxWords + 1) })).toEqual([
+      `Mistake 1: keep the fix to ${L.fixMaxWords} words.`,
+    ]);
+    expect(over({ what: 'Short.', fix: '  ' })).toEqual([
+      'Mistake 1 needs both the mistake and the fix.',
+    ]);
+    expect(trickContentProblems(ok, words(L.hardMaxWords + 1))).toEqual([
+      `Keep "why it's this tier" to ${L.hardMaxWords} words.`,
+    ]);
+  });
+
+  it('reports every problem, not just the first', () => {
+    const problems = trickContentProblems([{ what: 'No stop', fix: '' }, ok[1]!], words(40));
+    expect(problems.length).toBeGreaterThanOrEqual(3);
   });
 });

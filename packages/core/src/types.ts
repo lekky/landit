@@ -83,6 +83,19 @@ export interface Stage {
 /** Difficulty, 1 (Rookie) to 5 (Pro). */
 export type Difficulty = 1 | 2 | 3 | 4 | 5;
 
+/**
+ * One common mistake on a trick and what to do about it (T28).
+ *
+ * `what` is the mistake in at most 8 words, ending in a full stop — a
+ * heading, not a sentence. `fix` is one sentence of at most 20 words. The
+ * limits are `TRICK_CONTENT_LIMITS` in `../rules/tricks.ts`, pinned by the
+ * data tests and enforced on staff edits by the tricks hook.
+ */
+export interface TrickMistake {
+  readonly what: string;
+  readonly fix: string;
+}
+
 export interface Trick {
   readonly id: string;
   readonly name: string;
@@ -115,6 +128,22 @@ export interface Trick {
    * falling back to `SUPERVISED_MIN_DIFF` there.
    */
   readonly supervise?: boolean;
+  /**
+   * The three or four mistakes riders most often make on this trick, each
+   * with a fix (T28). Researched staff content, edited in the staff portal.
+   *
+   * Optional for the same reason `supervise` is: a database older than the
+   * `mistakes` column returns nothing for it, and *absent* means "not written
+   * yet" rather than "there are none". A screen that renders these shows the
+   * section only when the list is there.
+   */
+  readonly mistakes?: readonly TrickMistake[];
+  /**
+   * Why the trick sits at its difficulty tier, in one or two sentences of at
+   * most 35 words (T28). Same optionality and the same reading of absence as
+   * `mistakes`.
+   */
+  readonly hard?: string;
   /** Hidden tricks stay in the database but out of the library. */
   readonly isLive: boolean;
 }

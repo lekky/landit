@@ -1,6 +1,15 @@
 'use client';
 
-import { CATEGORY_IDS, CATS, SPORTS, SPORT_IDS, TIERS_LABEL, type SportId } from '@landit/core';
+import {
+  CATEGORY_IDS,
+  CATS,
+  SPORTS,
+  SPORT_IDS,
+  TIERS_LABEL,
+  TRICK_CONTENT_LIMITS,
+  type SportId,
+  type TrickMistake,
+} from '@landit/core';
 import { Difficulty, Icon, Panel, Pill, Tag } from '@landit/ui-web';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
@@ -38,7 +47,34 @@ import styles from '../admin.module.css';
  *    invariant enforced in a hook and a shape (`trick_prereqs`) that is edges
  *    rather than a field, so editing it is a screen of its own rather than a
  *    column in this table.
+ *
+ * And one addition the prototype never had: the researched content (T28).
+ * "Why it's this tier" is a textarea on both forms; the common mistakes are
+ * rows of what / fix in the edit modal, three to four of them, held to
+ * `TRICK_CONTENT_LIMITS` first here for the message and then in the tricks
+ * hook for the guarantee. A new trick is created without mistakes and gets
+ * them from Edit, so the add panel stays the short form it was.
  */
+
+/** The mistakes as the editor holds them: a flat `[what, fix, what, fix, …]`. */
+const flatMistakes = (mistakes: readonly TrickMistake[]): string[] =>
+  mistakes.flatMap((m) => [m.what, m.fix]);
+
+/** Three empty rows to start from when a trick has none yet. */
+const BLANK_MISTAKES: string[] = Array.from(
+  { length: TRICK_CONTENT_LIMITS.mistakesMin * 2 },
+  () => '',
+);
+
+/** The editor's flat list back as pairs. Rows with nothing in them are dropped server-side. */
+function mistakesFromFlat(value: string | string[] | undefined): TrickMistake[] {
+  if (!Array.isArray(value)) return [];
+  const out: TrickMistake[] = [];
+  for (let i = 0; i < value.length; i += 2) {
+    out.push({ what: String(value[i] ?? ''), fix: String(value[i + 1] ?? '') });
+  }
+  return out;
+}
 
 /** What each state of the tier chip looks like and what it means. */
 const TIER_LOOK: Readonly<Record<TrickTier, { label: string; background: string; color: string }>> =
@@ -73,6 +109,7 @@ const BLANK = {
   tier: '',
   about: '',
   tips: '',
+  hard: '',
 };
 
 export function TricksScreen({
@@ -137,6 +174,8 @@ export function TricksScreen({
     tier: (String(value.tier ?? '') || '') as TrickForm['tier'],
     about: String(value.about ?? ''),
     tips: String(value.tips ?? ''),
+    hard: String(value.hard ?? ''),
+    mistakes: mistakesFromFlat(value.mistakes),
   });
 
   const onAdd = () => {
@@ -255,6 +294,16 @@ export function TricksScreen({
               value={addForm.tips}
               placeholder="How to get it."
               onChange={(e) => setAddForm({ ...addForm, tips: e.target.value })}
+            />
+          </div>
+          <div className={`field ${styles.wide}`}>
+            <label htmlFor="add-trick-hard">Why it&rsquo;s this tier</label>
+            <textarea
+              id="add-trick-hard"
+              rows={2}
+              value={addForm.hard}
+              placeholder={`One or two sentences, ${TRICK_CONTENT_LIMITS.hardMaxWords} words at most. Common mistakes are added from Edit once the trick exists.`}
+              onChange={(e) => setAddForm({ ...addForm, hard: e.target.value })}
             />
           </div>
           <button
@@ -376,6 +425,8 @@ export function TricksScreen({
             tier: editing.tier === 'inherit' ? '' : editing.tier,
             about: editing.about,
             tips: editing.tips,
+            hard: editing.hard,
+            mistakes: editing.mistakes.length ? flatMistakes(editing.mistakes) : BLANK_MISTAKES,
           }}
           fields={[
             { k: 'name', label: 'Name', wide: true },
@@ -390,6 +441,28 @@ export function TricksScreen({
             },
             { k: 'about', label: 'The lowdown', type: 'text', rows: 3, wide: true },
             { k: 'tips', label: 'Tips', type: 'text', rows: 3, wide: true },
+            {
+              k: 'hard',
+              label: "Why it's this tier",
+              type: 'text',
+              rows: 2,
+              wide: true,
+              hint: `One or two sentences, ${TRICK_CONTENT_LIMITS.hardMaxWords} words at most. Leave it empty if it is not written yet.`,
+            },
+            {
+              k: 'mistakes',
+              label: 'Common mistakes',
+              type: 'pairs',
+              wide: true,
+              pairLabels: ['The mistake', 'The fix'],
+              pairPlaceholders: [
+                'Leaning back on take-off.',
+                'Keep your shoulders over the deck as you pop.',
+              ],
+              minPairs: TRICK_CONTENT_LIMITS.mistakesMin,
+              maxPairs: TRICK_CONTENT_LIMITS.mistakesMax,
+              hint: `${TRICK_CONTENT_LIMITS.mistakesMin} or ${TRICK_CONTENT_LIMITS.mistakesMax} rows. The mistake is a heading of ${TRICK_CONTENT_LIMITS.whatMaxWords} words at most ending in a full stop; the fix is one sentence of ${TRICK_CONTENT_LIMITS.fixMaxWords}. Leave every row empty to save none yet.`,
+            },
           ]}
           onSave={async (value) => {
             const result = await saveTrickAction(
