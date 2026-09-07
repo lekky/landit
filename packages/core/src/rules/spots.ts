@@ -610,3 +610,31 @@ export function readSpotSubmission(
     },
   };
 }
+
+/* --------------------------------------------------------------- operating -- */
+
+/** The three words `Spot.operating` may hold, in the order staff meet them. */
+export const SPOT_OPERATING = ['unknown', 'open', 'closed'] as const;
+
+/**
+ * Narrow anything at all to a `SpotOperating`, defaulting to `'unknown'`.
+ *
+ * This exists because `operating` reaches the database from three directions —
+ * a staff select, a seed row, and an importer reading somebody else's open data
+ * — and only the first of those is a fixed list. An importer mapping a foreign
+ * vocabulary will meet words this product has never heard of, and the honest
+ * reading of a word we cannot interpret is that we do not know: a French
+ * register saying a park is `En travaux` is not saying it is open.
+ *
+ * **The default is deliberately the cautious one in only one direction.** An
+ * unreadable value becomes `'unknown'`, never `'open'`, because `'unknown'`
+ * makes the page say nothing while `'open'` would make it assert a park is
+ * there — and the cost of that assertion being wrong is a child cycling to a
+ * building site. It is equally never `'closed'`: hiding a park that is really
+ * open is a smaller harm, but it is still a wrong answer given confidently.
+ */
+export function readSpotOperating(value: unknown): (typeof SPOT_OPERATING)[number] {
+  if (typeof value !== 'string') return 'unknown';
+  const word = value.trim().toLowerCase();
+  return SPOT_OPERATING.find((v) => v === word) ?? 'unknown';
+}

@@ -58,7 +58,31 @@ const BLANK_ADD = {
   lat: '',
   lng: '',
   sports: [...SPORT_IDS] as string[],
+  /*
+   * A spot staff add by hand starts outdoors and unverified, which is the
+   * honest default rather than a convenient one: nobody has looked yet. Both
+   * are set afterwards in the editor, where the two selects live.
+   */
+  indoor: false,
+  operating: 'unknown',
 };
+
+/** The editor's yes/no pair for `indoor`, which has no boolean field type. */
+const INDOOR_OPTIONS = [
+  ['no', 'Outdoor, or not known'],
+  ['yes', 'Indoor — under a roof'],
+] as const;
+
+/*
+ * Deliberately worded as claims a human is making, not as bare states. A staff
+ * member picking "Open" is asserting the park is there; the default says only
+ * that nobody has checked, which is what almost every seeded row means.
+ */
+const OPERATING_OPTIONS = [
+  ['unknown', 'Not checked'],
+  ['open', 'Open — confirmed there'],
+  ['closed', 'Closed — do not send riders'],
+] as const;
 
 /** The pills, in the order a spot travels through them. */
 const STATUSES: readonly AdminSpotStatus[] = ['pending', 'live', 'rejected'];
@@ -147,6 +171,10 @@ export function SpotsScreen({
     lat: String(value.lat ?? ''),
     lng: String(value.lng ?? ''),
     sports: Array.isArray(value.sports) ? value.sports : [],
+    // The editor has no boolean field type, so `indoor` round-trips as the
+    // string the select holds and is narrowed back to a boolean here.
+    indoor: String(value.indoor ?? 'no') === 'yes',
+    operating: String(value.operating ?? 'unknown'),
   });
 
   const onAdd = () => {
@@ -454,6 +482,8 @@ export function SpotsScreen({
             lat: String(editing.lat ?? ''),
             lng: String(editing.lng ?? ''),
             sports: [...editing.sports],
+            indoor: editing.indoor ? 'yes' : 'no',
+            operating: editing.operating || 'unknown',
           }}
           fields={[
             { k: 'name', label: 'Name', wide: true },
@@ -463,6 +493,18 @@ export function SpotsScreen({
             { k: 'lng', label: 'Longitude' },
             { k: 'tags', label: 'Tags, comma separated', wide: true, placeholder: 'Bowl, Ledges' },
             { k: 'sports', label: 'Good for', type: 'sports', choices: SPORT_CHOICES, wide: true },
+            {
+              k: 'indoor',
+              label: 'Cover',
+              type: 'select',
+              options: INDOOR_OPTIONS.map(([v, l]) => [v, l] as const),
+            },
+            {
+              k: 'operating',
+              label: 'Still there?',
+              type: 'select',
+              options: OPERATING_OPTIONS.map(([v, l]) => [v, l] as const),
+            },
           ]}
           onSave={async (value) => {
             const result = await saveSpotAction(editing.id, spotFrom(value));

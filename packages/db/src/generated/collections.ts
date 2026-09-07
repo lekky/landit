@@ -50,6 +50,7 @@ export type GuardianConsentsMethod = 'email_approval';
 export type ReportsReason = 'harassment' | 'unsafe' | 'illegal' | 'sexual' | 'self_harm' | 'spam' | 'other';
 export type ReportsStatus = 'open' | 'reviewing' | 'actioned' | 'dismissed';
 export type ReportsSubjectType = 'profile' | 'clip' | 'spot' | 'other';
+export type SpotsOperating = 'open' | 'closed' | 'unknown';
 export type SpotsSports = 'scooter' | 'skate' | 'bmx';
 export type SpotsStatus = 'pending' | 'live' | 'rejected';
 export type StickersSport = 'scooter' | 'skate' | 'bmx';
@@ -563,6 +564,8 @@ export interface SpotsRecord {
   phone: string;
   country: string;
   slug: string;
+  indoor: boolean;
+  operating: SpotsOperating;
 }
 
 /** The shape accepted when creating a `spots` record. */
@@ -582,6 +585,8 @@ export interface SpotsCreate {
   phone?: string;
   country?: string;
   slug?: string;
+  indoor?: boolean;
+  operating?: SpotsOperating;
 }
 
 /** The shape accepted when updating a `spots` record. */

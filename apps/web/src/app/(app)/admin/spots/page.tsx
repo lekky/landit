@@ -84,6 +84,8 @@ export default async function AdminSpotsPage({
     status: (record.status || 'pending') as AdminSpotStatus,
     lat: record.lat,
     lng: record.lng,
+    indoor: Boolean(record.indoor),
+    operating: record.operating || 'unknown',
     submittedBy: record.submitted_by || '',
     submitted: record.created ? shortDate(record.created) : '—',
   }));
