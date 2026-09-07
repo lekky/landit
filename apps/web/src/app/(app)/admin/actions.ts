@@ -1,6 +1,6 @@
 'use server';
 
-import { LANDED_STAGES, STAGE, type StageId } from '@landit/core';
+import { DEFAULT_TIMEZONE, LANDED_STAGES, STAGE, type StageId } from '@landit/core';
 import {
   deleteRider,
   getActiveSubscription,
@@ -99,6 +99,7 @@ export async function riderSheetAction(userId: string): Promise<RiderSheetView |
 
   const plan = plans.find((p) => p.slug === rider.plan);
   const now = new Date().toISOString();
+  const zone = rider.timezone || DEFAULT_TIMEZONE;
 
   return {
     id: rider.id,
@@ -106,7 +107,11 @@ export async function riderSheetAction(userId: string): Promise<RiderSheetView |
     handle: rider.handle,
     avatarKey: rider.avatar_key || null,
     joined: rider.created ? monthYear(rider.created) : '—',
-    active: rider.last_ride ? relativeTime(rider.last_ride, now, rider.timezone) : 'Never',
+    // `|| DEFAULT_TIMEZONE` for the reason spelled out in `riders/page.tsx`: an
+    // empty `users.timezone` is not `undefined`, so it reaches `Intl` as `''`
+    // and throws rather than falling back.
+    seen: rider.last_seen ? relativeTime(rider.last_seen, now, zone) : 'Never',
+    lastRide: rider.last_ride ? relativeTime(rider.last_ride, now, zone) : 'Never',
     plan: rider.plan,
     planName: plan?.name ?? rider.plan,
     planHue: plan?.hue || 'var(--ink-3)',

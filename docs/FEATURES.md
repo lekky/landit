@@ -34,7 +34,7 @@ consent gates under-threshold riders; there is deliberately no stranger-contact 
 ## Data model (PocketBase)
 
 One `users` auth collection (handle, sports, privacy, plan, role, age band, consent state,
-server-owned streak tuple) plus: `plans`, `subscriptions`, `guardian_consents` (token hashes only),
+server-owned streak tuple, server-owned `last_seen`) plus: `plans`, `subscriptions`, `guardian_consents` (token hashes only),
 `tricks` + `trick_prereqs` + `trick_progress` + `trick_log` (append-only) + `trick_notes`
 (owner-only), `clips` (now YouTube-link rows — the name is a leftover from the reversed
 clip-hosting feature), `stickers` + `rider_stickers` (hook-written only), `crews` + `crew_members`
@@ -107,8 +107,10 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
 
 `/admin` (role gate, 404 to non-staff, role settable only from the PocketBase superuser
 dashboard): overview (rider/trick/spot counts, riders by plan, by sport and by how they found us —
-the last with a paid split withheld below 10 riders per option); riders (sheet with
-email/age/plan, plan override, suspend); tricks, stickers,
+the last with a paid split withheld below 10 riders per option); riders (last seen, from
+`users.last_seen` which the server stamps on authentication and throttles to 15 minutes — the
+column showed `last_ride` until `feat-last-seen`, and so reported rides while headed "Last active";
+sheet with email/age/last ride/plan, plan override, suspend); tricks, stickers,
 spots (approve/reject), events, challenges, notices, plans (copy + display prices only —
 entitlement flags read-only); moderation queue for reports/appeals. Every mutation is audited
 twice (app layer + hook layer).

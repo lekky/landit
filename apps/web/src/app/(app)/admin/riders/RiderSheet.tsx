@@ -145,8 +145,8 @@ export function RiderSheet({
             {rider.name}
           </div>
           <div className="lab" style={{ color: 'var(--ink-soft)', marginTop: 5 }}>
-            @{rider.handle} · joined {view?.joined ?? rider.joined} · active{' '}
-            {(view?.active ?? rider.active).toLowerCase()}
+            @{rider.handle} · joined {view?.joined ?? rider.joined} · seen{' '}
+            {(view?.seen ?? rider.seen).toLowerCase()}
           </div>
         </div>
         <Tag tilt color={planLook?.hue} style={{ marginLeft: 'auto' }}>
@@ -185,6 +185,19 @@ export function RiderSheet({
             Age band
           </span>
           <span className={styles.sheetFactValue}>{view?.ageBand ?? '—'}</span>
+        </div>
+        {/*
+          The ride figure the table used to show under "Last active". It is a
+          real thing to know — a rider who is here every day and has not logged
+          a ride in a month is a different rider from one who logs every
+          session — but it is not what "last seen" means, and the header said
+          the wrong one for both. Kept here where there is room to name both.
+        */}
+        <div className={styles.sheetFact}>
+          <span className="lab" style={{ color: 'var(--ink-3)' }}>
+            Last ride
+          </span>
+          <span className={styles.sheetFactValue}>{view?.lastRide ?? '—'}</span>
         </div>
       </div>
 

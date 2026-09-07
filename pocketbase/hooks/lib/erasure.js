@@ -143,6 +143,7 @@ function anonymiseAccount(app, rider, by) {
   rider.set('week_start', '');
   rider.set('rides_this_week', 0);
   rider.set('last_qualifying_week', '');
+  rider.set('last_seen', '');
 
   // Private, suspended and stamped. `privacy` matters even on a wiped row: it is
   // what the view rules read, and a `public` shell is still a record another
@@ -349,6 +350,11 @@ function exportFor(app, rider) {
       rides_this_week: rider.getInt('rides_this_week'),
       last_qualifying_week: rider.getString('last_qualifying_week'),
       last_ride: on(rider, 'last_ride'),
+      // On the list from the day it existed, rather than added later the way
+      // the streak fields had to be. It is a record of when a rider used the
+      // service, held about them and shown to staff; a download that left it
+      // out would not be everything we hold.
+      last_seen: on(rider, 'last_seen'),
       created: on(rider, 'created'),
     },
     trick_progress: rows('trick_progress', (row) => ({

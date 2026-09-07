@@ -39,10 +39,20 @@ export interface AdminRiderRow {
   readonly landed: number;
   /** "Mar 2026". */
   readonly joined: string;
-  /** "Today", "Yesterday", "3 days", "—". */
-  readonly active: string;
-  /** True when `active` is today, which the table colours differently. */
-  readonly activeToday: boolean;
+  /**
+   * When the rider last *used* Land The Trick: "40 min ago", "Yesterday",
+   * "3 days ago", "18 Aug 2026", "—".
+   *
+   * `users.last_seen`, stamped by the server whenever a session authenticates
+   * or refreshes — not `last_ride`, which is the day a rider tapped "I rode
+   * today" and which this column showed, under the heading "Last active", until
+   * 2026-09-07. The two answer different questions and can be months apart: a
+   * rider who opens the app nightly and never taps that button read as an
+   * account nobody had touched. The ride figure is still held, on the sheet.
+   */
+  readonly seen: string;
+  /** True when `seen` is today, which the table colours differently. */
+  readonly seenToday: boolean;
   /** "Under 13", "13–15", "16–17", "Adult", "—". Pre-formatted; see `AGE_BAND_LABEL`. */
   readonly ageBand: string;
   readonly plan: string;
@@ -218,7 +228,16 @@ export interface RiderSheetView {
   readonly handle: string;
   readonly avatarKey: string | null;
   readonly joined: string;
-  readonly active: string;
+  /** `users.last_seen`, pre-formatted. "Never" for an account never seen. */
+  readonly seen: string;
+  /**
+   * `users.last_ride`, pre-formatted — the last day the rider tapped "I rode
+   * today". It shares the sheet with `seen` rather than the table, which has
+   * room for one activity column and shows the one that means "used the app".
+   * A rider whose ride stamp is old and whose session stamp is fresh is not a
+   * dormant account; they are one that does not use that button.
+   */
+  readonly lastRide: string;
   readonly plan: string;
   readonly planName: string;
   readonly planHue: string;

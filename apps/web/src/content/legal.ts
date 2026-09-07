@@ -119,7 +119,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
   {
     id: 'privacy',
     title: 'Privacy policy',
-    updated: 'August 2026',
+    updated: 'September 2026',
     intro:
       'What we collect, why we collect it, and how to get rid of it. Written to be read by a fourteen year old and their parent.',
     sections: [
@@ -139,6 +139,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
           'The tricks you track, the stages you set, your streak, your stickers and any notes you add. This is the point of the app.',
           'Optional details you choose to add: your picture, stance, riding level, goal and the events you mark yourself down for.',
           'How you found us, if you tell us. Setting up your account ends by asking, and you pick from a short list — a friend, YouTube, a skatepark and so on. There is nothing to type, you can skip it, and we keep only which one you tapped. It is there so we know what is worth doing more of.',
+          'When you last used the app. One date, replaced each time you come back — not a list of your visits, not what you looked at, not where you were. It lets us tell an account somebody is using from one nobody has opened in a year. Only we can see it: it is never on your profile, and no other rider is ever told when you were last here.',
           'Basic technical data every website gets: device type, browser and rough region, used to keep the service running and secure.',
           'If you are young enough to need a parent or guardian to approve the account, their email address, so we can ask them. See Younger riders below.',
         ],

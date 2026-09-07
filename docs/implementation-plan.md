@@ -256,7 +256,7 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 
 | Collection | Purpose |
 | --- | --- |
-| `users` | PocketBase auth collection, extended with the profile fields: name, handle, town, stance, level, goal, avatar, privacy, `sports`, the weekly-streak fields, last_ride, timezone, role, plan-facing fields. Email stays a hidden field |
+| `users` | PocketBase auth collection, extended with the profile fields: name, handle, town, stance, level, goal, avatar, privacy, `sports`, the weekly-streak fields, last_ride, `last_seen` (server-stamped on authentication, `feat-last-seen`), timezone, role, plan-facing fields. Email stays a hidden field |
 | `tricks` | 259 records — 84 scooter, 85 skate, 90 BMX (the BMX block researched and shipped by T21, 2026-08-16; 162 of the 259 researched and shipped by T27, 2026-09-04). `sport`, `cat`, `diff 1..5`, `about`, `tips`, `fact`, nullable `free` override, `supervise`, `is_live`. `supervise` marks a trick a guardian should know about and is what the coach view reads (`feat-supervise-list`, §7); `1788134400_trick_supervise.js` adds the column and backfills every `diff >= 5` row to `true`, so a database migrated but not yet re-seeded shows the list it showed before rather than an empty one |
 | `trick_prereqs` | Edge collection (`trick`, `prereq`). Same-sport constraint enforced in a hook |
 | `trick_progress` | `(user, trick) → stage`. The `byId` map |
@@ -2643,6 +2643,36 @@ encoding; and the page resolves the filter and every row's chip against **one** 
 request straddling midnight cannot select a week and then label it with a state the filter
 disagrees with. A `state` column would still be the thing that goes stale — comparing the dates is
 what "derived" means, and `idx_challenges_sport_dates` was put there for reads shaped like this.
+
+**Added 2026-09-07 (`feat-last-seen`): the Riders table's activity column now measures activity.**
+It was headed "Last active" and it read `users.last_ride` — the day a rider tapped "I rode today".
+Those are different questions. A rider who opens the app most evenings, logs tricks and reads the
+library, and simply never taps that one button, showed as an account nobody had touched since the
+day it was made; on a live service that is the difference between a dormant account and a busy one,
+and it is the single thing staff open that column to learn.
+
+- **`users.last_seen`** (`1788393600_users_last_seen.js`) is stamped by an `onRecordAuthRequest`
+  hook in `10_users.pb.js`. That hook fires on every successful authentication, and the web app
+  re-checks the session against PocketBase on each server render (`currentRider`), so the stamp
+  follows a rider using the app rather than a rider pressing one button.
+- **Throttled to 15 minutes** (owner's call, 2026-09-07, in chat). `users` is the hottest
+  collection in the app, so an unthrottled stamp would be a database write per page view — several
+  per page — for a figure the table rounds to "40 min ago" and then to days.
+- **One field, overwritten.** No visit log, no address, no user agent. A row per visit would be a
+  record of a child's movements, which is not what a staff column needs and not something this
+  product holds (§6.4).
+- **Nothing rider-facing changed, and nothing is exposed to other riders.** No profile carries it
+  and there is no "who is online" surface, which stays true by §6.1 rather than by omission.
+- The ride figure is still held and still shown — it moved onto the rider sheet as **Last ride**,
+  beside the account's email and age band, where there is room to name both.
+
+**Authorised additive-only exception (owner: lekky, 2026-09-07, in chat).** `last_seen` joins the
+frozen list in `pocketbase/hooks/lib/landit.js` as `USER_SESSION_FIELDS`, so the account it
+describes cannot write it. This is the same shape as the streak grant above and for the adjacent
+reason: a last-seen stamp a rider can PATCH tells staff whatever that rider would like it to say,
+which is worse than having no column, because the number still looks like a record. Consequence
+for later tasks: **nothing may write `last_seen` from a screen** — it has one writer,
+`stampLastSeen`, called from the auth hook.
 
 Issue #103 — a lowered sticker threshold not reaching riders who already qualify until their next
 write — is **not** fixed here and was not within reach: the award runs in `pocketbase/hooks`, which

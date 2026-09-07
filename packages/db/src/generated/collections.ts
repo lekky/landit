@@ -837,6 +837,7 @@ export interface UsersRecord {
   insights_opt_in: boolean;
   anonymised_at: string;
   heard_about: UsersHeardAbout;
+  last_seen: string;
 }
 
 /** The shape accepted when creating a `users` record. */
@@ -871,6 +872,7 @@ export interface UsersCreate {
   insights_opt_in?: boolean;
   anonymised_at?: string;
   heard_about?: UsersHeardAbout;
+  last_seen?: string;
 }
 
 /** The shape accepted when updating a `users` record. */
