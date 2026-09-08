@@ -210,6 +210,22 @@ export const glossarySportHref = (sport: SportId | null, from?: string | null): 
 };
 
 /**
+ * The spots list, optionally narrowed to one feature (T31).
+ *
+ * `/spots?feature=flat` is where a trick page's "Where to practise" line goes:
+ * a rider reading about a flat trick is one press from every spot tagged with
+ * flat ground. A parameter rather than a route, for the reason `libraryHref`
+ * gives for `?cat=` — it is the same list with the same search and sport pills
+ * still applying, and the reader clears it in one press. The value is a tag
+ * from `SPOT_FEATURES`; the screen validates it and ignores anything else, so
+ * a mangled link opens the plain list rather than an empty one.
+ */
+export const spotsHref = (options: { feature?: string } = {}): Route =>
+  options.feature
+    ? (`${ROUTES.spots}?feature=${encodeURIComponent(options.feature)}` as Route)
+    : ROUTES.spots;
+
+/**
  * One spot, by the slug on its record.
  *
  * A slug rather than the record id, for the reason `trickHref` gives: an id is

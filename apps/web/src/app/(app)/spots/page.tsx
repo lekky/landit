@@ -1,6 +1,7 @@
 import {
   regionFromAcceptLanguage,
   spotCountryForRegion,
+  spotFeature,
   unitsForCountry,
   type SportId,
 } from '@landit/core';
@@ -43,10 +44,27 @@ export const metadata: Metadata = {
  * Neither is stored, and both are settled before the markup exists — nothing on
  * a screen that hydrates may be locale-derived (LESSONS §5).
  */
-export default async function SpotsPage() {
+export default async function SpotsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await currentRider();
   const client = session?.client ?? anonymousClient();
   const records = await listSpots(client);
+
+  /*
+   * `?feature=flat`, from a trick page's "Where to practise" line (T31).
+   *
+   * Read here rather than with `useSearchParams` so the narrowed list is the
+   * first paint, not a swap a frame later (the library makes the same choice
+   * for `?mine=1`). Validated against `SPOT_FEATURES` rather than passed
+   * through: the value is whatever a stranger put in the address bar, and an
+   * unknown one opens the plain list — not an error, and not an empty one.
+   */
+  const params = await searchParams;
+  const requested = Array.isArray(params.feature) ? params.feature[0] : params.feature;
+  const feature = requested ? spotFeature(requested) : null;
 
   const spots: SpotView[] = records.map((record) => ({
     id: record.id,
@@ -86,6 +104,7 @@ export default async function SpotsPage() {
       signedIn={!!session}
       units={unitsForCountry(region)}
       homeCountry={spotCountryForRegion(region)}
+      initialFeature={feature?.id ?? null}
     />
   );
 }

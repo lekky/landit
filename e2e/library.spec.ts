@@ -240,8 +240,16 @@ test('a trick shows its award, and landing the trick stamps it', async ({ page }
    * ever one of them is displayed, and `display: none` keeps the other out of
    * the accessibility tree — but both are in the DOM, and a bare `getByText`
    * matches on text rather than on visibility.
+   *
+   * `exact`, since T31: the history timeline under the band stars the same
+   * landing as "★ first landed", and a substring match found both.
    */
-  await expect(page.getByText('First landed').filter({ visible: true })).toBeVisible();
+  await expect(
+    page.getByText('First landed', { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
+  // And the rider's history with the trick now has a row for it (T31).
+  await expect(page.getByText('★ first landed')).toBeVisible();
+  await expect(page.getByText('Your history with this trick')).toBeVisible();
 });
 
 /*

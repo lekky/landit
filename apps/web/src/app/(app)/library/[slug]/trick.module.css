@@ -155,10 +155,6 @@
   gap: 18px;
 }
 
-.sectionLabel {
-  margin-bottom: 6px;
-}
-
 /* ------------------------------------------------------- the award hero -- */
 
 /*
@@ -981,5 +977,540 @@
   .grid {
     padding: 14px;
     gap: 14px;
+  }
+}
+
+/* ------------------------------------------------ the enriched page (T31) -- */
+
+/*
+ * Section headings, as the 2026-09-07 pack draws them: a diamond in the
+ * category colour, the title in Anton at 24px, and a 3px ink rule taking the
+ * rest of the row. T26's "◆ The lowdown" was an eleven-pixel label; the pack
+ * promotes it because the page now has seven sections in the reading column
+ * and a label that size no longer separates them.
+ */
+.sectionHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.sectionDiamond {
+  width: 13px;
+  height: 13px;
+  border: 2.5px solid var(--ink);
+  transform: rotate(45deg);
+  flex: none;
+  box-sizing: border-box;
+}
+
+.sectionTitle {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.sectionRule {
+  flex: 1;
+  height: 3px;
+  background: var(--ink);
+  min-width: 24px;
+}
+
+/* The title on the flat side panels — the road, the history, more like this. */
+.panelTitle {
+  font-size: 19px;
+  line-height: 1;
+}
+
+/* ------------------------------------------------------- your history -- */
+
+.historySummary {
+  font-size: 15px;
+  margin-top: 6px;
+}
+
+/*
+ * The timeline: a 2.5px ink line down the left, behind a dot per row. The
+ * line is absolute inside the list and stops 10px short of each end so it
+ * runs dot to dot rather than past them.
+ */
+.timeline {
+  position: relative;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 10px;
+  bottom: 10px;
+  width: 2.5px;
+  background: var(--ink);
+}
+
+.timelineRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px 6px 0;
+  position: relative;
+  flex-wrap: wrap;
+}
+
+/* A landed stage sits on lime, which is this product's landed colour. */
+.timelineLanded {
+  background: var(--lime);
+}
+
+.timelineDot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  flex: none;
+  position: relative;
+  z-index: 1;
+  border: 2.5px solid var(--ink);
+}
+
+/* "Want to learn" is a bookmark rather than a thing done: a grey ring, empty. */
+.timelineDotWant {
+  border-color: var(--ink-3);
+  background: var(--paper);
+}
+
+.timelineDate {
+  font-size: 13.5px;
+  color: var(--ink-3);
+  width: 88px;
+  flex: none;
+}
+
+.timelineStage {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.timelineNote {
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
+/* -------------------------------------------------------- the road to it -- */
+
+.roadSteps {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.roadStep {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* The ink line joining one step to the next, under the pill's left third. */
+.roadJoin {
+  display: block;
+  width: 2.5px;
+  height: 16px;
+  background: var(--ink);
+  margin-left: 22px;
+}
+
+.roadRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.roadSteps .roadRow {
+  margin-top: 0;
+}
+
+/*
+ * A step on the road. Larger than a `.pill` (7px 14px against 5px 10px) and
+ * under a 2px shadow, because these are the page's route markers rather than
+ * a row of chips. Same three states as everywhere else: lime and a tick for
+ * landed, the hatch and a padlock for the paywall, the category colour for
+ * here. `a` selectors settle the token sheet's `a:hover` colour (LESSONS §3a).
+ */
+.roadPill {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  border: 2.5px solid var(--ink);
+  padding: 7px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  box-shadow: 2px 2px 0 var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+a.roadPill:hover {
+  color: var(--ink);
+  background: var(--paper-2);
+}
+
+.roadPillLanded,
+a.roadPillLanded:hover {
+  background: var(--lime);
+}
+
+.roadPillLocked,
+a.roadPillLocked:hover {
+  background: repeating-linear-gradient(45deg, var(--hatch-a) 0 6px, var(--hatch-b) 6px 12px);
+  color: var(--ink-2);
+}
+
+.roadPillHere {
+  color: var(--on-dark);
+}
+
+.roadSide {
+  color: var(--ink-3);
+}
+
+/* A second prerequisite hung off a step: "with" and its own pill. */
+.roadAlso {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.road .unlocksLabel {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 2px solid var(--wash);
+}
+
+/* -------------------------------------------------------- where it sits -- */
+
+.facts {
+  border: 2.5px solid var(--ink);
+  background: var(--paper-2);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.factsCell {
+  padding: 12px 14px;
+  min-width: 0;
+}
+
+.factsCell + .factsCell {
+  border-left: 2.5px solid var(--ink);
+}
+
+.factsNumber {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.factsLabel {
+  color: var(--ink-3);
+  margin-top: 4px;
+}
+
+/* ------------------------------------------- worth a grown-up knowing -- */
+
+.guardian {
+  border: 3px solid var(--ink);
+  background: var(--yellow);
+  padding: 12px 14px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+/* An ink diamond with a yellow "!" in it — the pack's mark, drawn in CSS. */
+.guardianMark {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  margin: 4px 4px 0 2px;
+}
+
+.guardianBang {
+  width: 22px;
+  height: 22px;
+  background: var(--ink);
+  transform: rotate(45deg);
+  display: grid;
+  place-items: center;
+}
+
+/* Turned back upright inside the diamond. */
+.guardianBangText {
+  transform: rotate(-45deg);
+  font-family: var(--fd);
+  font-size: 15px;
+  color: var(--yellow);
+  line-height: 1;
+}
+
+.guardianLabel {
+  color: var(--ink);
+}
+
+.guardianBody {
+  margin: 4px 0 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------- more like this -- */
+
+.similar {
+  border-top: 3px solid var(--ink);
+  padding: 18px 22px 24px;
+  background: var(--paper-2);
+}
+
+.similarTitle {
+  margin-bottom: 12px;
+}
+
+.similarGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+/*
+ * A small trick card: the name, the tag, the meter and a corner flash in the
+ * category colour. The hover lift is the library card's; `a` selectors for
+ * the token sheet's `a:hover` (LESSONS §3a).
+ */
+.similarCard {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  border: 2.5px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  background: var(--paper);
+  padding: 12px 14px;
+  color: var(--ink);
+  text-decoration: none;
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+
+a.similarCard:hover {
+  color: var(--ink);
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.similarCardLocked {
+  background: repeating-linear-gradient(45deg, var(--hatch-a) 0 11px, var(--hatch-b) 11px 22px);
+}
+
+.similarFlash {
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-width: 0 26px 26px 0;
+  border-style: solid;
+  border-color: transparent;
+}
+
+.similarName {
+  font-size: 21px;
+  line-height: 0.95;
+  padding-right: 26px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.similarMark {
+  flex: none;
+  margin-top: 3px;
+}
+
+.similarMeta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .similarCard {
+    transition: none;
+  }
+
+  a.similarCard:hover {
+    transform: none;
+  }
+}
+
+/* ---------------------------------------------------- where to practise -- */
+
+.practise {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper-2);
+  padding: 11px 14px;
+}
+
+.practiseIcon {
+  width: 34px;
+  height: 34px;
+  border: 2.5px solid var(--ink);
+  background: var(--ink);
+  color: var(--yellow);
+  display: grid;
+  place-items: center;
+  flex: none;
+  box-sizing: border-box;
+}
+
+.practiseText {
+  min-width: 0;
+}
+
+.practiseLabel {
+  color: var(--ink-3);
+}
+
+.practiseBody {
+  margin: 2px 0 0;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.practiseLink,
+a.practiseLink:hover {
+  color: var(--orange);
+  font-weight: 600;
+}
+
+a.practiseLink:hover {
+  color: var(--ink);
+}
+
+/* -------------------------------------------------- the order on a phone -- */
+
+/*
+ * Below the breakpoint the two columns become one, and the pack's phone order
+ * is not the desktop order with the right column appended: the history and
+ * the facts come straight after the band, before the lowdown, and the log
+ * goes last but for "More like this". `display: contents` on the columns
+ * makes every section a flex item of the grid, and `order` does the rest.
+ * The log's two panels keep the default order of 0 and every other section
+ * is placed before them with a negative one — so the pair itself needs no
+ * class, which is what keeps t30's replacement of it a few-line rebase.
+ */
+@media (max-width: 820px) {
+  .grid {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .column {
+    display: contents;
+  }
+
+  .secHistory {
+    order: -9;
+  }
+
+  .secFacts {
+    order: -8;
+  }
+
+  .secLowdown {
+    order: -7;
+  }
+
+  .secKit {
+    order: -6;
+  }
+
+  .secGuardian {
+    order: -5;
+  }
+
+  .secTips {
+    order: -4;
+  }
+
+  .secFact {
+    order: -3;
+  }
+
+  .secRoad {
+    order: -2;
+  }
+
+  .secPractise {
+    order: -1;
+  }
+
+  .similarGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .similar {
+    padding: 14px 14px 18px;
+  }
+
+  .facts {
+    grid-template-columns: 1fr;
+  }
+
+  .factsCell + .factsCell {
+    border-left: 0;
+    border-top: 2.5px solid var(--ink);
+  }
+
+  .factsCell {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .factsNumber {
+    min-width: 110px;
+  }
+
+  .factsLabel {
+    margin-top: 0;
+  }
+
+  .timelineDate {
+    width: 82px;
   }
 }

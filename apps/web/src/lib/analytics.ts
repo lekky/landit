@@ -342,6 +342,24 @@ export const ANALYTICS_EVENTS = {
   /** The library's sport / category / tier filters. */
   libraryFiltered: 'library_filtered',
   /**
+   * A rider followed an onward link from a trick page (T31).
+   *
+   * Carries `kind` — `'road'`, `'unlocks'`, `'similar'` or `'practise'`, the
+   * four link groups the page has and four fixed strings chosen here — `from`,
+   * the slug of the trick page they were on, and `to`, the slug of the trick
+   * they went to, or for `practise` the spot-feature tag the link narrowed the
+   * spots list to. Every value is a catalogue fact: slugs and feature tags are
+   * written in this repository, and nothing about the rider travels — not
+   * whether they had landed either trick, and not which plan they are on.
+   *
+   * It exists because the page grew four ways onward at once, and the question
+   * behind all of them is the same: do riders move *through* the library from
+   * a trick page, or do they read one and go back to the grid? `kind` is what
+   * says which of the four earns its room, and `from`/`to` are what say
+   * whether the road is walked upward, toward harder tricks, or back down.
+   */
+  trickLinkFollowed: 'trick_link_followed',
+  /**
    * A list went nearest-first, because a position is in hand. Fired by both
    * `/spots` and `/events`.
    *

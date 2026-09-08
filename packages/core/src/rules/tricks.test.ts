@@ -6,6 +6,7 @@ import {
   FREE_MAX_DIFF,
   TRICK_CONTENT_LIMITS,
   crossSportEquivalents,
+  fullPrereqChain,
   isLandedStage,
   isTrickFree,
   isTrickLanded,
@@ -14,10 +15,12 @@ import {
   missingPrereqs,
   openTricks,
   planUnlocksPaidTricks,
+  similarTricks,
   sportOf,
   suggestedNextTricks,
   trickById,
   trickContentProblems,
+  trickPositionFacts,
   tricksFor,
   tricksInCategory,
   wordCount,
@@ -416,5 +419,120 @@ describe('trick content limits', () => {
   it('reports every problem, not just the first', () => {
     const problems = trickContentProblems([{ what: 'No stop', fix: '' }, ok[1]!], words(40));
     expect(problems.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('the road to a trick (T31)', () => {
+  // A chain, a diamond, a two-parent trick, a hidden prerequisite and a cycle.
+  const library: Trick[] = [
+    trick({ id: 'hop', diff: 1 }),
+    trick({ id: 'whip', diff: 3, pre: ['hop'] }),
+    trick({ id: 'flip', diff: 4 }),
+    // Two prerequisites: the whip's chain is longer, so it is the road and the
+    // flip hangs off the last step — even though the flip is listed first.
+    trick({ id: 'flip-whip', diff: 5, pre: ['flip', 'whip'] }),
+    // A diamond: `hop` is already on the road through `whip`, so it is not
+    // repeated as an aside.
+    trick({ id: 'whip-late', diff: 4, pre: ['whip', 'hop'] }),
+    trick({ id: 'ghost', diff: 2, isLive: false }),
+    trick({ id: 'haunted', diff: 3, pre: ['ghost', 'hop'] }),
+    trick({ id: 'loop-a', diff: 2, pre: ['loop-b'] }),
+    trick({ id: 'loop-b', diff: 2, pre: ['loop-a'] }),
+  ];
+  const road = (id: string) =>
+    fullPrereqChain(trickById(id, library)!, library).map((s) => s.trick.id);
+
+  it('runs root first and ends on the trick itself', () => {
+    expect(road('whip')).toEqual(['hop', 'whip']);
+    expect(road('hop')).toEqual(['hop']);
+  });
+
+  it('takes the longer chain as the road and hangs the other prerequisite off the step', () => {
+    const steps = fullPrereqChain(trickById('flip-whip', library)!, library);
+    expect(steps.map((s) => s.trick.id)).toEqual(['hop', 'whip', 'flip-whip']);
+    expect(steps.map((s) => s.also.map((t) => t.id))).toEqual([[], [], ['flip']]);
+  });
+
+  it('does not repeat a prerequisite that is already on the road', () => {
+    const steps = fullPrereqChain(trickById('whip-late', library)!, library);
+    expect(steps.map((s) => s.trick.id)).toEqual(['hop', 'whip', 'whip-late']);
+    expect(steps[2]?.also).toEqual([]);
+  });
+
+  it('drops hidden and unknown prerequisites the way the pills do', () => {
+    expect(road('haunted')).toEqual(['hop', 'haunted']);
+    const orphan = trick({ id: 'orphan', diff: 2, pre: ['nobody'] });
+    expect(fullPrereqChain(orphan, [...library, orphan]).map((s) => s.trick.id)).toEqual([
+      'orphan',
+    ]);
+  });
+
+  it('cuts a cycle where it closes rather than following it', () => {
+    expect(road('loop-a')).toEqual(['loop-b', 'loop-a']);
+  });
+
+  it('walks the real library with every road ending on its own trick', () => {
+    for (const t of TRICKS) {
+      const steps = fullPrereqChain(t);
+      expect(steps.at(-1)?.trick.id).toBe(t.id);
+      expect(new Set(steps.map((s) => s.trick.id)).size).toBe(steps.length);
+    }
+  });
+});
+
+describe('where a trick sits (T31)', () => {
+  const library: Trick[] = [
+    trick({ id: 'a', diff: 3, cat: 'park' }),
+    trick({ id: 'b', diff: 3, cat: 'park' }),
+    trick({ id: 'c', diff: 3, cat: 'park', isLive: false }),
+    trick({ id: 'd', diff: 4, cat: 'park' }),
+    trick({ id: 'e', diff: 3, cat: 'flat' }),
+    trick({ id: 'f', diff: 3, cat: 'park', sport: 'skate' }),
+  ];
+
+  it('counts live peers on the same shelf, the sport, and names the tier', () => {
+    expect(trickPositionFacts(trickById('a', library)!, library)).toEqual({
+      peers: 2,
+      inSport: 4,
+      tier: 'Spicy',
+      diff: 3,
+    });
+  });
+
+  it('counts the trick itself even when it is hidden', () => {
+    expect(trickPositionFacts(trickById('c', library)!, library).peers).toBe(3);
+  });
+
+  it('never says zero of anything', () => {
+    const alone = trick({ id: 'alone', diff: 5, cat: 'air', sport: 'bmx' });
+    expect(trickPositionFacts(alone, library)).toMatchObject({ peers: 1, inSport: 1 });
+  });
+});
+
+describe('more like this (T31)', () => {
+  const library: Trick[] = [
+    trick({ id: 'me', name: 'Me', diff: 3, cat: 'park' }),
+    trick({ id: 'z', name: 'Zed', diff: 3, cat: 'park' }),
+    trick({ id: 'a', name: 'Ay', diff: 3, cat: 'park' }),
+    trick({ id: 'up', name: 'Up', diff: 4, cat: 'park' }),
+    trick({ id: 'down', name: 'Down', diff: 2, cat: 'park' }),
+    trick({ id: 'far', name: 'Far', diff: 5, cat: 'park' }),
+    trick({ id: 'flat', name: 'Flat', diff: 3, cat: 'flat' }),
+    trick({ id: 'skate', name: 'Skate', diff: 3, cat: 'park', sport: 'skate' }),
+    trick({ id: 'hidden', name: 'Aardvark', diff: 3, cat: 'park', isLive: false }),
+  ];
+  const me = trickById('me', library)!;
+
+  it('keeps the sport and category, stays within one difficulty, and skips itself', () => {
+    expect(similarTricks(me, library, 10).map((t) => t.id)).toEqual(['a', 'z', 'down', 'up']);
+  });
+
+  it('cuts to four by default', () => {
+    expect(similarTricks(me, library)).toHaveLength(4);
+    expect(similarTricks(me, library, 2).map((t) => t.id)).toEqual(['a', 'z']);
+  });
+
+  it('never suggests a hidden trick', () => {
+    expect(similarTricks(me, library, 10).some((t) => t.id === 'hidden')).toBe(false);
   });
 });

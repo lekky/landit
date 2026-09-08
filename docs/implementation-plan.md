@@ -3560,6 +3560,78 @@ sport, the stage stamped on the note (or `none`), and `how: added | edited` — 
 never its length. `note_removed` is new beside it with the same shape. Tab switches are not
 counted.
 
+**T31 · The trick page, enriched.** Added after launch (Rachid, 2026-09-07, in chat), from a
+third design pack for this one screen (`landit-research/trick-page-2026-09-07/design/handoff/`,
+four artboards: desktop signed in and learning, phone landed, a supervised trick with a paywalled
+step on its road, and desktop signed out). The brief was to draw every section the page could draw
+**from data it already holds** — nothing here adds a field, a collection or a request a rider would
+notice. One of four parallel sessions: t28 (`mistakes`, `hard`, cross-sport equivalents), t29 (the
+glossary) and t30 (the merged log panel) ran beside it, and their halves of the pack are the
+follow-up named below.
+
+What a rider gets, lettered as the pack letters them:
+
+- **A · Your history with this trick** — every stage they have logged for it, oldest first, as a
+  timeline with stage-coloured dots on an ink line, landed rows on lime, the first landing starred
+  and a backfilled date marked "(estimated)". Over it, one line: "Learning to landed in 2 weeks",
+  "Learning since 5 Aug · 4 weeks", or "Nothing logged yet". Signed in only, with no tease for a
+  visitor. `trickHistory` in `rules/log.ts`; weeks are elapsed whole weeks from the first entry
+  past "Want to learn", and under seven days says so rather than rounding to one.
+- **B · The road to it** replaces "Built on": the whole prerequisite chain from its root to this
+  trick, a pill per step joined by an ink line — lime and a tick when landed, the hatch with a
+  padlock and the name of the plan that opens it when paywalled, the category colour and "You are
+  here" for this trick. Where a step has two prerequisites the longer chain is the road and the
+  other hangs off the step as "with …". `fullPrereqChain` in `rules/tricks.ts`, cycle-guarded.
+  "Land this and you unlock" / "You unlocked" sits under it, unchanged in behaviour.
+- **C · Where it sits** — three cells: "1 of 9 · Flat tricks at Spicy on scooter", "84 · In the
+  scooter library", "Spicy · Difficulty 3 of 5". `trickPositionFacts`, counted over live tricks.
+- **E · Worth a grown-up knowing** — only where `trick.supervise` is set: a yellow callout after the
+  kit row reading "This one goes upside down. Learn it into foam or onto a resi ramp first, and
+  don't try it alone." A fact, not a nag; the copy is fixed.
+- **F · More like this** — up to four tricks of the same sport and category within one difficulty
+  step, as small cards full-width under the columns, with the padlock and the tick where they
+  apply. `similarTricks`, nearest difficulty then name.
+- **I · Where to practise** — one line at the foot of the reading column mapping the category to a
+  spot feature ("Flat tricks want smooth flat ground — find spots with flat near you →"), linking
+  to `/spots?feature=<tag>`. The spots screen now reads that parameter on the server, opens the
+  list narrowed to the feature with an on-pill to clear it, and ignores a tag it does not know.
+  `lib/practise.ts` is the inverse of `SPOT_FEATURES[…].tricks`; `hybrid` has no honest answer and
+  gets no line. `spotMatchesFeature` joins `filterSpots` additively.
+
+On a phone the order is the pack's, not the desktop order flattened: hero, award strip, band,
+history, facts, lowdown, kit, guardian line, tips, fun fact, road, practise, the log, more like
+this. The two columns become `display: contents` below the breakpoint and every section carries an
+`order`; the log's two panels keep the default so t30's replacement of them stays a few-line rebase.
+Signed out, the road, the facts, the similar cards and the practise line all render and nothing
+teases hidden rider data; the plan name on a paywalled step is a catalogue fact and shows.
+
+Decisions taken inside this task (Rachid, 2026-09-07, in chat):
+
+- **No challenge strip.** The pack's "Counts toward this week's challenge" band is dropped
+  entirely. A trick log does not log the challenge — `challengeLogged` is a separate action on its
+  own screen — so the claim would be false on the page most likely to be believed.
+- **"Where it sits" shows counts, not an ordinal.** The pack's "23 of 84 in the scooter library"
+  implies an order the library does not have. The middle cell now says how big the library is and
+  stops; the first cell's "1 of 9" is a count of the shelf. Room is left under the strip for the
+  pack's one-sentence "Why it's Spicy", which is t28's `hard` field and is the follow-up's to
+  draw.
+- **Where the pack and the code disagree on stage words and colours, the code wins.** The pack's
+  ladder reads "Want it / Trying" and paints Trying yellow; `STAGES` says "Want to learn / Learning"
+  and `#FF9F1C`, and the history's dots take the stage colours from `STAGE`.
+- **The section headings take the pack's new form** — a diamond in the category colour, the title
+  in Anton at 24px and an ink rule — in place of T26's eleven-pixel "◆ The lowdown" label. The
+  reading column has seven sections now, and a label that size no longer separated them.
+- **`trick_link_followed` is the one new analytics event**, fired from a single client link
+  component used by all four onward groups: `kind` (`road` | `unlocks` | `similar` | `practise`),
+  `from` (this trick's slug) and `to` (the target slug, or the feature tag for practise). Catalogue
+  facts only; nothing about which the rider had landed or which plan they are on.
+
+**Follow-up, once the sibling sessions merge:** D · "Why it isn't working" from t28's `mistakes`,
+the "Why it's Spicy" sentence under the facts strip from t28's `hard`, G · "Same trick, other
+sports" from t28's `crossSportEquivalents`, and the dotted glossary underlines in body copy from
+t29's `GlossaryText`. None of the four is drawn here, and none of the fields is added to `Trick` by
+this task.
+
 ### Dependency graph
 
 ```
