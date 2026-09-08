@@ -133,6 +133,32 @@ button {
   color: inherit;
   cursor: pointer;
 }
+/*
+ * Double tap has always meant "zoom in" to a browser, and on a control it is
+ * indistinguishable from a rider tapping twice because the first tap did not
+ * look like it landed. The page is then left at 2x, off-centre, with no
+ * obvious way back — the accidental zoom riders kept reporting.
+ *
+ * `manipulation` drops the double-tap gesture and nothing else: panning and
+ * pinch both survive, so a rider who *means* to zoom still can. That is
+ * deliberate — taking pinch away (`user-scalable=no`) would fail WCAG 1.4.4,
+ * and iOS Safari ignores it in the browser anyway, so it would buy nothing
+ * where most of these riders are.
+ *
+ * The list is the elements a finger actually lands on. `[role='button']`
+ * nothing carries today; it is here so a div pressed into service as a button
+ * does not quietly reintroduce the bug.
+ */
+a,
+button,
+input,
+select,
+textarea,
+label,
+summary,
+[role='button'] {
+  touch-action: manipulation;
+}
 ::selection {
   background: var(--yellow);
 }

@@ -50,6 +50,43 @@ test('the sign-up form asks for a date of birth it cannot send', async ({ page }
   await expect(page.getByText(/never sent to us and never stored/i)).toBeVisible();
 });
 
+test('the sign-up form does not zoom the page out from under a rider', async ({ page }) => {
+  await page.goto('/signup');
+
+  /*
+   * The regression this pins (`packages/ui-web/src/styles/primitives.css`, and
+   * the tenth divergence in the plan). Two browser gestures were zooming riders
+   * in without their asking, and both are fixed in CSS that looks like a design
+   * value somebody could tidy back.
+   *
+   * The first: iOS zooms the whole page in when a field under 16px takes focus,
+   * and does not zoom back out when it loses it. The design pack draws these
+   * fields at 15px, so this assertion is what stops a later session restoring
+   * the design's value and the defect with it.
+   *
+   * Chromium cannot show us the zoom itself, so the documented 16px threshold is
+   * what we can hold. `toHaveCSS` rather than `getComputedStyle`, because this
+   * project's e2e tsconfig has no DOM lib (the same note as `profile.spec.ts`).
+   */
+  const fields = page.locator('.field input, .field select, .field textarea');
+  const count = await fields.count();
+  expect(count).toBeGreaterThan(0);
+  for (let index = 0; index < count; index += 1) {
+    await expect(fields.nth(index)).toHaveCSS('font-size', '16px');
+  }
+
+  /*
+   * The second: a double tap is still the browser's "zoom in", and on a phone it
+   * is mostly a rider tapping twice because the first tap did not look like it
+   * landed. `manipulation` drops that gesture and leaves pinch alone, which is
+   * the point — pinch is how a rider undoes a zoom they did not mean.
+   */
+  await expect(page.getByRole('button', { name: 'Create account' })).toHaveCSS(
+    'touch-action',
+    'manipulation',
+  );
+});
+
 test('the date of birth is not in what the browser posts', async ({ page }) => {
   const dob = birthDate(30);
   const email = `e2e-${unique()}@landit.invalid`;
