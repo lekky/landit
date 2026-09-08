@@ -79,6 +79,7 @@ export function SpotMap({
   here,
   area = null,
   label = 'Map of spots',
+  gestures = 'cooperative',
 }: {
   readonly spots: readonly Plottable[];
   readonly selectedId: string | null;
@@ -96,6 +97,31 @@ export function SpotMap({
   readonly area?: MapArea | null;
   /** What a screen reader is told this map is. */
   readonly label?: string;
+  /**
+   * Who gets a one-finger drag over the canvas: the page, or the map.
+   *
+   * **`cooperative` is the default and the right one nearly everywhere.** This
+   * map is usually one panel inside a page a rider scrolls — beside the spot
+   * list, under an event's details, on a spot's own page — and MapLibre's
+   * cooperative gestures exist for exactly that: a finger dragged over the
+   * canvas scrolls the page (`touch-action: pan-x pan-y`), and it takes two to
+   * move the map. Without it a rider scrolling past a map gets stuck in it.
+   *
+   * **`direct` is for a map that *is* the screen.** In the spots sheet the map
+   * fills three quarters of a phone, over a page held still behind it — so the
+   * page has nothing to scroll and cooperative gestures spend every drag on it
+   * anyway: the rider's finger moves nothing and a hint appears telling them to
+   * use two. That is the defect the owner reported on 2026-09-08. Given
+   * `direct`, MapLibre drops the class it hangs that `touch-action` on and the
+   * canvas takes the drag.
+   *
+   * It is a prop rather than something this component measures because it is
+   * not a fact about the viewport: the same phone-width map is cooperative in
+   * the page and direct in the sheet, and only the caller knows which it is
+   * rendering. MapLibre's own fullscreen control makes the same swap the same
+   * way.
+   */
+  readonly gestures?: 'cooperative' | 'direct';
 }) {
   const container = useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = useState(false);
@@ -142,6 +168,18 @@ export function SpotMap({
   useEffect(() => {
     areaRef.current = area;
   }, [area]);
+
+  /*
+   * Which gestures the map was built with, for the same reason as `areaRef`
+   * above: the build effect runs once and `await import()`s first, so it cannot
+   * close over a prop and still be right. Declared before the build effect so
+   * the ref is current by the time the map is constructed; the effect further
+   * down carries every later change into the live handler.
+   */
+  const gesturesRef = useRef(gestures);
+  useEffect(() => {
+    gesturesRef.current = gestures;
+  }, [gestures]);
 
   /** Has the rider moved the camera themselves? See the resize handler below. */
   const moved = useRef(false);
@@ -195,7 +233,7 @@ export function SpotMap({
           dragRotate: false,
           touchPitch: false,
           attributionControl: { customAttribution: MAP_ATTRIBUTION },
-          cooperativeGestures: true,
+          cooperativeGestures: gesturesRef.current === 'cooperative',
         });
         instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
         /*
@@ -336,6 +374,30 @@ export function SpotMap({
   useEffect(() => {
     withMap((map) => drawHere(map, here));
   }, [here, withMap]);
+
+  /*
+   * Hand the drag to the map, or back to the page.
+   *
+   * `cooperativeGestures` is a constructor option *and* a live handler, and it
+   * has to be both here: the spots map is one instance that is a column beside
+   * the list at one width and a near-full-screen sheet at another, so the
+   * answer changes under a map that is already built. `enable`/`disable` add
+   * and remove the class MapLibre's stylesheet hangs the canvas `touch-action`
+   * on, which is the whole mechanism — see the prop's own note above.
+   *
+   * Guarded rather than assumed, because the handler is only constructed when
+   * the map is: this also runs on the render where the map has just failed and
+   * is about to be torn down, and `withMap` would turn a throw here into the
+   * placeholder over a choice of gestures nobody would see the result of.
+   */
+  useEffect(() => {
+    withMap((map) => {
+      const handler = map.instance.cooperativeGestures;
+      if (!handler) return;
+      if (gestures === 'cooperative') handler.enable();
+      else handler.disable();
+    });
+  }, [gestures, withMap]);
 
   /* A moved or resized area is re-drawn, and re-framed, where it is now. */
   useEffect(() => {

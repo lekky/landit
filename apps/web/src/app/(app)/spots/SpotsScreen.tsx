@@ -142,6 +142,32 @@ export function SpotsScreen({
   const [mapOpen, setMapOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
 
+  /*
+   * Whether the map panel is currently *a sheet* — the same `SHEET_WIDTH` the
+   * Escape handler and the open count already ask about, but held in state
+   * because two of the things the sheet now does cannot be written in CSS: the
+   * page has to be held still behind it, and the map has to be told to take
+   * one-finger drags.
+   *
+   * **False on the server and on the first client render, deliberately.**
+   * Measuring a viewport during render is a first paint that is a guess and a
+   * correction after hydration (LESSONS §5), which is why every *presentational*
+   * choice on this screen is a media query and stays one. Nothing here is
+   * presentational: the sheet cannot be open on the first render — a rider has
+   * to press something — so by the time either of these is read this has been
+   * true for many frames.
+   */
+  const [isSheet, setIsSheet] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia(SHEET_WIDTH);
+    const read = () => setIsSheet(query.matches);
+    read();
+    // Rotating a phone crosses this line, and a sheet that stayed modal on the
+    // wide side of it would hold a page nothing is covering.
+    query.addEventListener('change', read);
+    return () => query.removeEventListener('change', read);
+  }, []);
+
   const here = useHereOnce({ resumeWhenGranted: true });
 
   /*
@@ -304,6 +330,68 @@ export function SpotsScreen({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [mapOpen]);
+
+  /*
+   * **Hold the page still while the sheet is up** (Rachid, 2026-09-08, in chat:
+   * "when it's open and the user scrolls it actually scrolls the page behind
+   * instead of focusing on the slide up panel").
+   *
+   * The sheet is three quarters of a phone screen and the thing filling it is a
+   * map — a surface whose whole gesture vocabulary is dragging. Every one of
+   * those drags went to the document underneath, so the rider's finger moved
+   * the one surface they could not see. Two changes answer that together: the
+   * map takes one-finger drags now (`gestures` on `SpotMap`), and the page
+   * behind it stops being a scroll target at all. This is the second.
+   *
+   * **`position: fixed` on the body rather than `overflow: hidden`**, which is
+   * the difference between working and looking like it works. On iOS Safari —
+   * most of this product's phones — `overflow: hidden` on the body does not
+   * stop touch scrolling; taking the body out of flow at a negative offset is
+   * the pattern that does, and restoring the offset on the way out is what
+   * stops the page jumping to the top when the sheet closes. Every property is
+   * saved and put back rather than cleared, so this composes with anything else
+   * that ever touches them.
+   *
+   * **Reverses itself on width, not just on close.** `isSheet` is in the
+   * dependencies, so rotating a phone into the two-column layout releases the
+   * page — the alternative is a desktop-width screen that cannot scroll because
+   * of a flag nothing can see.
+   */
+  useEffect(() => {
+    if (!mapOpen || !isSheet) return;
+
+    const { body } = document;
+    const offset = window.scrollY;
+    const held = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      overflow: body.style.overflow,
+    };
+
+    body.style.position = 'fixed';
+    body.style.top = `-${offset}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.overflow = 'hidden';
+
+    return () => {
+      body.style.position = held.position;
+      body.style.top = held.top;
+      body.style.left = held.left;
+      body.style.right = held.right;
+      body.style.overflow = held.overflow;
+      /*
+       * Instant, because nothing in the stylesheets sets `scroll-behavior:
+       * smooth` on the document and this is the one place that has to stay
+       * true: it is not a journey, it is putting the rider back exactly where
+       * the sheet found them, and a tweened restore reads as the page running
+       * away from them the moment they press Close.
+       */
+      window.scrollTo(0, offset);
+    };
+  }, [mapOpen, isSheet]);
 
   /*
    * **Navigation owns the card; the map is an explicit button** (design
@@ -656,6 +744,23 @@ export function SpotsScreen({
         </div>
 
         <div className={styles.mapColumn}>
+          {/*
+            The scrim behind the sheet. Rendered at every width and shown at
+            none but the sheet's — `display: none` above 860px, where the map is
+            a column on the page and there is nothing to dim. CSS owns that
+            decision the way it owns every other part of this panel's
+            presentation; `isSheet` above exists for the two things CSS cannot
+            do, not for this one.
+
+            Tapping it closes the sheet. `aria-hidden` because it is not the
+            accessible way out — Escape and the Close button in the header are,
+            and a screen reader hearing a third, unlabelled one would be worse
+            served, not better.
+          */}
+          {mapOpen && (
+            <div className={styles.mapScrim} onClick={() => setMapOpen(false)} aria-hidden="true" />
+          )}
+
           <Panel className={`${styles.mapPanel} ${mapOpen ? styles.mapPanelOpen : ''}`}>
             <div className={styles.mapHead}>
               <span className="lab">Map</span>
@@ -696,6 +801,15 @@ export function SpotsScreen({
               selectedId={selected?.id ?? null}
               onSelect={(id) => select(id, 'pin')}
               here={here.point}
+              /*
+                One finger moves the map, but only in the sheet. Everywhere else
+                this panel appears it is one thing on a page a rider scrolls,
+                and cooperative gestures are what stop a scroll getting caught
+                in it. In the sheet the page behind is held still, so a drag
+                spent on it moves nothing at all — which is precisely what the
+                owner reported on 2026-09-08.
+              */
+              gestures={mapOpen && isSheet ? 'direct' : 'cooperative'}
             />
 
             {/*

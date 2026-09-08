@@ -444,6 +444,18 @@
   flex-direction: column;
 }
 
+/*
+ * The sheet's scrim — nothing at all above 860px, where the map is a column
+ * that is always on the page and there is nothing to dim. It is rendered
+ * whenever the map is open, at every width, and CSS decides whether it means
+ * anything: the media query below owns the whole sheet presentation, and a
+ * viewport measured in JavaScript during render is a first paint that is a
+ * guess (see the two footers, and `SHEET_WIDTH`).
+ */
+.mapScrim {
+  display: none;
+}
+
 .mapHead {
   padding: 11px 16px;
   border-bottom: 3px solid var(--ink);
@@ -724,9 +736,46 @@
    * a warning that pushes the first card below the fold gets scrolled past
    * rather than read.
    */
+  /*
+   * The sheet's two measurements, written once and read by everything that has
+   * to agree with them — the panel, the scrim behind it, and the
+   * `scroll-margin` that keeps a chosen card out from under it. They lived as
+   * three copies of `min(52vh, 400px)` and `80px` and had already drifted by a
+   * pixel or two; a sheet that is three quarters of the screen makes every
+   * disagreement visible, so they are one declaration now.
+   *
+   * `--sheet-gap` is what the sheet leaves for the bottom nav (63px measured,
+   * plus the notch inset) — see the `.mapPanel` note below on why it clears the
+   * nav rather than covering it.
+   *
+   * `--sheet-h` is the height, and 78% is the owner's "at least 3/4 of the
+   * screen" (Rachid, 2026-09-08, in chat) replacing the 52% it was. The second
+   * term is a floor under the *page*, not the sheet: at least 56px of the list
+   * stays visible above it on a short screen, so the sheet always reads as a
+   * panel over a page rather than as a screen of its own.
+   */
   .grid {
     display: flex;
     flex-direction: column;
+    --sheet-gap: calc(63px + env(safe-area-inset-bottom));
+    --sheet-h: min(78vh, calc(100vh - 56px - var(--sheet-gap)));
+  }
+
+  /*
+   * Dynamic viewport units where they exist, which is every browser that draws
+   * a collapsing URL bar over the bottom of the page. `vh` there is the *large*
+   * viewport — the one with the bar hidden — so a sheet sized in `vh` is taller
+   * than the screen a rider is actually looking at while the bar is showing,
+   * and the top of it goes behind the header. `@supports` rather than a second
+   * plain declaration because a custom property does not fall back: an older
+   * browser accepts `78dvh` as tokens and only discovers it cannot use them at
+   * substitution time, by which point the height is `auto` and the sheet has
+   * collapsed.
+   */
+  @supports (height: 1dvh) {
+    .grid {
+      --sheet-h: min(78dvh, calc(100dvh - 56px - var(--sheet-gap)));
+    }
   }
 
   .mapColumn {
@@ -770,16 +819,24 @@
    * see. `position: fixed` takes the panel out of flow entirely, so the tie is
    * gone rather than re-broken.
    *
-   * **Docked, not modal.** No backdrop, no scroll lock, no focus trap: the list
-   * keeps scrolling behind it, so a rider can tap one park, look, scroll on and
-   * tap the next without dismissing anything. It is a second view of the page
-   * they are already on rather than an interruption to it, which is also why it
-   * needs no ARIA it does not have — the panel keeps its own heading and the
-   * canvas keeps its `role="group"`.
+   * **Modal, as of 2026-09-08 — it used to be docked.** The first version was
+   * deliberately neither: no backdrop, no scroll lock, on the theory that a
+   * rider could tap one park, look, scroll on and tap the next. At 52% of the
+   * screen that was a defensible read of a small panel. It was still wrong in
+   * practice, and the owner said so plainly: "when it's open and the user
+   * scrolls it actually scrolls the page behind instead of focusing on the
+   * slide up panel" (Rachid, 2026-09-08, in chat). A map is a thing you drag,
+   * and every drag went to the document underneath it — so the rider's gesture
+   * moved the one surface they were not looking at. At 78% there is no reading
+   * of this panel that is not modal, so it is one: a scrim (`.mapScrim`), the
+   * page held still by `SpotsScreen` while it is up, and the map taking
+   * one-finger drags instead of passing them through (`gestures` on `SpotMap`).
    *
    * **It clears the bottom nav rather than covering it** (63px measured, plus
-   * the notch inset). Sitting on top of the five nav destinations would trap a
-   * rider inside a sheet whose only exit is a button they did not ask for.
+   * the notch inset — `--sheet-gap`). Sitting on top of the five nav
+   * destinations would trap a rider inside a sheet whose only exit is a button
+   * they did not ask for, and that reasoning survives the sheet becoming modal:
+   * the scrim stops at the same line, so the five destinations stay live.
    *
    * **Closed still means laid out.** `translateY` moves it off-screen and
    * leaves its box alone, so MapLibre's ResizeObserver keeps seeing a real size
@@ -791,17 +848,63 @@
     position: fixed;
     left: 8px;
     right: 8px;
-    bottom: calc(63px + env(safe-area-inset-bottom));
-    z-index: 60;
-    height: min(52vh, 400px);
+    bottom: var(--sheet-gap);
+    /*
+     * Above the scrim below it, and above the sticky `.topbar` (60) it used to
+     * merely tie with — a tie settled by source order is not an ordering, it is
+     * a coincidence that held. Still under `.mobnav` (70), which the sheet
+     * clears rather than covers.
+     */
+    z-index: 62;
+    height: var(--sheet-h);
     min-height: 0;
     margin: 0;
-    transform: translateY(calc(100% + 80px));
+    transform: translateY(calc(100% + var(--sheet-gap)));
     transition: transform 180ms ease-out;
   }
 
   .mapPanelOpen {
     transform: translateY(0);
+  }
+
+  /*
+   * The scrim behind the sheet: what makes "the page is held still" something a
+   * rider can see rather than something they discover by dragging.
+   *
+   * **Lighter than the app's `.scrim`, and that is the point of it being its
+   * own class.** A modal dialog blacks out the page because nothing behind it
+   * matters until it is answered; this one is a map over the list it came from,
+   * and the sliver of cards above it is the rider's place in that list. 0.45
+   * dims it out of contention without hiding it.
+   *
+   * **Stops at the nav, and covers the top bar.** The bottom edge is the
+   * sheet's own line, for the sheet's own reason: the five destinations stay
+   * reachable, so a rider is never shut inside this. The top is the other way
+   * about — `.topbar` is sticky at `z-index: 60`, so a scrim under it left the
+   * one strip of the page that was still bright and still tappable sitting
+   * directly above a modal sheet. 61 puts it over the header and under
+   * `.mobnav` (70), which is exactly the pair of promises this makes.
+   *
+   * A tap on it closes the sheet — the affordance every scrim has — and it is
+   * `aria-hidden` because it is not the accessible way out. Escape and the
+   * Close button in the header are, and both were already here.
+   */
+  .mapScrim {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: var(--sheet-gap);
+    z-index: 61;
+    background: rgba(18, 16, 11, 0.45);
+    animation: scrimIn 180ms ease-out;
+  }
+
+  @keyframes scrimIn {
+    from {
+      opacity: 0;
+    }
   }
 
   /*
@@ -858,9 +961,13 @@
    * Keep the chosen card clear of the sheet. `select` scrolls it into view with
    * `block: 'nearest'`, which without this would happily settle it underneath
    * the very thing the tap just opened.
+   *
+   * It still earns its place now the page is held while the sheet is up: the
+   * scroll runs before the hold goes on, and it is what decides where the rider
+   * is put back when they close it.
    */
   .card {
-    scroll-margin-bottom: calc(min(52vh, 400px) + 80px);
+    scroll-margin-bottom: calc(var(--sheet-h) + var(--sheet-gap) + 12px);
   }
 
   /*

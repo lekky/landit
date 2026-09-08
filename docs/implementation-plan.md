@@ -2169,15 +2169,38 @@ owner:
   **6,435px down a 7,642px document on a 375×780 screen**, and another ~6,000px further with
   each press of "Show more", so a rider tapping "Show on map" got no feedback they could see.
   Below 860px the panel is now `position: fixed`, docked above the bottom nav (it clears the
-  nav rather than covering it), closed until a spot is chosen. **Docked, not modal:** no
-  backdrop, no scroll lock, no focus trap, so the list keeps scrolling behind it and a rider can
-  tap one park, look, scroll on and tap the next. Escape and a Close in its header dismiss it.
+  nav rather than covering it), closed until a spot is chosen. It opened **docked, not modal** —
+  no backdrop, no scroll lock, no focus trap, so the list kept scrolling behind it and a rider
+  could tap one park, look, scroll on and tap the next; **reversed on 2026-09-08, see the next
+  bullet.** Escape and a Close in its header dismiss it.
   It reuses the **one already-mounted map instance** — that is what makes it cheap, and it is
   why `translateY` rather than `display: none` parks it: the container keeps a real size, so
   MapLibre's ResizeObserver has something to measure and the first open is never blank.
   `SHEET_WIDTH` in `SpotsScreen` duplicates the breakpoint for the two things JavaScript has to
   decide (whether Escape means anything, whether an open map is counted); an e2e test asserts
   both sides of 860px so the two cannot drift.
+- **The sheet is three quarters of the screen, and modal** *(Rachid, 2026-09-08, in chat: "the
+  map popup on mobile is too small when selecting a spot… it needs to be at least 3/4 of the
+  screen. Also when it's open and the user scrolls it actually scrolls the page behind instead
+  of focusing on the slide up panel").* This reverses the "docked, not modal" half of the
+  2026-08-31 decision above, and the size is what forced it. At `min(52vh, 400px)` — 400px on a
+  375×780 phone — most of the sheet was header, actions and footer, and a rider was reading a
+  map through a slot. It is `78dvh` now, floored so at least 56px of the list stays visible
+  above it, and at that size there is no reading of the panel that is not modal.
+  **Three changes make it one, and the third is the one that was actually reported.** A scrim
+  (`z-index: 61`, over the sticky `.topbar` at 60 and under `.mobnav` at 70, so the five nav
+  destinations stay live and undimmed) that closes the sheet when tapped; the page held still
+  while it is up — `position: fixed` on the body at a negative offset, restored on the way out,
+  because `overflow: hidden` does not stop touch scrolling on iOS Safari; and **the map taking
+  one-finger drags**, via a new `gestures` prop on `SpotMap` that flips MapLibre's
+  `cooperativeGestures` handler. That last one is the defect as a rider met it: cooperative
+  gestures give a one-finger drag to the page (`touch-action: pan-x pan-y`), which is right for
+  a map inside a page you scroll and exactly wrong for a map that *is* the screen — every drag
+  aimed at the map moved a list behind it instead. The prop defaults to `cooperative`, so the
+  spot page's pin, the event page's area and the desktop column are unchanged; only the open
+  sheet asks for `direct`. MapLibre's own fullscreen control makes the same swap the same way.
+  Not counted separately: `spotsMapSheetOpened` already measures riders reaching this sheet,
+  which is the number the change has to move.
 - **The travel warning follows the map into the sheet** *(owner's call, 2026-08-31).* The map
   panel's footer reads "every live spot on this list is on the map" on a wide screen, which has
   no job in a sheet where one spot fills the view and the list is behind it. In the sheet it
