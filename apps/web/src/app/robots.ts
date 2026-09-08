@@ -1,6 +1,8 @@
 import { SITE_URL } from '@landit/core';
 import type { MetadataRoute } from 'next';
 
+import { GATED_ROUTES } from '@/lib/publicRoutes';
+import { ROUTES } from '@/lib/routes';
 import { isLiveFromEnv } from '@/lib/siteLive';
 
 /**
@@ -17,7 +19,15 @@ import { isLiveFromEnv } from '@/lib/siteLive';
  *   its own as well, because `robots.txt` asks a crawler not to *fetch* a page
  *   and a `noindex` tag tells it not to *list* one, and a URL that is only
  *   disallowed can still turn up in results on the strength of inbound links.
- * - **Gate open** — allow everything, and say where the sitemap is.
+ * - **Gate open** — allow everything but the paths below, and say where the
+ *   sitemap is. The disallowed set is the routes that serve a crawler nothing
+ *   (issue #70): screens behind sign-in, which answer with a redirect; the
+ *   auth screens; single-use token URLs, where a bot fetching one would be
+ *   *acting* on it; the staff portal; the API; and the design galleries, which
+ *   are prototypes rather than pages. A public rider profile is deliberately
+ *   **not** here — a rider who set their profile public chose that, and
+ *   whether their page should also be indexed is a policy question
+ *   (issue #292's neighbour), not this file's default.
  *
  * The sitemap line is the half that was missing. `robots.txt` is the first file
  * a crawler asks for and the only one it is guaranteed to look at, so a sitemap
@@ -42,7 +52,24 @@ export default function robots(): MetadataRoute.Robots {
   }
 
   return {
-    rules: { userAgent: '*', allow: '/' },
+    rules: {
+      userAgent: '*',
+      allow: '/',
+      disallow: [
+        ...GATED_ROUTES,
+        ROUTES.signUp,
+        ROUTES.signIn,
+        ROUTES.forgotPassword,
+        ROUTES.resetPassword,
+        ROUTES.verifyEmail,
+        '/consent/',
+        '/join/',
+        ROUTES.admin,
+        '/api/',
+        '/design',
+        '/offline',
+      ],
+    },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

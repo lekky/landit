@@ -472,3 +472,107 @@ describe('the feed is chronological, scoped and made of our own sentences', () =
     expect(result.body.items!.some((i) => i.sticker === 'Fixture First Drop')).toBe(true);
   });
 });
+
+describe('a crew keeps an owner when its owner leaves (issue #143)', () => {
+  /** The crew as the server holds it, read with the fixture superuser. */
+  const crewRecord = async (id: string) =>
+    call<CrewRecord>('GET', `/api/collections/crews/records/${id}`, { token: await superuser() });
+
+  const members = (rider: Rider, crewId: string) =>
+    call<{ items: { id: string; user: string; role: string }[] }>(
+      'GET',
+      '/api/collections/crew_members/records',
+      { token: rider.token, query: { filter: `crew = "${crewId}"`, sort: 'created' } },
+    );
+
+  it('hands the crew to the longest-standing member when the owner leaves', async () => {
+    const owner = await makeRider();
+    const first = await makeRider();
+    const second = await makeRider();
+    const crew = (await makeCrew(owner, { name: 'Handover' })).body;
+
+    const invite = await mintInvite(owner, crew.id);
+    expect((await join(first, invite.body.code)).status).toBe(200);
+    expect((await join(second, invite.body.code)).status).toBe(200);
+
+    const before = await members(owner, crew.id);
+    const ownRow = before.body.items.find((row) => row.user === owner.id);
+    expect(ownRow?.role).toBe('owner');
+
+    // The rider's own row, under `deleteRule: OWN` — what `leaveCrew` does.
+    const left = await call('DELETE', `/api/collections/crew_members/records/${ownRow!.id}`, {
+      token: owner.token,
+    });
+    expect(left.status).toBe(204);
+
+    const after = await members(first, crew.id);
+    const roles = Object.fromEntries(after.body.items.map((row) => [row.user, row.role]));
+    expect(roles[first.id]).toBe('owner');
+    expect(roles[second.id]).toBe('member');
+    expect(roles[owner.id]).toBeUndefined();
+
+    // `crews.owner` is what every rule reads, so it moves too — the heir can
+    // now do the one thing only an owner can, which is retire an invite.
+    expect((await crewRecord(crew.id)).body.owner).toBe(first.id);
+    const retired = await call(
+      'DELETE',
+      `/api/collections/crew_invites/records/${invite.body.id}`,
+      {
+        token: first.token,
+      },
+    );
+    expect(retired.status).toBe(204);
+  });
+
+  it('does the same when the owner closes their account', async () => {
+    // The erasure path deletes the rows with `app.delete`, not over HTTP —
+    // which is why the hook is model-level. Same outcome expected.
+    const owner = await makeRider();
+    const mate = await makeRider();
+    const crew = (await makeCrew(owner, { name: 'Left Behind' })).body;
+    const invite = await mintInvite(owner, crew.id);
+    expect((await join(mate, invite.body.code)).status).toBe(200);
+
+    const gone = await call('POST', '/api/landit/account/delete', {
+      token: owner.token,
+      body: { password: owner.password, confirm: 'DELETE' },
+    });
+    expect(gone.status).toBe(200);
+
+    expect((await crewRecord(crew.id)).body.owner).toBe(mate.id);
+    const after = await members(mate, crew.id);
+    expect(after.body.items).toHaveLength(1);
+    expect(after.body.items[0]!.role).toBe('owner');
+  });
+
+  it('leaves a member alone when a member leaves, and an empty crew as it is', async () => {
+    const owner = await makeRider();
+    const mate = await makeRider();
+    const crew = (await makeCrew(owner, { name: 'Still Mine' })).body;
+    const invite = await mintInvite(owner, crew.id);
+    expect((await join(mate, invite.body.code)).status).toBe(200);
+
+    const rows = await members(owner, crew.id);
+    const mateRow = rows.body.items.find((row) => row.user === mate.id)!;
+    expect(
+      (
+        await call('DELETE', `/api/collections/crew_members/records/${mateRow.id}`, {
+          token: mate.token,
+        })
+      ).status,
+    ).toBe(204);
+    expect((await crewRecord(crew.id)).body.owner).toBe(owner.id);
+
+    const ownRow = rows.body.items.find((row) => row.user === owner.id)!;
+    expect(
+      (
+        await call('DELETE', `/api/collections/crew_members/records/${ownRow.id}`, {
+          token: owner.token,
+        })
+      ).status,
+    ).toBe(204);
+    // Nobody left to promote: the crew stays, ownerless, rather than being
+    // deleted from under people — that is the decision the issue leaves open.
+    expect((await crewRecord(crew.id)).status).toBe(200);
+  });
+});

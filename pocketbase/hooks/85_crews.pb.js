@@ -261,3 +261,64 @@ routerAdd(
   },
   $apis.requireAuth('users'),
 );
+
+/* ------------------------------------------------------------ membership -- */
+
+/**
+ * A crew does not lose its last owner to somebody leaving (issue #143).
+ *
+ * Two things delete a membership row: a rider leaving (`leaveCrew`, their own
+ * row under `deleteRule: OWN`) and an account being closed (`erasure.js`,
+ * which clears `crew_members` as part of anonymise-and-retain). Neither used
+ * to care whether the row said `owner`, so a crew whose only owner left kept
+ * its members, invites and board with nobody able to run it — no one to mint
+ * an invite, rename it, or retire a code sent to the wrong group chat — and no
+ * screen saying why. The kind of thing found by a fourteen year old whose mate
+ * deleted their account.
+ *
+ * The answer is the least destructive one: the longest-standing remaining
+ * member becomes the owner, on both the membership row and `crews.owner`,
+ * which is what every crew rule reads. A crew with nobody left in it is left
+ * as it is — deleting it outright is the other option the issue names, and
+ * that one is the owner's to decide because the members would lose a board
+ * they did not close.
+ *
+ * A model-level hook rather than a request one, so it fires for the erasure
+ * path's `app.delete` as well as for a rider's own DELETE. Registered on
+ * success: a promotion for a row that then failed to delete would be a crew
+ * with two owners.
+ */
+onRecordAfterDeleteSuccess((e) => {
+  const lib = require(`${__hooks}/lib/landit.js`);
+  const gone = e.record;
+  e.next();
+
+  if (gone.getString('role') !== 'owner') return;
+  const crewId = gone.getString('crew');
+
+  // Oldest membership first. `created` is server-set on every row, so this is
+  // the order riders actually arrived in, not anything a client could shape.
+  const remaining = e.app.findRecordsByFilter('crew_members', 'crew = {:crew}', 'created', 0, 0, {
+    crew: crewId,
+  });
+  if (!remaining.length) return;
+  if (remaining.some((row) => row.getString('role') === 'owner')) return;
+
+  const heir = remaining[0];
+  heir.set('role', 'owner');
+  e.app.save(heir);
+
+  const crew = e.app.findRecordById('crews', crewId);
+  const before = crew.getString('owner');
+  crew.set('owner', heir.getString('user'));
+  e.app.save(crew);
+
+  lib.writeAudit(e.app, {
+    actorKind: 'system',
+    action: 'crew_owner_promoted',
+    entity: 'crews',
+    entityId: crewId,
+    before: { owner: before, role_of: gone.getString('user') },
+    after: { owner: heir.getString('user') },
+  });
+}, 'crew_members');

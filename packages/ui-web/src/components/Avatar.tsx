@@ -29,6 +29,13 @@ export type AvatarProps = {
   base?: string;
   onClick?: () => void;
   title?: string;
+  /**
+   * Render the picture with an empty `alt`, for a context that already names
+   * it in text beside it — the avatar picker's cells caption every cell, so
+   * an `alt` there made a screen reader announce each name twice (issue
+   * #214). Default off: everywhere else the picture is the only name there is.
+   */
+  decorative?: boolean;
 };
 
 export function Avatar({
@@ -41,6 +48,7 @@ export function Avatar({
   base = AVATAR_BASE_PATH,
   onClick,
   title,
+  decorative = false,
 }: AvatarProps) {
   const a = avatarById(avatarId);
   const box: CSSProperties = {
@@ -60,7 +68,7 @@ export function Avatar({
   const inner = a ? (
     <img
       src={avatarSrc(a.id, base)}
-      alt={a.name}
+      alt={decorative ? '' : a.name}
       style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
     />
   ) : (

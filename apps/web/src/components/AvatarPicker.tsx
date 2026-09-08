@@ -56,10 +56,10 @@ export function AvatarPicker({
                   className={styles.pickerCell}
                   onClick={() => onPick(avatar.id)}
                   aria-pressed={value === avatar.id}
-                  title={avatar.name}
                 >
                   <Avatar
                     avatarId={avatar.id}
+                    decorative
                     size={48}
                     ringWidth={value === avatar.id ? 3.5 : 2.5}
                     ring={value === avatar.id ? 'var(--orange)' : 'var(--ink)'}

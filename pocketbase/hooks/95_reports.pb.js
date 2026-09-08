@@ -51,7 +51,7 @@ onRecordCreateRequest((e) => {
   // Every constant is declared inside the handler: it is serialised into an
   // isolated VM and arrives with no closure over this file (`lib/landit.js`
   // header, and the same note in `62_spots.pb.js`).
-  const SUBJECT_TYPES = ['profile', 'clip', 'spot', 'other'];
+  const SUBJECT_TYPES = ['profile', 'clip', 'spot', 'event', 'other'];
   const REASONS = ['harassment', 'unsafe', 'illegal', 'sexual', 'self_harm', 'spam', 'other'];
   const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 

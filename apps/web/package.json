@@ -8,6 +8,7 @@
     "build": "node scripts/sync-avatars.mjs && node scripts/sync-stickers.mjs && node scripts/sync-sports.mjs && node scripts/sync-maplibre-worker.mjs && next build",
     "start": "next start --port 3000",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "fonts:sync": "node scripts/sync-fonts.mjs"
   },
   "dependencies": {

@@ -295,7 +295,10 @@ export function Gallery() {
               </p>
             </Panel>
             <Panel flat style={{ padding: 18 }}>
-              <Slot label="Trick photo: drop a shot of this trick" minHeight={120} />
+              <Slot
+                label="Trends, personal records and what to try next — part of Legend"
+                minHeight={90}
+              />
             </Panel>
           </div>
           <div style={{ marginTop: 18 }}>

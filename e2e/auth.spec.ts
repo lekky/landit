@@ -1,6 +1,8 @@
 import { CONTACT, HEARD_ABOUT, SPORTS, SPORT_IDS } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
+import { finishOnboarding } from './support/onboarding';
+
 /**
  * Sign-up, onboarding and the guardian-consent flow (T6), against a real
  * PocketBase — see `playwright.config.ts` for why it is on its own port and its
@@ -195,15 +197,7 @@ test('a younger rider arrives at an account that says what it is waiting for', a
   await page.getByRole('button', { name: 'Create account' }).click();
 
   await page.waitForURL('**/onboarding');
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: /Just started/ }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: 'Land my first trick' }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  // Step 5 asks where the rider found us and is skippable, which is what these
-  // walkthroughs exercise by clicking past it. `auth.spec.ts` answers it.
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: "Let's go" }).click();
+  await finishOnboarding(page);
 
   await page.waitForURL('**/home');
   await page.goto('/account');
@@ -242,15 +236,7 @@ test('signing out ends the session', async ({ page }) => {
   await page.getByRole('button', { name: 'Create account' }).click();
   await page.waitForURL('**/onboarding');
 
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: /Just started/ }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: 'Land my first trick' }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  // Step 5 asks where the rider found us and is skippable, which is what these
-  // walkthroughs exercise by clicking past it. `auth.spec.ts` answers it.
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: "Let's go" }).click();
+  await finishOnboarding(page);
   await page.waitForURL('**/home');
 
   await page.goto('/account');
@@ -296,15 +282,7 @@ test('an unverified rider is reminded, once, and can put it away', async ({ page
   // one of the things competing for a rider's first four screens.
   await expect(page.getByRole('status').filter({ hasText: 'Confirm your email' })).toBeHidden();
 
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: /Just started/ }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: 'Land my first trick' }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  // Step 5 asks where the rider found us and is skippable, which is what these
-  // walkthroughs exercise by clicking past it. `auth.spec.ts` answers it.
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: "Let's go" }).click();
+  await finishOnboarding(page);
   await page.waitForURL('**/home');
 
   // Local PocketBase has no mail account, so nothing is delivered — but the

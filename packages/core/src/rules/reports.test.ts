@@ -65,7 +65,7 @@ describe('the stored values and the words on screen are not the same thing', () 
     // These lists are the `reports.subject_type` and `reports.reason` selects in
     // `pocketbase/migrations/1786838400_init_collections.js`. A value in the
     // schema with no label here is a radio button nobody can pick.
-    expect(REPORT_SUBJECTS.map((s) => s.id)).toEqual(['profile', 'spot', 'clip', 'other']);
+    expect(REPORT_SUBJECTS.map((s) => s.id)).toEqual(['profile', 'spot', 'clip', 'event', 'other']);
     expect(REPORT_REASONS.map((r) => r.id).sort()).toEqual(
       ['harassment', 'illegal', 'self_harm', 'sexual', 'spam', 'unsafe'].concat('other').sort(),
     );
