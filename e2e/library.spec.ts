@@ -1,4 +1,12 @@
-import { SPORTS, SPORT_IDS, TIERS_LABEL, TRICKS, isTrickLocked, tricksFor } from '@landit/core';
+import {
+  SPORTS,
+  SPORT_IDS,
+  TIERS_LABEL,
+  TRICKS,
+  crossSportEquivalents,
+  isTrickLocked,
+  tricksFor,
+} from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
 /**
@@ -316,4 +324,90 @@ test('a signed-out visitor can read a trick but not track it', async ({ page }) 
   await expect(page.getByRole('heading', { level: 1 })).toContainText(freeTrick.name);
   await expect(page.getByRole('link', { name: 'Sign in' }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Every time' })).toHaveCount(0);
+});
+
+/*
+ * T32: what the page says from T28's content and T29's glossary. Named tricks
+ * rather than picked ones, because the assertions are about copy those two
+ * tricks are known to carry — the Tailwhip's four mistakes and the Bunny Hop's
+ * two equivalents — and both are free, so a visitor sees the whole page.
+ */
+const tailwhip = TRICKS.find((t) => t.id === 'tailwhip')!;
+
+test('a trick says why it is not working, one numbered row per mistake', async ({ page }) => {
+  await page.goto('/library/tailwhip');
+
+  // Four today; the number comes from the catalogue so a content edit moves
+  // the test rather than breaking it, and the section sits under the Tips.
+  expect(tailwhip.mistakes).toHaveLength(4);
+  await expect(page.getByRole('heading', { name: "Why it isn't working" })).toBeVisible();
+  const rows = page.getByRole('list', { name: "Why it isn't working" }).getByRole('listitem');
+  await expect(rows).toHaveCount(tailwhip.mistakes!.length);
+  for (const [index, mistake] of tailwhip.mistakes!.entries()) {
+    await expect(rows.nth(index)).toContainText(String(index + 1));
+    await expect(rows.nth(index)).toContainText(mistake.what);
+    await expect(rows.nth(index)).toContainText(mistake.fix);
+  }
+
+  // And the sentence under the facts strip says why it is this tier.
+  await expect(page.getByText(`Why it's ${TIERS_LABEL[tailwhip.diff - 1]}:`)).toBeVisible();
+  await expect(page.getByText(tailwhip.hard!)).toBeVisible();
+});
+
+test('a trick names the same movement in the other sports, as links', async ({ page }) => {
+  await page.goto('/library/bunny-hop');
+
+  const equivalents = crossSportEquivalents('bunny-hop');
+  expect(equivalents.map((t) => t.id)).toEqual(['sk-ollie', 'bmx-bunny-hop']);
+
+  const list = page.getByRole('list', { name: 'Same trick, other sports' });
+  await expect(list).toBeVisible();
+  await expect(list.getByRole('listitem')).toHaveCount(equivalents.length);
+  await expect(list.getByRole('link', { name: 'Ollie' })).toHaveAttribute(
+    'href',
+    '/library/sk-ollie',
+  );
+  await expect(list.getByRole('listitem').first()).toContainText('Skateboard');
+  await expect(list.getByRole('link', { name: 'Bunny Hop' })).toHaveAttribute(
+    'href',
+    '/library/bmx-bunny-hop',
+  );
+
+  // Following one lands on the other sport's page, not a 404.
+  await list.getByRole('link', { name: 'Ollie' }).click();
+  await expect(page).toHaveURL(/\/library\/sk-ollie$/);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Ollie');
+});
+
+test('a dotted word in the tips opens the glossary, with the way back', async ({ page }) => {
+  await page.goto('/library/tailwhip');
+
+  // The Tips paragraph, found by its own copy, and the first glossary word in
+  // it. Which word is the glossary rule's business (`glossarySegments`); this
+  // asserts that the page wired the rule to the copy and drew it as agreed.
+  const tips = page
+    .locator('p', { has: page.locator('a[href^="/glossary?from=tailwhip#"]') })
+    .filter({ hasText: tailwhip.tips.slice(0, 24) });
+  await expect(tips).toHaveCount(1);
+  const word = tips.locator('a[href^="/glossary?from=tailwhip#"]').first();
+  const href = await word.getAttribute('href');
+  expect(href).toMatch(/^\/glossary\?from=tailwhip#[a-z0-9-]+$/);
+
+  // A 2px dotted ink underline and nothing else: the word keeps the
+  // paragraph's colour (handoff, "Decisions to confirm").
+  await expect(word).toHaveCSS('text-decoration-style', 'dotted');
+  // Through the element's own window: this tsconfig has no DOM lib, so
+  // `getComputedStyle` is not a name here (the same note as `profile.spec.ts`).
+  const proseColour = await tips.evaluate(
+    (el) => el.ownerDocument.defaultView!.getComputedStyle(el).color,
+  );
+  await expect(word).toHaveCSS('color', proseColour);
+
+  await word.click();
+  await expect(page).toHaveURL(new RegExp(`${href!.replace(/[?#]/g, '\\$&')}$`));
+  const back = page.getByRole('link', { name: 'Back to the trick' });
+  await expect(back).toHaveAttribute('href', '/library/tailwhip');
+  await back.click();
+  await expect(page).toHaveURL(/\/library\/tailwhip$/);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(tailwhip.name);
 });

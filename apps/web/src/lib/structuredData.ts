@@ -92,11 +92,15 @@ export type TrickHowToContext = {
  * page already carries every part of that shape, so this describes the page
  * rather than adding to it.
  *
- * **The steps are the two the page shows, and no more.** It is tempting to
+ * **The steps are the ones the page shows, and no more.** It is tempting to
  * invent numbered steps out of the prose, and it would be wrong — a `HowTo`
  * listing steps a reader cannot find on the page is exactly the mismatch the
  * structured-data guidelines are written against. Staff copy is one lowdown and
- * one set of tips, so this is two steps.
+ * one set of tips, so this is two steps — and a third, "Why it isn't working",
+ * only when the trick carries T28's `mistakes` and the page draws them (T32).
+ * Each mistake and its fix is a `HowToTip` inside that step, which is the
+ * schema.org shape for "a thing to know, not a thing to do"; a trick without
+ * any gets two steps, because that is what its page shows.
  *
  * The prerequisite tricks are deliberately **not** here. They are on the page,
  * as links, which is the form that is useful to a crawler; `HowTo` has no field
@@ -130,6 +134,18 @@ export function trickHowToLd(trick: Trick, context: TrickHowToContext): JsonLdNo
     step: [
       { '@type': 'HowToStep', name: 'The lowdown', text: trick.about },
       { '@type': 'HowToStep', name: 'Tips', text: trick.tips },
+      ...(trick.mistakes && trick.mistakes.length > 0
+        ? [
+            {
+              '@type': 'HowToStep',
+              name: "Why it isn't working",
+              itemListElement: trick.mistakes.map((mistake) => ({
+                '@type': 'HowToTip',
+                text: `${mistake.what} ${mistake.fix}`,
+              })),
+            },
+          ]
+        : []),
     ],
   };
 }

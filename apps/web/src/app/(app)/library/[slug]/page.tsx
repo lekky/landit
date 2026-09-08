@@ -7,6 +7,7 @@ import {
   TIERS_LABEL,
   categoryLabel,
   computeStats,
+  crossSportEquivalents,
   currentWeeklyStreak,
   firstLanded,
   fullPrereqChain,
@@ -50,6 +51,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { GlossaryText } from '@/components/glossary/GlossaryText';
 import { shortDate } from '@/lib/dates';
 import { jsonLdText, trickHowToLd } from '@/lib/structuredData';
 import { ROUTES, trickHref } from '@/lib/routes';
@@ -57,11 +59,13 @@ import { SPORT_LOOKS, lowerLabel } from '@/lib/sports';
 import { anonymousClient, currentRider } from '@/lib/session';
 
 import { AwardBadge } from './AwardBadge';
+import { CrossSportPanel } from './CrossSportPanel';
 import { FactsStrip } from './FactsStrip';
 import { GuardianLine } from './GuardianLine';
 import { HistoryPanel } from './HistoryPanel';
 import { LockedTrick } from './LockedTrick';
 import { LogPanel, type NoteView } from './LogPanel';
+import { MistakesList } from './MistakesList';
 import { PractiseLine } from './PractiseLine';
 import { RoadPanel } from './RoadPanel';
 import { SimilarTricks } from './SimilarTricks';
@@ -85,6 +89,13 @@ import styles from './trick.module.css';
  * four tricks like it, and where to practise it. Each is a pure rule in
  * `@landit/core` and a small component beside this file; this file wires them
  * and formats every date on the server (LESSONS §3a).
+ *
+ * T32 (2026-09-08) drew the four things T31 left for its sibling sessions to
+ * land: "Why it isn't working" from T28's `mistakes`, the "Why it's Spicy"
+ * sentence from T28's `hard`, "Same trick, other sports" from T28's
+ * `crossSportEquivalents`, and T29's `GlossaryText` over the body copy. Still
+ * nothing a rider would notice as a new request — every one of them is read
+ * off the trick record the page already had.
  */
 
 type Params = { params: Promise<{ slug: string }> };
@@ -395,7 +406,15 @@ export default async function TrickPage({ params }: Params) {
   const road = fullPrereqChain(trick, tricks);
   const facts = trickPositionFacts(trick, tricks);
   const similar = similarTricks(trick, tricks);
+  const equivalents = crossSportEquivalents(trick.id, tricks);
   const sportInSentence = lowerLabel(trick.sport);
+  /*
+   * `mistakes` is optional on `Trick` for the reason `supervise` is: a
+   * database older than the column returns nothing, and nothing here means
+   * "not written yet", never "there are none" (plan §7, T28). Either way the
+   * section is not drawn — an empty "Why it isn't working" would be a claim.
+   */
+  const mistakes = trick.mistakes && trick.mistakes.length > 0 ? trick.mistakes : null;
 
   /*
    * The award line, in two places that are never both on screen: the hero
@@ -523,9 +542,21 @@ export default async function TrickPage({ params }: Params) {
 
         <div className={styles.grid}>
           <div className={styles.column}>
+            {/*
+              The body copy — the lowdown, the tips, the fun fact and each
+              mistake's fix — goes through `GlossaryText` (T29), which links
+              the first mention of a glossary word to `/glossary?from=<slug>`
+              as a dotted underline and changes nothing else. It is a pure
+              function of the string, so the page stays a server component
+              and there is nothing for a hydration mismatch to throw away.
+              The trick's sport narrows the glossary to the words that sport
+              uses; the slug is what turns on "Back to the trick" over there.
+            */}
             <div className={styles.secLowdown}>
               <SectionHead color={category.color}>The lowdown</SectionHead>
-              <p className={styles.prose}>{trick.about}</p>
+              <p className={styles.prose}>
+                <GlossaryText text={trick.about} from={trick.id} sport={trick.sport} />
+              </p>
             </div>
 
             <div className={`${styles.kit} ${styles.secKit}`}>
@@ -552,8 +583,18 @@ export default async function TrickPage({ params }: Params) {
 
             <div className={styles.secTips}>
               <SectionHead color={category.color}>Tips</SectionHead>
-              <p className={styles.prose}>{trick.tips}</p>
+              <p className={styles.prose}>
+                <GlossaryText text={trick.tips} from={trick.id} sport={trick.sport} />
+              </p>
             </div>
+
+            {/* Section D, between the tips and the fun fact, as the pack draws it. */}
+            {mistakes && (
+              <div className={styles.secMistakes}>
+                <SectionHead color={category.color}>{"Why it isn't working"}</SectionHead>
+                <MistakesList mistakes={mistakes} slug={trick.id} sport={trick.sport} />
+              </div>
+            )}
 
             <div
               className={`${styles.fact} ${styles.secFact}`}
@@ -562,7 +603,9 @@ export default async function TrickPage({ params }: Params) {
               <span className={`d ${styles.factLabel}`} style={{ color: category.color }}>
                 Fun fact
               </span>
-              <p className={styles.factBody}>{trick.fact}</p>
+              <p className={styles.factBody}>
+                <GlossaryText text={trick.fact} from={trick.id} sport={trick.sport} />
+              </p>
             </div>
 
             {/*
@@ -593,8 +636,20 @@ export default async function TrickPage({ params }: Params) {
                 facts={facts}
                 categoryLabel={categoryLabel(trick.cat, trick.sport)}
                 sportLabel={sportInSentence}
+                hard={trick.hard}
               />
             </div>
+
+            {/*
+              Section G, under the facts as the pack's 1d artboard has it. The
+              wrapper is conditional as well as the panel, so a trick with no
+              equivalent leaves no empty flex item — and its gap — behind.
+            */}
+            {equivalents.length > 0 && (
+              <div className={styles.secCrossSport}>
+                <CrossSportPanel trick={trick} equivalents={equivalents} />
+              </div>
+            )}
 
             {/*
               The rider's own history with the trick. Signed in only, with no

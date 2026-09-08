@@ -6,8 +6,11 @@ import type { CSSProperties, ReactNode } from 'react';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 
-/** Which of the trick page's four link groups a press came from (T31). */
-export type TrickLinkKind = 'road' | 'unlocks' | 'similar' | 'practise';
+/**
+ * Which of the trick page's link groups a press came from: T31's four, and
+ * `cross-sport` (T32) for the "Same trick, other sports" panel.
+ */
+export type TrickLinkKind = 'road' | 'unlocks' | 'similar' | 'practise' | 'cross-sport';
 
 /**
  * An onward link from a trick page, counted.
@@ -15,8 +18,10 @@ export type TrickLinkKind = 'road' | 'unlocks' | 'similar' | 'practise';
  * The page grew four groups of links at once — the road, the unlocks, the
  * similar tricks and the practise line — and the question they were built to
  * answer is whether riders use them to move *through* the library rather than
- * bouncing back to the grid. One component so the four cannot drift apart in
- * what they send: `kind` says which group, `from` and `to` are catalogue slugs
+ * bouncing back to the grid. T32 added a fifth, the cross-sport panel, which
+ * asks the same question across the sport line. One component so the five
+ * cannot drift apart in what they send: `kind` says which group, `from` and
+ * `to` are catalogue slugs
  * (or, for practise, a feature tag from a list this repo wrote), and nothing
  * else travels. Fired on the press, before navigation, because a client-side
  * navigation is the success and there is no later moment to fire from.
