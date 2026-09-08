@@ -1,6 +1,8 @@
 import { WEEKLY_RIDE_TARGET } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
+import { finishOnboarding } from './support/onboarding';
+
 /**
  * The dashboard (T8), against a real PocketBase — see `playwright.config.ts`.
  *
@@ -47,15 +49,7 @@ async function arriveAtHome(page: Page, name: string): Promise<void> {
   await page.getByRole('button', { name: 'Create account' }).click();
 
   await page.waitForURL('**/onboarding');
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: /Just started/ }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: 'Land my first trick' }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  // Step 5 asks where the rider found us and is skippable, which is what these
-  // walkthroughs exercise by clicking past it. `auth.spec.ts` answers it.
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: "Let's go" }).click();
+  await finishOnboarding(page);
   await page.waitForURL('**/home');
 }
 

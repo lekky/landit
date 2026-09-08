@@ -197,6 +197,10 @@ export function SpotsScreen({
 
   const live = useMemo(() => spots.filter((spot) => spot.status === 'live'), [spots]);
   const mine = useMemo(() => spots.filter((spot) => spot.status === 'pending'), [spots]);
+  // `listRule` returns a rider's own submission at any status, so a rejected
+  // one comes back too. It used to fall between the two filters above and
+  // simply vanish — a child's submission gone with nothing said (issue #107).
+  const rejected = useMemo(() => spots.filter((spot) => spot.status === 'rejected'), [spots]);
 
   const list = useMemo(() => {
     const narrowed = filterSpots(live, { search, sport: everySport ? null : sport, feature });
@@ -737,6 +741,25 @@ export function SpotsScreen({
                 </div>
                 <p className={styles.pendingNote}>
                   Only you can see this one. A person reads every spot before it goes on the map.
+                </p>
+              </div>
+            </div>
+          ))}
+
+          {rejected.map((spot) => (
+            <div key={spot.id} className={`panel flat ${styles.card} ${styles.cardPending}`}>
+              <span className={`${styles.cardIcon} ${styles.cardIconPending}`}>
+                <Icon name="map" size={20} strokeWidth={2.2} />
+              </span>
+              <div className={styles.cardBody}>
+                <div className="d" style={{ fontSize: 19 }}>
+                  {spot.name}
+                </div>
+                <div className={`lab ${styles.cardMeta}`}>
+                  {[spot.town, spot.type].filter(Boolean).join(' · ')} · Not added
+                </div>
+                <p className={styles.pendingNote}>
+                  Only you can see this one. A person checked it and did not put it on the map.
                 </p>
               </div>
             </div>

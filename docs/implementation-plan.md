@@ -1791,6 +1791,14 @@ decisions rather than details:**
   from `toDayKey`. `landedByMonth` itself is untouched and still exports its ICU label — a session
   that reaches for it on a rendered page should reach for `monthKeyLabel` instead (LESSONS §3a,
   issue filed).
+- **The skill-tree lede no longer names the locked tiers** (`chore-issue-sweep`, 2026-09-08, issue
+  #301). The prototype says "The Gnarly and Pro nodes need Shredder", built from `TIERS_LABEL`, and
+  the screen derived the list from whichever tiers the rider's locked tricks sat in. That read well
+  while the free tier approximated a tier line; since T27 made it a hand-picked spread across every
+  difficulty, a rookie's locked set spans all five and the sentence became "The Rookie, Easy, Spicy,
+  Gnarly and Pro nodes need Shredder" — which tells a rider they are missing Rookie. It now says
+  "The rest of the library needs Shredder", the phrase PR #299 put on every other paywall surface.
+  A deliberate divergence from `landit-screens-b.jsx`, for the same reason that PR gave.
 
 One cross-route link is deliberately unwired, per LESSONS §3a: the insights upsell states what
 Legend includes without linking `/plans`, which is T15's and does not exist. Skill-tree nodes *are*
@@ -2104,6 +2112,13 @@ modal, "I'm going". Inputs: `landit-screens-b.jsx`, `landit-screens-d.jsx`, scre
   rider away — the same position `/spots` and the library already hold. Signed-out units come from
   `Accept-Language` and the sport tabs open on all three, both settled on the server (§6.4, LESSONS
   §3a). Asserted in `e2e/events.spec.ts`.
+- **The attendance tally no longer promises booking** (`chore-issue-sweep`, 2026-09-08, issue
+  #229). `landit-screens-d.jsx` has it say "We'll add booking once organisers are on board", and
+  booking appears nowhere in this plan: taking payment for third-party organisers on a children's
+  product touches §6.7 and possibly §6.1, and nobody has decided to build it. The first sentence —
+  entry and payment happen at the venue — is true and stays; the promise comes out, the same rule
+  T5 and T10 applied to the reporting paragraph and the vinyl panel. If booking is ever wanted it
+  enters this plan as a decision first.
 
 Two cross-route links are deliberately unwired, per LESSONS §3a: the history upsell states what the
 paid tiers keep without linking `/plans` (T15's), and the nav entries for both screens are the

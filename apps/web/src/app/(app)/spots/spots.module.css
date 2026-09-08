@@ -656,6 +656,14 @@
   width: 22px;
   height: 22px;
   padding: 0;
+  /*
+   * A pin is a `button` positioned over the canvas by MapLibre, so it inherits
+   * the shared `touch-action: manipulation` every control gets to kill
+   * double-tap zoom. That hands a one-finger drag that *starts* on a pin to the
+   * browser as a scroll instead of to the map (issue #366). `none` gives the
+   * drag back to MapLibre; a pin is tapped, never scrolled.
+   */
+  touch-action: none;
   border: 3px solid var(--ink);
   background: var(--sky);
   box-shadow: 3px 3px 0 var(--ink);

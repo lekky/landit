@@ -82,7 +82,14 @@ export default defineConfig({
         {
           command: 'pnpm --filter @landit/web dev',
           url: BASE_URL,
-          reuseExistingServer: !process.env.CI,
+          // `false` locally too, matching the PocketBase entry above and for the
+          // reason its comment gives: with `true`, a dev server left running from
+          // the shared root checkout — the common case in a worktree session —
+          // answered on :3000 and the suite reported green for code the session
+          // had not written (issue #267). Now a held port is a loud failure
+          // rather than a quiet wrong answer. To run against a server you started
+          // yourself, set `PLAYWRIGHT_BASE_URL`, which turns this block off.
+          reuseExistingServer: false,
           timeout: 120_000,
           env: {
             NEXT_PUBLIC_POCKETBASE_URL: POCKETBASE_URL,

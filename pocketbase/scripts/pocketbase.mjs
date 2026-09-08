@@ -21,7 +21,7 @@
  * no flag to turn that off.
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -74,17 +74,51 @@ async function download(version) {
   const zip = new Uint8Array(await response.arrayBuffer());
   const files = unzipSync(zip);
 
-  await mkdir(dir, { recursive: true });
+  // Unpack beside the final directory and rename into place, so the binary is
+  // either wholly there or not there at all. Writing straight to `dir` failed
+  // in a fresh worktree with EBUSY on `pocketbase.exe` (issue #48): on Windows
+  // the antivirus opens a just-extracted executable, and vitest running several
+  // files at once meant several downloads racing for the same path — one of
+  // them tripping over a half-written file another was still holding.
+  const staging = `${dir}.tmp-${process.pid}`;
+  await rm(staging, { recursive: true, force: true });
+  await mkdir(staging, { recursive: true });
   for (const [name, bytes] of Object.entries(files)) {
     // The archive holds the binary plus LICENSE.md and CHANGELOG.md, all flat.
     if (name.endsWith('/')) continue;
-    const target = path.join(dir, path.basename(name));
-    await writeFile(target, bytes);
+    await writeFile(path.join(staging, path.basename(name)), bytes);
   }
 
   const binary = binaryPath(version);
+  try {
+    await withRetry(() => rename(staging, dir));
+  } catch (error) {
+    // Somebody else finished first. Their copy is the same bytes; use it.
+    if (existsSync(binary)) {
+      await rm(staging, { recursive: true, force: true });
+    } else {
+      throw error;
+    }
+  }
   if (process.platform !== 'win32') await chmod(binary, 0o755);
   return binary;
+}
+
+/**
+ * A few goes at an operation that fails with a transient lock — EBUSY and
+ * EPERM are what Windows says when a scanner or a sibling process still has
+ * the file open. Anything else is thrown first time.
+ */
+async function withRetry(operation, attempts = 5) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      const transient = error && (error.code === 'EBUSY' || error.code === 'EPERM');
+      if (!transient || attempt >= attempts) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 300 * attempt));
+    }
+  }
 }
 
 function binaryPath(version) {

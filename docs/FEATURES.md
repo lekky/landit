@@ -157,7 +157,9 @@ read-only offline: the library reads at the park, writes need a connection.
 ## Discoverability (search engines and answer engines)
 
 `robots.txt` and `sitemap.xml` are both live-gated off `LANDIT_SITE_LIVE`: shut, everything is
-disallowed and the sitemap is empty; open, everything is allowed and robots points at the sitemap.
+disallowed and the sitemap is empty; open, robots points at the sitemap and allows everything
+except what serves a crawler nothing — the gated screens, the auth screens, `/consent/` and
+`/join/` token URLs, `/admin`, `/api/`, `/design` and `/offline` (`apps/web/src/app/robots.ts`).
 The sitemap lists the public pages, every live trick and every live event read from the database
 (past events included, deliberately: they keep pulling in traffic) — `lib/publicRoutes.ts`
 is the list of what counts as public, with a test that fails if a sign-in-gated route creeps in.

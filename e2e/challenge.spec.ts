@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { seedLibrary } from './support/seed-library';
 import { LIVE_GOAL, seedSchedule } from './support/seed-schedule';
+import { finishOnboarding } from './support/onboarding';
 
 /**
  * The challenge screen (T12), for a rider on the free plan.
@@ -64,15 +65,7 @@ async function newRider(page: Page): Promise<void> {
   for (const sport of SPORT_IDS) {
     await page.getByRole('button', { name: new RegExp(SPORTS[sport].label, 'i') }).click();
   }
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: /Just started/ }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: 'Land my first trick' }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  // Step 5 asks where the rider found us and is skippable, which is what these
-  // walkthroughs exercise by clicking past it. `auth.spec.ts` answers it.
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: "Let's go" }).click();
+  await finishOnboarding(page);
   await page.waitForURL('**/home');
 }
 

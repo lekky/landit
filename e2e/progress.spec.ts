@@ -1,6 +1,8 @@
 import { SPORTS, SPORT_IDS } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
+import { finishOnboarding } from './support/onboarding';
+
 /**
  * Progress and the skill tree (T9), for a rider on the free plan.
  *
@@ -55,15 +57,7 @@ async function newRider(page: Page): Promise<void> {
 
   await page.waitForURL('**/onboarding');
   await page.getByRole('button', { name: new RegExp(SPORTS.scooter.label, 'i') }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: /Just started/ }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: 'Land my first trick' }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  // Step 5 asks where the rider found us and is skippable, which is what these
-  // walkthroughs exercise by clicking past it. `auth.spec.ts` answers it.
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: "Let's go" }).click();
+  await finishOnboarding(page);
   // T8 landed the dashboard, so that is where a finished onboarding goes.
   await page.waitForURL('**/home');
 }

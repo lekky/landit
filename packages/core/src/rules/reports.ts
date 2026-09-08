@@ -43,6 +43,15 @@ export const REPORT_SUBJECTS = [
     blurb: 'A video somebody has linked on their profile or on a trick.',
   },
   {
+    // Since the event pages (2026-09-06). The calendar is researched from
+    // organisers' pages and goes stale by existing, so "the date moved" or
+    // "this was cancelled" from a rider is the main way it gets corrected —
+    // and those arrived as "Something else" with a bare record id (issue #315).
+    id: 'event',
+    label: 'An event',
+    blurb: 'A comp, jam, class or session on the events list that is wrong, moved, or cancelled.',
+  },
+  {
     id: 'other',
     label: 'Something else',
     blurb: 'Anything about Land The Trick itself, or something that does not fit above.',

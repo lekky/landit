@@ -250,9 +250,14 @@ export function ProgressScreen({
         <SectionHead>Skill tree</SectionHead>
         <p className={styles.treeLede}>
           Tricks unlock tricks. Land the ones on the left and the next column opens up.
-          {view.lockedCount > 0 && view.lockedTiers
-            ? ` The ${view.lockedTiers} nodes need Shredder.`
-            : ''}
+          {/*
+            Not a list of tier names. The free tier is a hand-picked spread across
+            every difficulty since T27, so naming the tiers a rookie's locked
+            tricks sit in produced "Rookie, Easy, Spicy, Gnarly and Pro" — read
+            as "you are missing Rookie" (issue #301). The rest of the product
+            says "the rest of the library"; so does this.
+          */}
+          {view.lockedCount > 0 ? ' The rest of the library needs Shredder.' : ''}
         </p>
         <div className="tree">
           {view.branches.map((branch) => (

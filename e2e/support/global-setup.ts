@@ -1,5 +1,34 @@
+import { TRICKS } from '@landit/core';
+
 import { seedLibrary } from './seed-library';
 import { seedSpots } from './seed-spots';
+
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
+
+/**
+ * Compile the heaviest routes once, before any test's 30s clock is running.
+ *
+ * Under Turbopack a route is compiled on its first request, and the trick page
+ * — the biggest dynamic route in the app, over a 259-trick library — did not
+ * finish inside one test's `page.goto` budget while several local workers
+ * competed for the same dev server. Thirteen tests in five files went red at
+ * once on a branch that touched none of them (issue #322); on a slow CI runner
+ * the same thing landed on `/` and burned twelve of the job's twenty minutes in
+ * retries. A fetch here pays the compile once, outside anybody's timeout.
+ *
+ * Best effort on purpose: a warm-up that fails is a slower suite, not a broken
+ * one, so nothing here throws.
+ */
+async function warm(paths: readonly string[]): Promise<void> {
+  for (const path of paths) {
+    try {
+      await fetch(`${BASE_URL}${path}`, { signal: AbortSignal.timeout(180_000) });
+    } catch (error) {
+      process.stderr.write(`warm-up of ${path} failed: ${String(error)}
+`);
+    }
+  }
+}
 
 /**
  * Seed the e2e database once, before any worker starts.
@@ -30,4 +59,7 @@ export default async function globalSetup(): Promise<void> {
   // same trap applies to it: an unseeded `spots` makes every assertion about
   // the map and the list pass by finding nothing (T13).
   await seedSpots();
+
+  const trick = TRICKS.find((t) => t.isLive) ?? TRICKS[0];
+  await warm(['/', `/library/${trick.id}`]);
 }

@@ -339,6 +339,19 @@ the URL. This is issue #267's hazard wearing a different hat: **anything that de
 or to the repo root is testing somebody else's checkout.** Check the ports are free before you
 start, so a green result cannot be another session's.
 
+Since `chore-issue-sweep` (2026-09-08, issue #267) `playwright.config.ts` no longer attaches to a
+server already on :3000 — both `webServer` entries are `reuseExistingServer: false`, so a held
+port is a loud failure rather than a quiet wrong answer. To run the suite against a server you
+started yourself, set `PLAYWRIGHT_BASE_URL`, which switches the `webServer` block off entirely.
+
+**Merging is not the end of the session's responsibility for CI.** A PR is green against the
+`origin/main` it rebased onto; the run that matters is the one on `main` *after* the squash, which
+sees whatever merged in between. On 2026-08-17 four of the last twelve `main` runs were red and
+nobody answered for any of them, because each session's duty ended at the merge (issue #165).
+After `gh pr merge`, watch the `main` run to a conclusion (`gh run list --branch main --limit 1`,
+then `gh run watch`); a red run there is still your session's to fix or to file, not the next
+session's to inherit.
+
 ## 2. Gates, merging and cleanup
 
 **Gate on exit codes, never on piped output.** A `| tail` or `| tee` returns the pipe's status,
@@ -885,6 +898,14 @@ heredoc quoted as `<<'EOF'` — never a double-quoted argument. And after creati
 read back what was actually written (`gh issue view N --json title`), because a mangled title is
 invisible from the command that produced it: `gh` printed a normal-looking URL and exit 0.
 
+**A `gh` argument that starts with `/` is a path to MSYS, whatever it is to you.** Filing #84 with
+`--title '/api/health reports …'` from the Bash tool produced an issue titled
+`C:/Program Files/Git/api/health reports …` (issue #86): Git Bash rewrites anything that looks like
+a Unix absolute path into a Windows one before `gh` sees it, and single quotes do not stop it — it
+is argument translation, not expansion. Prefix the command with `MSYS_NO_PATHCONV=1`, start the
+title with a character that is not a slash, or use the PowerShell tool, which does no such thing.
+Then read it back, as above.
+
 ## 6. Dependencies that break the whole workspace
 
 **A dependency needing `allowBuilds` is not a local decision — it stops every pnpm command
@@ -909,6 +930,16 @@ migrations — and that was delivered. Swapping the named tool is still a diverg
 `docs/implementation-plan.md` in the same PR (`CLAUDE.md`, "plan first, then code"). Recording
 *why* matters more than recording *what*: without the reason, the next session sees a plan that
 says `pocketbase-typegen` and a repo that does not, and re-litigates it.
+
+**A `pnpm install --frozen-lockfile` that returns in half a second has not installed anything.**
+In a fresh worktree on 2026-09-07 it printed `Already up to date` in ~500ms instead of taking its
+usual 20–35s, and `pnpm lint` then failed with 4,712 errors — `Definition for rule
+'react-hooks/exhaustive-deps' was not found`, `'window' is not defined` in files the config
+ignores — which reads as `main` being broken rather than as a local install problem, and linting
+`main` from the same worktree "confirms" it (issue #346). The root `node_modules/` had the direct
+devDependencies only; the plugins were in the store but never linked. `pnpm install --force`
+fixes it in ~35s. The tell is the timing: a frozen install in a new worktree that does not take
+tens of seconds did not link the tree, whatever it printed.
 
 ## 7. The browser as a runtime you cannot see into
 

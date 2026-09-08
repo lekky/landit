@@ -158,7 +158,6 @@ export interface SportProgressView {
   readonly latest: readonly LatestLandView[];
   readonly branches: readonly BranchView[];
   readonly lockedCount: number;
-  readonly lockedTiers: string;
   readonly insights: InsightsView | null;
   readonly sheet: readonly SheetRowView[];
 }
@@ -175,14 +174,6 @@ export interface ProgressViewInput {
 }
 
 const WINDOW_MONTHS = 6;
-
-/** The tier names a rookie rider is missing: "Spicy, Gnarly and Pro". */
-function lockedTierNames(locked: readonly Trick[]): string {
-  const tiers = [...new Set(locked.map((t) => TIERS_LABEL[t.diff - 1]!))];
-  if (!tiers.length) return '';
-  if (tiers.length === 1) return tiers[0]!;
-  return `${tiers.slice(0, -1).join(', ')} and ${tiers[tiers.length - 1]}`;
-}
 
 function buildInsights(input: ProgressViewInput, sport: SportId, now: number): InsightsView | null {
   if (!insightsVisible(input.plan, input.optedIntoInsights)) return null;
@@ -342,7 +333,6 @@ export function buildSportProgress(input: ProgressViewInput, sport: SportId): Sp
       })),
     })),
     lockedCount: locked.length,
-    lockedTiers: lockedTierNames(locked),
     insights: buildInsights(input, sport, now),
     // The sheet is the rider's own list, which is what the panel promises to
     // print — not the whole library.

@@ -639,10 +639,7 @@ export function EventsScreen({
             <div className={`cond ${styles.tallyHead}`}>
               You&rsquo;re down for {goingCount} event{goingCount === 1 ? '' : 's'}
             </div>
-            <p className={styles.tallyNote}>
-              Entry and payment happen at the venue for now. We&rsquo;ll add booking once organisers
-              are on board.
-            </p>
+            <p className={styles.tallyNote}>Entry and payment happen at the venue.</p>
           </div>
         </Panel>
       )}

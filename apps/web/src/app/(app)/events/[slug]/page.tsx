@@ -491,14 +491,13 @@ export default async function EventPage({ params, searchParams }: Params) {
               </span>
               <p className={styles.note}>Date moved, event cancelled, wrong address?</p>
               {/*
-                `other` because the report form has no "an event" subject yet —
-                its four are profile, spot, video and something else. Sending an
-                event under `spot` would file it in the wrong queue; `other`
-                carries the record id and lets staff resolve it.
+                `event` is the form's own subject for this since issue #315;
+                before it, these went out as `other` with a bare record id and
+                staff had to work out what the id pointed at.
               */}
               <Link
                 className={styles.reportLink}
-                href={reportHref({ type: 'other', id: recordId })}
+                href={reportHref({ type: 'event', id: recordId })}
               >
                 Report a problem with this listing
               </Link>

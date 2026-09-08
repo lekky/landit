@@ -47,7 +47,14 @@ export function firstLanded(log: readonly TrickLogEntry[]): Record<string, Trick
 export interface LandedMonth {
   /** `YYYY-MM`, in the rider's timezone. */
   readonly key: string;
-  /** Short month name, e.g. "Aug". */
+  /**
+   * Short month name, e.g. "Aug".
+   *
+   * @deprecated Locale-derived (ICU), so it can differ between Node and the
+   * browser and is a hydration mismatch waiting to happen (LESSONS §3a). Render
+   * `monthKeyLabel(key)` from `./progress` instead, which reads the month out of
+   * `key` with no locale involved (issue #56).
+   */
   readonly label: string;
   /** Tricks first landed in this month. */
   readonly n: number;

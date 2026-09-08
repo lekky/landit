@@ -2,6 +2,7 @@ import { SHREDDER_VIDEO_LINK_CAP, TRICKS, isTrickLocked, tricksFor } from '@land
 import { expect, test, type Page } from '@playwright/test';
 
 import { e2eSuperuser } from './support/seed-library';
+import { finishOnboarding } from './support/onboarding';
 
 /**
  * Video links on the trick page (T15b).
@@ -73,15 +74,7 @@ async function signUp(page: Page, name: string): Promise<string> {
   await page.getByRole('button', { name: 'Create account' }).click();
 
   await page.waitForURL('**/onboarding');
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: /Just started/ }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: 'Land my first trick' }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  // Step 5 asks where the rider found us and is skippable, which is what these
-  // walkthroughs exercise by clicking past it. `auth.spec.ts` answers it.
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: "Let's go" }).click();
+  await finishOnboarding(page);
   await page.waitForURL('**/home');
 
   return email;
