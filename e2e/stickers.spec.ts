@@ -202,9 +202,13 @@ test('the trick page has its Share it button now the card exists (issue #51)', a
   const name = await landSomething(page);
 
   // `visible: true`: the first-landed date is rendered twice and shown once —
-  // a chip in the hero above the breakpoint, under the ladder below it.
+  // a chip in the hero above the breakpoint, under the ladder below it. `exact`:
+  // the history timeline (T31) marks its landed entry '★ first landed', which a
+  // loose match would also find.
   const panel = page.locator('.panel', { hasText: 'First landed' }).first();
-  await expect(panel.getByText('First landed').filter({ visible: true })).toBeVisible();
+  await expect(
+    panel.getByText('First landed', { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
   await panel.getByRole('button', { name: 'Share it' }).click();
 
   const card = page.getByRole('dialog');
