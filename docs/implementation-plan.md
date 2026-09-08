@@ -1543,6 +1543,28 @@ screen (via `AppShell`) all carry it.
   matches twice. The index `<nav>` carries the accessible name that had been passed to `Panel`,
   which takes no such prop and dropped it before it reached the DOM.
 
+**A tenth divergence, 2026-09-08 (Rachid, in chat): form fields are 16px, where the design pack
+draws them at 15px.** Riders kept ending up on a zoomed-in page they had never asked to zoom, and
+two separate browser gestures were doing it. Below 16px, iOS zooms the page in when an input takes
+focus — and does not zoom back out when it loses it. Independently, a double tap on any control is
+still the browser's "zoom in", and on a phone a double tap is mostly a rider tapping twice because
+the first tap did not look like it landed. So `.field input/select/textarea` moves to 16px, and
+`touch-action: manipulation` goes on the elements a finger actually lands on.
+
+- **16px is the whole fix for the first one**; it is the threshold, and there is no way to keep 15px
+  and keep the page still. The design already reaches for 16px in the one input it drew for touch
+  (`.search input`), so this is that decision applied to the rest of the fields rather than a new
+  one. Measured, not assumed: 1px of field height, 3px on a three-row textarea, and nothing else —
+  widths, buttons and wrapping are unchanged.
+- **`manipulation` drops the double-tap gesture and nothing else.** Panning and pinch both survive.
+- **Pinch is deliberately left alone**, and this is the part worth not re-deciding by accident.
+  `user-scalable=no` in the viewport export would have taken it, and was considered and rejected on
+  three counts: it fails WCAG 1.4.4; pinch is the gesture a rider uses to *undo* an accidental zoom,
+  so removing it makes the trap it is meant to prevent inescapable; and iOS Safari ignores it in the
+  browser regardless, so on most of these riders' phones it would have cost the accessibility and
+  bought nothing. If accidental *pinch* rather than double-tap turns out to be what riders are
+  hitting, that is a separate decision, and it needs its own divergence and its own owner's yes.
+
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
 to test — that is where the three-sport switch is proved against a 375px phone before `SPORT_IDS`
