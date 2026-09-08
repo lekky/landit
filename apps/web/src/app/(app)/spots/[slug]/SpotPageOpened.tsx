@@ -31,21 +31,29 @@ import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
  * land on one. If the answer turns out to be "hundreds a month", the closed
  * notice is doing real work and deserves more than a red block; if it is
  * "none", these pages can be quietly dropped from the sitemap.
+ *
+ * **Why `source` is worth counting.** `origin` splits researched from
+ * submitted; `source` splits researched from *imported* — the France census
+ * put three thousand machine-named pages on the map in one go (issue #362),
+ * and this is the only way to learn whether any of them is read. A
+ * `SPOT_SOURCES` id, chosen in this repository; never shown on the page.
  */
 export function SpotPageOpened({
   origin,
+  source,
   type,
   operating,
   indoor,
 }: {
   origin: 'researched' | 'submitted';
+  source: string;
   type: string;
   operating: string;
   indoor: boolean;
 }) {
   useEffect(() => {
-    capture(ANALYTICS_EVENTS.spotPageOpened, { origin, type, operating, indoor });
-  }, [origin, type, operating, indoor]);
+    capture(ANALYTICS_EVENTS.spotPageOpened, { origin, source, type, operating, indoor });
+  }, [origin, source, type, operating, indoor]);
 
   return null;
 }

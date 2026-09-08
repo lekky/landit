@@ -91,6 +91,14 @@ onRecordCreateRequest((e) => {
   e.record.set('name', name);
   e.record.set('town', town);
 
+  // Provenance is ours to write, not the caller's. A rider's submission is the
+  // rider's own words under our terms (`1788998400_spot_source_and_licence.js`),
+  // whatever the request body claimed — the two fields exist so imported and
+  // researched rows can be told apart, and a body that labels itself
+  // 'fr-sports-gouv' must not be able to join that set.
+  e.record.set('source', 'rider');
+  e.record.set('licence', '');
+
   // The backlog is checked first, and the order is deliberate: a rider sitting
   // on ten unreviewed spots is told the thing that is actually true of them and
   // that waiting an hour will not fix, rather than being sent away to try again

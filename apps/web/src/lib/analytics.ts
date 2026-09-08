@@ -436,6 +436,13 @@ export const ANALYTICS_EVENTS = {
    * `operating` is the one that answers a question we cannot otherwise ask: a
    * closed park keeps its page, and this is the only way to learn whether
    * anybody still reads one.
+   *
+   * And `source` — a `SPOT_SOURCES` id from `@landit/core` (`researched`,
+   * `rider`, `fr-sports-gouv`), or `unknown` for a value the catalogue does not
+   * know. The France import (issue #362) put three thousand machine-named
+   * pages on the map at once, and this is the only way to learn whether the
+   * imported pages are read at all or only the ones a human researched. The
+   * id is chosen in this repository and is never shown on the page.
    */
   /**
    * A spot was put on the map from the list — the "Show on map" button on a
