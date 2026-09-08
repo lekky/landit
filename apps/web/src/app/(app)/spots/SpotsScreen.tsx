@@ -8,11 +8,11 @@ import {
   hasCoords,
   mapsLink,
   sortSpotsByDistance,
-  sortSpotsHomeFirst,
   spotFeature,
   type DistanceUnits,
   type SportId,
 } from '@landit/core';
+import type { SpotPoint } from '@landit/db';
 import { Button, Empty, Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -27,8 +27,10 @@ import { useSport } from '@/providers/sport';
 
 import { AddSpotForm } from './AddSpotForm';
 import { SpotMap } from './SpotMap';
+import { spotsCardsAction, spotsPageAction, spotsPointsAction } from './listActions';
 import { useHereOnce } from '@/lib/useHereOnce';
 import styles from './spots.module.css';
+import { SPOTS_PAGE, fromPointTuple, type SpotView } from './view';
 
 const MONTHS = [
   'January',
@@ -63,32 +65,13 @@ function creditLine(): string {
     .join('; ');
 }
 
-/** A `spots` row, flattened to what a screen needs. */
-export interface SpotView {
-  readonly id: string;
-  /**
-   * The slug its own page lives at. `''` for a row that has none — a rider's
-   * pending submission has no page, and a card with no `slug` gets no link
-   * rather than one to `/spots/`.
-   */
-  readonly slug: string;
-  readonly name: string;
-  readonly town: string;
-  readonly type: string;
-  readonly lat: number;
-  readonly lng: number;
-  readonly sports: readonly SportId[];
-  readonly tags: readonly string[];
-  readonly status: 'pending' | 'live' | 'rejected';
-  readonly address?: string;
-  readonly phone?: string;
-  readonly country?: string;
-}
+export type { SpotView } from './view';
 
-/**
- * How many spots a press reveals. A tunable default, not a deliberated number.
- */
-const PAGE = 24;
+/** How many spots a press reveals. See `SPOTS_PAGE`. */
+const PAGE = SPOTS_PAGE;
+
+/** How long a search box may go quiet before it asks the server. */
+const SEARCH_DEBOUNCE_MS = 250;
 
 /**
  * The width below which the map is a sheet rather than a column.
@@ -103,6 +86,19 @@ const PAGE = 24;
  */
 const SHEET_WIDTH = '(max-width: 860px)';
 
+/** The list query, as one string, so "did it change" is one comparison. */
+function queryKey(search: string, sport: SportId | null, feature: string | null): string {
+  return `${search.trim().toLowerCase()}|${sport ?? ''}|${feature ?? ''}`;
+}
+
+/** What the server has handed over so far for one query. */
+interface Loaded {
+  readonly key: string;
+  readonly spots: readonly SpotView[];
+  readonly total: number;
+  readonly page: number;
+}
+
 /**
  * Where to ride: the list, the map, and the two staying in step (screenshot 19).
  *
@@ -113,10 +109,30 @@ const SHEET_WIDTH = '(max-width: 860px)';
  * idea of the selected spot there would be two, and they would disagree the
  * first time a filter removed the selected one from the list.
  *
- * **The rider's location never leaves this component** (plan §6.4, standard 10).
- * It is held in React state, shown while it is held, and dropped on the next
+ * **The list comes a page at a time, from the server** (issue #367). The
+ * screen used to hold every live spot and filter it in memory; at three and a
+ * half thousand rows that was 1.34 MB of page. Now it holds what it has been
+ * handed: the first page from the server render, and each further page,
+ * search or filter from `listActions.ts`. Two modes, one list:
+ *
+ * - **Home-first**, the default. The query is the search, the sport pill and
+ *   the feature pill; the server sorts the reader's country ahead of the rest
+ *   and pages it. "Show more" asks for the next page and appends.
+ * - **Nearest-first**, while a position is held. Distance is sorted here, in
+ *   the browser, over a compact list of every live spot's point — fetched once
+ *   when the position first arrives — and the same query narrows that list
+ *   with the same `filterSpots` the server mirrors. The cards for the
+ *   nearest screenful are then fetched by id. That request is the one thing
+ *   about "Near me" that reaches our server (plan §6.4, standard 10, amended
+ *   2026-09-08): never the position, only the ids the position chose.
+ *
+ * A reply that arrives for a query the rider has since left is dropped, so
+ * a slow search cannot overwrite a fast one.
+ *
+ * **The rider's location never leaves this component** in either mode. It is
+ * held in React state, shown while it is held, and dropped on the next
  * navigation — there is no `localStorage` write, no cookie, no field on `users`,
- * and nothing about it is sent to the server. See `useHereOnce`.
+ * and no request carries it. See `useHereOnce`.
  *
  * **This screen opens nearest-first when the browser already allows it**
  * (Rachid, 2026-08-30, in chat; §6.4 standard 10 amended in the same change).
@@ -130,22 +146,28 @@ const SHEET_WIDTH = '(max-width: 860px)';
  * either way, which is what makes the resume defensible rather than quiet.
  */
 export function SpotsScreen({
-  spots,
+  initialSpots,
+  initialTotal,
+  initialSport,
+  countsBySport,
+  ownSpots,
   signedIn,
   units,
-  homeCountry = null,
   initialFeature = null,
 }: {
-  readonly spots: readonly SpotView[];
+  /** The first page, rendered on the server for `initialSport` and `initialFeature`. */
+  readonly initialSpots: readonly SpotView[];
+  /** How many spots that first query matches in all. */
+  readonly initialTotal: number;
+  /** The sport the server rendered the first page for — the provider's default. */
+  readonly initialSport: SportId;
+  /** Live spots per sport, over the whole collection, for the tab row's note. */
+  readonly countsBySport: Readonly<Record<string, number>>;
+  /** The rider's own submissions that are not on the map: pending or turned down. */
+  readonly ownSpots: readonly SpotView[];
   readonly signedIn: boolean;
   /** Miles or kilometres, settled on the server from the rider's country. */
   readonly units: DistanceUnits;
-  /**
-   * The spots country the reader is in, settled on the server from the same
-   * signal as `units`, or null when it cannot be told. Their parks lead the
-   * list until they ask for "Near me".
-   */
-  readonly homeCountry?: string | null;
   /**
    * A feature tag the list opens narrowed to — `/spots?feature=flat`, from a
    * trick page's "Where to practise" line (T31). Already validated by the
@@ -156,6 +178,17 @@ export function SpotsScreen({
   const { sports, sport } = useSport();
 
   const [search, setSearch] = useState('');
+  /*
+   * The search the list is actually asked for lags the box by a beat. Every
+   * keystroke used to filter an in-memory list; now it is a request, and a
+   * request per keystroke is a queue of stale answers racing each other.
+   */
+  const [settledSearch, setSettledSearch] = useState('');
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettledSearch(search), SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
   /*
    * The feature narrowing is client state seeded from the URL, like nothing
    * else on this screen — and that is deliberate. The rider arrived here to
@@ -229,22 +262,127 @@ export function SpotsScreen({
     });
   }, [here.state, here.resumed]);
 
-  const live = useMemo(() => spots.filter((spot) => spot.status === 'live'), [spots]);
-  const mine = useMemo(() => spots.filter((spot) => spot.status === 'pending'), [spots]);
-  // `listRule` returns a rider's own submission at any status, so a rejected
-  // one comes back too. It used to fall between the two filters above and
-  // simply vanish — a child's submission gone with nothing said (issue #107).
-  const rejected = useMemo(() => spots.filter((spot) => spot.status === 'rejected'), [spots]);
+  /* ------------------------------------------------------- the query -- */
 
-  const list = useMemo(() => {
-    const narrowed = filterSpots(live, { search, sport: everySport ? null : sport, feature });
-    // Distance beats nationality the moment a rider presses for it: a rider in
-    // Dublin is nearer Liverpool than parts of Ireland, and they said where
-    // they are. Home-first is only what happens until then.
-    return here.point
-      ? sortSpotsByDistance(narrowed, here.point)
-      : sortSpotsHomeFirst(narrowed, homeCountry);
-  }, [live, search, sport, everySport, feature, here.point, homeCountry]);
+  const querySport = everySport ? null : sport;
+  const key = queryKey(settledSearch, querySport, feature);
+
+  /*
+   * Every reply is checked against the request that is *current* when it
+   * lands. A number rather than an `AbortController` because a server action
+   * cannot be aborted; it can only be ignored, and this is how.
+   */
+  const latest = useRef(0);
+  const [error, setError] = useState<string | null>(null);
+
+  /*
+   * The cards this screen has ever been handed, by id — every page from the
+   * server and every card fetched for nearest-first — so a rider who presses
+   * "Near me" after paging finds most of the nearest cards already in hand.
+   * `null` is an id that was asked for and not answered: a spot the caller
+   * may not read, remembered so it is neither asked for again nor waited on.
+   * Written only when a reply lands, never inside an effect's own tick.
+   */
+  const [cards, setCards] = useState<ReadonlyMap<string, SpotView | null>>(
+    () => new Map(initialSpots.map((spot) => [spot.id, spot])),
+  );
+  const remember = useCallback((spots: readonly SpotView[], asked: readonly string[] = []) => {
+    setCards((was) => {
+      const next = new Map(was);
+      for (const id of asked) if (!next.has(id)) next.set(id, null);
+      for (const spot of spots) next.set(spot.id, spot);
+      return next;
+    });
+  }, []);
+
+  /* ---------------------------------------------------- home-first mode -- */
+
+  const [loaded, setLoaded] = useState<Loaded>(() => ({
+    key: queryKey('', initialSport, initialFeature),
+    spots: initialSpots,
+    total: initialTotal,
+    page: 1,
+  }));
+
+  /**
+   * Ask the server for a page of the current query. `append` is a "Show more";
+   * otherwise the reply replaces the list. The reply is ignored if the query
+   * moved on while it was in flight.
+   */
+  const fetchPage = useCallback(
+    async (forKey: string, page: number, append: boolean) => {
+      const ticket = ++latest.current;
+      const result = await spotsPageAction(
+        { search: settledSearch, sport: querySport, feature },
+        page,
+      );
+      if (ticket !== latest.current) return;
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setError(null);
+      remember(result.spots);
+      setLoaded((was) => ({
+        key: forKey,
+        spots: append && was.key === forKey ? [...was.spots, ...result.spots] : result.spots,
+        total: result.total,
+        page,
+      }));
+    },
+    [settledSearch, querySport, feature, remember],
+  );
+
+  const nearMode = here.point !== null;
+
+  /*
+   * A "Show more" in flight. The *first* page of a query needs no flag of its
+   * own: the list is loading exactly while `loaded.key` is behind `key`, which
+   * is a fact about state already held rather than a second copy of it.
+   */
+  const [morePending, setMorePending] = useState(false);
+
+  // The query changed under the list: fetch its first page. Not while a
+  // position is held — that mode has its own list and never asks for pages.
+  // Sent from a timer rather than the effect's own tick, so a query that changes
+  // again before the tick ends — a fast typist beating the debounce — is
+  // cancelled here and never leaves the browser.
+  useEffect(() => {
+    if (nearMode || loaded.key === key) return;
+    const timer = window.setTimeout(() => void fetchPage(key, 1, false), 0);
+    return () => window.clearTimeout(timer);
+  }, [nearMode, loaded.key, key, fetchPage]);
+
+  /* -------------------------------------------------- nearest-first mode -- */
+
+  /*
+   * Every live spot as a point, fetched once, the first time a position is
+   * held, and kept for the rest of the visit. A few hundred kilobytes, paid
+   * only by a rider who asked for distance — the reason the page no longer
+   * carries it for everybody.
+   */
+  const [points, setPoints] = useState<readonly SpotPoint[] | null>(null);
+  const pointsAsked = useRef(false);
+  useEffect(() => {
+    if (!nearMode || points || pointsAsked.current) return;
+    pointsAsked.current = true;
+    void (async () => {
+      const result = await spotsPointsAction();
+      if (result.error) {
+        pointsAsked.current = false;
+        setError(result.error);
+        return;
+      }
+      setPoints(result.points.map(fromPointTuple));
+    })();
+  }, [nearMode, points]);
+
+  /** The nearest-first list, narrowed by the same query, as ids in order. */
+  const nearIds = useMemo(() => {
+    if (!here.point || !points) return null;
+    const narrowed = filterSpots(points, { search: settledSearch, sport: querySport, feature });
+    return sortSpotsByDistance(narrowed, here.point).map((point) => point.id);
+  }, [here.point, points, settledSearch, querySport, feature]);
 
   /*
    * The list is shown a screenful at a time (2026-08-18, owner: "maybe need
@@ -257,9 +395,6 @@ export function SpotsScreen({
    * page 3 would land on a card that is not rendered, and the scroll-into-view
    * would silently do nothing. Growing one list keeps list and map the same set
    * at every moment.
-   *
-   * `PAGE` is a tunable default, not a deliberated number: 24 fills a tall
-   * desktop screen and is a few scrolls on a phone.
    */
   const [shown, setShown] = useState(PAGE);
 
@@ -270,15 +405,79 @@ export function SpotsScreen({
    * they had already scrolled past. This is React's documented "adjust state
    * when a prop changes" pattern; the extra render is discarded before paint.
    */
-  const listKey = `${search}|${sport}|${everySport}|${feature ?? ''}|${here.point ? 'near' : 'home'}`;
+  const listKey = `${key}|${nearMode ? 'near' : 'home'}`;
   const [lastKey, setLastKey] = useState(listKey);
   if (listKey !== lastKey) {
     setLastKey(listKey);
     setShown(PAGE);
+    setSelectedId(null);
   }
 
-  const visible = useMemo(() => list.slice(0, shown), [list, shown]);
-  const more = list.length - visible.length;
+  /*
+   * The nearest screenful's cards, for whichever are not yet in hand. Each id
+   * is in flight at most once — `inFlight` is what stops the same ids being
+   * asked for again on every render while the reply is on its way — and a
+   * reply that no longer matches the screenful, because the rider searched
+   * while it flew, is dropped like a page.
+   */
+  const wantedIds = useMemo(() => nearIds?.slice(0, shown) ?? [], [nearIds, shown]);
+  const inFlight = useRef(new Set<string>());
+  useEffect(() => {
+    const missing = wantedIds.filter((id) => !cards.has(id) && !inFlight.current.has(id));
+    if (!missing.length) return;
+    for (const id of missing) inFlight.current.add(id);
+    const ticket = ++latest.current;
+    void (async () => {
+      const result = await spotsCardsAction(missing);
+      for (const id of missing) inFlight.current.delete(id);
+      if (ticket !== latest.current) return;
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setError(null);
+      remember(result.spots, missing);
+    })();
+  }, [wantedIds, cards, remember]);
+
+  /* ----------------------------------------------------------- the list -- */
+
+  /**
+   * What is on screen, whichever mode. In nearest-first the cards are looked
+   * up by id, and one still in flight is simply not there yet; in home-first
+   * they are the pages in the order the server sent them.
+   */
+  const visible = useMemo<readonly SpotView[]>(() => {
+    if (nearIds) {
+      return wantedIds.map((id) => cards.get(id)).filter((spot): spot is SpotView => !!spot);
+    }
+    return loaded.spots;
+  }, [nearIds, wantedIds, cards, loaded.spots]);
+
+  /** How many match the query in all, and how many are not yet on screen. */
+  const total = nearIds ? nearIds.length : loaded.total;
+  const more = Math.max(0, total - (nearIds ? shown : loaded.spots.length));
+
+  /** Something asked for is still on its way. Derived, so it cannot go stale. */
+  const loading = nearIds
+    ? wantedIds.some((id) => !cards.has(id))
+    : morePending || (!nearMode && loaded.key !== key);
+
+  const showMore = useCallback(() => {
+    if (nearIds) {
+      setShown((count) => count + PAGE);
+      return;
+    }
+    setMorePending(true);
+    void fetchPage(key, loaded.page + 1, true).finally(() => setMorePending(false));
+  }, [nearIds, fetchPage, key, loaded.page]);
+
+  /*
+   * Waiting on the world, in words the count line can carry: the points for
+   * the first nearest-first sort, or a page. Distinct, because the first can
+   * take a second on a phone and "loading" alone reads as broken.
+   */
+  const waiting = nearMode && !points ? 'finding the nearest' : loading ? 'loading' : null;
 
   /**
    * Only spots with a location can be plotted, and only the ones on screen are:
@@ -300,7 +499,7 @@ export function SpotsScreen({
     [plotted, selectedId],
   );
 
-  const cards = useRef(new Map<string, HTMLElement>());
+  const cardNodes = useRef(new Map<string, HTMLElement>());
   const select = useCallback((id: string, via: 'card' | 'pin') => {
     setSelectedId(id);
     /*
@@ -319,7 +518,7 @@ export function SpotsScreen({
     // page; a pin click on a card further down does scroll it into view. The
     // cards carry a `scroll-margin-bottom` on narrow screens so this never
     // parks the chosen one underneath the sheet.
-    cards.current.get(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    cardNodes.current.get(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
     /*
      * Counted, because this gesture just got smaller. The whole card used to
@@ -453,25 +652,21 @@ export function SpotsScreen({
    */
 
   /*
-   * How many live spots each sport has, for the tab row's note.
-   *
-   * Counted over every live spot rather than the filtered list: the note answers
+   * How many live spots each sport has, for the tab row's note. Counted on the
+   * server over every live spot rather than the filtered list: the note answers
    * "is it worth switching to BMX?", and a count that shrank as you typed a
    * search would answer a question nobody asked.
    */
-  const countBySport = useMemo(() => {
-    const counts = new Map<SportId, number>();
-    for (const spot of live) {
-      for (const id of spot.sports) counts.set(id, (counts.get(id) ?? 0) + 1);
-    }
-    return counts;
-  }, [live]);
-
   const sportNote = useCallback(
-    (id: SportId) => `${countBySport.get(id) ?? 0} spots`,
-    [countBySport],
+    (id: SportId) => `${countsBySport[id] ?? 0} spots`,
+    [countsBySport],
   );
 
+  const mine = useMemo(() => ownSpots.filter((spot) => spot.status === 'pending'), [ownSpots]);
+  // `listRule` returns a rider's own submission at any status, so a rejected
+  // one comes back too. It used to fall between two filters and simply vanish —
+  // a child's submission gone with nothing said (issue #107).
+  const rejected = useMemo(() => ownSpots.filter((spot) => spot.status === 'rejected'), [ownSpots]);
   const pendingCount = mine.length;
 
   return (
@@ -593,11 +788,25 @@ export function SpotsScreen({
 
       <div className={styles.grid}>
         <div className={styles.list}>
-          <div className={`lab ${styles.count}`}>
-            {list.length} spot{list.length === 1 ? '' : 's'}
+          {/*
+            The count is the claim about the whole collection under this
+            query, counted on the server; the cards below it are one screenful
+            of that. `aria-live` so a rider who cannot see the list hears a
+            search land — and hears it once, when the number settles, rather
+            than on every keystroke, which the debounce above sees to.
+          */}
+          <div className={`lab ${styles.count}`} aria-live="polite">
+            {total} spot{total === 1 ? '' : 's'}
             {here.state === 'on' ? ' · nearest first' : ''}
             {more > 0 ? ` · showing ${visible.length}` : ''}
+            {waiting ? ` · ${waiting}…` : ''}
           </div>
+
+          {error && (
+            <p className={styles.pendingNote} role="alert">
+              {error}
+            </p>
+          )}
 
           {visible.map((spot) => {
             const on = spot.id === selected?.id;
@@ -607,8 +816,8 @@ export function SpotsScreen({
               <div
                 key={spot.id}
                 ref={(node) => {
-                  if (node) cards.current.set(spot.id, node);
-                  else cards.current.delete(spot.id);
+                  if (node) cardNodes.current.set(spot.id, node);
+                  else cardNodes.current.delete(spot.id);
                 }}
                 className={`panel flat ${styles.card} ${on ? styles.cardOn : ''} ${
                   spot.slug ? styles.cardLinked : ''
@@ -744,14 +953,15 @@ export function SpotsScreen({
             <Button
               variant="ghost"
               wide
-              onClick={() => setShown((count) => count + PAGE)}
+              onClick={showMore}
+              disabled={loading}
               className={styles.more}
             >
               Show {Math.min(more, PAGE)} more
             </Button>
           )}
 
-          {!list.length && !mine.length && (
+          {!visible.length && !waiting && !mine.length && (
             <Empty
               icon="map"
               title="No spots there yet"

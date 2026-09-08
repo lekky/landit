@@ -707,6 +707,17 @@ Not all fifteen bite equally. These four change what gets built:
   So `/events` shows a "Nearest first" line above the list for exactly as long as a position is
   held. On a resume the rider pressed nothing, and the location badge alone would tell them
   their position is in use without telling them their calendar has been re-sorted.
+
+  **Amended 2026-09-08 (Rachid, in chat): nearest-first may ask our own server for the cards.**
+  Until now "never reaches the server" held because `/spots` sent every spot to the browser and
+  sorted there. With France's census the list is thousands of rows, so the page is served a page
+  at a time (issue #367) and "Near me" works over a compact list of points instead: the position
+  is still held only in the browser, the ordering is still computed there, and what then travels
+  is a request for the **ids of the nearest cards** — to `landthetrick.com` and nowhere else.
+  That is a coarse location signal in our own request log, and it is accepted as such; it is
+  not a position, it is not stored against the rider, it is never an analytics property, and
+  no third party sees it. Sending the position itself so the server could sort remains ruled
+  out. `spotsCardsAction` in `apps/web/src/app/(app)/spots/listActions.ts` is the one request.
 - **Standard 12, profiling.** The Legend insights panel (§2.4) derives suggestions from a rider's
   own history. That is defensible and in the rider's interest, but it is profiling: off by
   default, opt-in, and it never leaves the rider's own data.
