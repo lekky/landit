@@ -14,6 +14,8 @@ declare const window: {
   __geoCalls: number;
   localStorage: unknown;
   sessionStorage: unknown;
+  /* Two frames is how the sheet's scroll test waits for a scroll to land. */
+  requestAnimationFrame: (run: () => void) => number;
 };
 declare const navigator: object;
 declare const document: { cookie: string };
@@ -295,12 +297,110 @@ test.describe('where to ride', () => {
     // And on screen, rather than merely somewhere above the nav.
     expect(await top()).toBeLessThan(HEIGHT);
 
+    /*
+     * **At least three quarters of the screen** (Rachid, 2026-09-08: "the map
+     * popup on mobile is too small… it needs to be at least 3/4 of the
+     * screen"). It was 52% of the viewport capped at 400px, which on this
+     * 780px phone was 400px — barely half, and most of that spent on the
+     * header, the actions and the footer rather than on map.
+     *
+     * The floor is the owner's number, not the stylesheet's: 78% is what
+     * `--sheet-h` asks for, and asserting 75% leaves room to tune the one
+     * without rewriting the other while still failing the day it goes back to
+     * being a small panel.
+     */
+    const height = async () => (await panel.boundingBox())!.height;
+    await expect.poll(height).toBeGreaterThanOrEqual(HEIGHT * 0.75);
+
     // The travel warning follows the map, because the sheet is where a rider
     // decides to go and Directions takes them out of the product from here.
     await expect(page.locator('[class*="mapWarn"]')).toBeVisible();
 
     await page.getByRole('button', { name: 'Close' }).click();
     await expect.poll(top).toBeGreaterThanOrEqual(HEIGHT);
+  });
+
+  test('the sheet takes the scroll, rather than moving the page behind it', async ({ page }) => {
+    /*
+     * The defect (Rachid, 2026-09-08, in chat: "when it's open and the user
+     * scrolls it actually scrolls the page behind instead of focusing on the
+     * slide up panel").
+     *
+     * The sheet was built docked rather than modal — no scrim, no scroll lock,
+     * on the theory that a rider could keep browsing the list behind it. At 52%
+     * of the screen that was arguable; at 78% every gesture aimed at the map
+     * was landing on a list the rider could no longer see.
+     *
+     * **What this can and cannot reach.** The page being held still is ours and
+     * is asserted here. The other half of the fix — one finger dragging the map
+     * instead of the document — is MapLibre's `cooperativeGestures` handler, and
+     * CI never draws a map at all (no GPU, #227), so there is no canvas here to
+     * drag. That half is pinned by the `gestures` prop's own contract in
+     * `SpotMap` rather than by a test that would be asserting on a placeholder.
+     */
+    const HEIGHT = 780;
+    await page.setViewportSize({ width: 375, height: HEIGHT });
+    await page.goto('/spots');
+    await whenInteractive(page);
+
+    const settle = () =>
+      page.evaluate(
+        () =>
+          new Promise((done) =>
+            window.requestAnimationFrame(() => window.requestAnimationFrame(() => done(null))),
+          ),
+      );
+
+    /*
+     * Where the page has got to, read off the top of it rather than out of
+     * `window.scrollY`.
+     *
+     * The hold takes the body out of flow at a negative offset, so while the
+     * sheet is up `scrollY` is 0 however far down the list a rider had got —
+     * true of the mechanism and useless as a probe, since it reads 0 whether
+     * the page is held or scrolled back to the top. Where the heading actually
+     * is cannot be fooled either way.
+     */
+    const heading = page.getByRole('heading', { level: 1, name: 'Where to ride' });
+    const pageTop = async () => Math.round((await heading.boundingBox())!.y);
+
+    // Somewhere down the list, so there is a position worth keeping.
+    await page.mouse.wheel(0, 600);
+    await settle();
+
+    await page.getByRole('button', { name: 'Show on map' }).first().click();
+    const scrim = page.locator('[class*="mapScrim"]');
+    await expect(scrim).toBeVisible();
+    await settle();
+
+    // Read after the sheet is up: pressing "Show on map" scrolls the chosen
+    // card into view, so this is the place the rider is actually left.
+    const held = await pageTop();
+    expect(held).toBeLessThan(0);
+
+    // The gesture that used to move the list behind the map now moves nothing.
+    await page.mouse.wheel(0, 600);
+    await settle();
+    expect(await pageTop()).toBe(held);
+
+    /*
+     * A tap on the scrim is the way out a scrim always is — and the assertion
+     * after it is the one that matters most: the rider is put back exactly
+     * where they were, not at the top of a list they had scrolled through.
+     * Holding the page by taking the body out of flow is what makes that a
+     * thing to prove rather than a thing that happens for free.
+     */
+    await scrim.click({ position: { x: 20, y: 20 } });
+    await expect(scrim).toHaveCount(0);
+    await settle();
+    expect(await pageTop()).toBe(held);
+
+    /*
+     * And the page scrolls again, which is what stops the check above being
+     * vacuous: a wheel that moved nothing at all would have passed it too.
+     */
+    await page.mouse.wheel(0, 300);
+    await expect.poll(pageTop).toBeLessThan(held);
   });
 
   test('is a column, not a sheet, from 861px up', async ({ page }) => {
