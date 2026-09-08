@@ -40,9 +40,9 @@ export default defineConfig({
      * `components/glossary` is the one component directory here, and it is
      * not a screen: `GlossaryText` is a pure function of a string that returns
      * markup, with no state and no hydration, and its whole job is *which
-     * words became links*. Playwright cannot see that until a page uses it,
-     * and nothing does yet (T29); a string-in, markup-out assertion is a unit
-     * test in every sense the rule above means. The glob names the directory
+     * words became links*. Playwright can only see that on a page that uses
+     * it (the trick page, since T32), one paragraph at a time; a string-in,
+     * markup-out assertion is a unit test in every sense the rule above means. The glob names the directory
      * rather than `src/components/**`, so this stays an exception and not a
      * door.
      */

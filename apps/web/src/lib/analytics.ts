@@ -344,10 +344,11 @@ export const ANALYTICS_EVENTS = {
   /**
    * A rider followed an onward link from a trick page (T31).
    *
-   * Carries `kind` — `'road'`, `'unlocks'`, `'similar'` or `'practise'`, the
-   * four link groups the page has and four fixed strings chosen here — `from`,
-   * the slug of the trick page they were on, and `to`, the slug of the trick
-   * they went to, or for `practise` the spot-feature tag the link narrowed the
+   * Carries `kind` — `'road'`, `'unlocks'`, `'similar'`, `'practise'` or, since
+   * T32, `'cross-sport'` for the "Same trick, other sports" panel: the five
+   * link groups the page has and five fixed strings chosen here — `from`, the
+   * slug of the trick page they were on, and `to`, the slug of the trick they
+   * went to, or for `practise` the spot-feature tag the link narrowed the
    * spots list to. Every value is a catalogue fact: slugs and feature tags are
    * written in this repository, and nothing about the rider travels — not
    * whether they had landed either trick, and not which plan they are on.
@@ -355,8 +356,10 @@ export const ANALYTICS_EVENTS = {
    * It exists because the page grew four ways onward at once, and the question
    * behind all of them is the same: do riders move *through* the library from
    * a trick page, or do they read one and go back to the grid? `kind` is what
-   * says which of the four earns its room, and `from`/`to` are what say
-   * whether the road is walked upward, toward harder tricks, or back down.
+   * says which of the five earns its room, and `from`/`to` are what say
+   * whether the road is walked upward, toward harder tricks, or back down —
+   * or, for `cross-sport`, whether a rider ever crosses into another sport's
+   * library from the trick they know.
    */
   trickLinkFollowed: 'trick_link_followed',
   /**

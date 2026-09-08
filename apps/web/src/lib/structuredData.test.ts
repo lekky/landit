@@ -44,10 +44,32 @@ describe('trickHowToLd', () => {
     expect(node.name).toContain(SPORTS[bunnyHop.sport].label.toLowerCase());
   });
 
-  it('lists exactly the two steps the page shows, and invents none', () => {
-    const steps = node.step as { name: string; text: string }[];
+  it('lists exactly the steps the page shows, and invents none', () => {
+    const steps = node.step as { name: string; text?: string }[];
+    // The lowdown, the tips, and — because the bunny hop carries mistakes and
+    // the page draws them (T32) — "Why it isn't working". Never a fourth.
+    expect(steps).toHaveLength(3);
+    expect(steps.slice(0, 2).map((s) => s.text)).toEqual([bunnyHop.about, bunnyHop.tips]);
+    expect(steps[2]?.name).toBe("Why it isn't working");
+  });
+
+  it('puts each mistake and its fix in the third step as a tip, word for word', () => {
+    const steps = node.step as { itemListElement?: { '@type': string; text: string }[] }[];
+    const tips = steps[2]?.itemListElement ?? [];
+    expect(tips).toHaveLength(bunnyHop.mistakes!.length);
+    expect(tips.every((tip) => tip['@type'] === 'HowToTip')).toBe(true);
+    expect(tips.map((tip) => tip.text)).toEqual(
+      bunnyHop.mistakes!.map((m) => `${m.what} ${m.fix}`),
+    );
+  });
+
+  it('describes two steps for a trick with no mistakes, because that is its page', () => {
+    const { mistakes: _omitted, ...bare } = bunnyHop;
+    const steps = trickHowToLd(bare, { url: 'https://example.test/x' }).step as unknown[];
     expect(steps).toHaveLength(2);
-    expect(steps.map((s) => s.text)).toEqual([bunnyHop.about, bunnyHop.tips]);
+    // And an empty list is the same as none: an empty section is never drawn.
+    const empty = trickHowToLd({ ...bare, mistakes: [] }, { url: 'https://example.test/x' });
+    expect(empty.step as unknown[]).toHaveLength(2);
   });
 
   it('omits the supply list rather than inventing one when there is no kit line', () => {

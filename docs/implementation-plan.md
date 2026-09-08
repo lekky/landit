@@ -3677,6 +3677,57 @@ sports" from t28's `crossSportEquivalents`, and the dotted glossary underlines i
 t29's `GlossaryText`. None of the four is drawn here, and none of the fields is added to `Trick` by
 this task.
 
+**T32 · The trick page, told what it knows.** Added after launch (Rachid, 2026-09-07, in chat),
+the follow-up T31 named once its three sibling sessions had merged, and the close of issue #354
+(the glossary-wiring reminder). Wiring and layout only: every field and rule it draws already sat
+on `main`, so nothing here adds a request, a column or a component a rider would recognise as new
+— it is the same page, saying the rest of what it already knew. Against the same third design
+pack as T31 (`landit-research/trick-page-2026-09-07/design/handoff/`, artboards 1a, 1b and 1d),
+at the same fidelity, with the same rule that the code wins over the pack on stage words and
+colours.
+
+What a rider gets, lettered as the pack letters them:
+
+- **D · Why it isn't working** — the trick's common mistakes, between the Tips and the Fun fact:
+  numbered rows that share their borders, an ink square with the number in the brand yellow, the
+  mistake in bold and its fix in body copy after it. T28's `mistakes`, drawn only when there are
+  some — a database older than the column returns nothing, and *absent* means "not written yet",
+  so no empty section is ever drawn. An `<ol>`, so a screen reader gets the numbering the square
+  draws.
+- **C, completed · Why it's Spicy** — T28's `hard` sentence as a fourth row under the three
+  facts cells, spanning the strip, "**Why it's Spicy:**" in the same `TIERS_LABEL` word the third
+  cell shows. Only when the sentence exists.
+- **G · Same trick, other sports** — a flat side panel under the facts strip, one row per
+  equivalent from `crossSportEquivalents`: "On a [Skateboard] this is the Ollie", the sport in
+  the top bar's own chip and the trick name as the one link. Nothing rendered when a trick has
+  none — the wrapper is conditional as well as the panel, so no empty gap is left in the column
+  either. On a phone it follows the facts, before the lowdown, where the pack's 1d order has it.
+- **Glossary words in the copy.** The lowdown, the tips, the fun fact and each mistake's fix go
+  through T29's `GlossaryText`, with the trick's sport and slug: first mention per paragraph, a
+  2px dotted ink underline and no colour change, linking to `/glossary?from=<slug>#<term>`, where
+  "Back to the trick" is already waiting. The page stays a server component — the component is a
+  pure function of the string, and there is nothing for a hydration mismatch to throw away.
+  The mistake's *heading* is left plain on purpose: a dotted word in bold reads as emphasis, not
+  as "this is explained". `hard` is left plain too, because the brief named four fields and it
+  was not one; it is one line to add if the owner wants it.
+
+**Structured data.** `trickHowToLd` gains a third `HowToStep`, "Why it isn't working", holding
+each mistake and its fix as a `HowToTip` — the schema.org shape for a thing to know rather than a
+thing to do — and only when the page draws the section, so the graph never describes what the page
+does not show. A trick with no mistakes still gets two steps.
+
+**Analytics.** No new event. `trick_link_followed` gains a fifth `kind`, `'cross-sport'`, for the
+one link group that leads out of the rider's sport; `glossary_opened` with `source: 'inline'` was
+already fired by the glossary on arrival with `?from=`, and wiring `GlossaryText` is what starts
+that count — confirmed end to end from a trick page in this task's e2e.
+
+**Checked.** `e2e/library.spec.ts` asserts the four numbered rows and the "Why it's Spicy" line on
+`/library/tailwhip`, the Ollie and the BMX Bunny Hop as links on `/library/bunny-hop` and that one
+of them lands on the other sport's page, and that a dotted word in the Tailwhip's tips is dotted,
+keeps the paragraph's colour, opens `/glossary?from=tailwhip#<term>` and comes back through "Back
+to the trick". The stickers and video-links specs are untouched and still match "First landed"
+exactly, for the reason each records.
+
 ### Dependency graph
 
 ```

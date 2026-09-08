@@ -271,7 +271,8 @@ describe('the event catalogue', () => {
         'sticker_earned',
         'sticker_shared',
         // An onward link from a trick page — the road, the unlocks, the
-        // similar tricks or the practise line. Slugs and feature tags only.
+        // similar tricks, the practise line or the cross-sport panel. Slugs
+        // and feature tags only.
         'trick_link_followed',
         'trick_logged',
         'upgrade_started',
