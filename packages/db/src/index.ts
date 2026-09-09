@@ -223,3 +223,17 @@ export {
   type SeedPlan,
   type SeedResult,
 } from './seed';
+
+export {
+  countSpotsBySport,
+  getSpotsByIds,
+  listOwnSpots,
+  listSpotPoints,
+  pageSpots,
+  pageWindows,
+  spotListFilter,
+  type SpotFilter,
+  type SpotListQuery,
+  type SpotPage,
+  type SpotPoint,
+} from './spots';

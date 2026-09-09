@@ -1,18 +1,20 @@
 import {
+  SPORT_IDS,
   regionFromAcceptLanguage,
   spotCountryForRegion,
   spotFeature,
   unitsForCountry,
   type SportId,
 } from '@landit/core';
-import { listSpots } from '@landit/db';
+import { countSpotsBySport, listOwnSpots, pageSpots } from '@landit/db';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
 import { ROUTES } from '@/lib/routes';
 import { anonymousClient, currentRider } from '@/lib/session';
 
-import { SpotsScreen, type SpotView } from './SpotsScreen';
+import { SpotsScreen } from './SpotsScreen';
+import { SPOTS_PAGE, toSpotView } from './view';
 
 export const metadata: Metadata = {
   title: 'Spots · Land The Trick',
@@ -28,13 +30,26 @@ export const metadata: Metadata = {
  * a spot is a public place. What signing in adds is the ability to put one
  * forward, and to see your own submissions while they wait.
  *
+ * **One page, not the world** (issue #367). This used to hand the screen every
+ * live spot and let the browser filter and page it, which was 1.34 MB of HTML
+ * once France's census landed. Now it renders the first screenful for the
+ * query the screen will open with, and the screen asks `listActions.ts` for
+ * everything after that. The count line and the sport tabs' notes are
+ * counted here, over the whole collection, so they say what they always said.
+ *
+ * **The first page is for the sport the screen will show first.** The sport
+ * lives in the browser (`localStorage`, see `providers/sport.tsx`) and cannot
+ * be read here; what *can* be known is the default the provider falls back to
+ * before it reads storage — the rider's first sport, else the first sport
+ * there is — and that is the page rendered. A rider whose stored choice
+ * differs sees the list swap once after hydration, which is exactly what the
+ * old screen did when it filtered the full list on the same tick.
+ *
  * **The list is whatever the rules hand back, and nothing here filters for
- * safety.** `listSpots` returns live spots plus the caller's own pending ones,
- * because that is what the `listRule` says; a `pending` spot belonging to
- * somebody else is not omitted here, it is invisible (plan §6.1, proven over
- * HTTP in `pocketbase/tests/spot-submission.test.ts`). The split below is
- * presentation — which card gets the "waiting to be checked" treatment — never
- * a privacy boundary.
+ * safety.** A rider's own pending and rejected submissions come back to them
+ * because that is what the `listRule` says; somebody else's are not omitted
+ * here, they are invisible (plan §6.1, proven over HTTP in
+ * `pocketbase/tests/spot-submission.test.ts`).
  *
  * **Distances are in the reader's units, resolved here, on the server.**
  * Two signals, and the weaker one is only consulted when the stronger is
@@ -42,7 +57,8 @@ export const metadata: Metadata = {
  * a signed-out visitor is read from **`Accept-Language`**, which is a browser
  * setting rather than a location and is therefore the guess, not the answer.
  * Neither is stored, and both are settled before the markup exists — nothing on
- * a screen that hydrates may be locale-derived (LESSONS §5).
+ * a screen that hydrates may be locale-derived (LESSONS §5). The same signal
+ * decides whose parks lead the list.
  */
 export default async function SpotsPage({
   searchParams,
@@ -51,7 +67,6 @@ export default async function SpotsPage({
 }) {
   const session = await currentRider();
   const client = session?.client ?? anonymousClient();
-  const records = await listSpots(client);
 
   /*
    * `?feature=flat`, from a trick page's "Where to practise" line (T31).
@@ -66,44 +81,33 @@ export default async function SpotsPage({
   const requested = Array.isArray(params.feature) ? params.feature[0] : params.feature;
   const feature = requested ? spotFeature(requested) : null;
 
-  const spots: SpotView[] = records.map((record) => ({
-    id: record.id,
-    // `''` for a row the slug hook has not reached — a card with none renders
-    // no link rather than one to `/spots/` (`sitemap.ts` guards the same way).
-    slug: record.slug || '',
-    name: record.name,
-    town: record.town,
-    type: record.type,
-    lat: record.lat,
-    lng: record.lng,
-    sports: (record.sports ?? []) as SportId[],
-    tags: Array.isArray(record.tags) ? (record.tags as string[]) : [],
-    status: record.status,
-    // PocketBase returns '' for an unset text field, and '' is not "absent" to
-    // a template — it renders an empty line. Collapse it here, once, so the
-    // screen only ever asks whether it has the value.
-    address: record.address || undefined,
-    phone: record.phone || undefined,
-    country: record.country || undefined,
-  }));
-
-  /*
-   * One signal, two uses. The rider's region already decided miles or
-   * kilometres; it now also decides whose parks lead the list, because a
-   * hundred-odd spots sorted by name opens on Argentina for everybody. Same
-   * precedence as the units: a signed-in rider's declared country beats a
-   * browser setting, and neither is stored.
-   */
   const region = session
     ? session.rider.country
     : regionFromAcceptLanguage((await headers()).get('accept-language'));
+  const homeCountry = spotCountryForRegion(region);
+
+  const riderSports = (session?.rider.sports ?? []) as SportId[];
+  const initialSport: SportId = riderSports[0] ?? SPORT_IDS[0]!;
+
+  const [first, counts, own] = await Promise.all([
+    pageSpots(
+      client,
+      { search: '', sport: initialSport, feature: feature?.id ?? null },
+      { home: homeCountry, page: 1, perPage: SPOTS_PAGE },
+    ),
+    countSpotsBySport(client, SPORT_IDS),
+    session ? listOwnSpots(client) : Promise.resolve([]),
+  ]);
 
   return (
     <SpotsScreen
-      spots={spots}
+      initialSpots={first.items.map(toSpotView)}
+      initialTotal={first.total}
+      initialSport={initialSport}
+      countsBySport={counts}
+      ownSpots={own.map(toSpotView)}
       signedIn={!!session}
       units={unitsForCountry(region)}
-      homeCountry={spotCountryForRegion(region)}
       initialFeature={feature?.id ?? null}
     />
   );
