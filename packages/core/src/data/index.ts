@@ -58,3 +58,9 @@ export { LANDED_STAGES, STAGE, STAGE_IDS, STAGES } from './stages';
 export { AWARDS, type AwardId } from './awards';
 export { STICKERS, type StickerId } from './stickers';
 export { TRICK_PREREQS, TRICKS, type TrickId } from './tricks';
+export {
+  SPOT_SOURCES,
+  creditedSpotSources,
+  type SpotSource,
+  type SpotSourceId,
+} from './spot-sources';

@@ -423,6 +423,15 @@ export interface Spot {
    */
   readonly indoor?: boolean;
   readonly operating?: SpotOperating;
+  /*
+   * Where the row came from and on what terms — a `SPOT_SOURCES` id and an
+   * SPDX-style licence id (`data/spot-sources.ts`). Internal: never rendered
+   * on the public page (owner, 2026-09-07). Absent on the hand-researched data
+   * because the seed writes one value for the whole table; present on rows an
+   * importer builds, because an importer is the thing this distinguishes.
+   */
+  readonly source?: string;
+  readonly licence?: string;
 }
 
 /** A plain coordinate pair. */

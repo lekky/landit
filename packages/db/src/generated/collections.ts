@@ -567,6 +567,8 @@ export interface SpotsRecord {
   slug: string;
   indoor: boolean;
   operating: SpotsOperating;
+  source: string;
+  licence: string;
 }
 
 /** The shape accepted when creating a `spots` record. */
@@ -588,6 +590,8 @@ export interface SpotsCreate {
   slug?: string;
   indoor?: boolean;
   operating?: SpotsOperating;
+  source?: string;
+  licence?: string;
 }
 
 /** The shape accepted when updating a `spots` record. */

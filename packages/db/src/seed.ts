@@ -4,6 +4,7 @@ import {
   PLANS,
   SPORT_IDS,
   SPOTS,
+  SPOT_SOURCES,
   STICKERS,
   TRICKS,
   TRICK_PREREQS,
@@ -18,6 +19,7 @@ import {
 import type { Client } from './clients';
 import { records } from './collections';
 import type { CollectionName } from './generated/collections';
+import { franceSpots } from './imports/france';
 
 /**
  * Seeding: the canonical data in `@landit/core`, loaded into PocketBase.
@@ -52,6 +54,15 @@ import type { CollectionName } from './generated/collections';
  * no-op writes, and `--only` keeps a run from reaching collections it had no
  * business touching. Whether "canonical wins" is the right rule at all is a
  * product decision, not this file's — see the issue linked from plan §7.
+ *
+ * **Imported tables are the exception, and it is a deliberate one** (issue
+ * #362). France's three thousand census rows arrive `operating: 'unknown'` and
+ * the only thing that will ever make one say 'open' or 'closed' is a staff
+ * edit — so a table whose rows exist to be corrected by hand is written once
+ * and never rewritten: `onExisting: 'skip'`. A row that has been edited stays
+ * edited, a row that has not stays as imported, and a re-fetch of the census
+ * adds parks that are new and touches nothing that is already there. The
+ * curated tables keep their old rule; nothing about them changed.
  */
 
 /* ------------------------------------------------------------- the plan -- */
@@ -62,6 +73,15 @@ export interface SeedTable {
   /** Fields forming the natural key, matched to decide insert vs update. */
   readonly key: readonly string[];
   readonly rows: readonly Record<string, unknown>[];
+  /**
+   * What to do with a row that already exists. `'update'` (the default, and
+   * the behaviour every table had before this field existed) rewrites it when
+   * it differs; `'skip'` leaves it exactly as it is, whatever it holds — the
+   * rule for imported rows that staff are expected to correct.
+   */
+  readonly onExisting?: 'update' | 'skip';
+  /** How the log names this table when the collection alone is ambiguous. */
+  readonly label?: string;
 }
 
 export interface SeedPlan {
@@ -77,6 +97,50 @@ export interface SeedPlan {
  * `docs/LESSONS.md` describes.
  */
 const money = formatPricePence;
+
+/**
+ * A spot as its columns hold it — the one mapping for every table of spots,
+ * researched or imported, so the two cannot drift.
+ */
+function spotRow(spot: Spot): Record<string, unknown> {
+  return {
+    name: spot.name,
+    town: spot.town,
+    type: spot.type,
+    // Absent is written as empty rather than omitted: an omitted key leaves
+    // whatever the row held before, so a spot whose phone number is withdrawn
+    // would keep the old one forever.
+    address: spot.address ?? '',
+    phone: spot.phone ?? '',
+    country: spot.country ?? '',
+    // `dist` is deliberately not seeded: distance belongs to the viewer, not
+    // the spot (see `SPOTS` in @landit/core).
+    lat: spot.lat,
+    lng: spot.lng,
+    sports: [...spot.sports],
+    tags: [...spot.tags],
+    status: spot.status,
+    /*
+     * `indoor` collapses to false when absent, and that is a storage limit
+     * rather than a claim: a PocketBase bool has no null, so the column means
+     * "known to be indoor", never "known to be outdoors". `operating` writes
+     * 'unknown' explicitly for the same reason the fields above write '' — an
+     * omitted key would leave a stale value behind on a re-seed, so a park
+     * that has since closed would keep saying it is open.
+     */
+    indoor: spot.indoor ?? false,
+    operating: spot.operating ?? 'unknown',
+    /*
+     * Where it came from (`SPOT_SOURCES`). The hand-researched data carries
+     * neither field per row because one value covers the whole table: every
+     * one of those spots was cross-checked against OpenStreetMap, so they are
+     * 'researched' under its Open Database Licence. An importer sets both on
+     * every row it builds.
+     */
+    source: spot.source ?? SPOT_SOURCES.researched.id,
+    licence: spot.licence ?? SPOT_SOURCES.researched.licence,
+  };
+}
 
 /**
  * The canonical data as records, ready to write. Pure — no client, no I/O — so
@@ -198,41 +262,27 @@ export function buildSeed(): SeedPlan {
       },
       {
         collection: 'spots',
+        label: 'spots (researched)',
         // Spots have no slug. Name plus town is what makes one distinct in the
         // seed data, and re-running must not create a second Rampworx.
         key: ['name', 'town'],
         // Widened from the `as const` data so an optional field is a question
         // about values rather than about literal types — the same move
         // `data.test.ts` makes, and what lets a spot with no phone map cleanly.
-        rows: (SPOTS as readonly Spot[]).map((spot) => ({
-          name: spot.name,
-          town: spot.town,
-          type: spot.type,
-          // Absent is written as empty rather than omitted: an omitted key
-          // leaves whatever the row held before, so a spot whose phone number
-          // is withdrawn would keep the old one forever.
-          address: spot.address ?? '',
-          phone: spot.phone ?? '',
-          country: spot.country ?? '',
-          // `dist` is deliberately not seeded: distance belongs to the viewer,
-          // not the spot (see `SPOTS` in @landit/core).
-          lat: spot.lat,
-          lng: spot.lng,
-          sports: [...spot.sports],
-          tags: [...spot.tags],
-          status: spot.status,
-          /*
-           * `indoor` collapses to false when absent, and that is a storage
-           * limit rather than a claim: a PocketBase bool has no null, so the
-           * column means "known to be indoor", never "known to be outdoors".
-           * `operating` writes 'unknown' explicitly for the same reason the
-           * fields above write '' — an omitted key would leave a stale value
-           * behind on a re-seed, so a park that has since closed would keep
-           * saying it is open.
-           */
-          indoor: spot.indoor ?? false,
-          operating: spot.operating ?? 'unknown',
-        })),
+        rows: (SPOTS as readonly Spot[]).map(spotRow),
+      },
+      {
+        collection: 'spots',
+        label: 'spots (France)',
+        key: ['name', 'town'],
+        /*
+         * Written once and never over: see the header. The rows share the
+         * curated table's collection and key, so `--only spots` seeds both,
+         * and a name-plus-town that the curated data already holds is simply
+         * found and left alone rather than written twice.
+         */
+        onExisting: 'skip',
+        rows: franceSpots().map(spotRow),
       },
       {
         collection: 'events',
@@ -277,7 +327,9 @@ export const PREREQS_TABLE = 'trick_prereqs';
 
 /** Every name `selectTables` accepts, in the order the seed writes them. */
 export function seedableTables(plan: SeedPlan = buildSeed()): string[] {
-  return [...plan.tables.map((t) => t.collection), PREREQS_TABLE];
+  // Two tables can share a collection (`spots` is researched and imported);
+  // the name is offered once and selects both.
+  return [...new Set([...plan.tables.map((t) => t.collection), PREREQS_TABLE])];
 }
 
 /**
@@ -324,6 +376,13 @@ export interface SeedResult {
   readonly updated: number;
   /** Rows that existed and already matched, so were left alone. */
   readonly unchanged: number;
+  /**
+   * Rows that existed and were left alone **without looking** — the table is
+   * `onExisting: 'skip'`. Counted apart from `unchanged` because the two
+   * silences mean different things: one says the database already agrees,
+   * the other says the seed did not ask.
+   */
+  readonly kept: number;
 }
 
 export interface SeedOptions {
@@ -446,6 +505,14 @@ async function assertSportsAccepted(client: Client): Promise<void> {
   }
 }
 
+/** A row's natural key as one string, for the skip-table lookup. */
+function keyOf(row: Record<string, unknown>, key: readonly string[]): string {
+  return key.map((field) => String(row[field] ?? '')).join('\u0000');
+}
+
+/** How often a long import says it is still going. */
+const PROGRESS_EVERY = 500;
+
 /**
  * Write the seed.
  *
@@ -466,33 +533,63 @@ export async function seed(
 
   for (const table of plan.tables) {
     const api = records(client, table.collection);
+    const name = table.label ?? table.collection;
     let created = 0;
     let updated = 0;
     let unchanged = 0;
+    let kept = 0;
 
-    for (const row of table.rows) {
-      const filter = table.key.map((field) => `${field} = {:${field}}`).join(' && ');
-      const params = Object.fromEntries(table.key.map((field) => [field, row[field] as string]));
-
-      const existing = await api.first(filter, params);
-      if (!existing) {
+    if (table.onExisting === 'skip') {
+      /*
+       * One listing of the keys already there, then a create for each row that
+       * is not. The per-row lookup below would be a request per row — about
+       * three thousand for France on every run, most of them to learn that
+       * nothing needs doing — and a command that is silent for minutes is a
+       * command somebody kills halfway, leaving a partial import.
+       */
+      const held = new Set<string>();
+      const fields = table.key.join(',');
+      for (const record of await api.list({ fields })) {
+        held.add(keyOf(record as unknown as Record<string, unknown>, table.key));
+      }
+      for (const row of table.rows) {
+        if (held.has(keyOf(row, table.key))) {
+          kept += 1;
+          continue;
+        }
         await api.create(row as never);
+        held.add(keyOf(row, table.key));
         created += 1;
-      } else if (rowMatches(existing as unknown as Record<string, unknown>, row)) {
-        // Skipping the write is the point. Every collection the seed touches is
-        // in the audit hook's `AUDITED` list, and `onRecordUpdateRequest` there
-        // has no change check — so an unconditional update wrote an audit row
-        // carrying a full before/after snapshot of every record on every run,
-        // and buried the one line that had actually changed.
-        unchanged += 1;
-      } else {
-        await api.update(existing.id, row as never);
-        updated += 1;
+        if (created % PROGRESS_EVERY === 0) log(`  ${name}: ${created} created so far…`);
+      }
+    } else {
+      for (const row of table.rows) {
+        const filter = table.key.map((field) => `${field} = {:${field}}`).join(' && ');
+        const params = Object.fromEntries(table.key.map((field) => [field, row[field] as string]));
+
+        const existing = await api.first(filter, params);
+        if (!existing) {
+          await api.create(row as never);
+          created += 1;
+        } else if (rowMatches(existing as unknown as Record<string, unknown>, row)) {
+          // Skipping the write is the point. Every collection the seed touches
+          // is in the audit hook's `AUDITED` list, and `onRecordUpdateRequest`
+          // there has no change check — so an unconditional update wrote an
+          // audit row carrying a full before/after snapshot of every record on
+          // every run, and buried the one line that had actually changed.
+          unchanged += 1;
+        } else {
+          await api.update(existing.id, row as never);
+          updated += 1;
+        }
       }
     }
 
-    log(`${table.collection}: ${created} created, ${updated} updated, ${unchanged} unchanged`);
-    results.push({ collection: table.collection, created, updated, unchanged });
+    log(
+      `${name}: ${created} created, ${updated} updated, ${unchanged} unchanged` +
+        (table.onExisting === 'skip' ? `, ${kept} kept` : ''),
+    );
+    results.push({ collection: table.collection, created, updated, unchanged, kept });
   }
 
   if (options.prereqs ?? true) results.push(await seedPrereqs(client, log));
@@ -549,5 +646,5 @@ async function seedPrereqs(client: Client, log: (message: string) => void): Prom
   // `seen` are edges that already existed and were left alone, which is
   // `unchanged` — it was reported as `updated` while `SeedResult` had nowhere
   // else to put it, and the log line above has always called it the right name.
-  return { collection: 'trick_prereqs', created, updated: 0, unchanged: seen.size };
+  return { collection: 'trick_prereqs', created, updated: 0, unchanged: seen.size, kept: 0 };
 }

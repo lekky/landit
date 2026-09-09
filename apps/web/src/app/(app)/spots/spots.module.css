@@ -119,6 +119,19 @@
   line-height: 1.5;
 }
 
+/*
+ * The data credit under the warning: a licence term, so it is always shown,
+ * and small because it is for whoever goes looking rather than for a rider
+ * choosing a park. Muted ink, no box — it is a caption to the map, not a
+ * second notice competing with the yellow one.
+ */
+.credit {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
 /* --------------------------------------------------------- the two panes -- */
 
 .grid {

@@ -55,10 +55,10 @@ const results = await seed(client, plan, {
   log: (message) => process.stderr.write(`  ${message}\n`),
 });
 
-const total = (field: 'created' | 'updated' | 'unchanged'): number =>
+const total = (field: 'created' | 'updated' | 'unchanged' | 'kept'): number =>
   results.reduce((sum, r) => sum + r[field], 0);
 
 process.stderr.write(
   `Done: ${total('created')} created, ${total('updated')} updated, ` +
-    `${total('unchanged')} unchanged.\n`,
+    `${total('unchanged')} unchanged, ${total('kept')} kept.\n`,
 );

@@ -1,5 +1,6 @@
 import {
   SITE_URL,
+  SPOT_SOURCES,
   distanceLabelIn,
   distanceMiles,
   hasCoords,
@@ -264,6 +265,20 @@ export default async function SpotPage({ params }: Params) {
          * `SpotPageOpened`.
          */
         origin={spot.submitted_by ? 'submitted' : 'researched'}
+        /*
+         * Only a catalogue id ever leaves: a value the column holds that the
+         * catalogue does not know is reported as such, never forwarded. Rows
+         * from before the column existed read '' and are what `origin` says.
+         */
+        source={
+          spot.source in SPOT_SOURCES
+            ? spot.source
+            : spot.source
+              ? 'unknown'
+              : spot.submitted_by
+                ? SPOT_SOURCES.rider.id
+                : SPOT_SOURCES.researched.id
+        }
         type={spot.type || 'unknown'}
         operating={spot.operating || 'unknown'}
         indoor={Boolean(spot.indoor)}

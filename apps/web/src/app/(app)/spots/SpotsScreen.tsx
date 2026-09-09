@@ -2,6 +2,7 @@
 
 import {
   SPORTS,
+  creditedSpotSources,
   distanceLabelIn,
   filterSpots,
   hasCoords,
@@ -28,6 +29,39 @@ import { AddSpotForm } from './AddSpotForm';
 import { SpotMap } from './SpotMap';
 import { useHereOnce } from '@/lib/useHereOnce';
 import styles from './spots.module.css';
+
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/**
+ * "councils, venues and OpenStreetMap (Open Database Licence); the French
+ * Ministry of Sport’s equipment census via data.gouv.fr (Licence Ouverte 2.0,
+ * updated 8 September 2026)". Every source the catalogue says must be named,
+ * in its order. The date is spelled from a fixed table rather than a locale:
+ * this screen hydrates, and nothing on it may be locale-derived (LESSONS §5).
+ */
+function creditLine(): string {
+  return creditedSpotSources()
+    .map((source) => {
+      const terms = [source.licenceName];
+      const day = source.snapshot ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(source.snapshot) : null;
+      if (day) terms.push(`updated ${Number(day[3])} ${MONTHS[Number(day[2]) - 1]} ${day[1]}`);
+      return `${source.name} (${terms.join(', ')})`;
+    })
+    .join('; ');
+}
 
 /** A `spots` row, flattened to what a screen needs. */
 export interface SpotView {
@@ -954,6 +988,23 @@ export function SpotsScreen({
               number, ring ahead.
             </span>
           </p>
+          {/*
+            **The credit line**, and it is a licence term rather than a
+            courtesy: the hand-researched spots were cross-checked against
+            OpenStreetMap (Open Database Licence), and France's parks come from
+            the Ministry of Sport's census under Licence Ouverte 2.0, which asks
+            for the source's name *and* when it was last taken. Both are read
+            from `SPOT_SOURCES` in `@landit/core` — the same table each row is
+            stamped from — so a new dataset credits itself the day it is added,
+            and a row's own source is never shown on its page (owner,
+            2026-09-07). Never folded into `MAP_ATTRIBUTION`: that string is the
+            tile credit and is kept byte-identical to what OpenFreeMap serves
+            so MapLibre de-duplicates it.
+
+            Not hidden on a narrow screen the way the long warning is. A
+            licence that asks to be named is not met by a shorter paragraph.
+          */}
+          <p className={styles.credit}>Spot data: {creditLine()}.</p>
         </div>
       </div>
     </div>
