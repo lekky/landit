@@ -1,6 +1,10 @@
 import { SPORT_IDS, SPOTS, sortSpotsByDistance, type Spot } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
+// By path, for the reason `support/seed-spots.ts` gives: `@landit/db` is not a
+// dependency of the root manifest.
+import { franceSpots } from '../packages/db/src/imports/france';
+
 /*
  * The browser globals the callbacks below run against.
  *
@@ -52,6 +56,14 @@ interface StubPosition {
 // Widened from the `as const` seed data so `sports.includes` is a question about
 // values rather than about literal types.
 const liveSpots: readonly Spot[] = SPOTS.filter((spot) => spot.status === 'live');
+/**
+ * How many live spots the seed puts in the collection: the researched ones
+ * above plus France's import (issue #362), which `seed-spots.ts` writes too. The
+ * count line claims the whole collection, so the expectation has to as well;
+ * everything else in this file still reasons over the researched set, whose
+ * names and sports it can rely on.
+ */
+const seededLiveCount = liveSpots.length + franceSpots().length;
 const scooterSpot = liveSpots.find((spot) => spot.sports.includes('scooter'))!;
 const skateOnlySpot = liveSpots.find(
   (spot) => spot.sports.includes('skate') && !spot.sports.includes('scooter'),
@@ -171,7 +183,7 @@ test.describe('where to ride', () => {
     // whole list and the Skateboard tab. An unscoped match found two elements
     // and failed on strict mode, which is the locator doing its job.
     await expect(page.locator('[class*="count"]')).toHaveText(
-      new RegExp(`${liveSpots.length} spots`),
+      new RegExp(`${seededLiveCount} spots`),
     );
 
     // And each of them is reachable, which is the promise that matters.
