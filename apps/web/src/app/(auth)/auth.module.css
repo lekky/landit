@@ -102,9 +102,12 @@
 }
 
 /* On a phone the two lines of links were 14-17px tall targets (#375). The hit
- * area grows and the margin gives it straight back, so no line moves. */
+ * area grows and the margin gives it straight back, so no line moves. The way
+ * out of a refusal (`.errLink`, #370) is a link in a line of small type too, so
+ * it gets the same reach. */
 @media (max-width: 860px) {
-  .swap a {
+  .swap a,
+  .errLink {
     display: inline-block;
     padding: 14px 4px;
     margin: -14px -4px;
