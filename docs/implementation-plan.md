@@ -2086,6 +2086,13 @@ modal, "I'm going". Inputs: `landit-screens-b.jsx`, `landit-screens-d.jsx`, scre
   past tense, about weeks they could not have done (§6.4 standard 13). `challengesSinceJoining`
   keeps only the slots still running on or after the rider's join day, in their own timezone. The
   slot that was live on that day stays, because they could have logged it.
+- **The "The other one" panel is gone** (Rachid, in chat, 2026-09-11) — a deliberate divergence
+  from `landit-screens-b.jsx`, which draws it. The pack was drawn for two sports, where "the
+  other one" was unambiguous. With three, the screen showed whichever other sport came first and
+  never said which, and on the scooter tab it read as a second copy of the challenge above it
+  (BMX's is also "Hops Only"). The sport tabs already name every sport's live challenge and switch
+  to it, so the panel is removed rather than rebuilt with one row per sport.
+  `e2e/challenge.spec.ts` asserts it stays gone for a rider on all three sports.
 - **"Weekly" is gone from the copy, in favour of wording that survives the next cadence change.**
   The screen's eyebrow, the public footer link and the `challenger` sticker's condition all said it.
   They now say "challenge"; `week` carries a range ("Weeks 36-37") because the field is the card's

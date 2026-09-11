@@ -99,6 +99,9 @@ test('every sport has a week running, not just the two the design pack knew abou
       page.getByRole('button', { name: new RegExp(`Log a ${sport} thing`) }),
     ).toBeEnabled();
     await expect(page.getByText('No challenge running')).toHaveCount(0);
+    // The prototype's "The other one" panel was drawn for two sports; with
+    // three it named no sport and picked one arbitrarily. The tabs do its job.
+    await expect(page.getByText('The other one')).toHaveCount(0);
   }
 });
 
