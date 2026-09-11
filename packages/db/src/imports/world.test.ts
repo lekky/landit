@@ -15,11 +15,12 @@ import {
   collapseWorld,
   isGenericWorldName,
   nameWorldSpots,
+  osmOnlySpots,
   tagsFor,
   tidyName,
   worldSpots,
 } from './world';
-import { OSM_BIT, TNF_FLAG, type WorldSourceRow } from './world-source';
+import { OSM_BIT, TNF_FLAG, type WorldOsmRow, type WorldSourceRow } from './world-source';
 import { WORLD_SNAPSHOT_DATE, WORLD_SOURCE_ROWS } from './world.data';
 
 /**
@@ -276,8 +277,95 @@ describe('worldSpots', () => {
   });
 });
 
+type OsmFields = {
+  ref: string;
+  lat: number;
+  lng: number;
+  name: string;
+  bits: number;
+  area: number;
+  address: string;
+  phone: string;
+  town: string;
+  country: string;
+};
+
+const osmRow = (over: Partial<OsmFields> = {}): WorldOsmRow => [
+  over.ref ?? 'w1',
+  over.lat ?? 51.5,
+  over.lng ?? -0.1,
+  over.name ?? '',
+  over.bits ?? 0,
+  over.area ?? 500,
+  over.address ?? '',
+  over.phone ?? '',
+  over.town ?? 'London',
+  over.country ?? 'GB',
+];
+
+/** The OpenStreetMap-only mapping with nothing already seeded. */
+const osmAlone = (rows: readonly WorldOsmRow[]): readonly Spot[] => osmOnlySpots(rows, []);
+
+describe('osmOnlySpots (#390)', () => {
+  it('keeps a park of 300 m² and leaves a 299 m² ramp out', () => {
+    expect(osmAlone([osmRow({ area: 300 })])).toHaveLength(1);
+    expect(osmAlone([osmRow({ area: 299 })])).toEqual([]);
+  });
+
+  it('adds up the pieces of one park before measuring it', () => {
+    const spots = osmAlone([
+      osmRow({ ref: 'w1', area: 160 }),
+      osmRow({ ref: 'w2', area: 160, lat: north(51.5, 20) }),
+    ]);
+    expect(spots).toHaveLength(1);
+  });
+
+  it('never lists a private one, and never lets it lend its size', () => {
+    expect(osmAlone([osmRow({ bits: OSM_BIT.private, area: 5000 })])).toEqual([]);
+    expect(
+      osmAlone([
+        osmRow({ ref: 'w1', area: 200 }),
+        osmRow({ ref: 'w2', area: 5000, bits: OSM_BIT.private, lat: north(51.5, 20) }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it('drops a place a spot already seeded stands on', () => {
+    const existing = { ...(SPOTS[0] as Spot), lat: 51.5, lng: -0.1 };
+    expect(osmOnlySpots([osmRow()], [existing])).toEqual([]);
+    expect(osmOnlySpots([osmRow({ lat: north(51.5, 400) })], [existing])).toHaveLength(1);
+  });
+
+  it('is plain OpenStreetMap: source osm, Open Database Licence', () => {
+    expect(osmAlone([osmRow()])[0]).toMatchObject({
+      source: SPOT_SOURCES.osm.id,
+      licence: SPOT_SOURCES.osm.licence,
+    });
+  });
+
+  it('names a nameless park "Skatepark", a nameless pump track "Pump track", and keeps a real name', () => {
+    expect(osmAlone([osmRow()])[0]!.name).toBe('Skatepark');
+    const [pump] = osmAlone([osmRow({ name: 'Pumptrack Koppl', town: 'Koppl' })]);
+    expect(pump).toMatchObject({ name: 'Pump track', tags: ['Pump track'] });
+    expect(pump!.sports).toContain('bmx');
+    expect(osmAlone([osmRow({ name: 'Kings Park Bowl' })])[0]!.name).toBe('Kings Park Bowl');
+  });
+
+  it('lists BMX where the sport tag says so, and otherwise scooter and skate', () => {
+    expect(osmAlone([osmRow({ bits: OSM_BIT.bmx })])[0]!.sports).toContain('bmx');
+    expect(osmAlone([osmRow()])[0]!.sports).toEqual(['scooter', 'skate']);
+  });
+
+  it('counts past a name a seeded spot holds in the same town', () => {
+    const existing = { ...(SPOTS[0] as Spot), name: 'Skatepark', town: 'London', lat: 0, lng: 0 };
+    expect(osmOnlySpots([osmRow()], [existing])[0]!.name).toBe('Skatepark 2');
+  });
+});
+
 describe('the snapshot', () => {
-  const spots = worldSpots();
+  const world = worldSpots();
+  const osmOnly = osmOnlySpots();
+  const spots = [...world, ...osmOnly];
   const existing = [...(SPOTS as readonly Spot[]), ...franceSpots()];
   const label = (spot: Spot) => `${spot.name}|${spot.town}`;
 
@@ -291,11 +379,14 @@ describe('the snapshot', () => {
   it('was taken on the day the credit line prints', () => {
     expect(SPOT_SOURCES['osm-tnf'].snapshot).toBe(WORLD_SNAPSHOT_DATE);
     expect(SPOT_SOURCES.tnf.snapshot).toBe(WORLD_SNAPSHOT_DATE);
+    expect(SPOT_SOURCES.osm.snapshot).toBe(WORLD_SNAPSHOT_DATE);
   });
 
-  it('has thousands of parks, from the two world sources only', () => {
-    expect(spots.length).toBeGreaterThan(WORLD_SOURCE_ROWS.length / 2);
-    expect(spots.filter((spot) => spot.source !== 'osm-tnf' && spot.source !== 'tnf')).toEqual([]);
+  it('has thousands of parks, from the three world sources only', () => {
+    expect(world.length).toBeGreaterThan(WORLD_SOURCE_ROWS.length / 2);
+    expect(osmOnly.length).toBeGreaterThan(1000);
+    expect(osmOnly.filter((spot) => spot.source !== 'osm')).toEqual([]);
+    expect(world.filter((spot) => spot.source !== 'osm-tnf' && spot.source !== 'tnf')).toEqual([]);
   });
 
   it('never repeats a name in a town, or takes one a seeded spot holds', () => {

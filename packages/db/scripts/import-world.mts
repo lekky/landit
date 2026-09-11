@@ -65,6 +65,7 @@ import {
   TNF_FILTERS,
   TNF_FLAG,
   TOWN_MAX,
+  type WorldOsmRow,
   type WorldSourceRow,
 } from '../src/imports/world-source.ts';
 
@@ -269,24 +270,27 @@ interface OsmPlace {
   readonly tags: Record<string, string>;
 }
 
+/** One Overpass query, retried through the rate limit and the timeouts it answers with. */
+async function overpassQuery(query: string, label: string): Promise<Buffer> {
+  for (let attempt = 1; ; attempt += 1) {
+    const response = await fetch(OVERPASS, {
+      method: 'POST',
+      headers: { 'user-agent': USER_AGENT, 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ data: query }),
+    });
+    if (response.ok) return Buffer.from(await response.arrayBuffer());
+    if (attempt >= 5 || (response.status !== 429 && response.status !== 504)) {
+      throw new Error(`Overpass ${label} → ${response.status}`);
+    }
+    console.log(`  Overpass ${label} → ${response.status}, waiting…`);
+    await sleep(30_000 * attempt);
+  }
+}
+
 async function overpassBand(band: readonly number[]): Promise<OsmElement[]> {
   const bbox = band.join(',');
   const query = `[out:json][timeout:260];(nwr["sport"~"skateboard"](${bbox});nwr["leisure"="skatepark"](${bbox}););out center tags;`;
-  const body = await cached(`overpass-${band.join('_')}.json`, async () => {
-    for (let attempt = 1; ; attempt += 1) {
-      const response = await fetch(OVERPASS, {
-        method: 'POST',
-        headers: { 'user-agent': USER_AGENT, 'content-type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ data: query }),
-      });
-      if (response.ok) return Buffer.from(await response.arrayBuffer());
-      if (attempt >= 4 || (response.status !== 429 && response.status !== 504)) {
-        throw new Error(`Overpass ${bbox} → ${response.status}`);
-      }
-      console.log(`  Overpass ${bbox} → ${response.status}, waiting…`);
-      await sleep(60_000 * attempt);
-    }
-  });
+  const body = await cached(`overpass-${band.join('_')}.json`, () => overpassQuery(query, bbox));
   const parsed = JSON.parse(body.toString('utf8')) as { elements: OsmElement[]; remark?: string };
   if (parsed.remark && /error|timed out/i.test(parsed.remark)) {
     throw new Error(`Overpass ${bbox}: ${parsed.remark} (delete the cached band and retry)`);
@@ -337,7 +341,84 @@ function osmBits(tags: Record<string, string>): number {
   }
   if (/\bbmx\b/i.test(tags.sport ?? '')) bits |= OSM_BIT.bmx;
   if (tags.disused === 'yes' || tags.abandoned === 'yes') bits |= OSM_BIT.closed;
+  if (tags.access === 'private' || tags.access === 'no') bits |= OSM_BIT.private;
   return bits;
+}
+
+/* ------------------------------------------------------------ outlines -- */
+
+interface Point {
+  readonly lat: number;
+  readonly lon: number;
+}
+
+interface OutlineElement {
+  readonly type: 'way' | 'relation';
+  readonly id: number;
+  readonly geometry?: readonly Point[];
+  readonly members?: readonly { readonly role: string; readonly geometry?: readonly Point[] }[];
+}
+
+/** A closed ring's area in square metres, on a plane laid at its own latitude. */
+function ringArea(points: readonly Point[]): number {
+  if (points.length < 4) return 0;
+  const first = points[0]!;
+  const last = points[points.length - 1]!;
+  if (first.lat !== last.lat || first.lon !== last.lon) return 0;
+  const ring = points.slice(0, -1);
+  const lat0 = ring.reduce((sum, p) => sum + p.lat, 0) / ring.length;
+  const k = Math.cos((lat0 * Math.PI) / 180);
+  const xy = ring.map((p) => [p.lon * 111_320 * k, p.lat * 110_540] as const);
+  let twice = 0;
+  for (let i = 0; i < xy.length; i += 1) {
+    const [x1, y1] = xy[i]!;
+    const [x2, y2] = xy[(i + 1) % xy.length]!;
+    twice += x1 * y2 - x2 * y1;
+  }
+  return Math.abs(twice) / 2;
+}
+
+/** A way's ring, or a multipolygon's outer rings less its inner ones. An open line is 0. */
+function outlineArea(element: OutlineElement): number {
+  if (element.type === 'way') return ringArea(element.geometry ?? []);
+  const total = (element.members ?? []).reduce((sum, member) => {
+    const area = ringArea(member.geometry ?? []);
+    return member.role === 'inner' ? sum - area : sum + area;
+  }, 0);
+  return Math.max(0, total);
+}
+
+/**
+ * The area of each object's outline, fetched from Overpass by id in batches
+ * (`out geom`) and kept in `osm-areas.json` in the cache, which grows as it
+ * goes — so a run that is rate-limited halfway resumes where it stopped.
+ */
+async function osmAreas(refs: readonly string[]): Promise<Map<string, number>> {
+  const file = path.join(CACHE, 'osm-areas.json');
+  const known: Record<string, number> = existsSync(file)
+    ? (JSON.parse(await readFile(file, 'utf8')) as Record<string, number>)
+    : {};
+  for (const kind of ['way', 'relation'] as const) {
+    const missing = refs.filter((ref) => ref[0] === kind[0] && !(ref in known));
+    for (let i = 0; i < missing.length; i += 800) {
+      const batch = missing.slice(i, i + 800);
+      const ids = batch.map((ref) => ref.slice(1)).join(',');
+      const body = await overpassQuery(
+        `[out:json][timeout:240];${kind}(id:${ids});out geom;`,
+        `${kind} outlines ${i}–${i + batch.length}`,
+      );
+      const parsed = JSON.parse(body.toString('utf8')) as { elements: OutlineElement[] };
+      for (const element of parsed.elements) {
+        known[`${kind[0]}${element.id}`] = Math.round(outlineArea(element));
+      }
+      // Deleted from OpenStreetMap since the bands were fetched: no outline, no area.
+      for (const ref of batch) known[ref] ??= 0;
+      await mkdir(CACHE, { recursive: true });
+      await writeFile(file, JSON.stringify(known));
+      await sleep(3_000);
+    }
+  }
+  return new Map(Object.entries(known));
 }
 
 function osmAddress(tags: Record<string, string>): string {
@@ -616,6 +697,39 @@ for (const park of parks) {
   ]);
 }
 
+/*
+ * The objects no park above claimed (#390). Nodes are left out here because a
+ * point has no outline to measure; the size floor itself is a rule in
+ * `src/imports/world.ts`, where it is tested, not a filter in this script.
+ */
+const claimed = new Set([...matched.values()].map((place) => place.ref));
+const unclaimed = places.filter((place) => !claimed.has(place.ref) && place.ref[0] !== 'n');
+console.log(`Measuring ${unclaimed.length} unclaimed OpenStreetMap outlines…`);
+const areas = await osmAreas(unclaimed.map((place) => place.ref));
+const osmRows: WorldOsmRow[] = [];
+for (const place of unclaimed) {
+  const area = areas.get(place.ref) ?? 0;
+  if (area <= 0) continue;
+  const name = osmName(place.tags);
+  const border = countryAt(borders, place.lat, place.lng);
+  const town = placePark(towns, border, place.lat, place.lng, nameHint(name));
+  if (!town) continue;
+  const country = sameCountry(border, town.country) ? town.country : (border ?? town.country);
+  osmRows.push([
+    place.ref,
+    round6(place.lat),
+    round6(place.lng),
+    name,
+    osmBits(place.tags),
+    area,
+    osmAddress(place.tags),
+    osmPhone(place.tags),
+    town.name,
+    country,
+  ]);
+}
+osmRows.sort((a, b) => a[0].localeCompare(b[0]));
+
 const today = new Date().toISOString().slice(0, 10);
 const byCountry = new Map<string, number>();
 for (const row of rows) byCountry.set(row[11], (byCountry.get(row[11]) ?? 0) + 1);
@@ -629,9 +743,12 @@ const header = `/**
  * point and name. From Trucks and Fins: points, names and filter flags only — no
  * prose. Towns from GeoNames (CC BY 4.0); countries checked against Natural Earth
  * (public domain). ${unplaced} parks could not be placed and were dropped.
+ *
+ * Then ${osmRows.length} OpenStreetMap outlines no park claimed, each with its area,
+ * for the OpenStreetMap-only table (#390).
  * Field order is \`WorldSourceRow\` in \`./world-source.ts\`.
  */
-import type { WorldSourceRow } from './world-source';
+import type { WorldOsmRow, WorldSourceRow } from './world-source';
 
 /** The day this snapshot was taken, for the credit line under the spots map. */
 export const WORLD_SNAPSHOT_DATE = '${today}';
@@ -640,10 +757,27 @@ export const WORLD_SNAPSHOT_DATE = '${today}';
 export const WORLD_SOURCE_ROWS: readonly WorldSourceRow[] = [
 `;
 
-await writeFile(OUT, `${header}${rows.map((row) => `  ${JSON.stringify(row)},`).join('\n')}\n];\n`);
+const osmBlock = `
+/**
+ * OpenStreetMap skateboarding objects no park above was matched to (#390): ways
+ * and relations with an outline, each with its area in square metres. How big
+ * is big enough is a rule in \`./world.ts\`, not a filter here.
+ * Field order is \`WorldOsmRow\` in \`./world-source.ts\`.
+ */
+// prettier-ignore
+export const WORLD_OSM_ROWS: readonly WorldOsmRow[] = [
+${osmRows.map((row) => `  ${JSON.stringify(row)},`).join('\n')}
+];
+`;
+
+await writeFile(
+  OUT,
+  `${header}${rows.map((row) => `  ${JSON.stringify(row)},`).join('\n')}\n];\n${osmBlock}`,
+);
 
 console.log(`Wrote ${rows.length} rows to ${path.relative(process.cwd(), OUT)}`);
 console.log(`  matched to OpenStreetMap: ${matched.size}; unplaced: ${unplaced}`);
+console.log(`  OpenStreetMap-only outlines: ${osmRows.length}`);
 console.log(
   `  countries: ${[...byCountry]
     .sort((a, b) => b[1] - a[1])

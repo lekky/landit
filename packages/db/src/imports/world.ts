@@ -12,8 +12,14 @@ import {
 } from '@landit/core';
 
 import { franceSpots, isGenericName, recaseName } from './france';
-import { OSM_BIT, TNF_FLAG, type TnfFlag, type WorldSourceRow } from './world-source';
-import { WORLD_SOURCE_ROWS } from './world.data';
+import {
+  OSM_BIT,
+  TNF_FLAG,
+  type TnfFlag,
+  type WorldOsmRow,
+  type WorldSourceRow,
+} from './world-source';
+import { WORLD_OSM_ROWS, WORLD_SOURCE_ROWS } from './world.data';
 
 /**
  * The world's skateparks — the places on Trucks and Fins' map, matched against
@@ -60,10 +66,26 @@ import { WORLD_SOURCE_ROWS } from './world.data';
  * every filter either copy carried. A place within about 160 metres of a spot
  * already seeded — hand-researched, or from France's census — is that spot,
  * and is dropped: it already has a page somebody checked or a better source.
+ *
+ * **Then OpenStreetMap on its own (#390; the owner, 2026-09-11, in chat: "go
+ * with the recommendations").** OpenStreetMap maps about fifteen thousand
+ * skateboarding objects that no park on Trucks and Fins' map claimed. Most are
+ * small — a ramp in a playground — so only those whose outline encloses at
+ * least **300 m²** are kept, just above a tennis court; pieces of one park
+ * within 50 metres are added together first. A point has no outline and is
+ * left out, and so is anything marked private. What survives is plain Open
+ * Database Licence data (`source: 'osm'`), named by the same rule — "Pump
+ * track" rather than "Skatepark" where its name says it is one — and dropped
+ * where any spot already seeded, the world rows included, stands within 160
+ * metres.
  */
 
 const OSM_SOURCE = SPOT_SOURCES['osm-tnf'];
 const TNF_SOURCE = SPOT_SOURCES.tnf;
+const OSM_ONLY_SOURCE = SPOT_SOURCES.osm;
+
+/** The owner's floor (#390): smaller than this is a ramp, not a park. */
+export const OSM_ONLY_MIN_AREA = 300;
 
 /** `spots.name` is `max: 80` (`1786838400_init_collections.js`). */
 const NAME_MAX = 80;
@@ -262,7 +284,10 @@ function existingIndex(existing: readonly Spot[]): Map<string, Spot[]> {
   return index;
 }
 
-function nearExisting(place: WorldPlace, index: Map<string, Spot[]>): boolean {
+function nearExisting(
+  place: { readonly lat: number; readonly lng: number },
+  index: Map<string, Spot[]>,
+): boolean {
   const cy = Math.floor(place.lat / 0.01);
   const cx = Math.floor(place.lng / 0.01);
   const rings = lngRings(place.lat);
@@ -305,6 +330,20 @@ export function nameWorldSpots(
   places: readonly WorldPlace[],
   existing: readonly Pick<Spot, 'name' | 'town'>[] = [],
 ): readonly string[] {
+  return uniqueNames(
+    places.map((place) => ({ base: baseName(place), town: place.town })),
+    existing,
+  );
+}
+
+/**
+ * Each base name made unique within its town, in order, against the spots
+ * already seeded as well as each other — the rule both world tables share.
+ */
+export function uniqueNames(
+  entries: readonly { readonly base: string; readonly town: string }[],
+  existing: readonly Pick<Spot, 'name' | 'town'>[] = [],
+): readonly string[] {
   const taken = new Map<string, Set<string>>();
   const inTown = (town: string): Set<string> => {
     let names = taken.get(town);
@@ -316,9 +355,8 @@ export function nameWorldSpots(
   };
   for (const spot of existing) inTown(spot.town).add(spot.name);
 
-  return places.map((place) => {
-    const used = inTown(place.town);
-    const base = baseName(place);
+  return entries.map(({ base, town }) => {
+    const used = inTown(town);
     let name = base;
     for (let n = 2; used.has(name); n += 1) {
       const suffix = ` ${n}`;
@@ -441,6 +479,167 @@ function mapWorld(rows: readonly WorldSourceRow[], existing: readonly Spot[]): r
       operating: closed ? 'closed' : 'unknown',
       source: source.id,
       licence: source.licence,
+    };
+  });
+}
+
+/* -------------------------------------------------- OpenStreetMap only -- */
+
+/** One or more OpenStreetMap-only outlines that are one place, the largest first. */
+export interface OsmOnlyPlace {
+  readonly rows: readonly WorldOsmRow[];
+  readonly lat: number;
+  readonly lng: number;
+  readonly town: string;
+  readonly country: string;
+  readonly osmBits: number;
+  /** Every piece's area, added together, in square metres. */
+  readonly area: number;
+}
+
+/** Items within `miles` of one another, transitively, as groups in input order. */
+function groupWithin<T>(
+  items: readonly T[],
+  at: (item: T) => { readonly lat: number; readonly lng: number },
+  miles: number,
+): T[][] {
+  const parent = items.map((_, i) => i);
+  const find = (i: number): number => {
+    while (parent[i] !== i) {
+      parent[i] = parent[parent[i]!]!;
+      i = parent[i]!;
+    }
+    return i;
+  };
+  const cells = new Map<string, number[]>();
+  items.forEach((item, i) => {
+    const { lat, lng } = at(item);
+    const key = cellKey(lat, lng, CELL);
+    const cell = cells.get(key);
+    if (cell) cell.push(i);
+    else cells.set(key, [i]);
+  });
+  items.forEach((item, i) => {
+    const here = at(item);
+    const cy = Math.floor(here.lat / CELL);
+    const cx = Math.floor(here.lng / CELL);
+    const rings = lngRings(here.lat);
+    for (let y = cy - 1; y <= cy + 1; y += 1) {
+      for (let x = cx - rings; x <= cx + rings; x += 1) {
+        for (const j of cells.get(`${y},${x}`) ?? []) {
+          if (j > i && distanceMiles(here, at(items[j]!)) <= miles) parent[find(j)] = find(i);
+        }
+      }
+    }
+  });
+  const groups = new Map<number, T[]>();
+  items.forEach((item, i) => {
+    const root = find(i);
+    const group = groups.get(root);
+    if (group) group.push(item);
+    else groups.set(root, [item]);
+  });
+  return [...groups.values()];
+}
+
+/**
+ * Outlines within 50 metres of one another are one place — a park mapped as a
+ * bowl and a street section is one park — with their areas added together.
+ * Private outlines are taken out first, so one never lends its size to a
+ * public neighbour.
+ */
+export function collapseOsmOnly(rows: readonly WorldOsmRow[]): readonly OsmOnlyPlace[] {
+  const open = rows
+    .filter((row) => (row[4] & OSM_BIT.private) === 0)
+    .sort((a, b) => a[0].localeCompare(b[0]));
+  return groupWithin(open, (row) => ({ lat: row[1], lng: row[2] }), SAME_PLACE_MILES)
+    .map((group) => {
+      const members = [...group].sort((a, b) => b[5] - a[5] || a[0].localeCompare(b[0]));
+      const lead = members[0]!;
+      return {
+        rows: members,
+        lat: lead[1],
+        lng: lead[2],
+        town: lead[8],
+        country: lead[9],
+        osmBits: members.reduce((all, row) => all | row[4], 0),
+        area: members.reduce((sum, row) => sum + row[5], 0),
+      };
+    })
+    .sort((a, b) => a.rows[0]![0].localeCompare(b.rows[0]![0]));
+}
+
+const PUMP_TRACK = /\bpump\s*-?\s*track\b|\bpumptrack\b/i;
+
+/** Is this place a pump track, by any piece's name? */
+export function isPumpTrack(place: OsmOnlyPlace): boolean {
+  return place.rows.some((row) => PUMP_TRACK.test(row[3]));
+}
+
+/** The name before collisions: a real one if any piece has it, else what it is. */
+export function osmOnlyBaseName(place: OsmOnlyPlace): string {
+  for (const row of place.rows) {
+    if (!row[3] || isGenericWorldName(row[3], place.town)) continue;
+    const name = tidyName(row[3]);
+    if (name.length <= NAME_MAX) return name;
+  }
+  return isPumpTrack(place) ? 'Pump track' : GENERIC_NAME;
+}
+
+/**
+ * The OpenStreetMap-only table as spots. Pure, and mapped once per process for
+ * the snapshot, like `worldSpots`.
+ *
+ * `existing` defaults to everything the seed writes before this table —
+ * researched, French and the world rows — so a place any of them already holds
+ * is dropped and no name clashes with theirs.
+ */
+export function osmOnlySpots(
+  rows?: readonly WorldOsmRow[],
+  existing?: readonly Spot[],
+): readonly Spot[] {
+  if (rows === undefined && existing === undefined) {
+    return (snapshotOsmOnly ??= mapOsmOnly(WORLD_OSM_ROWS, [...seededBefore(), ...worldSpots()]));
+  }
+  return mapOsmOnly(rows ?? WORLD_OSM_ROWS, existing ?? [...seededBefore(), ...worldSpots()]);
+}
+
+let snapshotOsmOnly: readonly Spot[] | undefined;
+
+function mapOsmOnly(rows: readonly WorldOsmRow[], existing: readonly Spot[]): readonly Spot[] {
+  const index = existingIndex(existing);
+  const places = collapseOsmOnly(rows).filter(
+    (place) => place.area >= OSM_ONLY_MIN_AREA && !nearExisting(place, index),
+  );
+  const names = uniqueNames(
+    places.map((place) => ({ base: osmOnlyBaseName(place), town: place.town })),
+    existing,
+  );
+  return places.map((place, i) => {
+    const lead = place.rows[0]!;
+    const pumpTrack = isPumpTrack(place);
+    const bmx =
+      pumpTrack ||
+      (place.osmBits & OSM_BIT.bmx) !== 0 ||
+      place.rows.some((row) => BMX_WORD.test(row[3]));
+    const indoor = (place.osmBits & OSM_BIT.covered) !== 0;
+    const closed = (place.osmBits & OSM_BIT.closed) !== 0;
+    return {
+      name: names[i]!,
+      town: place.town,
+      country: countryName(place.country),
+      type: indoor ? 'Indoor park' : 'Concrete',
+      lat: place.lat,
+      lng: place.lng,
+      sports: importedSpotSports({ bmx }),
+      tags: pumpTrack ? ['Pump track'] : [],
+      status: 'live',
+      ...(lead[6] ? { address: lead[6] } : {}),
+      ...(lead[7] ? { phone: lead[7] } : {}),
+      indoor,
+      operating: closed ? 'closed' : 'unknown',
+      source: OSM_ONLY_SOURCE.id,
+      licence: OSM_ONLY_SOURCE.licence,
     };
   });
 }

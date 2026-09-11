@@ -20,7 +20,7 @@ import type { Client } from './clients';
 import { records } from './collections';
 import type { CollectionName } from './generated/collections';
 import { franceSpots } from './imports/france';
-import { worldSpots } from './imports/world';
+import { osmOnlySpots, worldSpots } from './imports/world';
 
 /**
  * Seeding: the canonical data in `@landit/core`, loaded into PocketBase.
@@ -298,6 +298,18 @@ export function buildSeed(): SeedPlan {
          */
         onExisting: 'skip',
         rows: worldSpots().map(spotRow),
+      },
+      {
+        collection: 'spots',
+        label: 'spots (world, OpenStreetMap only)',
+        key: ['name', 'town'],
+        /*
+         * OpenStreetMap's parks that Trucks and Fins does not list, 300 m² and
+         * up (#390), on the same create-only terms, and last, so a place any
+         * table above holds is dropped (`osmOnlySpots`).
+         */
+        onExisting: 'skip',
+        rows: osmOnlySpots().map(spotRow),
       },
       {
         collection: 'events',

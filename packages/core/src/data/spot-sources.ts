@@ -143,6 +143,26 @@ export const SPOT_SOURCES = {
     indexed: false,
     alsoCredits: [GEONAMES],
   },
+  /**
+   * The world import's OpenStreetMap-only parks (#390; the owner, 2026-09-11,
+   * in chat): skateboarding objects no park on Trucks and Fins' map claimed,
+   * kept where their outline encloses at least 300 m². Pure OpenStreetMap, so
+   * plain Open Database Licence — the one world source with a licence of its
+   * own. Credited under the same name as `osm-tnf`, and the credit line names
+   * it once (`spotCredits`). Out of search like the rest of the import: most
+   * have no name and nothing but a size to say.
+   */
+  osm: {
+    id: 'osm',
+    name: 'OpenStreetMap contributors',
+    licence: 'ODbL-1.0',
+    licenceName: 'Open Database Licence',
+    url: 'https://www.openstreetmap.org/copyright',
+    snapshot: '2026-09-11',
+    credited: true,
+    indexed: false,
+    alsoCredits: [GEONAMES],
+  },
 } as const satisfies Record<string, SpotSource>;
 
 export type SpotSourceId = keyof typeof SPOT_SOURCES;
@@ -175,17 +195,21 @@ export function unindexedSpotSourceIds(): readonly string[] {
 
 /**
  * Everything the credit line under the map names, in order: each credited
- * source, then every dataset any source draws on, each once.
+ * source once by name, then every dataset any source draws on, each once.
  */
 export function spotCredits(): readonly (SpotCredit & { readonly snapshot?: string })[] {
-  const credits: (SpotCredit & { readonly snapshot?: string })[] = creditedSpotSources().map(
-    (source) => ({
+  const credits: (SpotCredit & { readonly snapshot?: string })[] = [];
+  // Two sources can share a name — `osm-tnf` and `osm` are both OpenStreetMap
+  // contributors — and the line names each once, at its first place.
+  for (const source of creditedSpotSources()) {
+    if (credits.some((existing) => existing.name === source.name)) continue;
+    credits.push({
       name: source.name,
       licenceName: source.licenceName,
       url: source.url,
       ...(source.snapshot ? { snapshot: source.snapshot } : {}),
-    }),
-  );
+    });
+  }
   for (const source of Object.values(SPOT_SOURCES) as readonly SpotSource[]) {
     for (const credit of source.alsoCredits ?? []) {
       if (!credits.some((existing) => existing.name === credit.name)) credits.push(credit);

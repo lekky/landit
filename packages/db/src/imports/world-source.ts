@@ -40,6 +40,31 @@ export type WorldSourceRow = readonly [
   country: string,
 ];
 
+/**
+ * An OpenStreetMap skateboarding object that no park on Trucks and Fins' map
+ * was matched to (#390), with the area its outline encloses. Ways and relations
+ * only: a node has no outline, so nothing can say how big it is.
+ *
+ * - `osmRef` — `w123` or `r456`.
+ * - `lat`, `lng` — the outline's centre, as Overpass gives it.
+ * - `osmName` — as in {@link WorldSourceRow}.
+ * - `osmBits` — {@link OSM_BIT}, including `private`.
+ * - `area` — square metres, rounded; `0` never reaches the file.
+ * - `address`, `phone`, `town`, `country` — as in {@link WorldSourceRow}.
+ */
+export type WorldOsmRow = readonly [
+  osmRef: string,
+  lat: number,
+  lng: number,
+  osmName: string,
+  osmBits: number,
+  area: number,
+  address: string,
+  phone: string,
+  town: string,
+  country: string,
+];
+
 /** Trucks and Fins' map filters, as bits of `flags`. */
 export const TNF_FLAG = {
   halfpipe: 1 << 0,
@@ -90,6 +115,8 @@ export const OSM_BIT = {
   bmx: 1 << 1,
   /** `disused=yes` or `abandoned=yes`. */
   closed: 1 << 2,
+  /** `access=private` or `access=no`: never listed. */
+  private: 1 << 3,
 } as const;
 
 /** `spots.town` is `max: 60` (`1786838400_init_collections.js`). */

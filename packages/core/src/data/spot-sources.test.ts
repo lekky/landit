@@ -12,7 +12,8 @@ describe('isIndexedSpotSource', () => {
   it('keeps the world import out of search (the owner, 2026-09-11)', () => {
     expect(isIndexedSpotSource('osm-tnf')).toBe(false);
     expect(isIndexedSpotSource('tnf')).toBe(false);
-    expect(unindexedSpotSourceIds()).toEqual(['osm-tnf', 'tnf']);
+    expect(isIndexedSpotSource('osm')).toBe(false);
+    expect(unindexedSpotSourceIds()).toEqual(['osm-tnf', 'tnf', 'osm']);
   });
 
   it('leaves every other page as it was, including rows that predate the column', () => {
@@ -30,7 +31,11 @@ describe('isIndexedSpotSource', () => {
 describe('spotCredits', () => {
   it('names every credited source in order, then each dataset they draw on once', () => {
     const names = spotCredits().map((credit) => credit.name);
-    expect(names).toEqual([...creditedSpotSources().map((source) => source.name), 'GeoNames']);
+    expect(names).toEqual([
+      ...new Set(creditedSpotSources().map((source) => source.name)),
+      'GeoNames',
+    ]);
+    expect(names.filter((name) => name === 'OpenStreetMap contributors')).toHaveLength(1);
     expect(new Set(names).size).toBe(names.length);
   });
 
@@ -56,5 +61,10 @@ describe('SPOT_SOURCES', () => {
   it('says honestly that the world rows carry no licence of their own', () => {
     expect(SPOT_SOURCES['osm-tnf'].licence).toBe('ODbL-1.0 AND LicenseRef-none');
     expect(SPOT_SOURCES.tnf.licence).toBe('LicenseRef-none');
+  });
+
+  it('gives the OpenStreetMap-only rows the plain licence they carry', () => {
+    expect(SPOT_SOURCES.osm.licence).toBe('ODbL-1.0');
+    expect(SPOT_SOURCES.osm.credited).toBe(true);
   });
 });

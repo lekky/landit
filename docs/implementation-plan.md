@@ -2434,6 +2434,25 @@ owner:
   failed refresh keeps the old list. The trade accepted: a newly approved spot or a staff edit
   reaches the map up to five minutes late. The download itself is unchanged; scoping it to the
   view (#389's bounds) is the next step if its size turns out to matter on phones.
+- **OpenStreetMap on its own (#390; the owner, 2026-09-11, in chat: "go with the
+  recommendations").** OpenStreetMap maps skateboarding objects that no park on Trucks and Fins'
+  map claimed — 12,739 of them with an outline, after the match above. Most are small: a single
+  ramp in a playground, an unnamed pitch. So only a place whose outline encloses **at least
+  300 m²** is kept (`OSM_ONLY_MIN_AREA` in `packages/db/src/imports/world.ts`), just above a
+  tennis court's 260; outlines within 50 metres are one place and their areas are added
+  together first, so a park mapped as a bowl and a street section is measured whole. A point has
+  no outline and so no size, and is left out; anything tagged `access=private` or `access=no` is
+  left out and never lends its size to a neighbour. A place within about 160 metres of any spot
+  already seeded — researched, French or the world rows — is dropped. What survives is **7,660
+  parks, 348 of them in the UK**, taking the live list to 36,391. They are plain OpenStreetMap,
+  so `source: 'osm'` under `ODbL-1.0` with nothing else mixed in, credited under the same
+  "OpenStreetMap contributors" line the credit names once (`spotCredits`), and `noindex` like the
+  rest of the import: 83% have no name of their own and read "Skatepark" (or "Pump track", where
+  a name says it is one — which also lists it for BMX) with the town doing the rest. The importer
+  measures outlines by id with Overpass `out geom`, kept in `osm-areas.json` in its cache so a
+  rate-limited run resumes. `SPOT_COUNTRY_BY_CODE` gains the 13 countries these reach, Kosovo's
+  `XK` written by hand because it is not an ISO 3166-1 code and the sign-up table has no line
+  for it.
 - **"Check before you travel", on the screen, permanently** (owner's call, 2026-08-18). The list
   is not a live feed and must not read like one: parks close for rebuilds, session timetables
   change, and a park that allows scooters this year can stop. The notice sits under the map on

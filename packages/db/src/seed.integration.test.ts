@@ -43,8 +43,11 @@ let result: Seeded;
 
 const PLAN = sampleWorld(buildSeed());
 const WORLD_ROWS = PLAN.tables.find((table) => table.label === 'spots (world)')!.rows.length;
+const OSM_ONLY_ROWS = PLAN.tables.find(
+  (table) => table.label === 'spots (world, OpenStreetMap only)',
+)!.rows.length;
 
-/** The three spots tables' results, in seed order: researched, France, world. */
+/** The spots tables' results, in seed order: researched, France, world, OpenStreetMap only. */
 const spotsRuns = (run: Seeded['first']) => run.filter((r) => r.collection === 'spots');
 
 beforeAll(async () => {
@@ -153,6 +156,14 @@ describe('seeding a real PocketBase', () => {
     expect(spotsRuns(result.second)[2]!.kept).toBe(WORLD_ROWS);
     expect(spotsRuns(result.third)[2]!.updated).toBe(0);
     expect(spotsRuns(result.third)[2]!.kept).toBe(WORLD_ROWS);
+  });
+
+  it('imports the OpenStreetMap-only sample once, and keeps it after', () => {
+    expect(OSM_ONLY_ROWS).toBeGreaterThan(100);
+    expect(spotsRuns(result.first)[3]!.created).toBe(OSM_ONLY_ROWS);
+    expect(spotsRuns(result.second)[3]!.created).toBe(0);
+    expect(spotsRuns(result.second)[3]!.kept).toBe(OSM_ONLY_ROWS);
+    expect(spotsRuns(result.third)[3]!.kept).toBe(OSM_ONLY_ROWS);
   });
 
   it('leaves a staff edit to an imported spot alone on a re-seed (issue #362)', () => {

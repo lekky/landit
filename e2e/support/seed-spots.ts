@@ -1,5 +1,6 @@
 // Reached by path rather than by package name, for the reason `seed-library.ts`
 // gives: `@landit/db` is not a dependency of the root manifest.
+import { sampleWorld } from '../../packages/db/src/imports/world-sample';
 import { buildSeed, createSuperuserClient, seed } from '../../packages/db/src/index';
 
 import { SUPERUSER_EMAIL, SUPERUSER_PASSWORD } from './fixtures';
@@ -40,9 +41,19 @@ export async function seedSpots(): Promise<void> {
     password: SUPERUSER_PASSWORD,
   });
 
-  await seed(client, {
-    tables: buildSeed().tables.filter((table) => table.collection === 'spots'),
-  });
+  /*
+   * Every spots table, with the world import's two cut to a spread sample
+   * (`sampleWorld`, 2026-09-11). Whole, they are about thirty-three thousand
+   * creates with hooks on — minutes on every run, against a job with a time
+   * limit — and no spec counts them: the specs assert named researched spots,
+   * which stay whole, as does France's census.
+   */
+  await seed(
+    client,
+    sampleWorld({
+      tables: buildSeed().tables.filter((table) => table.collection === 'spots'),
+    }),
+  );
 
   if ((await liveSpotCount()) === 0) {
     throw new Error('The seed ran but there are still no live spots.');
