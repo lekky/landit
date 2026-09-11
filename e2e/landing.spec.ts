@@ -167,7 +167,12 @@ async function newRider(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Create account' }).click();
 
   await page.waitForURL('**/onboarding');
-  await page.getByRole('button', { name: new RegExp(SPORTS.scooter.label, 'i') }).click();
+  // This rider keeps the default sport. Step 1 opens with the first one on and
+  // the last sport on cannot be turned off, so its card is `disabled` — pressing
+  // it was always a no-op, and since that became visible it is a 30s wait.
+  await expect(
+    page.getByRole('button', { name: new RegExp(SPORTS.scooter.label, 'i') }),
+  ).toHaveAttribute('aria-pressed', 'true');
   await finishOnboarding(page);
   await page.waitForURL('**/home');
 }
