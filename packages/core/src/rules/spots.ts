@@ -736,6 +736,34 @@ export function readSpotSubmission(
   };
 }
 
+/**
+ * Every sentence `pocketbase/hooks/62_spots.pb.js` refuses a submission with,
+ * word for word.
+ *
+ * **Why a list, and not "whatever the server said".** A 400 on a spot create
+ * comes from two places that look the same from the web app: the hook, whose
+ * sentences are written for a rider, and PocketBase itself — "Failed to create
+ * record.", or "Something went wrong while processing your request." when a
+ * hook throws something it did not mean to. The second kind is written for a
+ * developer and must never reach a fourteen year old, so the submit action
+ * shows a 400's message only when it is one of these and the generic "try
+ * again" otherwise. Before issue #369 it showed the generic line for every 400,
+ * which is how a hook refusing every spot with two tags went unexplained.
+ *
+ * The hook cannot import this file — it runs in PocketBase's JSVM — so the
+ * sentences are copied there, like the numbers above. A drift between the two
+ * is a real refusal falling back to "try again", so
+ * `pocketbase/tests/spot-submission.test.ts` provokes each refusal over HTTP and
+ * checks the server's own words are in this list.
+ */
+export const SPOT_SUBMISSION_REFUSALS: readonly string[] = Object.freeze([
+  'Give the spot a name.',
+  `A spot is one of: ${SPOT_TYPES.join(', ')}.`,
+  'A spot needs a location. Paste a Maps link or a coordinate pair.',
+  `${SPOT_MAX_TAGS} tags at most.`,
+  'Tags have to be a list of words.',
+]);
+
 /* --------------------------------------------------------------- operating -- */
 
 /** The three words `Spot.operating` may hold, in the order staff meet them. */

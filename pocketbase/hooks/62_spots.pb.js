@@ -83,8 +83,33 @@ onRecordCreateRequest((e) => {
     throw new BadRequestError('A spot needs a location. Paste a Maps link or a coordinate pair.');
   }
 
-  const tags = e.record.get('tags');
-  if (Array.isArray(tags) && tags.length > SPOT_MAX_TAGS) {
+  // `get()` on a json field does not hand back the list. It hands back the
+  // stored JSON *text* as a Go byte slice, which goja reports as an array of
+  // bytes: `Array.isArray` says yes and `length` counts characters. Observed
+  // against PocketBase 0.39.11 (issue #369): `["Bowl","Ledges"]` read as an
+  // array of 17, so every spot with two tags was refused as "8 tags at most."
+  // The text is parsed instead — `getString()` returns it — which is how
+  // `readTrickMistakes` in `lib/landit.js` reads `tricks.mistakes`.
+  //
+  // `getStringSlice('tags')` looks like the shortcut and is not one: it drops
+  // repeats, empty strings and anything that is not a string, so nine copies of
+  // "Bowl" count as one and nine numbers count as none — and all nine would
+  // still be saved. What is counted has to be what is stored.
+  //
+  // Absent and `null` both read as the text `null`, and mean no tags. Anything
+  // that parses to something other than a list — a bare string, which is what a
+  // multipart form's `tags=Bowl` arrives as, an object, a number — is refused
+  // rather than stored, because everything that reads `tags` expects a list.
+  let tags;
+  try {
+    tags = JSON.parse(e.record.getString('tags') || 'null');
+  } catch {
+    tags = undefined;
+  }
+  if (tags !== null && !Array.isArray(tags)) {
+    throw new BadRequestError('Tags have to be a list of words.');
+  }
+  if (tags !== null && tags.length > SPOT_MAX_TAGS) {
     throw new BadRequestError(`${SPOT_MAX_TAGS} tags at most.`);
   }
 

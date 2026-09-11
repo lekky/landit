@@ -273,6 +273,7 @@ export {
   spotMatchesSport,
   spotsInBounds,
   spotSubmissionProblems,
+  SPOT_SUBMISSION_REFUSALS,
   splitSpotTags,
   unitsForCountry,
   type DistanceUnits,
