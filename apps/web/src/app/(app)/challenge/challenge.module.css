@@ -95,21 +95,6 @@
   letter-spacing: 0.03em;
 }
 
-/* ---------------------------------------------------- the other sport ---- */
-
-.other {
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  background: var(--paper-2);
-}
-
-.otherTitle {
-  font-size: 15px;
-}
-
 /* ------------------------------------------------------- week cards ------ */
 
 .upcoming {

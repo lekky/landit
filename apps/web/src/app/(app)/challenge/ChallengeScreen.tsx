@@ -28,16 +28,20 @@ import type { ChallengeSportView } from './view';
  *   the copy states what has been done ("1 of 3 logged"), the reward is named
  *   once, and a finished week is reported in the past tense with nothing
  *   attached. No countdown, no "don't break it", no notification.
+ *
+ * The prototype's "The other one" panel is gone (owner, 2026-09-11). It was
+ * drawn for two sports, where "the other one" was unambiguous; with three it
+ * showed whichever sport came first, never said which, and on the scooter tab
+ * read as a second copy of the challenge above it — BMX's is also "Hops Only".
+ * The sport tabs already name every sport's challenge and switch to it.
  */
 
 export function ChallengeScreen({ views }: { readonly views: readonly ChallengeSportView[] }) {
-  const { sport, sports, setSport } = useSport();
+  const { sport } = useSport();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
 
   const view = views.find((v) => v.sport === sport) ?? views[0];
-  const other = sports.find((id) => id !== view?.sport);
-  const otherView = other ? views.find((v) => v.sport === other) : undefined;
 
   if (!view) {
     return (
@@ -127,23 +131,6 @@ export function ChallengeScreen({ views }: { readonly views: readonly ChallengeS
           title="No challenge running"
           sub={`Nothing scheduled for ${view.sportLabel.toLowerCase()} right now. Staff set these a few weeks ahead.`}
         />
-      )}
-
-      {otherView && other && (
-        <Panel flat className={styles.other}>
-          <span className="lab">The other one</span>
-          <span className={`cond ${styles.otherTitle}`}>
-            {otherView.current ? otherView.current.title : 'Nothing on'}
-          </span>
-          {otherView.current && (
-            <span className={`lab ${styles.muted}`}>
-              {otherView.current.logged} of {otherView.current.goal} logged
-            </span>
-          )}
-          <Button size="sm" variant="ghost" className={styles.push} onClick={() => setSport(other)}>
-            Switch to it
-          </Button>
-        </Panel>
       )}
 
       {view.upcoming.length > 0 && (
