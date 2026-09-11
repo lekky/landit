@@ -53,12 +53,21 @@ const GOAL_OPTIONS = [1, 2, 3, 4, 5].map(
   (n) => [String(n), `${n} logged trick${n === 1 ? '' : 's'}`] as const,
 );
 
+/*
+ * Only colours that carry the card's ink brief at AA (`packages/ui-web`'s
+ * contrast test holds the schedule to the same bar). Violet was on this list
+ * and measures 3.42:1; blue and red never were. Amber, orange and green are
+ * here because the seeded schedule uses them, so a seeded week opens in the
+ * editor with its own colour selected.
+ */
 const HUES = [
   ['#3AC0FF', 'Sky'],
   ['#9CE05B', 'Lime'],
   ['#FFC23F', 'Yellow'],
+  ['#FF9F1C', 'Amber'],
+  ['#FF5A1F', 'Orange'],
+  ['#10A06A', 'Green'],
   ['#FF3D78', 'Pink'],
-  ['#8A3BE0', 'Violet'],
 ] as const;
 
 const FIELDS = [

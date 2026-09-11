@@ -93,6 +93,26 @@ export function challengesFor(
 }
 
 /**
+ * The challenges a rider could have taken part in: every one still running on
+ * or after the day they joined, in the order given.
+ *
+ * A challenge that finished before a rider had an account is not one they
+ * missed, but the challenge screen's history said "Missed" about every one of
+ * them — to a rider joining in March, the whole of the autumn before. The slot
+ * that was live on the day they joined stays in, because they could have
+ * logged it.
+ *
+ * `joined` is a calendar day in the rider's own timezone, the same kind of day
+ * as `starts` and `ends`.
+ */
+export function challengesSinceJoining<T extends Pick<Challenge, 'ends'>>(
+  challenges: readonly T[],
+  joined: DayKey,
+): T[] {
+  return challenges.filter((c) => compareDayKeys(c.ends, joined) >= 0);
+}
+
+/**
  * The challenge to put in front of a rider: the one running now, else the next
  * one scheduled, else the most recent finished one. Null only when the sport
  * has no challenges at all.

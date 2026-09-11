@@ -14,6 +14,7 @@ import {
   challengeStateBounds,
   challengesFor,
   challengesOverlap,
+  challengesSinceJoining,
   isDayInChallenge,
   liveChallenge,
   overlappingChallenges,
@@ -334,22 +335,55 @@ describe('the shipped schedule', () => {
       const last = slots[slots.length - 1];
       if (!slots[0] || !last) throw new Error('unreachable');
 
+      // `isDayInChallenge`, not `challengeState` at noon UTC: the same inclusive
+      // rule without a timezone format per slot per day. A year of schedule made
+      // that some 30,000 `Intl` calls and timed this test out.
       for (let day = slots[0].starts; compareDayKeys(day, last.ends) <= 0; day = addDays(day, 1)) {
-        const clock = at(`${day}T12:00:00Z`, 'UTC');
-        const live = slots.filter((c) => challengeState(c, clock) === 'live');
+        const live = slots.filter((c) => isDayInChallenge(c, day));
         expect(live.length, `${sport} on ${day}`).toBe(1);
       }
     }
   });
 
-  it('carries every sport to the end of 2026', () => {
+  it('carries every sport a full year past the launch weekend', () => {
+    // Riders arrived on 2026-09-12 (owner, 2026-09-11). Still a fixed date,
+    // so still not an alarm: issue #232 is what would warn before it runs out.
     for (const sport of SPORT_IDS) {
       const slots = challengesFor(sport, CHALLENGES);
       const last = slots[slots.length - 1];
       // A string compare, not `toBeGreaterThanOrEqual` — that matcher takes
       // numbers, and day keys sort correctly as text by construction.
-      expect(compareDayKeys(last?.ends ?? '', '2026-12-31') >= 0, sport).toBe(true);
+      expect(compareDayKeys(last?.ends ?? '', '2027-09-12') >= 0, sport).toBe(true);
     }
+  });
+
+  it('holds no challenge that finished before anybody could join', () => {
+    // The design pack's weeks 30-35 ran from 2026-07-20 to 2026-08-30, to
+    // nobody, and every new rider's history opened on them.
+    for (const challenge of CHALLENGES) {
+      expect(compareDayKeys(challenge.ends, '2026-09-12') >= 0, challenge.id).toBe(true);
+    }
+  });
+});
+
+describe('a rider’s history starts when they joined', () => {
+  const slots = [
+    challenge({ id: 'a', starts: '2026-08-31', ends: '2026-09-13' }),
+    challenge({ id: 'b', starts: '2026-09-14', ends: '2026-09-27' }),
+    challenge({ id: 'c', starts: '2026-09-28', ends: '2026-10-11' }),
+  ];
+
+  it('drops every challenge that finished before the rider joined', () => {
+    expect(challengesSinceJoining(slots, '2026-09-20').map((c) => c.id)).toEqual(['b', 'c']);
+  });
+
+  it('keeps the one that was running on the day they joined, first day and last', () => {
+    expect(challengesSinceJoining(slots, '2026-09-14').map((c) => c.id)).toEqual(['b', 'c']);
+    expect(challengesSinceJoining(slots, '2026-09-13').map((c) => c.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('keeps everything for a rider who was here before the schedule began', () => {
+    expect(challengesSinceJoining(slots, '2026-01-01')).toHaveLength(3);
   });
 });
 

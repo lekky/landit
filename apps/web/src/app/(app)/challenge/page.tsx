@@ -2,6 +2,7 @@ import {
   DEFAULT_TIMEZONE,
   planUnlocksPaidTricks,
   sportsOf,
+  toDayKey,
   type PlanId,
   type SportId,
   type Sticker,
@@ -83,6 +84,9 @@ export default async function ChallengePage() {
     earnedStickerIds: earnedRecords
       .map((row) => stickerById.get(row.sticker)?.slug)
       .filter((slug): slug is string => Boolean(slug)),
+    // The day the account was made, on the rider's own calendar: history
+    // starts there rather than calling every earlier challenge "Missed".
+    ...(rider.created ? { joined: toDayKey(rider.created, timezone) } : {}),
   });
 
   return <ChallengeScreen views={views} />;

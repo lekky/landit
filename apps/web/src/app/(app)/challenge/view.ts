@@ -5,9 +5,11 @@ import {
   challengeRewardSticker,
   challengeState,
   challengesFor,
+  challengesSinceJoining,
   liveChallenge,
   type Challenge,
   type ChallengeState,
+  type DayKey,
   type PlanId,
   type SportId,
   type Sticker,
@@ -123,6 +125,13 @@ export interface ChallengeViewInput {
   readonly stickers: readonly Sticker[];
   /** Sticker ids already on the rider's wall. */
   readonly earnedStickerIds: readonly string[];
+  /**
+   * The day the rider joined, in their timezone. History starts there: a
+   * challenge that finished before they had an account is not one they
+   * missed (`challengesSinceJoining`). Absent only when the account carries no
+   * date, and then nothing is filtered.
+   */
+  readonly joined?: DayKey;
 }
 
 /**
@@ -130,10 +139,10 @@ export interface ChallengeViewInput {
  *
  * The prototype sliced neither, and was right not to: it had six weeks per
  * sport, so "all of them" and "a readable list" were the same list. The
- * schedule now runs the six shipped weeks plus nine fortnightly slots, and
- * unsliced that is eight "Coming up" cards the day the first slot opens and
- * fourteen finished cards behind the free-plan panel by the new year. A
- * deliberate divergence from the design, recorded in plan §7 (T12).
+ * schedule now runs a year of fortnightly slots, and unsliced that is two dozen
+ * "Coming up" cards at the start of it and as many finished ones behind the
+ * free-plan panel by the end. A deliberate divergence from the design, recorded
+ * in plan §7 (T12).
  *
  * The caps are on the lists, not on the schedule, so they hold whatever the
  * cadence becomes next — which is the point of writing them down rather than
@@ -164,8 +173,10 @@ function buildOne(sport: SportId, input: ChallengeViewInput): ChallengeSportView
       hue: c.hue,
     }));
 
-  // Newest first: the week that just finished is the one a rider looks for.
-  const finished = weeks.filter((c) => challengeState(c, clock) === 'past').reverse();
+  // Only the weeks the rider was here for, newest first: the week that just
+  // finished is the one a rider looks for.
+  const ended = weeks.filter((c) => challengeState(c, clock) === 'past');
+  const finished = (input.joined ? challengesSinceJoining(ended, input.joined) : ended).reverse();
 
   const past: PastWeekView[] = finished.slice(0, PAST_SHOWN).map((c) => ({
     id: c.id,

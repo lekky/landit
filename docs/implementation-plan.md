@@ -2057,6 +2057,35 @@ modal, "I'm going". Inputs: `landit-screens-b.jsx`, `landit-screens-d.jsx`, scre
   nothing derives a cadence, `challengeState` reads whatever dates it is handed, so the two halves
   coexist without a migration. **Merging is not seeding** — the records reach riders only when
   `packages/db`'s seed is run against production.
+- **A year of schedule from the launch weekend, and nothing from before it** (Rachid, in chat,
+  2026-09-11; riders arrive 2026-09-12). The pack's weekly weeks 30–35 ran to nobody, yet every new
+  rider's history opened on six finished cards per sport: "Missed" on a paid plan, and behind the
+  upgrade panel on a free one, which put a price on seeing weeks nobody could have ridden. They are
+  removed from `CHALLENGES`. The seed never deletes, so their production rows are deleted by hand
+  in the staff portal. Eighteen more fortnightly slots carry all three sports to **2027-09-12**,
+  and the pack's best themes return in them with their faults fixed. Stair Count does not return
+  (#79). "Counts double" is gone, because one log is one log. "Film it or it didn't happen" is
+  gone. "Coping Week" became "Top Of The Ramp", for the reason #82 renamed Coping Time. Five slots
+  already in production were corrected while still upcoming:
+  - "On The Kerb" became "Low Ledge", because to a UK reader a kerb is the edge of a road.
+  - Ride Together no longer says "whoever was at the park".
+  - Full Turn no longer names a trick the library lacks.
+
+  Three riding days are named, each a fixed date everywhere and each inside one slot: Go
+  Skateboarding Day (21 June, the Monday weeks 25-26 open), Go Scoot Day (the last Saturday in
+  June) and BMX Day (20 July). The last two are grassroots rather than official, so they are
+  mentioned rather than built around. The special-days sweep (2026-09-11) also found UK, US and
+  Australian school-travel weeks and the UK's Road Safety Week. They were left out because each
+  belongs to one country, and because they are about roads, which is where these challenges never
+  send a child. **Every hue now carries the ink brief at AA.** Blue (4.18:1), red (4.34:1) and violet
+  (3.42:1) did not; `packages/ui-web`'s contrast test now measures every slot, and the staff colour
+  picker lost violet for the same reason. The schedule test's fixed end date moved to 2027-09-12,
+  which is still not an alarm (#232).
+- **A rider's challenge history starts when they joined.** `buildChallengeView` listed every
+  finished slot, so a rider who joined in March was shown the whole autumn as "Missed", in the
+  past tense, about weeks they could not have done (§6.4 standard 13). `challengesSinceJoining`
+  keeps only the slots still running on or after the rider's join day, in their own timezone. The
+  slot that was live on that day stays, because they could have logged it.
 - **"Weekly" is gone from the copy, in favour of wording that survives the next cadence change.**
   The screen's eyebrow, the public footer link and the `challenger` sticker's condition all said it.
   They now say "challenge"; `week` carries a range ("Weeks 36-37") because the field is the card's
