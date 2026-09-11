@@ -339,6 +339,181 @@ a.pill.on:hover {
   background: var(--yellow);
 }
 
+/* ------------------------------------------------------------------ modal -- */
+
+/*
+ * The modal on a phone (issue #372). `primitives.css` keeps the prototype's
+ * `.scrim` and `.modal` exactly; these rules correct what a desktop-drawn
+ * dialog got wrong on a touch screen. The motion — the scrim's fade, the
+ * panel's rise and its curve — is not touched here.
+ *
+ * **The height is capped to the screen a rider can see.** The design's
+ * `max-height: 88vh` is measured on iOS Safari against the *large* viewport,
+ * the one with the URL bar and toolbar hidden (~750px on an iPhone 14), while
+ * `position: fixed; inset: 0` is the screen with them showing (664px) — which
+ * is how it is when a modal opens from a tap. A tall modal was allowed about
+ * 660px inside 624px of room, centred, so its head went under the URL bar and
+ * its foot, where Save and Done live, under the toolbar. `dvh` is the visible
+ * viewport; it is under `@supports` for the reason the spots sheet gives
+ * (`spots.module.css`): a browser without it must keep the `vh` line rather
+ * than discard both. The `- 40px` is the scrim's own padding, so the panel
+ * never outgrows the box it is centred in. The 88% stays as the design's cap.
+ *
+ * **It contains its own scroll.** `overscroll-behavior: contain` stops a
+ * scroll that reaches the end of a long modal carrying on into the page — the
+ * page is held still as well (`lockPageScroll`), and this is what keeps the
+ * browser from rubber-banding the whole screen instead. `pan-y` because a
+ * modal only ever scrolls one way, with `pinch-zoom` kept so a rider who needs
+ * to enlarge the text still can.
+ *
+ * The panel takes focus when it opens (`tabIndex={-1}`) so a screen reader
+ * starts inside it. A focus ring round the whole dialog says nothing a rider
+ * can use, so it is not drawn; every control inside keeps its own.
+ */
+.modal {
+  max-height: min(88vh, calc(100vh - 40px));
+  overscroll-behavior: contain;
+  touch-action: pan-y pinch-zoom;
+}
+@supports (height: 1dvh) {
+  .modal {
+    max-height: min(88dvh, calc(100dvh - 40px));
+  }
+}
+.modal:focus {
+  outline: none;
+}
+
+/*
+ * A drag on the dimmed band round the panel has nothing to move, so it moves
+ * nothing. Chromium measured this: a drag on the scrim beside the sticker
+ * detail scrolled the page behind by the full gesture. `touch-action` stops at
+ * the nearest scroll container, which is the panel, so this does not reach a
+ * drag that starts inside the modal — measured under Chromium on 2026-09-11:
+ * a 235px touch drag on the tall events modal scrolled it 235px with this rule
+ * on, exactly as with it off, and the same drag on the scrim moved nothing.
+ * (`overscroll-behavior` would do nothing here: the scrim is not a scroll
+ * container.)
+ */
+.scrim {
+  touch-action: none;
+}
+
+/*
+ * On a phone the panel hangs from the top and clears the bottom bar. A modal
+ * at its height cap then grows downwards from a fixed head — the head being
+ * where a title and its Close live — rather than outwards from the middle into
+ * both browser bars. The bottom padding is the bar's 63px, measured, plus a
+ * 12px gap, plus the home-indicator inset: the same allowance the spots sheet
+ * makes (`--sheet-gap`). The height cap is recomputed for that box so the two
+ * cannot disagree.
+ */
+@media (max-width: 860px) {
+  .scrim {
+    align-items: start;
+    padding-top: max(20px, env(safe-area-inset-top));
+    padding-bottom: calc(75px + env(safe-area-inset-bottom));
+  }
+  .modal {
+    max-height: min(
+      88vh,
+      calc(100vh - max(20px, env(safe-area-inset-top)) - 75px - env(safe-area-inset-bottom))
+    );
+  }
+  @supports (height: 1dvh) {
+    .modal {
+      max-height: min(
+        88dvh,
+        calc(100dvh - max(20px, env(safe-area-inset-top)) - 75px - env(safe-area-inset-bottom))
+      );
+    }
+  }
+}
+
+/*
+ * `Modal`'s optional title bar and footer. Both stay in view while the body
+ * scrolls — `position: sticky` against the panel, which is the scroll
+ * container — so a way out is always on screen. Paper on a 3px ink keyline, the
+ * same edge as every panel; the Close is 44px square, the smallest target a
+ * thumb reliably hits, and presses like a button.
+ */
+.modal-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 20px;
+  background: var(--paper);
+  border-bottom: var(--bd);
+}
+.modal-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.05;
+}
+.modal-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  font-family: var(--fd);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+.modal-close:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+.modal-close:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+/*
+ * A tap is not a hover (#375, "touch hygiene" below): on a finger the Close
+ * does not stay lifted after it is tapped, and the press is restated after the
+ * reset so it still lands. The browser's blue tap flash goes with it, since the
+ * press is the feedback.
+ */
+@media (hover: none) {
+  .modal-close {
+    -webkit-tap-highlight-color: transparent;
+  }
+  .modal-close:hover {
+    transform: none;
+    box-shadow: var(--sh-sm);
+  }
+  .modal-close:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+}
+.modal-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: var(--paper);
+  border-top: var(--bd);
+}
+
 /* ------------------------------------------------ reduced motion (global) -- */
 
 /*

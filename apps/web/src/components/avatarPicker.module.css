@@ -11,12 +11,26 @@
   padding: 20px;
 }
 
+/*
+ * The title and Done stay at the top while the grid scrolls (issue #372).
+ * Thirty-six avatars are ~1,100px on a phone, and Done — the only way out
+ * besides the scrim — used to scroll away after the first flick. Sticky
+ * against the modal, which is the scroll container; the negative margins take
+ * it out to the panel's edges so the avatars pass under a full-width bar
+ * rather than showing either side of it.
+ */
 .pickerHead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin: -20px -20px 12px;
+  padding: 12px 20px;
+  background: var(--paper);
+  border-bottom: var(--bd);
 }
 
 /*
@@ -32,9 +46,9 @@
  * since a touch device draws no scrollbar until you drag, the avatars below the
  * fold were not hidden so much as absent.
  *
- * The modal is `max-height: 88vh; overflow: auto` (`ui-web/styles/primitives`),
- * so the picker already had somewhere to put its overflow. It just needed to
- * stop competing with it.
+ * The modal is `overflow: auto` with its height capped to the visible screen
+ * (`ui-web/styles/additions.css`), so the picker already had somewhere to put
+ * its overflow. It just needed to stop competing with it.
  */
 .pickerGrid {
   display: grid;

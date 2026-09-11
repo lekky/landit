@@ -58,6 +58,15 @@ export const viewport: Viewport = {
    * the bottom bar clear of the home indicator, the notch in landscape.
    */
   viewportFit: 'cover',
+  /*
+   * The on-screen keyboard shrinks the page, not just the visible part of it
+   * (issue #372). Without this, Android Chrome (since 108) and iOS both leave
+   * the layout viewport full height under the keyboard, so a modal centred in
+   * it stays where it was and Save sits under the keys until the rider closes
+   * them. Android honours this; iOS ignores it, which is why the modal also caps
+   * its height in `dvh` and gives editors a footer that stays in view.
+   */
+  interactiveWidget: 'resizes-content',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

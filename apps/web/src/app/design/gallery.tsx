@@ -96,6 +96,7 @@ export function Gallery() {
   const [filter, setFilter] = useState('all');
   const [step, setStep] = useState(1);
   const [modal, setModal] = useState(false);
+  const [framed, setFramed] = useState(false);
 
   return (
     <div className="app">
@@ -617,9 +618,51 @@ export function Gallery() {
             <Toast color="#FFC23F">Sticker unlocked · 7 Day Streak</Toast>
             <Toast color="var(--violet)">Progress insights are on Legend</Toast>
           </div>
-          <div style={{ marginTop: 16 }}>
+          <div style={{ ...row, marginTop: 16 }}>
             <Button onClick={() => setModal(true)}>Open a modal</Button>
+            <Button variant="ghost" onClick={() => setFramed(true)}>
+              With a title and a footer
+            </Button>
           </div>
+          {/*
+            `title` and `footer` (issue #372): bars that stay put while a tall
+            modal scrolls, so a way out is always on screen — the staff editor's
+            Cancel and Save live in the footer. On a phone every modal hangs
+            from the top and holds the page behind it still.
+          */}
+          {framed && (
+            <Modal
+              onClose={() => setFramed(false)}
+              width={420}
+              title="Edit the Tailwhip"
+              footer={
+                <>
+                  <Button size="sm" variant="ghost" onClick={() => setFramed(false)}>
+                    Cancel
+                  </Button>
+                  <Button size="sm" style={{ marginLeft: 'auto' }} onClick={() => setFramed(false)}>
+                    Save
+                  </Button>
+                </>
+              }
+            >
+              <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {[
+                  'Name',
+                  'Also called',
+                  'Tier',
+                  'Why this tier',
+                  'First try',
+                  'Common mistake',
+                ].map((field) => (
+                  <div key={field} className="field">
+                    <label htmlFor={`demo-framed-${field}`}>{field}</label>
+                    <input id={`demo-framed-${field}`} />
+                  </div>
+                ))}
+              </div>
+            </Modal>
+          )}
           {modal && (
             <Modal onClose={() => setModal(false)} label="Design system modal" width={420}>
               <div style={{ padding: 22 }}>

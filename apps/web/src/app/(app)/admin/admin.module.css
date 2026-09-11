@@ -633,20 +633,36 @@
   padding: 0;
 }
 
-.editorError {
-  margin: 14px 0 0;
+/*
+ * The server's refusal, the discard question and the buttons all live in the
+ * modal's footer, which stays on screen while the form scrolls (issue #372) —
+ * so the reason a save failed is beside the Save that failed, not at the
+ * bottom of a form scrolled to its top. Each takes a full row of the footer.
+ */
+.editorError,
+.editorAsk {
+  flex: 1 1 100%;
+  margin: 0;
   font-family: var(--fc);
   font-weight: 600;
   font-size: 13px;
   letter-spacing: 0.04em;
-  color: var(--red);
   line-height: 1.5;
 }
 
+.editorError {
+  color: var(--red);
+}
+
+.editorAsk {
+  color: var(--ink);
+  text-transform: uppercase;
+}
+
 .editorActions {
+  flex: 1 1 100%;
   display: flex;
   gap: 10px;
-  margin-top: 20px;
 }
 
 /* ------------------------------------------------------- announcements -- */
