@@ -89,6 +89,7 @@ export {
   type ToastProps,
   type ToastStackProps,
 } from './components/overlays';
+export { useModalLayer } from './components/modal-layer';
 export { ShareCard, type ShareCardProps, type ShareTrickLook } from './components/ShareCard';
 export { StickerBadge, type StickerBadgeProps, type StickerLook } from './components/StickerBadge';
 export {

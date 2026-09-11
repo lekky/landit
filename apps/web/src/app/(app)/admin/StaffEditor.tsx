@@ -1,7 +1,7 @@
 'use client';
 
 import { Modal, Pill } from '@landit/ui-web';
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 import type { StaffWriteResult } from './actions';
 
@@ -65,6 +65,19 @@ function pairsOf(flat: readonly string[]): [string, string][] {
   return rows;
 }
 
+/**
+ * Whether the draft still says what the record it was opened on says. A field
+ * that was missing and one that is now empty are the same answer — ticking a
+ * sport on and off again is not a change worth asking about.
+ */
+function sameValue(a: EditorValue, b: EditorValue): boolean {
+  const plain = (v: string | string[] | undefined) =>
+    JSON.stringify(v === undefined || (Array.isArray(v) && v.length === 0) ? '' : v);
+  return [...new Set([...Object.keys(a), ...Object.keys(b)])].every(
+    (k) => plain(a[k]) === plain(b[k]),
+  );
+}
+
 export function StaffEditor({
   title,
   eyebrow = 'Staff edit',
@@ -86,11 +99,53 @@ export function StaffEditor({
   const [draft, setDraft] = useState<EditorValue>(value);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [confirming, setConfirming] = useState(false);
+  const keepRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const asked = useRef(false);
 
   const set = (k: string, next: string | string[]) => {
     setDraft((prev) => ({ ...prev, [k]: next }));
     setError(null);
+    setConfirming(false);
   };
+
+  /*
+   * **A form with changes in it asks before it goes** (issue #372). On a phone
+   * the scrim is the 20px gutter either side of the panel and the band above
+   * it — exactly where a thumb lands reaching for the top of a tall form — and
+   * one stray tap used to throw away a sixteen-field event. Every way out that
+   * is not Save comes through here: the scrim, Escape, and Cancel, which sits
+   * right beside Save in the bar.
+   *
+   * Asking twice backs out of the question rather than answering it: a second
+   * tap on the scrim or a second Escape means "not that", so it returns to the
+   * form. Discard is only ever a deliberate press. And nothing closes while a
+   * save is in flight — a modal that closed then would hide the server's
+   * refusal, which is the thing the paragraph above this component is about.
+   */
+  const requestClose = () => {
+    if (pending) return;
+    if (confirming) setConfirming(false);
+    else if (sameValue(draft, value)) onClose();
+    else setConfirming(true);
+  };
+
+  /*
+   * Focus goes to "Keep editing" when the question appears, because it is the
+   * answer that loses nothing and a screen reader should land on it; and back
+   * to Cancel when the question goes, unless the rider has since moved focus
+   * into a field themselves.
+   */
+  useEffect(() => {
+    if (confirming) {
+      asked.current = true;
+      keepRef.current?.focus();
+    } else if (asked.current) {
+      asked.current = false;
+      if (document.activeElement === document.body) cancelRef.current?.focus();
+    }
+  }, [confirming]);
 
   const text = (k: string): string => {
     const v = draft[k];
@@ -111,7 +166,70 @@ export function StaffEditor({
   };
 
   return (
-    <Modal onClose={onClose} width={580} label={title}>
+    <Modal
+      onClose={onClose}
+      onRequestClose={requestClose}
+      width={580}
+      label={title}
+      /*
+       * Cancel and Save in the modal's footer, which stays on screen while the
+       * form scrolls (issue #372). They used to sit at the bottom of a body up
+       * to 1,400px tall — 2.4 screens down on a phone, and under the keyboard
+       * the moment a field had focus.
+       */
+      footer={
+        <>
+          {error && (
+            <p className={styles.editorError} role="alert">
+              {error}
+            </p>
+          )}
+          {confirming ? (
+            <>
+              <p className={styles.editorAsk} role="alert">
+                Discard your changes?
+              </p>
+              <div className={styles.editorActions}>
+                <button type="button" className="btn ghost" onClick={onClose}>
+                  Discard
+                </button>
+                {/* Where Save was, so a second tap in the same place loses nothing. */}
+                <button
+                  ref={keepRef}
+                  type="button"
+                  className="btn"
+                  style={{ marginLeft: 'auto' }}
+                  onClick={() => setConfirming(false)}
+                >
+                  Keep editing
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className={styles.editorActions}>
+              <button
+                ref={cancelRef}
+                type="button"
+                className="btn ghost"
+                disabled={pending}
+                onClick={requestClose}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn"
+                disabled={pending}
+                style={{ marginLeft: 'auto' }}
+                onClick={submit}
+              >
+                {pending ? 'Saving…' : saveLabel}
+              </button>
+            </div>
+          )}
+        </>
+      }
+    >
       <div className={styles.editor}>
         <div className="eyebrow">{eyebrow}</div>
         <h3 className={`d ${styles.editorTitle}`}>{title}</h3>
@@ -260,27 +378,6 @@ export function StaffEditor({
               {field.hint && <span className={styles.fieldHint}>{field.hint}</span>}
             </div>
           ))}
-        </div>
-
-        {error && (
-          <p className={styles.editorError} role="alert">
-            {error}
-          </p>
-        )}
-
-        <div className={styles.editorActions}>
-          <button type="button" className="btn ghost" disabled={pending} onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="btn"
-            disabled={pending}
-            style={{ marginLeft: 'auto' }}
-            onClick={submit}
-          >
-            {pending ? 'Saving…' : saveLabel}
-          </button>
         </div>
       </div>
     </Modal>

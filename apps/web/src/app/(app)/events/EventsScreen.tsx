@@ -17,6 +17,7 @@ import {
   Pill,
   SportChip,
   Tag,
+  useModalLayer,
 } from '@landit/ui-web';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -764,10 +765,6 @@ function EmptyCorner({
   );
 }
 
-/** Everything inside the dialog that a Tab can land on. */
-const FOCUSABLE =
-  'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
-
 /**
  * The detail modal — the screen's decision point, and therefore where the
  * address, the phone number, the organiser's page and the caution all live.
@@ -776,11 +773,17 @@ const FOCUSABLE =
  * is the URL. This modal's open state is `?event=slug` (see `openDetails`), so
  * it is rendered from the list's own tree rather than pushed into a host that
  * knows nothing about the address bar. Owning the element is also what lets it
- * carry the four things the design asks for and the shared `Modal` does not
- * have: `aria-labelledby` on the real title, focus moved to Close on open,
- * focus returned to the Details button that opened it, and a focus trap. None
- * of those could be added to `packages/ui-web`'s `Modal` without changing how
- * every other modal in the product behaves, which is not this session's to do.
+ * put `aria-labelledby` on the real title.
+ *
+ * **What a dialog does to the page behind it comes from `useModalLayer`**, the
+ * hook the shared `Modal` runs, so this one behaves like every other (issue
+ * #372): the page is held still and made inert, Escape closes it, and focus
+ * goes back to the Details button that opened it. It used to do the focus half
+ * by hand, and focused Close on open — but Close is at the foot of a modal
+ * taller than a phone, so the browser scrolled the modal to its bottom half and
+ * the title and the date opened off the top. The hook focuses the dialog
+ * itself, without scrolling, so it opens at its head. The hand-written Tab trap
+ * went with it: with the page inert there is nowhere else for Tab to go.
  *
  * Every row here is conditional on having a value. An event researched without
  * a phone renders no phone row rather than a "Call" label with nothing after
@@ -812,55 +815,7 @@ function EventDetailModal({
   const panel = useRef<HTMLDivElement>(null);
   const titleId = `event-modal-${event.id}`;
 
-  /*
-   * Focus in on open and back where it came from on close.
-   *
-   * The element that had focus is captured on mount rather than passed in,
-   * because the thing that opened this is a row's Details button and the row is
-   * still mounted underneath — so the reference is still good when the dialog
-   * goes. Restoring it is what stops a keyboard rider being dumped at the top
-   * of the document every time they look at an event and change their mind.
-   */
-  useEffect(() => {
-    const opener = document.activeElement as HTMLElement | null;
-    // Close, by the marker on it rather than by a ref: `Button` is a plain
-    // function component in `packages/ui-web` and giving it one would be a
-    // change to shared code this session does not own.
-    panel.current?.querySelector<HTMLElement>('[data-modal-close]')?.focus();
-    return () => {
-      if (opener && document.contains(opener)) opener.focus();
-    };
-  }, []);
-
-  /*
-   * Escape closes, and Tab cannot leave. A dialog a screen reader can tab out
-   * of into the page behind it is a dialog in name only — `aria-modal` says the
-   * rest of the document is inert and this is what makes that true.
-   */
-  useEffect(() => {
-    const onKey = (key: KeyboardEvent) => {
-      if (key.key === 'Escape') {
-        onClose();
-        return;
-      }
-      if (key.key !== 'Tab' || !panel.current) return;
-      const stops = [...panel.current.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
-        (node) => node.offsetParent !== null || node === document.activeElement,
-      );
-      if (!stops.length) return;
-      const first = stops[0] as HTMLElement;
-      const last = stops[stops.length - 1] as HTMLElement;
-      if (key.shiftKey && document.activeElement === first) {
-        key.preventDefault();
-        last.focus();
-      } else if (!key.shiftKey && document.activeElement === last) {
-        key.preventDefault();
-        first.focus();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  useModalLayer(panel, onClose);
 
   return (
     <div className="scrim" onClick={onClose}>
@@ -870,6 +825,7 @@ function EventDetailModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        tabIndex={-1}
         onClick={(clicked) => clicked.stopPropagation()}
       >
         <div className={styles.modalHead} style={{ background: event.kindColor }}>
@@ -977,7 +933,7 @@ function EventDetailModal({
             cancelled without us knowing.
           </p>
           <div className={styles.modalActions}>
-            <Button data-modal-close variant="ghost" onClick={onClose}>
+            <Button variant="ghost" onClick={onClose}>
               Close
             </Button>
             <span className={`${styles.push} ${styles.modalRight}`}>

@@ -2,6 +2,16 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { finishOnboarding } from './support/onboarding';
 
+/*
+ * The two browser globals the modal test reads inside `page.evaluate`. This
+ * project's e2e tsconfig has no DOM lib, so they are declared narrowly, as
+ * types only — the same arrangement as `spots.spec.ts`.
+ */
+declare const window: {
+  scrollY: number;
+  requestAnimationFrame(callback: () => void): number;
+};
+
 /**
  * The sticker wall, the detail modal, the share card, and the award flow that
  * feeds them (T10), against a real PocketBase — see `playwright.config.ts`.
@@ -165,6 +175,83 @@ test('a locked sticker offers no share button', async ({ page }) => {
   const modal = page.getByRole('dialog');
   await expect(modal.getByText('Still locked')).toBeVisible();
   await expect(modal.getByRole('button', { name: 'Share it' })).toHaveCount(0);
+});
+
+/*
+ * Issue #372, through the modal a rider opens most: the shared `Modal` on a
+ * phone. Before it, a scroll on the sticker detail moved the wall behind it
+ * (200 to 600 to 1000 in the audit), focus stayed on the sticker under the
+ * scrim, and closing the modal put focus on the skip link.
+ *
+ * Where the page has got to is read off the sticker's own box rather than
+ * `window.scrollY`, for the reason `spots.spec.ts` gives: the lock takes the
+ * body out of flow, so `scrollY` reads 0 while the modal is up whether the page
+ * is held or has run back to the top. A box on screen cannot be fooled either
+ * way. `scrollY` is the right probe only after the modal has gone, which is
+ * where it is used.
+ */
+test('the sticker detail holds the wall still behind it, takes focus, and gives it back', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 664 });
+  await arrive(page, 'Hold Rider');
+  await page.goto('/stickers');
+
+  const settle = () =>
+    page.evaluate(
+      () =>
+        new Promise((done) =>
+          window.requestAnimationFrame(() => window.requestAnimationFrame(() => done(null))),
+        ),
+    );
+
+  /*
+   * A sticker at the foot of the wall, so there is a position worth keeping.
+   * Scoped out of the dialog on purpose: the detail modal draws the same badge,
+   * later in the document, and a bare `.sticker` `.last()` re-resolves to *that*
+   * one the moment the modal opens — which reads as the page jumping 200px.
+   */
+  const sticker = page.locator('.sticker:not([role="dialog"] .sticker)').last();
+  await sticker.scrollIntoViewIfNeeded();
+  await settle();
+  const scrolled = await page.evaluate(() => window.scrollY);
+  expect(scrolled).toBeGreaterThan(0);
+  const stickerTop = async () => Math.round((await sticker.boundingBox())!.y);
+  const where = await stickerTop();
+
+  await sticker.click();
+  const modal = page.getByRole('dialog');
+  await expect(modal).toBeVisible();
+
+  // The point of the fix first: a wheel on the panel, then on the scrim's
+  // gutter beside it, moves nothing behind.
+  const box = (await modal.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(0, 600);
+  await settle();
+  await page.mouse.move(8, 400);
+  await page.mouse.wheel(0, 600);
+  await settle();
+  expect(await stickerTop(), 'the wall moved behind the open modal').toBe(where);
+
+  // Focus moved into the dialog rather than staying on the sticker behind it.
+  await expect(modal).toBeFocused();
+
+  // The page behind is out of reach: inert, so neither Tab nor a screen reader
+  // can wander into it, and Tab from the dialog lands on the dialog's own Close.
+  expect(await sticker.evaluate((el) => el.closest('[inert]') !== null)).toBe(true);
+  await expect(page.locator('.skiplink')).toHaveAttribute('inert', '');
+  await page.keyboard.press('Tab');
+  await expect(modal.getByRole('button', { name: 'Close' })).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(modal).toHaveCount(0);
+
+  // Back where the rider was, on the sticker they opened, with the page live.
+  await expect(sticker).toBeFocused();
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+  expect(await stickerTop()).toBe(where);
+  expect(await sticker.evaluate((el) => el.closest('[inert]') === null)).toBe(true);
 });
 
 test('the wall promises no posted vinyl and no Crew Pass (plan §2.4)', async ({ page }) => {
