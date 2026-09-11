@@ -115,10 +115,17 @@ export function SignUpForm({ defaultEmail = '' }: SignUpFormProps) {
     >
       <div className="field">
         <label htmlFor="name">Your name</label>
+        {/* The prototype put "Miles" here — a real rider's name, and the one on
+            the story page's byline. An example name reads as a suggestion, and
+            suggesting a specific child's name to every rider signing up is not
+            what this field is for. It says what to type instead, which is also
+            the answer to the question the field actually raises: the refusal
+            below is "Tell us what to call you", so a nickname is fine. Don't
+            restore the prototype's value in the name of fidelity. */}
         <input
           id="name"
           name="name"
-          placeholder="Miles"
+          placeholder="First name or nickname"
           autoComplete="given-name"
           value={name}
           onChange={(event) => {
