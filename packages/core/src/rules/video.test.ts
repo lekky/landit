@@ -12,6 +12,7 @@ import {
   parseYouTubeVideoId,
   videoLinkAllowance,
   videoLinkAllowanceLabel,
+  videoLinkCountLine,
   videoLinksRemaining,
   youtubeEmbedUrl,
   youtubeWatchUrl,
@@ -228,5 +229,52 @@ describe('the per-plan allowance', () => {
         expect(line).not.toMatch(/vault|clip|\bGB\b|upload/i);
       }
     }
+  });
+});
+
+describe('videoLinkCountLine', () => {
+  const capped = { cap: 10, unlimited: false };
+  const unlimited = { cap: 0, unlimited: true };
+
+  it("leads with this trick, never with the rider's whole library", () => {
+    // The defect this function exists to close: a Legend rider on a trick with
+    // no videos read "7 video links added" beside a tab badge reading 0, and the
+    // only number on screen was about every other trick (Rachid, 2026-09-11).
+    expect(videoLinkCountLine(unlimited, { onThisTrick: 0, heldTotal: 7 })).toBe(
+      'No videos on this trick yet',
+    );
+    expect(videoLinkCountLine(unlimited, { onThisTrick: 1, heldTotal: 7 })).toBe(
+      '1 video on this trick',
+    );
+    expect(videoLinkCountLine(unlimited, { onThisTrick: 3, heldTotal: 7 })).toBe(
+      '3 videos on this trick',
+    );
+  });
+
+  it('says the cap too, and says what the cap counts', () => {
+    // The total is not dropped where it is load-bearing — it is the number the
+    // hook refuses a write against — but it never stands alone, and it carries
+    // the reason it disagrees with the count beside it.
+    expect(videoLinkCountLine(capped, { onThisTrick: 0, heldTotal: 7 })).toBe(
+      'No videos on this trick yet. 7 of 10 video links used across all your tricks',
+    );
+    expect(videoLinkCountLine(capped, { onThisTrick: 2, heldTotal: 2 })).toBe(
+      '2 videos on this trick. 2 of 10 video links used across all your tricks',
+    );
+  });
+
+  it('ends without a full stop, because the caller keeps talking', () => {
+    for (const allowance of [capped, unlimited]) {
+      expect(videoLinkCountLine(allowance, { onThisTrick: 2, heldTotal: 2 })).not.toMatch(/\.$/);
+    }
+  });
+
+  it('never reads a negative or a fraction back to a rider', () => {
+    expect(videoLinkCountLine(unlimited, { onThisTrick: -3, heldTotal: 0 })).toBe(
+      'No videos on this trick yet',
+    );
+    expect(videoLinkCountLine(capped, { onThisTrick: 1.7, heldTotal: -2 })).toBe(
+      '1 video on this trick. 0 of 10 video links used across all your tricks',
+    );
   });
 });

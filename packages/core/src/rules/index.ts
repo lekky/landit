@@ -365,6 +365,7 @@ export {
   parseYouTubeVideoId,
   videoLinkAllowance,
   videoLinkAllowanceLabel,
+  videoLinkCountLine,
   videoLinksRemaining,
   youtubeEmbedUrl,
   youtubeWatchUrl,

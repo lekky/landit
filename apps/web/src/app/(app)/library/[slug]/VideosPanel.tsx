@@ -4,7 +4,7 @@ import {
   VIDEO_VISIBILITIES,
   canAddVideoLink,
   parseYouTubeVideoId,
-  videoLinksRemaining,
+  videoLinkCountLine,
   type VideoLink,
   type VideoLinkAllowance,
   type VideoVisibilityId,
@@ -52,6 +52,17 @@ const VIDEOS_PER_PAGE = 4;
  *   (plan §3 guarantee 2).
  * - **The cap is drawn, not enforced.** The count comes from the server on every
  *   render; the form disables itself at the wall, and the hook refuses anyway.
+ * - **The line under the form counts *this trick* first.** Two numbers meet on
+ *   this tab and they are not the same number: the videos on the trick being
+ *   looked at, and the links the rider holds everywhere, which is what the cap
+ *   counts. Saying only the second made a Legend rider's empty tab read
+ *   "7 video links added" (Rachid, 2026-09-11). `videoLinkCountLine` puts them
+ *   in that order, in `@landit/core`, beside the allowance rules the sentence
+ *   is about. It is also the **only** place the allowance is counted out: the
+ *   paragraph used to end with a second " 3 left." nudge, which beside
+ *   "7 of 10 … used" says the same thing twice, several sentences apart
+ *   (Rachid, 2026-09-11, in chat). One fact, one place — including inside a
+ *   sentence.
  * - **Nothing here announces anything to anybody.** Adding a video writes one
  *   row. No notification, no feed entry, no crew activity — plan §6.1, and the
  *   reason a rider's video reaches another rider only by that rider opening
@@ -87,15 +98,15 @@ export function VideosPanel({
   const [page, setPage] = useState(0);
   const [pending, startTransition] = useTransition();
 
-  const remaining = videoLinksRemaining(allowance, heldTotal);
   const canAdd = canAddVideoLink(allowance, heldTotal);
   const grantsNone = !allowance.unlimited && allowance.cap === 0;
 
-  // "3 of 10 video links used" — the handoff's line, from the same numbers the
-  // hook counts. Across every trick, because that is what the cap is.
-  const usedLine = allowance.unlimited
-    ? `${heldTotal} video link${heldTotal === 1 ? '' : 's'} added`
-    : `${heldTotal} of ${allowance.cap} video links used`;
+  // "2 videos on this trick. 3 of 10 video links used across all your tricks" —
+  // the trick's own count leading, and the cap's count named for what it is.
+  const countLine = videoLinkCountLine(allowance, {
+    onThisTrick: initial.length,
+    heldTotal,
+  });
 
   const submit = () => {
     const pasted = link.trim();
@@ -226,13 +237,13 @@ export function VideosPanel({
             <p className={styles.problem}>{problem}</p>
           ) : canAdd ? (
             <p className={styles.hint}>
-              {usedLine}. The video stays on YouTube — we only keep the link. New videos start
+              {countLine}. The video stays on YouTube — we only keep the link. New videos start
               private, and nothing you add is ever visible to someone who is not signed in.
-              {remaining !== null && remaining <= 3 && ` ${remaining} left.`}
             </p>
           ) : (
             <p className={styles.hint}>
-              That is all {allowance.cap} of your video links. Remove one to add another.
+              That is all {allowance.cap} of your video links, counting every trick. Remove one to
+              add another.
             </p>
           )}
         </>
