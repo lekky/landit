@@ -127,6 +127,19 @@ const FEATURES = [
     accent: 'violet',
     tricks: 'park',
   },
+  /*
+   * Halfpipe and DIY arrived with the world import (2026-09-11): two of the
+   * map filters it reads are features the catalogue had no sentence for.
+   */
+  {
+    id: 'halfpipe',
+    label: 'Halfpipe',
+    phrase: 'a halfpipe',
+    about:
+      'Two quarter pipes facing each other across a flat bottom, bigger than a mini. You carry speed from one wall to the other.',
+    accent: 'sky',
+    tricks: 'park',
+  },
   {
     id: 'flat',
     label: 'Flat',
@@ -361,6 +374,15 @@ const FEATURES = [
     about: 'A dirt or gravel line built for bikes, ridden as a route from top to bottom.',
     accent: 'green',
     tricks: null,
+  },
+  {
+    id: 'diy',
+    label: 'DIY',
+    phrase: 'rider-built concrete',
+    about:
+      'Concrete riders poured themselves, often under a bridge or on spare ground. Rough, always changing, and sometimes gone next time.',
+    accent: 'green',
+    tricks: 'park',
   },
 ] as const satisfies readonly SpotFeature[];
 

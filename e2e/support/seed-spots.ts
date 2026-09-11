@@ -40,8 +40,19 @@ export async function seedSpots(): Promise<void> {
     password: SUPERUSER_PASSWORD,
   });
 
+  /*
+   * The researched spots and France's census — the set every spots spec
+   * asserts against (the total on the count line, which park "Near me" puts
+   * first) — and not the world import's two tables (2026-09-11). Whole they
+   * are about thirty-three thousand creates with hooks on, minutes against a
+   * job with a time limit; sampled, they still move the total and put an
+   * imported park nearer than the one a spec names. Their rows landing is the
+   * integration suites' job (`seed.integration.test.ts`, `spots.integration.test.ts`).
+   */
   await seed(client, {
-    tables: buildSeed().tables.filter((table) => table.collection === 'spots'),
+    tables: buildSeed().tables.filter(
+      (table) => table.collection === 'spots' && !table.label?.startsWith('spots (world'),
+    ),
   });
 
   if ((await liveSpotCount()) === 0) {

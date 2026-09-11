@@ -1,4 +1,5 @@
 import {
+  isIndexedSpotSource,
   SITE_URL,
   SPOT_SOURCES,
   distanceLabelIn,
@@ -11,7 +12,7 @@ import {
   unitsForCountry,
   type SportId,
 } from '@landit/core';
-import { getSpotBySlug, listLiveSpots, type SpotsRecord } from '@landit/db';
+import { getSpotBySlug, listSpotsNear, type SpotsRecord } from '@landit/db';
 import { Panel, SportChip, Tag } from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -146,8 +147,14 @@ async function load(slug: string) {
    * because a second query failed is a worse outcome than a page without its
    * "other spots near" section — the same rule the trick page reads its award
    * badge under.
+   *
+   * **Only the spots around this one** (`listSpotsNear`): since the world import
+   * there are about thirty thousand live spots, and reading every one of them
+   * to show the nearest few was a whole-table read on every page view.
    */
-  const others = await listLiveSpots(client).catch((): SpotsRecord[] => []);
+  const others = hasCoords(spot)
+    ? await listSpotsNear(client, { lat: spot.lat, lng: spot.lng }).catch((): SpotsRecord[] => [])
+    : [];
 
   /*
    * Miles or kilometres, settled here on the server from the same two signals
@@ -190,6 +197,15 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     description,
     alternates: { canonical: url },
     openGraph: { title, description, url, type: 'website' },
+    /*
+     * The world import's pages stay out of search (the owner, 2026-09-11, in
+     * chat). Most say a name, a town and a feature or two, and thirty thousand
+     * pages like that are the thin, near-duplicate pattern search engines
+     * demote a whole site for. The page still serves every rider who reaches
+     * it from the map; `isIndexedSpotSource` in `@landit/core` is the rule,
+     * and `listIndexedSpots` keeps the same pages out of the sitemap.
+     */
+    ...(isIndexedSpotSource(spot.source) ? {} : { robots: { index: false } }),
   };
 }
 

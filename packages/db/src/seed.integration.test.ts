@@ -7,7 +7,8 @@ import { SUPERUSER_EMAIL, SUPERUSER_PASSWORD, withInstance } from '../scripts/pb
 
 import { records } from './collections';
 import { franceSpots } from './imports/france';
-import { seed, selectTables } from './seed';
+import { sampleWorld } from './imports/world-sample';
+import { buildSeed, seed, selectTables } from './seed';
 
 /**
  * The seed, run against a real PocketBase started on this repo's real
@@ -40,6 +41,15 @@ interface Seeded {
 
 let result: Seeded;
 
+const PLAN = sampleWorld(buildSeed());
+const WORLD_ROWS = PLAN.tables.find((table) => table.label === 'spots (world)')!.rows.length;
+const OSM_ONLY_ROWS = PLAN.tables.find(
+  (table) => table.label === 'spots (world, OpenStreetMap only)',
+)!.rows.length;
+
+/** The spots tables' results, in seed order: researched, France, world, OpenStreetMap only. */
+const spotsRuns = (run: Seeded['first']) => run.filter((r) => r.collection === 'spots');
+
 beforeAll(async () => {
   result = (await withInstance(
     async (url: string) => {
@@ -47,10 +57,10 @@ beforeAll(async () => {
       client.autoCancellation(false);
       await client.collection('_superusers').authWithPassword(SUPERUSER_EMAIL, SUPERUSER_PASSWORD);
 
-      const first = await seed(client);
+      const first = await seed(client, PLAN);
       // Twice, on purpose: seeding an instance riders already use is the normal
       // way to update the library, so a second run must not duplicate anything.
-      const second = await seed(client);
+      const second = await seed(client, PLAN);
 
       /*
        * Then the case the France import exists for (issue #362): staff mark an
@@ -62,7 +72,9 @@ beforeAll(async () => {
       const imported = await spots.first('source = {:source}', { source: 'fr-sports-gouv' });
       if (!imported) throw new Error('the France import wrote nothing');
       await spots.update(imported.id, { operating: 'closed' });
-      const third = await seed(client, selectTables(['spots']).plan, { prereqs: false });
+      const third = await seed(client, sampleWorld(selectTables(['spots']).plan), {
+        prereqs: false,
+      });
       const edited = await spots.first('id = {:id}', { id: imported.id });
       const unstamped = (await spots.page({ perPage: 1, filter: "source = ''" })).totalItems;
 
@@ -130,17 +142,34 @@ describe('seeding a real PocketBase', () => {
   });
 
   it('imports every French skatepark once, and keeps them on the second run', () => {
-    const france = (run: Seeded['first']) => run.filter((r) => r.collection === 'spots').at(-1)!;
+    const france = (run: Seeded['first']) => spotsRuns(run)[1]!;
     expect(france(result.first).created).toBe(franceSpots().length);
     expect(france(result.first).kept).toBe(0);
     expect(france(result.second).created).toBe(0);
     expect(france(result.second).kept).toBe(franceSpots().length);
   });
 
+  it('imports the world sample once, and keeps it on the second and third runs', () => {
+    expect(WORLD_ROWS).toBeGreaterThan(100);
+    expect(spotsRuns(result.first)[2]!.created).toBe(WORLD_ROWS);
+    expect(spotsRuns(result.second)[2]!.created).toBe(0);
+    expect(spotsRuns(result.second)[2]!.kept).toBe(WORLD_ROWS);
+    expect(spotsRuns(result.third)[2]!.updated).toBe(0);
+    expect(spotsRuns(result.third)[2]!.kept).toBe(WORLD_ROWS);
+  });
+
+  it('imports the OpenStreetMap-only sample once, and keeps it after', () => {
+    expect(OSM_ONLY_ROWS).toBeGreaterThan(100);
+    expect(spotsRuns(result.first)[3]!.created).toBe(OSM_ONLY_ROWS);
+    expect(spotsRuns(result.second)[3]!.created).toBe(0);
+    expect(spotsRuns(result.second)[3]!.kept).toBe(OSM_ONLY_ROWS);
+    expect(spotsRuns(result.third)[3]!.kept).toBe(OSM_ONLY_ROWS);
+  });
+
   it('leaves a staff edit to an imported spot alone on a re-seed (issue #362)', () => {
     expect(result.editedOperating).toBe('closed');
     // And the run said so: nothing created, nothing updated, everything kept.
-    const france = result.third.filter((r) => r.collection === 'spots').at(-1)!;
+    const france = spotsRuns(result.third)[1]!;
     expect(france.updated).toBe(0);
     expect(france.kept).toBe(franceSpots().length);
   });

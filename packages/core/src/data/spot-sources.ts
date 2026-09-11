@@ -44,7 +44,35 @@ export interface SpotSource {
   readonly snapshot?: string;
   /** Whether the credit line under the map must name this source. */
   readonly credited: boolean;
+  /**
+   * Whether a spot page from this source may be indexed by search engines.
+   * Absent means yes. `false` puts `noindex` on the page and keeps it out of
+   * the sitemap: an imported page that says little more than a name and a town
+   * is the thin, near-duplicate page search engines demote a whole site for
+   * (the owner, 2026-09-11, in chat, for the world import).
+   */
+  readonly indexed?: boolean;
+  /**
+   * Datasets a row from this source also draws on, credited beside it — the
+   * world import's towns come from GeoNames, whichever source the park came
+   * from.
+   */
+  readonly alsoCredits?: readonly SpotCredit[];
 }
+
+/** A dataset the credit line names that is not itself a row source. */
+export interface SpotCredit {
+  readonly name: string;
+  readonly licenceName: string;
+  readonly url: string;
+}
+
+/** GeoNames' populated places, CC BY 4.0 — the town on every world-import row. */
+const GEONAMES: SpotCredit = {
+  name: 'GeoNames',
+  licenceName: 'CC BY 4.0',
+  url: 'https://www.geonames.org',
+};
 
 export const SPOT_SOURCES = {
   /** A session researched it by hand from the venue, a council and OpenStreetMap. */
@@ -75,6 +103,66 @@ export const SPOT_SOURCES = {
     snapshot: '2026-09-08',
     credited: true,
   },
+  /**
+   * The world import (the owner, 2026-09-11, in chat): a park on Trucks and
+   * Fins' map that OpenStreetMap also has, within 150 metres. Its point, name
+   * and address are OpenStreetMap's, under the Open Database Licence, which is
+   * what the credit line names. Its tags, roof and "gone" come from Trucks and
+   * Fins' map filters, which no licence covers — so the licence column says
+   * both halves: `ODbL-1.0 AND LicenseRef-none`, where `LicenseRef-none` means
+   * no licence was granted and the owner chose to take the facts regardless.
+   * The column exists for the day somebody asks which rows may be handed on,
+   * and the honest answer for these is "not on ODbL terms alone".
+   */
+  'osm-tnf': {
+    id: 'osm-tnf',
+    name: 'OpenStreetMap contributors',
+    licence: 'ODbL-1.0 AND LicenseRef-none',
+    licenceName: 'Open Database Licence',
+    url: 'https://www.openstreetmap.org/copyright',
+    snapshot: '2026-09-11',
+    credited: true,
+    indexed: false,
+    alsoCredits: [GEONAMES],
+  },
+  /**
+   * The world import's other third: a park on Trucks and Fins' map that
+   * OpenStreetMap does not have. Point, name and filters are all Trucks and
+   * Fins'; no licence was granted, so nothing asks for a credit and none is
+   * given. Facts only — the site's descriptions, addresses and photographs
+   * were never taken.
+   */
+  tnf: {
+    id: 'tnf',
+    name: 'Trucks and Fins',
+    licence: 'LicenseRef-none',
+    licenceName: '',
+    url: 'https://trucksandfins.com',
+    snapshot: '2026-09-11',
+    credited: false,
+    indexed: false,
+    alsoCredits: [GEONAMES],
+  },
+  /**
+   * The world import's OpenStreetMap-only parks (#390; the owner, 2026-09-11,
+   * in chat): skateboarding objects no park on Trucks and Fins' map claimed,
+   * kept where their outline encloses at least 300 m². Pure OpenStreetMap, so
+   * plain Open Database Licence — the one world source with a licence of its
+   * own. Credited under the same name as `osm-tnf`, and the credit line names
+   * it once (`spotCredits`). Out of search like the rest of the import: most
+   * have no name and nothing but a size to say.
+   */
+  osm: {
+    id: 'osm',
+    name: 'OpenStreetMap contributors',
+    licence: 'ODbL-1.0',
+    licenceName: 'Open Database Licence',
+    url: 'https://www.openstreetmap.org/copyright',
+    snapshot: '2026-09-11',
+    credited: true,
+    indexed: false,
+    alsoCredits: [GEONAMES],
+  },
 } as const satisfies Record<string, SpotSource>;
 
 export type SpotSourceId = keyof typeof SPOT_SOURCES;
@@ -82,4 +170,50 @@ export type SpotSourceId = keyof typeof SPOT_SOURCES;
 /** The sources the credit line under the map has to name, in catalogue order. */
 export function creditedSpotSources(): readonly SpotSource[] {
   return Object.values(SPOT_SOURCES).filter((source) => source.credited);
+}
+
+/** The source a `spots.source` value names, or `null` for one the catalogue does not know. */
+function sourceFor(id: string | null | undefined): SpotSource | null {
+  return id && Object.hasOwn(SPOT_SOURCES, id) ? SPOT_SOURCES[id as SpotSourceId] : null;
+}
+
+/**
+ * May a spot page with this `source` be indexed? Yes unless the catalogue says
+ * otherwise, so a row from before the column existed — or a value nobody
+ * recognises — keeps the behaviour every page had.
+ */
+export function isIndexedSpotSource(id: string | null | undefined): boolean {
+  return (sourceFor(id) as SpotSource | null)?.indexed !== false;
+}
+
+/** The `spots.source` values whose pages stay out of search, in catalogue order. */
+export function unindexedSpotSourceIds(): readonly string[] {
+  return Object.values(SPOT_SOURCES)
+    .filter((source) => (source as SpotSource).indexed === false)
+    .map((source) => source.id);
+}
+
+/**
+ * Everything the credit line under the map names, in order: each credited
+ * source once by name, then every dataset any source draws on, each once.
+ */
+export function spotCredits(): readonly (SpotCredit & { readonly snapshot?: string })[] {
+  const credits: (SpotCredit & { readonly snapshot?: string })[] = [];
+  // Two sources can share a name — `osm-tnf` and `osm` are both OpenStreetMap
+  // contributors — and the line names each once, at its first place.
+  for (const source of creditedSpotSources()) {
+    if (credits.some((existing) => existing.name === source.name)) continue;
+    credits.push({
+      name: source.name,
+      licenceName: source.licenceName,
+      url: source.url,
+      ...(source.snapshot ? { snapshot: source.snapshot } : {}),
+    });
+  }
+  for (const source of Object.values(SPOT_SOURCES) as readonly SpotSource[]) {
+    for (const credit of source.alsoCredits ?? []) {
+      if (!credits.some((existing) => existing.name === credit.name)) credits.push(credit);
+    }
+  }
+  return credits;
 }

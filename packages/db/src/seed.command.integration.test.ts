@@ -92,7 +92,15 @@ beforeAll(async () => {
 
     return { ...result, counts };
   })) as CommandRun;
-}, 120_000);
+  /*
+   * The documented command seeds the whole plan, and since the world import
+   * (2026-09-11) the plan carries about thirty-three thousand imported spots —
+   * enough that the old two minutes was no longer a budget, just the edge of
+   * one. The time is spent creating rows, which is exactly what this test
+   * exists to prove still works, so the budget grows rather than the plan
+   * shrinking.
+   */
+}, 600_000);
 
 describe('the documented seed command', () => {
   it('exits 0', () => {

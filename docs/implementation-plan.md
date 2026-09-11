@@ -2390,6 +2390,69 @@ owner:
   documented ban in imported data is written into that test by name, with its source. The 3,103
   French rows already live were brought level by `1789084800_import_sports_rule.js`, because the
   France table is seeded create-only (#273).
+  **A pump track counts as the source naming BMX** (the owner, 2026-09-11, in chat, for the world
+  import below): a park its source lists as a pump track is listed for BMX as well as scooter and
+  skate, because a pump track is a bike place first. `sportsEvidence` in
+  `packages/db/src/imports/world.ts` applies it; `importedSpotSports` itself is unchanged.
+- **The world import (2026-09-11; the owner, in chat, choosing "route B")** brings in the places on
+  Trucks and Fins' map (trucksandfins.com, 27,644 parks captured that day), the largest skatepark
+  directory there is. **Whose data each row is:** where an OpenStreetMap skateboarding object sits
+  within 150 metres (matched one to one, closest first), the point, name and address are
+  OpenStreetMap's, under the Open Database Licence we already hold — `source: 'osm-tnf'`; where
+  none does, the row stands on Trucks and Fins' point and name — `source: 'tnf'`. Tags (bowl, mini,
+  halfpipe, snake run, full pipe, vert, pump track, DIY), the roof and "gone" come from which of the
+  site's thirteen map filters list the park. **Facts only:** no description, address, review or
+  photograph of theirs was taken, and every sentence on a spot page is ours (`SPOT_FEATURES`, which
+  gains Halfpipe and DIY). **No licence was granted, and the owner chose to take the facts
+  regardless;** the licence column says so rather than hiding it — `ODbL-1.0 AND LicenseRef-none`
+  and `LicenseRef-none` — because that column exists for the day somebody asks which rows may be
+  handed on. The credit line names OpenStreetMap contributors and GeoNames (the towns, CC BY 4.0);
+  Trucks and Fins, having granted nothing, is not named. **The site is behind a bot shield and the
+  importer never fetches it:** `scripts/import-world.mts` reads the list page and the filter lists
+  as captured in an ordinary browser, and fetches only OpenStreetMap (Overpass, twelve bands),
+  GeoNames and Natural Earth. **These pages stay out of search** (the owner, same conversation):
+  `indexed: false` on both sources puts `noindex` on the page and keeps it out of the sitemap,
+  because most say a name, a town and a feature or two, and twenty-five thousand of those is the
+  thin, near-duplicate pattern search engines demote a site for. The page still serves every rider
+  who reaches it from the map. **Duplicates:** listings within 50 metres of each other are one
+  place; a place within about 160 metres of a researched or French spot is dropped. Generic names
+  follow France's rule ("Skatepark", the town doing the rest), with OpenStreetMap's name tried
+  before Trucks and Fins'. The table is seeded create-only, like France's (#273). The snapshot
+  maps to 25,268 spots — 15,010 on OpenStreetMap's point — in about 160 countries, so
+  `SPOT_COUNTRY_BY_CODE` gains a line for the 66 the data had never reached. **What scale
+  changed:** a spot page now asks for the spots around it (`listSpotsNear`) instead of reading
+  every live spot, the sitemap reads only indexable ones (`listIndexedSpots`), and "Near me"'s
+  point list carries coordinates at five decimal places and sports as a bitmask. What it still
+  cannot say is the same as France's: nothing about opening hours and nothing about scooters.
+  **The map's point list is cached on the server (#393; the owner, 2026-09-11, in chat: option
+  1).** Since `feat-spots-map-clusters` (#391) fetches that list whenever the map shows, every map
+  load read all 28,731 spots — measured at 4.3–4.6 s of PocketBase work and 2.2 MB of JSON (963 KB
+  gzipped) per visitor against a local instance holding the full seed. The list is the same for
+  every caller (live rows only, read with the anonymous client), so the web process keeps one copy
+  for five minutes and serves it stale while a single background read refreshes it
+  (`staleWhileRevalidate` in `apps/web/src/lib/staleCache.ts`); a failed read is never cached and a
+  failed refresh keeps the old list. The trade accepted: a newly approved spot or a staff edit
+  reaches the map up to five minutes late. The download itself is unchanged; scoping it to the
+  view (#389's bounds) is the next step if its size turns out to matter on phones.
+- **OpenStreetMap on its own (#390; the owner, 2026-09-11, in chat: "go with the
+  recommendations").** OpenStreetMap maps skateboarding objects that no park on Trucks and Fins'
+  map claimed — 12,739 of them with an outline, after the match above. Most are small: a single
+  ramp in a playground, an unnamed pitch. So only a place whose outline encloses **at least
+  300 m²** is kept (`OSM_ONLY_MIN_AREA` in `packages/db/src/imports/world.ts`), just above a
+  tennis court's 260; outlines within 50 metres are one place and their areas are added
+  together first, so a park mapped as a bowl and a street section is measured whole. A point has
+  no outline and so no size, and is left out; anything tagged `access=private` or `access=no` is
+  left out and never lends its size to a neighbour. A place within about 160 metres of any spot
+  already seeded — researched, French or the world rows — is dropped. What survives is **7,660
+  parks, 348 of them in the UK**, taking the live list to 36,391. They are plain OpenStreetMap,
+  so `source: 'osm'` under `ODbL-1.0` with nothing else mixed in, credited under the same
+  "OpenStreetMap contributors" line the credit names once (`spotCredits`), and `noindex` like the
+  rest of the import: 83% have no name of their own and read "Skatepark" (or "Pump track", where
+  a name says it is one — which also lists it for BMX) with the town doing the rest. The importer
+  measures outlines by id with Overpass `out geom`, kept in `osm-areas.json` in its cache so a
+  rate-limited run resumes. `SPOT_COUNTRY_BY_CODE` gains the 13 countries these reach, Kosovo's
+  `XK` written by hand because it is not an ISO 3166-1 code and the sign-up table has no line
+  for it.
 - **"Check before you travel", on the screen, permanently** (owner's call, 2026-08-18). The list
   is not a live feed and must not read like one: parks close for rebuilds, session timetables
   change, and a park that allows scooters this year can stop. The notice sits under the map on

@@ -461,7 +461,8 @@ export const ANALYTICS_EVENTS = {
    * anybody still reads one.
    *
    * And `source` — a `SPOT_SOURCES` id from `@landit/core` (`researched`,
-   * `rider`, `fr-sports-gouv`), or `unknown` for a value the catalogue does not
+   * `rider`, `fr-sports-gouv`, and the world import's `osm-tnf`, `tnf` and `osm`), or
+   * `unknown` for a value the catalogue does not
    * know. The France import (issue #362) put three thousand machine-named
    * pages on the map at once, and this is the only way to learn whether the
    * imported pages are read at all or only the ones a human researched. The

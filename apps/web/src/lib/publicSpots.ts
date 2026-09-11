@@ -1,4 +1,4 @@
-import { listLiveSpots, type SpotsRecord } from '@landit/db';
+import { listIndexedSpots, type SpotsRecord } from '@landit/db';
 
 import { anonymousClient } from '@/lib/session';
 
@@ -16,12 +16,14 @@ import { anonymousClient } from '@/lib/session';
  * `POCKETBASE_URL` is unset, *before* there is a promise for a `.catch` to
  * attach to. `publicTricks.ts` has the longer version of that note.
  *
- * `listLiveSpots` filters to `status = 'live'`, so a rider's unreviewed
- * submission is never advertised — it has no page either (`getSpotBySlug`).
+ * `listIndexedSpots` filters to `status = 'live'`, so a rider's unreviewed
+ * submission is never advertised — it has no page either (`getSpotBySlug`) —
+ * and leaves out every spot whose page carries `noindex`: the world import's
+ * (2026-09-11), which a sitemap has no business asking a crawler to fetch.
  */
 export async function publicSpots(): Promise<SpotsRecord[]> {
   try {
-    return await listLiveSpots(anonymousClient());
+    return await listIndexedSpots(anonymousClient());
   } catch {
     return [];
   }

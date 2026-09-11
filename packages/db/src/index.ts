@@ -229,6 +229,8 @@ export {
   getSpotsByIds,
   listOwnSpots,
   listSpotPoints,
+  listIndexedSpots,
+  listSpotsNear,
   pageSpots,
   pageWindows,
   spotListFilter,
