@@ -264,12 +264,90 @@ test('signing back in returns the rider to their account', async ({ page }) => {
 });
 
 test('a wrong password says nothing about whether the account exists', async ({ page }) => {
+  const email = `nobody-${unique()}@landit.invalid`;
   await page.goto('/signin');
-  await page.getByLabel('Email').fill(`nobody-${unique()}@landit.invalid`);
+  await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password').fill('not-the-password');
   await page.getByRole('button', { name: 'Sign in' }).click();
 
   await expect(page.getByText('That email and password do not match an account')).toBeVisible();
+  // The address survives the refusal and the password does not (issue #370):
+  // React 19 resets a form when its action settles, and this used to empty both.
+  await expect(page.getByLabel('Email')).toHaveValue(email);
+  await expect(page.getByLabel('Password')).toHaveValue('');
+  await expect(page.getByText(/failed to authenticate/i)).toHaveCount(0);
+});
+
+test('a taken email keeps what was typed, and offers sign-in instead', async ({ page }) => {
+  const email = `e2e-${unique()}@landit.invalid`;
+  await fillSignUp(page, { name: 'First Rider', email, country: 'GB', dob: birthDate(25) });
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await page.waitForURL('**/onboarding');
+  await page.context().clearCookies();
+
+  // The second attempt is a gated rider with a grown-up's address, so the
+  // consent half of the form is on screen when the refusal lands — the path
+  // the form must not disturb.
+  const dob = birthDate(11);
+  const guardian = `guardian-${unique()}@landit.invalid`;
+  await fillSignUp(page, { name: 'Second Try', email, country: 'GB', dob });
+  await page.getByLabel('A grown-up’s email').fill(guardian);
+  await page.getByRole('button', { name: 'Create account' }).click();
+
+  // Wait on something only the server could have produced.
+  const taken = page.getByText('That email already has an account.');
+  await expect(taken).toBeVisible();
+
+  // The point of the test (issue #370): nothing the rider typed is gone except
+  // the password, which is cleared on purpose and never sent back.
+  await expect(page.getByLabel('Your name')).toHaveValue('Second Try');
+  await expect(page.getByLabel('Email', { exact: true })).toHaveValue(email);
+  await expect(page.getByLabel('Password')).toHaveValue('');
+  await expect(page.getByLabel('Where you live')).toHaveValue('GB');
+  await expect(page.getByLabel('Date of birth')).toHaveValue(dob);
+  await expect(page.getByLabel('A grown-up’s email')).toHaveValue(guardian);
+  await expect(page.getByText('A grown-up will need to say yes')).toBeVisible();
+
+  // A way out, and none of PocketBase's words.
+  await expect(page.getByRole('link', { name: 'Sign in instead?' })).toHaveAttribute(
+    'href',
+    '/signin',
+  );
+  await expect(page.getByText(/must be unique|failed to create/i)).toHaveCount(0);
+
+  // Fixing the field takes its error away; the next press can bring it back.
+  await page.getByLabel('Email', { exact: true }).fill(`e2e-${unique()}@landit.invalid`);
+  await expect(taken).toBeHidden();
+});
+
+test('a dead reset link says it has expired, and where to get a fresh one', async ({ page }) => {
+  await page.goto('/reset-password?token=not-a-real-token');
+  await page.getByLabel('New password').fill('a-long-new-password');
+  await page.getByRole('button', { name: 'Set the password' }).click();
+
+  await expect(page.getByText('That link has expired.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Ask for a fresh one' })).toHaveAttribute(
+    'href',
+    '/forgot-password',
+  );
+  // PocketBase's words for this were "An error occurred while validating the
+  // submitted data." — true, and useless to a rider holding a dead link.
+  await expect(page.getByText(/error occurred|validating|invalid or expired/i)).toHaveCount(0);
+});
+
+test('a dead confirmation link says it has expired, and where to get a fresh one', async ({
+  page,
+}) => {
+  await page.goto('/verify-email?token=not-a-real-token');
+  await page.getByRole('button', { name: 'Confirm this email' }).click();
+
+  await expect(page.getByText('That link has expired.')).toBeVisible();
+  // The dashboard, not /forgot-password: the reminder there sends a fresh
+  // confirmation, and a reset email is not what this rider asked for.
+  await expect(
+    page.getByRole('link', { name: 'Get a fresh one from your dashboard' }),
+  ).toHaveAttribute('href', '/home');
+  await expect(page.getByText(/error occurred|validating|claim/i)).toHaveCount(0);
 });
 
 test('an unverified rider is reminded, once, and can put it away', async ({ page }) => {

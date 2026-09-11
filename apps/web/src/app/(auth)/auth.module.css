@@ -102,9 +102,12 @@
 }
 
 /* On a phone the two lines of links were 14-17px tall targets (#375). The hit
- * area grows and the margin gives it straight back, so no line moves. */
+ * area grows and the margin gives it straight back, so no line moves. The way
+ * out of a refusal (`.errLink`, #370) is a link in a line of small type too, so
+ * it gets the same reach. */
 @media (max-width: 860px) {
-  .swap a {
+  .swap a,
+  .errLink {
     display: inline-block;
     padding: 14px 4px;
     margin: -14px -4px;
@@ -171,4 +174,14 @@
   text-transform: uppercase;
   color: var(--red);
   margin: 0;
+}
+
+/* The way out of a refusal — "Sign in instead?" under a taken email, "Ask for a
+ * fresh one" after a dead link (issue #370). In the error's own colour and
+ * underlined the way `.swap a` is, so it reads as the end of the sentence and as
+ * something to press. */
+.errLink {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
