@@ -4,20 +4,34 @@ import { Button } from '@landit/ui-web';
 import Link from 'next/link';
 import { useActionState } from 'react';
 
+import { AUTH_COPY } from '@/lib/authRefusal';
 import { ROUTES } from '@/lib/routes';
 
-import { ANALYTICS_EVENTS, capture, useFailureCapture } from '@/lib/analyticsClient';
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 
 import { confirmResetAction, type AuthFormState } from '../actions';
 import styles from '../auth.module.css';
+import { useFieldErrors, useRefusalCapture } from '../useAuthForm';
 
+/**
+ * Set a new password from the emailed link.
+ *
+ * A link PocketBase will not accept — expired, already used, never real — says
+ * so in our words and puts the way to a fresh one beside it (issue #370). It
+ * used to say "An error occurred while validating the submitted data.", which
+ * is PocketBase talking to a developer, and a rider reading it had no idea the
+ * link was the problem or that asking again would fix it.
+ */
 export function ResetPasswordForm({ token }: { token: string }) {
   const [state, action, pending] = useActionState<AuthFormState | undefined, FormData>(
     confirmResetAction,
     undefined,
   );
+  const { errorFor, edited } = useFieldErrors(state);
 
-  useFailureCapture(ANALYTICS_EVENTS.passwordResetCompleted, state?.errors?.form);
+  useRefusalCapture('reset', state, ANALYTICS_EVENTS.passwordResetCompleted);
+
+  const passwordError = errorFor('password');
 
   if (state?.done) {
     return (
@@ -54,11 +68,24 @@ export function ResetPasswordForm({ token }: { token: string }) {
           type="password"
           autoComplete="new-password"
           placeholder="••••••••"
+          onChange={() => edited('password')}
         />
-        {state?.errors?.password ? <span className="err">{state.errors.password}</span> : null}
+        {passwordError ? <span className="err">{passwordError}</span> : null}
       </div>
 
-      {state?.errors?.form ? <p className={styles.formError}>{state.errors.form}</p> : null}
+      {state?.errors?.form ? (
+        <p className={styles.formError}>
+          {state.errors.form}
+          {state.refused === 'dead_link' ? (
+            <>
+              {' '}
+              <Link href={ROUTES.forgotPassword} className={styles.errLink}>
+                {AUTH_COPY.resetAgain}
+              </Link>
+            </>
+          ) : null}
+        </p>
+      ) : null}
 
       <Button type="submit" wide className={styles.submit} disabled={pending}>
         {pending ? 'One moment…' : 'Set the password'}

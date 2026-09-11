@@ -72,6 +72,12 @@ export { ANALYTICS_EVENTS };
  * the difference between the two. The ref stops React re-firing it on an
  * unrelated re-render; a *new* failure changes the message and fires again.
  *
+ * Sign-up, sign-in and setting a new password have since moved to
+ * `useRefusalCapture` (`app/(auth)/useAuthForm.ts`, issue #370), which fires
+ * the same `failed` once per answer rather than once per distinct message, and
+ * for refusals under a field as well as above the button. This is still how the
+ * other forms report.
+ *
  * `message` is the app's own copy, which is written by us and says nothing
  * about the rider. It is not sent — only the fact that it changed is used, and
  * what travels is the caller's own `properties`.

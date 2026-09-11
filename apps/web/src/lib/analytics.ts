@@ -155,6 +155,29 @@ export const ANALYTICS_EVENTS = {
   passwordResetCompleted: 'password_reset_completed',
   verificationResent: 'verification_resent',
   /**
+   * A sign-up, sign-in, new password or email confirmation was refused, and
+   * why (issue #370).
+   *
+   * Carries `form` — `'signup'`, `'signin'`, `'reset'` or `'verify'` — and
+   * `reason`, one of `AUTH_REFUSAL_REASONS` in `authRefusal.ts`:
+   * `'email_taken'`, `'bad_credentials'`, `'dead_link'`, `'invalid'` or
+   * `'other'`. Both are fixed strings chosen in this repository, and the server
+   * picks the reason from PocketBase's error *codes*, so neither can carry
+   * anything a rider typed.
+   *
+   * **Never the address, never the password, and never PocketBase's message.**
+   * `email_taken` is the category that stands in for the address; the address
+   * itself is exactly the rider fact the rule above forbids.
+   *
+   * It exists because `outcome: 'failed'` on the four forms' own events says
+   * *that* a rider was turned away and not *why*, and the why decides the fix.
+   * Riders lost to `email_taken` want a better way back into the account they
+   * already have; riders lost to `dead_link` are a link that dies too soon
+   * (issue #233); `other` is our end breaking. Before this, the forms could not
+   * tell those apart even on screen.
+   */
+  authRefused: 'auth_refused',
+  /**
    * A profile answer was stored. The panel autosaves, so this fires once per
    * control a write covered — `field` is one of `avatar`, `sports`, `goal`,
    * `goal_text`, `stance`, `level`, and `outcome` is `saved` or `failed`.

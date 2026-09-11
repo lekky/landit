@@ -14,14 +14,18 @@ import {
   type AgeDeclaration,
 } from '@landit/core';
 import { Button } from '@landit/ui-web';
+import Link from 'next/link';
 import { useActionState, useMemo, useState } from 'react';
 
 import { TimezoneField } from '@/components/TimezoneField';
+import { AUTH_COPY } from '@/lib/authRefusal';
+import { ROUTES } from '@/lib/routes';
 
-import { ANALYTICS_EVENTS, capture, useFailureCapture } from '@/lib/analyticsClient';
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 
 import { signUpAction, type AuthFormState } from '../actions';
 import styles from '../auth.module.css';
+import { useFieldErrors, useRefusalCapture } from '../useAuthForm';
 
 /**
  * Sign-up (screenshot 04, plus the two fields the plan adds to it).
@@ -45,6 +49,15 @@ import styles from '../auth.module.css';
  * - **A US under-13 is declined** with the reason, here and again on the server.
  *   COPPA's verifiable parental consent is a different and much heavier
  *   mechanism than an approval email, and we are not building it at launch.
+ *
+ * **What the rider typed survives a refusal** (issue #370). React 19 resets a
+ * `<form action>` once the action settles, which empties every uncontrolled
+ * field — so a taken email used to hand back five blank fields and nothing to
+ * say which one was wrong. The name, the email and the grown-up's email are
+ * held in state here and survive it, as the country and the date of birth
+ * always did. **The password is deliberately left uncontrolled**, so a refusal
+ * clears it: it is never held in React state, and nothing sends it back from
+ * the server.
  */
 export type SignUpFormProps = {
   /**
@@ -52,8 +65,8 @@ export type SignUpFormProps = {
    * short-lived httpOnly cookie rather than a query string
    * (`app/landingActions.ts`). Empty for anyone who arrived any other way.
    *
-   * `defaultValue`, not `value`: it is a starting point the rider can type
-   * over, and the field stays uncontrolled like every other one here.
+   * The email field's starting value, not a fixed one: the rider can type over
+   * it like anything else here.
    */
   defaultEmail?: string;
 };
@@ -63,9 +76,13 @@ export function SignUpForm({ defaultEmail = '' }: SignUpFormProps) {
     signUpAction,
     undefined,
   );
+  const { errorFor, edited } = useFieldErrors(state);
 
-  useFailureCapture(ANALYTICS_EVENTS.signedUp, state?.errors?.form);
+  useRefusalCapture('signup', state, ANALYTICS_EVENTS.signedUp);
 
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState(defaultEmail);
+  const [guardianEmail, setGuardianEmail] = useState('');
   const [country, setCountry] = useState<string>(DEFAULT_COUNTRY);
   const [dob, setDob] = useState('');
   const countries = useMemo(() => countryOptions(), []);
@@ -82,7 +99,13 @@ export function SignUpForm({ defaultEmail = '' }: SignUpFormProps) {
   const outcome = declaration ? signupOutcome(country, declaration.band) : null;
   const declined = outcome === 'declined';
   const needsGuardian = outcome === 'consent_required';
-  const errors = state?.errors ?? {};
+
+  const nameError = errorFor('name');
+  const emailError = errorFor('email');
+  const passwordError = errorFor('password');
+  const countryError = errorFor('country');
+  const dobError = errorFor('dob');
+  const guardianError = errorFor('guardian_email');
 
   return (
     <form
@@ -92,8 +115,18 @@ export function SignUpForm({ defaultEmail = '' }: SignUpFormProps) {
     >
       <div className="field">
         <label htmlFor="name">Your name</label>
-        <input id="name" name="name" placeholder="Miles" autoComplete="given-name" />
-        {errors.name ? <span className="err">{errors.name}</span> : null}
+        <input
+          id="name"
+          name="name"
+          placeholder="Miles"
+          autoComplete="given-name"
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+            edited('name');
+          }}
+        />
+        {nameError ? <span className="err">{nameError}</span> : null}
       </div>
 
       <div className="field">
@@ -103,9 +136,27 @@ export function SignUpForm({ defaultEmail = '' }: SignUpFormProps) {
           name="email"
           type="email"
           placeholder="you@example.com"
-          defaultValue={defaultEmail}
+          value={email}
+          onChange={(event) => {
+            setEmail(event.target.value);
+            edited('email');
+          }}
         />
-        {errors.email ? <span className="err">{errors.email}</span> : null}
+        {emailError ? (
+          <span className="err">
+            {emailError}
+            {/* The one refusal with somewhere better to be. No address in the
+                link: an email in a query string is an email in the history. */}
+            {state?.refused === 'email_taken' ? (
+              <>
+                {' '}
+                <Link href={ROUTES.signIn} className={styles.errLink}>
+                  {AUTH_COPY.signInInstead}
+                </Link>
+              </>
+            ) : null}
+          </span>
+        ) : null}
       </div>
 
       <div className="field">
@@ -116,8 +167,9 @@ export function SignUpForm({ defaultEmail = '' }: SignUpFormProps) {
           type="password"
           placeholder="••••••••"
           autoComplete="new-password"
+          onChange={() => edited('password')}
         />
-        {errors.password ? <span className="err">{errors.password}</span> : null}
+        {passwordError ? <span className="err">{passwordError}</span> : null}
       </div>
 
       <div className={styles.ageRow}>
@@ -127,7 +179,10 @@ export function SignUpForm({ defaultEmail = '' }: SignUpFormProps) {
             id="country"
             name="country"
             value={country}
-            onChange={(event) => setCountry(event.target.value)}
+            onChange={(event) => {
+              setCountry(event.target.value);
+              edited('country');
+            }}
           >
             <optgroup label="Common">
               {COUNTRY_SUGGESTIONS.map((code) => (
@@ -144,7 +199,7 @@ export function SignUpForm({ defaultEmail = '' }: SignUpFormProps) {
               ))}
             </optgroup>
           </select>
-          {errors.country ? <span className="err">{errors.country}</span> : null}
+          {countryError ? <span className="err">{countryError}</span> : null}
         </div>
 
         <div className="field">
@@ -159,9 +214,12 @@ export function SignUpForm({ defaultEmail = '' }: SignUpFormProps) {
             type="date"
             value={dob}
             max={new Date().toISOString().slice(0, 10)}
-            onChange={(event) => setDob(event.target.value)}
+            onChange={(event) => {
+              setDob(event.target.value);
+              edited('dob');
+            }}
           />
-          {errors.dob ? <span className="err">{errors.dob}</span> : null}
+          {dobError ? <span className="err">{dobError}</span> : null}
         </div>
       </div>
 
@@ -200,18 +258,23 @@ export function SignUpForm({ defaultEmail = '' }: SignUpFormProps) {
               type="email"
               placeholder="them@example.com"
               autoComplete="off"
+              value={guardianEmail}
+              onChange={(event) => {
+                setGuardianEmail(event.target.value);
+                edited('guardian_email');
+              }}
             />
             <span className={styles.hint}>
               We will email them one question and nothing else. Do not know it now? Leave it blank —
               your account still gets made, and you can send it from your account page whenever you
               like.
             </span>
-            {errors.guardian_email ? <span className="err">{errors.guardian_email}</span> : null}
+            {guardianError ? <span className="err">{guardianError}</span> : null}
           </div>
         </>
       ) : null}
 
-      {errors.form ? <p className={styles.formError}>{errors.form}</p> : null}
+      {state?.errors?.form ? <p className={styles.formError}>{state.errors.form}</p> : null}
 
       <Button type="submit" wide className={styles.submit} disabled={pending || declined}>
         {pending ? 'One moment…' : 'Create account'}

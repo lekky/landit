@@ -216,6 +216,9 @@ describe('the event catalogue', () => {
     // boundary now that autocapture is refused (see `analytics.ts`).
     expect([...names].sort()).toEqual(
       [
+        // A refused sign-up, sign-in, reset or confirmation (#370): which form
+        // and a fixed reason. Never the address, never PocketBase's message.
+        'auth_refused',
         'billing_portal_opened',
         'challenge_logged',
         'consent_decided',

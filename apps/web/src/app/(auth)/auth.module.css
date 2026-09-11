@@ -172,3 +172,13 @@
   color: var(--red);
   margin: 0;
 }
+
+/* The way out of a refusal — "Sign in instead?" under a taken email, "Ask for a
+ * fresh one" after a dead link (issue #370). In the error's own colour and
+ * underlined the way `.swap a` is, so it reads as the end of the sentence and as
+ * something to press. */
+.errLink {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

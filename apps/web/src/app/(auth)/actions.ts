@@ -14,6 +14,15 @@ import {
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+import {
+  AUTH_COPY,
+  passwordProblem,
+  resetRefusal,
+  signInRefusal,
+  signUpRefusal,
+  verifyRefusal,
+  type AuthRefusalReason,
+} from '@/lib/authRefusal';
 import { ROUTES, safeReturnTo } from '@/lib/routes';
 import { SESSION_COOKIE, sessionCookieOptions } from '@/lib/session';
 import { SIGNUP_EMAIL_COOKIE } from '@/lib/signupHandoff';
@@ -30,6 +39,11 @@ import { SIGNUP_EMAIL_COOKIE } from '@/lib/signupHandoff';
  * consent decision: `consent_state` is computed by the server from the declared
  * country and band on every write path, so a form that lied — or a client that
  * skipped a step — changes nothing about which side of the gate a rider lands on.
+ *
+ * **And no PocketBase text.** When PocketBase refuses, what the rider reads is
+ * copy from `lib/authRefusal.ts`, chosen from PocketBase's error *codes* —
+ * never its messages, which used to reach the screen as "VALUE MUST BE UNIQUE."
+ * (issue #370). That file has the shapes, observed, and the reasoning.
  */
 
 export interface AuthFormState {
@@ -37,29 +51,19 @@ export interface AuthFormState {
   readonly errors?: Readonly<Record<string, string>>;
   /** Shown instead of the form once something has been sent. */
   readonly done?: boolean;
+  /**
+   * Why the answer was no, from a fixed list. The form reads it for the two
+   * refusals it draws a way out of — a taken email, a dead link — and sends it
+   * as `auth_refused`'s `reason`. Never PocketBase's words and never anything
+   * the rider typed.
+   */
+  readonly refused?: AuthRefusalReason;
 }
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const MIN_PASSWORD = 8;
 
 function text(form: FormData, key: string): string {
   return String(form.get(key) ?? '').trim();
-}
-
-/** PocketBase's error message, if it left one worth showing a rider. */
-function serverMessage(error: unknown, fallback: string): string {
-  const response = (error as { response?: { message?: string; data?: Record<string, unknown> } })
-    ?.response;
-  const message = response?.message;
-  if (typeof message === 'string' && message && !/failed to create record/i.test(message)) {
-    return message;
-  }
-  const data = response?.data ?? {};
-  for (const value of Object.values(data)) {
-    const inner = (value as { message?: string })?.message;
-    if (typeof inner === 'string' && inner) return inner;
-  }
-  return fallback;
 }
 
 function isAgeBand(value: string): value is AgeBand {
@@ -83,23 +87,27 @@ export async function signUpAction(
 
   const errors: Record<string, string> = {};
   if (name.length < 2) errors.name = 'Tell us what to call you';
-  if (!EMAIL.test(email)) errors.email = "That email doesn't look right";
-  if (password.length < MIN_PASSWORD) errors.password = `${MIN_PASSWORD} characters minimum`;
+  if (!EMAIL.test(email)) errors.email = AUTH_COPY.emailInvalid;
+  const passwordError = passwordProblem(password);
+  if (passwordError) errors.password = passwordError;
   if (!country) errors.country = 'Pick where you live';
   if (!isAgeBand(band)) errors.dob = 'We need your date of birth';
   // Optional by decision (issue #182, owner in chat 2026-08-18) — a rider who
   // does not know the address still gets an account. Wrong is different from
   // absent, though, and a typo here is a parent who never hears from us.
   if (guardianEmail && !EMAIL.test(guardianEmail)) {
-    errors.guardian_email = "That email doesn't look right";
+    errors.guardian_email = AUTH_COPY.emailInvalid;
   }
 
-  if (Object.keys(errors).length) return { errors };
+  if (Object.keys(errors).length) return { errors, refused: 'invalid' };
 
   // The browser has already said so and shown the explanation; this is the
   // server refusing to be talked past. PocketBase refuses it a third time.
+  // `invalid` rather than a reason of its own: an analytics count of declined
+  // sign-ups would be a count of American under-13s, which is a fact about
+  // children's ages this product has no business sending anywhere.
   if (isAgeBand(band) && signupOutcome(country, band) === 'declined') {
-    return { errors: { dob: 'We cannot open an account for this rider yet.' } };
+    return { errors: { dob: 'We cannot open an account for this rider yet.' }, refused: 'invalid' };
   }
 
   const client = createServerClient();
@@ -114,7 +122,7 @@ export async function signUpAction(
       timezone: timezone || undefined,
     });
   } catch (error) {
-    return { errors: { form: serverMessage(error, 'We could not make that account.') } };
+    return signUpRefusal(error);
   }
 
   // The account exists, so the landing page's hand-over has done its job and the
@@ -178,15 +186,17 @@ export async function signInAction(
   const password = String(form.get('password') ?? '');
 
   if (!email || !password) {
-    return { errors: { form: 'Email and password, please' } };
+    return { errors: { form: 'Email and password, please' }, refused: 'invalid' };
   }
 
   try {
     await startSession(email, password);
-  } catch {
+  } catch (error) {
     // Deliberately one message for both halves: saying which was wrong tells an
-    // attacker which addresses have accounts.
-    return { errors: { form: 'That email and password do not match an account' } };
+    // attacker which addresses have accounts. `signInRefusal` keeps that, and
+    // splits off only "the server did not answer", which says nothing about
+    // the address.
+    return signInRefusal(error);
   }
 
   // Back to whatever was being asked for, or the dashboard (issue #66). The
@@ -227,19 +237,14 @@ export async function confirmResetAction(
   const token = text(form, 'token');
   const password = String(form.get('password') ?? '');
 
-  if (!token) return { errors: { form: 'That reset link is not complete.' } };
-  if (password.length < MIN_PASSWORD) {
-    return { errors: { password: `${MIN_PASSWORD} characters minimum` } };
-  }
+  if (!token) return { errors: { form: 'That reset link is not complete.' }, refused: 'dead_link' };
+  const passwordError = passwordProblem(password);
+  if (passwordError) return { errors: { password: passwordError }, refused: 'invalid' };
 
   try {
     await confirmPasswordReset(createServerClient(), { token, password });
   } catch (error) {
-    return {
-      errors: {
-        form: serverMessage(error, 'That link has expired. Ask for a fresh one.'),
-      },
-    };
+    return resetRefusal(error);
   }
   return { done: true };
 }
@@ -284,16 +289,12 @@ export async function confirmVerificationAction(
   form: FormData,
 ): Promise<AuthFormState> {
   const token = text(form, 'token');
-  if (!token) return { errors: { form: 'That link is not complete.' } };
+  if (!token) return { errors: { form: 'That link is not complete.' }, refused: 'dead_link' };
 
   try {
     await confirmVerification(createServerClient(), token);
   } catch (error) {
-    return {
-      errors: {
-        form: serverMessage(error, 'That link has expired. We can send you a fresh one.'),
-      },
-    };
+    return verifyRefusal(error);
   }
   return { done: true };
 }
