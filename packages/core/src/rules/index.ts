@@ -37,6 +37,7 @@ export {
   challengeStateBounds,
   challengesFor,
   challengesOverlap,
+  challengesSinceJoining,
   isDayInChallenge,
   liveChallenge,
   overlappingChallenges,

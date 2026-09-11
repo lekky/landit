@@ -98,7 +98,8 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
   and stamped LANDED in red once earned, NOT YET in dashed grey until then — where the original
   design pack had a photo placeholder that was never filled.
   Rule *kinds* in code, parameters and thresholds staff-tunable on the record;
-  **18 challenges** (6 per sport), state derived from dates in the rider's timezone.
+  **81 challenges** (27 fortnightly slots per sport, running to 2027-09-12), state derived from
+  dates in the rider's timezone; a rider's challenge history starts on the day they joined.
 - 36 avatars, 4 levels, stances, goals, country/consent tables, contact addresses.
 
 ## What deliberately does not exist

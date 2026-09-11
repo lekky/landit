@@ -1,3 +1,4 @@
+import { CHALLENGES } from '@landit/core';
 import { describe, expect, it } from 'vitest';
 
 import { contrastRatio, foregroundFor } from './contrast';
@@ -113,5 +114,22 @@ describe('foregroundFor', () => {
     expect(contrastRatio(TOKEN.paper, TOKEN.green)).toBeLessThan(AA);
     expect(contrastRatio(TOKEN.ink, TOKEN.orange)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(TOKEN.ink, TOKEN.green)).toBeGreaterThanOrEqual(AA);
+  });
+});
+
+/*
+ * A challenge card prints its brief in ink on the challenge's own hue — the
+ * challenge screen's `.blurb` and Home's `.challengeBlurb` — so every hue in the
+ * schedule has to carry ink at AA. Blue, red and violet cannot, and until the
+ * 2026-09-11 schedule four slots used one of them.
+ */
+describe('challenge hues', () => {
+  it('carry the ink brief at AA on every scheduled challenge', () => {
+    for (const challenge of CHALLENGES) {
+      expect(
+        contrastRatio(TOKEN.ink, challenge.hue),
+        `${challenge.id} ${challenge.hue}`,
+      ).toBeGreaterThanOrEqual(AA);
+    }
   });
 });
