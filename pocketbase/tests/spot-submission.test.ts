@@ -1,3 +1,7 @@
+// Imported rather than read as text, unlike the constants check at the bottom:
+// this is plain TypeScript data, and the assertion that uses it is about what
+// the running server says, not about the source of either file.
+import { SPOT_SUBMISSION_REFUSALS } from '@landit/core';
 import { describe, expect, it } from 'vitest';
 
 import { call, makeRider, superuser } from './helpers';
@@ -17,8 +21,10 @@ import { call, makeRider, superuser } from './helpers';
  * Everything below goes over the API with a rider's own token, because that is
  * the only thing that proves a browser cannot do it either. Each refusal was
  * watched fail with the hook removed before it was believed (LESSONS §5): with
- * `62_spots.pb.js` deleted, seven of these turn red and the two `pending` tests
- * stay green, which is what tells the two hooks apart.
+ * `62_spots.pb.js` deleted, every refusal below turns red — eleven tests, plus
+ * the constants check, which reads the file — and the tests that only need a
+ * submission to land (`pending`, the queue's privacy, the tag counts that are
+ * allowed) stay green, which is what tells the two hooks apart.
  */
 
 const somewhere = { lat: 53.4695, lng: -2.9877 };
@@ -176,6 +182,68 @@ describe('a rider cannot flood the review queue', () => {
   });
 });
 
+/** `count` distinct tags, the way the form's `splitSpotTags` hands them over. */
+const tagged = (count: number): string[] => Array.from({ length: count }, (_, i) => `Tag ${i + 1}`);
+
+describe('a submission carries up to eight tags', () => {
+  // Issue #369: the hook read `tags` with `get()`, which in the JSVM is the
+  // JSON *text* as a byte slice, and compared its length with eight. Two tags
+  // are seventeen bytes, so every spot with two or more was refused. Each of
+  // the first two tests below was watched fail against that hook before the
+  // fix was believed (LESSONS §5).
+
+  it('takes two tags, which is the case that was refused', async () => {
+    const rider = await makeRider();
+    const created = await submit(rider.token, { name: 'Two Tags', tags: ['Bowl', 'Ledges'] });
+    expect(created.status, String(created.body.message)).toBe(200);
+
+    // The world changed, not only the status: the tags are stored as given.
+    const read = await call<{ tags: string[] }>(
+      'GET',
+      `/api/collections/spots/records/${created.body.id}`,
+      { token: rider.token },
+    );
+    expect(read.body.tags).toEqual(['Bowl', 'Ledges']);
+  });
+
+  it('takes eight, the most the form will send', async () => {
+    const rider = await makeRider();
+    const created = await submit(rider.token, { name: 'Eight Tags', tags: tagged(8) });
+    expect(created.status, String(created.body.message)).toBe(200);
+  });
+
+  it('refuses nine, in the sentence the form will show', async () => {
+    const rider = await makeRider();
+    const refused = await submit(rider.token, { name: 'Nine Tags', tags: tagged(9) });
+    expect(refused.status).toBe(400);
+    expect(refused.body.message).toBe('8 tags at most.');
+  });
+
+  it('counts every entry, so repeats cannot carry a longer list past the cap', async () => {
+    // `getStringSlice` would read nine copies of one tag as a single tag and
+    // then store all nine. The count has to be of what is saved.
+    const rider = await makeRider();
+    const refused = await submit(rider.token, { name: 'Repeats', tags: Array(9).fill('Bowl') });
+    expect(refused.status).toBe(400);
+    expect(refused.body.message).toBe('8 tags at most.');
+  });
+
+  it('refuses tags that are not a list, rather than storing them', async () => {
+    const rider = await makeRider();
+    for (const tags of ['Bowl', { bowl: true }, 5]) {
+      const refused = await submit(rider.token, { name: 'Not A List', tags });
+      expect(refused.status).toBe(400);
+      expect(refused.body.message).toBe('Tags have to be a list of words.');
+    }
+  });
+
+  it('takes no tags at all, whether left out or empty', async () => {
+    const rider = await makeRider();
+    expect((await submit(rider.token, { name: 'No Tags' })).status).toBe(200);
+    expect((await submit(rider.token, { name: 'Empty Tags', tags: [] })).status).toBe(200);
+  });
+});
+
 describe('the numbers the form quotes are the numbers the server keeps', () => {
   it('matches the constants in @landit/core', async () => {
     // `packages/core` defines the limits so the form can warn before the server
@@ -204,5 +272,30 @@ describe('the numbers the form quotes are the numbers the server keeps', () => {
     );
     expect(numberIn(hook, 'SPOT_MAX_PENDING')).toBe(numberIn(rules, 'SPOT_SUBMISSION_MAX_PENDING'));
     expect(numberIn(hook, 'SPOT_MAX_TAGS')).toBe(numberIn(rules, 'SPOT_MAX_TAGS'));
+  });
+
+  it('refuses in sentences the web app knows it may show', async () => {
+    // `SPOT_SUBMISSION_REFUSALS` is the list the submit action checks a 400
+    // against before showing it to a rider (issue #369); anything not on it
+    // becomes "try again". So every refusal the hook makes is provoked here
+    // for real, and a sentence reworded in the hook but not in `core` fails
+    // this rather than quietly turning into the apology. The last line runs
+    // the other way: every sentence on the list is one the server really says.
+    const rider = await makeRider();
+    const refusals = [
+      await submit(rider.token, { name: '   ' }),
+      await submit(rider.token, { type: 'Rooftop' }),
+      await submit(rider.token, { lat: 0, lng: 0 }),
+      await submit(rider.token, { tags: tagged(9) }),
+      await submit(rider.token, { tags: 'Bowl' }),
+    ];
+
+    for (const refused of refusals) {
+      expect(refused.status).toBe(400);
+      expect(SPOT_SUBMISSION_REFUSALS).toContain(refused.body.message);
+    }
+    expect(new Set(refusals.map((refused) => refused.body.message))).toEqual(
+      new Set(SPOT_SUBMISSION_REFUSALS),
+    );
   });
 });

@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache';
 
 import { ROUTES } from '@/lib/routes';
 import { currentRider } from '@/lib/session';
+import { spotSubmissionRefusal } from '@/lib/spotRefusal';
 
 /**
  * Putting a spot forward.
@@ -19,9 +20,13 @@ import { currentRider } from '@/lib/session';
  * pins that on every write path, so a request that skipped this action would
  * land `pending` too. It does not decide how often a rider may submit —
  * `62_spots.pb.js` counts, and this file only *translates* the 429 into a
- * sentence. Validation runs here as well as in the hook, and the copy is shared
- * with the form through `@landit/core`, so the rider hears the same thing
- * whichever end caught it (plan §3: defined in `core`, enforced on the server).
+ * sentence. A 400 is translated the same way, but only when it is one of that
+ * hook's own sentences ("8 tags at most."); PocketBase's own wording is written
+ * for a developer, so anything else becomes the generic line
+ * (`spotSubmissionRefusal`, issue #369). Validation runs here as well as in
+ * the hook, and the copy is shared with the form through `@landit/core`, so
+ * the rider hears the same thing whichever end caught it (plan §3: defined in
+ * `core`, enforced on the server).
  *
  * What it does own is the truthful ending: a submission that succeeded says so
  * and says what happens next, because "thanks!" followed by a spot that never
@@ -71,6 +76,8 @@ export async function submitSpotAction(draft: SpotSubmissionDraft): Promise<Subm
           'This account cannot add spots yet. If it is waiting on a guardian, that is why.',
       };
     }
+    const refused = spotSubmissionRefusal(error);
+    if (refused) return { ok: false, message: refused };
     return { ok: false, message: 'That did not send. Try again in a moment.' };
   }
 
