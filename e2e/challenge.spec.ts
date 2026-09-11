@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { seedLibrary } from './support/seed-library';
 import { LIVE_GOAL, seedSchedule } from './support/seed-schedule';
-import { finishOnboarding } from './support/onboarding';
+import { finishOnboarding, pickEverySport } from './support/onboarding';
 
 /**
  * The challenge screen (T12), for a rider on the free plan.
@@ -65,9 +65,7 @@ async function newRider(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Create account' }).click();
 
   await page.waitForURL('**/onboarding');
-  for (const sport of SPORT_IDS) {
-    await page.getByRole('button', { name: new RegExp(SPORTS[sport].label, 'i') }).click();
-  }
+  await pickEverySport(page);
   await finishOnboarding(page);
   await page.waitForURL('**/home');
 }
