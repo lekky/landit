@@ -225,8 +225,15 @@ test('the footer has no dead labels, and Contact lands on the addresses', async 
 
   await expect(footer).not.toContainText('Staff');
 
-  for (const name of ['Instagram', 'TikTok']) {
-    await expect(footer.getByRole('link', { name })).toHaveAttribute('href', /landthetrick/);
+  // Exact hrefs, not a `/landthetrick/` pattern: the Instagram link pointed at
+  // `instagram.com/landthetrick` until 2026-09-11, which is not the account —
+  // the handle there is `@landthetrickapp` — and a loose pattern matched it.
+  const socials = {
+    Instagram: 'https://instagram.com/landthetrickapp',
+    TikTok: 'https://tiktok.com/@landthetrick',
+  };
+  for (const [name, href] of Object.entries(socials)) {
+    await expect(footer.getByRole('link', { name })).toHaveAttribute('href', href);
   }
 
   // A YouTube tag was in that list until 2026-09-05, pointing at a channel that

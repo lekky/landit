@@ -89,7 +89,10 @@ const COLUMNS: readonly FooterColumn[] = [
 ];
 
 /**
- * The real accounts, one handle across both (owner, 2026-08-30, in chat).
+ * The real accounts (owner, 2026-08-30, in chat). The handles are *not* the
+ * same across both: Instagram is `@landthetrickapp` — `@landthetrick` was taken
+ * there — while TikTok is `@landthetrick` (owner, 2026-09-11, in chat). The
+ * Instagram link pointed at the TikTok handle until then and went nowhere.
  *
  * A YouTube row sat here until 2026-09-05, pointing at a `@landthetrick`
  * channel that does not exist — a footer link to nothing (owner, in chat). Only
@@ -102,7 +105,7 @@ const COLUMNS: readonly FooterColumn[] = [
  * ordinary hygiene for a `target="_blank"`.
  */
 const SOCIALS: readonly { name: string; href: string }[] = [
-  { name: 'Instagram', href: 'https://instagram.com/landthetrick' },
+  { name: 'Instagram', href: 'https://instagram.com/landthetrickapp' },
   { name: 'TikTok', href: 'https://tiktok.com/@landthetrick' },
 ];
 
