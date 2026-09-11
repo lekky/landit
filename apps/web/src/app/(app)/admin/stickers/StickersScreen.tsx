@@ -56,7 +56,9 @@ export function StickersScreen({ rows }: { rows: readonly AdminStickerRow[] }) {
   return (
     <div className={styles.stack}>
       <Panel className={`${styles.table} ${pending ? styles.busy : ''}`}>
-        <div className={`arow ${styles.tableHead}`}>
+        {/* Hidden on a phone, where each sticker is a card and every cell
+            prints its own `data-label` (issue #371; `admin.module.css`). */}
+        <div className={`arow ${styles.tableHead} ${styles.cardHead}`}>
           <span className="lab">Sticker</span>
           <span className="lab">Sport</span>
           <span className="lab">Earned by</span>
@@ -68,7 +70,7 @@ export function StickersScreen({ rows }: { rows: readonly AdminStickerRow[] }) {
         {rows.map((row) => (
           <div
             key={row.id}
-            className={`arow ${styles.tableRow} ${row.isLive ? '' : styles.hiddenRow}`}
+            className={`arow ${styles.tableRow} ${styles.cardRow} ${row.isLive ? '' : styles.hiddenRow}`}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
               <span
@@ -89,7 +91,7 @@ export function StickersScreen({ rows }: { rows: readonly AdminStickerRow[] }) {
               </div>
             </div>
 
-            <span>
+            <span data-label="Sport">
               {row.sport ? (
                 <SportChip sport={row.sport} small />
               ) : (
@@ -99,7 +101,11 @@ export function StickersScreen({ rows }: { rows: readonly AdminStickerRow[] }) {
               )}
             </span>
 
-            <span className="cond" style={{ fontSize: 13.5, color: 'var(--ink-2)' }}>
+            <span
+              className="cond"
+              style={{ fontSize: 13.5, color: 'var(--ink-2)' }}
+              data-label="Earned by"
+            >
               {row.condition}
               {!row.hasRule && (
                 <Tag color="var(--red)" style={{ fontSize: 10, marginLeft: 8 }}>
@@ -108,24 +114,28 @@ export function StickersScreen({ rows }: { rows: readonly AdminStickerRow[] }) {
               )}
             </span>
 
-            <span className="cond" style={{ fontSize: 14 }}>
+            <span className="cond" style={{ fontSize: 14 }} data-label="Threshold">
               {row.threshold ?? 'Fixed rule'}
             </span>
 
-            <button
-              type="button"
-              className="pill"
-              disabled={pending}
-              onClick={() => onToggle(row)}
-              style={{
-                fontSize: 11.5,
-                padding: '5px 10px',
-                background: row.isLive ? 'var(--lime)' : 'var(--ink-3)',
-                color: row.isLive ? 'var(--ink)' : 'var(--paper)',
-              }}
-            >
-              {row.isLive ? 'Live' : 'Hidden'}
-            </button>
+            {/* Wrapped so the cell can carry its label on a phone; see
+                `.controlCell`. */}
+            <span className={styles.controlCell} data-label="Live">
+              <button
+                type="button"
+                className="pill"
+                disabled={pending}
+                onClick={() => onToggle(row)}
+                style={{
+                  fontSize: 11.5,
+                  padding: '5px 10px',
+                  background: row.isLive ? 'var(--lime)' : 'var(--ink-3)',
+                  color: row.isLive ? 'var(--ink)' : 'var(--paper)',
+                }}
+              >
+                {row.isLive ? 'Live' : 'Hidden'}
+              </button>
+            </span>
 
             <div className={styles.rowActions}>
               <button

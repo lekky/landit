@@ -212,7 +212,12 @@ export function EventsScreen({
         </button>
       </div>
 
-      <Panel className={`${styles.table} ${pending ? styles.busy : ''}`}>
+      {/* On a phone this table scrolls sideways with the event column pinned,
+          rather than folding each row into unlabelled lines (issue #371;
+          "Tables on a phone" in `admin.module.css`). */}
+      <Panel
+        className={`${styles.table} ${styles.scrollTable} ${styles.eventCols} ${pending ? styles.busy : ''}`}
+      >
         <div className={`arow ${styles.tableHead}`}>
           <span className="lab">Event</span>
           <span className="lab">Type</span>

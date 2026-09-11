@@ -127,7 +127,9 @@ sheet with email/age/last ride/plan, plan override, suspend); tricks (copy, tier
 content — why it's this tier, and three or four common mistakes as what/fix rows), stickers,
 spots (approve/reject), events, challenges, notices, plans (copy + display prices only —
 entitlement flags read-only); moderation queue for reports/appeals. Every mutation is audited
-twice (app layer + hook layer).
+twice (app layer + hook layer). Under 900px wide the riders, tricks, stickers and spots tables
+show each row as a card with its column names printed in it, and events and challenges scroll
+sideways with the name column pinned; at 900px and above every table is unchanged.
 
 Six tabs page on the server with their filters (and, where they have one, search) in the URL —
 riders (40), spots (40), events (25), moderation (25), challenges (25), notices (20). Per-row

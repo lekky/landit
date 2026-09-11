@@ -259,7 +259,12 @@ export function ChallengesScreen({
         </Panel>
       )}
 
-      <Panel className={`${styles.table} ${pending ? styles.busy : ''}`}>
+      {/* On a phone this table scrolls sideways with the week column pinned,
+          rather than folding each row into unlabelled lines (issue #371;
+          "Tables on a phone" in `admin.module.css`). */}
+      <Panel
+        className={`${styles.table} ${styles.scrollTable} ${styles.challengeCols} ${pending ? styles.busy : ''}`}
+      >
         <div className={`arow ${styles.tableHead}`}>
           <span className="lab">Week</span>
           <span className="lab">Runs</span>

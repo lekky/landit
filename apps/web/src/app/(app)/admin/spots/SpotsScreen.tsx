@@ -196,8 +196,14 @@ export function SpotsScreen({
       .filter(Boolean)
       .join(' · ');
 
+  /*
+   * On a phone each spot is a card — name first, its buttons last and full
+   * width — rather than a row that scrolls sideways (issue #371; "Tables on a
+   * phone" in `admin.module.css`). There is no header to pin, and a queue whose
+   * rows exist to be approved should not keep Approve off the edge of the screen.
+   */
   const spotRow = (row: AdminSpotRow, actions: ReactNode) => (
-    <div key={row.id} className={`arow ${styles.tableRow}`}>
+    <div key={row.id} className={`arow ${styles.tableRow} ${styles.cardRow}`}>
       <div className={styles.rowTitle}>
         <div className="cond" style={{ fontSize: 15.5 }}>
           {row.name}
