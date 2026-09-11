@@ -16,12 +16,15 @@ import { finishOnboarding } from './support/onboarding';
  *   walked from `SPORT_IDS`, so a fourth sport arriving with no schedule fails
  *   this rather than shipping a dead tab.
  * - **The log button works while the week is live, and the count moves.**
- * - **Past challenges are not merely blurred for a free rider — the results are
- *   not on the page at all.** A blur that can be lifted in dev tools is a
- *   costume, not a limit.
- * - **The free-plan limit does not touch what can be earned.** The panel says
- *   so in as many words, because "history is paid" and "achievements are for
- *   sale" are one careless rewrite apart, and plan §1 forbids the second.
+ * - **A rider's history starts when they joined.** A challenge that finished
+ *   before they had an account is not one they missed, and nothing about it —
+ *   not the card, not a "Missed" — reaches the page.
+ *
+ * What this file can no longer reach (issue #395): the free-plan "Challenge
+ * history" panel, and its sentence that the sticker is the same on every plan.
+ * A rider signed up during the run joined today, so they can have no finished
+ * challenge to put behind it, and PocketBase will not backdate `created` over
+ * REST. Until #395 is settled that copy is unasserted.
  *
  * The schedule is seeded by the spec, around today — see `seed-schedule.ts` for
  * why the shipped 2026 weeks cannot be used here. `seedLibrary()` comes first
@@ -99,18 +102,20 @@ test('every sport has a week running, not just the two the design pack knew abou
   }
 });
 
-test('a free rider is shown the history is paid — and told it costs them no sticker', async ({
+test('a new rider is not shown the challenges that finished before they joined', async ({
   page,
 }) => {
   await newRider(page);
   await page.goto('/challenge');
 
+  // `seedSchedule` finished a week in every sport 34 days ago. It ran before
+  // this rider had an account, so it is not their history.
   await expect(page.getByText('Past challenges')).toBeVisible();
-  await expect(page.getByText('Challenge history')).toBeVisible();
-  await expect(page.getByText(/same on every plan/i)).toBeVisible();
+  await expect(page.getByText('No history yet')).toBeVisible();
+  await expect(page.getByText(/^Finished \w+ week$/)).toHaveCount(0);
 
-  // The result itself never reached the browser. "Completed" / "Missed" are the
-  // only two labels a result can carry, and neither is anywhere in the DOM.
+  // "Completed" / "Missed" are the only two labels a result can carry, and
+  // neither is anywhere in the DOM.
   await expect(page.getByText('Completed', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Missed', { exact: true })).toHaveCount(0);
 });
