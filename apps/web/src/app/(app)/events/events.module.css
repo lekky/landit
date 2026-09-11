@@ -507,7 +507,8 @@
 /* `.pill` is styled for a paper ground; on ink it needs its own keyline and
    fill or it disappears into the panel. */
 .archivePill {
-  min-height: 40px;
+  /* The 44px floor `.pill` gets on a phone (#375); this class would undercut it. */
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 6px;

@@ -50,6 +50,14 @@ export const metadata: Metadata = {
  */
 export const viewport: Viewport = {
   themeColor: '#12100b',
+  /*
+   * Without `cover`, every `env(safe-area-inset-*)` is 0. `black-translucent`
+   * above draws the installed app under the status bar regardless, so the clock
+   * sat on the top bar and the bottom bar's home-indicator padding was inert
+   * (#375). `additions.css` spends the insets: an ink band under the clock,
+   * the bottom bar clear of the home indicator, the notch in landscape.
+   */
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

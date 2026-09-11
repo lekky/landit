@@ -1591,6 +1591,26 @@ the first tap did not look like it landed. So `.field input/select/textarea` mov
   bought nothing. If accidental *pinch* rather than double-tap turns out to be what riders are
   hitting, that is a separate decision, and it needs its own divergence and its own owner's yes.
 
+**An eleventh divergence, 2026-09-11 (Rachid, in chat; issue #375): the shell's touch hygiene.** The
+design was drawn for a mouse, and the 2026-09-08 mobile audit found six things every screen inherited
+on a phone. All of it sits below 861px or under `(hover: none)` in `additions.css`, so a desktop with
+a mouse renders what it did before.
+
+- **A 44px floor on phones.** `.pill` (35px) and `.btn.sm` (36px) grow to 44px tall, so pill rows are
+  a little taller on a phone. The controls that are text rather than boxes — `.sechead .more`, the
+  avatar trigger, account-menu items, auth-card and footer links — get the hit area with no visible
+  change, except the footer's link columns, which had no gap to borrow and get longer.
+- **Presses instead of the browser's flash.** A tap no longer leaves a control "hovered", Chrome's
+  blue tap highlight is removed, and pills, trick cards, sport tabs, stage buttons and the bottom bar
+  get an `:active` press. The design had one only on `.btn`. A pill's press is a fill until #373
+  decides whether pills carry the hard shadow.
+- **`viewport-fit=cover`**, so the installed app's `black-translucent` status bar sits over an ink
+  band rather than over the top bar, and the bottom bar clears the home indicator. Chosen over
+  switching to `statusBarStyle: 'black'`, which would have lost the edge-to-edge look.
+- **Toasts above the bottom bar on phones**, newest two only; **a 16px floor on every field on a
+  phone**, not only `.field` (the tenth divergence's rule, made a guard rather than a convention);
+  and **a square ink-chevron `.field select`** where WebKit painted a grey rounded one.
+
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
 to test — that is where the three-sport switch is proved against a 375px phone before `SPORT_IDS`

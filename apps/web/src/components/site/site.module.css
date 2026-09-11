@@ -141,3 +141,21 @@ a.bottomLink:hover {
     gap: 22px;
   }
 }
+/*
+ * 44px targets on a phone (#375). The column links were 18px tall with 9px
+ * between them, so there is no gap to borrow: each link takes the whole 44px
+ * and the column gets longer. The bottom row keeps its spacing and borrows it.
+ */
+@media (max-width: 860px) {
+  .colLinks {
+    gap: 0;
+  }
+  .link {
+    padding: 13px 0;
+  }
+  .bottomLink {
+    display: inline-block;
+    padding: 13px 7px;
+    margin: -13px -7px;
+  }
+}
