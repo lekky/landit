@@ -1,6 +1,5 @@
 // Reached by path rather than by package name, for the reason `seed-library.ts`
 // gives: `@landit/db` is not a dependency of the root manifest.
-import { sampleWorld } from '../../packages/db/src/imports/world-sample';
 import { buildSeed, createSuperuserClient, seed } from '../../packages/db/src/index';
 
 import { SUPERUSER_EMAIL, SUPERUSER_PASSWORD } from './fixtures';
@@ -42,18 +41,19 @@ export async function seedSpots(): Promise<void> {
   });
 
   /*
-   * Every spots table, with the world import's two cut to a spread sample
-   * (`sampleWorld`, 2026-09-11). Whole, they are about thirty-three thousand
-   * creates with hooks on — minutes on every run, against a job with a time
-   * limit — and no spec counts them: the specs assert named researched spots,
-   * which stay whole, as does France's census.
+   * The researched spots and France's census — the set every spots spec
+   * asserts against (the total on the count line, which park "Near me" puts
+   * first) — and not the world import's two tables (2026-09-11). Whole they
+   * are about thirty-three thousand creates with hooks on, minutes against a
+   * job with a time limit; sampled, they still move the total and put an
+   * imported park nearer than the one a spec names. Their rows landing is the
+   * integration suites' job (`seed.integration.test.ts`, `spots.integration.test.ts`).
    */
-  await seed(
-    client,
-    sampleWorld({
-      tables: buildSeed().tables.filter((table) => table.collection === 'spots'),
-    }),
-  );
+  await seed(client, {
+    tables: buildSeed().tables.filter(
+      (table) => table.collection === 'spots' && !table.label?.startsWith('spots (world'),
+    ),
+  });
 
   if ((await liveSpotCount()) === 0) {
     throw new Error('The seed ran but there are still no live spots.');
