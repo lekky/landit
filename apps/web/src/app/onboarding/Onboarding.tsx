@@ -228,7 +228,6 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
               {SPORT_IDS.map((id) => {
                 const sport = SPORTS[id];
                 const on = sports.includes(id);
-                const count = tricks.filter((t) => t.sport === id).length;
                 return (
                   // A `panel` on a `button`, not a `div`: the class is what the
                   // design system styles, and `button { font: inherit }` in the
@@ -245,6 +244,22 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
                       boxShadow: on ? '5px 5px 0 var(--ink)' : '3px 3px 0 var(--ink)',
                     }}
                   >
+                    {/*
+                     * The colour block alone did not read as a choice — a rider
+                     * could not tell the card that came pre-picked from one
+                     * that is simply loud (owner, 2026-09-11, in chat). So the
+                     * state is written down too, on a sticker over the corner.
+                     */}
+                    <span className={`lab ${styles.sportState} ${on ? '' : styles.sportStateOff}`}>
+                      {on ? (
+                        <>
+                          <Icon name="check" size={12} strokeWidth={3} />
+                          Selected
+                        </>
+                      ) : (
+                        'Tap to pick'
+                      )}
+                    </span>
                     <span className={styles.sportHead}>
                       <span
                         className={styles.sportIcon}
@@ -262,30 +277,6 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
                       <span className={`d ${styles.sportName}`}>{sport.label}</span>
                     </span>
                     <span className={`cond ${styles.sportBlurb}`}>{sport.blurb}</span>
-                    <span className={styles.sportFoot}>
-                      <span className="lab" style={{ opacity: 0.8 }}>
-                        {count === 0 ? 'Library on the way' : `${count} tricks`}
-                      </span>
-                      {/*
-                       * The colour block alone did not read as a choice — a
-                       * rider could not tell the card that came pre-picked from
-                       * one that is simply loud (owner, 2026-09-11, in chat).
-                       * So the state is written down as well: a ticked badge
-                       * when it is on, and the instruction when it is not.
-                       */}
-                      <span
-                        className={`lab ${styles.sportState} ${on ? '' : styles.sportStateOff}`}
-                      >
-                        {on ? (
-                          <>
-                            <Icon name="check" size={13} strokeWidth={3} />
-                            Selected
-                          </>
-                        ) : (
-                          'Tap to pick'
-                        )}
-                      </span>
-                    </span>
                   </button>
                 );
               })}

@@ -107,49 +107,45 @@
 }
 
 /*
- * The bottom line of a sport card: how big its library is, and whether the card
- * is picked.
+ * Whether the card is picked, said in words.
  *
  * The pack said the choice in colour alone — a filled card is on, a paper one
  * is off — and on a screen where scooter arrives already chosen, that read as
- * decoration rather than as a decision somebody had made. So the state is also
- * written: `SELECTED` behind a tick when it is on, `TAP TO PICK` when it is
- * not. `aria-pressed` on the button said this to a screen reader already; this
- * says it to everyone else.
- */
-.sportFoot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-/*
- * Picked: the same inversion the icon swatch does, so the badge belongs to the
- * card's own colour rather than sitting on top of it. Paper on the sport's
- * colour is the one pairing here that is legible whatever that colour is —
- * white-on-yellow is not, which is why this does not simply borrow the card's
- * foreground.
+ * decoration rather than as a decision somebody had made. So a sticker over the
+ * card's top-right corner says it: `SELECTED` behind a tick when it is on,
+ * `TAP TO PICK` when it is not. `aria-pressed` on the button said this to a
+ * screen reader already; this says it to everyone else.
+ *
+ * Paper and ink, not the card's own foreground: white-on-yellow would not
+ * survive a fourth sport in a pale colour, and this way the sticker reads the
+ * same on all three.
+ *
+ * **`z-index` is load-bearing.** The sticker hangs past the card's edge, and
+ * `.panel` is `position: relative` with no `z-index` — so it does not open a
+ * stacking context, and without this the *next* card in the grid paints over
+ * the overhang and clips it.
  */
 .sportState {
+  position: absolute;
+  top: -12px;
+  right: -8px;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  flex: none;
+  gap: 4px;
   padding: 3px 7px;
   border: 2.5px solid var(--ink);
   background: var(--paper);
   color: var(--ink);
+  box-shadow: 2.5px 2.5px 0 var(--ink);
+  white-space: nowrap;
 }
 
-/* Not picked: an instruction, not a badge — a bordered box on a paper card
- * would read as a button inside a button. */
+/* Not picked: the same sticker in the page's own wash, so it reads as the
+ * instruction it is rather than as a second thing that has been chosen. */
 .sportStateOff {
-  border-color: transparent;
-  background: none;
+  background: var(--wash);
   color: var(--ink-3);
-  padding: 3px 0;
 }
 
 .note {
