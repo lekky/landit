@@ -1683,6 +1683,15 @@ where screenshot 05 shows two. The two-card grid becomes an N-card grid; multi-s
 at-least-one rule are unchanged. Step 4's suggested tricks and step 3's goal pills already filter by
 the rider's chosen sports, so they need nothing beyond not assuming a pair.
 
+**A sport card says in words whether it is picked — deliberate divergence from screenshot 05
+(Rachid, 2026-09-11, in chat).** The pack carries the choice entirely in colour: a filled card is
+on, a paper one is off. That is readable when a rider has just tapped something, and not readable at
+all on arrival, where scooter is selected for them before they have touched the screen — a loud card
+among loud cards. Each card now also carries its state as a label on its bottom line: `SELECTED`
+behind a tick when it is on, `TAP TO PICK` when it is not. Colour, shadow depth and `aria-pressed`
+are unchanged, so this is additional signal rather than a replacement for any of them, and nothing
+about what step 1 collects moves.
+
 **Built 2026-08-16. Five things the entry above did not say, recorded here because they are
 decisions rather than details:**
 

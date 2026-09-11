@@ -26,6 +26,7 @@ import {
   Button,
   Equipment,
   foregroundFor,
+  Icon,
   Panel,
   Pill,
   TrickCard,
@@ -261,8 +262,29 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
                       <span className={`d ${styles.sportName}`}>{sport.label}</span>
                     </span>
                     <span className={`cond ${styles.sportBlurb}`}>{sport.blurb}</span>
-                    <span className="lab" style={{ opacity: 0.8 }}>
-                      {count === 0 ? 'Library on the way' : `${count} tricks`}
+                    <span className={styles.sportFoot}>
+                      <span className="lab" style={{ opacity: 0.8 }}>
+                        {count === 0 ? 'Library on the way' : `${count} tricks`}
+                      </span>
+                      {/*
+                       * The colour block alone did not read as a choice — a
+                       * rider could not tell the card that came pre-picked from
+                       * one that is simply loud (owner, 2026-09-11, in chat).
+                       * So the state is written down as well: a ticked badge
+                       * when it is on, and the instruction when it is not.
+                       */}
+                      <span
+                        className={`lab ${styles.sportState} ${on ? '' : styles.sportStateOff}`}
+                      >
+                        {on ? (
+                          <>
+                            <Icon name="check" size={13} strokeWidth={3} />
+                            Selected
+                          </>
+                        ) : (
+                          'Tap to pick'
+                        )}
+                      </span>
                     </span>
                   </button>
                 );

@@ -106,6 +106,52 @@
   opacity: 0.9;
 }
 
+/*
+ * The bottom line of a sport card: how big its library is, and whether the card
+ * is picked.
+ *
+ * The pack said the choice in colour alone — a filled card is on, a paper one
+ * is off — and on a screen where scooter arrives already chosen, that read as
+ * decoration rather than as a decision somebody had made. So the state is also
+ * written: `SELECTED` behind a tick when it is on, `TAP TO PICK` when it is
+ * not. `aria-pressed` on the button said this to a screen reader already; this
+ * says it to everyone else.
+ */
+.sportFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/*
+ * Picked: the same inversion the icon swatch does, so the badge belongs to the
+ * card's own colour rather than sitting on top of it. Paper on the sport's
+ * colour is the one pairing here that is legible whatever that colour is —
+ * white-on-yellow is not, which is why this does not simply borrow the card's
+ * foreground.
+ */
+.sportState {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  padding: 3px 7px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* Not picked: an instruction, not a badge — a bordered box on a paper card
+ * would read as a button inside a button. */
+.sportStateOff {
+  border-color: transparent;
+  background: none;
+  color: var(--ink-3);
+  padding: 3px 0;
+}
+
 .note {
   margin: 14px 0 0;
   font-size: 13.5px;
