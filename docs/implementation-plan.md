@@ -2424,11 +2424,16 @@ owner:
   every live spot, the sitemap reads only indexable ones (`listIndexedSpots`), and "Near me"'s
   point list carries coordinates at five decimal places and sports as a bitmask. What it still
   cannot say is the same as France's: nothing about opening hours and nothing about scooters.
-  **The cost that is still open (#393):** since `feat-spots-map-clusters` (#391) fetches that point
-  list whenever the map shows, every map load reads all 28,731 spots — measured at 4.3–4.6 s of
-  PocketBase work and 2.2 MB of JSON (963 KB gzipped) per visitor against a local instance holding
-  the full seed. Caching it on the server, scoping it to the view, or both is the owner's call, and
-  it is raised there rather than decided here.
+  **The map's point list is cached on the server (#393; the owner, 2026-09-11, in chat: option
+  1).** Since `feat-spots-map-clusters` (#391) fetches that list whenever the map shows, every map
+  load read all 28,731 spots — measured at 4.3–4.6 s of PocketBase work and 2.2 MB of JSON (963 KB
+  gzipped) per visitor against a local instance holding the full seed. The list is the same for
+  every caller (live rows only, read with the anonymous client), so the web process keeps one copy
+  for five minutes and serves it stale while a single background read refreshes it
+  (`staleWhileRevalidate` in `apps/web/src/lib/staleCache.ts`); a failed read is never cached and a
+  failed refresh keeps the old list. The trade accepted: a newly approved spot or a staff edit
+  reaches the map up to five minutes late. The download itself is unchanged; scoping it to the
+  view (#389's bounds) is the next step if its size turns out to matter on phones.
 - **"Check before you travel", on the screen, permanently** (owner's call, 2026-08-18). The list
   is not a live feed and must not read like one: parks close for rebuilds, session timetables
   change, and a park that allows scooters this year can stop. The notice sits under the map on

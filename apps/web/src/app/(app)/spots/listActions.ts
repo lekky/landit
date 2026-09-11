@@ -11,6 +11,7 @@ import { getSpotsByIds, listSpotPoints, pageSpots, type SpotListQuery } from '@l
 import { headers } from 'next/headers';
 
 import { anonymousClient, currentRider } from '@/lib/session';
+import { staleWhileRevalidate } from '@/lib/staleCache';
 
 import { SPOTS_PAGE, toPointTuple, toSpotView, type SpotPointTuple, type SpotView } from './view';
 
@@ -103,11 +104,32 @@ export async function spotsPageAction(input: unknown, page: unknown): Promise<Sp
   }
 }
 
-/** Every live spot as a point, for nearest-first in the browser. */
+/** How long the point list is served from memory before a refresh starts. */
+const POINTS_TTL_MS = 5 * 60_000;
+
+/**
+ * Every live spot as a point, cached for every caller (issue #393; the owner,
+ * 2026-09-11, in chat: option 1).
+ *
+ * Since the map draws every matching spot (#391) this list is fetched on every
+ * map load, and since the world import it is 28,731 rows — measured at 4.3 to
+ * 4.6 seconds of PocketBase work each time. It is the same for everyone: the
+ * query asks for live rows only, so the caller's own pending submission was
+ * never in it, and it is read with the anonymous client so nothing about who
+ * asked can end up in the shared copy. The server keeps one copy for five
+ * minutes and serves it stale while a single read refreshes it
+ * (`staleWhileRevalidate`), so a newly approved spot or a staff edit reaches
+ * the map up to five minutes late — the trade the owner accepted.
+ */
+const spotPoints = staleWhileRevalidate(
+  async () => (await listSpotPoints(anonymousClient())).map(toPointTuple),
+  { ttlMs: POINTS_TTL_MS },
+);
+
+/** Every live spot as a point, for the map and for nearest-first in the browser. */
 export async function spotsPointsAction(): Promise<SpotsPointsResult> {
   try {
-    const { client } = await clientFor();
-    return { points: (await listSpotPoints(client)).map(toPointTuple) };
+    return { points: await spotPoints.get() };
   } catch {
     return { points: [], error: FAILED };
   }
