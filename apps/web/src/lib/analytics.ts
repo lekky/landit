@@ -462,6 +462,25 @@ export const ANALYTICS_EVENTS = {
    * stopped reaching the map at all.
    */
   spotMapSelected: 'spot_map_selected',
+  /**
+   * "Search this area" was pressed on the spots map: the list became the spots
+   * inside the view the rider had moved the map to.
+   *
+   * Carries `view` — `'sheet'` on a phone, where the map is a sheet over the
+   * list, or `'column'` where it sits beside it. Two fixed strings chosen here.
+   *
+   * **Never the view itself** — not its edges, its centre or its zoom, and not
+   * how many spots it held. A map nobody has moved sits over the rider's
+   * nearest spots, so where a rider is looking can be where a rider is: the
+   * rule standard 10 sets for the position covers this too (§6.4, extended
+   * 2026-09-11), and it is kept without leaning on the button only appearing
+   * after a move.
+   *
+   * It exists to say whether riders browse by map at all, and it pairs with
+   * `spot_map_selected` (`via: 'pin'`) for whether a searched area leads on to
+   * a spot being chosen.
+   */
+  spotsAreaSearched: 'spots_area_searched',
 } as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];

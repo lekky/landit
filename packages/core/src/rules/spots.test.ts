@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { SPOTS, SPOT_TYPES } from '../data/spots';
 import type { SportId } from '../types';
 import {
+  boundsCentre,
+  boundsContain,
   distanceKm,
   distanceLabel,
   distanceLabelIn,
@@ -24,6 +26,7 @@ import {
   spotMatchesFeature,
   spotMatchesSearch,
   spotMatchesSport,
+  spotsInBounds,
   spotSubmissionProblems,
   unitsForCountry,
   type SpotSubmissionDraft,
@@ -322,6 +325,79 @@ describe('nearest first', () => {
   it('leaves the input alone', () => {
     const before = spots.map((s) => s.name);
     sortSpotsByDistance(spots, { lat: 51.5, lng: -0.12 });
+    expect(spots.map((s) => s.name)).toEqual(before);
+  });
+});
+
+describe('the spots in a view of the map (search this area)', () => {
+  const spots = [
+    { name: 'Rampworx', lat: 53.4633, lng: -2.9632 }, // Liverpool
+    { name: 'Projekt', lat: 53.4808, lng: -2.2426 }, // Manchester
+    { name: 'Southbank', lat: 51.506, lng: -0.116 }, // London
+    { name: 'Le Havre', lat: 49.4944, lng: 0.1079 },
+    { name: 'Unplotted', lat: 0, lng: 0 },
+  ];
+  const northWest = { south: 53, west: -3.5, north: 54, east: -2 };
+
+  it('keeps only what is in view, the one nearest the middle first', () => {
+    // The middle is -2.75, so Liverpool is nearer it than Manchester.
+    expect(spotsInBounds(spots, northWest).map((s) => s.name)).toEqual(['Rampworx', 'Projekt']);
+    // Slide the view east and the order follows the middle, not the input.
+    const further = { south: 53, west: -3.2, north: 54, east: -1 };
+    expect(spotsInBounds(spots, further).map((s) => s.name)).toEqual(['Projekt', 'Rampworx']);
+  });
+
+  it('never counts a spot with no point, even with Null Island in view', () => {
+    const wide = { south: -10, west: -10, north: 60, east: 10 };
+    const names = spotsInBounds(spots, wide).map((s) => s.name);
+    expect(names).toHaveLength(4);
+    expect(names).not.toContain('Unplotted');
+  });
+
+  it('counts the edges as in view, and nothing past them', () => {
+    expect(boundsContain(northWest, { lat: 53, lng: -3.5 })).toBe(true);
+    expect(boundsContain(northWest, { lat: 54, lng: -2 })).toBe(true);
+    expect(boundsContain(northWest, { lat: 54.0001, lng: -2 })).toBe(false);
+    expect(boundsContain(northWest, { lat: 53.5, lng: -1.9999 })).toBe(false);
+  });
+
+  it('reads a view across the antimeridian, however the map reports it', () => {
+    const pacific = [
+      { name: 'Suva', lat: -18.14, lng: 178.44 },
+      { name: 'Apia', lat: -13.83, lng: -171.76 },
+      { name: 'Brisbane', lat: -27.47, lng: 153.03 },
+    ];
+    const inView = (view: { south: number; west: number; north: number; east: number }) =>
+      spotsInBounds(pacific, view)
+        .map((s) => s.name)
+        .sort();
+    // Left edge at 170°E, right edge at 170°W: twenty degrees, not three hundred and forty.
+    expect(inView({ south: -25, west: 170, north: -10, east: -170 })).toEqual(['Apia', 'Suva']);
+    // The same view on a map drawing world copies, from the copy to the right…
+    expect(inView({ south: -25, west: 170, north: -10, east: 190 })).toEqual(['Apia', 'Suva']);
+    // …and from the copy to the left.
+    expect(inView({ south: -25, west: -190, north: -10, east: -170 })).toEqual(['Apia', 'Suva']);
+  });
+
+  it('puts the middle of an antimeridian view on the antimeridian, not at Greenwich', () => {
+    const middle = boundsCentre({ south: -20, west: 170, north: 0, east: -170 });
+    expect(middle.lat).toBe(-10);
+    expect(Math.abs(middle.lng)).toBe(180);
+  });
+
+  it('holds everything with a point once the map is zoomed out past the whole world', () => {
+    const world = { south: -85, west: -300, north: 85, east: 300 };
+    expect(spotsInBounds(spots, world)).toHaveLength(4);
+  });
+
+  it('holds nothing for a view it cannot read', () => {
+    expect(spotsInBounds(spots, { ...northWest, south: Number.NaN })).toEqual([]);
+    expect(spotsInBounds(spots, { ...northWest, south: 54, north: 53 })).toEqual([]);
+  });
+
+  it('leaves the list it was given alone', () => {
+    const before = spots.map((s) => s.name);
+    spotsInBounds(spots, { south: -10, west: -10, north: 60, east: 10 });
     expect(spots.map((s) => s.name)).toEqual(before);
   });
 });

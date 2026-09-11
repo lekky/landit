@@ -718,6 +718,16 @@ Not all fifteen bite equally. These four change what gets built:
   not a position, it is not stored against the rider, it is never an analytics property, and
   no third party sees it. Sending the position itself so the server could sort remains ruled
   out. `spotsCardsAction` in `apps/web/src/app/(app)/spots/listActions.ts` is the one request.
+
+  **Extended 2026-09-11 (Rachid, in chat): "Search this area" works the same way.** Once a
+  rider has moved the spots map, a button on it narrows the list to the spots in view. The view
+  is treated exactly as the position is: read off the camera in the browser, narrowed and
+  ordered there over the same compact points (`spotsInBounds` in `@landit/core`), and what
+  travels is the same request for the winning cards' ids — never the view's edges, its centre
+  or its zoom, and never as an analytics property. The reason is the position's own: a map
+  nobody has moved sits over the rider's nearest spots, so where a rider is looking can be
+  where a rider is. The button only appears after a gesture of the rider's, but the rule is
+  kept without leaning on that.
 - **Standard 12, profiling.** The Legend insights panel (§2.4) derives suggestions from a rider's
   own history. That is defensible and in the rider's interest, but it is profiling: off by
   default, opt-in, and it never leaves the rider's own data.
@@ -2367,6 +2377,26 @@ may be.
 line appearing and disappearing with the position. It asserts no ordering: the seeded events carry
 no coordinates, so the screen keeps them in date order by its own rule about events nobody has
 plotted.
+
+**Search this area (2026-09-11, `feat-spots-map-area`; Rachid, in chat: a button, not a live
+search, and pins for the cards on screen only).** Moving the map by hand — a drag, a pinch, a
+scroll-zoom, the zoom buttons or the keyboard, all of which MapLibre tags with an `originalEvent` —
+puts a "Search this area" button over the top of the map; any move the screen makes itself
+(framing the list, flying to a chosen spot, a resize) takes it away again. Pressing it reads the
+view off the camera and narrows the list to it: the compact points nearest-first already fetches,
+filtered by the same query, cut to the view and ordered from its middle by `spotsInBounds`, with
+the cards fetched by id — standard 10's 2026-09-11 extension is the privacy half of this. While an
+area is held the map stops framing itself to the list (`follow` on `SpotMap`), because the list is
+now drawn from the map and a re-frame would move the view the rider just chose; a "This area ×"
+pill in the filter row is the way back, and "Near me" also ends it. It is a button rather than a
+search on every move so that nudging the map never pulls the list out from under a rider, and so
+the phone sheet — where the list is behind the map — behaves exactly as the column does. The pins
+are the cards on screen, as everywhere else on this screen, so a view over a whole country shows
+its 24 spots nearest the middle and a count of the rest; plotting every spot in view needs
+clustering and is its own piece of work. `spots_area_searched` counts the press with `view:
+'sheet' | 'column'` and nothing about the view. CI cannot reach any of this — the button exists
+only on a drawn map and headless has no GPU (#227) — so the rule is unit-tested in core and the
+gesture is checked by hand in a real browser.
 
 **T14 · Clips. ~~Built 2026-08-17 (PR #112).~~ REVERTED 2026-08-17 (PR: `chore-revert-clips`).**
 

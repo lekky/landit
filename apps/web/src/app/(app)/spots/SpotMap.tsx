@@ -1,6 +1,7 @@
 'use client';
 
-import type { LatLng } from '@landit/core';
+import type { LatLng, MapBounds } from '@landit/core';
+import { Icon } from '@landit/ui-web';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
@@ -80,6 +81,8 @@ export function SpotMap({
   area = null,
   label = 'Map of spots',
   gestures = 'cooperative',
+  follow = true,
+  onSearchArea,
 }: {
   readonly spots: readonly Plottable[];
   readonly selectedId: string | null;
@@ -122,9 +125,41 @@ export function SpotMap({
    * way.
    */
   readonly gestures?: 'cooperative' | 'direct';
+  /**
+   * Whether the camera fits itself to `spots` whenever they change.
+   *
+   * True everywhere the list decides what the map shows. False while the spots
+   * screen holds a searched area, where it is the other way round: the list
+   * was drawn from the camera, and fitting the camera to it would move the view
+   * the rider has just chosen — and zoom out to frame the list's outliers —
+   * every time a card arrived. A chosen spot is still flown to either way;
+   * that is a move the rider asked for.
+   */
+  readonly follow?: boolean;
+  /**
+   * Offer "Search this area" once the rider has moved the map, and hand the
+   * view here when it is pressed. Absent — the spot page, the event page — and
+   * no button is ever drawn. The view leaves this component as four edges in
+   * degrees and goes nowhere else from here (§6.4, standard 10).
+   */
+  readonly onSearchArea?: (bounds: MapBounds) => void;
 }) {
   const container = useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = useState(false);
+
+  /*
+   * Whether "Search this area" is on offer: the rider has moved the map since
+   * the list last matched it.
+   *
+   * Set by a camera move a gesture started — a drag, a pinch, a scroll-zoom,
+   * the zoom buttons, the keyboard, all of which MapLibre tags with an
+   * `originalEvent` (its inertial ease after a drag carries the same one) — and
+   * cleared by any move this component makes itself: fitting the list, flying
+   * to a chosen spot, a resize. So the button offers the view the rider chose,
+   * and goes the moment the map is showing something the list already
+   * describes. The press clears it too.
+   */
+  const [offerArea, setOfferArea] = useState(false);
 
   /*
    * Which ground the map is drawn on — see `MAP_STYLES` for what the two are
@@ -295,6 +330,15 @@ export function SpotMap({
         instance.on('dragstart', claim);
         instance.on('zoomstart', claim);
         instance.on('rotatestart', claim);
+        /*
+         * The same test decides whether "Search this area" is on offer — see
+         * `offerArea`. `movestart` rather than the three above because it is
+         * the one event every camera change fires, ours included, and ours are
+         * the ones that have to take the offer away.
+         */
+        instance.on('movestart', (event: { originalEvent?: unknown }) =>
+          setOfferArea(Boolean(event.originalEvent)),
+        );
 
         /*
          * The circle is a source and two layers, and a style swap throws both
@@ -306,7 +350,7 @@ export function SpotMap({
         control.current = { maplibregl, instance, markers: new Map(), here: null, resize };
         if (cancelled) return;
         // Plot whatever is already selected, without waiting for a state change.
-        sync(control.current, spots, selectedId, onSelect);
+        sync(control.current, spots, selectedId, onSelect, follow);
         drawHere(control.current, here);
         paintArea(instance, areaRef.current);
       } catch (error) {
@@ -365,10 +409,28 @@ export function SpotMap({
     }
   }, []);
 
+  /*
+   * "Search this area", pressed. The view is read off the camera *now*, not
+   * remembered from the move that offered it, so a rider who drags, pauses and
+   * drags again gets where the map is rather than where it was.
+   */
+  const searchArea = useCallback(() => {
+    withMap((map) => {
+      const view = map.instance.getBounds();
+      onSearchArea?.({
+        south: view.getSouth(),
+        west: view.getWest(),
+        north: view.getNorth(),
+        east: view.getEast(),
+      });
+    });
+    setOfferArea(false);
+  }, [onSearchArea, withMap]);
+
   /* Markers follow the filtered list. */
   useEffect(() => {
-    withMap((map) => sync(map, spots, selectedId, onSelect));
-  }, [spots, selectedId, onSelect, withMap]);
+    withMap((map) => sync(map, spots, selectedId, onSelect, follow));
+  }, [spots, selectedId, onSelect, follow, withMap]);
 
   /* The rider's dot follows the opt-in, and disappears with it. */
   useEffect(() => {
@@ -508,6 +570,32 @@ export function SpotMap({
           })}
         </div>
       )}
+
+      {/*
+        "Search this area" — top and centre, which is where every map that
+        offers it puts it, and over the canvas like the ground toggle for the
+        same reason: it is about the map, so it goes when the map does. A
+        failed map returns the placeholder above instead of this branch, so the
+        button can never promise a search of a map that is not there (the
+        class of defect issue #220 records for the panel's other promises).
+
+        A strip that spans the stage with the button in its middle, rather than
+        a button centred with a transform: `.btn` owns `transform` for its hover
+        lift and its press, and a centring translate on the same element would
+        be overwritten the first time a pointer crossed it.
+      */}
+      {onSearchArea && offerArea && (
+        <div className={styles.areaSearch}>
+          <button
+            type="button"
+            className={`btn sm ${styles.areaSearchButton}`}
+            onClick={searchArea}
+          >
+            <Icon name="search" size={15} strokeWidth={2.8} />
+            Search this area
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -531,12 +619,18 @@ interface MapControl {
  *
  * Markers are added and removed rather than rebuilt, so panning does not reset
  * every time a keystroke narrows the search.
+ *
+ * The camera goes to a chosen spot whenever there is one. Otherwise it frames
+ * the list only when `follow` is set — not while the list was itself drawn from
+ * the camera by "Search this area", where framing it would move the view the
+ * rider just chose (see the prop).
  */
 function sync(
   control: MapControl,
   spots: readonly Plottable[],
   selectedId: string | null,
   onSelect: (id: string) => void,
+  follow: boolean,
 ): void {
   const wanted = new Set(spots.map((spot) => spot.id));
 
@@ -576,6 +670,8 @@ function sync(
     control.instance.easeTo({ center: [selected.lng, selected.lat], zoom: 13, duration: 600 });
     return;
   }
+
+  if (!follow) return;
 
   if (spots.length === 1) {
     const only = spots[0]!;

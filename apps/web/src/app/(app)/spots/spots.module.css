@@ -538,6 +538,8 @@
   flex: 1;
   min-height: 320px;
   display: flex;
+  /* The width "Search this area" asks about — see `.areaSearch`. */
+  container-type: inline-size;
 }
 
 .mapCanvas {
@@ -592,6 +594,60 @@
 .groundButtonOn {
   background: var(--ink);
   color: var(--paper);
+}
+
+/*
+ * "Search this area" (2026-09-11). A strip across the top of the stage that
+ * holds the button in its middle and lets every other press through: it is as
+ * wide as the map, and without `pointer-events: none` it would swallow the
+ * drags and the zoom-button presses along the top edge.
+ *
+ * **Beside the ground toggle and the zoom buttons on a wide map, below them on
+ * a narrow one.** The toggle takes about 135px of the top-left corner and the
+ * zoom buttons 29px of the top-right, and a centred button of ~180px clears
+ * both only once the map is roughly 500px wide. From 861px up the map column
+ * is half the page, so it is narrower than that on a small laptop as well as
+ * in the phone sheet — which is why this asks the stage's width rather than
+ * the window's.
+ */
+.areaSearch {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* The primary `.btn`, orange, so it reads as the one thing to press on the map. */
+.areaSearchButton {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  white-space: nowrap;
+  /* Opacity only: `.btn` owns `transform`, for its hover lift and its press. */
+  animation: areaSearchIn 140ms ease-out;
+}
+
+.areaSearchButton:focus-visible {
+  outline: 3px solid var(--violet);
+  outline-offset: 2px;
+}
+
+@keyframes areaSearchIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@container (max-width: 500px) {
+  .areaSearch {
+    top: 52px;
+  }
 }
 
 .mapPlaceholder {
