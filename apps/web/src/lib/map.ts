@@ -19,6 +19,8 @@
  * cannot be drawn, which is the same path a failed Mapbox load took.
  */
 
+import { hasCoords } from '@landit/core';
+
 /**
  * The quiet ground — `MAP_STYLES.plain`, and no longer the one the map opens on
  * (see `MAP_DEFAULT_STYLE`).
@@ -319,4 +321,135 @@ export function tokenColour(name: string, fallback: string): string {
   if (typeof window === 'undefined' || typeof document === 'undefined') return fallback;
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return value || fallback;
+}
+
+/* ------------------------------------------------------------ clusters -- */
+
+/*
+ * Every matching spot on the map, grouped where they crowd (issue #388; owner,
+ * 2026-09-11, in chat: "go with the recommendations").
+ *
+ * MapLibre does the grouping — a GeoJSON source with `cluster: true` runs
+ * supercluster in its worker — and `SpotMap` draws what it hands back as HTML
+ * buttons rather than canvas circles, so a numbered block keeps the design
+ * language exactly (square, ink keyline, hard offset shadow, the display face)
+ * and needs nothing from the basemap's glyph server to print its number (the
+ * failure #223 records). The pieces of that which are plain data live here,
+ * where a unit test can reach them; CI cannot reach the map itself (#227).
+ */
+
+/**
+ * A spot as the clustered map holds it — what a pin needs and nothing else.
+ * `name` is only ever the pin's accessible label.
+ */
+export interface MapSpot {
+  readonly id: string;
+  readonly name: string;
+  readonly lat: number;
+  readonly lng: number;
+}
+
+/**
+ * What a clustered source is fed: one point per spot that has a place, with
+ * its id and name as the only properties. A spot without coordinates is left
+ * out rather than dropped at `0, 0` in the Gulf of Guinea (`hasCoords`).
+ */
+export function spotsFeatureCollection(spots: readonly MapSpot[]) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: spots.filter(hasCoords).map((spot) => ({
+      type: 'Feature' as const,
+      properties: { id: spot.id, name: spot.name },
+      geometry: { type: 'Point' as const, coordinates: [spot.lng, spot.lat] },
+    })),
+  };
+}
+
+/** The three sizes a numbered block comes in. */
+export type ClusterStep = 'small' | 'medium' | 'large';
+
+/**
+ * Under ten, under a hundred, a hundred and more. Three steps rather than a
+ * size proportional to the count because the count is printed on the block:
+ * the size only has to say "a few", "a town's worth" and "a region's worth",
+ * and a block that grew with every spot would cover the map zoomed out over a
+ * country of three thousand.
+ */
+export function clusterStep(count: number): ClusterStep {
+  if (count < 10) return 'small';
+  if (count < 100) return 'medium';
+  return 'large';
+}
+
+/** One marker the map should be showing, planned from the source's features. */
+export type MarkerPlan =
+  | {
+      readonly kind: 'cluster';
+      readonly key: string;
+      readonly clusterId: number;
+      readonly count: number;
+      /** What is printed on the block — supercluster's short form, "3.4k". */
+      readonly label: string;
+      readonly lng: number;
+      readonly lat: number;
+    }
+  | {
+      readonly kind: 'spot';
+      readonly key: string;
+      readonly id: string;
+      readonly name: string;
+      readonly lng: number;
+      readonly lat: number;
+    };
+
+/** A feature as `querySourceFeatures` returns it, read as loosely as it deserves. */
+export interface SourceFeature {
+  readonly geometry?: { readonly type?: string; readonly coordinates?: unknown } | null;
+  readonly properties?: Record<string, unknown> | null;
+}
+
+/**
+ * The markers to draw, from whatever the clustered source has loaded.
+ *
+ * **Once each, by key.** `querySourceFeatures` returns every feature in every
+ * loaded tile, so a pin near a tile edge — or a block during a zoom, while two
+ * zoom levels' tiles are both on screen — comes back more than once. Keys are
+ * `c:<cluster_id>` and `s:<spot id>`, which is also what lets the map keep a
+ * marker it already has rather than rebuilding it every frame.
+ *
+ * **`skip` is the chosen spot**, which the map draws as its own marker so it
+ * can never vanish into a block; drawing it here as well would put two pins in
+ * one place. Anything that is not a point this can place is ignored rather than
+ * trusted, because it came out of a third-party worker.
+ */
+export function planMarkers(features: readonly SourceFeature[], skip: string | null): MarkerPlan[] {
+  const plans = new Map<string, MarkerPlan>();
+  for (const feature of features) {
+    const geometry = feature.geometry;
+    if (!geometry || geometry.type !== 'Point' || !Array.isArray(geometry.coordinates)) continue;
+    const [lng, lat] = geometry.coordinates as unknown[];
+    if (typeof lng !== 'number' || typeof lat !== 'number') continue;
+    const props = feature.properties ?? {};
+
+    if (props.cluster === true) {
+      const clusterId = props.cluster_id;
+      if (typeof clusterId !== 'number') continue;
+      const key = `c:${clusterId}`;
+      if (plans.has(key)) continue;
+      const count = typeof props.point_count === 'number' ? props.point_count : 0;
+      const short = props.point_count_abbreviated;
+      const label =
+        typeof short === 'string' || typeof short === 'number' ? String(short) : String(count);
+      plans.set(key, { kind: 'cluster', key, clusterId, count, label, lng, lat });
+      continue;
+    }
+
+    const id = props.id;
+    if (typeof id !== 'string' || !id || id === skip) continue;
+    const key = `s:${id}`;
+    if (plans.has(key)) continue;
+    const name = typeof props.name === 'string' ? props.name : '';
+    plans.set(key, { kind: 'spot', key, id, name, lng, lat });
+  }
+  return [...plans.values()];
 }

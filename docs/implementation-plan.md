@@ -2391,12 +2391,43 @@ now drawn from the map and a re-frame would move the view the rider just chose; 
 pill in the filter row is the way back, and "Near me" also ends it. It is a button rather than a
 search on every move so that nudging the map never pulls the list out from under a rider, and so
 the phone sheet — where the list is behind the map — behaves exactly as the column does. The pins
-are the cards on screen, as everywhere else on this screen, so a view over a whole country shows
-its 24 spots nearest the middle and a count of the rest; plotting every spot in view needs
-clustering and is its own piece of work. `spots_area_searched` counts the press with `view:
+were the cards on screen when this shipped — *overtaken the same day by #388, below: the map now
+draws every matching spot, clustered.* `spots_area_searched` counts the press with `view:
 'sheet' | 'column'` and nothing about the view. CI cannot reach any of this — the button exists
 only on a drawn map and headless has no GPU (#227) — so the rule is unit-tested in core and the
 gesture is checked by hand in a real browser.
+
+**Every matching spot, clustered (2026-09-11, `feat-spots-map-clusters`, issue #388; Rachid, in
+chat: "go with the recommendations").** The map draws every spot matching the current search, sport
+and feature, in all three list modes, rather than only the cards on screen. A clustered GeoJSON
+source — MapLibre's own supercluster, in its worker; a 48px radius, and every spot its own pin from
+zoom 15 — groups them, and `SpotMap` draws the result as HTML buttons: an ink block with the count
+in Anton and a sky shadow where spots crowd, in three sizes stepping at 10 and 100 (`clusterStep`),
+and the existing sky pin where one stands alone. HTML rather than canvas layers because it keeps the
+design language exactly and needs nothing from the basemap's glyph server to print a number (#223).
+Pressing a block zooms to the level at which it splits; that move carries the press as its
+`originalEvent`, so it offers "Search this area". The chosen spot is always its own marker, left
+out of the clustered data so it never hides inside a block or covers one's number; a pin can now
+choose a spot whose card is not on screen, and that card is fetched by id (`spotsCardsAction`, the
+2026-09-08 rule) without moving the list. The camera still frames the cards on screen (`frame`), so
+the map opens where the list is. **The cost is the points download**, now fetched whenever the map
+is on screen — on load at desktop widths, the first time the sheet opens on a phone — rather than
+only for "Near me" and "Search this area": measured locally at 3,435 live spots as **350 KB raw,
+131 KB gzipped**, and served gzipped. It is still never in the page's own HTML (#367). The owner's
+line (2026-09-11) is to revisit — map tiles served by us — once the spot count passes about 15,000.
+The footer reads "Every matching spot is on the map. The list shows 24 at a time."
+`spots_map_cluster_opened` counts a block opened, with `view` only. The spot page and event page
+keep the plain path (`cluster` off). The pure parts (`spotsFeatureCollection`, `clusterStep`,
+`planMarkers`) are unit-tested in `apps/web/src/lib/map.test.ts`; the map itself is checked by hand
+(#227).
+
+**Found while building it: the event page's circle was never drawn.** `paintArea` gated on
+`isStyleLoaded()`, which MapLibre makes true only once every tile and image the style asked for has
+arrived — almost never the case when `styledata` fires — so the "roughly here" circle on
+`/events/[slug]` was skipped on every call, and a local event page showed its town with no circle at
+all. It now attempts the paint and treats MapLibre's "Style is not done loading" refusal as "wait for
+the next `styledata`", which is the check adding a source actually needs (`styleNotReady` in
+`SpotMap.tsx`); the clustered source uses the same rule.
 
 **T14 · Clips. ~~Built 2026-08-17 (PR #112).~~ REVERTED 2026-08-17 (PR: `chore-revert-clips`).**
 

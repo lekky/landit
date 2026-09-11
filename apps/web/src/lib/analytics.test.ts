@@ -268,6 +268,8 @@ describe('the event catalogue', () => {
         // "Search this area" on the spots map. Which layout it was pressed in,
         // and never anything about the view itself.
         'spots_area_searched',
+        // A numbered block on the spots map, opened (#388). `view` only.
+        'spots_map_cluster_opened',
         'spots_map_ground',
         'spots_map_sheet_opened',
         'sport_switched',

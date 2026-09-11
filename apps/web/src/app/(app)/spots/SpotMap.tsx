@@ -2,7 +2,7 @@
 
 import type { LatLng, MapBounds } from '@landit/core';
 import { Icon } from '@landit/ui-web';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   MAP_ATTRIBUTION,
@@ -15,7 +15,12 @@ import {
   circlePolygon,
   describeMapError,
   isTileScopedMapError,
+  clusterStep,
+  planMarkers,
+  spotsFeatureCollection,
   tokenColour,
+  type ClusterStep,
+  type MarkerPlan,
   type MapArea,
   type MapErrorEvent,
   type MapStyleId,
@@ -83,6 +88,9 @@ export function SpotMap({
   gestures = 'cooperative',
   follow = true,
   onSearchArea,
+  cluster = false,
+  frame,
+  onClusterOpened,
 }: {
   readonly spots: readonly Plottable[];
   readonly selectedId: string | null;
@@ -143,6 +151,25 @@ export function SpotMap({
    * degrees and goes nowhere else from here (§6.4, standard 10).
    */
   readonly onSearchArea?: (bounds: MapBounds) => void;
+  /**
+   * Draw `spots` as one clustered source rather than a pin each (issue #388).
+   *
+   * The spots screen passes every matching spot — thousands — and a DOM marker
+   * per spot would not survive that. Clustered, MapLibre groups them in its
+   * worker and this component draws only what is on screen: a numbered block
+   * where spots crowd, a pin where one stands alone, and the chosen spot always
+   * as its own pin so it can never vanish into a block. Off everywhere else —
+   * the spot page and the event page draw one thing and keep the plain path.
+   */
+  readonly cluster?: boolean;
+  /**
+   * What the camera frames when it follows, when that is not `spots`. On the
+   * spots screen it is the cards on screen, so the map still opens where the
+   * list is — framing every matching spot would open on the whole world.
+   */
+  readonly frame?: readonly Plottable[];
+  /** A numbered block was pressed, and the map is zooming into it. */
+  readonly onClusterOpened?: () => void;
 }) {
   const container = useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = useState(false);
@@ -215,6 +242,31 @@ export function SpotMap({
   useEffect(() => {
     gesturesRef.current = gestures;
   }, [gestures]);
+
+  /*
+   * The clustered spots as GeoJSON — null on a map that does not cluster — and
+   * a ref to them for the build effect and for MapLibre's own `styledata`
+   * handler, both of which outlive any one render. Same reasoning, and the same
+   * declaration-order guarantee, as `areaRef` above.
+   *
+   * **The chosen spot is left out.** It is drawn as its own pin (`drawChosen`),
+   * and a block that counted it as well sat underneath that pin with its number
+   * hidden — seen on a phone on 2026-09-11, a yellow pin over a "2" nobody could
+   * read. Left out, the blocks count the other spots and nothing is covered.
+   */
+  const clusterData = useMemo(
+    () =>
+      cluster
+        ? spotsFeatureCollection(
+            selectedId ? spots.filter((spot) => spot.id !== selectedId) : spots,
+          )
+        : null,
+    [cluster, spots, selectedId],
+  );
+  const clusterRef = useRef(clusterData);
+  useEffect(() => {
+    clusterRef.current = clusterData;
+  }, [clusterData]);
 
   /** Has the rider moved the camera themselves? See the resize handler below. */
   const moved = useRef(false);
@@ -347,10 +399,61 @@ export function SpotMap({
          */
         instance.on('styledata', () => paintArea(instance, areaRef.current));
 
-        control.current = { maplibregl, instance, markers: new Map(), here: null, resize };
+        /*
+         * The clustered spots, on the same terms as the circle: a source and a
+         * layer that a style swap throws away, so they are re-added on every
+         * `styledata` (`paintSpots` makes the repeats free).
+         *
+         * **The markers are redrawn on `render`**, which is MapLibre's own
+         * pattern for HTML clusters: it fires on every frame the map draws —
+         * a pan, a zoom, tiles arriving after `setData` — and `drawClusters`
+         * keeps every marker it already has, so a still frame costs one query
+         * and a set comparison. It runs inside MapLibre's loop, where no `try`
+         * of `withMap`'s can reach, so it carries its own.
+         */
+        instance.on('styledata', () => {
+          if (control.current) paintSpots(control.current, clusterRef.current);
+        });
+        instance.on('render', () => {
+          const live = control.current;
+          if (!live || !clusterRef.current) return;
+          try {
+            drawClusters(live);
+          } catch (error) {
+            console.error('[map] drawing the clusters threw', error);
+            setFailed(true);
+          }
+        });
+
+        control.current = {
+          maplibregl,
+          instance,
+          markers: new Map(),
+          here: null,
+          resize,
+          clusterMarkers: new Map(),
+          chosen: null,
+          chosenId: null,
+          spotsData: null,
+          onSelect: null,
+          onCluster: null,
+        };
         if (cancelled) return;
         // Plot whatever is already selected, without waiting for a state change.
-        sync(control.current, spots, selectedId, onSelect, follow);
+        if (clusterRef.current) {
+          paintSpots(control.current, clusterRef.current);
+          syncClustered(
+            control.current,
+            spots,
+            frame ?? spots,
+            selectedId,
+            onSelect,
+            follow,
+            onClusterOpened,
+          );
+        } else {
+          sync(control.current, spots, selectedId, onSelect, follow);
+        }
         drawHere(control.current, here);
         paintArea(instance, areaRef.current);
       } catch (error) {
@@ -427,10 +530,17 @@ export function SpotMap({
     setOfferArea(false);
   }, [onSearchArea, withMap]);
 
-  /* Markers follow the filtered list. */
+  /* Markers follow the filtered list; a clustered map re-feeds its source first. */
   useEffect(() => {
-    withMap((map) => sync(map, spots, selectedId, onSelect, follow));
-  }, [spots, selectedId, onSelect, follow, withMap]);
+    withMap((map) => {
+      if (!clusterData) {
+        sync(map, spots, selectedId, onSelect, follow);
+        return;
+      }
+      paintSpots(map, clusterData);
+      syncClustered(map, spots, frame ?? spots, selectedId, onSelect, follow, onClusterOpened);
+    });
+  }, [clusterData, spots, frame, selectedId, onSelect, follow, onClusterOpened, withMap]);
 
   /* The rider's dot follows the opt-in, and disappears with it. */
   useEffect(() => {
@@ -612,6 +722,22 @@ interface MapControl {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   here: any;
   readonly resize: ResizeObserver;
+  /** The clustered map's blocks and lone pins, by `MarkerPlan` key. Empty otherwise. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  clusterMarkers: Map<string, any>;
+  /** The chosen spot's own pin on a clustered map, and whose it is. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  chosen: any;
+  chosenId: string | null;
+  /** The data the clustered source was last given, so a repeat is not re-sent. */
+  spotsData: unknown;
+  /*
+   * The screen's callbacks, current as of the last sync. Held here rather than
+   * closed over, because a clustered marker is built inside MapLibre's render
+   * loop and outlives the render whose callbacks it would otherwise keep.
+   */
+  onSelect: ((id: string) => void) | null;
+  onCluster: (() => void) | null;
 }
 
 /**
@@ -644,16 +770,7 @@ function sync(
   for (const spot of spots) {
     let marker = control.markers.get(spot.id);
     if (!marker) {
-      const element = document.createElement('button');
-      element.type = 'button';
-      // `!` because CSS-module class names type as possibly-absent under
-      // `noUncheckedIndexedAccess`; these three are declared in the file next door.
-      element.className = styles.pin!;
-      element.setAttribute('aria-label', `Show ${spot.name} on the map`);
-      element.addEventListener('click', (event) => {
-        event.stopPropagation();
-        onSelect(spot.id);
-      });
+      const element = pinElement(spot.name, () => onSelect(spot.id));
       marker = new control.maplibregl.Marker({ element, anchor: 'bottom' })
         .setLngLat([spot.lng, spot.lat])
         .addTo(control.instance);
@@ -665,7 +782,19 @@ function sync(
     element.setAttribute('aria-pressed', String(on));
   }
 
-  const selected = spots.find((spot) => spot.id === selectedId);
+  moveCamera(control, spots, spots.find((spot) => spot.id === selectedId) ?? null, follow);
+}
+
+/**
+ * The camera's half of `sync`, shared with the clustered map: fly to the chosen
+ * spot if there is one; otherwise, while following, frame `frame`.
+ */
+function moveCamera(
+  control: MapControl,
+  frame: readonly Plottable[],
+  selected: Plottable | null,
+  follow: boolean,
+): void {
   if (selected) {
     control.instance.easeTo({ center: [selected.lng, selected.lat], zoom: 13, duration: 600 });
     return;
@@ -673,17 +802,239 @@ function sync(
 
   if (!follow) return;
 
-  if (spots.length === 1) {
-    const only = spots[0]!;
+  if (frame.length === 1) {
+    const only = frame[0]!;
     control.instance.easeTo({ center: [only.lng, only.lat], zoom: 12, duration: 600 });
     return;
   }
 
-  if (spots.length > 1) {
+  if (frame.length > 1) {
     const bounds = new control.maplibregl.LngLatBounds();
-    for (const spot of spots) bounds.extend([spot.lng, spot.lat]);
+    for (const spot of frame) bounds.extend([spot.lng, spot.lat]);
     control.instance.fitBounds(bounds, { padding: 56, maxZoom: 12, duration: 600 });
   }
+}
+
+/** A spot's pin: a button, because pressing it chooses the spot. */
+function pinElement(name: string, onPress: () => void): HTMLButtonElement {
+  const element = document.createElement('button');
+  element.type = 'button';
+  // `!` because CSS-module class names type as possibly-absent under
+  // `noUncheckedIndexedAccess`; these are declared in the file next door.
+  element.className = styles.pin!;
+  element.setAttribute('aria-label', `Show ${name} on the map`);
+  element.addEventListener('click', (event) => {
+    event.stopPropagation();
+    onPress();
+  });
+  return element;
+}
+
+/* ------------------------------------------------------------ clusters -- */
+
+const SPOTS_SOURCE = 'landit-spots';
+/*
+ * The layer that makes MapLibre load the source's tiles at all — a source no
+ * layer draws is never tiled, so `querySourceFeatures` would find nothing.
+ * Invisible on purpose: every mark a rider sees is one of our HTML markers.
+ */
+const SPOTS_LAYER = 'landit-spots-tiles';
+/**
+ * How close, in screen pixels, pins must be before they merge into a block —
+ * about two pins' width, so a block appears where pins would otherwise sit on
+ * top of each other and nowhere else.
+ */
+const CLUSTER_RADIUS = 48;
+/**
+ * The zoom from which every spot is its own pin whatever its neighbours: street
+ * level, where two parks a road apart are two places to go, not a number.
+ */
+const CLUSTER_MAX_ZOOM = 14;
+
+const CLUSTER_CLASS: Record<ClusterStep, string | undefined> = {
+  small: styles.clusterSmall,
+  medium: styles.clusterMedium,
+  large: styles.clusterLarge,
+};
+
+type ClusterPlan = Extract<MarkerPlan, { kind: 'cluster' }>;
+
+/**
+ * Feed the clustered source — add it and its layer if the style has neither
+ * (first load, or a Plain/Detail swap that threw both away), otherwise hand it
+ * the new data. Data it already has is not re-sent: `styledata` fires several
+ * times per style load, and each `setData` re-clusters in the worker.
+ *
+ * **Not gated on `isStyleLoaded()`.** That check is true only once every tile
+ * and image the style asked for has arrived, which is almost never the case at
+ * the moment a `styledata` fires — gated on it, the source was never added and
+ * the map drew no markers at all (the first local run of #388). What adding a
+ * source needs is narrower: the style document parsed, and MapLibre says when
+ * it is not by refusing (`styleNotReady`). So the attempt *is* the check —
+ * refused, it waits for the next `styledata`, which always follows the load.
+ * It also covers the Plain/Detail swap, which can diff the new style into the
+ * old one without a fresh `style.load`, dropping our source as it goes.
+ */
+function paintSpots(control: MapControl, data: ReturnType<typeof spotsFeatureCollection> | null) {
+  const { instance } = control;
+  if (!data || !instance) return;
+
+  try {
+    const existing = instance.getSource(SPOTS_SOURCE);
+    if (!existing) {
+      instance.addSource(SPOTS_SOURCE, {
+        type: 'geojson',
+        data,
+        cluster: true,
+        clusterRadius: CLUSTER_RADIUS,
+        clusterMaxZoom: CLUSTER_MAX_ZOOM,
+      });
+      control.spotsData = data;
+    } else if (control.spotsData !== data) {
+      existing.setData(data);
+      control.spotsData = data;
+    }
+    // Checked on its own: a layer that failed to add must not be skipped
+    // for ever just because the source beside it made it.
+    if (!instance.getLayer(SPOTS_LAYER)) {
+      instance.addLayer({
+        id: SPOTS_LAYER,
+        type: 'circle',
+        source: SPOTS_SOURCE,
+        paint: { 'circle-radius': 1, 'circle-opacity': 0, 'circle-stroke-opacity': 0 },
+      });
+    }
+  } catch (error) {
+    if (!styleNotReady(error)) throw error;
+  }
+}
+
+/**
+ * Whether MapLibre refused a source or layer because the style document has not
+ * finished loading ("Style is not done loading.") — the one refusal that means
+ * "ask again on the next `styledata`" rather than "something is broken". Both
+ * `paintSpots` and `paintArea` use it in place of `isStyleLoaded()`.
+ */
+function styleNotReady(error: unknown): boolean {
+  return /not done loading/i.test(error instanceof Error ? error.message : String(error));
+}
+
+/**
+ * The clustered map's `sync`: remember the screen's callbacks, draw the chosen
+ * spot's own pin, bring the blocks and lone pins up to date around it, and move
+ * the camera exactly as the plain map does — framing `frame`, not `spots`.
+ */
+function syncClustered(
+  control: MapControl,
+  spots: readonly Plottable[],
+  frame: readonly Plottable[],
+  selectedId: string | null,
+  onSelect: (id: string) => void,
+  follow: boolean,
+  onCluster: (() => void) | undefined,
+): void {
+  control.onSelect = onSelect;
+  control.onCluster = onCluster ?? null;
+  const selected =
+    spots.find((spot) => spot.id === selectedId) ??
+    frame.find((spot) => spot.id === selectedId) ??
+    null;
+  drawChosen(control, selected);
+  drawClusters(control);
+  moveCamera(control, frame, selected, follow);
+}
+
+/**
+ * The chosen spot, as a pin of its own above everything else. Kept apart from
+ * the clustered source so that choosing a spot never waits on the worker, and
+ * so that a spot chosen from a card is visible even where its neighbours have
+ * merged into a block around it.
+ */
+function drawChosen(control: MapControl, selected: Plottable | null): void {
+  if (control.chosenId === (selected?.id ?? null)) return;
+  control.chosen?.remove();
+  control.chosen = null;
+  control.chosenId = null;
+  if (!selected || !control.instance) return;
+
+  const id = selected.id;
+  const element = pinElement(selected.name, () => control.onSelect?.(id));
+  element.classList.add(styles.pinOn!);
+  element.setAttribute('aria-pressed', 'true');
+  control.chosen = new control.maplibregl.Marker({ element, anchor: 'bottom' })
+    .setLngLat([selected.lng, selected.lat])
+    .addTo(control.instance);
+  control.chosenId = id;
+}
+
+/**
+ * Bring the blocks and lone pins into line with what the source has loaded —
+ * see `planMarkers` for how the features are read. A marker whose key is still
+ * wanted is left exactly where it is, which is what keeps a pan from rebuilding
+ * every button on the map sixty times a second.
+ */
+function drawClusters(control: MapControl): void {
+  const { instance } = control;
+  if (!instance || !instance.getSource(SPOTS_SOURCE) || !instance.isSourceLoaded(SPOTS_SOURCE)) {
+    return;
+  }
+
+  const plans = planMarkers(instance.querySourceFeatures(SPOTS_SOURCE), control.chosenId);
+  const wanted = new Set(plans.map((plan) => plan.key));
+  for (const [key, marker] of control.clusterMarkers) {
+    if (wanted.has(key)) continue;
+    marker.remove();
+    control.clusterMarkers.delete(key);
+  }
+
+  for (const plan of plans) {
+    if (control.clusterMarkers.has(plan.key)) continue;
+    const element =
+      plan.kind === 'cluster'
+        ? clusterElement(control, plan)
+        : pinElement(plan.name, () => control.onSelect?.(plan.id));
+    const marker = new control.maplibregl.Marker({
+      element,
+      anchor: plan.kind === 'cluster' ? 'center' : 'bottom',
+    })
+      .setLngLat([plan.lng, plan.lat])
+      .addTo(instance);
+    control.clusterMarkers.set(plan.key, marker);
+  }
+}
+
+/**
+ * A numbered block. Pressing it zooms to the level at which it splits — the
+ * source knows exactly which — and the move carries the press as its
+ * `originalEvent`, because it is one the rider asked for: it offers "Search
+ * this area" like any other move of theirs, which is the natural next step
+ * after opening a block.
+ */
+function clusterElement(control: MapControl, plan: ClusterPlan): HTMLButtonElement {
+  const element = document.createElement('button');
+  element.type = 'button';
+  element.className = [styles.cluster, CLUSTER_CLASS[clusterStep(plan.count)]]
+    .filter(Boolean)
+    .join(' ');
+  element.textContent = plan.label;
+  element.setAttribute('aria-label', `${plan.count} spots here. Zoom in`);
+  element.addEventListener('click', (event) => {
+    event.stopPropagation();
+    control.onCluster?.();
+    const { instance } = control;
+    const source = instance?.getSource(SPOTS_SOURCE);
+    if (!source) return;
+    const zoomTo = (zoom: number) =>
+      instance.easeTo(
+        { center: [plan.lng, plan.lat], zoom, duration: 500 },
+        { originalEvent: event },
+      );
+    source
+      .getClusterExpansionZoom(plan.clusterId)
+      .then(zoomTo, () => zoomTo(instance.getZoom() + 2))
+      .catch((error: unknown) => console.warn('[map] could not open a cluster', error));
+  });
+  return element;
 }
 
 /** One dot for the rider, for as long as they leave it on. */
@@ -768,8 +1119,14 @@ const AREA_CENTRE = 'landit-area-centre';
  * **Called on every `styledata`, and safe to be.** Swapping the basemap
  * discards every source and layer the style did not bring with it, so the only
  * reliable place to add these is after each style load; the `getSource` check
- * turns every repeat into a `setData`. `isStyleLoaded` is the guard for the
- * calls that arrive mid-load, where `addLayer` would throw.
+ * turns every repeat into a `setData`. A call that arrives mid-load is refused
+ * by MapLibre and ignored (`styleNotReady`).
+ *
+ * **It used to be gated on `isStyleLoaded()` instead, and the circle never
+ * drew.** That check is true only once every tile and image has arrived, which
+ * at a `styledata` it almost never is — so every call returned early, and an
+ * event page showed its town with no circle on it (found 2026-09-11 while
+ * building #388, which hit the same guard; confirmed on a local event page).
  *
  * Colours come from `tokens.css` through `tokenColour` — a canvas cannot read
  * `var(--yellow)`, and a hex literal here would be a second copy of a token.
@@ -779,9 +1136,20 @@ function paintArea(
   instance: any,
   area: MapArea | null,
 ): void {
-  if (!instance || typeof instance.isStyleLoaded !== 'function' || !instance.isStyleLoaded())
-    return;
+  if (!instance) return;
+  try {
+    paintAreaNow(instance, area);
+  } catch (error) {
+    if (!styleNotReady(error)) throw error;
+  }
+}
 
+/** `paintArea`'s body, run against a style that may refuse it. */
+function paintAreaNow(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  instance: any,
+  area: MapArea | null,
+): void {
   if (!area) {
     for (const id of [AREA_CENTRE, AREA_EDGE, AREA_FILL]) {
       if (instance.getLayer(id)) instance.removeLayer(id);
