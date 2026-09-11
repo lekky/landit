@@ -5,7 +5,6 @@ import {
   canAddVideoLink,
   parseYouTubeVideoId,
   videoLinkCountLine,
-  videoLinksRemaining,
   type VideoLink,
   type VideoLinkAllowance,
   type VideoVisibilityId,
@@ -59,7 +58,11 @@ const VIDEOS_PER_PAGE = 4;
  *   counts. Saying only the second made a Legend rider's empty tab read
  *   "7 video links added" (Rachid, 2026-09-11). `videoLinkCountLine` puts them
  *   in that order, in `@landit/core`, beside the allowance rules the sentence
- *   is about.
+ *   is about. It is also the **only** place the allowance is counted out: the
+ *   paragraph used to end with a second " 3 left." nudge, which beside
+ *   "7 of 10 … used" says the same thing twice, several sentences apart
+ *   (Rachid, 2026-09-11, in chat). One fact, one place — including inside a
+ *   sentence.
  * - **Nothing here announces anything to anybody.** Adding a video writes one
  *   row. No notification, no feed entry, no crew activity — plan §6.1, and the
  *   reason a rider's video reaches another rider only by that rider opening
@@ -95,7 +98,6 @@ export function VideosPanel({
   const [page, setPage] = useState(0);
   const [pending, startTransition] = useTransition();
 
-  const remaining = videoLinksRemaining(allowance, heldTotal);
   const canAdd = canAddVideoLink(allowance, heldTotal);
   const grantsNone = !allowance.unlimited && allowance.cap === 0;
 
@@ -237,7 +239,6 @@ export function VideosPanel({
             <p className={styles.hint}>
               {countLine}. The video stays on YouTube — we only keep the link. New videos start
               private, and nothing you add is ever visible to someone who is not signed in.
-              {remaining !== null && remaining <= 3 && ` ${remaining} left.`}
             </p>
           ) : (
             <p className={styles.hint}>
