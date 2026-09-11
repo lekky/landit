@@ -1,4 +1,4 @@
-import { spotFeatureId, type SportId } from '@landit/core';
+import { unindexedSpotSourceIds, spotFeatureId, type SportId } from '@landit/core';
 
 import type { Client } from './clients';
 import { records } from './collections';
@@ -290,4 +290,58 @@ export async function getSpotsByIds(
  */
 export async function listOwnSpots(client: Client): Promise<SpotsRecord[]> {
   return records(client, 'spots').list({ filter: "status != 'live'", sort: '-created' });
+}
+
+/* ---------------------------------------------------------- nearby spots -- */
+
+/**
+ * Live spots around a point, for a spot page's "nearest other spots", without
+ * reading every spot there is.
+ *
+ * The page used to list every live spot and sort them all by distance, which
+ * was fine at a few hundred and is not at thirty thousand (the world import).
+ * This asks for a box around the point instead — a quarter of a degree either
+ * side, widened until it holds more than `want` spots or reaches sixteen
+ * degrees — and the page still does the sorting, so its onward list is
+ * unchanged wherever the box holds the nearest few. Longitude is widened by
+ * latitude so the box is roughly square on the ground.
+ */
+export async function listSpotsNear(
+  client: Client,
+  point: { readonly lat: number; readonly lng: number },
+  want = 12,
+): Promise<SpotsRecord[]> {
+  const cos = Math.max(0.1, Math.cos((point.lat * Math.PI) / 180));
+  let rows: SpotsRecord[] = [];
+  for (const half of [0.25, 1, 4, 16]) {
+    const wide = Math.min(180, half / cos);
+    rows = await records(client, 'spots').list({
+      filter: `${LIVE} && lat >= {:s} && lat <= {:n} && lng >= {:w} && lng <= {:e}`,
+      params: {
+        s: point.lat - half,
+        n: point.lat + half,
+        w: point.lng - wide,
+        e: point.lng + wide,
+      },
+    });
+    if (rows.length > want) break;
+  }
+  return rows;
+}
+
+/**
+ * Live spots whose pages search engines may index, for the sitemap: every
+ * live spot except those from a source the catalogue keeps out of search
+ * (`indexed: false` in `SPOT_SOURCES` — the world import's pages, 2026-09-11).
+ * A page that carries `noindex` has no business in a sitemap, and listing it
+ * there would ask a crawler to fetch thirty thousand pages it is then told
+ * to ignore.
+ */
+export async function listIndexedSpots(client: Client): Promise<SpotsRecord[]> {
+  const hidden = unindexedSpotSourceIds();
+  return records(client, 'spots').list({
+    filter: [LIVE, ...hidden.map((_, i) => `source != {:hidden${i}}`)].join(' && '),
+    params: Object.fromEntries(hidden.map((id, i) => [`hidden${i}`, id])),
+    sort: 'name',
+  });
 }

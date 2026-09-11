@@ -6,6 +6,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { SUPERUSER_EMAIL, SUPERUSER_PASSWORD, withInstance } from '../scripts/pb-instance.mjs';
 
 import { records } from './collections';
+import { sampleWorld } from './imports/world-sample';
 import { seed, selectTables } from './seed';
 import {
   countSpotsBySport,
@@ -55,7 +56,7 @@ beforeAll(async () => {
       const client = new PocketBase(url);
       client.autoCancellation(false);
       await client.collection('_superusers').authWithPassword(SUPERUSER_EMAIL, SUPERUSER_PASSWORD);
-      await seed(client, selectTables(['spots']).plan, { prereqs: false });
+      await seed(client, sampleWorld(selectTables(['spots']).plan), { prereqs: false });
 
       // As a visitor, which is who the list rule matters for.
       const visitor = new PocketBase(url);

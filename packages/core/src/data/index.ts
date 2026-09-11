@@ -61,6 +61,10 @@ export { TRICK_PREREQS, TRICKS, type TrickId } from './tricks';
 export {
   SPOT_SOURCES,
   creditedSpotSources,
+  isIndexedSpotSource,
+  spotCredits,
+  unindexedSpotSourceIds,
+  type SpotCredit,
   type SpotSource,
   type SpotSourceId,
 } from './spot-sources';

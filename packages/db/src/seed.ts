@@ -20,6 +20,7 @@ import type { Client } from './clients';
 import { records } from './collections';
 import type { CollectionName } from './generated/collections';
 import { franceSpots } from './imports/france';
+import { worldSpots } from './imports/world';
 
 /**
  * Seeding: the canonical data in `@landit/core`, loaded into PocketBase.
@@ -283,6 +284,20 @@ export function buildSeed(): SeedPlan {
          */
         onExisting: 'skip',
         rows: franceSpots().map(spotRow),
+      },
+      {
+        collection: 'spots',
+        label: 'spots (world)',
+        key: ['name', 'town'],
+        /*
+         * The world import (2026-09-11): Trucks and Fins' map matched against
+         * OpenStreetMap, on the France table's terms — written once and never
+         * over, so a staff edit survives a re-seed, and after the two tables
+         * above so a park they already hold is dropped rather than duplicated
+         * (`worldSpots` in `./imports/world.ts`).
+         */
+        onExisting: 'skip',
+        rows: worldSpots().map(spotRow),
       },
       {
         collection: 'events',

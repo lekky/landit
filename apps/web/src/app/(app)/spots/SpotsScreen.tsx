@@ -2,7 +2,7 @@
 
 import {
   SPORTS,
-  creditedSpotSources,
+  spotCredits,
   distanceLabelIn,
   filterSpots,
   hasCoords,
@@ -52,12 +52,13 @@ const MONTHS = [
 /**
  * "councils, venues and OpenStreetMap (Open Database Licence); the French
  * Ministry of Sport’s equipment census via data.gouv.fr (Licence Ouverte 2.0,
- * updated 8 September 2026)". Every source the catalogue says must be named,
- * in its order. The date is spelled from a fixed table rather than a locale:
+ * updated 8 September 2026); OpenStreetMap contributors (…); GeoNames (CC BY
+ * 4.0)". Every source the catalogue says must be named, in its order, then
+ * every dataset those sources draw on (`spotCredits`). The date is spelled from a fixed table rather than a locale:
  * this screen hydrates, and nothing on it may be locale-derived (LESSONS §5).
  */
 function creditLine(): string {
-  return creditedSpotSources()
+  return spotCredits()
     .map((source) => {
       const terms = [source.licenceName];
       const day = source.snapshot ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(source.snapshot) : null;

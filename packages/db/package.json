@@ -13,7 +13,8 @@
     "test": "vitest run",
     "typegen": "node scripts/generate-types.mjs",
     "seed": "node --experimental-strip-types --import ./scripts/register-ts-resolve.mjs scripts/seed.mts",
-    "import:france": "node --experimental-strip-types --import ./scripts/register-ts-resolve.mjs scripts/import-france.mts"
+    "import:france": "node --experimental-strip-types --import ./scripts/register-ts-resolve.mjs scripts/import-france.mts",
+    "import:world": "node --experimental-strip-types --import ./scripts/register-ts-resolve.mjs scripts/import-world.mts"
   },
   "dependencies": {
     "@landit/core": "workspace:*",

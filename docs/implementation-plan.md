@@ -2390,6 +2390,40 @@ owner:
   documented ban in imported data is written into that test by name, with its source. The 3,103
   French rows already live were brought level by `1789084800_import_sports_rule.js`, because the
   France table is seeded create-only (#273).
+  **A pump track counts as the source naming BMX** (the owner, 2026-09-11, in chat, for the world
+  import below): a park its source lists as a pump track is listed for BMX as well as scooter and
+  skate, because a pump track is a bike place first. `sportsEvidence` in
+  `packages/db/src/imports/world.ts` applies it; `importedSpotSports` itself is unchanged.
+- **The world import (2026-09-11; the owner, in chat, choosing "route B")** brings in the places on
+  Trucks and Fins' map (trucksandfins.com, 27,644 parks captured that day), the largest skatepark
+  directory there is. **Whose data each row is:** where an OpenStreetMap skateboarding object sits
+  within 150 metres (matched one to one, closest first), the point, name and address are
+  OpenStreetMap's, under the Open Database Licence we already hold — `source: 'osm-tnf'`; where
+  none does, the row stands on Trucks and Fins' point and name — `source: 'tnf'`. Tags (bowl, mini,
+  halfpipe, snake run, full pipe, vert, pump track, DIY), the roof and "gone" come from which of the
+  site's thirteen map filters list the park. **Facts only:** no description, address, review or
+  photograph of theirs was taken, and every sentence on a spot page is ours (`SPOT_FEATURES`, which
+  gains Halfpipe and DIY). **No licence was granted, and the owner chose to take the facts
+  regardless;** the licence column says so rather than hiding it — `ODbL-1.0 AND LicenseRef-none`
+  and `LicenseRef-none` — because that column exists for the day somebody asks which rows may be
+  handed on. The credit line names OpenStreetMap contributors and GeoNames (the towns, CC BY 4.0);
+  Trucks and Fins, having granted nothing, is not named. **The site is behind a bot shield and the
+  importer never fetches it:** `scripts/import-world.mts` reads the list page and the filter lists
+  as captured in an ordinary browser, and fetches only OpenStreetMap (Overpass, twelve bands),
+  GeoNames and Natural Earth. **These pages stay out of search** (the owner, same conversation):
+  `indexed: false` on both sources puts `noindex` on the page and keeps it out of the sitemap,
+  because most say a name, a town and a feature or two, and twenty-five thousand of those is the
+  thin, near-duplicate pattern search engines demote a site for. The page still serves every rider
+  who reaches it from the map. **Duplicates:** listings within 50 metres of each other are one
+  place; a place within about 160 metres of a researched or French spot is dropped. Generic names
+  follow France's rule ("Skatepark", the town doing the rest), with OpenStreetMap's name tried
+  before Trucks and Fins'. The table is seeded create-only, like France's (#273). The snapshot
+  maps to 25,268 spots — 15,010 on OpenStreetMap's point — in about 160 countries, so
+  `SPOT_COUNTRY_BY_CODE` gains a line for the 66 the data had never reached. **What scale
+  changed:** a spot page now asks for the spots around it (`listSpotsNear`) instead of reading
+  every live spot, the sitemap reads only indexable ones (`listIndexedSpots`), and "Near me"'s
+  point list carries coordinates at five decimal places and sports as a bitmask. What it still
+  cannot say is the same as France's: nothing about opening hours and nothing about scooters.
 - **"Check before you travel", on the screen, permanently** (owner's call, 2026-08-18). The list
   is not a live feed and must not read like one: parks close for rebuilds, session timetables
   change, and a park that allows scooters this year can stop. The notice sits under the map on
