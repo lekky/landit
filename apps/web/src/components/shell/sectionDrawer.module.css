@@ -1,0 +1,153 @@
+/*
+ * The bottom bar's section drawer — the two screens a folded cell holds, named.
+ *
+ * A module rather than `packages/ui-web`: this is the app's own furniture, the
+ * design pack has no drawing of it, and `additions.css` is additive-only shared
+ * code that a screen-specific surface has no business growing into.
+ *
+ * It is an absolutely-positioned child of `.mobnav`, which is `position: fixed`
+ * and therefore its containing block. `bottom: 100%` is what sits it exactly on
+ * the bar's top edge with no measuring — the bar's height changes with the safe
+ * area inset and with whatever font actually loaded, and a hardcoded offset
+ * would be wrong on the phones that matter most.
+ *
+ * Paper on ink, a hard 3px rule, zero radius, and the bar's own yellow for the
+ * screen you are on — the same pairing `.nav a.on` uses, so the drawer reads as
+ * part of the navigation rather than as a dialogue over it.
+ *
+ * ## Why every rule below is `.drawer .tab` and not `.tab`
+ *
+ * Because the drawer lives *inside* `.mobnav`, and `additions.css` styles
+ * `.mobnav a` — a descendant selector, so it catches these links too, at a
+ * specificity (0,1,1) that a lone module class (0,1,0) loses to. Written the
+ * obvious way, the rows came out as bar cells: icon stacked above the label,
+ * centred, 10.5px, `--ink-mute`. Two classes (0,2,0) is what wins it back, and
+ * `.tab.on` needs three to beat `.mobnav a.on`.
+ *
+ * This is the same trap as `.sporttab` and the global `a:hover` (LESSONS §3a,
+ * issue #297): a class dropped into a selector that already claims the element.
+ * Every property `.mobnav a` sets and this row wants differently is therefore
+ * restated here rather than left to the cascade.
+ */
+
+.drawer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  background: var(--paper);
+  border-top: var(--bd);
+  border-bottom: var(--bd);
+  /*
+   * Below `.mobnav`'s own 70 so the bar always wins: the lit cell is how the
+   * drawer is closed again, and a drawer that covered it would trap a rider
+   * whose tap on the page did not register.
+   */
+  z-index: 69;
+}
+
+.drawer .label {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding: 9px 16px 5px;
+  margin: 0;
+}
+
+.drawer .tab {
+  display: flex;
+  /* `row`, `flex-start`, and this gap: `.mobnav a` is a centred column. */
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+  /* The 44px floor the eleventh divergence set for every control on a phone. */
+  min-height: 44px;
+  padding: 11px 16px;
+  border-top: 2px solid var(--wash);
+  background: none;
+  color: var(--ink);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+/* `.mobnav a svg` pins 21px; these glyphs sit beside text, not above it. */
+.drawer .tab svg {
+  flex: none;
+  width: 19px;
+  height: 19px;
+}
+
+/*
+ * The global `a:hover { color: var(--pink) }` outranks a single class and has
+ * broken three CTAs already (issue #297), so the hover states say their colour.
+ */
+.drawer .tab:hover,
+.drawer .tab:focus-visible {
+  color: var(--ink);
+  background: var(--paper-2);
+}
+
+/* Three classes, to beat `.mobnav a.on` at (0,2,1) — see the note above. */
+.drawer .tab.on,
+.drawer .tab.on:hover,
+.drawer .tab.on:focus-visible {
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+@media (hover: none) {
+  .drawer .tab:active {
+    background: var(--wash);
+  }
+  .drawer .tab.on:active {
+    background: var(--yellow);
+  }
+}
+
+/*
+ * The caret on a folded cell, in the bar itself.
+ *
+ * Here rather than in a module of its own because it is the same feature seen
+ * from the other side: the mark that promises the drawer exists. It is the only
+ * thing on the bar that says a cell holds more than it names, and it has to say
+ * it *before* a rider has ever tapped one — which a drawer that only appears on
+ * arrival cannot do by itself.
+ *
+ * Absolutely positioned on purpose. In flow it added 6px to every cell and so
+ * to the whole bar, which would have cost a phone six pixels of map on every
+ * screen in the app to decorate two cells. `e2e/shell.spec.ts` measures all
+ * five cells against each other, which is what holds that.
+ */
+.cell {
+  position: relative;
+}
+.caret {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  /* `currentColor`, so it turns yellow with the label when the cell is lit. */
+  border-bottom: 5px solid currentColor;
+  transition: transform 0.12s;
+}
+.caretOpen {
+  transform: translateX(-50%) rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    transition: none;
+  }
+}

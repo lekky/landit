@@ -248,6 +248,10 @@ describe('the event catalogue', () => {
         'landing_cta',
         'library_filtered',
         'nav_clicked',
+        // The bottom bar's section drawer was shown. Carries which section and
+        // whether it announced itself on arrival or the rider opened it — the
+        // only way to tell whether the folded second screen is ever found.
+        'nav_section_opened',
         'nearby_sort_used',
         // T30: session notes became a dated log, so a note can now be removed
         // as well as saved. Neither event carries a word of the note.

@@ -1611,6 +1611,42 @@ a mouse renders what it did before.
   phone**, not only `.field` (the tenth divergence's rule, made a guard rather than a convention);
   and **a square ink-chevron `.field select`** where WebKit painted a grey rounded one.
 
+**A twelfth divergence, 2026-09-11 (Rachid, in chat; issue #379 item 5): the bottom bar's two
+folded cells open a drawer, which the design pack has no drawing of.** The bar carries five
+*sections*, and two of them hold two screens each — What's on is Spots and Events, Progress is
+progress and the sticker wall. Highlighting a cell is not navigation, so to a rider who did not
+already know, the second screen in each pair did not exist. "What's on" names neither of the two
+things behind it; the map icon actively says spots.
+
+`SectionTabs` was the first answer and is now deleted. It was a row at the top of each of the four
+screens, and it failed twice over: it wore `.sporttab`, the same box, size and shadow as the sport
+switch rendered directly beneath it on `/progress`, so a rider met what looked like the same control
+twice and read the first one as a filter; and it sat at the top of a scrolling page, which is not
+where a thumb is.
+
+In its place, a folded cell carries a **caret** and opens a **drawer above the bar** naming both
+screens (`components/shell/SectionDrawer.tsx`). Three things about it were decided rather than
+fallen into:
+
+- **It opens on arrival in a section as well as on a tap of the lit cell.** The obvious design —
+  a cell that only opens a drawer — costs a tap on the way to Spots and on the way to Progress, and
+  Progress is the screen riders open most after Home. Announcing on arrival leaves every tap count
+  in the product exactly as it was and still says the sibling's name. Dismissed by a scroll, a tap
+  on the page, Escape, or the cell again.
+- **A tap on the cell of a section the rider is already in opens the drawer instead of navigating.**
+  It is the only place in the bar where a cell is not a plain link. Before this, a rider on
+  `/events` who tapped "What's on" was dragged to `/spots` for asking what else was in there.
+- **The caret is absolutely positioned**, so two cells of five cannot make the bar taller — in flow
+  it cost 6px of every screen in the app. `e2e/shell.spec.ts` measures all five cells against each
+  other, which is what keeps it true.
+
+Desktop is untouched: `.nav` carries all nine destinations flat above 860px, so deleting the row
+loses nothing there. The drawer is a child of `.mobnav`, which is `display: none` above 860px.
+
+New analytics: `nav_section_opened`, carrying the section and whether it was `arrival` or `tap`. It
+is the only way to answer the question this whole change is a bet on — whether the folded second
+screen is ever found. A `tap` is the strong signal: it means the caret was understood.
+
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
 to test — that is where the three-sport switch is proved against a 375px phone before `SPORT_IDS`

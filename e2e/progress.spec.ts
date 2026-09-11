@@ -139,7 +139,9 @@ test('the sport switch offers every sport Land The Trick ships', async ({ page }
   expect(SPORT_IDS.length).toBe(3);
 });
 
-test('the Progress row is the way to the sticker wall, which shares its cell', async ({ page }) => {
+test('the Progress drawer is the way to the sticker wall, which shares its cell', async ({
+  page,
+}) => {
   /*
    * Progress and the sticker wall are one section in the bottom bar
    * (`components/shell/nav.ts`): both are the rider's own record, and neither
@@ -151,22 +153,35 @@ test('the Progress row is the way to the sticker wall, which shares its cell', a
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/progress');
 
-  const row = page.getByRole('navigation', { name: 'Progress', exact: true });
-  await expect(row.getByRole('link', { name: 'Progress', exact: true })).toHaveAttribute(
+  const drawer = page.getByRole('group', { name: 'Progress', exact: true });
+  await expect(drawer.getByRole('link', { name: 'Progress', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   );
 
-  await row.getByRole('link', { name: 'Stickers', exact: true }).click();
+  await drawer.getByRole('link', { name: 'Stickers', exact: true }).click();
   await page.waitForURL('**/stickers');
 
-  // And back again, so the fold is not a one-way door.
-  const wallRow = page.getByRole('navigation', { name: 'Progress', exact: true });
-  await expect(wallRow.getByRole('link', { name: 'Stickers', exact: true })).toHaveAttribute(
+  /*
+   * And back again, so the fold is not a one-way door.
+   *
+   * The drawer closed when the rider chose Stickers, and arriving there does
+   * not reopen it — Progress and Stickers are one section, so nothing was
+   * arrived *at*. The way back is the lit cell, which on a section a rider is
+   * already inside opens the drawer rather than navigating.
+   */
+  const cell = page
+    .getByRole('navigation', { name: 'Main, compact', exact: true })
+    .getByRole('link', { name: 'Progress', exact: true });
+  await expect(drawer).toBeHidden();
+  await cell.click();
+  expect(new URL(page.url()).pathname).toBe('/stickers');
+
+  await expect(drawer.getByRole('link', { name: 'Stickers', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   );
-  await wallRow.getByRole('link', { name: 'Progress', exact: true }).click();
+  await drawer.getByRole('link', { name: 'Progress', exact: true }).click();
   await page.waitForURL('**/progress');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Where you’re at');
 });

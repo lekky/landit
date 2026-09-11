@@ -389,20 +389,51 @@ test('the calendar opens nearest-first when the browser already allows it', asyn
   expect(await geoCalls(page)).toBe(1);
 });
 
-test('the What’s on row is the way back to spots on a phone', async ({ page }) => {
+test('the What’s on drawer is the way back to spots on a phone', async ({ page }) => {
   // The other half of the pair `e2e/spots.spec.ts` checks. A rider who taps
   // the bottom bar's "What's on" lands on Spots, and if Events could not get
   // them back the fold would be a one-way door.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/events');
 
-  const row = page.getByRole('navigation', { name: 'What’s on', exact: true });
-  await expect(row.getByRole('link', { name: 'Events', exact: true })).toHaveAttribute(
+  const drawer = page.getByRole('group', { name: 'What’s on', exact: true });
+  await expect(drawer.getByRole('link', { name: 'Events', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   );
 
-  await row.getByRole('link', { name: 'Spots', exact: true }).click();
+  await drawer.getByRole('link', { name: 'Spots', exact: true }).click();
   await page.waitForURL('**/spots');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Where to ride');
+});
+
+test('on a phone, tapping the lit cell reopens the drawer instead of moving the rider', async ({
+  page,
+}) => {
+  /*
+   * The one case where a bottom-bar cell is not a link.
+   *
+   * A rider on Events who taps "What's on" is asking what else is in here, and
+   * the old bar answered by dragging them to Spots. Now it shows them the two
+   * names and leaves them where they are — which is also the only way back to
+   * the drawer once it has been dismissed.
+   */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/events');
+
+  const drawer = page.getByRole('group', { name: 'What’s on', exact: true });
+  const cell = page
+    .getByRole('navigation', { name: 'Main, compact', exact: true })
+    .getByRole('link', { name: 'What’s on', exact: true });
+
+  // Dismissed by a tap on the page, which is how a rider gets it out of the way.
+  await page.getByRole('heading', { level: 1 }).click();
+  await expect(drawer).toBeHidden();
+  await expect(cell).toHaveAttribute('aria-expanded', 'false');
+
+  await cell.click();
+  await expect(drawer).toBeVisible();
+  await expect(cell).toHaveAttribute('aria-expanded', 'true');
+  // Still on Events: the tap opened the drawer and navigated nowhere.
+  expect(new URL(page.url()).pathname).toBe('/events');
 });

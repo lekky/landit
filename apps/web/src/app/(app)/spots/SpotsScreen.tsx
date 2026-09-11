@@ -19,9 +19,7 @@ import { Button, Empty, Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { SectionTabs } from '@/components/shell/SectionTabs';
 import { SportSwitch } from '@/components/shell/SportSwitch';
-import { WHATS_ON_TABS } from '@/components/shell/nav';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { reportHref, spotHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
@@ -839,8 +837,6 @@ export function SpotsScreen({
 
   return (
     <div>
-      <SectionTabs tabs={WHATS_ON_TABS} label="What’s on" />
-
       {/*
         The sport tabs, which this screen did without until BMX landed.
 

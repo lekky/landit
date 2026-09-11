@@ -327,6 +327,21 @@ export const ANALYTICS_EVENTS = {
   /** A nav destination was chosen. Carries the route, which is not a rider fact. */
   navClicked: 'nav_clicked',
   /**
+   * The bottom bar's section drawer was shown.
+   *
+   * Carries `section` (`whats-on` or `progress`) and `trigger` — `arrival` when
+   * the drawer announced itself on the way into the section, `tap` when the
+   * rider opened it themselves from the lit cell. Both are fixed strings from
+   * `components/shell/nav.ts`; neither can carry anything a rider typed.
+   *
+   * It exists to answer the one question the drawer is a bet on: whether
+   * anybody finds the second screen in a section. Before it, Spots and Events
+   * were one label and Progress and Stickers were another, and nothing in the
+   * product could say whether the folded half was ever reached. A `tap` is the
+   * strong signal — it means the caret was understood without being shown.
+   */
+  navSectionOpened: 'nav_section_opened',
+  /**
    * Something on the signed-out landing page was pressed.
    *
    * Carries `target` — where it goes (`signup`, `signin`, `library`, `spots`,
