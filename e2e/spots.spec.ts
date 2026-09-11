@@ -285,7 +285,23 @@ test.describe('where to ride', () => {
     // Closed, it is off the bottom of the screen and costs the list nothing.
     expect(await top()).toBeGreaterThanOrEqual(HEIGHT);
 
+    /*
+     * **And it holds no map until it is opened** (issue #374). Under WebKit a
+     * map built inside the closed sheet — translated below the screen — never
+     * paints when the sheet slides up, so every iPhone opened a blank one; the
+     * map is now built on the first open, on screen. Counted across both of the
+     * map's honest states, because CI may draw either (no GPU there, #227): no
+     * canvas and no "would not load" before the press, one of them after it.
+     * Whether WebKit then paints is beyond this file — that is a real iPhone's
+     * to say, or Playwright's WebKit by eye.
+     */
+    const mapBuilt = async () =>
+      (await page.locator('.maplibregl-canvas').count()) +
+      (await page.getByText(/map would not load/i).count());
+    await expect.poll(mapBuilt).toBe(0);
+
     await page.getByRole('button', { name: 'Show on map' }).first().click();
+    await expect.poll(mapBuilt, { timeout: 15_000 }).toBeGreaterThan(0);
 
     /*
      * It clears the bottom nav rather than covering it — a sheet sitting on top
