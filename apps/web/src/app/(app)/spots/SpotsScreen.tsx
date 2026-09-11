@@ -377,33 +377,57 @@ export function SpotsScreen({
   /* -------------------------------------------------- nearest-first mode -- */
 
   /*
-   * Every live spot as a point, fetched once, the first time a position or an
-   * area is held, and kept for the rest of the visit. A few hundred kilobytes,
-   * paid only by a rider who asked for distance or pressed "Search this area"
-   * — the reason the page no longer carries it for everybody.
+   * Every live spot as a point, fetched once and kept for the rest of the
+   * visit — the first time a position or an area is held, or the first time
+   * the map is on screen, whichever comes first.
+   *
+   * **The map is the new reason** (issue #388; owner, 2026-09-11): it draws
+   * every matching spot from these, clustered. On a wide screen the map is a
+   * column that is always there, so that is on load; on a phone it is the
+   * first time the sheet comes up, and a rider who never opens it never pays.
+   * Still never in the page's own HTML, which is what #367 took out.
+   *
+   * `isSheet` lags the first commit by design (see its note), so the width is
+   * also read directly here: a phone must not fetch on the render before the
+   * screen has learnt it is a phone.
    */
   const [points, setPoints] = useState<readonly SpotPoint[] | null>(null);
   const pointsAsked = useRef(false);
   useEffect(() => {
-    if (!pointsMode || points || pointsAsked.current) return;
+    if (points || pointsAsked.current) return;
+    const sheet = isSheet || window.matchMedia(SHEET_WIDTH).matches;
+    if (!pointsMode && sheet && !mapOpen) return;
     pointsAsked.current = true;
+    // Only a list that is waiting on these says so when they fail. The map on
+    // its own falls back to the cards on screen, which is what it drew before.
+    const listWaiting = pointsMode;
     void (async () => {
       const result = await spotsPointsAction();
       if (result.error) {
         pointsAsked.current = false;
-        setError(result.error);
+        if (listWaiting) setError(result.error);
+        else console.warn('[spots] every spot could not be loaded; the map shows the list');
         return;
       }
       setPoints(result.points.map(fromPointTuple));
     })();
-  }, [pointsMode, points]);
+  }, [pointsMode, points, isSheet, mapOpen]);
+
+  /**
+   * Every live spot under the query, once the points are in: what the map
+   * draws (issue #388), and what both orderings below start from.
+   */
+  const matchingPoints = useMemo(
+    () =>
+      points ? filterSpots(points, { search: settledSearch, sport: querySport, feature }) : null,
+    [points, settledSearch, querySport, feature],
+  );
 
   /** The nearest-first list, narrowed by the same query, as ids in order. */
   const nearIds = useMemo(() => {
-    if (!here.point || !points) return null;
-    const narrowed = filterSpots(points, { search: settledSearch, sport: querySport, feature });
-    return sortSpotsByDistance(narrowed, here.point).map((point) => point.id);
-  }, [here.point, points, settledSearch, querySport, feature]);
+    if (!here.point || !matchingPoints) return null;
+    return sortSpotsByDistance(matchingPoints, here.point).map((point) => point.id);
+  }, [here.point, matchingPoints]);
 
   /**
    * The spots inside the searched view, under the same query, nearest its
@@ -411,10 +435,9 @@ export function SpotsScreen({
    * a place, and it is not where they are.
    */
   const areaIds = useMemo(() => {
-    if (!area || !points) return null;
-    const narrowed = filterSpots(points, { search: settledSearch, sport: querySport, feature });
-    return spotsInBounds(narrowed, area).map((point) => point.id);
-  }, [area, points, settledSearch, querySport, feature]);
+    if (!area || !matchingPoints) return null;
+    return spotsInBounds(matchingPoints, area).map((point) => point.id);
+  }, [area, matchingPoints]);
 
   /** Whichever list is ordered in the browser, if either is — area first. */
   const orderedIds = areaIds ?? nearIds;
@@ -527,24 +550,60 @@ export function SpotsScreen({
         : null;
 
   /**
-   * Only spots with a location can be plotted, and only the ones on screen are:
-   * the map's footer promises that every spot on this list is on the map, and
-   * that has to stay true of the list a rider can actually see. Pressing "Show
-   * more" grows both together.
+   * The cards on screen that have a location. No longer what the map draws —
+   * that is `mapSpots` — but what its camera frames, so the map still opens on
+   * the list a rider can see rather than on the whole world, and what it draws
+   * until the points arrive.
    */
   const plotted = useMemo(() => visible.filter(hasCoords), [visible]);
 
+  /**
+   * What the map draws: every spot matching the query once the points are in
+   * (issue #388; owner, 2026-09-11, in chat), clustered by `SpotMap` where they
+   * crowd — and the cards on screen until then, which is what it drew before.
+   */
+  const mapSpots = useMemo(() => matchingPoints ?? plotted, [matchingPoints, plotted]);
+  const mapIds = useMemo(() => new Set(mapSpots.map((spot) => spot.id)), [mapSpots]);
+
   /*
    * Derived, not stored — which is what makes a filter that hides the selected
-   * spot harmless. The id stays in state, `selected` reads as null while the
-   * spot is out of the list, the map and the header both lose it together, and
-   * clearing the search brings it back. Reconciling the id in an effect instead
-   * would be a cascading render for a worse outcome.
+   * spot harmless. The id stays in state and counts as chosen only while its
+   * spot is on the map; a search that hides it takes the pin and the header
+   * together, and clearing the search brings both back. Reconciling the id in
+   * an effect instead would be a cascading render for a worse outcome.
+   *
+   * **A pin can now choose a spot whose card is not on screen** (#388), so the
+   * pin is marked at once from the id, and the header — which needs the card —
+   * fills in when the card lands from the request below.
    */
-  const selected = useMemo(
-    () => plotted.find((spot) => spot.id === selectedId) ?? null,
-    [plotted, selectedId],
-  );
+  const mapSelectedId = selectedId && mapIds.has(selectedId) ? selectedId : null;
+  const selected = useMemo(() => {
+    const card = mapSelectedId ? cards.get(mapSelectedId) : null;
+    return card && hasCoords(card) ? card : null;
+  }, [mapSelectedId, cards]);
+
+  /*
+   * The chosen spot's card, when a pin chose a spot the list has not handed
+   * over. Deliberately outside the list's own ticket (`latest`): a card for an
+   * id is the same whatever the query, so there is nothing for it to be stale
+   * against — and a reply dropped as stale would leave the header empty for
+   * good. Same request, same rule, as the nearest-first cards (§6.4 standard 10
+   * as amended 2026-09-08): an id, never a position.
+   */
+  useEffect(() => {
+    if (!mapSelectedId || cards.has(mapSelectedId) || inFlight.current.has(mapSelectedId)) return;
+    const id = mapSelectedId;
+    inFlight.current.add(id);
+    void (async () => {
+      const result = await spotsCardsAction([id]);
+      inFlight.current.delete(id);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      remember(result.spots, [id]);
+    })();
+  }, [mapSelectedId, cards, remember]);
 
   const cardNodes = useRef(new Map<string, HTMLElement>());
   const select = useCallback((id: string, via: 'card' | 'pin') => {
@@ -597,6 +656,12 @@ export function SpotsScreen({
       setArea(bounds);
       capture(ANALYTICS_EVENTS.spotsAreaSearched, { view: isSheet ? 'sheet' : 'column' });
     },
+    [isSheet],
+  );
+
+  /* A numbered block opened: which layout, and nothing about where (see `spotsMapClusterOpened`). */
+  const clusterOpened = useCallback(
+    () => capture(ANALYTICS_EVENTS.spotsMapClusterOpened, { view: isSheet ? 'sheet' : 'column' }),
     [isSheet],
   );
 
@@ -895,7 +960,7 @@ export function SpotsScreen({
           )}
 
           {visible.map((spot) => {
-            const on = spot.id === selected?.id;
+            const on = spot.id === mapSelectedId;
             const plottable = hasCoords(spot);
             const distance = here.point ? distanceLabelIn(here.point, spot, units) : null;
             return (
@@ -1150,8 +1215,15 @@ export function SpotsScreen({
             </div>
 
             <SpotMap
-              spots={plotted}
-              selectedId={selected?.id ?? null}
+              spots={mapSpots}
+              /*
+                Every matching spot, clustered (#388), with the camera still
+                framing the cards on screen so the map opens where the list is.
+              */
+              cluster
+              frame={plotted}
+              onClusterOpened={clusterOpened}
+              selectedId={mapSelectedId}
               onSelect={selectPin}
               here={here.point}
               /*
@@ -1233,9 +1305,16 @@ export function SpotsScreen({
                 a behaviour is a dated claim about the product, and this one's
                 date had passed (LESSONS §4).
               */}
+              {/*
+                **Re-worded again 2026-09-11** (#388; owner, in chat): the map
+                now draws every matching spot, not only the cards on screen, so
+                "every live spot on this list is on the map" became the smaller
+                of two true claims. This is the larger one.
+              */}
               <p className={`cond ${styles.mapNote}`}>
-                Every live spot on this list is on the map. Cards are links, so the map only moves
-                when you ask it to — press <strong>Show on map</strong> on a card, or a pin.
+                Every matching spot is on the map. The list shows {PAGE} at a time. Cards are links,
+                so the map only moves when you ask it to — press <strong>Show on map</strong> on a
+                card, a pin, or a number.
               </p>
               <p className={styles.mapWarn}>
                 <strong>Check before you travel:</strong> Spots may not be verified.

@@ -740,14 +740,78 @@
   display: block;
 }
 
+/*
+ * The shadow grows and nothing moves. A pin is a MapLibre marker, positioned by
+ * an inline `transform` that no stylesheet rule can beat, so the lift this used
+ * to carry (`translate(-1px, -1px)`) never applied — and would have thrown the
+ * pin off its spot if it ever had.
+ */
 .pin:hover {
-  transform: translate(-1px, -1px);
   box-shadow: 4px 4px 0 var(--ink);
 }
 
 .pin:focus-visible {
   outline: 3px solid var(--violet);
   outline-offset: 2px;
+}
+
+/*
+ * A numbered block: spots too close together to tell apart at this zoom
+ * (issue #388; owner, 2026-09-11). Pressing it zooms in until it splits.
+ *
+ * Ink, with the count in the display face, so it reads as a different kind of
+ * thing from the sky pins it stands for — a number, not a place — while keeping
+ * every rule a pin keeps: square, a keyline, a hard offset shadow. The shadow is
+ * sky, the colour of what is inside it. Three sizes rather than one per count;
+ * see `clusterStep`.
+ *
+ * `touch-action: none` for the pin's reason (issue #366): a drag that starts on
+ * a block moves the map. No hover lift, because MapLibre positions a marker
+ * with an inline `transform` that a stylesheet one cannot win against — the
+ * shadow grows instead.
+ */
+.cluster {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: 0 6px;
+  touch-action: none;
+  border: 3px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 3px 3px 0 var(--sky);
+  font-family: var(--fd);
+  line-height: 1;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .cluster:hover {
+    box-shadow: 5px 5px 0 var(--sky);
+  }
+}
+
+.cluster:focus-visible {
+  outline: 3px solid var(--violet);
+  outline-offset: 2px;
+}
+
+.clusterSmall {
+  min-width: 30px;
+  height: 30px;
+  font-size: 15px;
+}
+
+.clusterMedium {
+  min-width: 38px;
+  height: 38px;
+  font-size: 17px;
+}
+
+.clusterLarge {
+  min-width: 46px;
+  height: 46px;
+  font-size: 19px;
 }
 
 .pinOn {

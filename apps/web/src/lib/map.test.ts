@@ -5,10 +5,98 @@ import {
   MAP_STYLES,
   circleBounds,
   circlePolygon,
+  clusterStep,
   describeMapError,
   isTileScopedMapError,
+  planMarkers,
+  spotsFeatureCollection,
   tokenColour,
+  type SourceFeature,
 } from './map';
+
+describe('what a clustered map is fed (#388)', () => {
+  it('is one point per spot with a place, carrying only its id and name', () => {
+    const collection = spotsFeatureCollection([
+      { id: 'a', name: 'Rampworx', lat: 53.4633, lng: -2.9632 },
+      // PocketBase's unset number field: not a place, so not a point.
+      { id: 'b', name: 'Nowhere yet', lat: 0, lng: 0 },
+    ]);
+    expect(collection).toEqual({
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { id: 'a', name: 'Rampworx' },
+          geometry: { type: 'Point', coordinates: [-2.9632, 53.4633] },
+        },
+      ],
+    });
+  });
+});
+
+describe('the size of a numbered block', () => {
+  it('steps at ten and at a hundred, and no further', () => {
+    expect([2, 9, 10, 99, 100, 3400].map(clusterStep)).toEqual([
+      'small',
+      'small',
+      'medium',
+      'medium',
+      'large',
+      'large',
+    ]);
+  });
+});
+
+describe('planning the markers from what the source has loaded', () => {
+  const cluster = (id: number, count: number, short?: string | number): SourceFeature => ({
+    geometry: { type: 'Point', coordinates: [2.35, 48.85] },
+    properties: {
+      cluster: true,
+      cluster_id: id,
+      point_count: count,
+      point_count_abbreviated: short ?? count,
+    },
+  });
+  const spot = (id: string): SourceFeature => ({
+    geometry: { type: 'Point', coordinates: [-2.96, 53.46] },
+    properties: { id, name: `Park ${id}` },
+  });
+
+  it('turns a cluster into a numbered block and a point into a pin', () => {
+    expect(planMarkers([cluster(7, 12), spot('a')], null)).toEqual([
+      { kind: 'cluster', key: 'c:7', clusterId: 7, count: 12, label: '12', lng: 2.35, lat: 48.85 },
+      { kind: 'spot', key: 's:a', id: 'a', name: 'Park a', lng: -2.96, lat: 53.46 },
+    ]);
+  });
+
+  it('prints a big count the short way supercluster hands it over', () => {
+    expect(planMarkers([cluster(9, 3412, '3.4k')], null)[0]).toMatchObject({
+      count: 3412,
+      label: '3.4k',
+    });
+  });
+
+  it('draws a feature once, however many loaded tiles hold it', () => {
+    const plans = planMarkers([cluster(7, 12), spot('a'), cluster(7, 12), spot('a')], null);
+    expect(plans.map((plan) => plan.key)).toEqual(['c:7', 's:a']);
+  });
+
+  it('leaves the chosen spot out, because the map draws that one on its own', () => {
+    expect(planMarkers([spot('a'), spot('b')], 'a').map((plan) => plan.key)).toEqual(['s:b']);
+  });
+
+  it('ignores anything it cannot place, rather than trusting the worker', () => {
+    const junk: SourceFeature[] = [
+      { geometry: { type: 'Polygon', coordinates: [] }, properties: { id: 'poly' } },
+      { geometry: { type: 'Point', coordinates: ['x', 1] }, properties: { id: 'nan' } },
+      { geometry: null, properties: { id: 'none' } },
+      { geometry: { type: 'Point', coordinates: [1, 1] }, properties: { cluster: true } },
+      { geometry: { type: 'Point', coordinates: [1, 1] }, properties: { name: 'no id' } },
+      { geometry: { type: 'Point', coordinates: [1, 1] }, properties: null },
+    ];
+    expect(planMarkers(junk, null)).toEqual([]);
+  });
+});
 
 /**
  * Sorting a MapLibre `error` event into "one tile" and "the map" (issue #219).

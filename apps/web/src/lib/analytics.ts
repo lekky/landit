@@ -481,6 +481,20 @@ export const ANALYTICS_EVENTS = {
    * a spot being chosen.
    */
   spotsAreaSearched: 'spots_area_searched',
+  /**
+   * A numbered block on the spots map was pressed, and the map zoomed into it
+   * (issue #388).
+   *
+   * Carries `view` — `'sheet'` or `'column'`, as `spots_area_searched` does —
+   * and nothing else: not the count on the block, not where it was, not the
+   * zoom. The count is a fact about a place on the map, and a place on the map
+   * is the thing standard 10 keeps out of every property (§6.4).
+   *
+   * It exists to say whether riders browse the map by opening blocks at all —
+   * the evidence for whether every-spot plotting was worth the points download
+   * it costs every visitor whose map is on screen.
+   */
+  spotsMapClusterOpened: 'spots_map_cluster_opened',
 } as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];
