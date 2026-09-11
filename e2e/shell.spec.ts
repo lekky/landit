@@ -311,12 +311,20 @@ test('on a phone, a toast sits above the bottom bar rather than on it', async ({
   await expect(toast).toBeVisible();
 
   const bar = page.getByRole('navigation', { name: 'Main, compact', exact: true });
-  const toastBox = await toast.boundingBox();
-  const barBox = await bar.boundingBox();
-  expect(toastBox && barBox, 'both the toast and the bottom bar are laid out').toBeTruthy();
-  expect(toastBox!.y + toastBox!.height, 'the toast overlaps the bottom bar').toBeLessThanOrEqual(
-    barBox!.y,
-  );
+  const barTop = (await bar.boundingBox())!.y;
+
+  // Polled, because a toast arrives on `tin`, which starts it 24px low: read
+  // during the entrance, a toast that rests clear of the bar measures 9px into
+  // it. The resting position is the one a rider reads for three seconds.
+  await expect
+    .poll(
+      async () => {
+        const box = await toast.boundingBox();
+        return box ? box.y + box.height : Infinity;
+      },
+      { message: 'the toast overlaps the bottom bar' },
+    )
+    .toBeLessThanOrEqual(barTop);
 });
 
 test('on a phone, only the two newest toasts are drawn', async ({ page }) => {
@@ -336,6 +344,29 @@ test('on a phone, only the two newest toasts are drawn', async ({ page }) => {
   await expect(toasts.nth(0)).toBeHidden();
   await expect(toasts.nth(1)).toBeVisible();
   await expect(toasts.nth(2)).toBeVisible();
+});
+
+test('on a phone, the footer scrolls clear of the bottom bar', async ({ page }) => {
+  // `.page` pads for the fixed bar; the footer after it did not, so its last
+  // row — the legal links — was 45px under the bar at the end of every page and
+  // could not be reached. Found verifying #375's bigger footer targets.
+  await page.setViewportSize(PHONE);
+  await page.goto(SHELL);
+  await page.locator('html').evaluate((el) => el.scrollTo(0, el.scrollHeight));
+
+  const barTop = (await page
+    .getByRole('navigation', { name: 'Main, compact', exact: true })
+    .boundingBox())!.y;
+  await expect
+    .poll(
+      () =>
+        page
+          .locator('footer')
+          .locator('a, button')
+          .evaluateAll((nodes) => Math.max(...nodes.map((n) => n.getBoundingClientRect().bottom))),
+      { message: "the footer's last control is under the bottom bar" },
+    )
+    .toBeLessThanOrEqual(barTop);
 });
 
 test('on a phone, small buttons and sport tabs are 44px tall; on a desktop they are as drawn', async ({

@@ -516,6 +516,19 @@ body::before {
   }
 
   /*
+   * The footer scrolls clear of the bottom bar.
+   *
+   * `.page` pads 108px for `.mobnav`, but the site footer comes after `.page`,
+   * and nothing padded it: scrolled to the very end, its last row — the legal
+   * links — sat 45px under the fixed bar and could not be reached at all.
+   * Scoped to a frame that has the bar, so the landing page and the legal
+   * documents, which carry the same footer and no bar, keep their 30px.
+   */
+  .app:has(.mobnav) > footer {
+    padding-bottom: calc(30px + 63px + env(safe-area-inset-bottom));
+  }
+
+  /*
    * A 44px floor on the controls that were drawn under it.
    *
    * `.pill` measured 35px and `.btn.sm` 36px. Padding reaches 44px without
