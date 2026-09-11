@@ -136,9 +136,14 @@ export function RidersScreen({
         ))}
       </div>
 
-      <Panel style={{ padding: 0, overflow: 'hidden' }} className={pending ? styles.busy : ''}>
+      {/* `styles.table` is the same `padding: 0; overflow: hidden` this panel
+          used to carry inline, moved to the class every other admin table uses.
+          The `data-label`s below are the column names a phone prints in each
+          cell, where this header row is hidden and every rider is a card
+          (issue #371; "Tables on a phone" in `admin.module.css`). */}
+      <Panel className={`${styles.table} ${pending ? styles.busy : ''}`}>
         <div
-          className={`arow ${styles.riderRow}`}
+          className={`arow ${styles.riderRow} ${styles.cardHead}`}
           style={{ background: 'var(--paper-2)', borderBottom: '2px solid var(--wash)' }}
         >
           <span className="lab">Rider</span>
@@ -154,7 +159,7 @@ export function RidersScreen({
         {rows.map((rider) => (
           <div
             key={rider.id}
-            className={`arow ${styles.riderRow}`}
+            className={`arow ${styles.riderRow} ${styles.cardRow}`}
             style={{ borderBottom: '2px solid var(--wash)' }}
           >
             <div className={styles.riderCell}>
@@ -168,24 +173,26 @@ export function RidersScreen({
               </div>
             </div>
 
-            <div className={styles.sportCell}>
+            <div className={styles.sportCell} data-label="Rides">
               {rider.sports.map((sport) => (
                 <SportChip key={sport.label} sport={sport} small />
               ))}
             </div>
 
-            <span className="d" style={{ fontSize: 19 }}>
+            <span className="d" style={{ fontSize: 19 }} data-label="Landed">
               {rider.landed}
             </span>
 
             {/* A band, never an age — there is no birth date to show. The
                 account column's GUARDIAN tag is the consequence of this cell,
                 which is why it sits on the same row rather than on the sheet. */}
-            <span className="cond" style={{ fontSize: 13.5 }}>
+            <span className="cond" style={{ fontSize: 13.5 }} data-label="Age band">
               {rider.ageBand}
             </span>
 
-            <span className={styles.muted}>{rider.joined}</span>
+            <span className={styles.muted} data-label="Joined">
+              {rider.joined}
+            </span>
 
             {/* When the rider last used the app (`users.last_seen`), which is
                 not the same question as when they last logged a ride — the
@@ -193,30 +200,35 @@ export function RidersScreen({
             <span
               className="cond"
               style={{ fontSize: 13.5, color: rider.seenToday ? 'var(--green)' : 'var(--ink-2)' }}
+              data-label="Last seen"
             >
               {rider.seen}
             </span>
 
-            <select
-              value={rider.plan}
-              disabled={rider.isMe || pending}
-              aria-label={`Plan for ${rider.name}`}
-              onChange={(e) => onPlanChange(rider, e.target.value)}
-              className={styles.planSelect}
-            >
-              {plans.map((p) => (
-                <option key={p.slug} value={p.slug}>
-                  {p.name}
-                </option>
-              ))}
-              {/* A rider on a plan no longer live still shows what they are on,
-                  rather than silently displaying the first option instead. */}
-              {!plans.some((p) => p.slug === rider.plan) && (
-                <option value={rider.plan}>{planName(rider.plan)}</option>
-              )}
-            </select>
+            {/* Wrapped so the cell can carry its label on a phone; see
+                `.controlCell`. */}
+            <div className={styles.controlCell} data-label="Plan override">
+              <select
+                value={rider.plan}
+                disabled={rider.isMe || pending}
+                aria-label={`Plan for ${rider.name}`}
+                onChange={(e) => onPlanChange(rider, e.target.value)}
+                className={styles.planSelect}
+              >
+                {plans.map((p) => (
+                  <option key={p.slug} value={p.slug}>
+                    {p.name}
+                  </option>
+                ))}
+                {/* A rider on a plan no longer live still shows what they are on,
+                    rather than silently displaying the first option instead. */}
+                {!plans.some((p) => p.slug === rider.plan) && (
+                  <option value={rider.plan}>{planName(rider.plan)}</option>
+                )}
+              </select>
+            </div>
 
-            <div className={styles.accountCell}>
+            <div className={styles.accountCell} data-label="Account">
               <Tag
                 color={STATUS_LOOK[rider.status].color}
                 style={{

@@ -318,7 +318,9 @@ export function TricksScreen({
       )}
 
       <Panel className={`${styles.table} ${pending ? styles.busy : ''}`}>
-        <div className={`arow ${styles.tableHead}`}>
+        {/* Hidden on a phone, where each trick is a card and every cell prints
+            its own `data-label` (issue #371; `admin.module.css`). */}
+        <div className={`arow ${styles.tableHead} ${styles.cardHead}`}>
           <span className="lab">Trick</span>
           <span className="lab">Category</span>
           <span className="lab">Difficulty</span>
@@ -330,7 +332,7 @@ export function TricksScreen({
         {list.map((row) => (
           <div
             key={row.id}
-            className={`arow ${styles.tableRow} ${row.isLive ? '' : styles.hiddenRow}`}
+            className={`arow ${styles.tableRow} ${styles.cardRow} ${row.isLive ? '' : styles.hiddenRow}`}
           >
             <div className={styles.rowTitle}>
               <div className="cond" style={{ fontSize: 15 }}>
@@ -340,43 +342,53 @@ export function TricksScreen({
               <div className={styles.rowId}>{row.slug}</div>
             </div>
 
-            <span>
+            <span data-label="Category">
               <Tag color={row.catColor} style={{ fontSize: 10 }}>
                 {row.catLabel}
               </Tag>
             </span>
 
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }} data-label="Difficulty">
               <Difficulty value={row.diff} small />
               <span className="lab" style={{ color: 'var(--ink-3)' }}>
                 {row.tierLabel}
               </span>
             </span>
 
-            <span className="cond" style={{ fontSize: 13, color: 'var(--ink-2)' }}>
+            <span
+              className="cond"
+              style={{ fontSize: 13, color: 'var(--ink-2)' }}
+              data-label="Builds on"
+            >
               {row.buildsOn}
             </span>
 
-            <button
-              type="button"
-              className="pill"
-              disabled={pending}
-              title={
-                row.tier === 'inherit'
-                  ? `Following the default: ${row.effectivelyFree ? 'free' : 'paid'} at difficulty ${row.diff}`
-                  : 'Set explicitly by staff'
-              }
-              onClick={() => onCycleTier(row)}
-              style={{
-                fontSize: 11.5,
-                padding: '5px 10px',
-                background: TIER_LOOK[row.tier].background,
-                color: TIER_LOOK[row.tier].color,
-              }}
-            >
-              {TIER_LOOK[row.tier].label}
-              {row.tier === 'inherit' && ` · ${row.effectivelyFree ? 'Rookie' : 'Shredder'}`}
-            </button>
+            {/* The chip was a cell of its own, which on a phone shrank it to
+                ~95px around a label that cannot wrap — "BY DIFFICULTY · ROOK".
+                Wrapped, it keeps its width at desktop and its whole label on a
+                phone; see `.controlCell`. */}
+            <span className={styles.controlCell} data-label="Free plan">
+              <button
+                type="button"
+                className="pill"
+                disabled={pending}
+                title={
+                  row.tier === 'inherit'
+                    ? `Following the default: ${row.effectivelyFree ? 'free' : 'paid'} at difficulty ${row.diff}`
+                    : 'Set explicitly by staff'
+                }
+                onClick={() => onCycleTier(row)}
+                style={{
+                  fontSize: 11.5,
+                  padding: '5px 10px',
+                  background: TIER_LOOK[row.tier].background,
+                  color: TIER_LOOK[row.tier].color,
+                }}
+              >
+                {TIER_LOOK[row.tier].label}
+                {row.tier === 'inherit' && ` · ${row.effectivelyFree ? 'Rookie' : 'Shredder'}`}
+              </button>
+            </span>
 
             <div className={styles.rowActions}>
               <button
