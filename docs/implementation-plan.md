@@ -1693,6 +1693,12 @@ each:
   among loud cards. A sticker now hangs over each card's top-right corner: `SELECTED` behind a tick
   when it is on, `TAP TO PICK` when it is not. Colour, shadow depth and `aria-pressed` are all
   unchanged, so this is additional signal rather than a replacement for any of them.
+- **The last sport on is no longer pressable.** `toggleSport` has always refused to turn the only
+  remaining sport off, silently — a tap that did nothing. Once the card says `SELECTED` in words
+  that reads as a broken card rather than a rule, so step 1 now does exactly what `/account`'s sport
+  picker already did: `disabled` on that one card, `title="Keep at least one sport"`, and a `0.92`
+  opacity rather than the design system's `.btn:disabled` fade to `0.45` — the card is still the
+  rider's choice, just not something to press.
 - **The "N tricks" line is gone.** The number moved every time the library was seeded or extended,
   which made it a maintenance promise the card was never meant to carry, and it is not information a
   rider picking their sport is acting on. Its zero case ("Library on the way") goes with it; step 4

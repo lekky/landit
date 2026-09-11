@@ -81,6 +81,17 @@
   cursor: pointer;
 }
 
+/*
+ * The only sport left on, which cannot be turned off. Matches `/account`'s own
+ * sport picker exactly: still legible, just not something to press — the
+ * design system's `.btn:disabled` fade to 0.45 would read as "switched off",
+ * which is the opposite of what this card is saying.
+ */
+.sport:disabled {
+  cursor: default;
+  opacity: 0.92;
+}
+
 .sportHead {
   display: flex;
   align-items: center;

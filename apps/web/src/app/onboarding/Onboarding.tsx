@@ -228,6 +228,13 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
               {SPORT_IDS.map((id) => {
                 const sport = SPORTS[id];
                 const on = sports.includes(id);
+                /*
+                 * The last sport on cannot be turned off — `toggleSport` has
+                 * always refused it, silently. Now that the card says
+                 * SELECTED, a tap that does nothing reads as a broken card, so
+                 * it says why instead, the way `/account` already does.
+                 */
+                const only = on && sports.length === 1;
                 return (
                   // A `panel` on a `button`, not a `div`: the class is what the
                   // design system styles, and `button { font: inherit }` in the
@@ -237,6 +244,8 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
                     type="button"
                     onClick={() => toggleSport(id)}
                     aria-pressed={on}
+                    disabled={only}
+                    title={only ? 'Keep at least one sport' : undefined}
                     className={`panel flat ${styles.sport}`}
                     style={{
                       background: on ? sport.color : 'var(--paper)',
