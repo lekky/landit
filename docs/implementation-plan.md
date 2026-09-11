@@ -1683,6 +1683,30 @@ where screenshot 05 shows two. The two-card grid becomes an N-card grid; multi-s
 at-least-one rule are unchanged. Step 4's suggested tricks and step 3's goal pills already filter by
 the rider's chosen sports, so they need nothing beyond not assuming a pair.
 
+**A sport card says in words whether it is picked, and no longer counts its library — deliberate
+divergence from screenshot 05 (Rachid, 2026-09-11, in chat).** Two changes to the card, one reason
+each:
+
+- **The state is written down.** The pack carries the choice entirely in colour: a filled card is
+  on, a paper one is off. That reads when a rider has just tapped something, and not at all on
+  arrival, where scooter is selected for them before they have touched the screen — a loud card
+  among loud cards. A sticker now hangs over each card's top-right corner: `SELECTED` behind a tick
+  when it is on, `TAP TO PICK` when it is not. Colour, shadow depth and `aria-pressed` are all
+  unchanged, so this is additional signal rather than a replacement for any of them.
+- **The last sport on is no longer pressable.** `toggleSport` has always refused to turn the only
+  remaining sport off, silently — a tap that did nothing. Once the card says `SELECTED` in words
+  that reads as a broken card rather than a rule, so step 1 now does exactly what `/account`'s sport
+  picker already did: `disabled` on that one card, `title="Keep at least one sport"`, and a `0.92`
+  opacity rather than the design system's `.btn:disabled` fade to `0.45` — the card is still the
+  rider's choice, just not something to press.
+- **The "N tricks" line is gone.** The number moved every time the library was seeded or extended,
+  which made it a maintenance promise the card was never meant to carry, and it is not information a
+  rider picking their sport is acting on. Its zero case ("Library on the way") goes with it; step 4
+  already says honestly when there is nothing to offer, which is where a rider would notice.
+
+Nothing about what step 1 *collects* moves, and the `tricks` the page loads are still what step 4
+suggests from.
+
 **Built 2026-08-16. Five things the entry above did not say, recorded here because they are
 decisions rather than details:**
 

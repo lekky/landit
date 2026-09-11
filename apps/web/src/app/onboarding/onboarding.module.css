@@ -81,6 +81,17 @@
   cursor: pointer;
 }
 
+/*
+ * The only sport left on, which cannot be turned off. Matches `/account`'s own
+ * sport picker exactly: still legible, just not something to press — the
+ * design system's `.btn:disabled` fade to 0.45 would read as "switched off",
+ * which is the opposite of what this card is saying.
+ */
+.sport:disabled {
+  cursor: default;
+  opacity: 0.92;
+}
+
 .sportHead {
   display: flex;
   align-items: center;
@@ -104,6 +115,48 @@
   font-size: 13.5px;
   letter-spacing: 0.03em;
   opacity: 0.9;
+}
+
+/*
+ * Whether the card is picked, said in words.
+ *
+ * The pack said the choice in colour alone — a filled card is on, a paper one
+ * is off — and on a screen where scooter arrives already chosen, that read as
+ * decoration rather than as a decision somebody had made. So a sticker over the
+ * card's top-right corner says it: `SELECTED` behind a tick when it is on,
+ * `TAP TO PICK` when it is not. `aria-pressed` on the button said this to a
+ * screen reader already; this says it to everyone else.
+ *
+ * Paper and ink, not the card's own foreground: white-on-yellow would not
+ * survive a fourth sport in a pale colour, and this way the sticker reads the
+ * same on all three.
+ *
+ * **`z-index` is load-bearing.** The sticker hangs past the card's edge, and
+ * `.panel` is `position: relative` with no `z-index` — so it does not open a
+ * stacking context, and without this the *next* card in the grid paints over
+ * the overhang and clips it.
+ */
+.sportState {
+  position: absolute;
+  top: -12px;
+  right: -8px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 2.5px 2.5px 0 var(--ink);
+  white-space: nowrap;
+}
+
+/* Not picked: the same sticker in the page's own wash, so it reads as the
+ * instruction it is rather than as a second thing that has been chosen. */
+.sportStateOff {
+  background: var(--wash);
+  color: var(--ink-3);
 }
 
 .note {
