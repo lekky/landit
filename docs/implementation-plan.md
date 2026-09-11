@@ -2424,6 +2424,11 @@ owner:
   every live spot, the sitemap reads only indexable ones (`listIndexedSpots`), and "Near me"'s
   point list carries coordinates at five decimal places and sports as a bitmask. What it still
   cannot say is the same as France's: nothing about opening hours and nothing about scooters.
+  **The cost that is still open (#393):** since `feat-spots-map-clusters` (#391) fetches that point
+  list whenever the map shows, every map load reads all 28,731 spots — measured at 4.3–4.6 s of
+  PocketBase work and 2.2 MB of JSON (963 KB gzipped) per visitor against a local instance holding
+  the full seed. Caching it on the server, scoping it to the view, or both is the owner's call, and
+  it is raised there rather than decided here.
 - **"Check before you travel", on the screen, permanently** (owner's call, 2026-08-18). The list
   is not a live feed and must not read like one: parks close for rebuilds, session timetables
   change, and a park that allows scooters this year can stop. The notice sits under the map on
