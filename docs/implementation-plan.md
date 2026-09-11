@@ -1381,6 +1381,11 @@ all four are removed rather than reworded:
   hid the label went with it — every caller was passing a switch with nothing left to switch.
 - **The three social tags are the real accounts**, `@landthetrick` on Instagram, YouTube and TikTok
   (owner, 2026-08-30, in chat). They had been spans since T5, styled like links and going nowhere.
+  Two corrections since: the YouTube tag went on 2026-09-05 (the channel was never claimed), and the
+  Instagram handle is **`@landthetrickapp`**, not `@landthetrick`, which was already taken there
+  (owner, 2026-09-11, in chat). TikTok keeps `@landthetrick`. The footer and the `sameAs` list in
+  `lib/structuredData.ts` carry the same two entries, and `e2e/legal.spec.ts` asserts the exact
+  hrefs rather than a shared `landthetrick` pattern, which is what let the wrong handle pass.
 - **The footer's `Contact` entry lands on the About document's "Get in touch" section**, not the top
   of the same page `About Land The Trick` already opens. Two entries, one destination, is what made
   it read as a stub for a contact page nobody built. `legalHref` takes an optional section anchor
