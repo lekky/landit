@@ -514,6 +514,26 @@
 }
 
 /*
+ * **A 44px target on a chip drawn 24px tall** (issue #374). The chip is the
+ * design's — a short ink tab in the header — and the thumb's floor is the
+ * handoff's accessibility line for a phone, so the extra reach is an invisible
+ * box over the chip rather than a bigger chip. It grows only where the chip is
+ * short: the chip is already wider than 44px, so it stays clear of "Open in
+ * Maps" beside it, and the 10px it reaches up and down stays inside the
+ * header's own padding. The pins and the zoom buttons below take the same
+ * rule.
+ */
+.mapClose {
+  position: relative;
+}
+
+.mapClose::before {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((100% - 44px) / 2));
+}
+
+/*
  * The footer the sheet uses instead of `.mapNote` — see the note beside them in
  * `SpotsScreen`. Hidden here, shown in the media query below, and never both.
  */
@@ -756,6 +776,33 @@
 }
 
 /*
+ * **Every pin and block is at least 44px to a thumb, whatever it is drawn at**
+ * (issue #374: a 22px pin was a 22px target). The square is the design and
+ * stays its size; the reach is an invisible box centred on it, sized from the
+ * padding box so one rule gives a 22px pin, a 28px chosen pin and a 30px block
+ * the same 44px, and a block already that big nothing extra. A marker is
+ * `position: absolute` (MapLibre's own class), so it is the box this is
+ * measured against.
+ *
+ * **It does not make a pin unpickable at the zooms that crowd them.** Below
+ * street level, spots closer than `CLUSTER_RADIUS` (48px) merge into one
+ * block, so two lone marks are never near enough for one reach to cover the
+ * other's square — 62px apart at the nearest across the UK view, measured
+ * under WebKit on 2026-09-11. Where they can meet — street level, or a pin
+ * beside the chosen one, which is kept out of the blocks — the one on top
+ * wins the gap between them. A 22px pin's reach only takes a neighbour's
+ * middle when the two squares are already drawn over each other, and even
+ * then the one underneath keeps the far side of its own reach, so two pins
+ * that touch are still two targets.
+ */
+.pin::before,
+.cluster::before {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((100% - 44px) / 2));
+}
+
+/*
  * A numbered block: spots too close together to tell apart at this zoom
  * (issue #388; owner, 2026-09-11). Pressing it zooms in until it splits.
  *
@@ -851,6 +898,47 @@
 
 .mapCanvas :global(.maplibregl-ctrl-group button + button) {
   border-top: 2.5px solid var(--ink);
+}
+
+/*
+ * **The zoom buttons, 44px to a thumb and 29px to the eye** (issue #374) — the
+ * pins' rule, with sums instead of one formula because these two are stacked
+ * against each other and against the edge of the map.
+ *
+ * Out from the sides by 7.5px each, which is 44px across. Up and down the pair
+ * share 63px of drawn height (two 29px buttons, the 2.5px keyline around the
+ * group and between them), and each reaches away from the other for the rest:
+ * + to the top edge of the map, 12.5px above it — MapLibre's 10px margin and
+ * the keyline, and no further, because the map clips anything beyond its own
+ * box — plus the keyline between the two, which it takes on `z-index`; − the
+ * 17.5px below it that + did not need. Each is then exactly 44px tall, and the
+ * line where they meet is the drawn line between them.
+ *
+ * MapLibre draws both buttons at `29px` with `box-sizing: border-box`, so −'s
+ * box starts at the keyline; `top: 0` is measured from its padding box, below
+ * it. The spot page's and the event page's maps take this too — the same
+ * controls, the same thumbs.
+ */
+.mapCanvas :global(.maplibregl-ctrl-group button) {
+  position: relative;
+}
+
+.mapCanvas :global(.maplibregl-ctrl-group button)::before {
+  content: '';
+  position: absolute;
+  left: -7.5px;
+  right: -7.5px;
+}
+
+.mapCanvas :global(.maplibregl-ctrl-zoom-in)::before {
+  top: -12.5px;
+  bottom: -2.5px;
+  z-index: 1;
+}
+
+.mapCanvas :global(.maplibregl-ctrl-zoom-out)::before {
+  top: 0;
+  bottom: -17.5px;
 }
 
 .mapCanvas :global(.maplibregl-ctrl-attrib),
@@ -980,10 +1068,18 @@
    * the scrim stops at the same line, so the five destinations stay live.
    *
    * **Closed still means laid out.** `translateY` moves it off-screen and
-   * leaves its box alone, so MapLibre's ResizeObserver keeps seeing a real size
-   * and the canvas is correct the instant the sheet arrives. `display: none`
-   * here would hand the library a zero-height container and the first open
-   * would be blank — the same class of bug the ResizeObserver was added for.
+   * leaves its box alone, so once the map exists MapLibre's ResizeObserver
+   * keeps seeing a real size and the canvas is correct the instant the sheet
+   * comes back. `display: none` here would collapse the container to nothing
+   * every time the sheet closed and have it measured again from zero on every
+   * open — the class of bug the ResizeObserver was added for.
+   *
+   * **But the map is not built in here until the sheet first opens** (issue
+   * #374). Under WebKit a canvas *built* inside this translated-off layer never
+   * paints when the layer arrives — every iPhone opened a blank map — so
+   * `SpotsScreen` holds the map back until the first open and builds it on
+   * screen (`everOpened`). A map built on screen paints again after it has been
+   * slid away and back, which is why it is kept rather than rebuilt per open.
    */
   .mapPanel {
     position: fixed;

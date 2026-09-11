@@ -219,6 +219,39 @@ export function SpotsScreen({
   const [formOpen, setFormOpen] = useState(false);
 
   /*
+   * Whether the sheet has come up at least once on this visit — which, on a
+   * phone, is what decides whether the map exists at all.
+   *
+   * **On the sheet width the map is not built until the sheet first opens**
+   * (issue #374). The closed sheet waits below the screen, translated out of
+   * sight, and under WebKit — Safari, and so every browser on an iPhone — a
+   * MapLibre canvas *built* inside that off-screen layer never paints once the
+   * layer slides into view: the pins, the zoom buttons and the credit arrive,
+   * and the ground under them stays blank through zooming, waiting, a
+   * Plain/Detail swap and a close and reopen. Chromium draws it, which is why
+   * only iPhones saw it. The 2026-09-08 mobile audit took the suspects away
+   * one at a time — the slide, `position: fixed`, the scrim, the page hold,
+   * and hiding the panel with `display: none` instead — and each was still
+   * blank; the one build that painted was a build that ran with the panel on
+   * screen. So on a phone the map is built on screen, the
+   * first time a rider asks for it, and then kept: a map built on screen
+   * paints again when the sheet comes back, so a close and reopen does not
+   * rebuild it.
+   *
+   * The column never waits. `isSheet` is false on the server and on the first
+   * render, so a wide screen builds its map on load exactly as it always has,
+   * and a phone renders the same markup to hydrate against and drops it on the
+   * next render, once it knows it is a phone — the build effect's own cleanup
+   * takes anything it had begun with it.
+   *
+   * Set during render rather than in an effect — React's "adjust state when a
+   * prop changes" pattern, as `lastKey` below — so the render that opens the
+   * sheet is the one that mounts the map, not the one after it.
+   */
+  const [everOpened, setEverOpened] = useState(false);
+  if (mapOpen && !everOpened) setEverOpened(true);
+
+  /*
    * The view of the map the list is narrowed to, once "Search this area" has
    * been pressed — `null` is every area. Held here rather than in the map
    * because the list is what it changes; the map only offers the button. Like
@@ -230,9 +263,10 @@ export function SpotsScreen({
   /*
    * Whether the map panel is currently *a sheet* — the same `SHEET_WIDTH` the
    * Escape handler and the open count already ask about, but held in state
-   * because two of the things the sheet now does cannot be written in CSS: the
-   * page has to be held still behind it, and the map has to be told to take
-   * one-finger drags.
+   * because three of the things the sheet now does cannot be written in CSS:
+   * the page has to be held still behind it, the map has to be told to take
+   * one-finger drags, and the map is not built until the sheet first opens
+   * (`everOpened`, #374).
    *
    * **False on the server and on the first client render, deliberately.**
    * Measuring a viewport during render is a first paint that is a guess and a
@@ -1214,36 +1248,44 @@ export function SpotsScreen({
               </button>
             </div>
 
-            <SpotMap
-              spots={mapSpots}
-              /*
-                Every matching spot, clustered (#388), with the camera still
-                framing the cards on screen so the map opens where the list is.
-              */
-              cluster
-              frame={plotted}
-              onClusterOpened={clusterOpened}
-              selectedId={mapSelectedId}
-              onSelect={selectPin}
-              here={here.point}
-              /*
-                "Search this area". While an area is held the list is drawn from
-                the camera, so the camera stops framing the list — it would
-                otherwise move the view the rider just chose each time a card
-                arrived.
-              */
-              follow={!area}
-              onSearchArea={searchArea}
-              /*
-                One finger moves the map, but only in the sheet. Everywhere else
-                this panel appears it is one thing on a page a rider scrolls,
-                and cooperative gestures are what stop a scroll getting caught
-                in it. In the sheet the page behind is held still, so a drag
-                spent on it moves nothing at all — which is precisely what the
-                owner reported on 2026-09-08.
-              */
-              gestures={mapOpen && isSheet ? 'direct' : 'cooperative'}
-            />
+            {/*
+              In the column at once; in the sheet from its first opening, so
+              the map is built on screen where WebKit will paint it (#374 — see
+              `everOpened`). Until then a closed sheet holds its header and
+              footer and no map, below the screen where nobody sees either.
+            */}
+            {(!isSheet || everOpened) && (
+              <SpotMap
+                spots={mapSpots}
+                /*
+                  Every matching spot, clustered (#388), with the camera still
+                  framing the cards on screen so the map opens where the list is.
+                */
+                cluster
+                frame={plotted}
+                onClusterOpened={clusterOpened}
+                selectedId={mapSelectedId}
+                onSelect={selectPin}
+                here={here.point}
+                /*
+                  "Search this area". While an area is held the list is drawn from
+                  the camera, so the camera stops framing the list — it would
+                  otherwise move the view the rider just chose each time a card
+                  arrived.
+                */
+                follow={!area}
+                onSearchArea={searchArea}
+                /*
+                  One finger moves the map, but only in the sheet. Everywhere else
+                  this panel appears it is one thing on a page a rider scrolls,
+                  and cooperative gestures are what stop a scroll getting caught
+                  in it. In the sheet the page behind is held still, so a drag
+                  spent on it moves nothing at all — which is precisely what the
+                  owner reported on 2026-09-08.
+                */
+                gestures={mapOpen && isSheet ? 'direct' : 'cooperative'}
+              />
+            )}
 
             {/*
               The way out of the map and into the spot.
