@@ -438,3 +438,306 @@ a.tcard:hover {
   color: var(--ink);
   text-decoration: none;
 }
+
+/* ------------------------------------------------- touch hygiene (#375) -- */
+
+/*
+ * Six things every screen inherited on a phone, from the mobile audit of
+ * 2026-09-08. All of it is below 861px or under `(hover: none)`, so a desktop
+ * with a mouse renders exactly what it did before — the status-bar band is the
+ * one global rule, and in a browser tab it has no size. The design was drawn
+ * for a mouse; this is the half of it a finger needed. Recorded in the plan as
+ * the eleventh divergence under T5 (Rachid, 2026-09-11, in chat).
+ */
+
+/*
+ * The installed app's status bar.
+ *
+ * `appleWebApp.statusBarStyle: 'black-translucent'` (root `layout.tsx`) asks
+ * iOS to draw the page under the status bar, and until `viewport-fit=cover`
+ * every `env(safe-area-inset-*)` resolved to 0 — so the clock sat on the top
+ * bar, and `.mobnav`'s home-indicator padding did nothing. With `cover` the
+ * insets are real, and these rules spend them.
+ *
+ * The band is ink under the clock on every page, not only the shell's: the
+ * installed app opens at `/home`, and a signed-out rider lands on the auth
+ * pages, which have no top bar to extend. Content starts below the band and
+ * scrolls under it. In a browser tab the top inset is 0, so none of this has
+ * any size there. Left and right are the notch in landscape.
+ */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top);
+  background: var(--ink);
+  z-index: 300; /* over the scrim (180) and the toasts (200) */
+  pointer-events: none;
+}
+.topbar {
+  top: env(safe-area-inset-top);
+}
+/* The body's new top padding would otherwise make every short page scroll by it. */
+.app {
+  min-height: calc(100vh - env(safe-area-inset-top));
+}
+
+@media (max-width: 860px) {
+  .mobnav {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /*
+   * Toasts clear the bottom bar.
+   *
+   * The design put the stack 26px off the bottom of a desktop with no bottom
+   * bar. On a phone that is on top of `.mobnav`: measured, the whole toast sat
+   * on TRICKS and WHAT'S ON for 3.2s — the cells a rider taps next, dead under
+   * a `pointer-events: none` stack. 63px is the bar; the inset is what the bar
+   * grows by above the home indicator.
+   *
+   * And the newest two only. Three stickers earned at once filled 180px of a
+   * 664px screen; the older toasts are still announced (the stack is
+   * `role="status"`), they just stop being drawn.
+   */
+  .toasts {
+    bottom: calc(63px + 12px + env(safe-area-inset-bottom));
+  }
+  .toasts > .toast:nth-last-child(n + 3) {
+    display: none;
+  }
+
+  /*
+   * The footer scrolls clear of the bottom bar.
+   *
+   * `.page` pads 108px for `.mobnav`, but the site footer comes after `.page`,
+   * and nothing padded it: scrolled to the very end, its last row — the legal
+   * links — sat 45px under the fixed bar and could not be reached at all.
+   * Scoped to a frame that has the bar, so the landing page and the legal
+   * documents, which carry the same footer and no bar, keep their 30px.
+   */
+  .app:has(.mobnav) > footer {
+    padding-bottom: calc(30px + 63px + env(safe-area-inset-bottom));
+  }
+
+  /*
+   * A 44px floor on the controls that were drawn under it.
+   *
+   * `.pill` measured 35px and `.btn.sm` 36px. Padding reaches 44px without
+   * touching the label, so a link-button (inline-block) stays centred; the
+   * `min-height` is the floor for a screen module that sets its own padding.
+   * A `<button>` centres its content in any height, and `.sporttab` is flex.
+   */
+  .pill {
+    padding-top: 11.5px;
+    padding-bottom: 11.5px;
+    min-height: 44px;
+  }
+  .btn.sm {
+    padding-top: 11px;
+    padding-bottom: 11px;
+    min-height: 44px;
+  }
+  .sporttab {
+    min-height: 44px;
+  }
+
+  /*
+   * The ones that are text, not boxes, get the hit area and keep the look:
+   * padding out, the same margin back, so nothing around them moves.
+   * `.sechead .more` was 106x16 — and on Home it is the only way into My tricks.
+   */
+  .sechead .more {
+    padding: 14px 0 14px 12px;
+    margin: -14px 0 -14px -12px;
+  }
+  .accountmenu-trigger {
+    padding: 5px;
+    margin: -5px;
+  }
+  /* Both selectors, because `.accountmenu-item:hover` above resets the padding. */
+  .accountmenu-item,
+  .accountmenu-item:hover {
+    padding-top: 13.5px;
+    padding-bottom: 13.5px;
+    min-height: 44px;
+  }
+
+  /*
+   * No field can zoom the page.
+   *
+   * Below 16px, iOS zooms in when a field takes focus and never zooms back
+   * (the tenth divergence). `.field` and `.search` hold 16px, but only under
+   * those classes, and four screen modules had slipped under it — the trick
+   * page's note box among them. This is the floor they cannot go under.
+   *
+   * `:is()` because it takes its most specific argument's weight, so `select`
+   * and `textarea` outrank a module's `.notes textarea` as well; written as a
+   * plain list, those two would lose to any class. `max(1em, …)` leaves a field
+   * that inherits a larger size alone. Nothing in the app is drawn above 16px
+   * today; one that is would come out at its parent's size here.
+   */
+  :is(
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+    select,
+    textarea
+  ) {
+    font-size: max(1em, 16px);
+  }
+
+  /*
+   * WebKit's own select. `.field select` sets border, fill and padding, but not
+   * `appearance`, so iOS paints a grey rounded menulist inside the ink keyline
+   * — the only radius and the only grey fill on the page. The chevron is ink.
+   */
+  .field select {
+    appearance: none;
+    -webkit-appearance: none;
+    border-radius: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2312100b' stroke-width='2.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 13px center;
+    background-size: 12px 8px;
+    padding-right: 38px;
+  }
+}
+
+/*
+ * A tap is not a hover.
+ *
+ * A touch browser applies `:hover` to whatever was tapped and leaves it there
+ * until the next tap somewhere else: a tapped Share button stayed lifted, and a
+ * trick card tapped and returned to via Back was still raised. Measured 600ms
+ * after the finger lifted, on both engines.
+ *
+ * So on a device whose primary pointer cannot hover, each `:hover` in this
+ * package is put back to its resting value — written out per class, like the
+ * link rules at the top of this file: if a primitive's resting value changes,
+ * change it here with it. The `.on` and `.sm` lines exist because this block
+ * comes last and would otherwise outrank the variants the primitive sets.
+ *
+ * Screen modules carry their own `:hover` rules; those are not this file's.
+ */
+@media (hover: none) {
+  .btn:hover {
+    transform: none;
+    box-shadow: var(--sh-sm);
+  }
+  .btn.sm:hover {
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .tcard:hover {
+    transform: none;
+    box-shadow: var(--sh-sm);
+  }
+  .tcard.lockd:hover {
+    transform: none;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .sporttab:hover {
+    transform: none;
+    box-shadow: var(--sh-sm);
+  }
+  .sporttab.on:hover {
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+  .node:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  /* A selected stage's fill is an inline style, which this cannot outrank. */
+  .stagebtn:hover {
+    transform: none;
+    background: var(--paper);
+  }
+  .sticker:hover {
+    transform: none;
+  }
+  .pill:hover {
+    background: var(--paper);
+  }
+  .pill.on:hover {
+    background: var(--ink);
+  }
+  .sechead .more:hover {
+    color: var(--ink-3);
+  }
+  .nav a:hover {
+    color: var(--ink-soft);
+    background: none;
+  }
+  .nav a.on:hover {
+    color: var(--ink);
+    background: var(--yellow);
+  }
+  .accountmenu-item:hover {
+    background: none;
+  }
+  .accountmenu-item:focus-visible {
+    background: var(--yellow);
+  }
+
+  /*
+   * The press, which is the feedback a finger does get.
+   *
+   * Only `.btn` had one. Everything else acknowledged a tap with the browser's
+   * own flash — Chrome's `rgba(51,181,229,.4)` blue, the one colour not in the
+   * palette — or with nothing, and a tap that looks unlanded is a tap made
+   * twice. The flash goes and the press arrives together: never one without
+   * the other.
+   *
+   * Shadowed things take the `.btn` press the handoff calls the signature.
+   * `.pill` has no shadow — whether it should is #373, the owner's call — so
+   * for now its press is a fill, and it takes the button press if #373 gives it
+   * the shadow. `.btn:active` is restated because the reset above comes later
+   * than the primitive's and would otherwise win.
+   */
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  summary,
+  [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active,
+  .sporttab:active,
+  .stagebtn.on:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+  .tcard:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+  .node:active,
+  .accountmenu-trigger:active {
+    transform: translate(1px, 1px);
+  }
+  .pill:active,
+  .stagebtn:not(.on):active {
+    background: var(--paper-2);
+  }
+  .pill.on:active {
+    background: var(--ink-raise);
+  }
+  .mobnav a:active {
+    color: var(--paper);
+  }
+  .sechead .more:active {
+    color: var(--orange);
+  }
+  .accountmenu-item:active {
+    background: var(--yellow);
+  }
+}

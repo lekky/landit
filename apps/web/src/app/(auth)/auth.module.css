@@ -101,6 +101,21 @@
   text-underline-offset: 2px;
 }
 
+/* On a phone the two lines of links were 14-17px tall targets (#375). The hit
+ * area grows and the margin gives it straight back, so no line moves. */
+@media (max-width: 860px) {
+  .swap a {
+    display: inline-block;
+    padding: 14px 4px;
+    margin: -14px -4px;
+  }
+  .footnote a {
+    display: inline-block;
+    padding: 13px 4px;
+    margin: -13px -4px;
+  }
+}
+
 /* Country and date of birth sit together: one asks which rules apply, the other
  * asks how old they are, and neither means much without the other. */
 .ageRow {

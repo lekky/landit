@@ -293,3 +293,172 @@ test('the modal opens and Escape closes it', async ({ page }) => {
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
 });
+
+/*
+ * Touch hygiene on a phone (#375). 390x844 is an iPhone 14 without Safari's
+ * bars, the device the 2026-09-08 audit measured every one of these on.
+ */
+const PHONE = { width: 390, height: 844 };
+
+test('on a phone, a toast sits above the bottom bar rather than on it', async ({ page }) => {
+  // Measured before the fix: the whole toast on TRICKS and WHAT'S ON, 57px of
+  // overlap, and the stack is `pointer-events: none`, so those cells were dead.
+  await page.setViewportSize(PHONE);
+  await page.goto(SHELL);
+
+  await page.getByRole('button', { name: 'Stage toast' }).click();
+  const toast = page.locator('.toast', { hasText: 'Tailwhip · Every time' });
+  await expect(toast).toBeVisible();
+
+  const bar = page.getByRole('navigation', { name: 'Main, compact', exact: true });
+  const barTop = (await bar.boundingBox())!.y;
+
+  // Polled, because a toast arrives on `tin`, which starts it 24px low: read
+  // during the entrance, a toast that rests clear of the bar measures 9px into
+  // it. The resting position is the one a rider reads for three seconds.
+  await expect
+    .poll(
+      async () => {
+        const box = await toast.boundingBox();
+        return box ? box.y + box.height : Infinity;
+      },
+      { message: 'the toast overlaps the bottom bar' },
+    )
+    .toBeLessThanOrEqual(barTop);
+});
+
+test('on a phone, only the two newest toasts are drawn', async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  await page.goto(SHELL);
+
+  const stage = page.getByRole('button', { name: 'Stage toast' });
+  const sticker = page.getByRole('button', { name: 'Sticker toast' });
+  await stage.click();
+  await sticker.click();
+  await stage.click();
+
+  // All three are in the stack — it is `role="status"`, and each was announced
+  // as it arrived — but the oldest is no longer drawn over the page.
+  const toasts = page.locator('.toasts > .toast');
+  await expect(toasts).toHaveCount(3);
+  await expect(toasts.nth(0)).toBeHidden();
+  await expect(toasts.nth(1)).toBeVisible();
+  await expect(toasts.nth(2)).toBeVisible();
+});
+
+test('on a phone, the footer scrolls clear of the bottom bar', async ({ page }) => {
+  // `.page` pads for the fixed bar; the footer after it did not, so its last
+  // row — the legal links — was 45px under the bar at the end of every page and
+  // could not be reached. Found verifying #375's bigger footer targets.
+  await page.setViewportSize(PHONE);
+  await page.goto(SHELL);
+  await page.locator('html').evaluate((el) => el.scrollTo(0, el.scrollHeight));
+
+  const barTop = (await page
+    .getByRole('navigation', { name: 'Main, compact', exact: true })
+    .boundingBox())!.y;
+  await expect
+    .poll(
+      () =>
+        page
+          .locator('footer')
+          .locator('a, button')
+          .evaluateAll((nodes) => Math.max(...nodes.map((n) => n.getBoundingClientRect().bottom))),
+      { message: "the footer's last control is under the bottom bar" },
+    )
+    .toBeLessThanOrEqual(barTop);
+});
+
+test('on a phone, small buttons and sport tabs are 44px tall; on a desktop they are as drawn', async ({
+  page,
+}) => {
+  await page.goto(SHELL);
+  const small = page.getByRole('button', { name: 'Stage toast' });
+  const tabs = page.getByRole('tablist', { name: 'Sport', exact: true }).getByRole('tab');
+
+  await page.setViewportSize(PHONE);
+  expect((await small.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  for (const height of await tabs.evaluateAll((nodes) =>
+    nodes.map((n) => n.getBoundingClientRect().height),
+  )) {
+    expect(height, 'a sport tab is under 44px on a phone').toBeGreaterThanOrEqual(44);
+  }
+
+  // The floor is a phone's, not a new size for the design: the desktop keeps
+  // the 36px `.btn.sm` the handoff drew.
+  await page.setViewportSize({ width: 1200, height: 800 });
+  expect((await small.boundingBox())!.height).toBeLessThan(44);
+});
+
+test('on a phone, no field is small enough for iOS to zoom the page into it', async ({ page }) => {
+  /*
+   * Below 16px, iOS zooms in on focus and never zooms back. `.field` held 16px
+   * by convention and four screen modules slipped under it, so this plants the
+   * exact shape that slipped — a field whose own class sets 14px — rather than
+   * trusting today's screens to stay honest. A select and a textarea too:
+   * written as a plain list, the floor lost to any class on those two.
+   *
+   * A string, not a function: this project's e2e tsconfig has no DOM lib.
+   */
+  await page.goto(SHELL);
+  await page.evaluate(`(() => {
+    const style = document.createElement('style');
+    style.textContent = '.t375 { font-size: 14px }';
+    document.head.append(style);
+    const host = document.createElement('div');
+    host.innerHTML =
+      '<input class="t375" aria-label="t375 input">' +
+      '<textarea class="t375" aria-label="t375 textarea"></textarea>' +
+      '<div class="field"><select class="t375" aria-label="t375 select"><option>One</option></select></div>';
+    document.body.append(host);
+  })()`);
+
+  const fields = page.getByLabel(/^t375 /);
+  await expect(fields).toHaveCount(3);
+
+  await page.setViewportSize(PHONE);
+  for (const field of await fields.all()) {
+    await expect(field).toHaveCSS('font-size', '16px');
+  }
+  // WebKit's grey rounded menulist is replaced by the square ink chevron.
+  await expect(page.getByLabel('t375 select')).toHaveCSS('appearance', 'none');
+
+  // A desktop has no focus zoom, and keeps whatever the screen drew.
+  await page.setViewportSize({ width: 1200, height: 800 });
+  await expect(page.getByLabel('t375 textarea')).toHaveCSS('font-size', '14px');
+});
+
+test('the viewport reaches under the notch, so the safe-area insets are real', async ({ page }) => {
+  // Without `viewport-fit=cover` every `env(safe-area-inset-*)` is 0: the
+  // installed app's status bar sat on the top bar and `.mobnav`'s home-indicator
+  // padding did nothing. The insets themselves need a real iPhone to see.
+  await page.goto(SHELL);
+  await expect(page.locator('meta[name="viewport"]')).toHaveAttribute(
+    'content',
+    /viewport-fit=cover/,
+  );
+});
+
+test.describe('on a touch screen', () => {
+  test.use({ viewport: PHONE, hasTouch: true, isMobile: true });
+
+  test('a tapped button does not stay lifted, and the browser paints no tap flash', async ({
+    page,
+  }) => {
+    /*
+     * A touch browser leaves `:hover` on whatever was tapped. The audit measured
+     * a tapped button still at `translate(-1px,-1px)` 600ms after the finger
+     * lifted. This asserts on the media query first, because a context that did
+     * not emulate `(hover: none)` would pass the rest without testing anything.
+     */
+    await page.goto(SHELL);
+    expect(await page.evaluate(`matchMedia('(hover: none)').matches`)).toBe(true);
+
+    const small = page.getByRole('button', { name: 'Stage toast' });
+    await small.tap();
+    await expect(page.locator('.toast', { hasText: 'Tailwhip · Every time' })).toBeVisible();
+
+    await expect(small).toHaveCSS('transform', 'none');
+    await expect(small).toHaveCSS('-webkit-tap-highlight-color', 'rgba(0, 0, 0, 0)');
+  });
+});
