@@ -9,7 +9,9 @@ import {
   mapsLink,
   sortSpotsByDistance,
   spotFeature,
+  spotsInBounds,
   type DistanceUnits,
+  type MapBounds,
   type SportId,
 } from '@landit/core';
 import type { SpotPoint } from '@landit/db';
@@ -125,6 +127,13 @@ interface Loaded {
  *   nearest screenful are then fetched by id. That request is the one thing
  *   about "Near me" that reaches our server (plan §6.4, standard 10, amended
  *   2026-09-08): never the position, only the ids the position chose.
+ * - **This area**, while a view of the map is held — "Search this area",
+ *   offered on the map once the rider has moved it (2026-09-11). The same
+ *   points, the same query, cut to the view by `spotsInBounds` and ordered
+ *   from its middle, and the same cards-by-id request. The view never leaves
+ *   the browser either, for the position's own reason: a map nobody has moved
+ *   sits over the rider's nearest spots. It wins over nearest-first while it
+ *   is held, and "Near me" or its own pill ends it.
  *
  * A reply that arrives for a query the rider has since left is dropped, so
  * a slow search cannot overwrite a fast one.
@@ -208,6 +217,15 @@ export function SpotsScreen({
    */
   const [mapOpen, setMapOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+
+  /*
+   * The view of the map the list is narrowed to, once "Search this area" has
+   * been pressed — `null` is every area. Held here rather than in the map
+   * because the list is what it changes; the map only offers the button. Like
+   * the position it is state and nothing more: never in the URL, never in a
+   * request, never a property of an event.
+   */
+  const [area, setArea] = useState<MapBounds | null>(null);
 
   /*
    * Whether the map panel is currently *a sheet* — the same `SHEET_WIDTH` the
@@ -334,6 +352,9 @@ export function SpotsScreen({
   );
 
   const nearMode = here.point !== null;
+  const areaMode = area !== null;
+  /** The two modes that sort in the browser over the points rather than asking for pages. */
+  const pointsMode = nearMode || areaMode;
 
   /*
    * A "Show more" in flight. The *first* page of a query needs no flag of its
@@ -343,28 +364,28 @@ export function SpotsScreen({
   const [morePending, setMorePending] = useState(false);
 
   // The query changed under the list: fetch its first page. Not while a
-  // position is held — that mode has its own list and never asks for pages.
-  // Sent from a timer rather than the effect's own tick, so a query that changes
-  // again before the tick ends — a fast typist beating the debounce — is
-  // cancelled here and never leaves the browser.
+  // position or an area is held — those modes have their own list and never
+  // ask for pages. Sent from a timer rather than the effect's own tick, so a
+  // query that changes again before the tick ends — a fast typist beating the
+  // debounce — is cancelled here and never leaves the browser.
   useEffect(() => {
-    if (nearMode || loaded.key === key) return;
+    if (pointsMode || loaded.key === key) return;
     const timer = window.setTimeout(() => void fetchPage(key, 1, false), 0);
     return () => window.clearTimeout(timer);
-  }, [nearMode, loaded.key, key, fetchPage]);
+  }, [pointsMode, loaded.key, key, fetchPage]);
 
   /* -------------------------------------------------- nearest-first mode -- */
 
   /*
-   * Every live spot as a point, fetched once, the first time a position is
-   * held, and kept for the rest of the visit. A few hundred kilobytes, paid
-   * only by a rider who asked for distance — the reason the page no longer
-   * carries it for everybody.
+   * Every live spot as a point, fetched once, the first time a position or an
+   * area is held, and kept for the rest of the visit. A few hundred kilobytes,
+   * paid only by a rider who asked for distance or pressed "Search this area"
+   * — the reason the page no longer carries it for everybody.
    */
   const [points, setPoints] = useState<readonly SpotPoint[] | null>(null);
   const pointsAsked = useRef(false);
   useEffect(() => {
-    if (!nearMode || points || pointsAsked.current) return;
+    if (!pointsMode || points || pointsAsked.current) return;
     pointsAsked.current = true;
     void (async () => {
       const result = await spotsPointsAction();
@@ -375,7 +396,7 @@ export function SpotsScreen({
       }
       setPoints(result.points.map(fromPointTuple));
     })();
-  }, [nearMode, points]);
+  }, [pointsMode, points]);
 
   /** The nearest-first list, narrowed by the same query, as ids in order. */
   const nearIds = useMemo(() => {
@@ -383,6 +404,20 @@ export function SpotsScreen({
     const narrowed = filterSpots(points, { search: settledSearch, sport: querySport, feature });
     return sortSpotsByDistance(narrowed, here.point).map((point) => point.id);
   }, [here.point, points, settledSearch, querySport, feature]);
+
+  /**
+   * The spots inside the searched view, under the same query, nearest its
+   * middle first. Wins over `nearIds` while it is held: the rider asked about
+   * a place, and it is not where they are.
+   */
+  const areaIds = useMemo(() => {
+    if (!area || !points) return null;
+    const narrowed = filterSpots(points, { search: settledSearch, sport: querySport, feature });
+    return spotsInBounds(narrowed, area).map((point) => point.id);
+  }, [area, points, settledSearch, querySport, feature]);
+
+  /** Whichever list is ordered in the browser, if either is — area first. */
+  const orderedIds = areaIds ?? nearIds;
 
   /*
    * The list is shown a screenful at a time (2026-08-18, owner: "maybe need
@@ -405,7 +440,12 @@ export function SpotsScreen({
    * they had already scrolled past. This is React's documented "adjust state
    * when a prop changes" pattern; the extra render is discarded before paint.
    */
-  const listKey = `${key}|${nearMode ? 'near' : 'home'}`;
+  const mode = area
+    ? `area:${area.south},${area.west},${area.north},${area.east}`
+    : nearMode
+      ? 'near'
+      : 'home';
+  const listKey = `${key}|${mode}`;
   const [lastKey, setLastKey] = useState(listKey);
   if (listKey !== lastKey) {
     setLastKey(listKey);
@@ -420,7 +460,7 @@ export function SpotsScreen({
    * reply that no longer matches the screenful, because the rider searched
    * while it flew, is dropped like a page.
    */
-  const wantedIds = useMemo(() => nearIds?.slice(0, shown) ?? [], [nearIds, shown]);
+  const wantedIds = useMemo(() => orderedIds?.slice(0, shown) ?? [], [orderedIds, shown]);
   const inFlight = useRef(new Set<string>());
   useEffect(() => {
     const missing = wantedIds.filter((id) => !cards.has(id) && !inFlight.current.has(id));
@@ -443,41 +483,48 @@ export function SpotsScreen({
   /* ----------------------------------------------------------- the list -- */
 
   /**
-   * What is on screen, whichever mode. In nearest-first the cards are looked
-   * up by id, and one still in flight is simply not there yet; in home-first
-   * they are the pages in the order the server sent them.
+   * What is on screen, whichever mode. In nearest-first and this-area the
+   * cards are looked up by id, and one still in flight is simply not there
+   * yet; in home-first they are the pages in the order the server sent them.
    */
   const visible = useMemo<readonly SpotView[]>(() => {
-    if (nearIds) {
+    if (orderedIds) {
       return wantedIds.map((id) => cards.get(id)).filter((spot): spot is SpotView => !!spot);
     }
     return loaded.spots;
-  }, [nearIds, wantedIds, cards, loaded.spots]);
+  }, [orderedIds, wantedIds, cards, loaded.spots]);
 
   /** How many match the query in all, and how many are not yet on screen. */
-  const total = nearIds ? nearIds.length : loaded.total;
-  const more = Math.max(0, total - (nearIds ? shown : loaded.spots.length));
+  const total = orderedIds ? orderedIds.length : loaded.total;
+  const more = Math.max(0, total - (orderedIds ? shown : loaded.spots.length));
 
   /** Something asked for is still on its way. Derived, so it cannot go stale. */
-  const loading = nearIds
+  const loading = orderedIds
     ? wantedIds.some((id) => !cards.has(id))
-    : morePending || (!nearMode && loaded.key !== key);
+    : morePending || (!pointsMode && loaded.key !== key);
 
   const showMore = useCallback(() => {
-    if (nearIds) {
+    if (orderedIds) {
       setShown((count) => count + PAGE);
       return;
     }
     setMorePending(true);
     void fetchPage(key, loaded.page + 1, true).finally(() => setMorePending(false));
-  }, [nearIds, fetchPage, key, loaded.page]);
+  }, [orderedIds, fetchPage, key, loaded.page]);
 
   /*
    * Waiting on the world, in words the count line can carry: the points for
    * the first nearest-first sort, or a page. Distinct, because the first can
    * take a second on a phone and "loading" alone reads as broken.
    */
-  const waiting = nearMode && !points ? 'finding the nearest' : loading ? 'loading' : null;
+  const waiting =
+    pointsMode && !points
+      ? areaMode
+        ? 'searching this area'
+        : 'finding the nearest'
+      : loading
+        ? 'loading'
+        : null;
 
   /**
    * Only spots with a location can be plotted, and only the ones on screen are:
@@ -531,6 +578,27 @@ export function SpotsScreen({
      */
     capture(ANALYTICS_EVENTS.spotMapSelected, { via });
   }, []);
+
+  /*
+   * Stable, so the map's marker effect runs when the list changes rather than
+   * on every render of this screen — each run re-frames the camera, and an
+   * inline arrow here made that every keystroke.
+   */
+  const selectPin = useCallback((id: string) => select(id, 'pin'), [select]);
+
+  /*
+   * "Search this area", pressed on the map. The map reads the view off its
+   * camera and hands it here; the list does the rest. Counted with the one
+   * thing worth knowing about where it was pressed — over the list on a phone
+   * or beside it — and nothing about the view (see `spotsAreaSearched`).
+   */
+  const searchArea = useCallback(
+    (bounds: MapBounds) => {
+      setArea(bounds);
+      capture(ANALYTICS_EVENTS.spotsAreaSearched, { view: isSheet ? 'sheet' : 'column' });
+    },
+    [isSheet],
+  );
 
   /*
    * The sheet going up, counted — and counted only where it *is* a sheet.
@@ -756,6 +824,17 @@ export function SpotsScreen({
             {featureLabel} ×
           </Pill>
         )}
+        {/*
+          The searched area, as a pill that is already on — the feature pill's
+          shape, for the feature pill's reason: the way off is the thing
+          itself. Pressing it is every area again, and the map goes back to
+          framing the list.
+        */}
+        {area && (
+          <Pill on onClick={() => setArea(null)}>
+            This area ×
+          </Pill>
+        )}
         <span className={styles.spacer} />
 
         {/*
@@ -764,7 +843,14 @@ export function SpotsScreen({
           "visible indicator", and it carries the way to turn it off with it.
         */}
         {here.state === 'off' && (
-          <Pill onClick={here.ask} className={styles.nearMe}>
+          <Pill
+            onClick={() => {
+              // A question about where the rider is ends the one about a place.
+              setArea(null);
+              here.ask();
+            }}
+            className={styles.nearMe}
+          >
             <Icon name="map" size={14} strokeWidth={2.6} />
             Near me
           </Pill>
@@ -797,7 +883,7 @@ export function SpotsScreen({
           */}
           <div className={`lab ${styles.count}`} aria-live="polite">
             {total} spot{total === 1 ? '' : 's'}
-            {here.state === 'on' ? ' · nearest first' : ''}
+            {areaIds ? ' in this area' : here.state === 'on' ? ' · nearest first' : ''}
             {more > 0 ? ` · showing ${visible.length}` : ''}
             {waiting ? ` · ${waiting}…` : ''}
           </div>
@@ -1066,8 +1152,16 @@ export function SpotsScreen({
             <SpotMap
               spots={plotted}
               selectedId={selected?.id ?? null}
-              onSelect={(id) => select(id, 'pin')}
+              onSelect={selectPin}
               here={here.point}
+              /*
+                "Search this area". While an area is held the list is drawn from
+                the camera, so the camera stops framing the list — it would
+                otherwise move the view the rider just chose each time a card
+                arrived.
+              */
+              follow={!area}
+              onSearchArea={searchArea}
               /*
                 One finger moves the map, but only in the sheet. Everywhere else
                 this panel appears it is one thing on a page a rider scrolls,

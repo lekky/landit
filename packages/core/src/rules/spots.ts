@@ -235,6 +235,102 @@ export function sortSpotsByDistance<T extends SpotLike>(spots: readonly T[], fro
     .map((entry) => entry.spot);
 }
 
+/* ------------------------------------------------------ the map's view -- */
+
+/**
+ * A rectangle of map, edge by edge, in degrees — the view a rider had moved
+ * the map to when they pressed "Search this area".
+ *
+ * Plain numbers rather than the map library's bounds object, for the reason at
+ * the head of this file: the provider stays swappable, and nothing here learns
+ * what a map is. The screen reads four edges off the camera and hands them in.
+ *
+ * **`west` may be greater than `east`, and either may sit past ±180.** A view
+ * across the antimeridian — Fiji, the Aleutians, most of the Pacific — has its
+ * left edge at 170° and its right at -170°; a map that draws copies of the
+ * world side by side reports the same view as 170° to 190°. Both are the same
+ * twenty degrees, and every function below reads them as such.
+ */
+export interface MapBounds {
+  readonly south: number;
+  readonly west: number;
+  readonly north: number;
+  readonly east: number;
+}
+
+/** A longitude brought into [-180, 180). */
+function wrapLongitude(lng: number): number {
+  return ((((lng + 180) % 360) + 360) % 360) - 180;
+}
+
+/**
+ * Degrees of longitude from the west edge eastward to the east edge. 360 for a
+ * view wide enough to hold the whole world, which a zoomed-out map can be.
+ */
+function longitudeSpan(bounds: MapBounds): number {
+  const raw = bounds.east - bounds.west;
+  if (raw >= 360) return 360;
+  return ((raw % 360) + 360) % 360;
+}
+
+/** Four finite edges, the south one below the north. Anything else holds nothing. */
+function isReadableBounds(bounds: MapBounds): boolean {
+  return (
+    [bounds.south, bounds.west, bounds.north, bounds.east].every(Number.isFinite) &&
+    bounds.south <= bounds.north
+  );
+}
+
+/**
+ * Is this point inside the view?
+ *
+ * Longitude is measured eastward from the west edge and compared with the span,
+ * which is what makes a view across the antimeridian the same sum as any other
+ * rather than a special case with a bug of its own. The edges count as inside.
+ */
+export function boundsContain(bounds: MapBounds, point: LatLng): boolean {
+  if (!isReadableBounds(bounds)) return false;
+  if (point.lat < bounds.south || point.lat > bounds.north) return false;
+  const span = longitudeSpan(bounds);
+  if (span >= 360) return true;
+  const eastward = (((point.lng - bounds.west) % 360) + 360) % 360;
+  return eastward <= span;
+}
+
+/**
+ * The middle of the view — halfway along the span, not the average of the two
+ * edges, which for a view from 170° to -170° would put the middle at Greenwich.
+ */
+export function boundsCentre(bounds: MapBounds): LatLng {
+  return {
+    lat: (bounds.south + bounds.north) / 2,
+    lng: wrapLongitude(bounds.west + longitudeSpan(bounds) / 2),
+  };
+}
+
+/**
+ * The spots inside a view of the map, the one nearest its middle first.
+ *
+ * **"Search this area"** (2026-09-11). The spots screen can move its list from
+ * "home first" or "near me" to "where the rider has put the map", and this is
+ * the whole of that rule. Nearest the middle rather than nearest the rider,
+ * because the middle is where they were looking: somebody who drags the map to
+ * a town they are visiting wants that town's parks first, not whichever edge
+ * of the view happens to be closest to home.
+ *
+ * Spots with no point are never inside anything, whatever the view holds — the
+ * same `hasCoords` rule that keeps PocketBase's `0, 0` out of the Gulf of
+ * Guinea. Like `sortSpotsByDistance`, it returns a new array and keeps no copy
+ * of the view.
+ */
+export function spotsInBounds<T extends SpotLike>(spots: readonly T[], bounds: MapBounds): T[] {
+  const inside = spots.filter((spot) => {
+    const point = spotLatLng(spot);
+    return point !== null && boundsContain(bounds, point);
+  });
+  return sortSpotsByDistance(inside, boundsCentre(bounds));
+}
+
 /**
  * "2.4 mi", the way the prototype's hard-coded string read — computed, from the viewer.
  *

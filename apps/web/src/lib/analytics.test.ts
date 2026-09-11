@@ -265,6 +265,9 @@ describe('the event catalogue', () => {
         'spot_map_selected',
         'spot_page_opened',
         'spot_submitted',
+        // "Search this area" on the spots map. Which layout it was pressed in,
+        // and never anything about the view itself.
+        'spots_area_searched',
         'spots_map_ground',
         'spots_map_sheet_opened',
         'sport_switched',
