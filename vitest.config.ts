@@ -12,9 +12,13 @@ import { defineConfig } from 'vitest/config';
  * still covered by Playwright (`playwright.config.ts`) and not by unit tests;
  * what the browser cannot reach is the Stripe webhook's signature check, which
  * is an assertion about a digest. See `apps/web/vitest.config.ts`.
+ *
+ * `scripts/social` is the daily social pipeline. It posts to live accounts with
+ * nobody watching, so its choosing, its captions and its card markup are unit
+ * tested; the network and the browser live behind the two files that are not.
  */
 export default defineConfig({
   test: {
-    projects: ['packages/*', 'pocketbase', 'apps/web'],
+    projects: ['packages/*', 'pocketbase', 'apps/web', 'scripts/social'],
   },
 });

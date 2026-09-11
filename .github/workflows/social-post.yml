@@ -1,0 +1,121 @@
+name: Social post
+
+# Renders the next couple of days of cards and leaves them in a queue. It does
+# not post: Buffer's connector signs in as a person and a runner has no browser
+# session, so a Claude session places the queue with `/social-schedule`.
+# docs/social-posts.md explains the split and how to run it by hand.
+
+on:
+  schedule:
+    # 14:00 UTC is 15:00 in London through the summer and 14:00 in winter —
+    # either way it is ahead of the 16:30 slot the posts are scheduled for, with
+    # room for the placing session to run before then.
+    - cron: '0 14 * * *'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'How many days ahead to build'
+        required: false
+        default: '2'
+      dry_run:
+        description: 'Choose and print, render nothing'
+        type: boolean
+        default: false
+
+concurrency:
+  # Never two of these at once: they both write the same branch.
+  group: social-post
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: render · queue
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The card is drawn in a real browser — the brand is SVG filters, blend
+      # modes and web fonts, and a lighter renderer drops exactly those.
+      - name: Install the renderer's browser
+        timeout-minutes: 6
+        run: pnpm exec playwright install --with-deps chromium
+
+      # State lives on an orphan `social` branch: the queue, the history log and
+      # the rendered cards. Keeping it off `main` means a daily commit never
+      # looks like the site moved, and never triggers anything that watches it.
+      - name: Check out the social branch beside the code
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git ls-remote --exit-code origin social >/dev/null 2>&1; then
+            git fetch origin social:social
+            git worktree add .social-state social
+          else
+            git worktree add --detach .social-state
+            cd .social-state
+            git checkout --orphan social
+            git rm -rf . >/dev/null 2>&1 || true
+            mkdir -p images
+            printf 'Rendered social cards, the posting queue and the history log.\nNot part of the site. See docs/social-posts.md on main.\n' > README.md
+            git add README.md
+            git commit -m 'social: start the card and queue branch'
+          fi
+          mkdir -p data/social
+          cp .social-state/pending.json data/social/pending.json 2>/dev/null || true
+          cp .social-state/history.json data/social/history.json 2>/dev/null || true
+
+      - name: Build the next few days
+        run: |
+          node scripts/build-social-post.mjs \
+            --days=${{ inputs.days || '2' }} \
+            ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      # Two commits on purpose. The cards go first so their commit SHA exists,
+      # then the queue is stamped with `raw.githubusercontent.com/<sha>/…` URLs
+      # and committed after: a branch-name raw URL is CDN-cached for about five
+      # minutes and will happily serve yesterday's card to Instagram.
+      - name: Push the cards, then the queue that points at them
+        if: ${{ !inputs.dry_run }}
+        run: |
+          if [ ! -d .social-out ] || [ -z "$(ls -A .social-out 2>/dev/null)" ]; then
+            echo "nothing rendered, nothing to push"
+            exit 0
+          fi
+          cp .social-out/*.jpg .social-state/images/
+          cd .social-state
+          git add images
+          if git diff --staged --quiet; then
+            echo "no new cards"
+          else
+            git commit -m "social: cards for $(date -u +%F)"
+          fi
+          sha=$(git rev-parse HEAD)
+          cd ..
+          node scripts/stamp-social-urls.mjs --sha="$sha" --repo="${{ github.repository }}"
+          cp data/social/pending.json .social-state/pending.json
+          cp data/social/history.json .social-state/history.json 2>/dev/null || true
+          cd .social-state
+          git add pending.json history.json 2>/dev/null || git add pending.json
+          git diff --staged --quiet || git commit -m "social: queue for $(date -u +%F)"
+          git push origin social
+
+      - name: What is waiting to be placed
+        if: ${{ !inputs.dry_run }}
+        run: |
+          node -e "
+            const queue = require('./data/social/pending.json');
+            console.log(\`\${queue.posts.length} post(s) queued\`);
+            for (const post of queue.posts) console.log(\` \${post.date} \${post.angle} \${post.image.url ?? 'NO URL'}\`);
+          "

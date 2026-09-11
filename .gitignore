@@ -21,6 +21,16 @@ pocketbase/.bin/
 # a parallel session gets a third. The glob covers all of them.
 pocketbase/.pb_*/
 
+# Rendered social cards. The card that actually went out is committed to the
+# orphan `social` branch by .github/workflows/social-post.yml; this is the
+# working directory it renders into first.
+.social-out/
+
+# The posting queue and the history log. They are state, and they live on the
+# `social` branch — a copy on main would be a second answer to "what went out",
+# and the two would disagree within a day.
+data/social/
+
 # Playwright
 playwright-report/
 test-results/
