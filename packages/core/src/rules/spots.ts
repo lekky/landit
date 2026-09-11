@@ -667,3 +667,56 @@ export function readSpotOperating(value: unknown): (typeof SPOT_OPERATING)[numbe
   const word = value.trim().toLowerCase();
   return SPOT_OPERATING.find((v) => v === word) ?? 'unknown';
 }
+
+/* --------------------------------------------------------- imported sports -- */
+
+/**
+ * What an importer's source says about who may ride a place — which is usually
+ * nothing, so every field is optional and silence is the common case.
+ */
+export interface ImportedSportsEvidence {
+  /** The source names BMX for this place: "Piste BMX", "Skate Park & BMX". */
+  readonly bmx?: boolean;
+  /**
+   * The place is a BMX track on loose ground — dirt, sand — that nothing else
+   * can ride. Implies `bmx`.
+   */
+  readonly bmxTrackOnly?: boolean;
+  /** Sports the source documents a restriction on. A documented ban always wins. */
+  readonly banned?: readonly SportId[];
+}
+
+/**
+ * The sports an imported spot is listed for (Rachid, 2026-09-06 for the
+ * worldwide research sweep; extended 2026-09-11 to France and to every import,
+ * in chat).
+ *
+ * An import's source is almost always silent about who may ride. OpenStreetMap
+ * has no scooter tag in real use, and the French census's type is "Skatepark"
+ * and nothing more. Reading that silence as a refusal listed three thousand
+ * French parks as skate only, and a scooter rider — this product's largest
+ * audience — saw none of them. So:
+ *
+ * - **Scooter and skate by default.** A public park with no documented
+ *   restriction is open to both: a council park has no gate and no staff, and
+ *   its silence is an unwritten yes (the `sports` rule in the plan, under spots).
+ * - **BMX only where the source names it.** The narrowest of the three, because
+ *   pegs chew concrete and councils ban bikes far more often than scooters, so
+ *   silence is weaker evidence for it.
+ * - **A BMX track on loose ground is listed for BMX alone.** Nobody skates dirt.
+ * - **A documented ban always wins.** It is taken out of whatever the rest
+ *   produced, so a place can end with no sport at all — and an importer must
+ *   then drop it rather than list it, because every spot needs one.
+ *
+ * Pure, and in `SPORT_IDS` order, so the importer and the test that holds every
+ * import to this rule (`packages/db/src/imports/imports.test.ts`) agree exactly.
+ */
+export function importedSpotSports(evidence: ImportedSportsEvidence = {}): SportId[] {
+  const listed: SportId[] = evidence.bmxTrackOnly
+    ? ['bmx']
+    : evidence.bmx
+      ? ['scooter', 'skate', 'bmx']
+      : ['scooter', 'skate'];
+  const banned = new Set<SportId>(evidence.banned ?? []);
+  return listed.filter((sport) => !banned.has(sport));
+}

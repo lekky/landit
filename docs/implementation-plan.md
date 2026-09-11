@@ -2306,6 +2306,19 @@ owner:
   unwritten rule; a ticketed venue's silence is an answer. Without this rule the honest reading
   ("only what is evidenced") left most of Europe and North America invisible to scooter riders,
   who are this product's largest audience, because a municipality never wrote the word down.
+- **Imported spots follow the same rule, and for them it is code rather than judgement**
+  (Rachid, 2026-09-06 for the worldwide research sweep; extended 2026-09-11 to France and to every
+  future import, in chat). An import's source is silent about who may ride — OpenStreetMap has no
+  scooter tag in real use, and the French census records the type "Skatepark" and nothing else —
+  so an imported park is listed for scooter and skate unless a restriction is documented, and for
+  BMX only where the source names BMX. That is deliberately narrower than the paragraph above for
+  BMX: pegs chew concrete and councils ban bikes far more often than scooters, so a source's
+  silence is weaker evidence for it. A BMX track on loose ground (dirt, sand) is listed for BMX
+  alone. The rule is `importedSpotSports` in `packages/core/src/rules/spots.ts`;
+  `packages/db/src/imports/imports.test.ts` fails any importer that does not follow it, and a
+  documented ban in imported data is written into that test by name, with its source. The 3,103
+  French rows already live were brought level by `1789084800_import_sports_rule.js`, because the
+  France table is seeded create-only (#273).
 - **"Check before you travel", on the screen, permanently** (owner's call, 2026-08-18). The list
   is not a live feed and must not read like one: parks close for rebuilds, session timetables
   change, and a park that allows scooters this year can stop. The notice sits under the map on

@@ -9,6 +9,7 @@ import {
   distanceMiles,
   filterSpots,
   hasCoords,
+  importedSpotSports,
   isValidLatLng,
   mapsLink,
   parseCoords,
@@ -459,5 +460,39 @@ describe('narrowing to a feature (T31)', () => {
   it('narrows the list alongside the search and the sport', () => {
     expect(filterSpots(spots, { feature: 'ledges' }).map((s) => s.name)).toEqual(['Flat park']);
     expect(filterSpots(spots, {}).map((s) => s.name)).toHaveLength(4);
+  });
+});
+
+describe('importedSpotSports', () => {
+  it('lists scooter and skate where the source says nothing', () => {
+    expect(importedSpotSports()).toEqual(['scooter', 'skate']);
+    expect(importedSpotSports({})).toEqual(['scooter', 'skate']);
+  });
+
+  it('adds BMX only where the source names it', () => {
+    expect(importedSpotSports({ bmx: true })).toEqual(['scooter', 'skate', 'bmx']);
+    expect(importedSpotSports({ bmx: false })).toEqual(['scooter', 'skate']);
+  });
+
+  it('lists a BMX track on loose ground for BMX alone', () => {
+    expect(importedSpotSports({ bmx: true, bmxTrackOnly: true })).toEqual(['bmx']);
+    expect(importedSpotSports({ bmxTrackOnly: true })).toEqual(['bmx']);
+  });
+
+  /*
+   * The default is generous on purpose, so the one thing allowed to take a sport
+   * away has to be tested as winning over every other input — including leaving
+   * nothing, which the importer then has to treat as "drop this place".
+   */
+  it('lets a documented ban win over everything else', () => {
+    expect(importedSpotSports({ banned: ['scooter'] })).toEqual(['skate']);
+    expect(importedSpotSports({ bmx: true, banned: ['bmx'] })).toEqual(['scooter', 'skate']);
+    expect(importedSpotSports({ bmxTrackOnly: true, banned: ['bmx'] })).toEqual([]);
+  });
+
+  it('hands back a fresh list, so a caller cannot change the next answer', () => {
+    const first = importedSpotSports({ bmx: true });
+    first.pop();
+    expect(importedSpotSports({ bmx: true })).toEqual(['scooter', 'skate', 'bmx']);
   });
 });

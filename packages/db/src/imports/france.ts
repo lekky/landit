@@ -1,4 +1,11 @@
-import { SPOTS, SPOT_SOURCES, distanceMiles, type Spot } from '@landit/core';
+import {
+  SPOTS,
+  SPOT_SOURCES,
+  distanceMiles,
+  importedSpotSports,
+  type ImportedSportsEvidence,
+  type Spot,
+} from '@landit/core';
 
 import { FRANCE_SOURCE_ROWS } from './france.data';
 
@@ -22,13 +29,15 @@ import { FRANCE_SOURCE_ROWS } from './france.data';
  * **What the census can say, and what it cannot.** It records a point, a
  * commune, a street, whether the equipment is under a roof
  * (`equipement_nature`) and what its floor is made of. It does not record
- * closure, and it does not say a word about scooters or BMX — "Skatepark" is
- * the type, and that is all. So every row arrives `operating: 'unknown'` and
- * `sports: ['skate']`: the house rule is that a sport is listed only where the
- * venue, the council or an agreement says it is allowed (`SPOTS`), and a
- * census saying nothing is not a council saying yes. A staff edit is the only
- * thing that changes either, which is why the seed never overwrites these rows
- * once they exist (`onExisting: 'skip'` in `seed.ts`).
+ * closure, and it does not say a word about scooters — "Skatepark" is the type,
+ * and that is all. So every row arrives `operating: 'unknown'`, and its sports
+ * come from the import sports rule (`importedSpotSports` in `@landit/core`;
+ * Rachid, 2026-09-11, in chat): a public park the census is silent about is
+ * listed for scooter and skate, and for BMX only where the census names BMX —
+ * which it does, by name, for a dozen places. A BMX track on dirt or sand is
+ * listed for BMX alone. See `sportsEvidence`. A staff edit is the only thing
+ * that changes either field afterwards, which is why the seed never overwrites
+ * these rows once they exist (`onExisting: 'skip'` in `seed.ts`).
  *
  * **The naming rule.** Most rows are called some spelling of "skate park", and a
  * straight copy would put hundreds of identical cards on the map. A name is
@@ -272,6 +281,32 @@ export function isCovered(nature: string): boolean {
   return COVERED.has(nature.trim());
 }
 
+/* --------------------------------------------------------------- sports -- */
+
+/** "BMX" as a word, in either name column — never inside another word. */
+const BMX_WORD = /\bbmx\b/i;
+
+/**
+ * The census's floor values that mean loose ground: earth, sand, packed cinder.
+ * Nobody skates or scoots on them, so a BMX track on one is a BMX track.
+ */
+const LOOSE_GROUND = new Set(['Terre battue', 'Sable', 'Surface naturelle', 'Stabilisé/cendrée']);
+
+/**
+ * What the census says about who may ride a place, for `importedSpotSports`.
+ *
+ * BMX where any piece of the place names it ("PISTE BMX", "Aire de skate,
+ * roller et bmx"). A BMX track on loose ground only where *every* piece is on
+ * loose ground, so a park with a concrete bowl beside a dirt track keeps every
+ * sport. Loose ground on its own takes nothing away: the surface column is too
+ * often wrong for that — it records three "skate parks" on natural grass.
+ */
+export function sportsEvidence(place: FrancePlace): ImportedSportsEvidence {
+  const bmx = place.rows.some((row) => BMX_WORD.test(row[1]) || BMX_WORD.test(row[2]));
+  const loose = place.rows.every((row) => LOOSE_GROUND.has(row[9].trim()));
+  return { bmx, bmxTrackOnly: bmx && loose };
+}
+
 /* ---------------------------------------------------------------- town -- */
 
 /**
@@ -444,7 +479,7 @@ export function franceSpots(
     type: place.indoor ? 'Indoor park' : 'Concrete',
     lat: place.lat,
     lng: place.lng,
-    sports: ['skate'],
+    sports: importedSpotSports(sportsEvidence(place)),
     tags: [],
     status: 'live',
     address: addressFor(place),
