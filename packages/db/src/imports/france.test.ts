@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import {
   SPOTS,
   SPOT_COUNTRY_BY_CODE,
@@ -16,6 +18,7 @@ import {
   isGenericName,
   nameSpots,
   recaseName,
+  sportsEvidence,
   streetName,
   territoryFor,
   townFor,
@@ -309,7 +312,7 @@ describe('franceSpots', () => {
       type: 'Indoor park',
       lat: 48.7355,
       lng: 1.3665,
-      sports: ['skate'],
+      sports: ['scooter', 'skate'],
       tags: [],
       status: 'live',
       address: 'Rue du Stade, 28100 Dreux',
@@ -323,6 +326,45 @@ describe('franceSpots', () => {
   it('re-cases a shouted street in the address', () => {
     const [spot] = franceSpots([row({ street: '39 BOULEVARD VINCENT AURIOL' })], []);
     expect(spot!.address).toBe('39 Boulevard Vincent Auriol, 28100 Dreux');
+  });
+});
+
+describe('sportsEvidence', () => {
+  const place = (...rows: FranceSourceRow[]) => collapsePlaces(rows)[0]!;
+
+  it('reads a census that says nothing as a park with no BMX', () => {
+    expect(sportsEvidence(place(row()))).toEqual({ bmx: false, bmxTrackOnly: false });
+  });
+
+  it('takes BMX from either name column, whatever its case', () => {
+    expect(sportsEvidence(place(row({ inst: 'Skate Park & BMX' }))).bmx).toBe(true);
+    expect(sportsEvidence(place(row({ eq: 'Aire de skate, roller et bmx' }))).bmx).toBe(true);
+  });
+
+  it('never finds BMX inside another word', () => {
+    expect(sportsEvidence(place(row({ inst: 'SUBMX ARENA' }))).bmx).toBe(false);
+  });
+
+  it('reads a BMX track on dirt as a BMX track', () => {
+    expect(sportsEvidence(place(row({ eq: 'PISTE DE BMX', sol: 'Terre battue' })))).toEqual({
+      bmx: true,
+      bmxTrackOnly: true,
+    });
+  });
+
+  it('keeps every sport where any piece of the place is hard ground', () => {
+    const mixed = place(
+      row({ id: 'E001I000000001', eq: 'PISTE DE BMX', sol: 'Terre battue' }),
+      row({ id: 'E001I000000002', eq: 'Skate park', sol: 'Béton' }),
+    );
+    expect(sportsEvidence(mixed)).toEqual({ bmx: true, bmxTrackOnly: false });
+  });
+
+  it('never takes a sport away for loose ground alone', () => {
+    expect(sportsEvidence(place(row({ sol: 'Gazon naturel' })))).toEqual({
+      bmx: false,
+      bmxTrackOnly: false,
+    });
   });
 });
 
@@ -364,12 +406,56 @@ describe('the snapshot', () => {
     }
   });
 
-  it('claims skate only, and never claims a park is open', () => {
+  it('lists scooter and skate, BMX where named, and never claims a park is open', () => {
     for (const spot of spots) {
-      expect(spot.sports).toEqual(['skate']);
+      expect([['scooter', 'skate'], ['scooter', 'skate', 'bmx'], ['bmx']]).toContainEqual([
+        ...spot.sports,
+      ]);
       expect(spot.operating).toBe('unknown');
       expect(spot.status).toBe('live');
     }
+  });
+
+  it('lists a park for BMX alone only where it is a BMX track on loose ground', () => {
+    const at = new Map(collapsePlaces(FRANCE_SOURCE_ROWS).map((p) => [`${p.lat},${p.lng}`, p]));
+    for (const spot of spots.filter((s) => s.sports.length === 1)) {
+      const found = at.get(`${spot.lat},${spot.lng}`)!;
+      expect(sportsEvidence(found).bmxTrackOnly, spot.name).toBe(true);
+    }
+  });
+
+  /*
+   * The migration that brought the live rows level lists its BMX places as
+   * text, because a JSVM migration cannot import from the workspace. It is read
+   * here the way `pocketbase/tests/spot-slugs.test.ts` reads its own, and this
+   * fails if the two ever disagree about which park gets BMX.
+   */
+  it('agrees with the live-data migration about every BMX park', () => {
+    const migration = readFileSync(
+      new URL(
+        '../../../../pocketbase/migrations/1789084800_import_sports_rule.js',
+        import.meta.url,
+      ),
+      'utf8',
+    );
+    const listed = (name: string): string[] => {
+      const block = new RegExp(`const ${name} = new Set\\(\\[([\\s\\S]*?)\\]\\);`).exec(migration);
+      if (!block) throw new Error(`${name} is not in the migration any more.`);
+      return [...block[1]!.matchAll(/'([^']*)'/g)].map((m) => m[1]!).sort();
+    };
+    const keyOf = (s: Spot) => `${s.name}|${s.town}`;
+    expect(listed('WITH_BMX')).toEqual(
+      spots
+        .filter((s) => s.sports.length === 3)
+        .map(keyOf)
+        .sort(),
+    );
+    expect(listed('BMX_ONLY')).toEqual(
+      spots
+        .filter((s) => s.sports.length === 1)
+        .map(keyOf)
+        .sort(),
+    );
   });
 
   it('stamps every row with the census and its licence', () => {
