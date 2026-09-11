@@ -297,3 +297,38 @@ export function videoLinkAllowanceLabel(allowance: VideoLinkAllowance): string {
   if (allowance.cap === 1) return '1 video link';
   return `${allowance.cap} video links`;
 }
+
+/**
+ * What the videos tab says under its form: **this trick first, the cap second.**
+ *
+ * The count and the cap are two different numbers and the panel used to show
+ * only the second one. On a trick a rider has no videos on, a Legend rider read
+ * "7 video links added" under a tab badge reading `0` — the same screen saying
+ * two things, and the number that looked like an answer to "how many videos are
+ * on this trick" was an answer to "how many do you hold in total" (Rachid,
+ * 2026-09-11, in chat). So the line now leads with the number the rider is
+ * looking at, and the total appears only where it is load-bearing:
+ *
+ * - **`onThisTrick`** is what the panel is showing, and it is always said.
+ * - **`heldTotal`** is what the *cap* counts — every trick, because the
+ *   allowance is per rider and not per trick (`45_video_links.pb.js` counts the
+ *   same way). It is said only when there is a cap to count against, and it
+ *   says "across all your tricks" in the same breath, because a rider reading
+ *   "7 of 10" beside "no videos on this trick" is owed the reason.
+ * - An **unlimited** allowance has no second clause at all. There is no wall to
+ *   warn anybody about, so a running total of a rider's whole library is a
+ *   number with nothing to do on this screen.
+ *
+ * No trailing full stop: the caller's sentence continues.
+ */
+export function videoLinkCountLine(
+  allowance: VideoLinkAllowance,
+  counts: { onThisTrick: number; heldTotal: number },
+): string {
+  const on = Math.max(0, Math.trunc(counts.onThisTrick || 0));
+  const here =
+    on === 0 ? 'No videos on this trick yet' : `${on} video${on === 1 ? '' : 's'} on this trick`;
+  if (allowance.unlimited) return here;
+  const held = Math.max(0, Math.trunc(counts.heldTotal || 0));
+  return `${here}. ${held} of ${allowance.cap} video links used across all your tricks`;
+}

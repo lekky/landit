@@ -99,6 +99,8 @@ async function signUpRookie(page: Page): Promise<void> {
   await signUp(page, 'Rookie Rider');
 }
 
+const otherFreeTrick = scooterTricks.filter((t) => !isTrickLocked(t, 'rookie'))[1]!;
+
 const trickUrl = `/library/${freeTrick.id}`;
 
 /**
@@ -123,7 +125,11 @@ test('a paid rider adds a YouTube link and it starts private', async ({ page }) 
   // code asks for (plan §6.4 standard 7) — not "not public", the value itself.
   await expect(page.getByRole('button', { name: /^Play / })).toBeVisible();
   await expect(page.getByLabel('Who can see this video')).toHaveValue('private');
-  await expect(page.getByText(`1 of ${SHREDDER_VIDEO_LINK_CAP} video links used`)).toBeVisible();
+  await expect(
+    page.getByText(
+      `1 video on this trick. 1 of ${SHREDDER_VIDEO_LINK_CAP} video links used across all your tricks`,
+    ),
+  ).toBeVisible();
 });
 
 test('NOTHING reaches Google until the rider presses play', async ({ page }) => {
@@ -184,7 +190,36 @@ test('a rider changes who can see a video, and removes it', async ({ page }) => 
 
   await page.getByRole('button', { name: 'Remove' }).click();
   await expect(page.getByRole('button', { name: /^Play / })).toHaveCount(0);
-  await expect(page.getByText(`0 of ${SHREDDER_VIDEO_LINK_CAP} video links used`)).toBeVisible();
+  await expect(
+    page.getByText(
+      `No videos on this trick yet. 0 of ${SHREDDER_VIDEO_LINK_CAP} video links used across all your tricks`,
+    ),
+  ).toBeVisible();
+});
+
+test("the count under the form is this trick's, not the whole library's", async ({ page }) => {
+  // The defect (Rachid, 2026-09-11): the line said how many links the rider held
+  // *anywhere*, so a trick with no videos on it announced someone else's number
+  // — under a tab badge reading 0, on the same screen. The cap is still counted
+  // across every trick, because that is what the hook counts; what changed is
+  // that the line now leads with this trick and says which number is which.
+  await signUpPaid(page);
+  await openVideos(page);
+  await page.getByLabel('YouTube link').fill(VIDEO);
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByLabel('Who can see this video')).toHaveCount(1);
+
+  await page.goto(`/library/${otherFreeTrick.id}`);
+  await page.getByRole('tab', { name: /Your videos/ }).click();
+
+  // No tile here, and the line says so — with the rider's one link still
+  // counted against the cap, and named as belonging to every trick.
+  await expect(page.getByRole('button', { name: /^Play / })).toHaveCount(0);
+  await expect(
+    page.getByText(
+      `No videos on this trick yet. 1 of ${SHREDDER_VIDEO_LINK_CAP} video links used across all your tricks`,
+    ),
+  ).toBeVisible();
 });
 
 test('a link that is not a YouTube link is refused, and says why', async ({ page }) => {
