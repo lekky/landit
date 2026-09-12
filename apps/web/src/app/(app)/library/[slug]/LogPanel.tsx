@@ -11,6 +11,7 @@ import { Button, Icon, Modal, Panel, foregroundFor } from '@landit/ui-web';
 import { useOptimistic, useState, useTransition } from 'react';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { runAction } from '@/lib/runAction';
 import { useToast } from '@/providers/toast';
 
 import { addNoteAction, removeNoteAction, updateNoteAction } from '../actions';
@@ -140,7 +141,9 @@ export function LogPanel({
         kind: 'add',
         note: { id: `${PENDING}${Date.now()}`, body, stage, dateLabel: todayLabel },
       });
-      const result = await addNoteAction({ trickId, slug, body, stage });
+      const result = await runAction('note_add', () =>
+        addNoteAction({ trickId, slug, body, stage }),
+      );
       if (result.ok) {
         // After the write, never before it. The stage is a catalogue fact about
         // the ladder; the body never travels, nor its length.
@@ -162,7 +165,9 @@ export function LogPanel({
     setEditing(null);
     startTransition(async () => {
       change({ kind: 'edit', id, body });
-      const result = await updateNoteAction({ noteId: id, slug, body });
+      const result = await runAction('note_update', () =>
+        updateNoteAction({ noteId: id, slug, body }),
+      );
       if (result.ok) {
         capture(ANALYTICS_EVENTS.noteSaved, { ...facts, stage: 'unchanged', how: 'edited' });
         return;
@@ -177,7 +182,9 @@ export function LogPanel({
     if (editing?.id === note.id) setEditing(null);
     startTransition(async () => {
       change({ kind: 'remove', id: note.id });
-      const result = await removeNoteAction({ noteId: note.id, slug });
+      const result = await runAction('note_remove', () =>
+        removeNoteAction({ noteId: note.id, slug }),
+      );
       if (result.ok) {
         capture(ANALYTICS_EVENTS.noteRemoved, { ...facts, stage: note.stage ?? 'none' });
         return;

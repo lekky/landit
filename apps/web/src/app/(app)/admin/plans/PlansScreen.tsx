@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { useToast } from '@/providers/toast';
+import { runAction } from '@/lib/runAction';
 
 import { StaffEditor } from '../StaffEditor';
 import { savePlanAction } from '../content-actions';
@@ -115,15 +116,17 @@ export function PlansScreen({ cards }: { cards: readonly AdminPlanCard[] }) {
             { k: 'missing', label: 'Crossed out, one per line', type: 'text', rows: 3, wide: true },
           ]}
           onSave={async (value) => {
-            const result = await savePlanAction(editing.id, {
-              name: String(value.name ?? ''),
-              priceMonthly: String(value.priceMonthly ?? ''),
-              priceYearly: String(value.priceYearly ?? ''),
-              per: String(value.per ?? ''),
-              pitch: String(value.pitch ?? ''),
-              perks: String(value.perks ?? ''),
-              missing: String(value.missing ?? ''),
-            });
+            const result = await runAction('admin_save', () =>
+              savePlanAction(editing.id, {
+                name: String(value.name ?? ''),
+                priceMonthly: String(value.priceMonthly ?? ''),
+                priceYearly: String(value.priceYearly ?? ''),
+                per: String(value.per ?? ''),
+                pitch: String(value.pitch ?? ''),
+                perks: String(value.perks ?? ''),
+                missing: String(value.missing ?? ''),
+              }),
+            );
             if (result.ok) {
               toast(`${String(value.name)} updated`, editing.hue);
               router.refresh();

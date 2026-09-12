@@ -391,6 +391,41 @@ export const ANALYTICS_EVENTS = {
    * whether the empty state did its job.
    */
   emptyStateAction: 'empty_state_action',
+
+  /* ----------------------------------------------------- requests lost -- */
+  /**
+   * A Server Function never reached the server — the request threw rather than
+   * coming back refused (owner, 2026-09-12, in chat).
+   *
+   * Carries `request`, which call it was (`RequestName` in `runAction.ts` —
+   * `'trick_stage'`, `'note_add'`, `'spots_page'`, and so on); `kind`, either
+   * `'write'` or `'read'`; and `reason`, either `'offline'` or `'error'`. All
+   * three are closed lists of fixed strings chosen in this repository.
+   * **Never the error**: a thrown Server Function carries a stack, a digest and
+   * a URL, and none of that is something to put in a counter on a product used
+   * by children. Never the trick, the note, or anything else the rider was
+   * doing at the time.
+   *
+   * It exists because until 2026-09-12 this was the one failure the product
+   * could not see from either end. A thrown action left the optimistic UI
+   * standing and toasted nothing, so the rider believed it saved and no event
+   * fired — `trick_logged` counts the writes that *worked*, and there is no
+   * event whose absence anybody would notice. "Stop tracking doesn't seem to
+   * save all the time" was the only way it could be found: a person noticing,
+   * weeks in.
+   *
+   * `kind` is what keeps that finding sharp. A lost read is a screen that has
+   * to be pulled down again; a lost write is a rider believing something is
+   * saved that is not, and it is the one worth waking up for. `reason` says
+   * whose problem it is: `offline` is the rider's signal and resolves itself,
+   * `error` is ours.
+   *
+   * A refusal the server *returned* is deliberately not counted here. A
+   * paywall or a cap saying no is the product working, and it already shows
+   * the rider a sentence; folding it in with lost requests would hide the
+   * number this is for.
+   */
+  requestFailed: 'request_failed',
   /*
    * `theme_changed` was here from 2026-09-01 until 2026-09-04, counting the
    * Account theme picker. The product is light-only again (Rachid, in chat) and

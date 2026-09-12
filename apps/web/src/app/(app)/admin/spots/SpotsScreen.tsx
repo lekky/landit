@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
 
 import { useToast } from '@/providers/toast';
+import { runAction } from '@/lib/runAction';
 
 import { Pager, useTableNav } from '../Pager';
 import { StaffEditor, type EditorValue } from '../StaffEditor';
@@ -154,7 +155,7 @@ export function SpotsScreen({
 
   const move = (row: AdminSpotRow, to: AdminSpotStatus, said: string) => {
     startSaving(async () => {
-      const result = await setSpotStatusAction(row.id, to);
+      const result = await runAction('admin_save', () => setSpotStatusAction(row.id, to));
       if (result.ok) toast(`${row.name} ${said}`, STATUS_LOOK[to].color);
       else toast(result.message, 'var(--red)');
       router.refresh();
@@ -179,7 +180,9 @@ export function SpotsScreen({
 
   const onAdd = () => {
     startSaving(async () => {
-      const result = await createSpotAction({ ...form, sports: form.sports });
+      const result = await runAction('admin_save', () =>
+        createSpotAction({ ...form, sports: form.sports }),
+      );
       if (result.ok) {
         toast(`${form.name.trim()} is on the map`, 'var(--green)');
         setForm(BLANK_ADD);
@@ -513,7 +516,9 @@ export function SpotsScreen({
             },
           ]}
           onSave={async (value) => {
-            const result = await saveSpotAction(editing.id, spotFrom(value));
+            const result = await runAction('admin_save', () =>
+              saveSpotAction(editing.id, spotFrom(value)),
+            );
             if (result.ok) {
               toast(`${String(value.name)} updated`);
               router.refresh();

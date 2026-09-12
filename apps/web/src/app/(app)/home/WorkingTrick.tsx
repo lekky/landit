@@ -7,6 +7,7 @@ import { useState, useTransition } from 'react';
 import { useToast } from '@/providers/toast';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { runAction } from '@/lib/runAction';
 
 import { setStageAction } from '../library/actions';
 import { acknowledgeStickersAction } from '../stickers/actions';
@@ -57,7 +58,12 @@ export function WorkingTrick({ trick, onOpen }: { trick: TrickCardView; onOpen: 
     setCurrent(value);
 
     startTransition(async () => {
-      const result = await setStageAction({ trickId: recordId, slug: trick.slug, stage: value });
+      // Wrapped for the same reason the trick page's picker is: a thrown
+      // Server Function used to leave the optimistic stage standing with nothing
+      // said, so the write was lost and the card claimed otherwise.
+      const result = await runAction('trick_stage', () =>
+        setStageAction({ trickId: recordId, slug: trick.slug, stage: value }),
+      );
       if (result.ok) {
         // Same event as the trick page's picker, with `from` to tell the two
         // apart — bumping from the dashboard and bumping from the trick are the

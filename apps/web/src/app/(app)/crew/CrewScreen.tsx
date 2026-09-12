@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useActionState, useState, useTransition } from 'react';
 
 import { ROUTES, riderHref } from '@/lib/routes';
+import { runActionOr } from '@/lib/runAction';
 
 import {
   createCrewAction,
@@ -41,7 +42,13 @@ export function CrewScreen({ view }: { view: CrewView }) {
     if (!crew) return;
     setInviteError(null);
     startMinting(async () => {
-      const result = await mintInviteAction(crew.id);
+      // Reports its failure as `{ error }`, and a thrown one used to leave the
+      // invite modal simply never opening with nothing said.
+      const result = await runActionOr(
+        'crew_invite',
+        () => mintInviteAction(crew.id),
+        (error) => ({ error }),
+      );
       if (result.code) {
         // That an invite was made. Never the code — it is a capability, and
         // crews are invite-only with no discovery (plan §6.1).

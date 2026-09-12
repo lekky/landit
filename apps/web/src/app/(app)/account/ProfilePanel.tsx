@@ -22,6 +22,7 @@ import { SPORT_LOOKS, countWord } from '@/lib/sports';
 import { saveProfileAction } from './actions';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { runActionOr } from '@/lib/runAction';
 
 import styles from './account.module.css';
 
@@ -203,7 +204,11 @@ export function ProfilePanel({
      * page keeps rendering the profile it had.
      */
     startTransition(async () => {
-      const result = await saveProfileAction(undefined, formDataFor(job.draft));
+      const result = await runActionOr(
+        'profile_save',
+        () => saveProfileAction(undefined, formDataFor(job.draft)),
+        (error) => ({ error }),
+      );
 
       // A later change is already on its way; its answer is the true one.
       if (ticket !== issued.current) return;

@@ -8,6 +8,7 @@ import { useState, useTransition } from 'react';
 import { useToast } from '@/providers/toast';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { runAction } from '@/lib/runAction';
 
 import { acknowledgeStickersAction } from '../../stickers/actions';
 import { setStageAction } from '../actions';
@@ -82,7 +83,14 @@ export function StagePanel({
     setConfirming(false);
 
     startTransition(async () => {
-      const result = await setStageAction({ trickId, slug, stage: next });
+      // `runAction`, not a bare call: a Server Function that *throws* — no
+      // signal at a park, a dropped request, a stale bundle after a manual
+      // deploy — used to skip both the revert and the toast below, leaving the
+      // ladder showing a stage the server never stored. That is the bug behind
+      // "Stop tracking doesn't seem to save all the time" (owner, 2026-09-12).
+      const result = await runAction('trick_stage', () =>
+        setStageAction({ trickId, slug, stage: next }),
+      );
       if (result.ok) {
         // After the write, never before it: an optimistic count is a count of
         // intentions, and this one is meant to say what riders actually log.

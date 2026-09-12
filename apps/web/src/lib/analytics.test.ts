@@ -300,6 +300,10 @@ describe('the event catalogue', () => {
         'video_link_added',
         'video_link_removed',
         'video_visibility_set',
+        // A Server Function that threw rather than coming back refused — the
+        // failure neither end of the product could see until 2026-09-12. Which
+        // call, write or read, and `offline`/`error`. Never the thrown error.
+        'request_failed',
       ].sort(),
     );
   });

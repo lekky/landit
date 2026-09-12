@@ -8,6 +8,7 @@ import { useSport } from '@/providers/sport';
 import { useToast } from '@/providers/toast';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { runActionOr } from '@/lib/runAction';
 
 import { logChallengeAction } from './actions';
 import styles from './challenge.module.css';
@@ -59,7 +60,14 @@ export function ChallengeScreen({ views }: { readonly views: readonly ChallengeS
   const log = () => {
     if (!current) return;
     startTransition(async () => {
-      const result = await logChallengeAction(current.id);
+      // `runActionOr` rather than `runAction`: this action reports a refusal as
+      // `{ error }`, so the failure is built in that shape and the branch below
+      // is unchanged.
+      const result = await runActionOr(
+        'challenge_log',
+        () => logChallengeAction(current.id),
+        (error) => ({ error }),
+      );
       if (result.error) {
         toast(result.error, 'var(--red)');
         return;

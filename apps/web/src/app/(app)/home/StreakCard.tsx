@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react';
 import { useToast } from '@/providers/toast';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { runActionOr } from '@/lib/runAction';
 
 import { rodeTodayAction } from './actions';
 import type { StreakView } from './view';
@@ -49,7 +50,9 @@ export function StreakCard({ streak }: { streak: StreakView }) {
   function logRide() {
     if (done || pending) return;
     startTransition(async () => {
-      const result = await rodeTodayAction();
+      // Reports a refusal as `{ error }`, so the thrown case is built the same
+      // way — see `runAction.ts` for what used to happen instead (nothing).
+      const result = await runActionOr('ride_logged', rodeTodayAction, (error) => ({ error }));
       if (result.error) {
         toast(result.error, 'var(--red)');
         return;
