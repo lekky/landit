@@ -1090,6 +1090,54 @@ they have nothing in common. Then **verify against a production build** (`next b
 `next start`): production chunks are content-hashed, so a changed file is a changed URL and no
 cache can shadow it.
 
+## 7a. An optimistic UI needs a `catch`, not just an `else`
+
+Reported on 2026-09-12 as "Stop tracking doesn't seem to save all the time", and it was in all
+23 screens rather than that one.
+
+Every write in this app is written the same way, and the shape looks complete: move the UI, await
+the Server Function, put the UI back if the server says no.
+
+```ts
+setCurrent(next);
+startTransition(async () => {
+  const result = await setStageAction({ ... });
+  if (result.ok) { toast('Saved'); return; }
+  setCurrent(previous);
+  toast(result.message, 'var(--red)');
+});
+```
+
+That covers `ok: false`, which is a paywall, a cap or a signed-out session — cases the server
+*answered*. It does not cover the action **throwing**, and on a throw neither of the last two lines
+runs: the optimistic value stands, nothing is said, and the write is gone. **A refusal you handle is
+not the same as a failure you handle**, and the branch that reads as "the error case" is only the
+first of the two.
+
+Three things made it survive months of green builds. It is silent by construction — the failure
+path is a path not taken, so there is nothing to see in a review, nothing to catch in a gate, and
+the screen actively asserts the opposite. The product had no `error.tsx`, so nothing downstream
+caught it either. And **the analytics could not see it from the other end**: `trick_logged` counts
+the writes that worked, so a lost write is an event that simply never fires, and no dashboard shows
+you a number that is missing. The only way it could ever be found was a person noticing, weeks
+later, that something they had done had not stuck.
+
+The rules that came out of it:
+
+- **Wrap the call, do not trust the call site.** `apps/web/src/lib/runAction.ts` turns a throw into
+  the refusal it should have been, in the shape the call site already handles. That was better than
+  adding 27 `try`/`catch` blocks, because the next screen someone writes gets it too — and it is
+  one place to argue with rather than 27 places to keep in step.
+- **Count the failure, not just the success.** An event that fires when something works cannot tell
+  you about the times it did not; you cannot notice an absence. `request_failed` exists so the next
+  one of these is a number somebody can look at rather than a rider's report.
+- **Reads have the same hole.** The spots screen's fetches had a `setError` path a throw skipped in
+  exactly the same way, leaving a screen that had simply stopped with nothing said.
+- **Prove it with a test that fails without the fix.** The e2e for this goes offline, taps Stop
+  tracking, and asserts both halves — the screen says it did not save, *and* the stage is still
+  there after a reload. Removing the wrap fails it. An assertion that passes either way would have
+  been the same silence in a different file.
+
 ## 8. Configuration that is copied between systems
 
 Turning live email on (2026-08-18) was six DNS records and no code. It took several rounds anyway,
