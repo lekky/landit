@@ -1,6 +1,12 @@
 'use server';
 
-import { trickContentProblems, type SportId, type TrickMistake } from '@landit/core';
+import {
+  parseYouTubeVideoId,
+  trickContentProblems,
+  trickVideoProblems,
+  type SportId,
+  type TrickMistake,
+} from '@landit/core';
 import {
   applyStaffChange,
   createStaffRecord,
@@ -141,6 +147,18 @@ export interface TrickForm {
    * saved untouched writes an empty list rather than three empty pairs.
    */
   readonly mistakes: readonly TrickMistake[];
+  /**
+   * The staff-picked tutorial (T34): the link as it was pasted, the title, and
+   * who made it. All three empty means no video, which is the normal state and
+   * renders as no panel on the trick page.
+   *
+   * The link is stored as the eleven-character id — `trickPatch` parses it, and
+   * `pocketbase/hooks/20_tricks.pb.js` parses it again on the way in, because
+   * this form is not a boundary.
+   */
+  readonly videoLink: string;
+  readonly videoTitle: string;
+  readonly videoChannel: string;
 }
 
 /** The patch both the create and the edit build, so the two cannot drift. */
@@ -154,6 +172,13 @@ function trickPatch(form: TrickForm) {
     tips: form.tips,
     hard: form.hard.trim(),
     mistakes: trickMistakesOf(form),
+    // Whatever was pasted becomes the id. `parseYouTubeVideoId` returns `null`
+    // for anything that is not a YouTube link, and `trickVideoRefusal` has
+    // already turned that into a message — so by here it is an id or the field
+    // is empty on purpose.
+    video_id: parseYouTubeVideoId(form.videoLink.trim()) ?? '',
+    video_title: form.videoTitle.trim(),
+    video_channel: form.videoChannel.trim(),
   };
 }
 
@@ -170,7 +195,16 @@ function trickMistakesOf(form: TrickForm): TrickMistake[] {
  * be saved.
  */
 function trickContentRefusal(form: TrickForm): StaffWriteResult | null {
-  const problems = trickContentProblems(trickMistakesOf(form), form.hard.trim());
+  const problems = [
+    ...trickContentProblems(trickMistakesOf(form), form.hard.trim()),
+    // The video's own limits (T34), checked here for the message and in the
+    // tricks hook for the guarantee — same split as the content limits above.
+    ...trickVideoProblems({
+      link: form.videoLink,
+      title: form.videoTitle,
+      channel: form.videoChannel,
+    }),
+  ];
   return problems.length ? { ok: false, message: problems.join(' ') } : null;
 }
 

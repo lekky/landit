@@ -821,6 +821,9 @@ export interface TricksRecord {
   supervise: boolean;
   mistakes: unknown;
   hard: string;
+  video_id: string;
+  video_title: string;
+  video_channel: string;
 }
 
 /** The shape accepted when creating a `tricks` record. */
@@ -839,6 +842,9 @@ export interface TricksCreate {
   supervise?: boolean;
   mistakes?: unknown;
   hard?: string;
+  video_id?: string;
+  video_title?: string;
+  video_channel?: string;
 }
 
 /** The shape accepted when updating a `tricks` record. */

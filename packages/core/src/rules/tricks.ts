@@ -4,6 +4,9 @@ import { LANDED_STAGES } from '../data/stages';
 import { SPORT_IDS } from '../data/sports';
 import { TRICKS } from '../data/tricks';
 import { PLAN } from '../data/plans';
+// The trick video (T34) is checked with the same parser a rider's own link
+// goes through. `video.ts` imports only types, so there is no cycle here.
+import { parseYouTubeVideoId } from './video';
 import type {
   CategoryId,
   Difficulty,
@@ -230,6 +233,77 @@ export function trickContentProblems(
 
   if (hard && wordCount(hard) > L.hardMaxWords) {
     problems.push(`Keep "why it's this tier" to ${L.hardMaxWords} words.`);
+  }
+
+  return problems;
+}
+
+/* ------------------------------------------------- the trick video (T34) -- */
+
+/**
+ * What a staff-picked tutorial's title and channel are allowed to be.
+ *
+ * Separate from `TRICK_CONTENT_LIMITS` rather than folded into it: those are
+ * limits on *our* prose, written to a house voice, and these are limits on
+ * somebody else's title, which we copy rather than compose. Merging them would
+ * imply a staff member could edit a YouTube title down to eight words, and the
+ * whole point of storing it is that it says what the video actually is.
+ *
+ * Repeated in `pocketbase/hooks/lib/landit.js`, which cannot import this
+ * package; `pocketbase/tests/trick-video.test.ts` is what holds the two in step
+ * — the same arrangement T28 made for the content limits.
+ */
+export const TRICK_VIDEO_LIMITS = {
+  /** A title is copied from YouTube, so it gets room to be a real one. */
+  titleMaxWords: 16,
+  /** A channel name is a name. */
+  channelMaxWords: 6,
+} as const;
+
+/**
+ * Everything wrong with a proposed trick video, in the words a staff member
+ * would be shown. Empty means it may be saved.
+ *
+ * **All three blank is allowed and is the normal state**: it means nobody has
+ * picked one, which is true of most of the library and renders as no panel at
+ * all. What is refused is a *half* video — a link with nothing to call it, or a
+ * title with no link — because either one puts a control on a child's page that
+ * cannot say what it does.
+ *
+ * The link is checked with the same `parseYouTubeVideoId` a rider's own link
+ * goes through, so a staff member may paste a watch URL, a `youtu.be` link, a
+ * short or the bare id, and anything else — another host, a shortener, an id of
+ * the wrong length — is refused here and again in the hook.
+ */
+export function trickVideoProblems(video: {
+  readonly link?: string;
+  readonly title?: string;
+  readonly channel?: string;
+}): string[] {
+  const L = TRICK_VIDEO_LIMITS;
+  const problems: string[] = [];
+
+  const link = (video.link ?? '').trim();
+  const title = (video.title ?? '').trim();
+  const channel = (video.channel ?? '').trim();
+
+  // Nothing picked yet. The most common state in the library, and not an error.
+  if (!link && !title && !channel) return problems;
+
+  if (!link) {
+    problems.push('Paste the YouTube link, or clear the title and channel.');
+  } else if (parseYouTubeVideoId(link) === null) {
+    problems.push('That is not a YouTube link.');
+  }
+
+  if (!title) {
+    problems.push('Give the video its title, so the page can say what it plays.');
+  } else if (wordCount(title) > L.titleMaxWords) {
+    problems.push(`Keep the title to ${L.titleMaxWords} words.`);
+  }
+
+  if (channel && wordCount(channel) > L.channelMaxWords) {
+    problems.push(`Keep the channel name to ${L.channelMaxWords} words.`);
   }
 
   return problems;

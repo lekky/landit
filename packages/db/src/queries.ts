@@ -8,6 +8,7 @@ import {
   type Trick,
   type TrickLogEntry,
   type TrickMistake,
+  type TrickVideo,
   type VideoLink,
 } from '@landit/core';
 
@@ -157,8 +158,43 @@ export function tricksFromRecords(
     // Never a throw, because one bad row would take the whole library down.
     ...mistakesOf(row.mistakes),
     ...(typeof row.hard === 'string' && row.hard.trim() ? { hard: row.hard } : {}),
+    // The staff-picked tutorial (T34). Database-only — it is never in the
+    // canonical `TRICKS` data and the seed never writes it — so this mapping is
+    // the *only* way a video reaches a `Trick`. Absent, empty, and a row from a
+    // database older than `1789257600_trick_video.js` all become no field,
+    // which the trick page reads as "no panel". Never a throw.
+    ...videoOf(row),
     isLive: row.is_live,
   }));
+}
+
+/**
+ * The three `tricks.video_*` columns as the `Trick` field, or nothing (T34).
+ *
+ * **Both halves or neither.** The hook refuses a link without a title on the
+ * way in, so a row that has one and not the other is a hand edit or a database
+ * that predates the guard. Either way this drops it rather than rendering a
+ * play button with nothing to call it — the same reading `mistakesOf` takes of
+ * a malformed list, and for the same reason: one bad row must not put a
+ * half-built control on a child's page.
+ *
+ * The id is *not* re-validated here. `youtubeEmbedUrl` throws on anything that
+ * is not eleven characters, and the hook has already re-parsed the column on
+ * every write path; a second opinion in the mapping layer would be a third
+ * place to keep the pattern in step.
+ */
+function videoOf(row: {
+  video_id?: unknown;
+  video_title?: unknown;
+  video_channel?: unknown;
+}): { video: TrickVideo } | Record<string, never> {
+  const id = typeof row.video_id === 'string' ? row.video_id.trim() : '';
+  const title = typeof row.video_title === 'string' ? row.video_title.trim() : '';
+  const channel = typeof row.video_channel === 'string' ? row.video_channel.trim() : '';
+
+  if (!id || !title) return {};
+
+  return { video: { id, title, ...(channel ? { channel } : {}) } };
 }
 
 /**

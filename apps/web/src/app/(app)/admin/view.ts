@@ -435,6 +435,17 @@ export interface AdminTrickRow {
   readonly hard: string;
   /** The common mistakes (T28), already read through `tricksFromRecords`, so malformed is empty. */
   readonly mistakes: readonly TrickMistake[];
+  /**
+   * The staff-picked tutorial (T34). All three empty when nobody has picked
+   * one, which is the normal state for most of the library.
+   *
+   * The id rather than a URL, because that is what is stored; the editor shows
+   * it back as a watch link so a staff member can press it and check they are
+   * looking at the video they think they are.
+   */
+  readonly videoId: string;
+  readonly videoTitle: string;
+  readonly videoChannel: string;
 }
 
 export interface AdminStickerRow {

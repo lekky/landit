@@ -7,6 +7,8 @@ import {
   SPORT_IDS,
   TIERS_LABEL,
   TRICK_CONTENT_LIMITS,
+  TRICK_VIDEO_LIMITS,
+  youtubeWatchUrl,
   type SportId,
   type TrickMistake,
 } from '@landit/core';
@@ -111,6 +113,9 @@ const BLANK = {
   about: '',
   tips: '',
   hard: '',
+  videoLink: '',
+  videoTitle: '',
+  videoChannel: '',
 };
 
 export function TricksScreen({
@@ -177,6 +182,9 @@ export function TricksScreen({
     tips: String(value.tips ?? ''),
     hard: String(value.hard ?? ''),
     mistakes: mistakesFromFlat(value.mistakes),
+    videoLink: String(value.videoLink ?? ''),
+    videoTitle: String(value.videoTitle ?? ''),
+    videoChannel: String(value.videoChannel ?? ''),
   });
 
   const onAdd = () => {
@@ -442,6 +450,13 @@ export function TricksScreen({
             tips: editing.tips,
             hard: editing.hard,
             mistakes: editing.mistakes.length ? flatMistakes(editing.mistakes) : BLANK_MISTAKES,
+            // The stored id shown back as the watch URL, so a staff member can
+            // press it and confirm they are looking at the video they meant.
+            // It goes back through `parseYouTubeVideoId` on save, which accepts
+            // the URL, the bare id and everything in between.
+            videoLink: editing.videoId ? youtubeWatchUrl(editing.videoId) : '',
+            videoTitle: editing.videoTitle,
+            videoChannel: editing.videoChannel,
           }}
           fields={[
             { k: 'name', label: 'Name', wide: true },
@@ -477,6 +492,23 @@ export function TricksScreen({
               minPairs: TRICK_CONTENT_LIMITS.mistakesMin,
               maxPairs: TRICK_CONTENT_LIMITS.mistakesMax,
               hint: `${TRICK_CONTENT_LIMITS.mistakesMin} or ${TRICK_CONTENT_LIMITS.mistakesMax} rows. The mistake is a heading of ${TRICK_CONTENT_LIMITS.whatMaxWords} words at most ending in a full stop; the fix is one sentence of ${TRICK_CONTENT_LIMITS.fixMaxWords}. Leave every row empty to save none yet.`,
+            },
+            {
+              k: 'videoLink',
+              label: 'Tutorial link',
+              wide: true,
+              hint: 'Watch it all the way through before you paste it — saving this is what publishes it to riders, signed in or not. Leave all three empty and the trick page shows no video panel at all.',
+            },
+            {
+              k: 'videoTitle',
+              label: 'Tutorial title',
+              wide: true,
+              hint: `What the video is called, up to ${TRICK_VIDEO_LIMITS.titleMaxWords} words. It is shown under the player, so riders know what they are about to watch.`,
+            },
+            {
+              k: 'videoChannel',
+              label: 'Tutorial channel',
+              hint: `Who made it, up to ${TRICK_VIDEO_LIMITS.channelMaxWords} words. Optional.`,
             },
           ]}
           onSave={async (value) => {

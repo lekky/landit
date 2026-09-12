@@ -543,6 +543,35 @@ export const ANALYTICS_EVENTS = {
    */
   trickLinkFollowed: 'trick_link_followed',
   /**
+   * The staff-picked tutorial on a trick page was played (T34).
+   *
+   * Carries `trick` (the slug), `sport` and `tier` (the difficulty, 1–5) —
+   * three catalogue facts, all written in this repository. Never who watched
+   * it, never whether they had landed the trick, never their plan, and never
+   * the video's title, which is somebody else's text.
+   *
+   * Fired on the press that mounts the iframe, because that is the only moment
+   * a play can honestly be counted: `VideoEmbed` deliberately contacts nothing
+   * until then, so there is no earlier signal and no later one either.
+   *
+   * It exists because the curation is the expensive half of this feature —
+   * hours of somebody watching videos before they can be published — and this
+   * is the only thing that will say whether the videos are worth curating,
+   * which tiers riders reach for them at, and whether the scooter tricks that
+   * *have* one are the ones being watched.
+   */
+  trickVideoPlayed: 'trick_video_played',
+  /**
+   * Somebody followed "Something wrong?" out of a trick page's tutorial (T34).
+   *
+   * Carries `trick` and nothing else. It is deliberately **not**
+   * `report_filed`: this counts leaving the trick page for the form, which is
+   * the signal that a video needs looking at even when the person changes their
+   * mind before sending anything. Not a word of what they thought was wrong —
+   * that is the report's own content and stays between them and staff.
+   */
+  trickVideoReported: 'trick_video_reported',
+  /**
    * A list went nearest-first, because a position is in hand. Fired by both
    * `/spots` and `/events`.
    *
