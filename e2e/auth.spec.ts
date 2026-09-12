@@ -175,7 +175,7 @@ test('sign up, onboard and land on the dashboard', async ({ page }) => {
   }
   await expect(page.getByRole('textbox')).toHaveCount(0);
   await page.getByRole('button', { name: 'YouTube', exact: true }).click();
-  await page.getByRole('button', { name: "Let's go" }).click();
+  await page.getByRole('button', { name: 'Let’s go' }).click();
 
   // T8 landed a dashboard, so that is where a finished onboarding goes.
   await page.waitForURL('**/home');

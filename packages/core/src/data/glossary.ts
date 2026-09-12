@@ -247,7 +247,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     aliases: ['flatground', 'flat ground'],
     sports: ['scooter', 'skate', 'bmx'],
     definition:
-      "Ordinary level ground with nothing to ride on. Flatground tricks, like manuals and kickflips, need no ramp or ledge at all. It is also the library's category name for them.",
+      'Ordinary level ground with nothing to ride on. Flatground tricks, like manuals and kickflips, need no ramp or ledge at all. It is also the library’s category name for them.',
     seeIn: ['bunny-hop', 'sk-ollie', 'bmx-360', 'fingerwhip'],
     // The adjective, which is most of the copy's uses: "stamp it flat", "ride
     // it out dead flat", "plant a foot flat against it". The noun — "on flat",
@@ -563,7 +563,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     aliases: ['skatepark', 'park riding'],
     sports: ['scooter', 'skate', 'bmx'],
     definition:
-      "Short for skatepark, and the library's category for tricks on ramps, bowls and jump boxes. Park riding is about airtime; street riding is about ledges and rails.",
+      'Short for skatepark, and the library’s category for tricks on ramps, bowls and jump boxes. Park riding is about airtime; street riding is about ledges and rails.',
     // `manual` is not here although the research listed it: the only "park"
     // in that trick's copy is a car park.
     seeIn: ['whip-to-bar', 'sk-manual', 'bmx-pump'],
@@ -660,7 +660,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     aliases: ['runs', 'contest run'],
     sports: ['scooter', 'skate', 'bmx'],
     definition:
-      "A rider's turn on the park or course, one trick after another, as judged in a contest. A lap is one clean circuit of the park.",
+      'A rider’s turn on the park or course, one trick after another, as judged in a contest. A lap is one clean circuit of the park.',
     seeIn: ['whip-to-bar', 'flair', 'sk-540', 'bmx-pump'],
     except: ['run-up', 'run up', 'runs out'],
   },
@@ -744,7 +744,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     aliases: ['street riding'],
     sports: ['scooter', 'skate', 'bmx'],
     definition:
-      "Riding the furniture of a street: ledges, rails, stairs, kerbs and walls. The library's category for grinds, slides, gaps and wallrides.",
+      'Riding the furniture of a street: ledges, rails, stairs, kerbs and walls. The library’s category for grinds, slides, gaps and wallrides.',
     seeIn: ['gap', 'sk-blunt-fakie', 'bmx-wallride', 'smith'],
   },
   {
@@ -838,7 +838,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     aliases: ['tailwhip', 'whips', 'heelwhip'],
     sports: ['scooter', 'bmx'],
     definition:
-      "Kicking the deck or frame in a full circle round the bars while you hang in the air, then landing back on it. The scooter's signature move, borrowed from BMX.",
+      'Kicking the deck or frame in a full circle round the bars while you hang in the air, then landing back on it. The scooter’s signature move, borrowed from BMX.',
     seeIn: ['tailwhip', 'bmx-flyout-tailwhip', 'bmx-hop-tailwhip', 'heelwhip'],
   },
   {

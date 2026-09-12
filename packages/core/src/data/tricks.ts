@@ -113,7 +113,7 @@ export const TRICKS = [
     pre: [],
     about:
       'The foundation under every trick. Crouch, explode upward and pull the bars to your hips so both wheels leave the ground at once. Land it clean and the whole sport opens up.',
-    tips: "Practice popping over a crack or a stick on flat ground first. Pull up, don't just jump. The bars do the lifting.",
+    tips: 'Practice popping over a crack or a stick on flat ground first. Pull up, don’t just jump. The bars do the lifting.',
     fact: 'Almost every other trick. 180s, bar spins, grinds. Starts from a solid hop. Nail this before anything else.',
     mistakes: [
       {
@@ -146,7 +146,7 @@ export const TRICKS = [
     about:
       'Lift the front wheel and swing it left, then right, hopping the nose across the ground to build speed without pushing.',
     tips: 'Small swings, quick rhythm. Keep your weight over the back wheel the whole time.',
-    fact: "It's the first bit of board control most riders learn, and it doubles as a warm-up drill forever after.",
+    fact: 'It’s the first bit of board control most riders learn, and it doubles as a warm-up drill forever after.',
     mistakes: [
       {
         what: 'Swinging the nose too wide.',
@@ -154,7 +154,7 @@ export const TRICKS = [
       },
       {
         what: 'Lifting the front wheel too high.',
-        fix: "Lift it a finger's width; any more and you stall between swings.",
+        fix: 'Lift it a finger’s width; any more and you stall between swings.',
       },
       {
         what: 'Weight drifting forward.',
@@ -177,7 +177,7 @@ export const TRICKS = [
     pre: ['bunny-hop'],
     about:
       'Balancing along on the back wheel with the nose held up, rolling as far as you can. Pure control. It lives in your hips and ankles.',
-    tips: "Find the balance point and hold it with tiny ankle taps. Look ahead, not down, and you'll ride it way longer.",
+    tips: 'Find the balance point and hold it with tiny ankle taps. Look ahead, not down, and you’ll ride it way longer.',
     fact: 'Manuals get judged on distance. Riders hold them clean across an entire car park in line competitions.',
     mistakes: [
       {
@@ -275,8 +275,8 @@ export const TRICKS = [
     free: false,
     about:
       'Twist the bars a full 180° while airborne (or even standing still) and catch them backwards, then twist back before you need to steer.',
-    tips: "Start standing still to learn the catch, then take it into a small hop. Keep your grip loose so the twist doesn't fight your wrists.",
-    fact: "One of the first bar tricks most riders learn. It's the natural stepping stone into bar spins.",
+    tips: 'Start standing still to learn the catch, then take it into a small hop. Keep your grip loose so the twist doesn’t fight your wrists.',
+    fact: 'One of the first bar tricks most riders learn. It’s the natural stepping stone into bar spins.',
     mistakes: [
       {
         what: 'Gripping the bars tight.',
@@ -468,7 +468,7 @@ export const TRICKS = [
     about:
       'A grind where the back peg rides the ledge or rail while the front wheel hangs out over the edge. Equal parts balance and attitude.',
     tips: 'Approach at a slight angle, lock the peg on, keep your weight just behind centre. A little wax makes the ledge way friendlier.',
-    fact: "'Feeble' was borrowed straight from BMX and skating. Half of scootering's trick names are inherited from its older cousins.",
+    fact: "'Feeble' was borrowed straight from BMX and skating. Half of scootering’s trick names are inherited from its older cousins.",
     mistakes: [
       {
         what: 'Hopping in with speed too early.',
@@ -498,7 +498,7 @@ export const TRICKS = [
     diff: 4,
     pre: ['feeble'],
     about:
-      "The feeble's mirror: front peg grinds the rail while the back end hangs down on the outside.",
+      'The feeble’s mirror: front peg grinds the rail while the back end hangs down on the outside.',
     tips: 'Angle in slightly nose-first and keep pressure on that front peg the whole way.',
     fact: 'Feeble and smith are the pair that make a rider look like they actually ride street.',
     mistakes: [
@@ -599,9 +599,9 @@ export const TRICKS = [
     // Free by the free-tier shape at the top of this file.
     free: true,
     about:
-      "Float off the ground and spin the bars a full 360°, then catch them dead straight before you land. It's all in the wrists and timing.",
+      'Float off the ground and spin the bars a full 360°, then catch them dead straight before you land. It’s all in the wrists and timing.',
     tips: 'Throw with your lead hand, catch with the other. Keep your shoulders square. Only the bars should move, not you.',
-    fact: "Stack a bar spin onto a tailwhip and you've got a 'ridiculous'. One of scootering's classic combo names.",
+    fact: "Stack a bar spin onto a tailwhip and you’ve got a 'ridiculous'. One of scootering’s classic combo names.",
     mistakes: [
       {
         what: 'Gripping the bars too tight.',
@@ -760,7 +760,7 @@ export const TRICKS = [
     diff: 4,
     pre: ['tailwhip'],
     about: 'Two full deck rotations in one hop. You need serious height and a fast, flat kick.',
-    tips: "Kick harder and later than feels sensible, and don't reach for the first rotation.",
+    tips: 'Kick harder and later than feels sensible, and don’t reach for the first rotation.',
     fact: 'The jump from single to double is the biggest single step in park riding.',
     mistakes: [
       {
@@ -825,7 +825,7 @@ export const TRICKS = [
     pre: ['tailwhip', 'bar-spin'],
     about:
       'Catch a tailwhip and immediately throw a bar spin in the same air. Two tricks, one jump.',
-    tips: "Catch the whip early and high. If the whip is late there's no room left for the bars.",
+    tips: 'Catch the whip early and high. If the whip is late there’s no room left for the bars.',
     fact: 'Combos like this are what separate a park run from a park lap.',
     mistakes: [
       {
@@ -858,7 +858,7 @@ export const TRICKS = [
     about:
       'A backflip of the deck only: you flick the scooter over underneath you like a kickflip and re-catch it before landing. A proper advanced trick.',
     tips: 'Pop hard, flick with your toe and be patient. Wait for the grip to come all the way round before you reach for it.',
-    fact: "It's one of the rare tricks named after a person. The rider who first landed it.",
+    fact: 'It’s one of the rare tricks named after a person. The rider who first landed it.',
     mistakes: [
       {
         what: 'Bars left straight during the flip.',
@@ -954,7 +954,7 @@ export const TRICKS = [
     supervise: true,
     about:
       'A forward rotation off a jump box. Harder to spot than a backflip because the landing hides until the last moment.',
-    tips: "Foam pit only until it's automatic. Throw from the chest and keep the scooter pinned to your feet.",
+    tips: 'Foam pit only until it’s automatic. Throw from the chest and keep the scooter pinned to your feet.',
     fact: 'Front flips stayed a contest-only trick for years after backflips went mainstream.',
     mistakes: [
       {
@@ -1810,7 +1810,7 @@ export const TRICKS = [
         fix: 'A low flat rail or a rounded ledge only, close enough to step off.',
       },
     ],
-    hard: "A grind slides on pegs; this rolls on wheels, with nothing locking you on. It is a manual's balance on something the width of a wheel, which is why it sits above the 50-50.",
+    hard: 'A grind slides on pegs; this rolls on wheels, with nothing locking you on. It is a manual’s balance on something the width of a wheel, which is why it sits above the 50-50.',
     isLive: true,
   },
   {
@@ -2823,7 +2823,7 @@ export const TRICKS = [
     pre: [],
     about:
       'Pop the tail, drag your front foot up the board and level it out in the air. Every other trick in skateboarding is built on top of this one.',
-    tips: "Snap the tail hard and slide the front foot straight up to the nose. Jump with the board, don't just flick and hope.",
+    tips: 'Snap the tail hard and slide the front foot straight up to the nose. Jump with the board, don’t just flick and hope.',
     fact: 'Alan Gelfand did the first one in a pool around 1978. Rodney Mullen took it to flat ground and the whole sport changed.',
     mistakes: [
       {
@@ -2854,7 +2854,7 @@ export const TRICKS = [
     diff: 2,
     pre: [],
     about: 'Rolling along on the back two wheels with the nose held up. Balance, not pop.',
-    tips: "Find the tipping point and hold it with your ankles. Look where you're going, not at the board.",
+    tips: 'Find the tipping point and hold it with your ankles. Look where you’re going, not at the board.',
     fact: 'Manual pads exist in nearly every park because a manual is the glue between two other tricks in a line.',
     mistakes: [
       {
@@ -2884,9 +2884,9 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: [],
-    about: "Scoop the board 180° under your feet while you hop. The board spins, you don't.",
+    about: 'Scoop the board 180° under your feet while you hop. The board spins, you don’t.',
     tips: 'Scoop back with the tail foot and lift your front foot out of the way. Stay over the board or it shoots out.',
-    fact: "It's usually the first trick where a beginner has to trust a board that isn't under them.",
+    fact: 'It’s usually the first trick where a beginner has to trust a board that isn’t under them.',
     mistakes: [
       {
         what: 'Scooping with the whole leg.',
@@ -3022,7 +3022,7 @@ export const TRICKS = [
     diff: 3,
     pre: ['sk-ollie'],
     about: 'An ollie popped off the nose instead of the tail, rolling forwards.',
-    tips: "Weight forward, snap the nose, drag the back foot. It's an ollie with your stance rebuilt.",
+    tips: 'Weight forward, snap the nose, drag the back foot. It’s an ollie with your stance rebuilt.',
     fact: 'Nollie, switch and fakie versions triple the size of any trick list without adding a single new motion.',
     mistakes: [
       {
@@ -3089,7 +3089,7 @@ export const TRICKS = [
     diff: 3,
     pre: ['sk-ollie'],
     about:
-      "The kickflip's mirror: flick off the heel side of the nose so the board rolls the opposite way.",
+      'The kickflip’s mirror: flick off the heel side of the nose so the board rolls the opposite way.',
     tips: 'Front foot points slightly inward, flick out with the heel. Land on the bolts, not the middle of the board.',
     fact: 'Skaters are almost always noticeably better at one of the two flips, and rarely both.',
     mistakes: [
@@ -3122,7 +3122,7 @@ export const TRICKS = [
     pre: ['sk-manual'],
     about:
       'A manual on the front wheels with the tail held up behind you. Twitchier and far less forgiving.',
-    tips: "Move your weight, don't lunge. Tiny corrections only.",
+    tips: 'Move your weight, don’t lunge. Tiny corrections only.',
     fact: 'Nose manual to nollie flip out is the kind of line that decides a game of SKATE.',
     mistakes: [
       {
@@ -3253,7 +3253,7 @@ export const TRICKS = [
     diff: 4,
     pre: ['sk-50-50'],
     about: 'A 50-50 on the back truck only, with the nose held up like a manual on the ledge.',
-    tips: "It's a manual and a grind at once. Lock the back truck, hold the balance, ride out flat.",
+    tips: 'It’s a manual and a grind at once. Lock the back truck, hold the balance, ride out flat.',
     fact: '5-0s are named for the American cop show. A lot of skate names come from nowhere sensible.',
     mistakes: [
       {
@@ -3273,7 +3273,7 @@ export const TRICKS = [
         fix: 'Take a little more speed than a 50-50 so the single truck keeps sliding.',
       },
     ],
-    hard: "Gnarly because it is the 50-50 with the front truck lifted, so a manual's narrow balance point now has to be held on a moving edge. The 50-50 shared the weight; this does not.",
+    hard: 'Gnarly because it is the 50-50 with the front truck lifted, so a manual’s narrow balance point now has to be held on a moving edge. The 50-50 shared the weight; this does not.',
     isLive: true,
   },
   {
@@ -3316,7 +3316,7 @@ export const TRICKS = [
     pre: ['sk-nosegrind'],
     about:
       'A nosegrind held at an angle so the nose also slides along the ledge. Grind and slide together.',
-    tips: "Angle the board in, don't square it up. The nose does half the work.",
+    tips: 'Angle the board in, don’t square it up. The nose does half the work.',
     fact: "Short for 'crooked nosegrind'. Most people have only ever called it a k-grind.",
     mistakes: [
       {
@@ -3409,7 +3409,7 @@ export const TRICKS = [
     supervise: true,
     about: 'Set the tail on the coping, lean forward over the front truck and ride down the ramp.',
     tips: 'Commit forward. Leaning back is the one thing that guarantees you go down.',
-    fact: "It's the single biggest confidence barrier in skateboarding, and it's over in half a second.",
+    fact: 'It’s the single biggest confidence barrier in skateboarding, and it’s over in half a second.',
     mistakes: [
       {
         what: 'Locking your knees straight.',
@@ -3607,7 +3607,7 @@ export const TRICKS = [
         fix: 'Your body stays square; only the board turns, unlike a frontside flip.',
       },
       {
-        what: "Legs in the board's path.",
+        what: 'Legs in the board’s path.',
         fix: 'Pull both knees up high so the board has room to come through.',
       },
       {
@@ -3647,7 +3647,7 @@ export const TRICKS = [
         fix: 'Spread the stance so the front foot can flick without blocking the spin.',
       },
     ],
-    hard: "The varial flip's spin is half a turn from the front foot's flick. Here the back foot drives a full turn and the flip together, so one scoop has two jobs.",
+    hard: 'The varial flip’s spin is half a turn from the front foot’s flick. Here the back foot drives a full turn and the flip together, so one scoop has two jobs.',
     isLive: true,
   },
   {
@@ -3692,7 +3692,7 @@ export const TRICKS = [
     free: true,
     about: 'Air out of the transition and grab the toe edge between your feet with your back hand.',
     tips: 'Get proper height first, then reach. Suck your knees up to bring the board to your hand.',
-    fact: "The indy is the default grab in every wheeled sport. It's the easiest hand to reach the board with.",
+    fact: 'The indy is the default grab in every wheeled sport. It’s the easiest hand to reach the board with.',
     mistakes: [
       {
         what: 'Grabbing before you leave the lip.',
@@ -3725,7 +3725,7 @@ export const TRICKS = [
     free: true,
     about: 'Fly out above the coping, grab, turn and drop back into the transition.',
     tips: 'Look back down the ramp as you turn. Keep the grab until the wheels are pointed at the ramp.',
-    fact: "Tony Alva's backside airs in the 70s are why vert skating looks the way it does.",
+    fact: 'Tony Alva’s backside airs in the 70s are why vert skating looks the way it does.',
     mistakes: [
       {
         what: 'Turning early on the wall.',
@@ -3831,7 +3831,7 @@ export const TRICKS = [
     mistakes: [
       {
         what: 'Lifting the nose too high.',
-        fix: "Lift the front wheels a finger's width; a high nose tips you off the back.",
+        fix: 'Lift the front wheels a finger’s width; a high nose tips you off the back.',
       },
       {
         what: 'Turning with the feet only.',
@@ -4000,7 +4000,7 @@ export const TRICKS = [
       },
       {
         what: 'Landing with the feet together.',
-        fix: "Keep your feet a shoulder's width apart so both land over a truck.",
+        fix: 'Keep your feet a shoulder’s width apart so both land over a truck.',
       },
       {
         what: 'Spinning backside first.',
@@ -4369,7 +4369,7 @@ export const TRICKS = [
         fix: 'Start the jump back the moment the front foot touches down.',
       },
     ],
-    hard: "Spicy because the no comply's step now has a half turn on top: the back foot steers the board round while the front foot is on the ground and the shoulders are already turning.",
+    hard: 'Spicy because the no comply’s step now has a half turn on top: the back foot steers the board round while the front foot is on the ground and the shoulders are already turning.',
     isLive: true,
   },
   {
@@ -4486,7 +4486,7 @@ export const TRICKS = [
       },
       {
         what: 'Front foot chasing the board.',
-        fix: "Move the front foot a little back, out of the board's path, and let it come round to you.",
+        fix: 'Move the front foot a little back, out of the board’s path, and let it come round to you.',
       },
       {
         what: 'Scooping as hard as backside.',
@@ -4784,7 +4784,7 @@ export const TRICKS = [
         fix: 'Watch the board through the full circle and drop the feet as the nose comes round.',
       },
     ],
-    hard: "Gnarly because the board has to spin a full circle in the air, so the scoop needs twice a pop shuvit's power without becoming a flip. More power and less flip pull against each other.",
+    hard: 'Gnarly because the board has to spin a full circle in the air, so the scoop needs twice a pop shuvit’s power without becoming a flip. More power and less flip pull against each other.',
     isLive: true,
   },
   {
@@ -4869,7 +4869,7 @@ export const TRICKS = [
       },
       {
         what: 'Back truck landing short.',
-        fix: "Aim the back truck at the edge and let the deck's edge rest across the ledge.",
+        fix: 'Aim the back truck at the edge and let the deck’s edge rest across the ledge.',
       },
       {
         what: 'Weight sat on the front foot.',
@@ -6413,7 +6413,7 @@ export const TRICKS = [
     diff: 3,
     pre: ['bmx-feeble'],
     about:
-      "The feeble's mirror: the front peg grinds the edge while the back wheel rolls along the top of the ledge.",
+      'The feeble’s mirror: the front peg grinds the edge while the back wheel rolls along the top of the ledge.',
     tips: 'Nose in slightly and keep steady pressure on that front peg. It punishes leaning back, so stay over the front.',
     fact: 'Feeble and smith together mean you can grind a ledge from either approach, which doubles what any spot is worth.',
     mistakes: [
@@ -6627,7 +6627,7 @@ export const TRICKS = [
         fix: 'Watch the pedals come round and get your feet on them; the landing looks after itself.',
       },
     ],
-    hard: "The flyout gave you a ramp's worth of height for free. On flat, your bunny hop is the only height there is, so the kick, catch and hop all have to be bigger and quicker.",
+    hard: 'The flyout gave you a ramp’s worth of height for free. On flat, your bunny hop is the only height there is, so the kick, catch and hop all have to be bigger and quicker.',
     isLive: true,
   },
   {
@@ -7059,7 +7059,7 @@ export const TRICKS = [
         fix: 'Learn the flick sitting down first, where the seat holds you up and nothing can hit your shins.',
       },
     ],
-    hard: "Only the hop comes before it. The cranks have to spin a full turn in one hop's air time, and your feet must find them again before the ground does.",
+    hard: 'Only the hop comes before it. The cranks have to spin a full turn in one hop’s air time, and your feet must find them again before the ground does.',
     isLive: true,
   },
   {

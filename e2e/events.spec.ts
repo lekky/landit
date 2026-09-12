@@ -9,7 +9,7 @@ import { finishOnboarding, pickEverySport } from './support/onboarding';
  *
  * Three things worth pinning to the rendered page:
  *
- * - **"I'm going" survives a reload**, which is the difference between a row in
+ * - **"I’m going" survives a reload**, which is the difference between a row in
  *   `event_attendance` and a `useState`.
  * - **A finished event is only ever in the archive**, and the calendar never
  *   carries one. The two halves are two routes now (`/events` and
@@ -17,7 +17,7 @@ import { finishOnboarding, pickEverySport } from './support/onboarding';
  *   the design handoff records in the prototype.
  * - **A visitor who is not signed in reads the whole calendar**, because the
  *   `events` rule is `is_live = true` with no auth arm and a live event is
- *   public data. Only "I'm going" needs an account, and it is a sign-in link
+ *   public data. Only "I’m going" needs an account, and it is a sign-in link
  *   rather than a button that fails on click.
  * - **Nobody else's attendance is anywhere on the page.** There is no
  *   stranger-contact surface in this product (plan §6.1), and "who else is
@@ -124,7 +124,7 @@ test('"I’m going" sticks across a reload', async ({ page }) => {
 
   // Only the one upcoming event is on the list by default, so this is unambiguous.
   await expect(page.getByText('E2E Northern Jam')).toBeVisible();
-  await page.getByRole('button', { name: "I'm going" }).click();
+  await page.getByRole('button', { name: 'I’m going' }).click();
   await expect(page.getByRole('button', { name: '✓ Going' })).toBeVisible({ timeout: 15_000 });
 
   // The toast fires only after `setAttendanceAction` resolves (EventsScreen's
@@ -133,7 +133,7 @@ test('"I’m going" sticks across a reload', async ({ page }) => {
   // client state. Waiting here means the reload cannot abort the write in
   // flight, which is what made this test flaky under local parallelism
   // (issue #121). Straight apostrophe: the toast string, not the JSX &rsquo;.
-  await expect(page.getByText("You're down for E2E Northern Jam.")).toBeVisible({
+  await expect(page.getByText('You’re down for E2E Northern Jam.')).toBeVisible({
     timeout: 15_000,
   });
 
@@ -171,9 +171,9 @@ test('a finished event is only ever in the archive', async ({ page }) => {
 
   // "Over" in words, not only in red — colour never carries meaning alone.
   await expect(page.getByText('Over', { exact: true })).toBeVisible();
-  // "I'm going" is meaningless once it has happened; the page is offered instead.
+  // "I’m going" is meaningless once it has happened; the page is offered instead.
   await expect(page.getByRole('link', { name: 'Full page →' })).toBeVisible();
-  await expect(page.getByRole('button', { name: "I'm going" })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'I’m going' })).toHaveCount(0);
 });
 
 test('the archive index only offers corners that hold something', async ({ page }) => {
@@ -321,7 +321,7 @@ test('a visitor is offered sign-in where a rider is offered "I’m going"', asyn
   const link = page.getByRole('link', { name: 'Sign in to save' }).first();
   await expect(link).toBeVisible();
   await expect(link).toHaveAttribute('href', `/signin?next=${encodeURIComponent('/events')}`);
-  await expect(page.getByRole('button', { name: "I'm going" })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'I’m going' })).toHaveCount(0);
 
   await link.click();
   await page.waitForURL('**/signin?next=*');

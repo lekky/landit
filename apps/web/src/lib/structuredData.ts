@@ -96,7 +96,7 @@ export type TrickHowToContext = {
  * invent numbered steps out of the prose, and it would be wrong — a `HowTo`
  * listing steps a reader cannot find on the page is exactly the mismatch the
  * structured-data guidelines are written against. Staff copy is one lowdown and
- * one set of tips, so this is two steps — and a third, "Why it isn't working",
+ * one set of tips, so this is two steps — and a third, "Why it isn’t working",
  * only when the trick carries T28's `mistakes` and the page draws them (T32).
  * Each mistake and its fix is a `HowToTip` inside that step, which is the
  * schema.org shape for "a thing to know, not a thing to do"; a trick without
@@ -138,7 +138,7 @@ export function trickHowToLd(trick: Trick, context: TrickHowToContext): JsonLdNo
         ? [
             {
               '@type': 'HowToStep',
-              name: "Why it isn't working",
+              name: 'Why it isn’t working',
               itemListElement: trick.mistakes.map((mistake) => ({
                 '@type': 'HowToTip',
                 text: `${mistake.what} ${mistake.fix}`,

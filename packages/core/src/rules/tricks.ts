@@ -229,7 +229,7 @@ export function trickContentProblems(
   });
 
   if (hard && wordCount(hard) > L.hardMaxWords) {
-    problems.push(`Keep "why it's this tier" to ${L.hardMaxWords} words.`);
+    problems.push(`Keep "why it’s this tier" to ${L.hardMaxWords} words.`);
   }
 
   return problems;

@@ -20,7 +20,7 @@ export const PRIVACY = [
     blurb:
       'Anyone with the link sees your tricks, stickers and streak. Your surname and email are never shown.',
     other:
-      "Anyone with the link can see this rider's tricks, stickers and streak. Surnames and emails are never shown.",
+      'Anyone with the link can see this rider’s tricks, stickers and streak. Surnames and emails are never shown.',
   },
   {
     id: 'members',

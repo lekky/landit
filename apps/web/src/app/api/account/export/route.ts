@@ -52,7 +52,7 @@ export async function GET() {
       );
     }
     return NextResponse.json(
-      { error: 'We could not build that just now. Try again in a moment.' },
+      { error: 'We could not build your download just now. Try again in a moment.' },
       { status: 502, headers: { 'cache-control': 'no-store' } },
     );
   }

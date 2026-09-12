@@ -78,8 +78,8 @@ export interface OnboardingTrick {
 
 const STEPS = [
   'What you ride',
-  "Where you're at",
-  "What you're after",
+  'Where you’re at',
+  'What you’re after',
   'First few tricks',
   'Where you found us',
 ] as const;
@@ -576,7 +576,7 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
             disabled={blocked || saving}
             onClick={() => (step < last ? advance(step + 1) : void submit())}
           >
-            {step < last ? 'Next' : saving ? 'Saving…' : "Let's go"}
+            {step < last ? 'Next' : saving ? 'Saving…' : 'Let’s go'}
           </Button>
         </div>
       </div>

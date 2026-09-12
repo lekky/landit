@@ -234,7 +234,7 @@ export default async function RiderProfilePage({
       <div className={styles.grid}>
         <Panel className={styles.panel}>
           <div className={styles.panelHead}>
-            <span className="lab">{isSelf ? "What you've landed" : "What they've landed"}</span>
+            <span className="lab">{isSelf ? 'What you’ve landed' : 'What they’ve landed'}</span>
           </div>
           {landed.length === 0 ? (
             <p className={styles.panelEmpty}>Nothing landed yet.</p>

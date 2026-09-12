@@ -491,7 +491,7 @@ describe('trick content limits', () => {
       'Mistake 1 needs both the mistake and the fix.',
     ]);
     expect(trickContentProblems(ok, words(L.hardMaxWords + 1))).toEqual([
-      `Keep "why it's this tier" to ${L.hardMaxWords} words.`,
+      `Keep "why it’s this tier" to ${L.hardMaxWords} words.`,
     ]);
   });
 

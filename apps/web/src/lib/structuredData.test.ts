@@ -47,10 +47,10 @@ describe('trickHowToLd', () => {
   it('lists exactly the steps the page shows, and invents none', () => {
     const steps = node.step as { name: string; text?: string }[];
     // The lowdown, the tips, and — because the bunny hop carries mistakes and
-    // the page draws them (T32) — "Why it isn't working". Never a fourth.
+    // the page draws them (T32) — "Why it isn’t working". Never a fourth.
     expect(steps).toHaveLength(3);
     expect(steps.slice(0, 2).map((s) => s.text)).toEqual([bunnyHop.about, bunnyHop.tips]);
-    expect(steps[2]?.name).toBe("Why it isn't working");
+    expect(steps[2]?.name).toBe('Why it isn’t working');
   });
 
   it('puts each mistake and its fix in the third step as a tip, word for word', () => {

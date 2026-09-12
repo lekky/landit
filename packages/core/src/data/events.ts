@@ -89,7 +89,7 @@ export const EVENTS = [
     price: '$99 annual membership',
     spots: 'Pre-registration required',
     blurb:
-      "A stop on the national all-ages Boardr Series skateboarding contest. Street and bowl are judged separately, with men's street divisions at 8 and under, 9-12, 13-16 and 17 and up, and women's street and bowl at 12 and under and 13 and up.",
+      'A stop on the national all-ages Boardr Series skateboarding contest. Street and bowl are judged separately, with men’s street divisions at 8 and under, 9-12, 13-16 and 17 and up, and women’s street and bowl at 12 and under and 13 and up.',
     sourceUrl: 'https://theboardr.com/events/4306/The_Boardr_Series_at_Fontana,_California',
     lat: 34.09223,
     lng: -117.43505,
@@ -108,7 +108,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Entry via the national federation',
     blurb:
-      "Round five of Argentina's national BMX racing championship, held over two days in the city of La Rioja.",
+      'Round five of Argentina’s national BMX racing championship, held over two days in the city of La Rioja.',
     sourceUrl:
       'https://www.eldestapeweb.com/informacion-general/deportes/el-argentino-de-bmx-vuelve-a-la-rioja-en-2026-los-detalles-2025122093042',
     lat: -29.41328,
@@ -207,7 +207,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Drop in',
     blurb:
-      "A head-to-head jam at Boston's skatepark from midday to 4pm, with the usual competition formats, music and prizes. The park is large and has features for a range of abilities.",
+      'A head-to-head jam at Boston’s skatepark from midday to 4pm, with the usual competition formats, music and prizes. The park is large and has features for a range of abilities.',
     sourceUrl: 'https://skateboardgb.org/event/boston-skatepark-jam/',
     lat: 52.97633,
     lng: -0.02664,
@@ -287,7 +287,7 @@ export const EVENTS = [
     price: 'Free',
     spots: 'Drop in',
     blurb:
-      "A free coached skatepark session from 12:30pm to 3:30pm as part of ATBShop's summer tour. Equipment hire and tuition are provided, with games and competitive elements during the session.",
+      'A free coached skatepark session from 12:30pm to 3:30pm as part of ATBShop’s summer tour. Equipment hire and tuition are provided, with games and competitive elements during the session.',
     sourceUrl: 'https://www.atbshop.co.uk/blog/summer-2026-on-tour-skatepark-events/',
     lat: 51.55797,
     lng: -1.78116,
@@ -367,7 +367,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Drop in',
     blurb:
-      "Jams run all day from midday to 4pm at Warminster's riverside skatepark, with prizes throughout. There is a water park next door and a supermarket across the road.",
+      'Jams run all day from midday to 4pm at Warminster’s riverside skatepark, with prizes throughout. There is a water park next door and a supermarket across the road.',
     sourceUrl: 'https://skateboardgb.org/event/warminster-skatepark-jam/',
     lat: 51.20434,
     lng: -2.17873,
@@ -589,7 +589,7 @@ export const EVENTS = [
     price: '10 EUR',
     spots: 'Register via Suomisport',
     blurb:
-      "The Finnish national vert skateboarding championship, run by the Finnish Skateboarding Association. There are separate women's and men's categories in both the Groms and Open age classes.",
+      'The Finnish national vert skateboarding championship, run by the Finnish Skateboarding Association. There are separate women’s and men’s categories in both the Groms and Open age classes.',
     sourceUrl: 'https://www.rullalauta.fi/skatesm',
     lat: 60.16952,
     lng: 24.93545,
@@ -628,7 +628,7 @@ export const EVENTS = [
     price: '¥5,000',
     spots: 'Entry via Liveheats',
     blurb:
-      "Round 3 of the Japan Skateboard Association's Kyushu regional amateur contest series, run on a temporary course in the public plaza outside Oita Station with support from Oita City.",
+      'Round 3 of the Japan Skateboard Association’s Kyushu regional amateur contest series, run on a temporary course in the public plaza outside Oita Station with support from Oita City.',
     sourceUrl:
       'https://ajsa.jp/2026/05/15/2026-ajsa-%E5%A4%A7%E4%BC%9A%E3%82%B9%E3%82%B1%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB-%EF%BC%86-%E6%A6%82%E8%A6%81%E7%99%BA%E8%A1%A8/',
     lat: 33.23333,
@@ -709,7 +709,7 @@ export const EVENTS = [
     price: '¥5,000',
     spots: 'Entry via Liveheats',
     blurb:
-      "Round 3 of the Japan Skateboard Association's Chubu regional amateur contest series at the ALL UNDER CITY skatepark in Seki. Judged competition runs with advance online entry.",
+      'Round 3 of the Japan Skateboard Association’s Chubu regional amateur contest series at the ALL UNDER CITY skatepark in Seki. Judged competition runs with advance online entry.',
     sourceUrl:
       'http://ajsa.jp/2026/04/04/2026-ajsa-%E5%A4%A7%E4%BC%9A%E3%82%B9%E3%82%B1%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB-%EF%BC%86-%E6%A6%82%E8%A6%81%E7%99%BA%E8%A1%A8/',
     lat: 35.48333,
@@ -813,7 +813,7 @@ export const EVENTS = [
     price: '¥5,000',
     spots: 'Entry via Liveheats',
     blurb:
-      "Round 3 of the Japan Skateboard Association's Kanto regional amateur contest series, held at a large indoor and outdoor skatepark in Tachikawa. Riders compete in judged runs; entry is online in advance.",
+      'Round 3 of the Japan Skateboard Association’s Kanto regional amateur contest series, held at a large indoor and outdoor skatepark in Tachikawa. Riders compete in judged runs; entry is online in advance.',
     sourceUrl:
       'http://ajsa.jp/2026/04/04/2026-ajsa-%E5%A4%A7%E4%BC%9A%E3%82%B9%E3%82%B1%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB-%EF%BC%86-%E6%A6%82%E8%A6%81%E7%99%BA%E8%A1%A8/',
     lat: 35.7091,
@@ -877,7 +877,7 @@ export const EVENTS = [
     price: '¥5,000',
     spots: 'Entry via Liveheats',
     blurb:
-      "Round 3 of the Japan Skateboard Association's Kansai regional amateur contest series at an indoor skatepark in Higashiosaka. Entry is online and closes before the event.",
+      'Round 3 of the Japan Skateboard Association’s Kansai regional amateur contest series at an indoor skatepark in Higashiosaka. Entry is online and closes before the event.',
     sourceUrl:
       'https://ajsa.jp/2026/08/12/ajsa2026-%E9%96%A2%E8%A5%BF%E3%82%B5%E3%83%BC%E3%82%AD%E3%83%83%E3%83%88%E7%AC%AC3%E6%88%A6/',
     lat: 34.66667,
@@ -899,7 +899,7 @@ export const EVENTS = [
     price: 'Gratis',
     spots: '50 riders',
     blurb:
-      "Municipal street and park skate contest for under-16s, run by Zapopan's sports council. Registration opens at 15:00, riders' meeting at 16:00 and the street competition starts at 16:15.",
+      "Municipal street and park skate contest for under-16s, run by Zapopan’s sports council. Registration opens at 15:00, riders' meeting at 16:00 and the street competition starts at 16:15.",
     sourceUrl: 'https://comudezapopan.gob.mx/serial-de-skateboard-2026/',
     lat: 20.72111,
     lng: -103.38742,
@@ -919,7 +919,7 @@ export const EVENTS = [
     price: 'A$20 one section, A$30 both',
     spots: 'Register by Fri 18 Sep 16:00',
     blurb:
-      "Sydney Riders Scooter Club park and street competition, 10:00-16:00, run under World Skate scootering rules. Park divisions run 7 & Under through to Masters 30+, plus street divisions and novice divisions. Age categories are set by the rider's age as at 31 December 2026.",
+      'Sydney Riders Scooter Club park and street competition, 10:00-16:00, run under World Skate scootering rules. Park divisions run 7 & Under through to Masters 30+, plus street divisions and novice divisions. Age categories are set by the rider’s age as at 31 December 2026.',
     sourceUrl: 'https://www.revolutionise.com.au/srsc/events/336273',
     lat: -34.77507,
     lng: 150.69437,
@@ -1020,7 +1020,7 @@ export const EVENTS = [
     price: '¥5,000',
     spots: 'Entry via Liveheats',
     blurb:
-      "Round 3 of the Japan Skateboard Association's park-terrain contest series, ridden in the bowls and transitions at AIRMAN Skatepark in Niigata. Judged runs with advance online entry.",
+      'Round 3 of the Japan Skateboard Association’s park-terrain contest series, ridden in the bowls and transitions at AIRMAN Skatepark in Niigata. Judged runs with advance online entry.',
     sourceUrl:
       'http://ajsa.jp/2026/04/04/2026-ajsa-%E5%A4%A7%E4%BC%9A%E3%82%B9%E3%82%B1%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB-%EF%BC%86-%E6%A6%82%E8%A6%81%E7%99%BA%E8%A1%A8/',
     lat: 37.92259,
@@ -1042,7 +1042,7 @@ export const EVENTS = [
     price: '¥5,000',
     spots: 'Entry via Liveheats',
     blurb:
-      "Round 3 of the Japan Skateboard Association's Tohoku regional amateur contest series at 245 Skatepark in Murayama. Judged competition runs with advance online entry.",
+      'Round 3 of the Japan Skateboard Association’s Tohoku regional amateur contest series at 245 Skatepark in Murayama. Judged competition runs with advance online entry.',
     sourceUrl:
       'http://ajsa.jp/2026/04/04/2026-ajsa-%E5%A4%A7%E4%BC%9A%E3%82%B9%E3%82%B1%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB-%EF%BC%86-%E6%A6%82%E8%A6%81%E7%99%BA%E8%A1%A8/',
     lat: 38.46972,
@@ -1064,7 +1064,7 @@ export const EVENTS = [
     price: '¥5,000',
     spots: 'Entry via Liveheats',
     blurb:
-      "Round 1 of the Japan Skateboard Association's Hokkaido regional amateur contest series, held at a free public skatepark inside Kurisawa Central Park. Judged competition runs with advance online entry.",
+      'Round 1 of the Japan Skateboard Association’s Hokkaido regional amateur contest series, held at a free public skatepark inside Kurisawa Central Park. Judged competition runs with advance online entry.',
     sourceUrl:
       'http://ajsa.jp/2026/04/04/2026-ajsa-%E5%A4%A7%E4%BC%9A%E3%82%B9%E3%82%B1%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB-%EF%BC%86-%E6%A6%82%E8%A6%81%E7%99%BA%E8%A1%A8/',
     lat: 43.20028,
@@ -1084,7 +1084,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Online entry, some on-site',
     blurb:
-      "An open street skateboarding contest run over three days across Principal Park, Lauridsen Skatepark, Central Campus and the 5th and Walnut parking garage. Men's street runs 8 and under, 9-12, 13-16 and 17 and up; women's street and bowl run 12 and under and 13 and up.",
+      'An open street skateboarding contest run over three days across Principal Park, Lauridsen Skatepark, Central Campus and the 5th and Walnut parking garage. Men’s street runs 8 and under, 9-12, 13-16 and 17 and up; women’s street and bowl run 12 and under and 13 and up.',
     sourceUrl: 'https://theboardr.com/events/4273/Des_Moines_Streetstyle_Open',
     lat: 41.60054,
     lng: -93.60911,
@@ -1101,7 +1101,7 @@ export const EVENTS = [
     phone: '+36 20 218 6951',
     date: '2026-09-26',
     sports: ['skate'],
-    level: "Under 16, 16 and over, women's, open 18+",
+    level: 'Under 16, 16 and over, women’s, open 18+',
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
@@ -1307,7 +1307,7 @@ export const EVENTS = [
     price: '¥5,000',
     spots: 'Entry via Liveheats',
     blurb:
-      "Round 3 of the Japan Skateboard Association's professional tour, at a large municipal skatepark in Matsusaka supported by the city. Children are more likely to attend as spectators than to enter.",
+      'Round 3 of the Japan Skateboard Association’s professional tour, at a large municipal skatepark in Matsusaka supported by the city. Children are more likely to attend as spectators than to enter.',
     sourceUrl:
       'http://ajsa.jp/2026/04/04/2026-ajsa-%E5%A4%A7%E4%BC%9A%E3%82%B9%E3%82%B1%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB-%EF%BC%86-%E6%A6%82%E8%A6%81%E7%99%BA%E8%A1%A8/',
     lat: 34.57895,
@@ -1328,7 +1328,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not published',
     blurb:
-      "An open house at The Boardr's Tampa headquarters, described as food and drinks with a relaxed skate session.",
+      'An open house at The Boardr’s Tampa headquarters, described as food and drinks with a relaxed skate session.',
     sourceUrl: 'https://theboardr.com/events/4298/Open_House_at_The_Boardr_HQ',
     lat: 27.94752,
     lng: -82.45843,
@@ -1367,7 +1367,7 @@ export const EVENTS = [
     price: 'Free',
     spots: 'Three sessions, register online',
     blurb:
-      "Free scooter coaching running 3:30pm to 6:30pm across three sessions, with beginner and intermediate groups working on progression and skill building. Part of Freestyle Now's Movetober programme.",
+      'Free scooter coaching running 3:30pm to 6:30pm across three sessions, with beginner and intermediate groups working on progression and skill building. Part of Freestyle Now’s Movetober programme.',
     sourceUrl: 'https://freestylenow.net/coming-events/',
     lat: -31.9435,
     lng: 115.9255,
@@ -1386,7 +1386,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Entry via the national federation',
     blurb:
-      "Round six of Argentina's national BMX championship, run alongside the Ibero-American and Latin American Cup over three days at the Club Bicicross track in San Juan.",
+      'Round six of Argentina’s national BMX championship, run alongside the Ibero-American and Latin American Cup over three days at the Club Bicicross track in San Juan.',
     sourceUrl:
       'https://sisanjuan.gob.ar/23-deportes/2026-02-26/66379-bmx-club-bicicross-san-juan-anuncio-su-calendario-para-la-temporada-2026',
     lat: -31.53726,
@@ -1428,7 +1428,7 @@ export const EVENTS = [
     price: 'Gratis',
     spots: '50 riders',
     blurb:
-      "Final date of Zapopan's three-round municipal skate series, in street and park. Same running order as the other rounds: registration 15:00, riders' meeting 16:00, street starts 16:15.",
+      "Final date of Zapopan’s three-round municipal skate series, in street and park. Same running order as the other rounds: registration 15:00, riders' meeting 16:00, street starts 16:15.",
     sourceUrl: 'https://comudezapopan.gob.mx/serial-de-skateboard-2026/',
     lat: 20.72111,
     lng: -103.38742,
@@ -1549,7 +1549,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "The fifth edition of South Africa's national street contest, starting at 9am at Thrashers Skatepark. Riders work through qualifying rounds on the park's ramps, rails, ledges and obstacles, with judges scoring trick variation, execution, style, creativity and use of the park. The finals close with a best trick contest.",
+      'The fifth edition of South Africa’s national street contest, starting at 9am at Thrashers Skatepark. Riders work through qualifying rounds on the park’s ramps, rails, ledges and obstacles, with judges scoring trick variation, execution, style, creativity and use of the park. The finals close with a best trick contest.',
     sourceUrl: 'https://lwmag.co.za/street-lines-skate-tournament-2026-the-battle-is-back-1',
     lat: -25.74486,
     lng: 28.18783,
@@ -1607,7 +1607,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Registration required',
     blurb:
-      "The Turkish Skateboarding Federation's inter-club street championship (Kaykay Sokak Disiplini Kulupler Turkiye Sampiyonasi) runs from 9 to 11 September 2026 in Balikesir. The federation states that entries are accepted solely through its mobile app and that no external applications will be taken.",
+      'The Turkish Skateboarding Federation’s inter-club street championship (Kaykay Sokak Disiplini Kulupler Turkiye Sampiyonasi) runs from 9 to 11 September 2026 in Balikesir. The federation states that entries are accepted solely through its mobile app and that no external applications will be taken.',
     sourceUrl:
       'https://www.kaykay.org.tr/blog/kaykay-sokak-disiplini-kulupler-turkiye-sampiyonasi-reglamani',
     lat: 39.61926,
@@ -1743,7 +1743,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "FISE World Series Shanghai runs from 15 to 18 October 2026 on the West Bund, on the riverside in Shanghai's Xuhui district. FISE World Series stops carry BMX, skateboard, scooter and roller freestyle contests, and Shanghai has previously hosted UCI BMX Freestyle World Cup rounds.",
+      'FISE World Series Shanghai runs from 15 to 18 October 2026 on the West Bund, on the riverside in Shanghai’s Xuhui district. FISE World Series stops carry BMX, skateboard, scooter and roller freestyle contests, and Shanghai has previously hosted UCI BMX Freestyle World Cup rounds.',
     sourceUrl: 'https://www.fise.fr/en',
     lat: 31.22222,
     lng: 121.45806,
@@ -1762,7 +1762,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "The FISE World Series season finale runs from 25 to 29 November 2026 in Sakai, Ibaraki Prefecture. Sakai Urban Sports Park is Japan's first permanent outdoor urban sports venue, built for BMX, skateboarding, scootering and inline.",
+      'The FISE World Series season finale runs from 25 to 29 November 2026 in Sakai, Ibaraki Prefecture. Sakai Urban Sports Park is Japan’s first permanent outdoor urban sports venue, built for BMX, skateboarding, scootering and inline.',
     sourceUrl: 'https://www.fise.fr/en/fise-world-series-2026/fise-sakai-2026',
     lat: 36.1,
     lng: 139.8,
@@ -1819,7 +1819,7 @@ export const EVENTS = [
     price: 'Tickets sold via streetleague.jp',
     spots: 'Not listed',
     blurb:
-      "Stop six of the 2026 Street League Skateboarding Championship Tour, held at Ariake Arena in Tokyo on 14 November 2026. Tickets are handled through SLS's Japanese site.",
+      'Stop six of the 2026 Street League Skateboarding Championship Tour, held at Ariake Arena in Tokyo on 14 November 2026. Tickets are handled through SLS’s Japanese site.',
     sourceUrl: 'https://www.streetleague.com/',
     lat: 35.6895,
     lng: 139.69171,
@@ -1839,7 +1839,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "A World Skateboarding Tour street stop running from 16 to 23 November 2026, on the Olympic ranking qualification pathway. The venue's own listing gives Arctown Utsunomiya as the site and notes the schedule is provisional.",
+      'A World Skateboarding Tour street stop running from 16 to 23 November 2026, on the Olympic ranking qualification pathway. The venue’s own listing gives Arctown Utsunomiya as the site and notes the schedule is provisional.',
     sourceUrl:
       'https://arctown-utsunomiya.com/xo_event/%E3%82%B9%E3%82%B1%E3%83%BC%E3%83%88%E3%83%9C%E3%83%BC%E3%83%89%E5%9B%BD%E9%9A%9B%E5%A4%A7%E4%BC%9A%E3%80%8C%E3%83%AF%E3%83%BC%E3%83%AB%E3%83%89%E3%82%B9%E3%82%B1%E3%83%BC%E3%83%88%E3%83%9C%E3%83%BC',
     lat: 36.56667,
@@ -1859,7 +1859,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'National Olympic Committee entries',
     blurb:
-      "World Skate lists the Asian Games skateboarding competition across 21-27 September 2026 in Aichi, with park running 21-25 September and street 23-27 September. Men's and women's park and street medals are contested.",
+      'World Skate lists the Asian Games skateboarding competition across 21-27 September 2026 in Aichi, with park running 21-25 September and street 23-27 September. Men’s and women’s park and street medals are contested.',
     sourceUrl:
       'https://www.skateboarding.worldskate.org/news/1867-asian-games-2026-fields-of-play-revealed.html',
     lat: 34.88333,
@@ -1943,7 +1943,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Pre-registration through The Boardr',
     blurb:
-      "A stop on Skatepark of Tampa's Damn Am amateur street series, held at SPRAK in Louisville from 11 to 13 September 2026. Results feed into qualification for Tampa Am.",
+      'A stop on Skatepark of Tampa’s Damn Am amateur street series, held at SPRAK in Louisville from 11 to 13 September 2026. Results feed into qualification for Tampa Am.',
     sourceUrl: 'https://skateparkoftampa.com/blogs/damn-am-events/',
     lat: 38.25424,
     lng: -85.75941,
@@ -1984,7 +1984,7 @@ export const EVENTS = [
     price: 'Free entry; rider passes from CAD 34.50',
     spots: 'Registration required',
     blurb:
-      "A three-day action-sports festival on the Jacques-Cartier Pier in Montreal's Old Port, running 11 to 13 September 2026. The programme centres on a skateboarding vert competition with BMX and freestyle motocross demonstrations. General admission is free and open to all ages.",
+      'A three-day action-sports festival on the Jacques-Cartier Pier in Montreal’s Old Port, running 11 to 13 September 2026. The programme centres on a skateboarding vert competition with BMX and freestyle motocross demonstrations. General admission is free and open to all ages.',
     sourceUrl: 'https://jackalope.co/pages/festival/montreal',
     lat: 45.50884,
     lng: -73.58781,
@@ -2064,7 +2064,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "Woodward PA lists Community Day on its homepage for 12 September 2026, 10am to 6pm. The same page lists the camp's disciplines as skateboard, scooter, BMX, BMX race, mountain bike, parkour, roller skate and creative arts; it does not break down which of those Community Day itself covers.",
+      'Woodward PA lists Community Day on its homepage for 12 September 2026, 10am to 6pm. The same page lists the camp’s disciplines as skateboard, scooter, BMX, BMX race, mountain bike, parkour, roller skate and creative arts; it does not break down which of those Community Day itself covers.',
     sourceUrl: 'https://www.woodwardpa.com/',
     lat: 40.89868,
     lng: -77.35609,
@@ -2080,11 +2080,11 @@ export const EVENTS = [
     address: 'Avenida José do Patrocínio Pontes 580, Mangabeiras, Belo Horizonte, MG',
     date: '2026-09-12',
     sports: ['skate'],
-    level: "Professional vert, women's Pro and men's Pro",
+    level: 'Professional vert, women’s Pro and men’s Pro',
     price: 'Free; spectators reserve a ticket',
     spots: 'Limited places',
     blurb:
-      "The first of three Vert Battle stages in the 2026 Circuito Banco do Brasil de Skate, held on 12 and 13 September at the Parque das Mangabeiras half-pipe. It counts towards the CBSk professional vertical ranking and carries a total prize pool of R$100,000, split equally between the men's and women's categories. It is the first time the Vert Battle has run in Belo Horizonte.",
+      'The first of three Vert Battle stages in the 2026 Circuito Banco do Brasil de Skate, held on 12 and 13 September at the Parque das Mangabeiras half-pipe. It counts towards the CBSk professional vertical ranking and carries a total prize pool of R$100,000, split equally between the men’s and women’s categories. It is the first time the Vert Battle has run in Belo Horizonte.',
     sourceUrl: 'https://cbsk.com.br/eventos/2168',
     lat: -19.92083,
     lng: -43.93778,
@@ -2124,7 +2124,7 @@ export const EVENTS = [
     price: 'R$110',
     spots: 'Registration required',
     blurb:
-      "The final stage of Rio de Janeiro's state park circuit, running 8.30am to 6pm. Results select the riders who go on to the CBSk-run Brazilian championship.",
+      'The final stage of Rio de Janeiro’s state park circuit, running 8.30am to 6pm. Results select the riders who go on to the CBSk-run Brazilian championship.',
     sourceUrl: 'https://cbsk.com.br/eventos/2165',
     lat: -22.90642,
     lng: -43.18223,
@@ -2224,7 +2224,7 @@ export const EVENTS = [
     price: 'Free',
     spots: 'Registration through Eventbrite',
     blurb:
-      "A family-friendly scooter, skateboard and BMX competition running 10.30am to 4pm and raising money for children's mental health. Younger riders take part in non-competitive expression sessions while riders of 12 and over ride competitive divisions. There is a DJ, prizes and giveaways through the day, and a rain date of 20 September 2026.",
+      'A family-friendly scooter, skateboard and BMX competition running 10.30am to 4pm and raising money for children’s mental health. Younger riders take part in non-competitive expression sessions while riders of 12 and over ride competitive divisions. There is a DJ, prizes and giveaways through the day, and a rain date of 20 September 2026.',
     sourceUrl:
       'https://www.eventbrite.ca/e/axtion-sports-jam-5-for-childrens-mental-health-tickets-1992659605521',
     lat: 42.9334,
@@ -2245,7 +2245,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Registration through Eventbrite',
     blurb:
-      "An inaugural jam marking Trinidad's 150th birthday, bringing the skateboarding and BMX communities together at the town's skatepark from 9am to 4pm. Live music comes from Red Milk and Kipp the Kyd.",
+      'An inaugural jam marking Trinidad’s 150th birthday, bringing the skateboarding and BMX communities together at the town’s skatepark from 9am to 4pm. Live music comes from Red Milk and Kipp the Kyd.',
     sourceUrl: 'https://www.eventbrite.com/e/trin-x-jam-tickets-1999123841224',
     lat: 37.16946,
     lng: -104.50054,
@@ -2284,7 +2284,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "3rd Lair's homepage carries a PUMPTONA event flyer dated 19 September 2026 at its Golden Valley indoor park. The homepage does not state divisions, price, or which sports are eligible.",
+      '3rd Lair’s homepage carries a PUMPTONA event flyer dated 19 September 2026 at its Golden Valley indoor park. The homepage does not state divisions, price, or which sports are eligible.',
     sourceUrl: 'https://3rdlair.com/',
     lat: 45.00969,
     lng: -93.34912,
@@ -2363,7 +2363,7 @@ export const EVENTS = [
     price: 'R$50',
     spots: 'Limited places',
     blurb:
-      "Espírito Santo's state amateur championship, running both street and park in a single day from 8am to 8pm. It is part of the state calendar and a qualifying route onward.",
+      'Espírito Santo’s state amateur championship, running both street and park in a single day from 8am to 8pm. It is part of the state calendar and a qualifying route onward.',
     sourceUrl: 'https://cbsk.com.br/eventos/2169',
     lat: -20.31944,
     lng: -40.33778,
@@ -2424,7 +2424,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Registration required',
     blurb:
-      "Free Fall's signature September event, run over 26 and 27 September 2026 at its 47,000 sq ft park. Separate skateboard, scooter and BMX competitions run alongside a 3v3 basketball tournament. The park has flow bowls, a pool, a street section, rails and vert ramps.",
+      'Free Fall’s signature September event, run over 26 and 27 September 2026 at its 47,000 sq ft park. Separate skateboard, scooter and BMX competitions run alongside a 3v3 basketball tournament. The park has flow bowls, a pool, a street section, rails and vert ramps.',
     sourceUrl: 'https://freefallqtown.com/events',
     lat: 40.44177,
     lng: -75.34157,
@@ -2464,7 +2464,7 @@ export const EVENTS = [
     price: 'Free to enter',
     spots: 'No pre-registration; turn up on the day',
     blurb:
-      "A mini-ramp jam on The Boardr's portable ramp, held across the evenings of 2 and 3 October 2026. Saturday runs qualifiers in jams of six skaters with the top five going through to a twenty-minute final jam. Cash-for-tricks sessions and live music run alongside.",
+      'A mini-ramp jam on The Boardr’s portable ramp, held across the evenings of 2 and 3 October 2026. Saturday runs qualifiers in jams of six skaters with the top five going through to a twenty-minute final jam. Cash-for-tricks sessions and live music run alongside.',
     sourceUrl: 'https://theboardr.com/events/4368/Village_Ramp_Jam',
     lat: 35.7721,
     lng: -78.63861,
@@ -2483,7 +2483,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Entry through national federations',
     blurb:
-      "The park world championship runs from 6 to 10 October at the main ASU26 cluster. The park was built to World Skate international standards. Colombia's federation lists it as a qualifier in the Olympic cycle.",
+      'The park world championship runs from 6 to 10 October at the main ASU26 cluster. The park was built to World Skate international standards. Colombia’s federation lists it as a qualifier in the Olympic cycle.',
     sourceUrl:
       'https://aadeporte.com.ar/2026/08/22/world-skate-games-asuncion-2026-calendario-completo-sedes-y-fechas/',
     lat: -25.28646,
@@ -2585,7 +2585,7 @@ export const EVENTS = [
     price: 'Free Mon-Tue; ticketed from Wed',
     spots: 'Qualification required',
     blurb:
-      "Four days of amateur street contest at Skatepark of Tampa, 15 to 18 October 2026. Friday's Last Chance Open and Saturday's qualifier each send their top thirty through to Sunday's semi-finals and a twelve-skater final. The Saturday and Sunday rounds are streamed free at SPoTTampa.com.",
+      'Four days of amateur street contest at Skatepark of Tampa, 15 to 18 October 2026. Friday’s Last Chance Open and Saturday’s qualifier each send their top thirty through to Sunday’s semi-finals and a twelve-skater final. The Saturday and Sunday rounds are streamed free at SPoTTampa.com.',
     sourceUrl: 'https://skateparkoftampa.com/blogs/events/32nd-annual-tampa-am',
     lat: 27.94752,
     lng: -82.45843,
@@ -2646,7 +2646,7 @@ export const EVENTS = [
     price: 'Free',
     spots: 'Free and open to the public',
     blurb:
-      "An evening round of Skate DSM's Secret Series at Lauridsen Skatepark, from 6pm to 8pm. Each round is built around a different skate obstacle, and the series closes with a video competition in December.",
+      'An evening round of Skate DSM’s Secret Series at Lauridsen Skatepark, from 6pm to 8pm. Each round is built around a different skate obstacle, and the series closes with a video competition in December.',
     sourceUrl: 'https://skatedsm.org/events/',
     lat: 41.60054,
     lng: -93.60911,
@@ -2706,7 +2706,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "The third and final of Skatepark of Tampa's three all-ages contests for the year. It runs on Saturday 7 November 2026 at the park's indoor street course.",
+      'The third and final of Skatepark of Tampa’s three all-ages contests for the year. It runs on Saturday 7 November 2026 at the park’s indoor street course.',
     sourceUrl: 'https://skateparkoftampa.com/blogs/events/2026-harvest-jam',
     lat: 27.94752,
     lng: -82.45843,
@@ -2745,7 +2745,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "The season-ending arena stop of the 2026 SLS Championship Tour, running 4 to 6 December. It is the third of the tour's three arena events and runs the street discipline only.",
+      'The season-ending arena stop of the 2026 SLS Championship Tour, running 4 to 6 December. It is the third of the tour’s three arena events and runs the street discipline only.',
     sourceUrl: 'https://www.boardriding.com/events/sls-super-crown-sao-paulo-2026',
     lat: -23.5475,
     lng: -46.63611,
@@ -2784,7 +2784,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "Skateboarding runs 24-27 September at the Aichi International Exhibition Center (Aichi Sky Expo), Hall B. Men's and women's park qualifying opens on 24 September with the park finals on 25 September; the street medals are decided on 27 September. The Games themselves run 19 September to 4 October across Aichi and Nagoya.",
+      'Skateboarding runs 24-27 September at the Aichi International Exhibition Center (Aichi Sky Expo), Hall B. Men’s and women’s park qualifying opens on 24 September with the park finals on 25 September; the street medals are decided on 27 September. The Games themselves run 19 September to 4 October across Aichi and Nagoya.',
     sourceUrl: 'https://en.wikipedia.org/wiki/Skateboarding_at_the_2026_Asian_Games',
     lat: 34.85632,
     lng: 136.8212,
@@ -2803,7 +2803,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Qualification required',
     blurb:
-      "The men's national amateur final of the Japan Skateboarding Association season, held 31 October to 1 November with 2-3 November as reserve days. Riders qualify through the AJSA regional amateur circuits run across Hokkaido, Tohoku, Kanto, Chubu, Kansai and Kyushu.",
+      'The men’s national amateur final of the Japan Skateboarding Association season, held 31 October to 1 November with 2-3 November as reserve days. Riders qualify through the AJSA regional amateur circuits run across Hokkaido, Tohoku, Kanto, Chubu, Kansai and Kyushu.',
     sourceUrl:
       'https://ajsa.jp/2026/09/04/2026-ajsa-%E5%A4%A7%E4%BC%9A%E3%82%B9%E3%82%B1%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB-%EF%BC%86-%E6%A6%82%E8%A6%81%E7%99%BA%E8%A1%A8/',
     lat: 32.86257,
@@ -2902,7 +2902,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "The third edition of FISE Shanghai, running 15-18 October on the city's West Bund. The programme covers BMX park and BMX street, skateboarding, rollerblading, scootering and breaking.",
+      'The third edition of FISE Shanghai, running 15-18 October on the city’s West Bund. The programme covers BMX park and BMX street, skateboarding, rollerblading, scootering and breaking.',
     sourceUrl: 'https://www.fise.fr/en/fise-world-series-2026/fise-shanghai-2026',
     lat: 31.16234,
     lng: 121.46159,
@@ -3354,7 +3354,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Entries open',
     blurb:
-      "The Rotorua club's season-opening BMX race meeting, listed on the BMX New Zealand events calendar.",
+      'The Rotorua club’s season-opening BMX race meeting, listed on the BMX New Zealand events calendar.',
     sourceUrl: 'https://bmxevents.nz/events/',
     lat: -38.16429,
     lng: 176.24978,
@@ -3464,11 +3464,11 @@ export const EVENTS = [
     venue: 'BaySixty6',
     date: '2026-09-12',
     sports: ['skate'],
-    level: "Women's and men's national championship categories",
+    level: 'Women’s and men’s national championship categories',
     price: 'Tickets online; price not listed',
     spots: 'Not listed',
     blurb:
-      "The national street championships run across Saturday 12 and Sunday 13 September at BaySixty6 in London. Saturday holds the women's and men's semi-finals, Sunday the finals, a best trick competition and the awards ceremony. Community activations and partner giveaways run alongside the contest.",
+      'The national street championships run across Saturday 12 and Sunday 13 September at BaySixty6 in London. Saturday holds the women’s and men’s semi-finals, Sunday the finals, a best trick competition and the awards ceremony. Community activations and partner giveaways run alongside the contest.',
     sourceUrl: 'https://skateboardgb.org/national-championships-2026/',
     lat: 51.50722,
     lng: -0.1275,
@@ -3488,7 +3488,7 @@ export const EVENTS = [
     price: '£10 to skate, spectate or enter',
     spots: 'Not listed',
     blurb:
-      "The House Skatepark's own comp runs from midday to 6pm. It opens with a 12-and-under jam and works through the age and ability categories across the afternoon. The event is skateboard only and open to spectators as well as entrants.",
+      'The House Skatepark’s own comp runs from midday to 6pm. It opens with a 12-and-under jam and works through the age and ability categories across the afternoon. The event is skateboard only and open to spectators as well as entrants.',
     sourceUrl: 'https://skateboardgb.org/event/sheffield-house-comp-2026/',
     lat: 53.38083,
     lng: -1.47028,
@@ -3508,7 +3508,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "An afternoon session from midday to 4pm marking the opening of Cobham's newly built skatepark. The programme is rider demos, competitions and prizes, with brand partners supporting the day.",
+      'An afternoon session from midday to 4pm marking the opening of Cobham’s newly built skatepark. The programme is rider demos, competitions and prizes, with brand partners supporting the day.',
     sourceUrl: 'https://skateboardgb.org/event/cobham-skatepark-opening-jam/',
     lat: 51.329,
     lng: -0.409,
@@ -3528,7 +3528,7 @@ export const EVENTS = [
     price: 'Free',
     spots: 'Not listed',
     blurb:
-      "A midday-to-4pm launch event for the fundraising campaign behind Torpoint's new skatepark. A mini half-pipe is brought in by South West Skate Ramps for riders to use, and the completed park designs by Canvas Spaces are on show alongside stalls, a raffle, music and food.",
+      'A midday-to-4pm launch event for the fundraising campaign behind Torpoint’s new skatepark. A mini half-pipe is brought in by South West Skate Ramps for riders to use, and the completed park designs by Canvas Spaces are on show alongside stalls, a raffle, music and food.',
     sourceUrl: 'https://skateboardgb.org/event/torpoint-skatepark-fundraising-launch/',
     lat: 50.376,
     lng: -4.205,
@@ -3568,7 +3568,7 @@ export const EVENTS = [
     price: '£10 per person',
     spots: 'Limited places',
     blurb:
-      "A street-format round of Skateboard GB's junior series, running 9:30am to 6pm. The competition is run as a jam, with a best trick contest if time allows, and prizes for the top three in each age and gender category. Skateboard GB describe the series as an introduction to competition with the emphasis on fun and progression.",
+      'A street-format round of Skateboard GB’s junior series, running 9:30am to 6pm. The competition is run as a jam, with a best trick contest if time allows, and prizes for the top three in each age and gender category. Skateboard GB describe the series as an introduction to competition with the emphasis on fun and progression.',
     sourceUrl: 'https://skateboardgb.org/event/darlington-survival-of-the-sickest/',
     lat: 54.527,
     lng: -1.5526,
@@ -3587,7 +3587,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "The British Cycling national BMX freestyle championships, run over Saturday 26 and Sunday 27 September at RAF Hangar 59 in Shrewsbury. Riders compete for the national champion's jersey across the championship categories. The same venue hosted round one of the 2026 national series in March.",
+      'The British Cycling national BMX freestyle championships, run over Saturday 26 and Sunday 27 September at RAF Hangar 59 in Shrewsbury. Riders compete for the national champion’s jersey across the championship categories. The same venue hosted round one of the 2026 national series in March.',
     sourceUrl:
       'https://www.britishcycling.org.uk/bmx/article/20251218-BMX-Freestyle-National-Series-British-Cycling-announces-2026-Lloyds-National-BMX-Freestyle-Series-and-Championships-calendar-0',
     lat: 52.708,
@@ -3627,7 +3627,7 @@ export const EVENTS = [
     price: '£10 per person',
     spots: 'Limited places',
     blurb:
-      "A park-format round of Skateboard GB's junior series at F51 in Folkestone. The series is run as a jam with the emphasis on fun and progression, and is aimed at young skateboarders getting their first taste of competition.",
+      'A park-format round of Skateboard GB’s junior series at F51 in Folkestone. The series is run as a jam with the emphasis on fun and progression, and is aimed at young skateboarders getting their first taste of competition.',
     sourceUrl: 'https://skateboardgb.org/survival-of-the-sickest-events/',
     lat: 51.07917,
     lng: 1.17944,
@@ -3686,7 +3686,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Qualification required',
     blurb:
-      "The finals of ScootGB's national park championships, run over Saturday 7 and Sunday 8 November. The field of play is Building 3, the Scooter Room, excluding the resi. Unlike the street finals, park is qualification-only.",
+      'The finals of ScootGB’s national park championships, run over Saturday 7 and Sunday 8 November. The field of play is Building 3, the Scooter Room, excluding the resi. Unlike the street finals, park is qualification-only.',
     sourceUrl: 'https://scootsport.uk/pages/events-1',
     lat: 52.48768,
     lng: -0.7013,
@@ -3705,7 +3705,7 @@ export const EVENTS = [
     price: '£10 per person',
     spots: 'Limited places',
     blurb:
-      "A two-day round of Skateboard GB's junior series at Flo Skatepark, 28 and 29 November. Saturday is park and vert, Sunday is street. The series is run as a jam with the emphasis on fun and progression.",
+      'A two-day round of Skateboard GB’s junior series at Flo Skatepark, 28 and 29 November. Saturday is park and vert, Sunday is street. The series is run as a jam with the emphasis on fun and progression.',
     sourceUrl: 'https://skateboardgb.org/survival-of-the-sickest-events/',
     lat: 52.9247,
     lng: -1.478,
@@ -3726,7 +3726,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "One of BMX Collective Ruhr's floodlit evening sessions at the Alte Zeche bike and skate park, run monthly from May to October. The park lights are switched on for the evening, with live music and food on site.",
+      'One of BMX Collective Ruhr’s floodlit evening sessions at the Alte Zeche bike and skate park, run monthly from May to October. The park lights are switched on for the evening, with live music and food on site.',
     sourceUrl: 'https://freedombmx.de/kalender-termin/bmx-night-session-in-recklinghausen-5',
     lat: 51.585,
     lng: 7.16194,
@@ -3787,7 +3787,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "A BMX demo at Area 51 Eindhoven listed as part of the Night of Strijp-S. The park's calendar gives the date and the discipline only; times, entry price and rider details are not published on the listing.",
+      'A BMX demo at Area 51 Eindhoven listed as part of the Night of Strijp-S. The park’s calendar gives the date and the discipline only; times, entry price and rider details are not published on the listing.',
     sourceUrl: 'https://area51eindhoven.nl/',
     lat: 51.433,
     lng: 5.483,
@@ -3806,7 +3806,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "The Cluut Crew's annual BMX street tour through Brussels, timed to fall on the city's car-free Sunday and running from midday to 6pm. Riders roll between street spots with grinding obstacles brought along the route, finishing with the Trucafrip Longjump. Food, drinks and cash prizes for tricks are provided.",
+      'The Cluut Crew’s annual BMX street tour through Brussels, timed to fall on the city’s car-free Sunday and running from midday to 6pm. Riders roll between street spots with grinding obstacles brought along the route, finishing with the Trucafrip Longjump. Food, drinks and cash prizes for tricks are provided.',
     sourceUrl: 'https://freedombmx.de/kalender-termin/cluut-jam-in-bruessel-bel',
     lat: 50.84667,
     lng: 4.3525,
@@ -3825,7 +3825,7 @@ export const EVENTS = [
     price: '600 SEK',
     spots: 'Was full when listed',
     blurb:
-      "Bryggeriet's autumn-term skate school runs on Wednesdays from 16 September to 21 October at Bryggeriet Skatepark in Malmö. Group 1 meets at 16:00 and group 2 at 17:00, each for fifty minutes.",
+      'Bryggeriet’s autumn-term skate school runs on Wednesdays from 16 September to 21 October at Bryggeriet Skatepark in Malmö. Group 1 meets at 16:00 and group 2 at 17:00, each for fifty minutes.',
     sourceUrl: 'https://www.bryggeriet.org/2026/08/20/skate-school-ht-2026/',
     lat: 55.60482,
     lng: 13.00507,
@@ -3845,7 +3845,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "An all-day skateboarding session hosted by Skatepark de Fabriek in Enschede. The organiser's listing carries the date and venue and says fuller details are still to come.",
+      'An all-day skateboarding session hosted by Skatepark de Fabriek in Enschede. The organiser’s listing carries the date and venue and says fuller details are still to come.',
     sourceUrl: 'https://www.flatspot.nl/events/skate-cypher/',
     lat: 52.2225,
     lng: 6.8925,
@@ -3865,7 +3865,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "The Spotfight X contest runs from 2 to 4 October at the newly opened Skatehalle Chemnitz and doubles as the third round of German Cycling's NK youth series. Entry fees and registration are set out on the event flyer rather than the listing.",
+      'The Spotfight X contest runs from 2 to 4 October at the newly opened Skatehalle Chemnitz and doubles as the third round of German Cycling’s NK youth series. Entry fees and registration are set out on the event flyer rather than the listing.',
     sourceUrl: 'https://freedombmx.de/kalender-termin/3-stopp-der-nk-nachwuchsserie-in-chemnitz',
     lat: 50.833,
     lng: 12.917,
@@ -3886,7 +3886,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "The last of BMX Collective Ruhr's monthly floodlit evening sessions for the season, which run from May to October at the Alte Zeche bike and skate park. The park lights stay on through the evening, with live music and food on site.",
+      'The last of BMX Collective Ruhr’s monthly floodlit evening sessions for the season, which run from May to October at the Alte Zeche bike and skate park. The park lights stay on through the evening, with live music and food on site.',
     sourceUrl: 'https://freedombmx.de/kalender-termin/bmx-night-session-in-recklinghausen-6',
     lat: 51.585,
     lng: 7.16194,
@@ -3905,7 +3905,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "The Swedish vert national championship, run as part of the Skateboardcupen bowl series at Slottsmöllans skatepark in Halmstad. Skateboardcupen is the Swedish Skateboard Federation's national cup and is split into separate bowl and street series.",
+      'The Swedish vert national championship, run as part of the Skateboardcupen bowl series at Slottsmöllans skatepark in Halmstad. Skateboardcupen is the Swedish Skateboard Federation’s national cup and is split into separate bowl and street series.',
     sourceUrl: 'https://sverigesskateboardforbund.se/calendar/events/',
     lat: 56.67389,
     lng: 12.85722,
@@ -4055,11 +4055,11 @@ export const EVENTS = [
     venue: 'Aichi Sky Expo',
     date: '2026-09-26',
     sports: ['bmx'],
-    level: "Men's and women's Park, national teams only",
+    level: 'Men’s and women’s Park, national teams only',
     price: 'Tickets via the Games box office',
     spots: 'Not listed',
     blurb:
-      "BMX Freestyle makes its Asian Games debut at the 20th Asian Games Aichi-Nagoya. The Park contest is staged at Aichi Sky Expo, one of Japan's largest exhibition centres, which also hosts breaking, skateboarding, fencing and esports during the Games.",
+      'BMX Freestyle makes its Asian Games debut at the 20th Asian Games Aichi-Nagoya. The Park contest is staged at Aichi Sky Expo, one of Japan’s largest exhibition centres, which also hosts breaking, skateboarding, fencing and esports during the Games.',
     sourceUrl: 'https://www.aichi-nagoya2026.org/sport/cycling-bmx-freestyle/',
     lat: 34.89586,
     lng: 136.83832,
@@ -4074,7 +4074,7 @@ export const EVENTS = [
     venue: 'Nagoya Velodrome BMX Race Course',
     date: '2026-09-26',
     sports: ['bmx'],
-    level: "Men's and women's BMX Racing, national teams only",
+    level: 'Men’s and women’s BMX Racing, national teams only',
     price: 'Tickets via the Games box office',
     spots: 'Not listed',
     blurb:
@@ -4097,7 +4097,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Registration required',
     blurb:
-      "British Cycling's national BMX freestyle title event runs 26-27 September 2026 at RAF Hangar 59 in Shrewsbury. The facility was used as the training centre for the Paris 2024 Olympics, where Kieran Reilly took silver, and closes a three-round 2026 series that also visited 4 Motion in Darlington and Junction 4 in Darwen.",
+      'British Cycling’s national BMX freestyle title event runs 26-27 September 2026 at RAF Hangar 59 in Shrewsbury. The facility was used as the training centre for the Paris 2024 Olympics, where Kieran Reilly took silver, and closes a three-round 2026 series that also visited 4 Motion in Darlington and Junction 4 in Darwen.',
     sourceUrl:
       'https://www.britishcycling.org.uk/bmx/article/20251218-BMX-Freestyle-National-Series-British-Cycling-announces-2026-Lloyds-National-BMX-Freestyle-Series-and-Championships-calendar-0',
     lat: 52.70776,
@@ -4309,7 +4309,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Registration required',
     blurb:
-      "FISE returns to Shanghai's West Bund from 15 to 18 October 2026 with BMX, BMX Street, skateboarding, rollerblading and scootering. The stop doubles as Round 3 of the UCI BMX Freestyle World Cup, with men's and women's Park and Flatland; UCI Park practice days run 14-15 October.",
+      'FISE returns to Shanghai’s West Bund from 15 to 18 October 2026 with BMX, BMX Street, skateboarding, rollerblading and scootering. The stop doubles as Round 3 of the UCI BMX Freestyle World Cup, with men’s and women’s Park and Flatland; UCI Park practice days run 14-15 October.',
     sourceUrl: 'https://www.fise.fr/en/fise-world-series-2026/fise-shanghai-2026',
     lat: 31.23127,
     lng: 121.47002,
@@ -4404,7 +4404,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Not listed',
     blurb:
-      "New Zealand's national BMX freestyle park championship, held at Taupo Skate Park on 21 November 2026 and listed on the FATBMX event calendar.",
+      'New Zealand’s national BMX freestyle park championship, held at Taupo Skate Park on 21 November 2026 and listed on the FATBMX event calendar.',
     sourceUrl:
       'https://www.fatbmx.com/bmx-news/item/46763-bmx-events-in-november-december-2018-what-s-going-on-new-flyers-added',
     lat: -38.68662,
@@ -4426,7 +4426,7 @@ export const EVENTS = [
     price: 'Not listed',
     spots: 'Registration coming soon',
     blurb:
-      "New Zealand's biggest annual scooter event returns to Bay Skate in Napier from 20 to 23 January 2027, with 24 January held as a reserve day. The 20th is the scheduled practice day and competition starts on the 21st. Freestyle Roller Sports NZ, the national governing body for scootering, runs the event across park and street.",
+      'New Zealand’s biggest annual scooter event returns to Bay Skate in Napier from 20 to 23 January 2027, with 24 January held as a reserve day. The 20th is the scheduled practice day and competition starts on the 21st. Freestyle Roller Sports NZ, the national governing body for scootering, runs the event across park and street.',
     sourceUrl: 'https://www.freestylerollersports.co.nz/2026-scooter-nationals',
     lat: -39.5008,
     lng: 176.91899,

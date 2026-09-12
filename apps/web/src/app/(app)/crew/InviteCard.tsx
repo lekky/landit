@@ -97,7 +97,7 @@ export function InviteCard({ code, crewName, firstName, sportsLine, onClose }: I
       // Cancelling the share sheet is not a failure, and telling a rider it was
       // would make every "no thanks" look like a bug.
       if ((error as { name?: string })?.name !== 'AbortError') {
-        toast("Couldn't open the share sheet", 'var(--red)');
+        toast('Couldn’t open the share sheet', 'var(--red)');
       }
     }
     setBusy(false);

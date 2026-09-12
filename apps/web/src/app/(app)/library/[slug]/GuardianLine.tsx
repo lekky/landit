@@ -22,7 +22,7 @@ export function GuardianLine() {
       <div>
         <div className={`lab ${styles.guardianLabel}`}>Worth a grown-up knowing</div>
         <p className={styles.guardianBody}>
-          This one goes upside down. Learn it into foam or onto a resi ramp first, and don&apos;t
+          This one goes upside down. Learn it into foam or onto a resi ramp first, and don&rsquo;t
           try it alone.
         </p>
       </div>

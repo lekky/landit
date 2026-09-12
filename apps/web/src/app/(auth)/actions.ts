@@ -219,7 +219,7 @@ export async function requestResetAction(
   form: FormData,
 ): Promise<AuthFormState> {
   const email = text(form, 'email');
-  if (!EMAIL.test(email)) return { errors: { email: "That email doesn't look right" } };
+  if (!EMAIL.test(email)) return { errors: { email: 'That email doesn’t look right' } };
 
   try {
     await requestPasswordReset(createServerClient(), email);
@@ -265,7 +265,7 @@ export async function resendVerificationAction(
   form: FormData,
 ): Promise<AuthFormState> {
   const email = text(form, 'email');
-  if (!EMAIL.test(email)) return { errors: { form: "That email doesn't look right" } };
+  if (!EMAIL.test(email)) return { errors: { form: 'That email doesn’t look right' } };
 
   try {
     await requestVerification(createServerClient(), email);

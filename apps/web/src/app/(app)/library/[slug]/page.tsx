@@ -595,7 +595,7 @@ export default async function TrickPage({ params }: Params) {
             {/* Section D, between the tips and the fun fact, as the pack draws it. */}
             {mistakes && (
               <div className={styles.secMistakes}>
-                <SectionHead color={category.color}>{"Why it isn't working"}</SectionHead>
+                <SectionHead color={category.color}>{'Why it isn’t working'}</SectionHead>
                 <MistakesList mistakes={mistakes} slug={trick.id} sport={trick.sport} />
               </div>
             )}

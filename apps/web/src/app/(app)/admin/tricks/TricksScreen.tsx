@@ -458,7 +458,7 @@ export function TricksScreen({
             { k: 'tips', label: 'Tips', type: 'text', rows: 3, wide: true },
             {
               k: 'hard',
-              label: "Why it's this tier",
+              label: 'Why it’s this tier',
               type: 'text',
               rows: 2,
               wide: true,

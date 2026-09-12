@@ -75,7 +75,7 @@ export type AvatarId = (typeof AVATARS)[number]['id'];
 export const AVATAR_GROUPS = [
   { id: 'Lids', blurb: 'Helmets, caps and beanies. How most riders show up' },
   { id: 'Heads', blurb: 'No lid, just hair. Pick the one closest to you' },
-  { id: 'Kit', blurb: "Gear and glyphs, for anyone who'd rather not be a face" },
+  { id: 'Kit', blurb: 'Gear and glyphs, for anyone who’d rather not be a face' },
 ] as const satisfies readonly { id: AvatarGroupId; blurb: string }[];
 
 /** Where `apps/web` serves the copied PNGs from. */

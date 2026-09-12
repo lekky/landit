@@ -102,7 +102,7 @@ export const AUTH_COPY = {
   emailTaken: 'That email already has an account.',
   /** The link the sign-up form draws after `emailTaken`, to `/signin`. */
   signInInstead: 'Sign in instead?',
-  emailInvalid: "That email doesn't look right",
+  emailInvalid: 'That email doesn’t look right',
   passwordShort: `${MIN_PASSWORD} characters minimum`,
   passwordLong: `${MAX_PASSWORD_BYTES} characters at most`,
   passwordRefused: 'That password will not work. Try another',

@@ -34,7 +34,7 @@ export function MistakesList({
   sport: SportId;
 }) {
   return (
-    <ol className={styles.mistakes} aria-label="Why it isn't working">
+    <ol className={styles.mistakes} aria-label="Why it isn’t working">
       {mistakes.map((mistake, index) => (
         <li key={index} className={styles.mistake}>
           <span className={`d ${styles.mistakeNumber}`} aria-hidden="true">

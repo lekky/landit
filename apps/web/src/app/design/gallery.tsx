@@ -242,7 +242,7 @@ export function Gallery() {
         >
           <div style={row}>
             <Button>Start tracking</Button>
-            <Button variant="ghost">I&apos;ve got an account</Button>
+            <Button variant="ghost">I&rsquo;ve got an account</Button>
             <Button variant="ink">See plans</Button>
             <Button size="sm">Share it</Button>
             <Button size="sm" variant="ghost">
@@ -251,7 +251,7 @@ export function Gallery() {
             <Button disabled>Next</Button>
           </div>
           <div style={{ maxWidth: 320, marginTop: 12 }}>
-            <Button wide>Log this week&apos;s challenge</Button>
+            <Button wide>Log this week&rsquo;s challenge</Button>
           </div>
         </Section>
 
@@ -422,7 +422,7 @@ export function Gallery() {
         <Section
           id="tricks"
           title="Trick cards"
-          note="Folded corner in the category colour, footer strip in the current stage's colour. Locked cards hatch, flag the tier in violet and never hide."
+          note="Folded corner in the category colour, footer strip in the current stage’s colour. Locked cards hatch, flag the tier in violet and never hide."
         >
           <div className="grid-tricks">
             <TrickCard
@@ -603,7 +603,7 @@ export function Gallery() {
           <div style={{ ...row, marginTop: 4 }}>
             <Avatar name="Nia" size={54} hue="var(--pink)" title="Fallback initial" />
             <span className="cond" style={{ fontSize: 13.5, color: 'var(--ink-3)' }}>
-              No picture: the rider&apos;s initial on a flat colour
+              No picture: the rider&rsquo;s initial on a flat colour
             </span>
           </div>
         </Section>
@@ -706,7 +706,7 @@ export function Gallery() {
               <div className="field">
                 <label htmlFor="demo-email">Email</label>
                 <input id="demo-email" defaultValue="not-an-email" />
-                <span className="err">That email doesn&apos;t look right</span>
+                <span className="err">That email doesn&rsquo;t look right</span>
               </div>
               <div className="field">
                 <label htmlFor="demo-notes">Session notes</label>

@@ -46,7 +46,7 @@ export async function askGuardianAction(
     .trim()
     .toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    return { error: "That email doesn't look right" };
+    return { error: 'That email doesn’t look right' };
   }
 
   try {

@@ -393,8 +393,8 @@ test('a trick says why it is not working, one numbered row per mistake', async (
   // Four today; the number comes from the catalogue so a content edit moves
   // the test rather than breaking it, and the section sits under the Tips.
   expect(tailwhip.mistakes).toHaveLength(4);
-  await expect(page.getByRole('heading', { name: "Why it isn't working" })).toBeVisible();
-  const rows = page.getByRole('list', { name: "Why it isn't working" }).getByRole('listitem');
+  await expect(page.getByRole('heading', { name: 'Why it isn’t working' })).toBeVisible();
+  const rows = page.getByRole('list', { name: 'Why it isn’t working' }).getByRole('listitem');
   await expect(rows).toHaveCount(tailwhip.mistakes!.length);
   for (const [index, mistake] of tailwhip.mistakes!.entries()) {
     await expect(rows.nth(index)).toContainText(String(index + 1));
@@ -403,7 +403,7 @@ test('a trick says why it is not working, one numbered row per mistake', async (
   }
 
   // And the sentence under the facts strip says why it is this tier.
-  await expect(page.getByText(`Why it's ${TIERS_LABEL[tailwhip.diff - 1]}:`)).toBeVisible();
+  await expect(page.getByText(`Why it’s ${TIERS_LABEL[tailwhip.diff - 1]}:`)).toBeVisible();
   await expect(page.getByText(tailwhip.hard!)).toBeVisible();
 });
 

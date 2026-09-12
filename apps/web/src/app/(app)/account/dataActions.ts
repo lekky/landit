@@ -46,7 +46,7 @@ export async function deleteAccountAction(
     await deleteAccount(session.client, { password, confirm });
   } catch (error) {
     return {
-      error: refusalMessage(error) ?? 'We could not do that just now. Try again in a moment.',
+      error: refusalMessage(error) ?? 'Your account was not deleted. Try again in a moment.',
     };
   }
 

@@ -249,7 +249,7 @@ export function NoticesScreen({
             <Empty
               icon="bolt"
               title={show === 'all' ? 'Nothing posted' : 'Nothing at that state'}
-              sub="Announcements you post show up here and on every rider's dashboard."
+              sub="Announcements you post show up here and on every rider’s dashboard."
             />
           )}
 

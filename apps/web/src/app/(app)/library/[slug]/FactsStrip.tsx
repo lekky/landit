@@ -51,7 +51,7 @@ export function FactsStrip({
       </div>
       {hard && (
         <p className={styles.factsWhy}>
-          <b>Why it&apos;s {facts.tier}:</b> {hard}
+          <b>Why it&rsquo;s {facts.tier}:</b> {hard}
         </p>
       )}
     </div>

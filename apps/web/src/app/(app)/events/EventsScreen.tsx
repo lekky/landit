@@ -250,7 +250,7 @@ export function EventsScreen({
         toast(result.error, 'var(--red)');
         return;
       }
-      toast(next ? `You're down for ${event.name}.` : `Taken off ${event.name}.`, event.kindColor);
+      toast(next ? `You’re down for ${event.name}.` : `Taken off ${event.name}.`, event.kindColor);
     });
   };
 
@@ -559,7 +559,7 @@ export function EventsScreen({
                       style={going.has(event.id) ? { background: 'var(--green)' } : undefined}
                       aria-pressed={going.has(event.id)}
                     >
-                      {going.has(event.id) ? '✓ Going' : "I'm going"}
+                      {going.has(event.id) ? '✓ Going' : 'I’m going'}
                     </Button>
                   ) : (
                     <Link className="btn sm" href={signInHref(ROUTES.events)}>
@@ -953,7 +953,7 @@ function EventDetailModal({
                   style={going ? { background: 'var(--green)' } : undefined}
                   aria-pressed={going}
                 >
-                  {going ? "✓ You're going" : "I'm going"}
+                  {going ? '✓ You’re going' : 'I’m going'}
                 </Button>
               ) : (
                 <Link className="btn" href={signInHref(ROUTES.events)}>

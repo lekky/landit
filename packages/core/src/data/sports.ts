@@ -10,7 +10,7 @@ export const SPORTS = {
     short: 'Scooter',
     color: '#FF5A1F',
     icon: 'scoot',
-    kit: "Scooter, helmet, and pads once you're on ramps",
+    kit: 'Scooter, helmet, and pads once you’re on ramps',
     blurb: 'Whips, bar spins and grinds on a stunt scooter',
   },
   skate: {

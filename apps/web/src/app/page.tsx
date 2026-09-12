@@ -111,7 +111,7 @@ const wallNames = Array.from(
 const FEATURE_ROWS = [
   {
     eyebrow: 'Step one',
-    title: "Tick off what you've already got",
+    title: 'Tick off what you’ve already got',
     copy: 'Three libraries, hundreds of tricks, every one with its own page. Start by marking the ones you can already do — most riders find a dozen in the first ten minutes — and the wall starts filling in from there.',
     img: '/marketing/library.png',
     alt: 'The scooter trick library, each trick showing its category, difficulty and tracking status',
