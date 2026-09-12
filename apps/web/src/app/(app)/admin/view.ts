@@ -1,4 +1,4 @@
-import { HEARD_ABOUT, type TrickMistake } from '@landit/core';
+import { approvalExpired, HEARD_ABOUT, isConsentLimited, type TrickMistake } from '@landit/core';
 import type { SportLook } from '@landit/ui-web';
 
 /**
@@ -23,6 +23,13 @@ import type { SportLook } from '@landit/ui-web';
  * therefore lives on `RiderSheetView` alone, which is fetched per rider when
  * staff open one, so the page carries the address of the rider being looked at
  * and of nobody else. `country` and the consent token stay off both.
+ *
+ * **The guardian's address, added 2026-09-12, is on the sheet under the same
+ * rule and for a stronger reason.** It is not the rider's address at all: it
+ * belongs to an adult with no account here, typed into a form by a child. It
+ * goes where the rider's own address goes — see `GuardianConsentView` — and the
+ * table carries the consent *state* only, as a tag, which is a fact about the
+ * account rather than about a third party.
  *
  * Dates arrive pre-formatted for the same reason they do on every other screen:
  * `toLocaleDateString` disagrees between Node and the browser and takes the
@@ -56,13 +63,45 @@ export interface AdminRiderRow {
   /** "Under 13", "13–15", "16–17", "Adult", "—". Pre-formatted; see `AGE_BAND_LABEL`. */
   readonly ageBand: string;
   readonly plan: string;
-  /** `ok` | `suspended` | `pending` — the account column's tag. */
+  /** The account column's tag — see `riderStatus`. */
   readonly status: AdminRiderStatus;
   /** The signed-in staff member's own row, which they may not act on. */
   readonly isMe: boolean;
 }
 
-export type AdminRiderStatus = 'ok' | 'suspended' | 'pending';
+export type AdminRiderStatus = 'ok' | 'suspended' | 'pending' | 'revoked';
+
+/**
+ * The account column's tag, for one rider.
+ *
+ * **`revoked` is a tag of its own, and that is the whole point of this
+ * function.** Until 2026-09-12 the table asked `consent_state === 'pending'`
+ * and called everything else `ok`, so a rider whose guardian had actively
+ * withdrawn consent showed the same green tag as an open account — while being
+ * exactly as locked out of crews, invites, events, spots and subscriptions as a
+ * rider still waiting for a first answer (`CONSENT_LIMITED_DENIES`). Staff had
+ * nowhere to see it: the sheet did not carry consent state either. A parent who
+ * had said no was, on the only screen staff read, indistinguishable from a
+ * parent who had said yes.
+ *
+ * So the question it asks is `isConsentLimited`, which is core's own list of
+ * the states that hold an account behind the gate, rather than a string test
+ * that has to be remembered when a fifth state is added. `pending` and
+ * `revoked` are then told apart for the label, because they need different
+ * things from staff — one is waiting on a guardian who may never have seen the
+ * email, the other is a decision that has been made.
+ *
+ * Neither is a moderation flag: `suspended` is the only staff action here, and
+ * it wins, because a suspended account is shut whatever its guardian thinks.
+ */
+export function riderStatus(rider: {
+  readonly suspended?: boolean;
+  readonly consent_state?: string;
+}): AdminRiderStatus {
+  if (rider.suspended) return 'suspended';
+  if (!isConsentLimited(rider.consent_state)) return 'ok';
+  return rider.consent_state === 'revoked' ? 'revoked' : 'pending';
+}
 
 /**
  * How the four age bands read on a staff screen.
@@ -216,6 +255,79 @@ export interface TrackedTrickView {
 }
 
 /**
+ * The most recent time this rider asked a guardian, as the sheet shows it.
+ *
+ * **The address is on the sheet and never on the row**, for the reason the head
+ * of this file gives about the rider's own email and then some: this one
+ * belongs to an adult with no account here, who was typed into a form by a
+ * child. A column of it would put every listed guardian's address in the page
+ * source of a table nobody had opened. Fetched per rider, so the page carries
+ * the address of the one being looked at and of nobody else. (Placement and
+ * showing it unmasked: owner's call, 2026-09-12, in chat — staff need it to
+ * recognise an inbound support mail from a parent, which a masked address
+ * cannot do.)
+ *
+ * **It describes the row, not the account.** `guardian_consents` is evidence
+ * and `90_consent.pb.js` writes a new record per request rather than editing
+ * the last, so a rider can have several — and the newest is not always the one
+ * the account's state rests on, if a rider asked a second guardian after the
+ * first had already answered. Every field here is therefore read off that one
+ * record's own timestamps, and the sheet labels the block as the latest
+ * request. The account's actual standing is the `consent_state` tag, which is
+ * rendered beside it from a different source and can legitimately disagree.
+ */
+export interface GuardianConsentView {
+  /** The address the rider gave. Lower-cased by the hook that stored it. */
+  readonly email: string;
+  /** "Approved", "Withdrawn", "Waiting on a reply", "Link expired". */
+  readonly standing: string;
+  readonly standingColor: string;
+  /** "1 Sep 2026" — when the rider asked. */
+  readonly requested: string;
+  /**
+   * When the guardian answered, pre-formatted, or `null` if they have not.
+   * Separate from `requested` because the gap between the two is the thing
+   * staff are usually looking at.
+   */
+  readonly answered: string | null;
+}
+
+/**
+ * What the latest guardian request currently says, as a label and a colour.
+ *
+ * The order is the point. A record carries three independent stamps and more
+ * than one can be set at once — a guardian who approved in September and
+ * withdrew in October leaves both `granted` and `revoked` on the same row,
+ * because the revocation link never expires and revoking does not erase the
+ * grant it undoes. Read grant-first, that row says "Approved" forever. So
+ * `revoked` is tested first: the last thing a guardian did is what staff need
+ * to see, and reading it in the other order would show a withdrawn consent as a
+ * live one on the one screen anybody would check.
+ *
+ * Expiry is only asked about a record nobody has answered, which is why it
+ * comes third rather than first: an approval link that ran out after it was
+ * used is not a fact about anything.
+ */
+export function guardianStanding(
+  record: {
+    readonly granted?: string;
+    readonly revoked?: string;
+    readonly approval_expires?: string;
+  },
+  now: Date,
+): { readonly standing: string; readonly standingColor: string } {
+  if (record.revoked) return { standing: 'Withdrawn', standingColor: 'var(--orange)' };
+  if (record.granted) return { standing: 'Approved', standingColor: 'var(--green)' };
+  if (approvalExpired(record.approval_expires, now)) {
+    // Not a dead end, and the label should not read like one: the rider can
+    // always ask for a fresh link, and the revocation link in the email that
+    // has already gone out never expires at all (§6.2).
+    return { standing: 'Link expired', standingColor: 'var(--ink-3)' };
+  }
+  return { standing: 'Waiting on a reply', standingColor: 'var(--yellow)' };
+}
+
+/**
  * One rider, opened from the table.
  *
  * Loaded on demand rather than with the page: the table shows forty riders and
@@ -266,6 +378,11 @@ export interface RiderSheetView {
    * re-checks the same rule, because a hidden button is not a gate.
    */
   readonly canDelete: boolean;
+  /**
+   * The rider's most recent guardian request, or `null` if they have never
+   * made one — which is every account the gate has never applied to.
+   */
+  readonly guardian: GuardianConsentView | null;
 }
 
 export interface AdminActivityRow {

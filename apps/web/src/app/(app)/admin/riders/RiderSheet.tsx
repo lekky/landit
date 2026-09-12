@@ -123,6 +123,14 @@ export function RiderSheet({
     });
   };
 
+  /**
+   * Is this account held behind the consent gate right now?
+   *
+   * Read off the row's tag rather than re-deriving it, so the block below and
+   * the tag in the table can never disagree about the same rider.
+   */
+  const gated = rider.status === 'pending' || rider.status === 'revoked';
+
   const stats: readonly (readonly [number, string])[] = [
     [view?.tracked.length ?? 0, 'Tracked'],
     [view?.landed ?? rider.landed, 'Landed'],
@@ -200,6 +208,49 @@ export function RiderSheet({
           <span className={styles.sheetFactValue}>{view?.lastRide ?? '—'}</span>
         </div>
       </div>
+
+      {/*
+        The guardian block, shown for an account behind the gate and for any
+        account that has ever asked — a rider whose guardian approved months
+        ago is `ok` in the table and still has a request worth reading.
+
+        Rendered from `rider.status` rather than waiting for `view`, so a
+        gated rider's block is there from the first frame with "Loading…" in
+        it rather than appearing a beat later. An em dash would not do here as
+        it does above: in the facts block it means "we hold nothing", and here
+        "nobody has been asked" and "not fetched yet" are different enough
+        answers that a staff member chasing a stuck account must not have them
+        spelled the same way. `missing` drops the block entirely rather than
+        adding a third wording: the account is gone, so there is no request to
+        report and "Loading…" would never resolve.
+      */}
+      {!missing && (gated || view?.guardian) && (
+        <div className={styles.sheetGuardian}>
+          <div className="lab" style={{ color: 'var(--ink-3)' }}>
+            Latest guardian request
+          </div>
+          {!view ? (
+            <p className={styles.quiet}>Loading…</p>
+          ) : !view.guardian ? (
+            <p className={styles.quiet}>
+              Nobody has been asked yet. This rider has not sent a guardian email.
+            </p>
+          ) : (
+            <>
+              <div className={styles.sheetGuardianHead}>
+                <span className={styles.sheetFactValue}>{view.guardian.email}</span>
+                <Tag color={view.guardian.standingColor} style={{ fontSize: 10 }}>
+                  {view.guardian.standing}
+                </Tag>
+              </div>
+              <div className="lab" style={{ color: 'var(--ink-3)' }}>
+                Asked {view.guardian.requested}
+                {view.guardian.answered ? ` · answered ${view.guardian.answered}` : ''}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <div className={styles.sheetBody}>
         <div>

@@ -24,9 +24,25 @@ import styles from '../admin.module.css';
  * every keystroke.
  */
 
+/**
+ * The Account column's four tags.
+ *
+ * `guardian` and `withdrawn` are the two halves of the consent gate and they
+ * are deliberately different words rather than one tag with two colours: both
+ * accounts are equally shut out of crews, events and a subscription, but only
+ * one of them is waiting for anybody. "Guardian" reads as an open question,
+ * which is what a `pending` account is; a `revoked` one has had its answer.
+ *
+ * Orange rather than red for `withdrawn`, because red is `suspended` and the
+ * two must not be confused at a glance — suspension is something staff did,
+ * revocation is something a parent did, and only one of them is staff's to
+ * undo. Both are within the 150px Account track (`admin.module.css`), which is
+ * sized for SUSPENDED — the longest of the four.
+ */
 const STATUS_LOOK: Readonly<Record<AdminRiderStatus, { label: string; color: string }>> = {
   ok: { label: 'ok', color: 'var(--green)' },
   pending: { label: 'guardian', color: 'var(--yellow)' },
+  revoked: { label: 'withdrawn', color: 'var(--orange)' },
   suspended: { label: 'suspended', color: 'var(--red)' },
 };
 

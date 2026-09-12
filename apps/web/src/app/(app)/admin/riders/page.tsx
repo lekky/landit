@@ -6,12 +6,7 @@ import { monthYear, relativeTime } from '@/lib/dates';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { requireStaff } from '@/lib/staff';
 
-import {
-  bandLabel,
-  type AdminPlanOption,
-  type AdminRiderRow,
-  type AdminRiderStatus,
-} from '../view';
+import { bandLabel, riderStatus, type AdminPlanOption, type AdminRiderRow } from '../view';
 
 import { RidersScreen } from './RidersScreen';
 
@@ -73,15 +68,6 @@ export default async function AdminRidersPage({
 
   const now = new Date().toISOString();
 
-  const status = (rider: (typeof page.items)[number]): AdminRiderStatus => {
-    if (rider.suspended) return 'suspended';
-    // Not a moderation flag — there is no reports queue until T17. What it
-    // means here is the only "this account is not fully open" state that
-    // exists: a rider waiting on a guardian's decision (plan §6.2).
-    if (rider.consent_state === 'pending') return 'pending';
-    return 'ok';
-  };
-
   const rows: AdminRiderRow[] = page.items.map((rider) => {
     // `|| DEFAULT_TIMEZONE`, as every rider-facing screen already does it:
     // `toDayKey`'s default parameter only fires on `undefined`, so an empty
@@ -113,7 +99,7 @@ export default async function AdminRidersPage({
       seenToday,
       ageBand: bandLabel(rider.age_band),
       plan: rider.plan,
-      status: status(rider),
+      status: riderStatus(rider),
       isMe: rider.id === staff.rider.id,
     };
   });
