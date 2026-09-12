@@ -672,6 +672,26 @@ to touch that copy will not know the feature ever existed. A promise made to a p
 carefully their child's video is stored is worse than useless once no video is stored: it is still
 telling them we hold it.
 
+**An import that changes a collection's *scale* breaks readers that never read a word of it.**
+The world import took `spots` from a few thousand rows to about thirty thousand (#400). It was
+careful about the two screens everyone thinks of as the spots feature: `/spots` had already moved to
+paged queries (#367), and `/spots/[slug]` swapped its onward list for a bounded box query in the
+import's own PR. What nobody swept was every *other* caller of `listSpots`. `/events/[slug]` had one
+— it filled a four-row "Spots near {town}" signpost by fetching the whole collection and
+partitioning it in memory — and that read went from cheap to thirty-odd sequential paged requests,
+twice per request because `generateMetadata` and the page body each load, on a page live riders were
+opening from the events modal. The event page stopped serving, four days after the import merged and
+with nothing red anywhere: no failing test, no type error, no line of the import's diff touching
+that file.
+
+The rule: **when a change moves a collection's row count by an order of magnitude, grep for every
+reader of that collection and justify each one against the new number, before the PR is done.**
+`getFullList` is the shape to hunt for — it follows every page, so it never errors, it only gets
+slower until something upstream gives up. The tell is a caller that reads a whole table to show a
+handful of rows; it is invisible in review precisely because the code did not change. And the
+whole-table helper that survives with no callers is the next session's trap, so it goes in the same
+sweep (#420).
+
 **A field nobody enforces can still be load-bearing.** `plans.clip_cap_bytes` looked like pure dead
 weight after the reversal — the only hook that read it was deleted in the same PR. It could not be
 removed: `listPlans` sorts the plan cards by it, because it was the collection's only numeric column

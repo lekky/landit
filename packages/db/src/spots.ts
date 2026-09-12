@@ -345,3 +345,104 @@ export async function listIndexedSpots(client: Client): Promise<SpotsRecord[]> {
     sort: 'name',
   });
 }
+
+/* ------------------------------------------------------ the spots near -- */
+
+/** A place to gather spots around, in the only two terms both records hold. */
+export interface SpotPlace {
+  readonly town?: string;
+  readonly country?: string;
+}
+
+/**
+ * How many rows each band asks for.
+ *
+ * The caller shows four, and both bands are name sorted, so four would do:
+ * at most three town rows can shadow a country row, and a town with four of
+ * its own never needs the country band at all. Fifty is headroom, so a block
+ * that wants a row more is not a change to this file, and it is still three
+ * orders of magnitude less than the whole table.
+ */
+const PLACE_BAND = 50;
+
+/** A place name as both sides of `nearnessBetween` compare it. */
+const fold = (value: string | undefined): string => (value ?? '').trim().toLowerCase();
+
+/**
+ * The two bands of "near a place", as filters: the town, then its country.
+ *
+ * **`=` on a `:lower` column, not `~`.** `nearnessBetween` in `@landit/core`
+ * decides what "near" means and it compares *whole* strings, case folded —
+ * "India" must never select "Indonesia" — so the query says the same thing
+ * rather than something looser. A `~` would have been a contains: asking for
+ * York would hand back New York and Yorkton, and with a band this shallow the
+ * town's own spots could be pushed out of it by the towns merely spelled like
+ * it. `:lower =` is not syntax this codebase had used before, so
+ * `spots.integration.test.ts` proves it against a real PocketBase — on this
+ * database a filter that does not work answers nothing, silently, and only a
+ * test like that one notices.
+ *
+ * The rule still decides: this narrows the table to the rows that could be
+ * near, and `nearestFirst` bands them. A band with nothing to match on is
+ * left out rather than sent as an empty string.
+ */
+export function spotPlaceFilters(place: SpotPlace): SpotFilter[] {
+  const bands: SpotFilter[] = [];
+  const town = fold(place.town);
+  const country = fold(place.country);
+  if (town) bands.push({ filter: `${LIVE} && town:lower = {:town}`, params: { town } });
+  if (country) {
+    bands.push({ filter: `${LIVE} && country:lower = {:country}`, params: { country } });
+  }
+  return bands;
+}
+
+/**
+ * Live spots in a town and then in the rest of its country, without reading
+ * every spot there is.
+ *
+ * An event page listed "Spots near {town}" by fetching the whole `spots`
+ * collection and partitioning it in the browser's stead on the server. That
+ * was a few hundred rows when the block was built and is thirty thousand since
+ * the world import — a whole-table read, followed over thirty-odd pages of a
+ * thousand rows, on every view of every event page, to put four rows at the
+ * foot of it. The spots list (issue #367) and the spot page both stopped doing
+ * this; this is the same stop for the last caller that still did.
+ *
+ * **The rows are the ones the page showed before, in the order it showed
+ * them.** Both bands come back name sorted, as the whole table used to; the
+ * town's band leads; and `nearestFirst` partitions stably, so a name-sorted
+ * town band followed by a name-sorted country band lands in exactly the order
+ * a single name-sorted table did. The two queries overlap — a spot in the town
+ * is also in its country — so the country band drops what the town band
+ * already carried, and nothing else is done to either.
+ *
+ * Sorting in particular is left to the database, deliberately: re-sorting the
+ * pair in JavaScript would have to guess at the collation PocketBase ordered
+ * them by, and a world of accented park names is where that guess goes wrong.
+ *
+ * `spots.integration.test.ts` checks all of this against a real database
+ * rather than trusting the argument — the same four rows, for real towns, as
+ * reading every spot gave.
+ */
+export async function listSpotsInPlace(client: Client, place: SpotPlace): Promise<SpotsRecord[]> {
+  const bands = spotPlaceFilters(place);
+  if (!bands.length) return [];
+
+  const pages = await Promise.all(
+    bands.map((band) =>
+      records(client, 'spots').page({ ...band, sort: 'name', perPage: PLACE_BAND }),
+    ),
+  );
+
+  const seen = new Set<string>();
+  const rows: SpotsRecord[] = [];
+  for (const page of pages) {
+    for (const row of page.items) {
+      if (seen.has(row.id)) continue;
+      seen.add(row.id);
+      rows.push(row);
+    }
+  }
+  return rows;
+}
