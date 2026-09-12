@@ -116,11 +116,21 @@ const card = (page: Page, name: string) =>
  *
  * `aria-pressed` flipping is the proof: the pill's state lives in React, so the
  * attribute cannot change until the component owns the DOM node.
+ *
+ * It presses a *sport* pill and then puts it back, rather than pressing "Every
+ * spot" as it used to. Since the filter became a multi-select the screen opens
+ * on "Every spot" already pressed (2026-09-12), so that pill's `aria-pressed`
+ * is `true` in the server's own markup and flipping nothing proves nothing. A
+ * sport pill starts `false`, so it can only read `true` once React is live —
+ * and pressing "Every spot" afterwards leaves the screen unfiltered, which is
+ * what the rest of this file expects to find.
  */
 async function whenInteractive(page: Page): Promise<void> {
-  const pill = page.getByRole('button', { name: 'Every spot' });
-  await pill.click();
-  await expect(pill).toHaveAttribute('aria-pressed', 'true');
+  const sport = page.getByRole('button', { name: /^BMX/ });
+  await sport.click();
+  await expect(sport).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Every spot' }).click();
+  await expect(sport).toHaveAttribute('aria-pressed', 'false');
 }
 
 async function findSpot(page: Page, name: string) {
@@ -169,10 +179,13 @@ test.describe('where to ride', () => {
 
     await expect(page.getByRole('heading', { name: 'Where to ride' })).toBeVisible();
 
-    // The screen opens filtered to the rider's sport, so "every live spot" is
-    // only true after the second pill — which is itself the prototype's
-    // behaviour and worth pinning down.
-    await page.getByRole('button', { name: 'Every spot' }).click();
+    // **The screen opens on every spot**, with nothing pressed but "Every spot"
+    // (owner, 2026-09-12). It used to open filtered to whatever sport the
+    // global switch was on, so this count was only true after a press.
+    await expect(page.getByRole('button', { name: 'Every spot' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
 
     // The count is the claim about the whole collection; the cards below it are
     // one page of that. Asserting the count is what proves the seed landed —
@@ -199,7 +212,7 @@ test.describe('where to ride', () => {
      * collection, and pressing through reaches the rest.
      */
     await page.goto('/spots');
-    await page.getByRole('button', { name: 'Every spot' }).click();
+    await whenInteractive(page);
 
     const cards = page.locator('[class*="cardBody"]');
     const first = await cards.count();
@@ -211,36 +224,85 @@ test.describe('where to ride', () => {
 
   test('offers every sport, BMX included', async ({ page }) => {
     /*
-     * The defect this pins (owner, 2026-08-31: "doesn't have bmx").
+     * The defect this pins (owner, 2026-08-31: "doesn't have bmx"), now on the
+     * control that replaced the one it was written for.
      *
-     * This screen used to roll its own sport switch — a single "Switch to
-     * {other}" pill that picked the first sport that was not the current one.
-     * At two sports that is a toggle; at three it is a dead end, and BMX was
-     * the sport it could never reach. Counting the tabs rather than naming
-     * them is deliberate: a fourth sport should move this assertion, not slip
-     * past it.
+     * This screen has had two sport controls and both could strand a rider.
+     * The prototype's "Switch to {other}" pill picked the first sport that was
+     * not the current one — a toggle at two sports, a dead end at three, with
+     * BMX unreachable. `SportSwitch` fixed that and introduced its own: it is
+     * fed by the rider's own `users.sports` and renders nothing below two, so a
+     * rider who records one sport saw no tabs and a pill hard-wired to that
+     * sport. The filter row is over `SPORT_IDS` and is the same for everybody.
+     *
+     * Counting the pills rather than naming them is deliberate: a fourth sport
+     * should move this assertion, not slip past it.
      */
     await page.goto('/spots');
-    const row = page.getByRole('tablist', { name: 'Spots by sport' });
-    await expect(row.getByRole('tab')).toHaveCount(SPORT_IDS.length);
+    const row = page.getByRole('group', { name: 'Filter spots by sport' });
+    // One per sport, plus "Every spot".
+    await expect(row.getByRole('button')).toHaveCount(SPORT_IDS.length + 1);
+    // And the global tab row is gone from this screen with it.
+    await expect(page.getByRole('tablist', { name: 'Spots by sport' })).toHaveCount(0);
 
-    // `whenInteractive` is the hydration gate the rest of this file uses, and
-    // it leaves "Every spot" on — which is the filter this test is about, so
-    // it goes straight back off again.
     await whenInteractive(page);
-    const bmx = row.getByRole('tab', { name: /BMX/ });
+    const bmx = row.getByRole('button', { name: /^BMX/ });
     await bmx.click();
-    await expect(bmx).toHaveAttribute('aria-selected', 'true');
-    await page.getByRole('button', { name: /^Good for/ }).click();
+    await expect(bmx).toHaveAttribute('aria-pressed', 'true');
 
-    // And it is a real filter, not a tab that only highlights: a park that
+    // And it is a real filter, not a pill that only highlights: a park that
     // takes BMX and bans scooters is on the list under BMX and gone under
     // Scooter.
     await page.getByLabel('Search spots').fill(bmxNotScooterSpot.name);
     await expect(card(page, bmxNotScooterSpot.name)).toBeVisible();
 
-    await row.getByRole('tab', { name: /Scooter/ }).click();
+    await bmx.click();
+    await row.getByRole('button', { name: /^Scooter/ }).click();
     await expect(page.getByText(bmxNotScooterSpot.name, { exact: true })).toHaveCount(0);
+  });
+
+  test('takes more than one sport at once', async ({ page }) => {
+    /*
+     * The ask this row was built for (owner, 2026-09-12: "I just want them to
+     * be able to pick everything, or one of each, or multiple"). Neither
+     * control this screen had before could express "scooter and BMX" — they
+     * were one sport or all of them.
+     *
+     * Any of the chosen sports, not all: a park that takes BMX and bans
+     * scooters belongs in "scooter and BMX", because the rider is asking for
+     * both lists at once.
+     */
+    await page.goto('/spots');
+    await whenInteractive(page);
+
+    const row = page.getByRole('group', { name: 'Filter spots by sport' });
+    await row.getByRole('button', { name: /^Scooter/ }).click();
+    await row.getByRole('button', { name: /^BMX/ }).click();
+
+    // Both pills stay on — pressing the second does not replace the first.
+    await expect(row.getByRole('button', { name: /^Scooter/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(row.getByRole('button', { name: /^BMX/ })).toHaveAttribute('aria-pressed', 'true');
+    // "Every spot" is off, because this is a narrowing and says so.
+    await expect(page.getByRole('button', { name: 'Every spot' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+
+    await page.getByLabel('Search spots').fill(bmxNotScooterSpot.name);
+    await expect(card(page, bmxNotScooterSpot.name)).toBeVisible();
+
+    // Pressing the last chosen sport off widens back to every spot rather than
+    // emptying the screen.
+    await page.getByRole('button', { name: 'Clear' }).click();
+    await row.getByRole('button', { name: /^Scooter/ }).click();
+    await row.getByRole('button', { name: /^BMX/ }).click();
+    await expect(page.getByRole('button', { name: 'Every spot' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   test('narrows the list by search and by sport', async ({ page }) => {

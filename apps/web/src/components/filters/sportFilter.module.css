@@ -1,0 +1,34 @@
+/*
+ * The sport filter's own row (`SportFilter.tsx`).
+ *
+ * A CSS module and not a global class: this sits inside each screen's own
+ * `.filters` row, and a bare global name is exactly what broke the crew
+ * board's score line (issue #445).
+ *
+ * A flex row of its own rather than `display: contents`, which would let the
+ * pills join the host row directly. `display: contents` removes the element
+ * from the accessibility tree in enough browsers that the `role="group"` and
+ * its label — the thing that says these four pills are one control — could not
+ * be relied on. The gap matches both hosts' `.filters` (8px), so the seam is
+ * invisible, and it wraps as one block, which is what keeps "Every sport" with
+ * its sports on a phone instead of stranded at the end of the kind pills.
+ */
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/*
+ * The count after a sport's name, e.g. "Skate 12".
+ *
+ * `currentColor` at reduced opacity rather than `--ink-3`: the pill changes
+ * colour when its sport is chosen, and a fixed grey would drop out of contrast
+ * against the fill.
+ */
+.note {
+  margin-left: 6px;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}

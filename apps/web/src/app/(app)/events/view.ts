@@ -58,7 +58,7 @@ export interface EventView {
     readonly color: string;
     readonly icon: string;
   }[];
-  /** Sport ids, for the "good for X" filter. */
+  /** Sport ids, for the sport filter. An event good for any chosen one is kept. */
   readonly sportIds: readonly SportId[];
   readonly going: boolean;
   /** Already been and gone, on the rider's calendar. */
@@ -137,7 +137,7 @@ export interface EventsView {
   readonly archive: ArchiveView | null;
   /** Only the kinds present in the list, so no pill finds nothing. */
   readonly kinds: readonly { readonly id: EventKind; readonly color: string }[];
-  /** How many live events each sport has, for the tab notes. */
+  /** How many events each sport has, for the sport filter's counts. */
   readonly countBySport: Readonly<Record<string, number>>;
   readonly goingCount: number;
   /**
@@ -252,8 +252,9 @@ export function buildEventsView(input: EventsViewInput): EventsView {
     };
   });
 
-  // Counted off the rider's own sports, whatever they are — never a literal
-  // pair (plan §7, "three sports, not two").
+  // Counted off whichever sports the caller asked for — every sport, since the
+  // filter offers every sport (`load.ts`). Never a literal pair (plan §7,
+  // "three sports, not two").
   const countBySport: Record<string, number> = {};
   for (const sport of input.sports) {
     // Counted within the half on screen: on the archive "12 on" has to mean

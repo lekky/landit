@@ -284,6 +284,10 @@ describe('the event catalogue', () => {
         'spots_map_cluster_opened',
         'spots_map_ground',
         'spots_map_sheet_opened',
+        // The sport pills on /events and /spots, which became a multi-select
+        // on 2026-09-12. Which screen, and the chosen sport ids joined with
+        // `+` (or 'all'). Never the rider's own sports.
+        'sport_filter_set',
         'sport_switched',
         'sticker_earned',
         // The wall's Earned / All switch, and a capped shelf opened (T33).

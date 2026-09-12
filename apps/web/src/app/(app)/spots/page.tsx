@@ -4,7 +4,6 @@ import {
   spotCountryForRegion,
   spotFeature,
   unitsForCountry,
-  type SportId,
 } from '@landit/core';
 import { countSpotsBySport, listOwnSpots, pageSpots } from '@landit/db';
 import type { Metadata } from 'next';
@@ -37,13 +36,12 @@ export const metadata: Metadata = {
  * everything after that. The count line and the sport tabs' notes are
  * counted here, over the whole collection, so they say what they always said.
  *
- * **The first page is for the sport the screen will show first.** The sport
- * lives in the browser (`localStorage`, see `providers/sport.tsx`) and cannot
- * be read here; what *can* be known is the default the provider falls back to
- * before it reads storage — the rider's first sport, else the first sport
- * there is — and that is the page rendered. A rider whose stored choice
- * differs sees the list swap once after hydration, which is exactly what the
- * old screen did when it filtered the full list on the same tick.
+ * **The first page is every sport**, which is the query the screen opens on
+ * since the filter row became a multi-select (2026-09-12). It used to be the
+ * sport the provider would fall back to before it read `localStorage`, so a
+ * rider whose stored choice differed saw the list swap once after hydration.
+ * There is nothing to swap now: the screen no longer reads the sport
+ * preference at all, so the server and the first client render agree.
  *
  * **The list is whatever the rules hand back, and nothing here filters for
  * safety.** A rider's own pending and rejected submissions come back to them
@@ -86,13 +84,10 @@ export default async function SpotsPage({
     : regionFromAcceptLanguage((await headers()).get('accept-language'));
   const homeCountry = spotCountryForRegion(region);
 
-  const riderSports = (session?.rider.sports ?? []) as SportId[];
-  const initialSport: SportId = riderSports[0] ?? SPORT_IDS[0]!;
-
   const [first, counts, own] = await Promise.all([
     pageSpots(
       client,
-      { search: '', sport: initialSport, feature: feature?.id ?? null },
+      { search: '', feature: feature?.id ?? null },
       { home: homeCountry, page: 1, perPage: SPOTS_PAGE },
     ),
     countSpotsBySport(client, SPORT_IDS),
@@ -103,7 +98,6 @@ export default async function SpotsPage({
     <SpotsScreen
       initialSpots={first.items.map(toSpotView)}
       initialTotal={first.total}
-      initialSport={initialSport}
       countsBySport={counts}
       ownSpots={own.map(toSpotView)}
       signedIn={!!session}
