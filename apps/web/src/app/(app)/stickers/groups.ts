@@ -9,17 +9,23 @@ import type { StickerView } from './view';
  * question a rider brings to the screen — "what have I got, and what's near"
  * — had no answer a glance could give.
  *
- * So the wall is shelved. **Earned first**, all kinds together, because a
- * fresh one lands there and the pop should be at the top of the screen. Then
- * the locked ones by what they are *for*, in the order a rider meets them: the
- * trick awards they are in the library to earn, then the milestones those add
- * up to, streaks, challenges, and the rest.
+ * So the wall is shelved by what an award is *for*, in the order a rider meets
+ * them: the trick awards they are in the library to earn, then the milestones
+ * those add up to, streaks, challenges, and the rest.
+ *
+ * **Earned is a tab, not a shelf** (Rachid, 2026-09-12, in chat). T33 first
+ * made it a shelf pinned to the top of both views, and that was wrong twice
+ * over: a badge appeared on both tabs, and because the earned shelf led the
+ * locked view as well, switching tabs changed nothing a rider could see
+ * without scrolling past it. The two tabs are now disjoint halves of the same
+ * wall — every badge is on exactly one — and both are shelved the same way, so
+ * "Trick awards" means the same thing on either side and the counts tell the
+ * rider which half they are looking at.
  *
  * "Nearly there" is not a shelf, deliberately. `@landit/core`'s
  * `evaluateSticker` answers yes or no; there is no "how close" number, and the
  * rules are heterogeneous enough (thresholds, streaks, `() => false`) that
- * adding one is its own piece of work. When it exists it goes between Earned
- * and the first locked shelf.
+ * adding one is its own piece of work.
  */
 
 export type WallGroup = {
@@ -30,9 +36,7 @@ export type WallGroup = {
 
 type Shelf = { readonly id: string; readonly label: string };
 
-const EARNED: Shelf = { id: 'earned', label: 'Earned' };
-
-/** Shelves for locked awards, in display order. */
+/** The shelves, in display order. Both tabs use them. */
 const SHELVES: readonly Shelf[] = [
   { id: 'tricks', label: 'Trick awards' },
   { id: 'milestones', label: 'Milestones' },
@@ -92,16 +96,16 @@ export function shelfFor(kind: string): string {
 }
 
 /**
- * Shelve a wall. Preserves the canonical order within each shelf, which is the
- * order the server handed the stickers in. Empty shelves are omitted, so a
- * rider who has earned everything sees one shelf and a brand-new one sees no
- * "Earned" heading over nothing.
+ * Shelve a list of badges — one tab's half of the wall.
+ *
+ * Preserves the canonical order within each shelf, which is the order the
+ * server handed the stickers in. Empty shelves are omitted, so a rider with
+ * two earned badges sees two shelves rather than eight, six of them headings
+ * over nothing.
  */
-export function groupWall(wall: readonly StickerView[]): WallGroup[] {
-  const earned = wall.filter((s) => s.earned);
+export function shelveWall(stickers: readonly StickerView[]): WallGroup[] {
   const byShelf = new Map<string, StickerView[]>();
-  for (const s of wall) {
-    if (s.earned) continue;
+  for (const s of stickers) {
     const id = shelfFor(s.kind);
     const list = byShelf.get(id);
     if (list) list.push(s);
@@ -109,10 +113,9 @@ export function groupWall(wall: readonly StickerView[]): WallGroup[] {
   }
 
   const out: WallGroup[] = [];
-  if (earned.length) out.push({ ...EARNED, stickers: earned });
   for (const shelf of SHELVES) {
-    const stickers = byShelf.get(shelf.id);
-    if (stickers?.length) out.push({ ...shelf, stickers });
+    const list = byShelf.get(shelf.id);
+    if (list?.length) out.push({ ...shelf, stickers: list });
   }
   return out;
 }
@@ -120,14 +123,29 @@ export function groupWall(wall: readonly StickerView[]): WallGroup[] {
 /* ------------------------------------------------------------ the two tabs -- */
 
 /**
- * Which half of the wall is showing. "All" is the shelved wall above; "Earned"
- * is the rider's own collection with nothing locked in it.
+ * Which half of the wall is showing. The two are disjoint: every badge on the
+ * rider's wall is in exactly one of them, and `earned` is the only thing that
+ * decides which.
  */
-export type WallView = 'earned' | 'all';
+export type WallView = 'earned' | 'unearned';
 
 /**
- * How many badges a shelf draws under "All" before the rest go behind its
- * button (Rachid, 2026-09-12, in chat).
+ * The tab labels.
+ *
+ * "Not yet" rather than "Locked" on purpose. It is already the word printed
+ * across an unearned badge (`sticker-mark` in `ui-web`), so the tab and the
+ * art agree — and in this product **locked means the paywall** (`isTrickLocked`,
+ * the hatched steps on a trick's road). A tab called Locked would have read as
+ * "the ones you have to pay for", which is the one thing it must not say.
+ */
+export const WALL_VIEW_LABELS: Readonly<Record<WallView, string>> = {
+  earned: 'Earned',
+  unearned: 'Not yet',
+};
+
+/**
+ * How many badges a shelf draws before the rest go behind its button (Rachid,
+ * 2026-09-12, in chat).
  *
  * Six is three rows at the wall's 118px column on a phone. Measured on the
  * option mockups, six takes the wall from about nineteen and a half phone
@@ -135,6 +153,11 @@ export type WallView = 'earned' | 'all';
  * screen, which is not worth a smaller glance at each shelf. The same owner
  * decision declined shrinking a locked badge to buy the rest, so this constant
  * is the only lever there is — change it here and nowhere else.
+ *
+ * It applies to **both** tabs. A rider who has earned eighty badges has the
+ * same wall-of-scroll problem on their own side as a new rider has on the
+ * other, and a cap that ran on one tab only would be a rule with an exception
+ * to remember.
  */
 export const SHELF_CAP = 6;
 
@@ -155,13 +178,15 @@ export function capShelf(stickers: readonly StickerView[], cap = SHELF_CAP): Cap
  *
  * **The unannounced branch is load-bearing, not redundant.** `StickerWall`
  * acknowledges freshly earned awards on mount, across every sport, whatever
- * view is showing — so a default that could hide the Earned shelf would stamp
+ * view is showing — so a default that could hide the earned half would stamp
  * `seen_at` without the badge ever being drawn, and the once-only pop is spent
- * for good (plan §3). Today "anything earned" already implies it, because an
- * unannounced award is an earned one; the branch is here so that a later change
- * to the line below cannot quietly take the pop with it.
+ * for good (plan §3). Now that the tabs are disjoint this matters more than it
+ * did: the other tab genuinely does not contain the new badge. Today "anything
+ * earned" already implies it, because an unannounced award is an earned one;
+ * the branch is here so that a later change to the line below cannot quietly
+ * take the pop with it.
  */
 export function defaultWallView(wall: readonly StickerView[]): WallView {
   if (wall.some((s) => s.unannounced)) return 'earned';
-  return wall.some((s) => s.earned) ? 'earned' : 'all';
+  return wall.some((s) => s.earned) ? 'earned' : 'unearned';
 }
