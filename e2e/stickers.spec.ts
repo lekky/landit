@@ -79,24 +79,25 @@ async function markSometimes(page: Page): Promise<void> {
 }
 
 /**
- * Switch the wall to "All", and be sure the switch landed.
+ * Switch the wall to "Not yet", and be sure the switch landed.
  *
  * The wall opens on a rider's own collection the moment they hold anything
  * (T33) — and during the launch window that is *every* new account, because
- * `day-one` is granted at sign-up. The Earned view draws nothing locked, so a
- * spec that wants the locked half has to ask for it; without this it would
- * assert over an empty collection and pass by finding nothing, which is the
- * failure mode this file's own header warns about (LESSONS §5).
+ * `day-one` is granted at sign-up. The two tabs are disjoint halves, so the
+ * Earned side draws nothing locked at all and a spec that wants the locked
+ * half has to ask for it; without this it would assert over an empty
+ * collection and pass by finding nothing, which is the failure mode this
+ * file's own header warns about (LESSONS §5).
  *
  * Retried on `aria-pressed` for the reason `markSometimes` gives: the control
  * is server-rendered, so it is on screen before React owns it, and a press
  * before hydration does nothing at all.
  */
 async function showWholeWall(page: Page): Promise<void> {
-  const all = page.getByRole('button', { name: /^All \d+$/ });
+  const notYet = page.getByRole('button', { name: /^Not yet \d+$/ });
   await expect(async () => {
-    await all.click();
-    await expect(all).toHaveAttribute('aria-pressed', 'true');
+    await notYet.click();
+    await expect(notYet).toHaveAttribute('aria-pressed', 'true');
   }).toPass({ timeout: 20_000 });
 }
 
@@ -141,34 +142,66 @@ test('a fresh wall shows the award set, locked — bar the founder badge', async
   const earned = Number(count.split(' of ')[0]);
   expect(earned).toBeLessThanOrEqual(1);
 
-  // The locked half lives behind "All" now; the heading above still counts the
-  // whole wall either way.
+  // The earned tab's own count agrees with the heading.
+  await expect(page.getByRole('button', { name: `Earned ${earned}` })).toBeVisible();
+
+  // The locked half lives behind "Not yet" now; the heading above still counts
+  // the whole wall either way. The halves are disjoint, so that side holds
+  // nothing but locked badges.
   await showWholeWall(page);
   await expect(page.locator('.sticker.locked').first()).toBeVisible();
-  await expect(page.locator('.sticker:not(.locked)')).toHaveCount(earned);
+  await expect(page.locator('.sticker:not(.locked)')).toHaveCount(0);
 });
 
-test('the wall opens on what a rider has, and All holds the rest behind its shelves', async ({
+test('the two tabs are disjoint halves, shelved the same way, and visibly differ', async ({
   page,
 }) => {
   await arrive(page, 'Tabbed Rider');
   await landSomething(page);
   await page.goto('/stickers');
 
-  // Something earned, so the wall opens on Earned — and nothing locked is
-  // drawn there. This is also what protects the once-only pop: the wall
-  // acknowledges fresh awards on mount whatever view is showing, so the
-  // default has to be the view that draws them (`defaultWallView`).
-  await expect(page.getByRole('button', { name: /^Earned \d+$/ })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  // Something earned, so the wall opens on Earned — and because the halves are
+  // disjoint, nothing locked is drawn there at all. This is also what protects
+  // the once-only pop: the wall acknowledges fresh awards on mount whatever
+  // view is showing, so the default has to be the view that draws them.
+  const earnedTab = page.getByRole('button', { name: /^Earned \d+$/ });
+  await expect(earnedTab).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.sticker.locked')).toHaveCount(0);
 
-  await showWholeWall(page);
+  /*
+   * The regression this test exists for. T33 first shipped Earned as a shelf
+   * pinned to the top of *both* views, so the first screenful was identical on
+   * either tab and pressing the switch looked like it did nothing (owner, on
+   * the live site, 2026-09-12). The fix is that the halves share no badge, so
+   * that is what this asserts directly.
+   *
+   * The badge's accessible name is on its `<img>` ("<name> sticker, earned"),
+   * not on the button around it.
+   */
+  const badgeNames = async (): Promise<(string | null)[]> => {
+    const imgs = await page.locator('.sticker img').all();
+    return Promise.all(imgs.map((img) => img.getAttribute('alt')));
+  };
 
-  // Every shelf is capped, so the trick shelf shows six of its many rather
-  // than swallowing the wall. Its heading still says how many there are.
+  const onEarned = await badgeNames();
+  expect(onEarned.length).toBeGreaterThan(0);
+
+  await showWholeWall(page);
+  await expect(earnedTab).toHaveAttribute('aria-pressed', 'false');
+
+  const onNotYet = await badgeNames();
+  expect(onNotYet.length).toBeGreaterThan(0);
+  expect(
+    onNotYet.filter((name) => onEarned.includes(name)),
+    'a badge is on both tabs',
+  ).toEqual([]);
+
+  // Nothing earned appears on the Not yet side — disjoint, not merely reordered.
+  await expect(page.locator('.sticker:not(.locked)')).toHaveCount(0);
+
+  // Both sides use the same shelves, and each is capped, so the trick shelf
+  // shows six of its many rather than swallowing the wall. Its heading still
+  // says how many there are.
   const tricks = page.locator('section', {
     has: page.getByRole('heading', { name: 'Trick awards' }),
   });

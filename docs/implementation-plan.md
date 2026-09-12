@@ -4018,16 +4018,35 @@ T27 to 297, which is **121 on the scooter tab and 127 on BMX** — and a rider o
 held none of them, so the screen opened on about twenty phone screens of locked art. #245 shelved
 that heap by kind; this one shortens it.
 
-**Two tabs and a cap.** The wall gains an **Earned / All** switch, and under All every shelf draws
-`SHELF_CAP` (six) badges with the rest behind its own "Show all N". Measured on the mockups at
-360px: nineteen and a half screens becomes seven and a half. Earned is the rider's own collection
-with nothing locked in it, and it is never capped on its own tab.
+**Two tabs and a cap.** The wall gains an **Earned / Not yet** switch, and every shelf on either
+tab draws `SHELF_CAP` (six) badges with the rest behind its own "Show all N". Measured on the
+mockups at 360px: nineteen and a half screens becomes seven and a half.
+
+**The tabs are disjoint halves of one wall** — every badge is on exactly one, `earned` is the only
+thing that decides which, and both sides are shelved identically, so "Trick awards" means the same
+thing on either and the counts say which half is in view.
+
+**This was corrected after the first deploy** (Rachid, on the live site, 2026-09-12). T33 first
+shipped Earned as a *shelf* pinned to the top of both views. That was wrong twice: a badge appeared
+on both tabs, and because the earned shelf also led the All view, pressing the switch changed
+nothing a rider could see without scrolling past it — a rider with eleven badges saw three phone
+rows of the same thing and reported the tab as broken. The e2e of the day asserted the right facts
+(nothing locked on Earned, the trick shelf capped on All) and never asked the only question that
+mattered: **would a rider see a difference?** `shelveWall` replaced `groupWall`, the `EARNED`
+pseudo-shelf is gone, and the spec now asserts that the two tabs share no badge.
+
+**"Not yet", not "Locked."** It is already the word printed across an unearned badge
+(`sticker-mark` in `ui-web`), so the tab and the art agree — and in this product **locked means the
+paywall** (`isTrickLocked`, the hatched steps on a trick's road). A tab called Locked would have
+read to a child as "the ones you have to pay for".
 
 **Three owner decisions, all 2026-09-12 in chat.**
 
 - **Locked badges keep their full size.** Shrinking them to four across would have bought a further
   three screens (7.6 → 4.3), and was declined. The cap is therefore the only lever there is; four
-  instead of six saves only about nine tenths of a screen, which is why six stands.
+  instead of six saves only about nine tenths of a screen, which is why six stands. The cap runs on
+  **both** tabs: a rider who has earned eighty badges has the same wall-of-scroll problem on their
+  own side, and a cap with an exception is a rule to remember.
 - **The switch sits inside the ink panel, as an underline bar** — deliberately not the bordered
   pills `SportSwitch` uses directly above it. **#379 item 5** logged exactly that collision on
   Progress ("same box, same size, same shadow", one navigation and one filter) and names the
@@ -4036,7 +4055,7 @@ with nothing locked in it, and it is never capped on its own tab.
   parked, not lost — see below.
 
 **The default view is a safety rule, not a preference.** `defaultWallView` opens on Earned when the
-rider holds anything and on All when they do not. It reads `unannounced` first, and that branch is
+rider holds anything and on Not yet when they do not. It reads `unannounced` first, and that branch is
 load-bearing rather than redundant: `StickerWall` acknowledges freshly earned awards **on mount,
 across every sport, whatever view is showing**, so a default that could hide the Earned shelf would
 stamp `seen_at` without the badge ever being drawn — and the pop is once-only (§3). The branch is
@@ -4049,7 +4068,7 @@ kind nobody has got to yet. `stage-drop` genuinely belongs on More and now says 
 `?? 'other'` fallback for what it is for: a kind this build has never heard of.
 
 **Analytics.** Two new events, both catalogue facts. `sticker_view_switched` carries which half was
-chosen — the wall now opens on a rider's own badges, and this is what says whether anybody ever
+chosen (`earned` or `unearned`) — the wall now opens on a rider's own badges, and this is what says whether anybody ever
 goes looking at the rest. `sticker_shelf_expanded` carries the shelf id, which is what turns "six"
 from a guess into a measurement.
 
@@ -4067,10 +4086,11 @@ stats (spots, events, crew-owned); closing that is three narrow reads mirroring
 older and wider than this task.**
 
 **Checked.** `stickerGroups.test.ts` covers the cap at, under and over the line, the four newly
-shelved kinds, and all three default-view cases including the unannounced one. `e2e/stickers.spec.ts`
-proves the wall opens on Earned with nothing locked drawn, that All caps the trick shelf at six
-while its heading still counts them all, and that "Show all" restores the full shelf and removes
-itself. The specs that want the locked half now ask for it through `showWholeWall` — without that
+shelved kinds, all three default-view cases including the unannounced one, and — the property the
+first build broke — that the two halves share the shelf vocabulary and share no badge.
+`e2e/stickers.spec.ts` proves the wall opens on Earned with nothing locked drawn, that **no badge
+name appears on both tabs**, that Not yet caps the trick shelf at six while its heading still counts
+them all, and that "Show all" restores the full shelf and removes itself. The specs that want the locked half now ask for it through `showWholeWall` — without that
 they would assert over an empty collection and pass by finding nothing (LESSONS §5).
 
 ### Dependency graph

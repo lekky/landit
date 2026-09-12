@@ -7,8 +7,8 @@ import {
   SHELF_CAP,
   capShelf,
   defaultWallView,
-  groupWall,
   shelfFor,
+  shelveWall,
 } from '@/app/(app)/stickers/groups';
 import type { StickerView } from '@/app/(app)/stickers/view';
 
@@ -32,19 +32,9 @@ function sticker(slug: string, kind: string, earned = false, unannounced = false
   };
 }
 
-describe('groupWall', () => {
-  it('puts everything earned first, whatever its kind', () => {
-    const groups = groupWall([
-      sticker('a', 'trick'),
-      sticker('b', 'streak', true),
-      sticker('c', 'trick', true),
-    ]);
-    expect(groups[0]?.id).toBe('earned');
-    expect(groups[0]?.stickers.map((s) => s.slug)).toEqual(['b', 'c']);
-  });
-
-  it('shelves locked awards by kind, in display order', () => {
-    const groups = groupWall([
+describe('shelveWall', () => {
+  it('shelves by kind, in display order', () => {
+    const groups = shelveWall([
       sticker('acct', 'account-age'),
       sticker('run', 'streak'),
       sticker('kick', 'trick'),
@@ -53,21 +43,53 @@ describe('groupWall', () => {
     expect(groups.map((g) => g.id)).toEqual(['tricks', 'milestones', 'streaks', 'account']);
   });
 
-  it('omits empty shelves and an empty Earned', () => {
-    expect(groupWall([sticker('only', 'trick')]).map((g) => g.id)).toEqual(['tricks']);
-    expect(groupWall([]).length).toBe(0);
+  it('omits empty shelves, so two badges make two shelves and not eight', () => {
+    expect(shelveWall([sticker('only', 'trick')]).map((g) => g.id)).toEqual(['tricks']);
+    expect(shelveWall([]).length).toBe(0);
   });
 
   it('keeps the canonical order inside a shelf', () => {
-    const groups = groupWall([sticker('z', 'trick'), sticker('a', 'trick'), sticker('m', 'trick')]);
+    const groups = shelveWall([
+      sticker('z', 'trick'),
+      sticker('a', 'trick'),
+      sticker('m', 'trick'),
+    ]);
     expect(groups[0]?.stickers.map((s) => s.slug)).toEqual(['z', 'a', 'm']);
   });
 
   it('never loses a badge: an unknown or legacy kind lands on More', () => {
     expect(shelfFor('')).toBe('other');
     expect(shelfFor('something-new')).toBe('other');
-    const groups = groupWall([sticker('legacy', '')]);
-    expect(groups.map((g) => g.id)).toEqual(['other']);
+    expect(shelveWall([sticker('legacy', '')]).map((g) => g.id)).toEqual(['other']);
+  });
+
+  /*
+   * The shape the owner asked for (2026-09-12): the tabs are disjoint halves of
+   * one wall, shelved identically. T33 first shipped Earned as a shelf pinned to
+   * the top of *both* views, so a badge appeared twice and switching tabs changed
+   * nothing above the fold. This asserts the property that broke.
+   */
+  it('splits into two halves that share shelves and share no badge', () => {
+    const wall = [
+      sticker('got-trick', 'trick', true),
+      sticker('todo-trick', 'trick'),
+      sticker('got-streak', 'streak', true),
+      sticker('todo-crew', 'crew'),
+    ];
+    const earned = shelveWall(wall.filter((s) => s.earned));
+    const unearned = shelveWall(wall.filter((s) => !s.earned));
+
+    // Same shelf vocabulary on both sides.
+    expect(earned.map((g) => g.label)).toEqual(['Trick awards', 'Streaks']);
+    expect(unearned.map((g) => g.label)).toEqual(['Trick awards', 'Crew']);
+
+    // Every badge on exactly one side, none on both, none missing.
+    const slugs = (gs: ReturnType<typeof shelveWall>) =>
+      gs.flatMap((g) => g.stickers.map((s) => s.slug));
+    const a = slugs(earned);
+    const b = slugs(unearned);
+    expect(a.filter((slug) => b.includes(slug))).toEqual([]);
+    expect([...a, ...b].sort()).toEqual(wall.map((s) => s.slug).sort());
   });
 
   it('shelves every kind the type declares', () => {
@@ -131,9 +153,9 @@ describe('capShelf', () => {
 });
 
 describe('defaultWallView', () => {
-  it('opens a new rider on All, because their Earned shelf is empty', () => {
-    expect(defaultWallView([sticker('a', 'trick'), sticker('b', 'streak')])).toBe('all');
-    expect(defaultWallView([])).toBe('all');
+  it('opens a new rider on Not yet, because their earned half is empty', () => {
+    expect(defaultWallView([sticker('a', 'trick'), sticker('b', 'streak')])).toBe('unearned');
+    expect(defaultWallView([])).toBe('unearned');
   });
 
   it('opens a rider with anything earned on their own collection', () => {
@@ -142,9 +164,10 @@ describe('defaultWallView', () => {
 
   /*
    * The one that matters. `StickerWall` acknowledges fresh awards on mount
-   * whatever view is showing, so a default that could hide the Earned shelf
+   * whatever view is showing, so a default that could hide the earned half
    * would stamp `seen_at` without ever drawing the pop — and it is once-only
-   * (plan §3). Asserted on its own so that a future change to the "anything
+   * (plan §3). Now the tabs are disjoint, the other tab genuinely does not hold
+   * the new badge. Asserted on its own so that a future change to the "anything
    * earned" line cannot take the pop with it unnoticed.
    */
   it('always opens on Earned when an award has never been announced', () => {

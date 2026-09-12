@@ -19,7 +19,7 @@ import { useToast } from '@/providers/toast';
 import { useSport } from '@/providers/sport';
 
 import { acknowledgeStickersAction } from './actions';
-import { capShelf, groupWall, type WallView } from './groups';
+import { WALL_VIEW_LABELS, capShelf, shelveWall, type WallView } from './groups';
 import type { StickerView, StickerWallView } from './view';
 
 import styles from './stickers.module.css';
@@ -48,8 +48,13 @@ export function StickerWall({ view }: { view: StickerWallView }) {
   const first = view.tabs[0]?.sport;
   const current: SportId | undefined = view.bySport[sport] ? (sport as SportId) : first;
   const wall = current ? (view.bySport[current] ?? []) : [];
-  const earnedWall = wall.filter((s) => s.earned);
-  const earned = earnedWall.length;
+  // The two halves. Disjoint by construction: `earned` is the only thing that
+  // decides which side a badge is on, so none can be missing and none doubled.
+  const half: Readonly<Record<WallView, readonly StickerView[]>> = {
+    earned: wall.filter((s) => s.earned),
+    unearned: wall.filter((s) => !s.earned),
+  };
+  const earned = half.earned.length;
 
   /*
    * Which half is showing, and which shelves the rider has opened.
@@ -67,8 +72,8 @@ export function StickerWall({ view }: { view: StickerWallView }) {
     current && choice?.sport === current
       ? choice.view
       : current
-        ? (view.defaultViewBySport[current] ?? 'all')
-        : 'all';
+        ? (view.defaultViewBySport[current] ?? 'unearned')
+        : 'unearned';
 
   const notes = new Map(view.tabs.map((t) => [t.sport, t.earnedLabel]));
 
@@ -122,52 +127,59 @@ export function StickerWall({ view }: { view: StickerWallView }) {
       </div>
 
       {/*
-        Shelved, not heaped (#245): Earned first, then the locked awards by what
-        they are for — see `groups.ts` for the shelves and for why "nearly
-        there" is not one of them yet. Each shelf is a labelled section so a
-        screen reader can jump between them the way the eye does.
+        Shelved, not heaped (#245): awards by what they are for — see
+        `groups.ts` for the shelves and for why "nearly there" is not one of
+        them yet. Each shelf is a labelled section so a screen reader can jump
+        between them the way the eye does.
 
-        Two tabs over the top of that (T33): Earned is the rider's own
-        collection, All is the shelved wall with each shelf cut to `SHELF_CAP`
-        and the rest behind its own button. The control sits *inside* the ink
-        panel and is an underline bar rather than the bordered pills the sport
-        switch uses, because #379 item 5 logged exactly that collision on
-        Progress — two rows of identically shaped tabs, one navigation and one
-        filter.
+        Two tabs over the top of that, and they are **disjoint halves of the
+        same wall**: Earned holds what the rider has, Not yet holds what they
+        have not, every badge on exactly one, both shelved the same way. Each
+        shelf is cut to `SHELF_CAP` with the rest behind its own button.
+
+        The control sits *inside* the ink panel and is an underline bar rather
+        than the bordered pills the sport switch uses, because #379 item 5
+        logged exactly that collision on Progress — two rows of identically
+        shaped tabs, one navigation and one filter.
       */}
       <Panel className={styles.wall}>
         <div className={styles.views} role="group" aria-label="Which badges to show">
-          {(['earned', 'all'] as const).map((id) => (
+          {(['earned', 'unearned'] as const).map((id) => (
             <button
               key={id}
               type="button"
               className={styles.viewBtn}
               aria-pressed={active === id}
               onClick={() => {
-                // 'earned' or 'all' — two fixed strings, the same for everybody.
+                // 'earned' or 'unearned' — two fixed strings, the same for everybody.
                 capture(ANALYTICS_EVENTS.stickerViewSwitched, { view: id });
                 setChoice({ sport: current, view: id });
               }}
             >
-              {id === 'earned' ? 'Earned' : 'All'}
-              <span className={styles.viewCount}>{id === 'earned' ? earned : wall.length}</span>
+              {WALL_VIEW_LABELS[id]}
+              <span className={styles.viewCount}>{half[id].length}</span>
             </button>
           ))}
         </div>
 
-        {active === 'earned' && !earned && (
-          <p className={styles.empty}>Nothing yet. Every badge you earn lands here.</p>
+        {!half[active].length && (
+          <p className={styles.empty}>
+            {active === 'earned'
+              ? 'Nothing yet. Every badge you earn lands here.'
+              : 'Every badge on this wall is yours. Nothing left to go and get.'}
+          </p>
         )}
 
-        {groupWall(active === 'earned' ? earnedWall : wall).map((group) => {
-          // Only "All" caps a shelf, and only until the rider opens it. An
-          // opened shelf stays open for the visit; nothing is remembered past
-          // it, so the wall opens the same way every time.
-          const key = `${current}:${group.id}`;
-          const { shown, hidden } =
-            active === 'all' && !expanded.includes(key)
-              ? capShelf(group.stickers)
-              : { shown: group.stickers, hidden: 0 };
+        {shelveWall(half[active]).map((group) => {
+          // Both tabs cap, and only until the rider opens that shelf. An opened
+          // shelf stays open for the visit; nothing is remembered past it, so
+          // the wall opens the same way every time. The key carries the tab as
+          // well as the sport — "Trick awards" exists on both sides, and
+          // opening one should not open the other.
+          const key = `${current}:${active}:${group.id}`;
+          const { shown, hidden } = expanded.includes(key)
+            ? { shown: group.stickers, hidden: 0 }
+            : capShelf(group.stickers);
 
           return (
             <section

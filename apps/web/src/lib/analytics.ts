@@ -314,13 +314,14 @@ export const ANALYTICS_EVENTS = {
   /** The share card was opened for an earned award. Carries the slug. */
   stickerShared: 'sticker_shared',
   /**
-   * The wall's Earned / All switch was used (T33). Carries which half was
-   * chosen — two fixed strings, the same for every rider.
+   * The wall's Earned / Not yet switch was used (T33). Carries `earned` or
+   * `unearned` — two fixed strings, the same for every rider.
    *
    * It exists because the wall now opens on a rider's own collection, and the
    * question that answers is whether anybody goes looking at the rest. If the
-   * All tab is never pressed, 121 badges are being drawn for nobody and the
-   * shelving is the wrong shape; if it is pressed constantly, the default is.
+   * Not yet tab is never pressed, 121 badges are being drawn for nobody and
+   * the shelving is the wrong shape; if it is pressed constantly, the default
+   * is.
    */
   stickerViewSwitched: 'sticker_view_switched',
   /**
