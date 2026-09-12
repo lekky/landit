@@ -28,8 +28,12 @@ export const metadata: Metadata = {
    * app installable at all; `appleWebApp` is the same promise for iOS, which
    * reads its own meta tags and not the manifest — without it, an icon added to
    * a home screen on an iPhone opens Safari with its address bar rather than the
-   * app. The icons themselves are `app/icon.tsx`, `app/apple-icon.tsx` and
-   * `app/icons/[icon]`, and Next writes their link tags on its own.
+   * app. The icons themselves are the committed artwork at `app/icon.png` and
+   * `app/apple-icon.png`, whose link tags Next writes on its own, plus the
+   * install sizes under `public/icons/` that `manifest.ts` names. This said
+   * `app/icon.tsx`, `app/apple-icon.tsx` and `app/icons/[icon]` until 2026-09-12
+   * — the three generated-icon files #247 deleted when the real logo replaced
+   * the drawn placeholder.
    */
   manifest: '/manifest.webmanifest',
   appleWebApp: {
