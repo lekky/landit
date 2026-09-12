@@ -57,7 +57,17 @@ test('every document carries the site footer (2026-09-04)', async ({ page }) => 
     await expect(footer).toBeVisible();
     // The other documents, and the reporting route the OSA duty needs easy.
     await expect(footer.getByRole('link', { name: 'Terms of use' })).toBeVisible();
-    await expect(footer.getByRole('link', { name: 'Report something' })).toBeVisible();
+    /*
+     * Two of these since 2026-09-12 (plan §7 T5, thirteenth divergence): the
+     * Company column and the bottom strip. The strip's copy is what keeps the
+     * route one tap away on a phone, where the columns are folded — so the
+     * count is the assertion, not an inconvenience to work around with
+     * `.first()`. Losing either is the regression this test is for.
+     */
+    const report = footer.getByRole('link', { name: 'Report something' });
+    await expect(report).toHaveCount(2);
+    await expect(report.first()).toBeVisible();
+    await expect(report.last()).toBeVisible();
   }
 });
 

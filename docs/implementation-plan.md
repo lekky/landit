@@ -1647,6 +1647,42 @@ New analytics: `nav_section_opened`, carrying the section and whether it was `ar
 is the only way to answer the question this whole change is a bet on — whether the folded second
 screen is ever found. A `tap` is the strong signal: it means the caret was understood.
 
+**A thirteenth divergence, 2026-09-12 (Rachid, in chat: "Footer needs redesigning. It's
+especially terrible on mobile."): the site footer folds on a phone, and the prototype has no
+drawing of that.** Flat, it was **906px of footer on a 390px phone and 969px at 320px** — more than
+a screen of it, below every page on the site — and about 300px of that was nothing at all: a
+two-column grid stretches every cell to its row, so the three-link columns rendered as tall as the
+six-link one and left two voids around 150px deep. Seventeen links at the eleventh divergence's 44px
+touch floor cannot be made short, only folded, and the floor is not the thing to give back.
+
+- **Below 760px the four columns are disclosures** — a ruled stack of 44px headings carrying a
+  drawn plus that becomes a minus, closing into the bottom strip so the rules read as one list.
+  About 570px, and a rider opens only the column they came for.
+- **The fold is a hidden checkbox and its `label`, not `<details>`**, which is a deliberate choice
+  and not an old-fashioned one: a closed `<details>` hides its content in the UA shadow tree, which
+  author CSS cannot re-open, so the same markup could not be a disclosure on a phone *and* four
+  plain columns on a desktop. With a checkbox the links are visible by default and only the phone
+  query hides them, so a stylesheet that never arrives leaves every link on the page. It is
+  `display: none` from 760px up, so a desktop meets seventeen links and no controls.
+- **Report something moves into the always-visible bottom strip**, beside Privacy and Terms and
+  restating the Company column exactly as those two have always restated Legal. Folding a column is
+  only affordable if the one link that may not get harder to find is not in it (T18, §6.1). Not on
+  the holding page: `/report` is not in `proxy.ts`'s `ALWAYS_OPEN`, so while the gate is shut it
+  would be a footer entry that opens nothing.
+- **760–1000px gives the brand a row of its own.** `auto-fit` with `minmax(130px, 1fr)` had let four
+  columns squeeze the strapline to about 110px — "Every trick you / can do, on a / scooter," down
+  the left of a 768px tablet. The tracks are explicit now, and `align-items: start` is what stops
+  grid stretching short columns at every width.
+- **The helmet line is `--ink-soft` behind a 3px yellow rule**, where it was the quietest thing on
+  the surface at `--ink-mute`. It is the only safety copy in the footer.
+
+Desktop above 1000px is screenshot 02 unchanged, plus that one bottom-strip link. `e2e/footer.spec.ts`
+is the whole of the proof: this is CSS with no component state and no server behind it, so nothing
+in `pnpm build`, `pnpm test` or `pnpm lint` can see the media query go missing.
+
+No new analytics. The footer has never been instrumented and this adds no destination; counting
+disclosure opens against an unmeasured baseline would answer nothing.
+
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
 to test — that is where the three-sport switch is proved against a 375px phone before `SPORT_IDS`

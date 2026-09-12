@@ -58,7 +58,13 @@ export default function OfflinePage() {
         </div>
       </div>
 
-      <SiteFooter />
+      {/*
+        `minimal`, because every one of those seventeen destinations needs the
+        connection this page exists to say is missing (issue #380 item 7). The
+        brand and the legal strip stay, which is all a rider with no signal can
+        use anyway.
+      */}
+      <SiteFooter minimal />
     </div>
   );
 }
