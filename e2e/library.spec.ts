@@ -128,11 +128,11 @@ test('a rookie is told what their plan covers, without being leant on', async ({
   await page.goto('/library');
 
   await expect(page.getByText('You’re on Rookie')).toBeVisible();
-  // Not a tier list any more: the free tier is a hand-picked ten per sport,
+  // Not a tier list any more: the free tier is a hand-picked twenty per sport,
   // not everything below a line (issue #286, `PLANS` in `@landit/core`). What
   // the banner owes a rider is the shape of what they have and where the rest
   // is, and this asserts both halves of that sentence.
-  await expect(page.getByText('Ten hand-picked tricks in every sport are yours')).toBeVisible();
+  await expect(page.getByText('Twenty hand-picked tricks in every sport are yours')).toBeVisible();
   await expect(page.getByText('The rest of the library opens up on Shredder')).toBeVisible();
 
   // Plan §6.4, standard 13: no loss framing, no countdown, nothing that reads

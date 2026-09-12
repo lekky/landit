@@ -40,38 +40,64 @@ import type { Trick } from '../types';
  *
  * ## The free tier
  *
- * Ten free tricks per sport, spread **4 Rookie / 3 Easy / 2 Spicy / 1 Gnarly,
- * and nothing at Pro** (owner, 2026-09-04, in chat). The shape replaces the
- * old one, where the free tier was whatever happened to sit at difficulty 1
- * and 2 and so grew every time the library did.
+ * Twenty free tricks per sport, spread **every Rookie trick, a fill of Easy,
+ * four Spicy and two Gnarly, and nothing at Pro** (owner, 2026-09-12, in chat).
+ * It doubles the ten-trick tier of 2026-09-04, which itself replaced the
+ * original "whatever sits at difficulty 1 and 2", and it keeps that tier's
+ * principle: weighted towards the easy end, but reaching past it, because an
+ * experienced rider shown only tricks they landed years ago is shown nothing.
  *
- *  - scooter: `bunny-hop`, `tic-tac`, `fakie`, `pump`, `180`, `50-50`,
- *    `drop-in`, `tailwhip`, `bar-spin`, `360`
- *  - skate: `sk-kickturn`, `sk-tic-tac`, `sk-fakie-roll`, `sk-pump`,
- *    `sk-ollie`, `sk-manual`, `sk-drop-in`, `sk-kickflip`, `sk-50-50`,
- *    `sk-wallride`
- *  - BMX: `bmx-wheelie`, `bmx-pump`, `bmx-track-stand`, `bmx-curb-drop`,
- *    `bmx-bunny-hop`, `bmx-drop-in`, `bmx-air`, `bmx-double-peg`,
- *    `bmx-one-hander`, `bmx-flyout-tailwhip`
+ * **The shape could not simply double, and that is why it is phrased as a rule
+ * rather than as five numbers.** 4/3/2/1 doubled is 8 Rookie, and no sport has
+ * eight Rookie tricks — scooter and skate have six each, BMX four. So the
+ * Rookie slot is "all of them" and the Easy fill absorbs the difference: eight
+ * for scooter and skate, ten for BMX. A sport that gains a Rookie trick gains a
+ * free one; its Easy fill drops by one to hold the twenty.
  *
- * Two rules held while choosing them, and a test pins both.
+ *  - scooter (6/8/4/2): `bunny-hop`, `tic-tac`, `fakie`, `kickturn`,
+ *    `tail-tap`, `pump`, `180`, `50-50`, `drop-in`, `manual`,
+ *    `quarter-pipe-air`, `gap`, `hippie-jump`, `acid-drop`, `tailwhip`,
+ *    `bar-spin`, `nose-manual`, `boardslide`, `360`, `bar-to-whip`
+ *  - skate (6/8/4/2): `sk-kickturn`, `sk-tic-tac`, `sk-fakie-roll`,
+ *    `sk-curb-drop`, `sk-ramp-kickturn`, `sk-pump`, `sk-ollie`, `sk-manual`,
+ *    `sk-drop-in`, `sk-shuvit`, `sk-fakie-ollie`, `sk-curb-ollie`,
+ *    `sk-rock-to-fakie`, `sk-powerslide`, `sk-kickflip`, `sk-50-50`,
+ *    `sk-axle-stall`, `sk-indy`, `sk-wallride`, `sk-backside-air`
+ *  - BMX (4/10/4/2): `bmx-wheelie`, `bmx-pump`, `bmx-track-stand`,
+ *    `bmx-curb-drop`, `bmx-bunny-hop`, `bmx-drop-in`, `bmx-air`, `bmx-manual`,
+ *    `bmx-fakie`, `bmx-x-up`, `bmx-nollie`, `bmx-180`, `bmx-hop-on-off`,
+ *    `bmx-double-peg-stall`, `bmx-double-peg`, `bmx-one-hander`,
+ *    `bmx-wallride`, `bmx-half-cab`, `bmx-flyout-tailwhip`, `bmx-360`
+ *
+ * Every trick that was free at ten is still free at twenty. That is not a
+ * coincidence to be re-derived next time: a rider may already hold progress on
+ * one, and taking a trick back behind the paywall strands that progress where
+ * the rider can see it and not touch it.
+ *
+ * Three rules held while choosing them. A test pins the first.
  *
  * **A free trick's entire prerequisite chain is free.** The paywall is
  * enforced server-side on `trick_progress` creation, so a rider cannot land a
  * locked prerequisite — a free Gnarly trick whose ancestors are paid is
  * permanently unreachable, which is worse than not offering it at all.
  *
- * **Every category a sport has is enterable.** That is the argument the
- * `bmx-double-peg` comment below already made for street, generalised: a free
- * rider who can see a branch and never enter it has been shown a wall, not a
- * library. It is why `bmx-one-hander` is free (BMX air) and why `sk-wallride`
- * is (skate street above the grind).
+ * **Every category a sport has is enterable, as far as twenty slots reach.**
+ * That is the argument the `bmx-double-peg` comment below makes for street,
+ * generalised: a free rider who can see a branch and never enter it has been
+ * shown a wall, not a library. Four of five categories are enterable in each
+ * sport, up from three in scooter and skate. The fifth is out of reach and
+ * says so here rather than quietly: **scooter's air and skate's and BMX's
+ * hybrid all start at difficulty 4**, so entering one costs both a Spicy slot
+ * for its prerequisite and one of the two Gnarly slots, and the trade buys
+ * less than `bar-to-whip`, `sk-backside-air` and `bmx-360` do where they are.
+ * If a sport ever gains a difficulty-3 entry into its missing category, that is
+ * the moment to revisit it.
  *
- * What the shape costs, recorded because it reverses a line the `bmx-x-up`
- * comment below used to draw: **scooter and skate now each have two paid
- * difficulty-1 tricks**, because both sports have six Rookie entries and only
- * four free slots. "No difficulty-1 trick is ever paid" was true when BMX had
- * exactly four; it is not a rule any more, and the four-slot count is.
+ * **No difficulty-1 trick is paid.** True again, in all three sports: the
+ * ten-trick tier broke it (four slots, six Rookie entries in scooter and skate)
+ * and the note here recorded the breakage. Selling a child their second-easiest
+ * trick was always the weakest thing about that shape, and "all of them" costs
+ * two slots per sport to fix.
  *
  * `free` is the override that implements all of this, and it wins either way
  * over `diff <= FREE_MAX_DIFF` (see `../rules/tricks.ts`). Do not change
@@ -149,8 +175,6 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['bunny-hop'],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Balancing along on the back wheel with the nose held up, rolling as far as you can. Pure control. It lives in your hips and ankles.',
     tips: "Find the balance point and hold it with tiny ankle taps. Look ahead, not down, and you'll ride it way longer.",
@@ -215,8 +239,6 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['bunny-hop'],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Roll under a bar or gap, jump straight off the deck and land back on it while the scooter keeps rolling underneath you.',
     tips: 'Jump up, not forward. Keep the bars steady with one hand if you need the confidence.',
@@ -283,6 +305,8 @@ export const TRICKS = [
     cat: 'flat',
     diff: 3,
     pre: ['manual'],
+    // Free by the free-tier shape at the top of this file.
+    free: true,
     about:
       'The manual, flipped: rolling forward on the front wheel with the back end lifted behind you.',
     tips: 'Way twitchier than a manual. Ease your weight forward, never lunge, and bail backwards if it tips.',
@@ -379,8 +403,6 @@ export const TRICKS = [
     cat: 'street',
     diff: 2,
     pre: ['bunny-hop'],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     supervise: true,
     about:
       'Clear a set of stairs, a hole or a road gap in one hop. Speed plus a solid pop and nothing else.',
@@ -535,11 +557,12 @@ export const TRICKS = [
     cat: 'park',
     diff: 3,
     pre: ['bunny-hop'],
-    // One of scooter's two free Spicy tricks (see the free-tier note at the top
-    // of this file). It is the sport's rite of passage — the trick riders
+    // One of scooter's four free Spicy tricks (see the free-tier note at the
+    // top of this file). It is the sport's rite of passage — the trick riders
     // themselves treat as the milestone — and a milestone behind a paywall is an
     // achievement for sale (issue #75). No-footer, toboggan and everything above
-    // them stay paid; `bar-spin` is the other free Spicy trick.
+    // them stay paid; `bar-spin`, `nose-manual` and `boardslide` are the other
+    // three, and `bar-to-whip` is the Gnarly trick this one leads into.
     free: true,
     about:
       'The signature scooter move. Hop up, kick the deck through a full 360° loop around the headtube, then stomp it back under your feet mid-air.',
@@ -1124,8 +1147,6 @@ export const TRICKS = [
     cat: 'flat',
     diff: 1,
     pre: [],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Weight back to lighten the front wheel, then swivel the scooter round to point somewhere else while you are still rolling. This is how you steer properly.',
     tips: 'Roll slowly and keep the lift tiny — a centimetre is plenty. Turn your shoulders first and the scooter follows.',
@@ -1474,8 +1495,6 @@ export const TRICKS = [
     cat: 'street',
     diff: 1,
     pre: ['bunny-hop'],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Roll at a low kerb, hop so the back wheel taps the edge of it, then come straight back down and ride away.',
     tips: 'A kerb, not a ledge. Hop early enough that you are already on the way down when the wheel touches.',
@@ -1505,8 +1524,6 @@ export const TRICKS = [
     cat: 'street',
     diff: 2,
     pre: ['bunny-hop'],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     supervise: true,
     about:
       'Roll straight off the edge of a ledge, a step or a ramp lip and land with both wheels touching down at the same moment.',
@@ -1566,6 +1583,8 @@ export const TRICKS = [
     cat: 'street',
     diff: 3,
     pre: ['bunny-hop', '50-50'],
+    // Free by the free-tier shape at the top of this file.
+    free: true,
     about:
       'Hop onto a low ledge sideways so the underside of the deck slides along the edge while you stay facing forwards.',
     tips: 'A waxed ledge, low enough to step off. Land with the deck square across the edge, never at an angle.',
@@ -1898,8 +1917,6 @@ export const TRICKS = [
     cat: 'park',
     diff: 2,
     pre: ['pump', 'fakie'],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Ride up and out of the lip of a quarter pipe, turn back towards the ramp above the coping, and drop into the transition.',
     tips: 'Start with the wheels barely leaving the coping and build up from there. Look back into the ramp as you turn.',
@@ -2580,6 +2597,8 @@ export const TRICKS = [
     cat: 'hybrid',
     diff: 4,
     pre: ['bar-spin', 'tailwhip'],
+    // Free by the free-tier shape at the top of this file.
+    free: true,
     about:
       'A full bar spin thrown and caught, then a tailwhip straight after it, both inside the same jump.',
     tips: 'You need real height for this. Get the bars round early — everything after it depends on catching them fast.',
@@ -2865,8 +2884,6 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: [],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about: "Scoop the board 180° under your feet while you hop. The board spins, you don't.",
     tips: 'Scoop back with the tail foot and lift your front foot out of the way. Stay over the board or it shoots out.',
     fact: "It's usually the first trick where a beginner has to trust a board that isn't under them.",
@@ -2898,8 +2915,6 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['sk-ollie'],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'An ollie while rolling backwards. Same motion, opposite feel, and the board wants to fly out in front of you.',
     tips: 'Pop slightly later than you think and keep your shoulders over the board.',
@@ -2936,7 +2951,9 @@ export const TRICKS = [
     // in T24 because skate's free tier was thin (issue #75); the six Rookie
     // entries T27 added are what fills that gap now, so the override came off
     // and the difficulty decides. `sk-kickflip` keeps its override — see the
-    // free-tier note at the top of this file for the ten.
+    // free-tier note at the top of this file. Freeing this one is also what a
+    // free `sk-varial-flip` would cost, which is why skate's hybrid category is
+    // the one it cannot enter.
     about:
       'A shuvit with an ollie pop in it, so the board spins in the air rather than on the ground.',
     tips: 'Pop and scoop in the same motion. Front foot goes up and slightly out to leave room for the spin.',
@@ -3035,7 +3052,7 @@ export const TRICKS = [
     cat: 'flat',
     diff: 3,
     pre: ['sk-ollie'],
-    // One of skate's two free Spicy tricks, and the sport's rite of passage —
+    // One of skate's four free Spicy tricks, and the sport's rite of passage —
     // the same argument that frees the scooter `tailwhip`. Heelflip, tre flip,
     // hardflip and the rest of the flip family stay paid.
     free: true,
@@ -3135,11 +3152,11 @@ export const TRICKS = [
     cat: 'street',
     diff: 3,
     pre: ['sk-ollie'],
-    // The other free Spicy trick, for the same reason as `bmx-double-peg`:
-    // every skate ledge trick descends from this one, so leaving it paid puts
-    // no street content at all in the free tier. Boardslide, noseslide, 5-0,
-    // nosegrind, crooked and tailslide all stay paid; `sk-wallride` is the free
-    // Gnarly trick above it.
+    // Free for the same reason as `bmx-double-peg`: every skate ledge trick
+    // descends from this one, so leaving it paid puts no street grind at all in
+    // the free tier. Boardslide, noseslide, nosegrind, crooked and tailslide all
+    // stay paid; `sk-5-0` is the first rung above it that is not free, and
+    // `sk-wallride` is the free Gnarly trick on the street branch.
     free: true,
     about: 'Both trucks lock onto a ledge or rail and you grind along it dead straight.',
     tips: 'Ollie level with the ledge, land on both trucks at once and stay centred. Wax makes a huge difference.',
@@ -3421,8 +3438,6 @@ export const TRICKS = [
     cat: 'park',
     diff: 2,
     pre: ['sk-drop-in'],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Ride up the transition, put the middle of the board over the coping, then rock back and roll down fakie.',
     tips: 'Push the nose over properly, then lift it back before the front truck catches.',
@@ -3455,6 +3470,8 @@ export const TRICKS = [
     cat: 'park',
     diff: 3,
     pre: ['sk-drop-in'],
+    // Free by the free-tier shape at the top of this file.
+    free: true,
     about: 'Turn and set both trucks on the coping, hold it, then drop back in.',
     tips: 'Turn your shoulders early and put the back truck on first.',
     fact: 'Every lip trick in a bowl is a variation on stopping on the coping and choosing how to come back.',
@@ -3671,6 +3688,8 @@ export const TRICKS = [
     cat: 'air',
     diff: 3,
     pre: ['sk-drop-in'],
+    // Free by the free-tier shape at the top of this file.
+    free: true,
     about: 'Air out of the transition and grab the toe edge between your feet with your back hand.',
     tips: 'Get proper height first, then reach. Suck your knees up to bring the board to your hand.',
     fact: "The indy is the default grab in every wheeled sport. It's the easiest hand to reach the board with.",
@@ -3702,6 +3721,8 @@ export const TRICKS = [
     cat: 'air',
     diff: 4,
     pre: ['sk-axle-stall', 'sk-indy'],
+    // Free by the free-tier shape at the top of this file.
+    free: true,
     about: 'Fly out above the coping, grab, turn and drop back into the transition.',
     tips: 'Look back down the ramp as you turn. Keep the grab until the wheels are pointed at the ramp.',
     fact: "Tony Alva's backside airs in the 70s are why vert skating looks the way it does.",
@@ -3896,8 +3917,6 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['sk-kickturn'],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Turn the board sideways at speed so all four wheels skid across the ground, scrubbing off speed until you straighten out again.',
     tips: 'You need real speed for the wheels to break loose — going too slow is why it grips. Crouch and push the board out with your heels.',
@@ -4100,8 +4119,6 @@ export const TRICKS = [
     cat: 'street',
     diff: 1,
     pre: [],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Roll straight off the edge of a low kerb and land both sets of wheels without the nose dipping.',
     tips: 'Weight over the back foot as you go over the edge, knees soft on landing. A kerb, not a stair set.',
@@ -4134,8 +4151,6 @@ export const TRICKS = [
     cat: 'street',
     diff: 2,
     pre: ['sk-ollie', 'sk-curb-drop'],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Ollie up onto a kerb or low ledge and roll away on top of it, rather than rolling off one.',
     tips: 'Come in at a slight angle and pop earlier than you think. Level the board out over the edge before you land.',
@@ -4165,8 +4180,6 @@ export const TRICKS = [
     cat: 'park',
     diff: 1,
     pre: [],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Ride up a bank or a small ramp, press the tail and pivot at the top, then roll back down the way you came.',
     tips: 'Look back down the ramp before you turn. Go higher a little at a time rather than aiming for the coping on day one.',
@@ -5742,8 +5755,6 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: [],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Rolling along on the back wheel with no pedalling. You shift your hips back behind the seat and hold the bike at its balance point.',
     tips: 'Push the bike forward underneath you rather than yanking the bars back. Keep a finger on the rear brake so you can tap out if you go too far.',
@@ -5809,8 +5820,6 @@ export const TRICKS = [
     cat: 'park',
     diff: 2,
     pre: ['bmx-drop-in'],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Rolling backwards. You ride up a quarter pipe or a wall, run out of speed and come back down the way you came without turning round.',
     tips: 'Learn it on a small quarter. Look over your shoulder, stay centred and let the bike roll — fighting it is what makes it wobble.',
@@ -5843,17 +5852,6 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: [],
-    // Paid, first in T24 to stop BMX's free tier being lopsided by a grading
-    // accident, and now because the free tier is a fixed ten per sport with
-    // three Easy slots (see the free-tier note at the top of this file).
-    //
-    // The reasoning here used to say "no difficulty-1 trick is ever paid, so
-    // the Rookie tier still means the easiest tricks". That stopped being true
-    // on 2026-09-04: BMX has exactly four difficulty-1 tricks and they are all
-    // still free, but scooter and skate have six each and only four slots.
-    // `bmx-nollie`, `bmx-pull-up-barspin` and `bmx-footjam` are paid alongside
-    // this one for the same reason.
-    free: false,
     about:
       'Turn the bars a full 180 degrees so your arms cross into an X, then turn them back. You can do it rolling along — no hop needed.',
     tips: 'Try it standing still holding a wall first. Loosen your grip so your wrists are not fighting the turn.',
@@ -5886,8 +5884,6 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['bmx-bunny-hop'],
-    // Paid by the free-tier shape at the top of this file — see `bmx-x-up`.
-    free: false,
     about:
       'A bunny hop backwards. Your weight goes forward over the front wheel and the back end comes up first.',
     tips: 'Start by just lifting the back wheel and setting it straight back down. Keep the lift small until it stops feeling like you are about to go over the bars.',
@@ -5920,8 +5916,7 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: ['bmx-x-up'],
-    // Paid by the free-tier shape at the top of this file — see `bmx-x-up`, which
-    // is also its prerequisite, so the two move together either way.
+    // Paid by the free-tier shape at the top of this file.
     free: false,
     about:
       'Lift just the front wheel, let go of the bars and spin them a full turn, then catch them straight before the wheel touches down.',
@@ -5955,8 +5950,6 @@ export const TRICKS = [
     cat: 'street',
     diff: 2,
     pre: ['bmx-bunny-hop', 'bmx-fakie'],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Bunny hop and turn half way round, landing rolling backwards. Wind your shoulders one way first, then unwind them.',
     tips: 'Look over your shoulder at where you want to land and commit to the whole turn. A half-hearted 90 is how pedals catch.',
@@ -5989,7 +5982,7 @@ export const TRICKS = [
     cat: 'flat',
     diff: 2,
     pre: [],
-    // Paid by the free-tier shape at the top of this file — see `bmx-x-up`.
+    // Paid by the free-tier shape at the top of this file.
     free: false,
     about:
       'Jam your front foot between the fork and the front tyre so the bike stops dead and the back wheel lifts up behind you.',
@@ -6023,11 +6016,11 @@ export const TRICKS = [
     cat: 'street',
     diff: 3,
     pre: ['bmx-bunny-hop'],
-    // One of BMX's two free Spicy tricks: every BMX street trick descends from
+    // One of BMX's four free Spicy tricks: every BMX street trick descends from
     // this one, so leaving it paid puts no street content at all in the free
     // tier — a free rider would see the branch and never be able to enter it.
-    // Feeble, smith, toothpick and icepick all stay paid. `bmx-one-hander` is
-    // the other, and it opens the air category on the same argument.
+    // Feeble, smith, toothpick and icepick all stay paid. `bmx-one-hander`,
+    // `bmx-wallride` and `bmx-half-cab` are the other three.
     free: true,
     about:
       'Hop up so both pegs on one side land on a ledge or rail, then slide along it. The grind every other grind is built from.',
@@ -6351,6 +6344,8 @@ export const TRICKS = [
     cat: 'street',
     diff: 3,
     pre: ['bmx-bunny-hop'],
+    // Free by the free-tier shape at the top of this file.
+    free: true,
     about:
       'Ride at a wall, hop onto it and roll along it sideways with both wheels on the wall, then come back down to the ground.',
     tips: 'Get the bike and your body leaned over, as close to square against the wall as you can. Carry speed, because slow wallrides just slide out.',
@@ -6383,6 +6378,8 @@ export const TRICKS = [
     cat: 'flat',
     diff: 4,
     pre: ['bmx-180'],
+    // Free by the free-tier shape at the top of this file.
+    free: true,
     about:
       'A full spin, you and the bike together, out of a bunny hop. It is a 180 with a much stronger carve and a committed head turn.',
     tips: 'Carve into it harder than a 180 but keep it controlled, or the bike jackknifes. Smooth flat ground first, then take it to drops and banks.',
@@ -6850,6 +6847,8 @@ export const TRICKS = [
     cat: 'flat',
     diff: 3,
     pre: ['bmx-fakie', 'bmx-bunny-hop'],
+    // Free by the free-tier shape at the top of this file.
+    free: true,
     about: 'Rolling backwards in fakie, hop a half turn so you land rolling forwards again.',
     tips: 'Look over the shoulder you are turning towards before you pop. Fakie has to feel normal before you add the hop.',
     fact: 'It is the same idea as a half cab on a skateboard or a scooter, and the name travelled across all three.',
@@ -7070,8 +7069,6 @@ export const TRICKS = [
     cat: 'street',
     diff: 2,
     pre: ['bmx-bunny-hop'],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Bunny hop up onto a kerb, ledge or box, then roll off the far side and land compressed and rolling.',
     tips: 'Hop earlier than feels necessary and land with your knees and elbows soft. Start on a kerb, not a box.',
@@ -7104,8 +7101,6 @@ export const TRICKS = [
     cat: 'street',
     diff: 2,
     pre: ['bmx-bunny-hop'],
-    // Paid by the free-tier shape at the top of this file.
-    free: false,
     about:
       'Ride slowly at a low ledge, hop both pegs onto the edge and balance there instead of sliding along it. Pegs have to be fitted for this one.',
     tips: 'Come in slow and square. Land both pegs together — one first is what tips you off the side.',
@@ -7368,7 +7363,10 @@ export const TRICKS = [
     cat: 'air',
     diff: 3,
     pre: ['bmx-air'],
-    // Free by the free-tier shape at the top of this file.
+    // Free because it is where the air category opens, on the same argument as
+    // `bmx-double-peg`: a branch a free rider can see and can never enter is a
+    // wall, not a library. One-footer, no-footer, can-can and the rest of the
+    // air family stay paid.
     free: true,
     about:
       'Take one hand off the bars in the air, hold it out to the side, and get it back before you land.',

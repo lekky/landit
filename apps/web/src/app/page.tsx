@@ -40,16 +40,16 @@ import styles from './landing.module.css';
  * and the prices below come from `PLANS` rather than being typed out, so the
  * FAQ cannot drift away from what Stripe actually charges.
  *
- * **One number was added to that list on 2026-09-04: the free tier's ten.** It
- * is not a count of the library, which is the thing the rule is about — it is
- * the *shape of the free plan*, hand-picked at ten tricks per sport and pinned
- * by a test in `@landit/core` (`data.test.ts`, issue #286). The two FAQ answers
- * and the closing band said "every Rookie and Easy trick" instead, which read
- * like a rule and was false in both directions: four BMX difficulty-2 tricks
- * are paid, and every sport has free tricks well above Easy. Given the choice
- * between a number that cannot drift and a boundary that was already wrong,
- * the number wins. If the free tier ever stops being ten a sport, that test
- * fails and this page is one of the four places to rewrite.
+ * **One number was added to that list on 2026-09-04: the free tier's count**
+ * — ten then, twenty since 2026-09-12. It is not a count of the library, which
+ * is the thing the rule is about — it is the *shape of the free plan*,
+ * hand-picked per sport and pinned by a test in `@landit/core`
+ * (`data.test.ts`, issue #286). The two FAQ answers and the closing band said
+ * "every Rookie and Easy trick" instead, which read like a rule and was false
+ * in both directions: much of each Easy band is paid, and every sport has free
+ * tricks well above Easy. Given the choice between a number that cannot drift
+ * and a boundary that was already wrong, the number wins. If the free tier ever
+ * moves again, that test fails and this page is one of the places to rewrite.
  *
  * **The sports are generated**, the way the old page did it — `sportsList()`
  * from `SPORT_IDS`. The one hard-coded "three" the pack asked for is gone with
@@ -430,9 +430,9 @@ export default async function LandingPage() {
             <details open>
               <summary>Is it really free?</summary>
               <p>
-                Rookie is free forever. Ten hand-picked tricks in every sport — easy ones and hard
-                ones — all five stages, the sticker wall, the spots map and your crew. No card, no
-                trial countdown, no adverts anywhere in the app.
+                Rookie is free forever. Twenty hand-picked tricks in every sport — easy ones and
+                hard ones — all five stages, the sticker wall, the spots map and your crew. No card,
+                no trial countdown, no adverts anywhere in the app.
               </p>
             </details>
             <details>
@@ -468,8 +468,8 @@ export default async function LandingPage() {
           <div className={styles.ctaText}>
             <h2>Your wall is empty. That&rsquo;s the fun bit.</h2>
             <p>
-              Rookie is free forever — ten hand-picked tricks in every sport, all five stages, the
-              whole sticker wall.
+              Rookie is free forever — twenty hand-picked tricks in every sport, all five stages,
+              the whole sticker wall.
             </p>
           </div>
           <LandingCta href={ROUTES.signUp} target="signup" place="band" className="btn ink lg">

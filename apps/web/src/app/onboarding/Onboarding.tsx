@@ -4,7 +4,6 @@ import {
   CATS,
   CUSTOM_GOAL_ID,
   CUSTOM_GOAL_MAX_LENGTH,
-  FREE_MAX_DIFF,
   HEARD_ABOUT,
   LEVELS,
   SPORTS,
@@ -69,6 +68,12 @@ export interface OnboardingTrick {
   readonly sport: SportId;
   readonly cat: CategoryId;
   readonly diff: Difficulty;
+  /**
+   * Resolved on the server by `isTrickFree`, never re-derived here. Freeness is
+   * a rule with an override in it, not a difficulty band, and the one place
+   * that decides it is `@landit/core` — see `./page.tsx`.
+   */
+  readonly free: boolean;
 }
 
 const STEPS = [
@@ -79,8 +84,15 @@ const STEPS = [
   'Where you found us',
 ] as const;
 
-/** How hard a suggestion goes, by how far along the rider says they are. */
-const LEVEL_CEILING: Record<LevelId, number> = { new: 2, some: 3, solid: 3, send: 3 };
+/**
+ * How hard a suggestion goes, by how far along the rider says they are.
+ *
+ * It reaches to 4 for the two experienced answers because the free tier does:
+ * two Gnarly tricks per sport are free, and a rider who says they send it and
+ * is then shown nothing above Easy has been told this product is not for them
+ * on the screen where they decide.
+ */
+const LEVEL_CEILING: Record<LevelId, number> = { new: 2, some: 3, solid: 4, send: 4 };
 
 export function Onboarding({ name, tricks }: { name: string; tricks: readonly OnboardingTrick[] }) {
   const [step, setStep] = useState(0);
@@ -99,13 +111,52 @@ export function Onboarding({ name, tricks }: { name: string; tricks: readonly On
    * A new account is on the free plan, so only offer what a Rookie can actually
    * track — the paywall is enforced in a hook and a locked pick would come back
    * a 403 (plan §3 guarantee 3).
+   *
+   * **`t.free`, not `t.diff <= FREE_MAX_DIFF`.** Those were the same set until
+   * 2026-09-04, when the free tier became a hand-picked spread with an override
+   * in both directions, and this filter kept reading the difficulty band. It
+   * offered paid tricks — six of the ten a skater saw — which the hook then
+   * rejected, silently, because `finishOnboarding` saves picks best-effort. The
+   * level ceiling is a real second filter now rather than a floor `Math.min`
+   * always won: before this it capped at `FREE_MAX_DIFF` whatever the rider
+   * answered, so step 2 changed nothing.
+   *
+   * **And the spread, which the filter alone does not fix.** `tricks` arrives
+   * ordered `diff,name`, so taking the first `perSport` takes the easiest
+   * `perSport` — with twenty free tricks a sport there are more than ten below
+   * Spicy, so the Ollie, the Kickflip and the Tailwhip would still never be
+   * offered to anybody. Round-robin across the difficulty bands instead: every
+   * band the rider's level allows puts something on the screen, and a rider who
+   * says they send it is asked about tricks worth asking them about.
    */
   const suggested = useMemo(() => {
-    const ceiling = Math.min(FREE_MAX_DIFF, level ? LEVEL_CEILING[level] : 3);
+    const ceiling = level ? LEVEL_CEILING[level] : LEVEL_CEILING.some;
     const perSport = sports.length > 1 ? 6 : 10;
-    return sports.flatMap((sport) =>
-      tricks.filter((t) => t.sport === sport && t.diff <= ceiling).slice(0, perSport),
-    );
+    return sports.flatMap((sport) => {
+      const bands = new Map<number, OnboardingTrick[]>();
+      for (const trick of tricks) {
+        if (trick.sport !== sport || !trick.free || trick.diff > ceiling) continue;
+        const band = bands.get(trick.diff);
+        if (band) band.push(trick);
+        else bands.set(trick.diff, [trick]);
+      }
+
+      const easiestFirst = [...bands.keys()].sort((a, b) => a - b);
+      const picked: OnboardingTrick[] = [];
+      let taking = true;
+      while (taking && picked.length < perSport) {
+        taking = false;
+        for (const diff of easiestFirst) {
+          if (picked.length >= perSport) break;
+          const next = bands.get(diff)?.shift();
+          if (!next) continue;
+          picked.push(next);
+          taking = true;
+        }
+      }
+      // Read back in the order the library uses, not the order they were taken.
+      return picked.sort((a, b) => a.diff - b.diff || a.name.localeCompare(b.name));
+    });
   }, [level, sports, tricks]);
 
   const last = STEPS.length - 1;

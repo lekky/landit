@@ -3552,6 +3552,33 @@ was true when BMX had exactly four; it is not a rule any more, and the four-slot
 handful of tricks that were free by difficulty are paid now and a handful that were paid are free
 — the free tier moved as a whole, deliberately.
 
+**Superseded 2026-09-12: the free tier is twenty per sport** (Rachid, in chat) — **every Rookie
+trick, a fill of Easy, four Spicy, two Gnarly, nothing at Pro**. 60 free tricks of 259, 23.2% of
+the library against 11.6%. The reason given was retention rather than generosity: the worry that a
+free rider exhausts what they can see and leaves before reaching the social half of the product.
+The two rules above are unchanged and still tested, and everything free at ten is still free at
+twenty — a rider may already hold `trick_progress` on one, and taking a trick back behind the
+paywall would strand that progress where they can see it and not touch it.
+
+Three things about the shape are worth keeping, because they were not free choices:
+
+- **It could not simply double.** 4/3/2/1 doubled needs eight Rookie tricks; scooter and skate have
+  six, BMX four. So Rookie became "all of them" and the Easy fill absorbs the rest — 8 for scooter
+  and skate, 10 for BMX — which is why `data.test.ts` asserts Rookie as a rule and Easy as the
+  remainder rather than pinning five numbers.
+- **The paid difficulty-1 tricks are gone**, and the line T27 reversed is restored: **no
+  difficulty-1 trick is paid, in any sport.** Selling a child their second-easiest trick was the
+  weakest part of the ten-trick shape.
+- **Each sport enters four of its five categories, not five.** Scooter's air and skate's and BMX's
+  hybrid all start at difficulty 4, so entering one would cost a Spicy slot for its prerequisite
+  *and* one of the two Gnarly slots. The "every category is enterable" rule is therefore met as far
+  as twenty slots reach, and `tricks.ts` names the gap rather than leaving it to be rediscovered.
+
+**What this does to the paid tiers is not settled.** Shredder's pitch sells the gap between free
+and paid, and that gap has halved; issue #129 (Legend has lost its headline perk) now covers both
+tiers rather than one. The free share also drifts down on its own as staff add tricks, because
+twenty is a count and not a proportion — the same property that makes it safe to print on a card.
+
 **`supervise`, a new optional field on `Trick`.** It marks a trick a guardian should know about,
 per trick rather than inferred from `diff`. The line: the rider goes upside down (a flip or an
 invert), commits to a drop they cannot step out of, or the trick's own tips send them to a foam

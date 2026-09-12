@@ -89,7 +89,7 @@ export function PlansScreen({ view }: { view: PlansView }) {
         <span className="eyebrow">Membership</span>
         <h1 className={`d ${styles.title}`}>A free tier that isn&rsquo;t a trial</h1>
         <p className={styles.lede}>
-          Ten hand-picked tricks in every sport, full tracking and the sticker wall cost nothing,
+          Twenty hand-picked tricks in every sport, full tracking and the sticker wall cost nothing,
           forever. Paying opens the rest of the library and shows you the numbers behind your
           riding.
         </p>
