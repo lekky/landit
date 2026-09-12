@@ -358,10 +358,40 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
           'The whole story of why it exists — the ramp, the twenty tries at a drop-in, and the search that turned up nothing — is on the Why we made this page, linked in the footer.',
         ],
       },
+      /*
+       * Until 2026-09-12 this section was headed "How we make money" and opened
+       * "Subscriptions, and eventually posted sticker packs." Both halves were
+       * wrong in the same direction — they described a business rather than
+       * this one (owner, 2026-09-12, in chat).
+       *
+       * - **The heading overclaimed.** Subscriptions exist and the checkout is
+       *   live, but they do not cover what the site costs to run, so a page
+       *   announcing how we make money was answering a question nobody had
+       *   asked and answering it flatteringly. What a parent is actually owed
+       *   here is what pays for the thing and what does not — which is the
+       *   same set of facts, minus the implication of a going concern.
+       * - **"Eventually posted sticker packs" was the last survivor of a claim
+       *   already pulled twice.** T10's sticker wall dropped the "real vinyl"
+       *   panel and T15's FAQ dropped "posts your earned stickers out as real
+       *   vinyl", both on the same grounds: nobody has decided to post physical
+       *   stickers (issues #101 and #181), `PLANS` carries no such perk, and a
+       *   claim about what money buys does not belong on a live page with a
+       *   live checkout behind it. Two e2e tests hold the words off the landing
+       *   and plans pages; this page was not covered by either, which is how it
+       *   outlived them. It is dropped rather than softened — "eventually" is
+       *   what an undecided product question sounds like when it is written
+       *   down as a plan.
+       *
+       * What replaced it says the cost is real and currently unmet. That is a
+       * fact about today and it is allowed to age: if subscriptions do come to
+       * cover the bill, the second paragraph is the one to rewrite, and it
+       * should be rewritten rather than quietly deleted.
+       */
       {
-        h: 'How we make money',
+        h: 'How we keep it running',
         p: [
-          'Subscriptions, and eventually posted sticker packs. Not advertising, and not by selling data about children.',
+          'Keeping a website going costs money — a server, a domain, backups, and somebody looking after all three. Subscriptions are what pay for that. Not advertising, and not by selling data about children.',
+          'Right now they do not cover it. The site is new, and the difference comes out of our own pocket. We would rather it worked that way round than put adverts in front of children.',
           // Not "up to the Easy tier": the free tier has never been a tier
           // boundary and stopped even approximating one on 2026-09-04, when it
           // became a hand-picked spread reaching past the easy end — twenty
@@ -370,6 +400,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
           // what is free to be stale, so it says the shape rather than a
           // boundary, and the number it does quote is the tested one.
           'The free tier is a real one. It covers twenty hand-picked tricks in every sport, easy ones and hard ones, and it does not expire.',
+          'So if you are on a paid plan: you are the reason it stays up for everybody riding here on the free one. Thank you.',
         ],
       },
       {

@@ -22,11 +22,12 @@
  * school uniform in it.
  *
  * This is not the same page as `/legal/about`, which is the factual one — what
- * the product is, how it makes money, who to email. That page answers "what is
- * this"; this one answers "why does it exist". They are kept apart rather than
- * merged: the About document belongs in the set with the privacy policy because
- * that is its register, and a twelve year old’s account of learning to drop in
- * does not. The About page points here in prose and the footer lists both.
+ * the product is, what pays to keep it running, who to email. That page
+ * answers "what is this"; this one answers "why does it exist". They are kept
+ * apart rather than merged: the About document belongs in the set with the
+ * privacy policy because that is its register, and a twelve year old’s account
+ * of learning to drop in does not. The About page points here in prose and the
+ * footer lists both.
  *
  * Until 2026-09-04 that page carried a *different* origin story — a paper
  * checklist on a fridge — which was a placeholder from before this one was

@@ -207,6 +207,40 @@ test('no document is marked as draft copy (2026-08-30)', async ({ page }) => {
   }
 });
 
+test('the About page says what pays for the site, not what the site earns (2026-09-12)', async ({
+  page,
+}) => {
+  // This section was headed "How we make money" and led with "Subscriptions,
+  // and eventually posted sticker packs" until the owner rewrote it on
+  // 2026-09-12. Two separate mistakes, and both are held here rather than
+  // trusted, because both came from a paste that already came back twice.
+  //
+  // The posted pack is the same claim T10 dropped from the sticker wall and T15
+  // dropped from the FAQ (issues #101, #181): nobody has decided to post
+  // physical stickers and `PLANS` carries no such perk, so it is a promise about
+  // what money buys on a page with a live checkout behind it. `landing.spec.ts`
+  // and `plans.spec.ts` hold the words off those two pages; the legal documents
+  // were the gap it survived in, which is what this closes.
+  for (const [slug] of DOCS) {
+    await page.goto(`/legal/${slug}`);
+    const body = await page.locator('body').innerText();
+    expect(body).not.toMatch(/vinyl/i);
+    expect(body).not.toMatch(/sticker packs?/i);
+  }
+
+  await page.goto('/legal/about');
+  const body = await page.locator('body').innerText();
+  // The heading answers "what keeps this up", not "what do we earn". The site
+  // does not currently cover its own costs, and a page announcing otherwise to a
+  // parent is flattering rather than true.
+  expect(body).not.toMatch(/how we make money/i);
+  // The two promises that must survive any future rewrite of this section: what
+  // does not pay for Land The Trick. `/legal/cookies` makes the same commitment
+  // about advertising and `analytics.test.ts` holds the code to it.
+  expect(body).toMatch(/not advertising/i);
+  expect(body).toMatch(/selling data about children/i);
+});
+
 test('the cookies page does not offer a setting that does not exist', async ({ page }) => {
   await page.goto('/legal/cookies');
   const body = await page.locator('body').innerText();
