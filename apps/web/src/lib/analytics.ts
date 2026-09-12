@@ -285,6 +285,32 @@ export const ANALYTICS_EVENTS = {
    */
   eventsViewSwitched: 'events_view_switched',
   /**
+   * The calendar opened already narrowed to the reader's own country — or did
+   * not, because we could not name one with events in it.
+   *
+   * Fired once per load of `/events` and `/events/past`. Carries `outcome`,
+   * one of two fixed strings chosen here: `'home'` when the list opened on the
+   * reader's country, `'everywhere'` when it opened on the world. And `scope`,
+   * `'upcoming'` or `'past'`, because the two halves cover different sets of
+   * countries and a default that lands on one may miss on the other.
+   *
+   * **Never the country itself, and never the signal it came from.** The
+   * country name would be a catalogue fact, but paired with `outcome: 'home'`
+   * it is a statement about where the *reader* is, which is a rider fact and
+   * the thing §6.4 standard 10 says we do not keep. The `Accept-Language`
+   * header is not a property either.
+   *
+   * It exists because opening on a country is a bet with a losing side. The
+   * calendar is in thirty countries and the code-to-name join reaches two
+   * hundred and fifty, so if `'everywhere'` is most of the traffic the default
+   * is doing nothing for almost anybody and the effort belongs in getting
+   * events into more countries instead. Nothing else can tell us that:
+   * `events_view_switched` cannot see the filter, and a rider who is served
+   * the right country and simply reads the list does nothing that any other
+   * event would count.
+   */
+  eventsCountryDefaulted: 'events_country_defaulted',
+  /**
    * A glossary term was reached — by a deep link into `/glossary#term`, or by
    * following one of a term's "See it in" pills to a trick (T29).
    *

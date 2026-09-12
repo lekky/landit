@@ -7,6 +7,7 @@ import {
   hasCoords,
   mapsLink,
   sortSpotsByDistance,
+  spotCountryForRegion,
   spotLatLng,
   type DistanceUnits,
 } from './spots';
@@ -140,6 +141,45 @@ export function eventCountriesPresent(events: readonly LandItEvent[] = EVENTS): 
     if (country) present.add(country);
   }
   return [...present].sort((a, b) => a.localeCompare(b, 'en'));
+}
+
+/**
+ * The country the calendar should **open** on for a reader in `region`, or
+ * `null` for "Everywhere".
+ *
+ * `region` is an alpha-2 code from the only two signals this product has: a
+ * signed-in rider's declared sign-up country, and — for a visitor with no
+ * account — the `Accept-Language` region, which is a browser *setting* rather
+ * than a location and is therefore the weaker of the two. Neither is stored,
+ * and no coordinate of the reader's comes near this function.
+ *
+ * **It only ever names a country with events actually behind it** (Rachid,
+ * 2026-09-12, in chat). The code-to-name join reaches roughly two hundred and
+ * fifty countries and the calendar is in thirty of them, so the common case for
+ * most of the planet is a reader whose own country has nothing on. Opening them
+ * on an empty filter would be worse than opening them on the world, and
+ * guessing a neighbour would be a country they never asked for — so the answer
+ * there is `null`, which is exactly the "Everywhere" the screen shows today.
+ * That is the same rule `eventCountriesPresent` applies to the `<select>`'s
+ * options: nothing is offered that finds nothing.
+ *
+ * Pass the events **of the half being shown**, not the whole calendar — the
+ * archive and the calendar are in different sets of countries, and a default
+ * taken from the wrong half would filter one list to nothing.
+ *
+ * The name is joined through `SPOT_COUNTRY_BY_CODE` (`spotCountryForRegion`),
+ * which is spot-named for where it was first needed but is simply the product's
+ * one code-to-common-name table: both datasets spell a country the way a rider
+ * reads it on a card ("USA", not "US"), and a second copy of that table is a
+ * second thing to keep in step.
+ */
+export function eventCountryForRegion(
+  region: string | null | undefined,
+  events: readonly LandItEvent[] = EVENTS,
+): string | null {
+  const home = spotCountryForRegion(region);
+  if (!home) return null;
+  return eventCountriesPresent(events).includes(home) ? home : null;
 }
 
 /**

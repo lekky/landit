@@ -74,6 +74,13 @@ export async function loadEvents(
     clock: { timezone: session?.rider.timezone || DEFAULT_TIMEZONE },
     scope,
     where,
+    /*
+     * Which country the list opens on. The same signal the units already use,
+     * and resolved in the same order — a declared sign-up country beats a
+     * browser setting — so a reader cannot be shown miles by one rule and
+     * filed under a different country by the other.
+     */
+    region,
   });
 
   return { view, units: unitsForCountry(region), signedIn: Boolean(session) };

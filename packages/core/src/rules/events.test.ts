@@ -9,6 +9,7 @@ import {
   eventArchiveIndex,
   eventBySlug,
   eventCountriesPresent,
+  eventCountryForRegion,
   eventDateBlock,
   eventDateState,
   eventDaysAway,
@@ -38,6 +39,7 @@ import {
   sortedEvents,
   upcomingEvents,
 } from './events';
+import { SPOT_COUNTRY_BY_CODE } from './spots';
 
 const event = (over: Partial<LandItEvent> & Pick<LandItEvent, 'id' | 'date'>): LandItEvent => ({
   name: 'Test Event',
@@ -215,6 +217,72 @@ describe('country filter', () => {
     ]);
     // No country asked for is every country, including the unresearched ones.
     expect(filterEvents({}, list)).toHaveLength(3);
+  });
+});
+
+describe('which country the calendar opens on', () => {
+  const list = [
+    event({ id: 'au', date: '2026-09-01', country: 'Australia' }),
+    event({ id: 'uk', date: '2026-09-02', country: 'UK' }),
+    event({ id: 'jp', date: '2026-09-03', country: 'Japan' }),
+  ];
+
+  it('opens on the reader own country, joined from an alpha-2 code', () => {
+    // `AU` is a code; `Australia` is how the data spells it on a card. The join
+    // between the two is the whole reason this function is not `includes`.
+    expect(eventCountryForRegion('AU', list)).toBe('Australia');
+    expect(eventCountryForRegion('GB', list)).toBe('UK');
+    expect(eventCountryForRegion('JP', list)).toBe('Japan');
+  });
+
+  it('opens on Everywhere when that country has nothing on', () => {
+    // Ireland is a country we can name and have no events in. Opening a reader
+    // there on an empty filter would be worse than opening them on the world,
+    // and picking a neighbour would be a country they never asked for
+    // (Rachid, 2026-09-12, in chat).
+    expect(eventCountryForRegion('IE', list)).toBeNull();
+  });
+
+  it('opens on Everywhere when the signal says nothing usable', () => {
+    for (const region of [null, undefined, '', '  ', 'ZZ', 'not-a-code']) {
+      expect(eventCountryForRegion(region, list)).toBeNull();
+    }
+  });
+
+  it('never names a country the filter does not offer', () => {
+    // The default and the `<select>` options have to agree: a default the
+    // dropdown cannot show is a filter a rider cannot undo by choosing.
+    const offered = eventCountriesPresent(list);
+    for (const code of ['AU', 'GB', 'JP', 'IE', 'US', 'FR', 'ZZ', '']) {
+      const opened = eventCountryForRegion(code, list);
+      if (opened !== null) expect(offered).toContain(opened);
+    }
+  });
+
+  it('ignores hidden events, exactly as the filter row does', () => {
+    const hidden = [event({ id: 'x', date: '2026-09-01', country: 'Japan', isLive: false })];
+    expect(eventCountryForRegion('JP', hidden)).toBeNull();
+  });
+
+  it('answers per half, because the two halves are in different countries', () => {
+    // Handed the archive, it may only name an archive country — a calendar
+    // country defaulted onto the archive filters that list to nothing.
+    const archiveOnly = [event({ id: 'p', date: '2020-01-01', country: 'Japan' })];
+    expect(eventCountryForRegion('AU', archiveOnly)).toBeNull();
+    expect(eventCountryForRegion('JP', archiveOnly)).toBe('Japan');
+  });
+
+  it('can name every country the shipped calendar is actually in', () => {
+    /*
+     * The guard against a new event country that no reader can ever be opened
+     * on: `SPOT_COUNTRY_BY_CODE` is the one code-to-name table, and a country
+     * spelled in `EVENTS` but missing from it is a rider in that country who
+     * silently gets "Everywhere" forever. Same check `data.test.ts` makes for
+     * spots — it fails here rather than being noticed by nobody.
+     */
+    const reachable = new Set(Object.values(SPOT_COUNTRY_BY_CODE));
+    const unreachable = eventCountriesPresent(EVENTS).filter((name) => !reachable.has(name));
+    expect(unreachable).toEqual([]);
   });
 });
 

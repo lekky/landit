@@ -3,6 +3,7 @@ import {
   eventAgoLabel,
   eventArchiveIndex,
   eventCountriesPresent,
+  eventCountryForRegion,
   eventDateBlock,
   eventKindColor,
   eventKindsPresent,
@@ -145,6 +146,17 @@ export interface EventsView {
    * identically on both sides of hydration (LESSONS §3a).
    */
   readonly countries: readonly string[];
+  /**
+   * The country this half should **open** filtered to, or `''` for Everywhere.
+   *
+   * Resolved here rather than in the browser for the same reason `countries`
+   * is: the screen renders on both sides of a hydration boundary, and a filter
+   * whose initial value is decided client-side gives a first paint that
+   * disagrees with the second (LESSONS §3a). It is always one of `countries`
+   * or `''`, so the `<select>` can always show it and a rider can always
+   * choose their way back out of it.
+   */
+  readonly defaultCountry: string;
 }
 
 export interface EventsViewInput {
@@ -161,6 +173,16 @@ export interface EventsViewInput {
    * design's empty state, and the page that renders it carries `noindex`.
    */
   readonly where?: { readonly year: number; readonly townSlug: string } | null;
+  /**
+   * Where the reader is, as an alpha-2 code, for the country the list opens on.
+   *
+   * A signed-in rider's declared sign-up country, or — for a visitor — the
+   * `Accept-Language` region, which is a browser setting rather than a location
+   * and is the weaker of the two. `loadEvents` resolves which. Nothing is
+   * stored, and the reader's *position* never reaches this file: "Near me" is
+   * asked for and answered entirely in the component (plan §6.4 standard 10).
+   */
+  readonly region?: string | null;
 }
 
 export function buildEventsView(input: EventsViewInput): EventsView {
@@ -279,5 +301,17 @@ export function buildEventsView(input: EventsViewInput): EventsView {
     countBySport,
     goingCount: events.filter((e) => e.going).length,
     countries: eventCountriesPresent(inScope),
+    /*
+     * Taken from `inScope` — the half on screen — for the same reason the
+     * pills and the options are: the archive and the calendar are in different
+     * sets of countries, and a calendar country defaulted onto the archive
+     * would open that list on nothing at all.
+     *
+     * `null` means "we could not name a country with events in it", which is
+     * every reader outside the thirty the calendar covers, and it opens on the
+     * world exactly as the screen does today. We never guess a neighbour
+     * (Rachid, 2026-09-12, in chat).
+     */
+    defaultCountry: eventCountryForRegion(input.region, inScope) ?? '',
   };
 }

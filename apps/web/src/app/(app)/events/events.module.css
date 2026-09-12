@@ -67,6 +67,34 @@
   color: var(--ink-3);
 }
 
+/* "Showing Australia · See everywhere".
+   Louder than `.order`, because that line describes an ordering and this one
+   describes a *filter*: it is the reason the list below it is short, and a
+   rider who does not notice it thinks the calendar is empty. A washed band with
+   the design's ink rule rather than grey small print. */
+.showing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--wash);
+  border: 2.5px solid var(--ink);
+  box-shadow: var(--sh-sm);
+}
+
+.showingAll {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12.5px;
+  letter-spacing: 0.05em;
+  text-decoration: underline;
+  cursor: pointer;
+  color: var(--ink);
+}
+
 .row {
   padding: 0;
   display: flex;
