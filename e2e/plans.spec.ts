@@ -128,3 +128,38 @@ test('the free tier is described as free rather than as a trial', async ({ page 
   await expect(page.getByRole('heading', { level: 1 })).toContainText('isn’t a trial');
   await expect(page.getByText('Does the free tier expire?')).toBeVisible();
 });
+
+/**
+ * Whose currency the prices are in (issue #170).
+ *
+ * Every price in the product is GBP and a Stripe price is created in one
+ * currency, so a parent in Dublin or Toronto is already able to buy — they are
+ * simply not told the charge lands in pounds until Stripe's checkout, and not
+ * told about the conversion until their statement. The note says it on the
+ * page instead. Multi-currency itself is still #170's, and is a tax position
+ * rather than a formatting change.
+ *
+ * Both branches are pinned here because the decision is which reader sees it,
+ * and that is exactly the sort of thing a later edit reverses by accident. The
+ * locale is the only signal a signed-out visitor gives — Playwright's `locale`
+ * sets `Accept-Language`, which is what `page.tsx` resolves the country from.
+ */
+test.describe('the GBP note', () => {
+  test.describe('for a reader outside the UK', () => {
+    test.use({ locale: 'fr-FR' });
+
+    test('says the prices are sterling before they press anything', async ({ page }) => {
+      await expect(page.locator('body')).toContainText('Prices are in pounds sterling');
+      await expect(page.locator('body')).toContainText('bank may add a conversion fee');
+    });
+  });
+
+  test.describe('for a reader in the UK', () => {
+    test.use({ locale: 'en-GB' });
+
+    test('says nothing, because sterling is already their currency', async ({ page }) => {
+      await expect(page.locator('body')).not.toContainText('pounds sterling');
+      await expect(page.locator('body')).not.toContainText('conversion fee');
+    });
+  });
+});

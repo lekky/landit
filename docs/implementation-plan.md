@@ -664,6 +664,20 @@ What deliberately did **not** change, so a later session does not read it as dri
 
 - **Prices stay GBP-only** — issue #170 carries the reasoning and the revisit trigger. Multi-currency
   is a tax position, not a formatting change.
+
+  **Amended 2026-09-12 (Rachid, in chat).** GBP-only is unchanged and is *still* not drift — but the
+  page now says so out loud. Stripe takes a card from anywhere against a GBP price, so a parent
+  outside the UK could always buy; they simply found out the currency at Stripe's checkout and the
+  conversion fee on their bank statement, which for a product whose payer is usually a parent is the
+  worst place for it to land. `/plans` now carries one line under the cards — *"Prices are in pounds
+  sterling. Your bank may add a conversion fee."* — shown **only to a reader outside the UK**,
+  resolved on the server from the declared country, falling back to `Accept-Language`, exactly as
+  §6.3's units are. `pricesAreForeignTo` in `packages/core/src/rules/billing.ts` is the rule, and an
+  unknown country reads as **not** foreign so the note stays off the UK paywall — the quiet
+  direction, because nothing about a missing note is unsafe. The homepage price strip is deliberately
+  left alone: it has no session to resolve a country from, and `/plans` is where the decision is made.
+  This is a holding position, not the answer — #170 stays open, and the currencies, the VAT position
+  and the price ladder are all still the owner's to decide.
 - **The spots map still opens over the UK** (`MAP_DEFAULT_CENTRE`). It is only ever seen when there
   are *no* spots to fit; with any spot on screen the map fits bounds to the real data. Centring per
   rider needs a country-centroid table that is not worth carrying for the empty case.

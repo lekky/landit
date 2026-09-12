@@ -146,7 +146,8 @@ browser: tricks, stickers, plans.
 
 ## Money
 
-Stripe Checkout subscriptions, GBP only (issue #170), VAT-inclusive prices, metadata-keyed
+Stripe Checkout subscriptions, GBP only (issue #170 — `/plans` tells a reader outside the UK
+the prices are sterling and their bank may convert), VAT-inclusive prices, metadata-keyed
 webhook that writes our own `subscriptions` rows; plan entitlement resolved server-side. An 18+
 confirmation is required to start checkout; under-16 upgrades go via a guardian email carrying a
 Stripe link. With no Stripe keys set, every path degrades honestly.

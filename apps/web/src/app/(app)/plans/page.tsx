@@ -1,6 +1,7 @@
-import { upgradeRouteFor, type AgeBand } from '@landit/core';
+import { regionFromAcceptLanguage, upgradeRouteFor, type AgeBand } from '@landit/core';
 import { getActiveSubscription, listPlans } from '@landit/db';
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 
 import { ROUTES } from '@/lib/routes';
 import { anonymousClient, currentRider } from '@/lib/session';
@@ -53,6 +54,17 @@ export default async function PlansPage() {
   const subscription =
     session && rider ? await getActiveSubscription(session.client, rider.id, 'stripe') : null;
 
+  // Where the reader is, only so the page can say whose currency the prices are
+  // in (issue #170 — every price in the product is GBP, and a card from
+  // anywhere can already pay one). Same precedence and same signals as the
+  // spots screen's units (§6.3): a declared country beats a browser setting,
+  // because `Accept-Language` says how somebody configured their laptop rather
+  // than where they are. Resolved here rather than in `PlansScreen` because
+  // that component hydrates, and nothing locale-derived may be read in the
+  // browser (LESSONS §5). Nothing is stored.
+  const country =
+    rider?.country || regionFromAcceptLanguage((await headers()).get('accept-language'));
+
   const view = buildPlansView({
     plans,
     currentPlanSlug: rider?.plan ?? 'rookie',
@@ -63,6 +75,7 @@ export default async function PlansPage() {
     }),
     checkoutLive: stripeConfig() !== null,
     hasSubscription: Boolean(subscription),
+    country,
   });
 
   return <PlansScreen view={view} />;

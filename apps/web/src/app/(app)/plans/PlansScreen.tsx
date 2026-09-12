@@ -162,6 +162,26 @@ export function PlansScreen({ view }: { view: PlansView }) {
         ))}
       </div>
 
+      {/*
+        Under the cards, and only for a reader outside the UK (`view.pricesAreForeign`,
+        resolved on the server in `page.tsx`). Stripe takes a card from anywhere
+        against a GBP price, so a parent in Dublin or Toronto can buy today and
+        find out the currency at Stripe's checkout and the conversion fee on
+        their statement — which is the worst possible place for it. Saying it
+        here costs a line. Multi-currency itself is issue #170 and is a tax
+        position, not a formatting change; this is the honest holding position
+        until that is decided.
+
+        A UK reader never sees it: the note is a conversion dampener on the main
+        market's paywall, and `pricesAreForeignTo` deliberately reads an unknown
+        country as "not foreign" for the same reason.
+      */}
+      {view.pricesAreForeign && (
+        <p className={`cond ${styles.footnote}`}>
+          Prices are in pounds sterling. Your bank may add a conversion fee.
+        </p>
+      )}
+
       {view.signedIn && view.hasSubscription && (
         <Panel flat className={styles.notice}>
           <div className="lab">Your billing</div>
