@@ -382,24 +382,47 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
        *   what an undecided product question sounds like when it is written
        *   down as a plan.
        *
-       * What replaced it says the cost is real and currently unmet. That is a
+       * Three things about the replacement are deliberate, and two of them are
+       * absences a later session would otherwise read as an oversight and fix
+       * (all three: owner, 2026-09-12, in chat).
+       *
+       * - **It leads on the passion project, because that is the true answer.**
+       *   The product was built to be used by the people who built it and would
+       *   exist unpaid; the money paragraph is the practical footnote to that,
+       *   not the headline. The register is warmer than the documents either
+       *   side of it in the set, on purpose.
+       * - **It does not say "no advertising", and must not be given the line
+       *   back.** The previous copy promised it twice over. Whether Land The
+       *   Trick ever carries advertising is an open product question the owner
+       *   is keeping open, and this page is not the place to close it by
+       *   accident — a promise made here is one a parent has read. **Note that
+       *   three other live surfaces still state it outright** and were left
+       *   alone as out of this change's scope: the privacy policy's "There are
+       *   no ads in Land The Trick" above, the cookies page's "No advertising
+       *   cookies" section, and the landing FAQ's "no adverts anywhere in the
+       *   app" (`app/page.tsx`). They are true today. If advertising is ever
+       *   actually on the table, those three are the copy to settle first, and
+       *   settling them is the owner's call, not a session's.
+       * - **It does not quote a number of free tricks.** It said "twenty" for
+       *   one day. The number is a live product lever — ten until 2026-09-04,
+       *   twenty from 2026-09-12 — and the owner expects to move it again, so
+       *   the copy describes the *shape* of the free tier and lets `PLANS` and
+       *   the plan cards be the place a figure is quoted and tested. Do not
+       *   helpfully re-derive it from `@landit/core` here: an accurate number is
+       *   still a number a parent will hold us to next time it moves.
+       *
+       * The money paragraph says the cost is real and currently unmet. That is a
        * fact about today and it is allowed to age: if subscriptions do come to
-       * cover the bill, the second paragraph is the one to rewrite, and it
-       * should be rewritten rather than quietly deleted.
+       * cover the bill, it is the paragraph to rewrite, and it should be
+       * rewritten rather than quietly deleted.
        */
       {
         h: 'How we keep it running',
         p: [
-          'Keeping a website going costs money — a server, a domain, backups, and somebody looking after all three. Subscriptions are what pay for that. Not advertising, and not by selling data about children.',
-          'Right now they do not cover it. The site is new, and the difference comes out of our own pocket. We would rather it worked that way round than put adverts in front of children.',
-          // Not "up to the Easy tier": the free tier has never been a tier
-          // boundary and stopped even approximating one on 2026-09-04, when it
-          // became a hand-picked spread reaching past the easy end — twenty
-          // tricks per sport since 2026-09-12 (`PLANS` in `@landit/core`, issue
-          // #286). A published document is the worst place for a claim about
-          // what is free to be stale, so it says the shape rather than a
-          // boundary, and the number it does quote is the tested one.
-          'The free tier is a real one. It covers twenty hand-picked tricks in every sport, easy ones and hard ones, and it does not expire.',
+          'This is a passion project. We built it because we wanted to use it ourselves, and it would exist whether or not anybody ever paid for it.',
+          'It does cost money to keep going, though: a server, a domain, backups, and somebody looking after all three. Subscriptions are what pay for that. Right now they do not cover it, and the difference comes out of our own pocket.',
+          'What we will never do is make money by selling data about children.',
+          'The free tier is a real one, not a teaser. It covers a proper spread of tricks in every sport, easy ones and hard ones, and it does not expire.',
           'So if you are on a paid plan: you are the reason it stays up for everybody riding here on the free one. Thank you.',
         ],
       },

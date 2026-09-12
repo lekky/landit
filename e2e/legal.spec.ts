@@ -234,11 +234,18 @@ test('the About page says what pays for the site, not what the site earns (2026-
   // does not currently cover its own costs, and a page announcing otherwise to a
   // parent is flattering rather than true.
   expect(body).not.toMatch(/how we make money/i);
-  // The two promises that must survive any future rewrite of this section: what
-  // does not pay for Land The Trick. `/legal/cookies` makes the same commitment
-  // about advertising and `analytics.test.ts` holds the code to it.
-  expect(body).toMatch(/not advertising/i);
+  // The one promise that must survive any future rewrite of this section. It is
+  // the child-safety half of what the old copy said; the other half was "not
+  // advertising", which is deliberately gone (see `content/legal.ts`) because
+  // whether Land The Trick ever carries ads is an open question the owner is
+  // keeping open. Nothing here asserts its absence, because three other surfaces
+  // still say it and that is a copy decision for the owner, not a test.
   expect(body).toMatch(/selling data about children/i);
+  // No number of free tricks, whatever `PLANS` happens to say. The figure has
+  // moved twice and is expected to move again, so this page describes the shape
+  // of the free tier instead. Matched on the phrase rather than on a digit: the
+  // section above legitimately mentions "the twenty tries at a drop-in".
+  expect(body).not.toMatch(/twenty hand-picked tricks/i);
 });
 
 test('the cookies page does not offer a setting that does not exist', async ({ page }) => {
