@@ -34,9 +34,13 @@ import { ROUTES } from '@/lib/routes';
  *   rider's own record.
  * - **Tricks** and **Crew** stand alone, as they did.
  *
- * A section that holds two routes shows a `SectionTabs` row at the top of both
- * screens, so the second route is one tap away rather than merely highlighted.
- * `alsoActiveFor` is what keeps the bar lit while a rider is on it.
+ * A section that holds two routes carries them in `tabs`, and the bar names
+ * them in a drawer that opens above it (`SectionDrawer`) — on arrival in the
+ * section, and again whenever the lit cell is tapped. That replaced a
+ * `SectionTabs` row at the top of each screen, which was the same box, size
+ * and shadow as the sport switch directly below it and so read as a second
+ * filter rather than as navigation (issue #379, item 5). `alsoActiveFor` is
+ * what keeps the bar lit while a rider is on either screen.
  *
  * The four destinations that are not sections — Account, Coach view, Plans and
  * Report something — are account-shaped rather than places to ride, and they
@@ -61,7 +65,7 @@ export type NavItem = {
    *
    * Each claim is real navigation somewhere in the app, and `e2e/shell.spec.ts`
    * clicks it: Home's is the dashboard's challenge card, and the two-screen
-   * sections' are their `SectionTabs` rows.
+   * sections' are the `tabs` their drawer lists.
    */
   reaches?: readonly Route[];
   /**
@@ -75,6 +79,14 @@ export type NavItem = {
    * bar simply blanks on those pages, which reads as "you have left the app".
    */
   alsoActiveFor?: readonly string[];
+  /**
+   * The screens this section holds, for the drawer that names them.
+   *
+   * Only the two folded sections carry it. A cell with `tabs` opens a drawer
+   * above the bar as well as navigating (`SectionDrawer`); a cell without one
+   * just navigates, as all five did before.
+   */
+  tabs?: readonly SectionTab[];
 };
 
 /**
@@ -108,6 +120,33 @@ export const TOP_NAV: readonly NavItem[] = [
   { id: 'events', label: 'Events', icon: 'flag', href: ROUTES.events },
   { id: 'spots', label: 'Spots', icon: 'map', href: ROUTES.spots },
   { id: 'plans', label: 'Plans', icon: 'crown', href: ROUTES.plans },
+];
+
+/**
+ * One screen inside a section, as the drawer lists it.
+ *
+ * Declared above `MOBILE_NAV` because the two sections now *hold* their tabs
+ * rather than merely claiming them: `tabs` is what the drawer renders and
+ * `reaches` is what the bar promises, and one test checks the promise against
+ * the thing that keeps it.
+ */
+export type SectionTab = {
+  id: string;
+  label: string;
+  icon: IconName;
+  href: Route;
+};
+
+/** The two screens under the bottom bar's "What's on". */
+export const WHATS_ON_TABS: readonly SectionTab[] = [
+  { id: 'spots', label: 'Spots', icon: 'map', href: ROUTES.spots },
+  { id: 'events', label: 'Events', icon: 'flag', href: ROUTES.events },
+];
+
+/** The two screens under the bottom bar's "Progress". */
+export const PROGRESS_TABS: readonly SectionTab[] = [
+  { id: 'progress', label: 'Progress', icon: 'chart', href: ROUTES.progress },
+  { id: 'stickers', label: 'Stickers', icon: 'star', href: ROUTES.stickers },
 ];
 
 /**
@@ -149,6 +188,7 @@ export const MOBILE_NAV: readonly NavItem[] = [
     icon: 'map',
     href: ROUTES.spots,
     reaches: [ROUTES.events],
+    tabs: WHATS_ON_TABS,
   },
   {
     id: 'progress',
@@ -156,6 +196,7 @@ export const MOBILE_NAV: readonly NavItem[] = [
     icon: 'chart',
     href: ROUTES.progress,
     reaches: [ROUTES.stickers],
+    tabs: PROGRESS_TABS,
   },
   {
     id: 'crew',
@@ -188,31 +229,16 @@ export function isNavActive(item: NavItem, pathname: string): boolean {
 }
 
 /**
- * One tab row, for a section that holds two screens (`SectionTabs`).
+ * The bottom-bar section a path belongs to, or `undefined` for one that is not
+ * in a section at all (`/account`, `/report`).
  *
- * The tabs are here rather than beside the component because they are
- * navigation, and because they are the mechanism behind two of the `reaches`
- * claims above — keeping them in the same file is what lets one test check the
- * claim against the thing that honours it.
+ * The drawer needs this and `MobileNav` needs it, and they must not disagree:
+ * a bar lit on Progress with a What's on drawer under it would be worse than
+ * no drawer. One function, `isNavActive`, one answer.
  */
-export type SectionTab = {
-  id: string;
-  label: string;
-  icon: IconName;
-  href: Route;
-};
-
-/** The two screens under the bottom bar's "What's on". */
-export const WHATS_ON_TABS: readonly SectionTab[] = [
-  { id: 'spots', label: 'Spots', icon: 'map', href: ROUTES.spots },
-  { id: 'events', label: 'Events', icon: 'flag', href: ROUTES.events },
-];
-
-/** The two screens under the bottom bar's "Progress". */
-export const PROGRESS_TABS: readonly SectionTab[] = [
-  { id: 'progress', label: 'Progress', icon: 'chart', href: ROUTES.progress },
-  { id: 'stickers', label: 'Stickers', icon: 'star', href: ROUTES.stickers },
-];
+export function activeSection(pathname: string): NavItem | undefined {
+  return MOBILE_NAV.find((item) => isNavActive(item, pathname));
+}
 
 /**
  * What the top bar's avatar opens (`AccountMenu`).

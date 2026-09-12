@@ -97,7 +97,15 @@ test('the bottom bar is five sections, in the order a phone wants them', async (
   await page.setViewportSize({ width: 800, height: 800 });
   await page.goto(SHELL);
 
-  const items = page.getByRole('navigation', { name: 'Main, compact', exact: true }).locator('> *');
+  /*
+   * `> a`, not `> *`: the bar's own children are the five cells, but the
+   * section drawer is a sixth child of the same element — absolutely positioned
+   * against `.mobnav`, which is what sits it exactly on the bar's top edge
+   * without measuring a height that moves with the safe-area inset. It is not a
+   * cell, and counting it as one would make this test read as a regression. A
+   * sixth *link* still fails, which is what this test is actually guarding.
+   */
+  const items = page.getByRole('navigation', { name: 'Main, compact', exact: true }).locator('> a');
   await expect(items).toHaveCount(5);
   await expect(items).toHaveText([/Home/, /Tricks/, /What’s on/, /Progress/, /Crew/]);
 
@@ -134,9 +142,13 @@ test('no bottom-bar label wraps, down to the narrowest phone anyone still uses',
     await page.setViewportSize({ width, height: 800 });
     await page.goto(SHELL);
 
+    // `> a` for the reason the five-cell test above gives: the drawer is a
+    // sibling of the cells, not one of them. This test is also what proves the
+    // caret on a folded cell costs no height — it is absolutely positioned
+    // precisely so that two cells of five cannot make the whole bar taller.
     const items = page
       .getByRole('navigation', { name: 'Main, compact', exact: true })
-      .locator('> *');
+      .locator('> a');
 
     const heights = await items.evaluateAll((nodes) =>
       nodes.map((n) => Math.round(n.getBoundingClientRect().height)),

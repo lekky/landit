@@ -6,6 +6,7 @@ import {
   PROGRESS_TABS,
   TOP_NAV,
   WHATS_ON_TABS,
+  activeSection,
   isNavActive,
   type NavItem,
 } from '@/components/shell/nav';
@@ -46,29 +47,98 @@ describe('the phone carries every destination', () => {
     expect(MOBILE_NAV).toHaveLength(5);
   });
 
-  it('claims nothing it does not honour: every `reaches` is a real tab or card', () => {
-    // The three claims, and the three mechanisms that keep them. A claim added
-    // without a way to follow it would pass the reachability test above and
-    // leave a rider stranded, which is the failure this catches.
-    const honoured = new Set<string>([
-      ...WHATS_ON_TABS.map((tab) => tab.href),
-      ...PROGRESS_TABS.map((tab) => tab.href),
-      // `HomeScreen`'s challenge card. Asserted for real by `e2e/shell.spec.ts`,
-      // which clicks it.
-      '/challenge',
-    ]);
-
+  it('claims nothing it does not honour: every `reaches` is a tab in its own drawer', () => {
+    /*
+     * A claim added without a way to follow it would pass the reachability test
+     * above and still leave a rider stranded — that is the failure this catches.
+     *
+     * Checked against the *section's own* tabs rather than against a pooled set
+     * of every tab in the app, which is what it used to do. Pooling them meant
+     * What's on could have claimed `/stickers` and been marked honoured by the
+     * Progress drawer, which no rider can reach from `/spots`.
+     */
     for (const item of MOBILE_NAV) {
+      const honoured = new Set<string>([
+        ...(item.tabs ?? []).map((tab) => tab.href),
+        // Home's is the dashboard's challenge card, not a drawer. `e2e` clicks it.
+        ...(item.id === 'home' ? ['/challenge'] : []),
+      ]);
+
       for (const href of item.reaches ?? []) {
         expect(honoured.has(href), `${item.id} claims ${href} with nothing to click`).toBe(true);
       }
     }
   });
 
-  it('puts the two-screen sections behind a tab row that includes their own landing screen', () => {
+  it('puts the two-screen sections behind a drawer that includes their own landing screen', () => {
     // A rider on `/events` needs a way back to `/spots`, not only forward.
     expect(WHATS_ON_TABS.map((t) => t.href)).toEqual(['/spots', '/events']);
     expect(PROGRESS_TABS.map((t) => t.href)).toEqual(['/progress', '/stickers']);
+  });
+
+  it('gives a drawer to exactly the sections that fold a second screen', () => {
+    /*
+     * The caret is drawn from `tabs`, so a section that reaches a screen without
+     * carrying it would show no caret and open nothing — the invisible fold this
+     * whole change exists to end. And a section with tabs but nothing folded
+     * would put a caret on a cell that has nothing behind it.
+     */
+    const folded = MOBILE_NAV.filter((item) => item.id !== 'home' && item.reaches?.length);
+    expect(folded.map((item) => item.id)).toEqual(['whats-on', 'progress']);
+
+    for (const item of MOBILE_NAV) {
+      const foldsSomething = item.id !== 'home' && Boolean(item.reaches?.length);
+      expect(Boolean(item.tabs), `${item.id}`).toBe(foldsSomething);
+    }
+  });
+
+  it("lists the section's own screen first, so arriving does not relabel the drawer", () => {
+    // The drawer opens on arrival at `item.href`; if that screen were not the
+    // first tab, a rider landing on Spots would meet a list headed by Events.
+    for (const item of MOBILE_NAV) {
+      if (!item.tabs) continue;
+      expect(item.tabs.at(0)?.href, `${item.id}`).toBe(item.href);
+    }
+  });
+});
+
+describe('activeSection', () => {
+  it('answers with the section a folded screen belongs to', () => {
+    expect(activeSection('/events')?.id).toBe('whats-on');
+    expect(activeSection('/spots')?.id).toBe('whats-on');
+    expect(activeSection('/stickers')?.id).toBe('progress');
+    expect(activeSection('/challenge')?.id).toBe('home');
+  });
+
+  it('holds the section across a sub-route, so a spot page does not close the drawer', () => {
+    expect(activeSection('/spots/bay-sixty6')?.id).toBe('whats-on');
+    expect(activeSection('/events/brighton-jam')?.id).toBe('whats-on');
+  });
+
+  it('answers with nothing on a screen that is in no section', () => {
+    expect(activeSection('/account')).toBeUndefined();
+    expect(activeSection('/report')).toBeUndefined();
+    expect(activeSection('/plans')).toBeUndefined();
+  });
+
+  it('never answers with two sections for one screen', () => {
+    // `MobileNav` takes the first match; two would mean the bar could light one
+    // cell and open the other one's drawer beneath it.
+    for (const path of [
+      '/home',
+      '/library',
+      '/spots',
+      '/events',
+      '/progress',
+      '/stickers',
+      '/crew',
+      '/challenge',
+    ]) {
+      expect(
+        MOBILE_NAV.filter((item) => isNavActive(item, path)),
+        path,
+      ).toHaveLength(1);
+    }
   });
 });
 
