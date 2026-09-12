@@ -228,6 +228,11 @@ describe('the event catalogue', () => {
         'empty_state_action',
         'event_attendance_set',
         'event_page_opened',
+        // Whether the calendar could open on the reader's own country. The
+        // default is a bet with a losing side — the calendar is in thirty
+        // countries and we can name two hundred and fifty — and this is the
+        // only thing that says which side most readers land on.
+        'events_country_defaulted',
         // The segmented control between the calendar and the archive — the
         // only thing that can say whether keeping finished events online is
         // read by anybody through the product's own front door.

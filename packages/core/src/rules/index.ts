@@ -52,6 +52,7 @@ export {
   eventArchiveIndex,
   eventBySlug,
   eventCountriesPresent,
+  eventCountryForRegion,
   eventDateBlock,
   eventDateState,
   eventDaysAway,

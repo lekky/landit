@@ -78,6 +78,26 @@ import type { EventsView, EventView } from './view';
  * never prompted for unless a rider presses, announced while on, never stored,
  * never transmitted.
  *
+ * **The country control opens on the reader's own country** (Rachid,
+ * 2026-09-12, in chat), on both halves. "What's coming up" is only a useful
+ * sentence if it means near me, and the calendar is two hundred and twenty-one
+ * events across thirty countries — a reader in Sweden should not have to find a
+ * `<select>` below the fold before the first screen is about them. The answer
+ * is resolved on the server (`eventCountryForRegion`, via `view.defaultCountry`)
+ * from the same signal the units use, in the same order: a signed-in rider's
+ * declared country, then `Accept-Language` for a visitor. It is never worked
+ * out here, because a filter whose starting value is decided in the browser
+ * makes the first paint disagree with the second (LESSONS §3a).
+ *
+ * **It only ever names a country with events actually in it.** The
+ * code-to-name join reaches two hundred and fifty countries and the calendar is
+ * in thirty, so most of the planet has nothing on — those readers open on
+ * Everywhere, exactly as before, and no neighbour is guessed for them. The
+ * default is also never something the `<select>` cannot show, so a rider can
+ * always choose their way back out of it; the line above the list is the other
+ * half of that, and `events_country_defaulted` is what says whether any of it
+ * is landing.
+ *
  * **This screen opens nearest-first when the browser already allows it**
  * (Rachid, 2026-08-30, in chat; §6.4 standard 10 as amended), on the same terms
  * as `/spots`: `resumeWhenGranted` reads a position on load *only* where the
@@ -159,9 +179,33 @@ export function EventsScreen({
     });
   }, [here.state, here.resumed]);
 
+  /*
+   * Whether the calendar could open on the reader's own country. Counted once
+   * per load, off the server's answer rather than off `country`, so a rider
+   * changing the filter is not counted as a second default. Neither the country
+   * nor the signal behind it is a property — see the catalogue.
+   */
+  useEffect(() => {
+    capture(ANALYTICS_EVENTS.eventsCountryDefaulted, {
+      outcome: view.defaultCountry ? 'home' : 'everywhere',
+      scope: view.scope,
+    });
+  }, [view.defaultCountry, view.scope]);
+
   const [kind, setKind] = useState<EventKind | null>(null);
   const [mySportOnly, setMySportOnly] = useState(true);
-  const [country, setCountry] = useState('');
+  /*
+   * Opens on the reader's own country where the calendar has events in it, and
+   * on Everywhere where it does not (`eventCountryForRegion`). The value comes
+   * from the server rather than being worked out here: this component renders
+   * on both sides of a hydration boundary, and a filter whose starting value is
+   * decided in the browser gives a first paint that disagrees with the second
+   * (LESSONS §3a).
+   *
+   * It is a *starting* value and nothing more — `setCountry` owns it from the
+   * first change, so choosing Everywhere sticks for the rest of the visit.
+   */
+  const [country, setCountry] = useState(view.defaultCountry);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [going, setGoing] = useState<ReadonlySet<string>>(
@@ -440,6 +484,35 @@ export function EventsScreen({
       </div>
 
       {archive && <ArchiveIndex archive={archive} />}
+
+      {/*
+        Which country the list is narrowed to, said out loud above the results
+        (Rachid, 2026-09-12, in chat).
+
+        It exists because this screen now *opens* narrowed. The country control
+        is a `<select>` below a row of pills, which on a phone is off the bottom
+        of the first screen — so without this line a rider in Sweden meets five
+        events where there are two hundred and twenty-one, with nothing on
+        screen to say a filter is on. A short list that does not explain itself
+        reads as an empty product.
+
+        Rendered outside the list rather than beside "Nearest first", because it
+        has to survive the list being empty: a filter narrow enough to find
+        nothing is exactly when a rider most needs telling which filter it was.
+        And the way out travels with it, as it does on the location badge.
+      */}
+      {country && (
+        <p className={styles.showing}>
+          <span className="lab">Showing {country}</span>
+          <button
+            type="button"
+            className={`cond ${styles.showingAll}`}
+            onClick={() => setCountry('')}
+          >
+            See everywhere
+          </button>
+        </p>
+      )}
 
       {emptyCorner ? (
         <EmptyCorner town={where?.town ?? ''} year={where?.year ?? 0} narrowedTo={Boolean(where)} />
