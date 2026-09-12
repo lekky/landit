@@ -352,6 +352,54 @@ describe('nearest first', () => {
     sortSpotsByDistance(spots, { lat: 51.5, lng: -0.12 });
     expect(spots.map((s) => s.name)).toEqual(before);
   });
+
+  /*
+   * The three ties the comparator has to break the same way every time. They
+   * are asserted rather than left to read off the implementation because the
+   * distance is now measured once per spot instead of inside the comparator
+   * (for the thirty-thousand-row reason in `sortSpotsByDistance`'s note), and
+   * the whole defence of that change is that the order it produces is the one
+   * the pair of `!a.point` guards produced.
+   */
+  it('breaks every tie on the order the spots arrived in', () => {
+    const from = { lat: 51.5, lng: -0.12 };
+
+    // Two with no location at all: neither can be nearer, so neither moves.
+    const unplaced = [
+      { name: 'Nowhere A', lat: 0, lng: 0 },
+      { name: 'Placed', lat: 51.506, lng: -0.116 },
+      { name: 'Nowhere B', lat: 0, lng: 0 },
+    ];
+    expect(sortSpotsByDistance(unplaced, from).map((s) => s.name)).toEqual([
+      'Placed',
+      'Nowhere A',
+      'Nowhere B',
+    ]);
+
+    // Two at the very same point.
+    const identical = [
+      { name: 'Second', lat: 53.4695, lng: -2.9877 },
+      { name: 'Same point A', lat: 51.506, lng: -0.116 },
+      { name: 'Same point B', lat: 51.506, lng: -0.116 },
+    ];
+    expect(sortSpotsByDistance(identical, from).map((s) => s.name)).toEqual([
+      'Same point A',
+      'Same point B',
+      'Second',
+    ]);
+
+    // A missing coordinate is as unplaceable as Null Island, and sorts with it.
+    const partial = [
+      { name: 'No lng', lat: 51.5 },
+      { name: 'Placed', lat: 51.506, lng: -0.116 },
+      { name: 'Null Island', lat: 0, lng: 0 },
+    ];
+    expect(sortSpotsByDistance(partial, from).map((s) => s.name)).toEqual([
+      'Placed',
+      'No lng',
+      'Null Island',
+    ]);
+  });
 });
 
 describe('the spots in a view of the map (search this area)', () => {

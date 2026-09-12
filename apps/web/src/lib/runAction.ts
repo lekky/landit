@@ -104,6 +104,7 @@ export type RequestName =
   | 'admin_read'
   | 'spots_page'
   | 'spots_points'
+  | 'spots_names'
   | 'spots_cards';
 
 /**
@@ -116,6 +117,7 @@ const READS: ReadonlySet<RequestName> = new Set<RequestName>([
   'admin_read',
   'spots_page',
   'spots_points',
+  'spots_names',
   'spots_cards',
 ]);
 

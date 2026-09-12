@@ -542,6 +542,38 @@ export const ANALYTICS_EVENTS = {
    */
   nearbySortUsed: 'nearby_sort_used',
   /**
+   * How long nearest-first took, from the press to a sorted list on screen.
+   *
+   * **It exists because the fix for "Spots takes way too long" is otherwise
+   * unfalsifiable** (owner, 2026-09-12, in chat). The wait was a fresh location
+   * fix, then about a megabyte of spot points, then a sort, then the cards —
+   * one after another, and measured on a build box rather than on the phones
+   * riders actually hold. Without this the only evidence that taking the fix
+   * off the critical path and halving the download worked is that it ought to.
+   *
+   * Carries `bucket`, `source` and `screen`:
+   *
+   * - **`bucket`** is one of five fixed strings (`nearbyReadyBucket`), never a
+   *   number. A millisecond count is a fingerprint — a device's speed and a
+   *   network's, to the millisecond, alongside everything else in the same
+   *   event — and five buckets answer the only question anybody will ask of
+   *   this ("is it seconds or is it instant") without carrying one.
+   * - **`source`** repeats `nearby_sort_used`'s split between a press on this
+   *   visit and a standing browser permission, because the two have genuinely
+   *   different waits: a resume starts its download before the rider has done
+   *   anything.
+   * - **`screen`** is always `'spots'` today. It is here so that `/events`,
+   *   which uses the same hook and fires the same `nearby_sort_used`, can be
+   *   added later without splitting one funnel into two event names.
+   *
+   * **Still not the position, and not what was found.** A duration is a fact
+   * about a device and a connection; a latitude is a fact about a child. The
+   * rule above rules out the second, and nothing here weakens it: no
+   * coordinate, no spot id, no distance, no count of what came back — a "3
+   * spots within 2 miles" is a location by another route.
+   */
+  nearbySortReady: 'nearby_sort_ready',
+  /**
    * A list was narrowed by sport — the multi-select pill row on `/events` and
    * `/spots` (Rachid, 2026-09-12, in chat).
    *
