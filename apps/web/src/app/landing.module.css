@@ -291,21 +291,25 @@
 }
 
 /*
- * Who made it, between the lede and the email field.
+ * Who made it, the first thing under the call to action.
  *
  * Left-aligned in a centred box, where everything else in the hero is centred:
  * it is a byline, and a centred two-line byline reads as another piece of
- * marketing copy. The yellow rule is what separates it from the lede above
+ * marketing copy. The yellow rule is what separates it from what is above it
  * without a border, a fill or a shadow, none of which it wants — this is the
  * one thing in the hero that is not asking to be pressed.
  *
  * `max-width` is a little over the lede's 540px so the sentence sets on two
  * lines at desktop width rather than three.
+ *
+ * The margin is on the top where it used to be on the bottom: the block moved
+ * from above the email field to below the form (2026-09-12), so the gap it owns
+ * is the one over it. `.peeks` brings its own 22px underneath.
  */
 .byline {
   display: block;
   max-width: 545px;
-  margin: 0 auto 24px;
+  margin: 24px auto 0;
   padding: 2px 0 3px 16px;
   border-left: 4px solid var(--gyellow);
   text-align: left;
@@ -478,6 +482,96 @@ a.bylineLink:focus-visible {
 .peek:hover .peekArrow,
 .peek:focus-visible .peekArrow {
   transform: translateX(4px);
+}
+
+/*
+ * The two social logo tiles in the top bar (`SocialLinks.tsx`).
+ *
+ * **Every class here is `social`-prefixed, and that is not decoration.** The
+ * first cut called them `.tile`, `.tileMark` and `.tileName`, which are three
+ * names this same file already uses for the season grid further down — so the
+ * grid's `.tile` won on source order and painted the logos into 78px paper
+ * cards with a 2.5px border. A CSS module scopes a class against other files,
+ * not against the rest of its own, and this file is 1200 lines long. Check a
+ * new name against it before adding one.
+ *
+ * Sized to the bar rather than to the hero: 34px, a 2.5px border and a 3px
+ * offset, which is `--sh-sm`'s weight and what `.btn.sm` beside it carries. At
+ * that size the pair fits inside the height Sign in and Start free already set,
+ * so the row costs the bar no height at all — measured at 60px with the tiles
+ * and 60px without. A 52px tile, which is what the hero placements used, makes
+ * the bar taller on every page width.
+ *
+ * **The fill and the foreground are inline, not here.** `SocialLinks.tsx` sets
+ * both from `FILLS` through `foregroundFor`, and that is load-bearing twice
+ * over. It is what measures the ink against each fill rather than asserting it,
+ * and it is what keeps these tiles out of the trap in issue #297: `tokens.css`
+ * paints `a:hover { color: var(--pink) }`, which outranks any single class, so
+ * a `.socialTile { color: ... }` rule here would lose on hover and the mark's
+ * `currentColor` would flip to pink — pink on pink on the Instagram tile, which
+ * is the exact defect `.peek:hover` was written to escape. An inline style
+ * outranks every selector in the cascade, so the marks keep their ink and this
+ * file needs no counter-rule.
+ */
+.socials {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.socialTile {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2.5px solid #000;
+  box-shadow: 3px 3px 0 #000;
+  text-decoration: none;
+  transition: 0.14s;
+}
+/*
+ * The same lift `.peek` uses, at the smaller offset. `:focus-visible` is listed
+ * with `:hover` because the keyboard route in has to show the same thing.
+ */
+.socialTile:hover,
+.socialTile:focus-visible {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 #000;
+  filter: brightness(1.08);
+}
+.socialMark {
+  display: block;
+}
+/*
+ * TikTok's mark is one filled path where Instagram's is three stroked shapes,
+ * so in the same 19px box it carries noticeably more ink. The scale takes that
+ * back optically rather than by giving the two `svg` elements different sizes,
+ * which would have made the two tiles' contents different heights.
+ *
+ * A class the component asks for by name, not `li:last-child`. Two reasons, and
+ * the second is why the obvious version was rewritten: order is not the fact
+ * being described here — reordering `SOCIALS` would put the correction on the
+ * stroked mark — and a bare `li:last-child` in a CSS module is not scoped to
+ * the module at all, which is the leak #445 went and fixed.
+ */
+.socialMarkSolid {
+  transform: scale(0.92);
+}
+/*
+ * The platform and the handle, for a screen reader and nothing else. The
+ * `clip-path` idiom rather than `display: none` or a zero size, because the
+ * first removes it from the accessibility tree and the second stops some
+ * readers announcing it. Same pattern as the spots panel's hidden link names.
+ */
+.socialName {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* 5. the four-bar stripe under the hero */

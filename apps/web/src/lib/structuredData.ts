@@ -10,6 +10,7 @@ import {
   type Trick,
 } from '@landit/core';
 
+import { SOCIAL_SAME_AS } from '@/content/socials';
 import { lowerLabel } from '@/lib/sports';
 
 /**
@@ -47,9 +48,11 @@ export type JsonLdNode = Record<string, unknown>;
  * publisher instead of restating it ninety-odd times.
  *
  * `sameAs` is the list of profiles that are demonstrably the same brand, which
- * is how a search engine reconciles those accounts with this site. It matches
- * the footer's list exactly (`components/site/SiteFooter.tsx`) — if one gains
- * an account, so does the other.
+ * is how a search engine reconciles those accounts with this site. It is
+ * derived from `content/socials.ts` rather than retyped, so it cannot disagree
+ * with the links a rider is actually offered — it used to be a second copy of
+ * the footer's list, kept in step by a comment asking each side to remember the
+ * other.
  */
 export function organizationLd(): JsonLdNode {
   return {
@@ -62,7 +65,7 @@ export function organizationLd(): JsonLdNode {
         url: SITE_URL,
         logo: `${SITE_URL}/icon.png`,
         email: CONTACT.hello,
-        sameAs: ['https://instagram.com/landthetrickapp', 'https://tiktok.com/@landthetrick'],
+        sameAs: [...SOCIAL_SAME_AS],
       },
       {
         '@type': 'WebSite',

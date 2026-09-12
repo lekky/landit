@@ -26,8 +26,20 @@ import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
  * available to leak; the types are belt and braces on top of that.
  */
 
-/** Where a call to action goes. Fixed strings, not routes, so a path change here is not a funnel break. */
-export type CtaTarget = 'signup' | 'signin' | 'spots' | 'events' | 'plans' | 'library' | 'story';
+/**
+ * Where a call to action goes. Fixed strings, not routes, so a path change here
+ * is not a funnel break.
+ *
+ * The last two leave the site, and are the only members this component cannot
+ * itself render: `href` below is a Next `Route`, so the hero's social tiles are
+ * plain anchors in `SocialLinks.tsx` that fire the same event. They are in this
+ * union anyway, because the union is what `landing_cta`'s `target` property is
+ * allowed to be — `SocialLinks` annotates against it, so an account added to
+ * `content/socials.ts` without a name here stops compiling rather than quietly
+ * inventing a value the catalogue does not document.
+ */
+export type CtaTarget =
+  'signup' | 'signin' | 'spots' | 'events' | 'plans' | 'library' | 'story' | 'instagram' | 'tiktok';
 
 /** Which zone it was pressed in. The first three are the landing page's. */
 export type CtaPlace = 'bar' | 'hero' | 'band' | 'story';
