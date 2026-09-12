@@ -464,3 +464,138 @@ test('a dotted word in the tips opens the glossary, with the way back', async ({
   await expect(page).toHaveURL(/\/library\/tailwhip$/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(tailwhip.name);
 });
+
+/*
+ * Your place in the grid, kept for the hop into a trick page and back.
+ *
+ * This is the one behaviour in the file that no unit test can reach and no
+ * screenshot can show. `apps/web/src/lib/libraryPlace.test.ts` proves the
+ * memory's own rules, but whether a rider lands where they left depends on
+ * three things only a browser has: when React unmounts the grid, when Next
+ * scrolls a new page to the top, and how tall the document is at the moment the
+ * browser makes its own attempt at a Back. Any of those can change under a Next
+ * upgrade without a line of this repository changing, and the failure is
+ * silent — the library still works, it just quietly stops remembering.
+ *
+ * Three tests, because the promise has three parts: the offset comes back, the
+ * narrowing that produced it comes back with it, and it is a promise about one
+ * hop rather than a standing preference.
+ */
+
+/**
+ * Scroll to the foot of the page and answer with the offset that reached.
+ *
+ * Read off `<html>` rather than out of `window.scrollY`, which is the same
+ * number and not a name this tsconfig has: the e2e `lib` is ES2023 with no DOM,
+ * so the types come from the element handle (`shell.spec.ts` scrolls the same
+ * way).
+ */
+async function toTheBottom(page: Page): Promise<number> {
+  return page.locator('html').evaluate((el) => {
+    el.scrollTo(0, el.scrollHeight);
+    return el.scrollTop;
+  });
+}
+
+const offset = (page: Page) => page.locator('html').evaluate((el) => el.scrollTop);
+
+test('the arrow out of a trick page lands back where the rider left the grid', async ({ page }) => {
+  await page.goto('/library');
+  await expect(card(page, freeTrick.name)).toBeVisible();
+
+  const left = await toTheBottom(page);
+  // If the whole library fitted on the screen there would be nothing to put a
+  // rider back into, and this test would pass against an empty implementation.
+  expect(left).toBeGreaterThan(400);
+
+  // The URL rather than the heading: a card's name is drawn uppercase by the
+  // design's own type, so `innerText` and the trick page's `h1` disagree in
+  // case and nothing but the address says which trick was opened.
+  await page.locator('.tcard').last().click();
+  await expect(page).toHaveURL(/\/library\/[a-z0-9-]+$/);
+
+  await page.getByRole('link', { name: 'All tricks' }).click();
+  await expect(card(page, freeTrick.name)).toBeVisible();
+  // `poll`, because the restore is deliberately a frame behind the render: it
+  // has to outlast Next's own scroll and the browser's.
+  await expect.poll(() => offset(page), { timeout: 2000 }).toBeGreaterThan(left - 4);
+});
+
+test('a browser Back brings the sort and the offset back together', async ({ page }) => {
+  await page.goto('/library');
+
+  // The sort is React state with no address, so before the place memory it was
+  // gone on the way back — and an offset restored into a differently ordered
+  // grid is not a place, it is a coincidence.
+  await page.getByRole('button', { name: 'Hardest first' }).click();
+  const cards = page.locator('.tcard');
+  await expect(cards.first()).toBeVisible();
+  // `textContent`, not `innerText`: the design draws a card's name uppercase, so
+  // `innerText` answers with what the CSS renders and never matches the text
+  // the same element holds.
+  const hardestFirst = await cards.first().locator('.nm').textContent();
+
+  const left = await toTheBottom(page);
+  expect(left).toBeGreaterThan(400);
+  await cards.last().click();
+  /*
+   * The **address**, and not `h1` — which is what this waited on until it was
+   * caught, and it made the test lie. The library's own heading is an `h1`
+   * ("84 tricks"), so the assertion passed against the screen the rider was
+   * still on and the Back below fired mid-navigation, landing on `about:blank`.
+   * The URL is the only thing here that says the trick page has arrived.
+   */
+  await expect(page).toHaveURL(/\/library\/[a-z0-9-]+$/);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/library$/);
+  await expect(page.getByRole('button', { name: 'Hardest first' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(cards.first().locator('.nm')).toHaveText(hardestFirst ?? '');
+  await expect.poll(() => offset(page), { timeout: 2000 }).toBeGreaterThan(left - 4);
+});
+
+test('a search survives the trick page too, and the grid stays narrowed', async ({ page }) => {
+  await page.goto('/library');
+
+  await page.getByLabel('Search tricks').fill('grind');
+  const narrowed = page.locator('.tcard');
+  await expect(narrowed.first()).toBeVisible();
+  const matches = await narrowed.count();
+  expect(matches).toBeGreaterThan(0);
+
+  await narrowed.first().click();
+  // The address, for the reason the test above gives.
+  await expect(page).toHaveURL(/\/library\/[a-z0-9-]+$/);
+  await page.getByRole('link', { name: 'All tricks' }).click();
+
+  await expect(page.getByLabel('Search tricks')).toHaveValue('grind');
+  await expect(narrowed).toHaveCount(matches);
+});
+
+test('arriving at the library any other way starts at the top, as it always did', async ({
+  page,
+}) => {
+  await page.goto('/library');
+  const left = await toTheBottom(page);
+  expect(left).toBeGreaterThan(400);
+
+  await page.locator('.tcard').last().click();
+  await expect(page).toHaveURL(/\/library\/[a-z0-9-]+$/);
+
+  // Out of the section, then back into it through the navigation. The place is
+  // kept for the hop into a trick page and nothing else: a rider who was last
+  // in the library before a detour is not "coming back", and gets the plain
+  // top-of-grid arrival they always got.
+  const nav = page.getByRole('navigation', { name: 'Main' });
+  await nav.getByRole('link', { name: 'Spots' }).click();
+  await expect(page).toHaveURL(/\/spots$/);
+  await nav.getByRole('link', { name: 'Tricks' }).click();
+  await expect(page).toHaveURL(/\/library$/);
+  await expect(card(page, freeTrick.name)).toBeVisible();
+
+  await expect.poll(() => offset(page), { timeout: 2000 }).toBeLessThan(40);
+  await expect(page.getByLabel('Search tricks')).toHaveValue('');
+});

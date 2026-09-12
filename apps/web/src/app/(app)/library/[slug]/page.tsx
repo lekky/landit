@@ -46,7 +46,7 @@ import {
   type PlansRecord,
   type UsersRecord,
 } from '@landit/db';
-import { Difficulty, Equipment, Icon, Panel, SportChip, Tag } from '@landit/ui-web';
+import { Difficulty, Equipment, Panel, SportChip, Tag } from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -59,6 +59,7 @@ import { SPORT_LOOKS, lowerLabel } from '@/lib/sports';
 import { anonymousClient, currentRider } from '@/lib/session';
 
 import { AwardBadge } from './AwardBadge';
+import { BackToLibrary } from './BackToLibrary';
 import { CrossSportPanel } from './CrossSportPanel';
 import { FactsStrip } from './FactsStrip';
 import { GuardianLine } from './GuardianLine';
@@ -450,9 +451,12 @@ export default async function TrickPage({ params }: Params) {
         // close this tag. There is no other way to put JSON-LD on a page.
         dangerouslySetInnerHTML={{ __html: jsonLdText(howTo) }}
       />
-      <Link className={`cond ${styles.back}`} href={ROUTES.library}>
-        <Icon name="back" size={16} /> All tricks
-      </Link>
+      {/*
+        Not a plain `<Link href={ROUTES.library}>`: it goes to the library
+        address the rider left and leaves the scroll to them
+        (`BackToLibrary`, `lib/libraryPlace.ts`).
+      */}
+      <BackToLibrary />
 
       <Panel className={styles.panel}>
         <div className={styles.header} style={{ background: category.color }}>
