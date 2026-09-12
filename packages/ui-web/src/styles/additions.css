@@ -362,6 +362,36 @@ a.pill.on:hover {
   color: var(--on-dark);
 }
 
+/*
+ * Signing out, which is the one row in the sheet that does something rather
+ * than going somewhere (`components/shell/AccountMenu.tsx`).
+ *
+ * Last, and behind the same 3px keyline the staff row uses, so the sheet reads
+ * as destinations-then-action. It is drawn in ink with the yellow hover the
+ * rider destinations have, deliberately: `--red` is 4.30:1 on paper and
+ * `--on-dark` is 4.30:1 on `--red`, so neither the text nor the fill clears AA
+ * at this size (14px, 700) — and a sign-out sitting under a rider's thumb is
+ * not a row that should be shouting for the tap anyway. The word does the
+ * warning.
+ *
+ * The reset is here because this row is a `button` inside a `form` rather than
+ * an `<a>`: `border`, `background` and `text-align` are the browser's until
+ * they are not, and the `.accountmenu-item + .accountmenu-item` rule above
+ * cannot reach through the form to draw its keyline.
+ */
+.accountmenu-item.signout {
+  width: 100%;
+  border: 0;
+  border-top: 3px solid var(--ink);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.accountmenu-item.signout:hover,
+.accountmenu-item.signout:focus-visible {
+  background: var(--yellow);
+}
+
 /* ------------------------------------------------------------------ modal -- */
 
 /*
@@ -894,6 +924,17 @@ body::before {
   .accountmenu-item.staff:focus-visible {
     background: var(--violet);
     color: var(--on-dark);
+  }
+  /*
+   * And the same for the sign-out row, for the same reason: its hover is
+   * `.accountmenu-item.signout:hover`, which outranks the reset above and
+   * would leave yellow stuck on the row after a tap.
+   */
+  .accountmenu-item.signout:hover {
+    background: none;
+  }
+  .accountmenu-item.signout:focus-visible {
+    background: var(--yellow);
   }
 
   /*

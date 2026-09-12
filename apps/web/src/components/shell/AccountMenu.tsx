@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
+import { SignOutForm } from '@/components/SignOutForm';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { accountMenuFor } from './nav';
 import type { TopBarRider } from './TopBar';
@@ -26,10 +27,17 @@ import type { TopBarRider } from './TopBar';
  * four, and the gate that actually decides the question is `requireStaff` on
  * the server (`lib/staff.ts`), which this menu cannot weaken.
  *
- * Deliberately a plain menu of links and no more. There is no sign-out here:
- * signing out is a form post (`SignOutForm`) and it belongs on the account
- * screen where the rider can see what else is on it, not one slip away from an
- * avatar tap on a shared phone.
+ * Sign out is last, under the same heavier keyline the staff row uses, because
+ * it is the one row that does something rather than going somewhere. It was
+ * held back at first — on a shared phone it is one slip from an avatar tap, and
+ * the account screen shows a rider what else is on it before they leave — but
+ * that put the way out two taps deep on the device most riders are on, behind a
+ * screen they had to open to close the app. Ordered last, keylined off the
+ * destinations and reading "Sign out" rather than wearing a destructive colour,
+ * it is findable without being the thing a thumb lands on (owner's call,
+ * 2026-09-12, in chat). It is the same `signOutAction` the account screen and
+ * the staff portal post to, through the same `SignOutForm`, so there is one
+ * sign-out in the app and one `signed_out` counter behind it.
  */
 export function AccountMenu({ rider }: { rider: TopBarRider }) {
   const menuId = useId();
@@ -108,6 +116,19 @@ export function AccountMenu({ rider }: { rider: TopBarRider }) {
               {item.label}
             </Link>
           ))}
+
+          {/*
+            A form rather than a link, so it is a `button` inside the menu. The
+            form stretches to the sheet on its own as a flex child; the row's
+            own keyline and button reset live on `.accountmenu-item.signout`,
+            because the `+` rule that draws the 2px rules between the links
+            cannot see through the form to reach it.
+          */}
+          <SignOutForm where="account-menu">
+            <button type="submit" role="menuitem" className="accountmenu-item signout">
+              Sign out
+            </button>
+          </SignOutForm>
         </div>
       )}
     </div>
