@@ -78,6 +78,28 @@ async function markSometimes(page: Page): Promise<void> {
   }).toPass({ timeout: 20_000 });
 }
 
+/**
+ * Switch the wall to "All", and be sure the switch landed.
+ *
+ * The wall opens on a rider's own collection the moment they hold anything
+ * (T33) — and during the launch window that is *every* new account, because
+ * `day-one` is granted at sign-up. The Earned view draws nothing locked, so a
+ * spec that wants the locked half has to ask for it; without this it would
+ * assert over an empty collection and pass by finding nothing, which is the
+ * failure mode this file's own header warns about (LESSONS §5).
+ *
+ * Retried on `aria-pressed` for the reason `markSometimes` gives: the control
+ * is server-rendered, so it is on screen before React owns it, and a press
+ * before hydration does nothing at all.
+ */
+async function showWholeWall(page: Page): Promise<void> {
+  const all = page.getByRole('button', { name: /^All \d+$/ });
+  await expect(async () => {
+    await all.click();
+    await expect(all).toHaveAttribute('aria-pressed', 'true');
+  }).toPass({ timeout: 20_000 });
+}
+
 /** Open the first trick the library offers and mark it landed. */
 async function landSomething(page: Page): Promise<string> {
   await page.goto('/library');
@@ -118,8 +140,46 @@ test('a fresh wall shows the award set, locked — bar the founder badge', async
   // agrees with the badges, and the wall is otherwise locked.
   const earned = Number(count.split(' of ')[0]);
   expect(earned).toBeLessThanOrEqual(1);
+
+  // The locked half lives behind "All" now; the heading above still counts the
+  // whole wall either way.
+  await showWholeWall(page);
   await expect(page.locator('.sticker.locked').first()).toBeVisible();
   await expect(page.locator('.sticker:not(.locked)')).toHaveCount(earned);
+});
+
+test('the wall opens on what a rider has, and All holds the rest behind its shelves', async ({
+  page,
+}) => {
+  await arrive(page, 'Tabbed Rider');
+  await landSomething(page);
+  await page.goto('/stickers');
+
+  // Something earned, so the wall opens on Earned — and nothing locked is
+  // drawn there. This is also what protects the once-only pop: the wall
+  // acknowledges fresh awards on mount whatever view is showing, so the
+  // default has to be the view that draws them (`defaultWallView`).
+  await expect(page.getByRole('button', { name: /^Earned \d+$/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.locator('.sticker.locked')).toHaveCount(0);
+
+  await showWholeWall(page);
+
+  // Every shelf is capped, so the trick shelf shows six of its many rather
+  // than swallowing the wall. Its heading still says how many there are.
+  const tricks = page.locator('section', {
+    has: page.getByRole('heading', { name: 'Trick awards' }),
+  });
+  const total = Number((await tricks.getByRole('heading').innerText()).replace(/\D+/g, ''));
+  expect(total).toBeGreaterThan(6);
+  await expect(tricks.locator('.sticker')).toHaveCount(6);
+
+  // And the rest are one press away, in place.
+  await tricks.getByRole('button', { name: `Show all ${total} Trick awards` }).click();
+  await expect(tricks.locator('.sticker')).toHaveCount(total);
+  await expect(tricks.getByRole('button', { name: /^Show all/ })).toHaveCount(0);
 });
 
 test('landing a trick earns a sticker, announces it once, and puts it on the wall', async ({
@@ -170,6 +230,7 @@ test('the detail modal says what a sticker needs, and offers the share card once
 test('a locked sticker offers no share button', async ({ page }) => {
   await arrive(page, 'Locked Rider');
   await page.goto('/stickers');
+  await showWholeWall(page);
 
   await page.locator('.sticker.locked').first().click();
   const modal = page.getByRole('dialog');
@@ -196,6 +257,9 @@ test('the sticker detail holds the wall still behind it, takes focus, and gives 
   await page.setViewportSize({ width: 390, height: 664 });
   await arrive(page, 'Hold Rider');
   await page.goto('/stickers');
+  // The whole wall, so there is a page long enough to have a scroll position
+  // worth keeping: Earned holds at most the founder badge for this rider.
+  await showWholeWall(page);
 
   const settle = () =>
     page.evaluate(
@@ -257,6 +321,9 @@ test('the sticker detail holds the wall still behind it, takes focus, and gives 
 test('the wall promises no posted vinyl and no Crew Pass (plan §2.4)', async ({ page }) => {
   await arrive(page, 'Copy Rider');
   await page.goto('/stickers');
+  // Read the whole wall, not the Earned view — an absence proved over the
+  // handful of badges a new rider holds is an absence proved over nothing.
+  await showWholeWall(page);
 
   // The prototype's panel sold a die-cut pack posted to "Crew Pass riders".
   // The Crew Pass was dropped and no pack exists, so neither claim ships.
@@ -269,6 +336,7 @@ test('the wall promises no posted vinyl and no Crew Pass (plan §2.4)', async ({
 test('no sticker on the wall rewards landing a flip (issue #77)', async ({ page }) => {
   await arrive(page, 'Safety Rider');
   await page.goto('/stickers');
+  await showWholeWall(page);
 
   // `upside` is retired: "Land a scooter flip trick" was the one condition that
   // named difficulty-5 inversions, next to coaching copy that says foam pit

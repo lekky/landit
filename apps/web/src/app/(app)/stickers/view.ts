@@ -1,5 +1,7 @@
 import type { SportId } from '@landit/core';
 
+import type { WallView } from './groups';
+
 /**
  * What the server hands the sticker wall.
  *
@@ -70,6 +72,13 @@ export interface StickerWallView {
   readonly tabs: readonly WallTabView[];
   /** Stickers per sport tab, in canonical order. Shared ones appear on every tab. */
   readonly bySport: Readonly<Record<string, readonly StickerView[]>>;
+  /**
+   * Which of the two views each sport's wall opens on — `defaultWallView` in
+   * `groups.ts`, decided here rather than in the client for the reason this
+   * file exists: the wall renders twice, and a default computed in the browser
+   * could differ from the one Node rendered.
+   */
+  readonly defaultViewBySport: Readonly<Record<string, WallView>>;
   /** "Sticker wall · Scooter and shared" per tab. */
   readonly eyebrowBySport: Readonly<Record<string, string>>;
   /** The rider's name and totals, for the share card's meta line. */

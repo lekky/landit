@@ -281,7 +281,11 @@ describe('the event catalogue', () => {
         'spots_map_sheet_opened',
         'sport_switched',
         'sticker_earned',
+        // The wall's Earned / All switch, and a capped shelf opened (T33).
+        // A view name and a shelf id, both from fixed lists in the code.
+        'sticker_shelf_expanded',
         'sticker_shared',
+        'sticker_view_switched',
         // An onward link from a trick page — the road, the unlocks, the
         // similar tricks, the practise line or the cross-sport panel. Slugs
         // and feature tags only.
