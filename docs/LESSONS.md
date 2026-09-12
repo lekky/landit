@@ -904,6 +904,20 @@ Two rules. **Read a PocketBase field with the accessor that matches its type** a
 doing nothing, **assert the world changed, never the response** — `{ok: true}` is the one thing
 every version of the code agrees on.
 
+**An assertion both screens satisfy is not a wait, and it makes the *next* line lie.** The library's
+new place-keeping test clicked a trick card, waited for `getByRole('heading', { level: 1 })` to be
+visible, then pressed Back and asserted the grid came back as the rider left it. It failed for two
+runs and the implementation was innocent: the library's own heading is an `h1` too ("84 tricks"), so
+the wait was satisfied by the screen the rider was still on, `page.goBack()` fired mid-navigation,
+and the browser went back past the library to `about:blank`. The failure then reported the pills as
+"element(s) not found", which reads exactly like a component that stopped rendering.
+
+The rule is to **wait on the thing only the destination has** — here `await expect(page).toHaveURL(/\/library\/[a-z0-9-]+$/)`, because the address is the one fact the two screens cannot
+share. A heading level, a panel class, a nav item and "some `h1` exists" are all true on both sides
+of a navigation. And when an assertion after a navigation says an element has vanished, check what
+page the test is actually on before reading it as a regression: `console.log(page.url())` answered
+this in one run, after two spent on the wrong half of it.
+
 ## 5a. The shell is not a text box
 
 **Backticks inside a double-quoted shell argument execute.** Filing issue #48 — whose subject
@@ -1089,6 +1103,24 @@ code contains — that is what turns "my change is not working" into "my change 
 they have nothing in common. Then **verify against a production build** (`next build` +
 `next start`): production chunks are content-hashed, so a changed file is a changed URL and no
 cache can shadow it.
+
+**An unmount cleanup is not a safe place to read the scroll position: a navigation can commit
+twice.** The library's place-keeping (`lib/libraryPlace.ts`) first recorded where a rider was in the
+grid from the cleanup of an effect, which is the obvious moment — the screen is going, so
+`window.scrollY` must still be its own, and React unmounts the old page before anything scrolls the
+new one. It recorded 0 every time. A navigation inside a transition can render the new page, put the
+old one back while its payload lands, and commit again, so the cleanup ran **twice**; by the second
+run the framework had already scrolled the new page to the top, and that is the number that got
+written down.
+
+What made it expensive is that the feature looked half-built rather than mis-wired: the narrowing
+came back perfectly — same search text, same sort — and the rider landed at the top of it. Every
+unit test passed, because the memory's rules were right; the value going into it was wrong. The fix
+is to record on a **press** (`onClickCapture` on the screen), which is a moment the rider chose and
+one with no ambiguity about where the page is. The general rule: **anything you read out of the
+browser while a navigation is in flight can be read at a moment you did not intend**, so take the
+reading at an event, not at a lifecycle hook, and assert the *number* in a browser test rather than
+only the state around it — three tests asserting the filters would all have passed.
 
 ## 7a. An optimistic UI needs a `catch`, not just an `else`
 

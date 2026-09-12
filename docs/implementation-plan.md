@@ -1866,7 +1866,11 @@ What is kept, and the shape of the promise, is `apps/web/src/lib/libraryPlace.ts
   rather than leave two mechanisms moving one scroll offset.
 
 No analytics event: nothing new is offered to press, and the navigation either way round is already
-a `$pageview`. `e2e/library.spec.ts` carries four tests, because only a browser can see the three
+a `$pageview`. Issue #441 carries the other half of this: every other long list in the app —
+`/spots`, `/events`, the sticker wall, the glossary — still loses the reader's place, and the
+Cache Components decision above is the fork in how that gets fixed.
+
+`e2e/library.spec.ts` carries four tests, because only a browser can see the three
 things this depends on — when React unmounts the grid, when Next scrolls a new page to the top, and
 how tall the document is when the browser makes its own attempt at a Back.
 
