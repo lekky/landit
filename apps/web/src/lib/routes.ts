@@ -91,10 +91,11 @@ export const ROUTES = {
    * Why the product exists, told by the rider whose idea it was.
    *
    * A route of its own rather than a sixth legal document. `/legal/about` is
-   * the factual page — what this is, how it makes money, who to email — and it
-   * sits in a set with the privacy policy and the terms because that is the
-   * register it is written in. The story is a different kind of page and would
-   * have had to borrow that one's index down the left to live there.
+   * the factual page — what this is, what pays to keep it running, who to
+   * email — and it sits in a set with the privacy policy and the terms
+   * because that is the register it is written in. The story is a different
+   * kind of page and would have had to borrow that one's index down the left
+   * to live there.
    */
   story: '/story',
   /**

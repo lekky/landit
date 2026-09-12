@@ -358,18 +358,80 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
           'The whole story of why it exists — the ramp, the twenty tries at a drop-in, and the search that turned up nothing — is on the Why we made this page, linked in the footer.',
         ],
       },
+      /*
+       * Until 2026-09-12 this section was headed "How we make money" and opened
+       * "Subscriptions, and eventually posted sticker packs." Both halves were
+       * wrong in the same direction — they described a business rather than
+       * this one (owner, 2026-09-12, in chat).
+       *
+       * - **The heading overclaimed.** Subscriptions exist and the checkout is
+       *   live, but they do not cover what the site costs to run, so a page
+       *   announcing how we make money was answering a question nobody had
+       *   asked and answering it flatteringly. What a parent is actually owed
+       *   here is what pays for the thing and what does not — which is the
+       *   same set of facts, minus the implication of a going concern.
+       * - **"Eventually posted sticker packs" was the last survivor of a claim
+       *   already pulled twice.** T10's sticker wall dropped the "real vinyl"
+       *   panel and T15's FAQ dropped "posts your earned stickers out as real
+       *   vinyl", both on the same grounds: nobody has decided to post physical
+       *   stickers (issues #101 and #181), `PLANS` carries no such perk, and a
+       *   claim about what money buys does not belong on a live page with a
+       *   live checkout behind it. Two e2e tests hold the words off the landing
+       *   and plans pages; this page was not covered by either, which is how it
+       *   outlived them. It is dropped rather than softened — "eventually" is
+       *   what an undecided product question sounds like when it is written
+       *   down as a plan.
+       *
+       * Four things about the replacement are deliberate, and three of them are
+       * absences a later session would otherwise read as an oversight and fix
+       * (all four: owner, 2026-09-12, in chat).
+       *
+       * - **It leads on the passion project, because that is the true answer.**
+       *   The product was built to be used by the people who built it and would
+       *   exist unpaid; the money paragraph is the practical footnote to that,
+       *   not the headline. The register is warmer than the documents either
+       *   side of it in the set, on purpose.
+       * - **It does not say "no advertising", and must not be given the line
+       *   back.** The previous copy promised it twice over. Whether Land The
+       *   Trick ever carries advertising is an open product question the owner
+       *   is keeping open, and this page is not the place to close it by
+       *   accident — a promise made here is one a parent has read. **Note that
+       *   three other live surfaces still state it outright** and were left
+       *   alone as out of this change's scope: the privacy policy's "There are
+       *   no ads in Land The Trick" above, the cookies page's "No advertising
+       *   cookies" section, and the landing FAQ's "no adverts anywhere in the
+       *   app" (`app/page.tsx`). They are true today. If advertising is ever
+       *   actually on the table, those three are the copy to settle first, and
+       *   settling them is the owner's call, not a session's.
+       * - **It does not quote a number of free tricks.** It said "twenty" for
+       *   one day. The number is a live product lever — ten until 2026-09-04,
+       *   twenty from 2026-09-12 — and the owner expects to move it again, so
+       *   the copy describes the *shape* of the free tier and lets `PLANS` and
+       *   the plan cards be the place a figure is quoted and tested. Do not
+       *   helpfully re-derive it from `@landit/core` here: an accurate number is
+       *   still a number a parent will hold us to next time it moves.
+       * - **It does not say "we never sell data about children" either.** That
+       *   was the other half of the old sentence and it went the same way, on
+       *   the owner's instruction. The commitment itself is unchanged and is
+       *   still published — the privacy policy above carries it as "We do not
+       *   sell your data", which is the document a parent looking for it goes
+       *   to, and §3 guarantee 1 plus the API rules are what actually enforce
+       *   it. What is gone is this page restating it. The section is about what
+       *   keeps the lights on, and a promise repeated on a page that was not
+       *   asking the question reads as protesting too much.
+       *
+       * The money paragraph says the cost is real and currently unmet. That is a
+       * fact about today and it is allowed to age: if subscriptions do come to
+       * cover the bill, it is the paragraph to rewrite, and it should be
+       * rewritten rather than quietly deleted.
+       */
       {
-        h: 'How we make money',
+        h: 'How we keep it running',
         p: [
-          'Subscriptions, and eventually posted sticker packs. Not advertising, and not by selling data about children.',
-          // Not "up to the Easy tier": the free tier has never been a tier
-          // boundary and stopped even approximating one on 2026-09-04, when it
-          // became a hand-picked spread reaching past the easy end — twenty
-          // tricks per sport since 2026-09-12 (`PLANS` in `@landit/core`, issue
-          // #286). A published document is the worst place for a claim about
-          // what is free to be stale, so it says the shape rather than a
-          // boundary, and the number it does quote is the tested one.
-          'The free tier is a real one. It covers twenty hand-picked tricks in every sport, easy ones and hard ones, and it does not expire.',
+          'This is a passion project. We built it because we wanted to use it ourselves, and it would exist whether or not anybody ever paid for it.',
+          'It does cost money to keep going, though: a server, a domain, backups, and somebody looking after all three. Subscriptions are what pay for that. Right now they do not cover it, and the difference comes out of our own pocket.',
+          'The free tier is a real one, not a teaser. It covers a proper spread of tricks in every sport, easy ones and hard ones, and it does not expire.',
+          'So if you are on a paid plan: you are the reason it stays up for everybody riding here on the free one. Thank you.',
         ],
       },
       {
