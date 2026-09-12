@@ -36,30 +36,44 @@ your merge and a live service used by children.
 
 ### Starting
 
-1. **Open with a TPO brief, and get it agreed before building anything.** It is the bookend
-   of the closing summary in step 12, and it has the same five parts every time so that none
-   of them quietly goes missing:
-   - **What changes** — behaviour a rider would notice, in their words, not implementation.
-   - **What gets measured** — which `ANALYTICS_EVENTS` entries this adds or touches
-     (`apps/web/src/lib/analytics.ts`), or one line saying why none: a staff-only screen, a
-     refactor nobody sees, a fix to something already counted. **Analytics is part of the
-     work, not a follow-up task.** A feature that ships uncounted is one nobody can tell you
-     anything about six months later, and the session that could have added the event in a
-     line is the one that had the file open.
-   - **What it costs** — anything that gets slower, larger, newly depended on, or newly
-     someone else's to run.
-   - **Collisions** — step 2, named so the owner can sequence the sessions.
-   - **Decisions only the owner can make** — explicit and up front, because step 8 means
-     there is no review in which to raise them later.
+1. **Open with a TPO brief — these six sections, in this order — and get it agreed before
+   building anything** (Rachid, 2026-09-12, in chat). It is the bookend of the handover in
+   step 12, and nothing starts until section 6 is answered.
+   1. **What you asked for** — the owner's request, repeated back in their own words. This
+      is the comprehension check and it is first for a reason: a misread ask is cheapest to
+      catch in the line that repeats it, before anything is built on top of it.
+   2. **Why we're doing it** — the benefit, not the mechanism. If this cannot be written
+      without describing the implementation, the value is not understood yet.
+   3. **Analytics events** — which `ANALYTICS_EVENTS` entries this should add or touch
+      (`apps/web/src/lib/analytics.ts`), or one line saying why none: a staff-only screen, a
+      refactor nobody sees, a fix to something already counted. **Analytics is part of the
+      work, not a follow-up task.** A feature that ships uncounted is one nobody can tell you
+      anything about six months later, and the session that could have added the event in a
+      line is the one that had the file open. There is no autocapture, deliberately.
+   4. **Risks** — what could go wrong or get worse. Anything slower, larger, newly depended
+      on or newly someone else's to run; anything touching the four security guarantees or
+      the child-safety position; and **any collision with work already in flight** (step 2's
+      check lands here, so the owner can sequence the sessions).
+   5. **Explicitly out of scope** — what this session will *not* do, named. Adjacent things
+      the ask could be read to include, tempting fixes noticed on the way past, the larger
+      version of the same idea. Naming them is what stops a session quietly widening, and
+      gives the owner the chance to say "actually, do that too".
+   6. **Anything you still need to answer** — the decisions only the owner can make. **Work
+      does not start until these are answered**, because step 8 means there is no review in
+      which to raise them later. Write each one as a plain question with the options and what
+      each would mean in practice — no jargon, no implementation detail, short enough to
+      answer in a line. A decision the owner has to decode is one they cannot make, and a
+      session that buries a question in a paragraph has not asked it. Say "nothing" when
+      there is nothing.
 
-   If the goal is unclear, ask in the brief rather than guessing at it. A brief the owner
+   If the goal is unclear, ask in section 6 rather than guessing at it. A brief the owner
    corrects in one line has done its job.
-2. **Collision check, in the brief.** Four commands, not one:
+2. **Collision check, feeding section 4.** Four commands, not one:
    `gh pr list` (open PRs), `gh issue list` (the work may already be logged, and adjacent
    issues are often worth folding in), `git worktree list` and `git branch -a` (sessions
    already running that have not opened a PR yet — **these are invisible to `gh pr list`, and
-   missing one cost Wave 1 half a session's work**; see LESSONS §1). Name any overlap in the
-   brief so the owner can sequence the sessions.
+   missing one cost Wave 1 half a session's work**; see LESSONS §1). Name any overlap under
+   **Risks** so the owner can sequence the sessions.
 3. **One session = one task = one branch = one PR.** Branch names: `t{n}-{slug}` for plan
    tasks (e.g. `t3-design-system`); `fix-`/`chore-`/`docs-` prefixes for out-of-plan work.
    The branch name is the session title and the PR title prefix — agree it with the owner in
@@ -145,24 +159,32 @@ to merged and cleans up after itself (step 8). Then, in order:
     whether the fix is strictly in scope — a one-line correction in a file you have open is not
     scope creep. What still gets an issue: anything needing a decision only the owner can make,
     anything touching code another session owns, and anything you cannot verify before merging.
-12. **Close with a TPO handover — three bullets, always these three, always in this order**
-    (Rachid, 2026-09-12, in chat). Prose is where a handover goes to die: the owner should be
-    able to read the last thing a session says and know whether anything is waiting on them
-    without mining a paragraph for it.
-    - **What I did** — the work in behaviour terms, what a rider would notice, not
-      implementation.
-    - **What changed** — what is actually different now: behaviour, routes, data, the
-      `ANALYTICS_EVENTS` entries added or touched, and the state of the branch and the checks
-      **read from the tool rather than assumed** (step 9). Anything that failed or was skipped
-      goes here, with the evidence, not left out.
-    - **What you need to do** — every decision only the owner can make, and every action
-      waiting on them: raise a PR, redeploy (merging is not shipping), change something in a
-      dashboard, answer a question. Say **"nothing"** when there is nothing, so that an empty
-      list is a statement rather than an omission.
+12. **Close with a TPO handover — these five sections, in this order** (Rachid, 2026-09-12,
+    in chat). Prose is where a handover goes to die: the owner should be able to read the last
+    thing a session says and know what happened and what is waiting on them, without mining a
+    paragraph for it.
+    1. **What we changed or fixed** — concise bullets, behaviour a rider would notice rather
+       than implementation.
+    2. **Why we did it** — concise bullets, the benefit rather than the mechanism. A bullet
+       here that only restates section 1 in other words means the work needs a better reason
+       or the bullet needs deleting.
+    3. **GitHub issues raised** — each as a link with a succinct why (step 11 wrote them while
+       the file paths were still in context; this is where they surface). Say "none" rather
+       than leaving the section out.
+    4. **Next step** — *optional, and only when there is one.* Anything manual now waiting on
+       a person: **a redeploy — merging is not shipping**, a new environment variable, a
+       dashboard setting, a decision only the owner can make. Omit the heading when there is
+       nothing, so its presence always means something.
+    5. **Always finish by asking whether the PR should be raised and merged.** One line,
+       always last, always a question — step 8 means a session never raises or merges one
+       unasked, and green checks are the evidence offered when asking, not permission. It is
+       per-PR: a yes does not carry to the next piece of work.
 
-    Sub-bullets under any of the three are fine. Detail below them is fine. What is not fine is
-    a handover that leaves the third bullet implied — a session that needed a decision and
-    buried it in prose has not handed over, it has just stopped.
+    Detail and sub-bullets under any section are fine. Report the branch and the checks as
+    they actually are, **read from the tool rather than assumed** (step 9); anything that
+    failed or was skipped is said plainly, with the evidence. What is not fine is dropping
+    section 5 because the checks are green, or folding section 4 into section 1 so a redeploy
+    reads as something already done.
 
 ## Rules the plan depends on
 
