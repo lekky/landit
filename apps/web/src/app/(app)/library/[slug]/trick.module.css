@@ -101,7 +101,8 @@
   box-shadow: var(--sh-sm);
 }
 
-.heroLanded .lab {
+/* `:global`: `.lab` is the shared type class, not this module's. */
+.heroLanded :global(.lab) {
   color: var(--ink-soft);
 }
 

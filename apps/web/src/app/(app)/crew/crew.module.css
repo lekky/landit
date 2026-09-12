@@ -146,12 +146,16 @@
   display: block;
 }
 
-.stat .d {
+/* `:global` on `.d` and `.lab`: they are the shared type classes from
+   `tokens.css`, not this module's, and a bare `.d` here would be hashed
+   into a local name and match nothing — which is what kept the number
+   and its unit on one line, reading "0WEEKS". */
+.stat :global(.d) {
   font-size: 20px;
   display: block;
 }
 
-.stat .lab {
+.stat :global(.lab) {
   font-size: 9.5px;
   color: var(--ink-3);
   display: block;
@@ -249,7 +253,8 @@
   align-items: flex-start;
 }
 
-.startForm .field {
+/* `:global`: `.field` is the shared form class, not this module's. */
+.startForm :global(.field) {
   width: 100%;
 }
 

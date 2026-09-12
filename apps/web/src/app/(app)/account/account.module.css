@@ -104,7 +104,8 @@
   margin-top: 18px;
 }
 
-.guardianForm .field {
+/* `:global`: `.field` is the shared form class, not this module's. */
+.guardianForm :global(.field) {
   flex: 1 1 240px;
 }
 

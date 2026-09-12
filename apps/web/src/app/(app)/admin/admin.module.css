@@ -824,7 +824,8 @@
   margin-bottom: -4px;
 }
 
-.pairHead .lab {
+/* `:global`: `.lab` is the shared type class, not this module's. */
+.pairHead :global(.lab) {
   color: var(--ink-3);
 }
 
