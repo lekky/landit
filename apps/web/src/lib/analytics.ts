@@ -313,6 +313,26 @@ export const ANALYTICS_EVENTS = {
   stickerEarned: 'sticker_earned',
   /** The share card was opened for an earned award. Carries the slug. */
   stickerShared: 'sticker_shared',
+  /**
+   * The wall's Earned / All switch was used (T33). Carries which half was
+   * chosen — two fixed strings, the same for every rider.
+   *
+   * It exists because the wall now opens on a rider's own collection, and the
+   * question that answers is whether anybody goes looking at the rest. If the
+   * All tab is never pressed, 121 badges are being drawn for nobody and the
+   * shelving is the wrong shape; if it is pressed constantly, the default is.
+   */
+  stickerViewSwitched: 'sticker_view_switched',
+  /**
+   * A capped shelf was opened with "Show all" (T33). Carries the shelf id —
+   * one of the nine in `groups.ts`, a catalogue fact, never how many the rider
+   * holds on it.
+   *
+   * Six per shelf is a guess, and this is what turns it into a measurement:
+   * which shelves riders open says where the cap is too tight, and a shelf
+   * nobody ever opens says the opposite.
+   */
+  stickerShelfExpanded: 'sticker_shelf_expanded',
 
   /* -------------------------------------------------------------- money -- */
   /** A locked trick was opened — the paywall, seen. Carries tier and sport. */

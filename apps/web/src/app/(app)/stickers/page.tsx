@@ -24,6 +24,7 @@ import { shortDate } from '@/lib/dates';
 import { ROUTES } from '@/lib/routes';
 import { currentRider } from '@/lib/session';
 
+import { defaultWallView, type WallView } from './groups';
 import { StickerWall } from './StickerWall';
 import type { StickerView, StickerWallView, WallTabView } from './view';
 
@@ -136,6 +137,7 @@ export default async function StickersPage() {
 
   const bySport: Record<string, readonly StickerView[]> = {};
   const eyebrowBySport: Record<string, string> = {};
+  const defaultViewBySport: Record<string, WallView> = {};
   const tabs: WallTabView[] = [];
 
   for (const sport of sports) {
@@ -143,6 +145,7 @@ export default async function StickersPage() {
     // prototype's rule, kept exactly.
     const wall = views.filter((s) => !s.sport || s.sport === sport);
     bySport[sport] = wall;
+    defaultViewBySport[sport] = defaultWallView(wall);
     eyebrowBySport[sport] =
       sports.length > 1 ? `Sticker wall · ${SPORTS[sport].label} and shared` : 'Sticker wall';
     tabs.push({
@@ -158,6 +161,7 @@ export default async function StickersPage() {
     tabs,
     bySport,
     eyebrowBySport,
+    defaultViewBySport,
     shareMeta,
     dateLabel: shortDate(new Date(), timezone).replace(/ \d{4}$/, ''),
   };

@@ -4012,6 +4012,67 @@ keeps the paragraph's colour, opens `/glossary?from=tailwhip#<term>` and comes b
 to the trick". The stickers and video-links specs are untouched and still match "First landed"
 exactly, for the reason each records.
 
+**T33 · The sticker wall, folded.** Added after launch (Rachid, 2026-09-12, in chat), from four
+mobile-first options put to the owner as working phone mockups. T24 took the wall to 135 awards and
+T27 to 297, which is **121 on the scooter tab and 127 on BMX** — and a rider on their first day
+held none of them, so the screen opened on about twenty phone screens of locked art. #245 shelved
+that heap by kind; this one shortens it.
+
+**Two tabs and a cap.** The wall gains an **Earned / All** switch, and under All every shelf draws
+`SHELF_CAP` (six) badges with the rest behind its own "Show all N". Measured on the mockups at
+360px: nineteen and a half screens becomes seven and a half. Earned is the rider's own collection
+with nothing locked in it, and it is never capped on its own tab.
+
+**Three owner decisions, all 2026-09-12 in chat.**
+
+- **Locked badges keep their full size.** Shrinking them to four across would have bought a further
+  three screens (7.6 → 4.3), and was declined. The cap is therefore the only lever there is; four
+  instead of six saves only about nine tenths of a screen, which is why six stands.
+- **The switch sits inside the ink panel, as an underline bar** — deliberately not the bordered
+  pills `SportSwitch` uses directly above it. **#379 item 5** logged exactly that collision on
+  Progress ("same box, same size, same shadow", one navigation and one filter) and names the
+  underline bar as the way out; a second pill row here would have walked into an open p2.
+- **"Next up" was dropped**, and with it the whole idea of a *how close* number. The research is
+  parked, not lost — see below.
+
+**The default view is a safety rule, not a preference.** `defaultWallView` opens on Earned when the
+rider holds anything and on All when they do not. It reads `unannounced` first, and that branch is
+load-bearing rather than redundant: `StickerWall` acknowledges freshly earned awards **on mount,
+across every sport, whatever view is showing**, so a default that could hide the Earned shelf would
+stamp `seen_at` without the badge ever being drawn — and the pop is once-only (§3). The branch is
+there so a later change to the "anything earned" line cannot quietly spend it. Its own unit test
+says so.
+
+**Four kinds stopped reaching "More" by accident.** `comeback` (→ streaks), `founder` and
+`supporter` (→ account) were simply absent from `SHELF_OF`, which reads identically in code to a
+kind nobody has got to yet. `stage-drop` genuinely belongs on More and now says so, leaving the
+`?? 'other'` fallback for what it is for: a kind this build has never heard of.
+
+**Analytics.** Two new events, both catalogue facts. `sticker_view_switched` carries which half was
+chosen — the wall now opens on a rider's own badges, and this is what says whether anybody ever
+goes looking at the rest. `sticker_shelf_expanded` carries the shelf id, which is what turns "six"
+from a guess into a measurement.
+
+**Parked: the Next Up shelf.** Specified and then dropped, because every hazard the spec found came
+from the distance calculation itself. What a later session should not have to rediscover: there is
+no "how close" number in `packages/core`, and eight of the twenty-one kinds cannot honestly have
+one (`comeback`'s rule is `() => false`). Five must never be *suggested*, and two are perverse as
+advice — `comeback` reads "stop riding for two months", `stage-drop` reads "mark yourself worse".
+Rookie's video-link cap is zero, so `first-clip` is unreachable free and any "next up" holding it
+is a purchase prompt dressed as an achievement. `riderSnapshot` cannot see six awards' worth of
+stats (spots, events, crew-owned); closing that is three narrow reads mirroring
+`pocketbase/hooks/lib/stickers.js`. And `rider.streak` is documented "may be stale" while
+`currentWeeklyStreak` decays, so any screen putting a number on a streak award has to pick one —
+**raised as its own issue, because the award hook reads the stored field and that disagreement is
+older and wider than this task.**
+
+**Checked.** `stickerGroups.test.ts` covers the cap at, under and over the line, the four newly
+shelved kinds, and all three default-view cases including the unannounced one. `e2e/stickers.spec.ts`
+proves the wall opens on Earned with nothing locked drawn, that All caps the trick shelf at six
+while its heading still counts them all, and that "Show all" restores the full shelf and removes
+itself. The specs that want the locked half now ask for it through `showWholeWall` — without that
+they would assert over an empty collection and pass by finding nothing (LESSONS §5).
+
 ### Dependency graph
 
 ```

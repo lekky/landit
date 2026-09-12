@@ -102,3 +102,109 @@
   color: color-mix(in srgb, var(--paper) 60%, transparent);
   letter-spacing: 0.08em;
 }
+
+/* ------------------------------------------------------------ the two tabs -- */
+
+/*
+ * Earned / All, inside the ink panel (T33).
+ *
+ * An underline bar, not the bordered pills of `SportSwitch` above it. #379
+ * item 5 logged that exact collision on Progress — a navigation row and a
+ * filter row rendered as the same control, "same box, same size, same shadow"
+ * — and its fix names the underline bar as the way out. So this reads as part
+ * of the wall it filters rather than as a second place to go.
+ */
+.views {
+  display: flex;
+  gap: 22px;
+  margin: -4px 0 20px;
+  border-bottom: 2px solid color-mix(in srgb, var(--paper) 22%, transparent);
+}
+
+.viewBtn {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 4px solid transparent;
+  margin-bottom: -2px;
+  padding: 4px 2px 9px;
+  font: inherit;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--paper) 62%, transparent);
+  cursor: pointer;
+  /* 44px of target from the 4px rule up through the padding and the text. */
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.viewBtn[aria-pressed='true'] {
+  color: var(--paper);
+  border-bottom-color: var(--pink);
+}
+
+.viewCount {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, var(--paper) 55%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+.viewBtn[aria-pressed='true'] .viewCount {
+  color: color-mix(in srgb, var(--paper) 75%, transparent);
+}
+
+/* --------------------------------------------------------------- show all -- */
+
+/*
+ * Each shelf shows `SHELF_CAP` and puts the rest behind this. Ghost-shaped
+ * rather than filled: it is a way to see more of what is already there, not
+ * the thing on the screen a rider should press first.
+ */
+.showAll {
+  appearance: none;
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 11px 10px 10px;
+  min-height: 44px;
+  background: none;
+  border: 2px solid color-mix(in srgb, var(--paper) 45%, transparent);
+  color: var(--paper);
+  font: inherit;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+/* Behind `hover: hover` so it cannot stick after a tap on a phone (#397). */
+@media (hover: hover) {
+  .showAll:hover {
+    background: color-mix(in srgb, var(--paper) 10%, transparent);
+    border-color: var(--paper);
+  }
+}
+
+/*
+ * Both controls sit on ink, where the browser's own ring is hard to see.
+ * Nothing in `ui-web` sets a global one, so they state it themselves.
+ */
+.viewBtn:focus-visible,
+.showAll:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+}
+
+.empty {
+  margin: 0;
+  color: color-mix(in srgb, var(--paper) 70%, transparent);
+  font-size: 15px;
+}
