@@ -145,10 +145,24 @@ to merged and cleans up after itself (step 8). Then, in order:
     whether the fix is strictly in scope — a one-line correction in a file you have open is not
     scope creep. What still gets an issue: anything needing a decision only the owner can make,
     anything touching code another session owns, and anything you cannot verify before merging.
-12. **Close with a TPO-level summary** — what shipped in behaviour terms, what is still open,
-    and any decisions only the owner can make (explicit, never buried in prose). Report PR and
-    check state as it actually is; if something failed or was skipped, say so with the
-    evidence.
+12. **Close with a TPO handover — three bullets, always these three, always in this order**
+    (Rachid, 2026-09-12, in chat). Prose is where a handover goes to die: the owner should be
+    able to read the last thing a session says and know whether anything is waiting on them
+    without mining a paragraph for it.
+    - **What I did** — the work in behaviour terms, what a rider would notice, not
+      implementation.
+    - **What changed** — what is actually different now: behaviour, routes, data, the
+      `ANALYTICS_EVENTS` entries added or touched, and the state of the branch and the checks
+      **read from the tool rather than assumed** (step 9). Anything that failed or was skipped
+      goes here, with the evidence, not left out.
+    - **What you need to do** — every decision only the owner can make, and every action
+      waiting on them: raise a PR, redeploy (merging is not shipping), change something in a
+      dashboard, answer a question. Say **"nothing"** when there is nothing, so that an empty
+      list is a statement rather than an omission.
+
+    Sub-bullets under any of the three are fine. Detail below them is fine. What is not fine is
+    a handover that leaves the third bullet implied — a session that needed a decision and
+    buried it in prose has not handed over, it has just stopped.
 
 ## Rules the plan depends on
 
