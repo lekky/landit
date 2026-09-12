@@ -339,6 +339,29 @@ a.pill.on:hover {
   background: var(--yellow);
 }
 
+/*
+ * The staff portal's row, which only staff are ever shown (`accountMenuFor` in
+ * `components/shell/nav.ts`).
+ *
+ * Drawn as a different register from the four above it rather than as a fifth
+ * sibling: the portal's own violet, under the sheet's 3px keyline instead of
+ * the 2px between rider destinations, so the separation is read before the
+ * colour is and a colour-blind reader loses nothing. Violet on paper is 5.45:1,
+ * which clears AA for this size (14px, 700) — it is one of the two accents that
+ * can be text on paper, and the only one the admin portal already uses (its
+ * header Tag). On hover the fill is violet and the text is `--on-dark`, because
+ * violet carries paper rather than ink.
+ */
+.accountmenu-item.staff {
+  border-top-width: 3px;
+  color: var(--violet);
+}
+.accountmenu-item.staff:hover,
+.accountmenu-item.staff:focus-visible {
+  background: var(--violet);
+  color: var(--on-dark);
+}
+
 /* ------------------------------------------------------------------ modal -- */
 
 /*
@@ -859,6 +882,19 @@ body::before {
   .accountmenu-item:focus-visible {
     background: var(--yellow);
   }
+  /*
+   * Restated at the same weight as the rule it is undoing: the staff row's
+   * hover is `.accountmenu-item.staff:hover`, which would outrank the reset
+   * above and leave violet stuck on the row after a tap (#397's defect).
+   */
+  .accountmenu-item.staff:hover {
+    background: none;
+    color: var(--violet);
+  }
+  .accountmenu-item.staff:focus-visible {
+    background: var(--violet);
+    color: var(--on-dark);
+  }
 
   /*
    * The press, which is the feedback a finger does get.
@@ -914,5 +950,9 @@ body::before {
   }
   .accountmenu-item:active {
     background: var(--yellow);
+  }
+  .accountmenu-item.staff:active {
+    background: var(--violet);
+    color: var(--on-dark);
   }
 }

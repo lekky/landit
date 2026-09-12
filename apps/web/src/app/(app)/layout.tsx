@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { AppShell } from '@/components/shell/AppShell';
 import { VerifyEmailBanner } from '@/components/verify/VerifyEmailBanner';
 import { currentRider } from '@/lib/session';
+import { isStaff } from '@/lib/staff';
 import { VERIFY_DISMISSED_COOKIE } from '@/lib/verify';
 
 /**
@@ -67,6 +68,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               name: rider.name || 'Rider',
               avatarId: rider.avatar_key || undefined,
               streak,
+              /*
+               * The account menu's admin entry, decided here because this is
+               * the last place that holds the rider record — the menu itself is
+               * a client component and is never handed one. `isStaff` rather
+               * than `requireStaff`: this decides whether a link is drawn, not
+               * whether a page renders, and the page's own gate is unchanged.
+               */
+              staff: isStaff(rider),
             }
           : undefined
       }

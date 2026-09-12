@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ACCOUNT_MENU,
+  ACCOUNT_MENU_ADMIN,
   MOBILE_NAV,
   PROGRESS_TABS,
   TOP_NAV,
   WHATS_ON_TABS,
+  accountMenuFor,
   activeSection,
   isNavActive,
   type NavItem,
@@ -188,5 +190,52 @@ describe('the top bar is untouched by the phone restructure', () => {
       'spots',
       'plans',
     ]);
+  });
+});
+
+/**
+ * The account menu's staff row.
+ *
+ * A display rule, and the tests say so: the gate is `requireStaff` in the
+ * `/admin` layout and in every server action beneath it, and none of it is
+ * reachable from here. What is worth pinning down is the half that is this
+ * file's — that an ordinary rider is shown nothing at all about a portal, which
+ * is the same answer the 404 gives, and that the four rider destinations are
+ * not disturbed by a staff account seeing a fifth.
+ */
+describe('accountMenuFor', () => {
+  it('gives an ordinary rider the four, and nothing that says a portal exists', () => {
+    const menu = accountMenuFor(false);
+
+    expect(menu.map((item) => item.id)).toEqual(['account', 'coach', 'plans', 'report']);
+    expect(menu.some((item) => item.href.startsWith('/admin'))).toBe(false);
+    expect(menu.some((item) => item.staff)).toBe(false);
+  });
+
+  it('treats an unknown role as not staff, so the flag has to be earned', () => {
+    // `TopBarRider.staff` is optional, and a caller that forgets it must fail
+    // closed rather than draw a link to a screen its rider cannot open.
+    expect(accountMenuFor(undefined)).toEqual(ACCOUNT_MENU);
+  });
+
+  it('adds the portal last for staff, leaving the rider destinations in place', () => {
+    const menu = accountMenuFor(true);
+
+    expect(menu.map((item) => item.id)).toEqual(['account', 'coach', 'plans', 'report', 'admin']);
+    expect(menu.at(-1)).toBe(ACCOUNT_MENU_ADMIN);
+    expect(menu.slice(0, 4)).toEqual([...ACCOUNT_MENU]);
+  });
+
+  it('marks only the portal as staff, which is what draws it differently', () => {
+    // `.accountmenu-item.staff` in `additions.css` — the violet row under the
+    // heavier keyline. A rider destination picking that flag up would be
+    // claiming a register it has no business in.
+    expect(accountMenuFor(true).filter((item) => item.staff)).toEqual([ACCOUNT_MENU_ADMIN]);
+    expect(ACCOUNT_MENU_ADMIN.href).toBe('/admin');
+  });
+
+  it('never mutates the shared list it builds from', () => {
+    accountMenuFor(true);
+    expect(ACCOUNT_MENU).toHaveLength(4);
   });
 });

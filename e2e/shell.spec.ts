@@ -199,9 +199,41 @@ test('the avatar opens the four destinations that are not places to ride', async
     await expect(menu.getByRole('menuitem', { name, exact: true })).toHaveAttribute('href', href);
   }
 
+  // And nothing about a staff portal, which is the visible half of the 404 an
+  // ordinary rider meets at `/admin` (`lib/staff.ts`): no disabled row, no
+  // greyed label, no mention.
+  await expect(menu.getByRole('menuitem')).toHaveCount(4);
+  await expect(menu.getByRole('menuitem', { name: 'Admin portal' })).toHaveCount(0);
+
   await page.keyboard.press('Escape');
   await expect(menu).toBeHidden();
   await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+});
+
+test('a staff account gets a fifth item, the admin portal, drawn as staff', async ({ page }) => {
+  /*
+   * `?staff=1` is the preview page's staff sample rider — the real flag comes
+   * from `users.role` through `app/(app)/layout.tsx`, and the gate that decides
+   * whether `/admin` renders is `requireStaff` on the server either way. This
+   * checks the drawing: that the row is there, last, pointing at the portal,
+   * and in the portal's violet rather than passing for a rider destination.
+   */
+  await page.setViewportSize({ width: 800, height: 800 });
+  await page.goto(`${SHELL}?staff=1`);
+
+  await page.getByRole('button', { name: 'Your account and settings' }).click();
+  const menu = page.getByRole('menu');
+
+  const items = menu.getByRole('menuitem');
+  await expect(items).toHaveCount(5);
+
+  const admin = menu.getByRole('menuitem', { name: 'Admin portal', exact: true });
+  await expect(admin).toHaveAttribute('href', '/admin');
+  await expect(items.last()).toHaveAttribute('href', '/admin');
+
+  // `--violet` (#8a3be0), and the 3px keyline that separates the register.
+  await expect(admin).toHaveCSS('color', 'rgb(138, 59, 224)');
+  await expect(admin).toHaveCSS('border-top-width', '3px');
 });
 
 test('every nav item whose screen exists is a real link', async ({ page }) => {

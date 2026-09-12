@@ -46,7 +46,9 @@ import { ROUTES } from '@/lib/routes';
  * Report something — are account-shaped rather than places to ride, and they
  * live behind the top bar's avatar in `AccountMenu`, at every width. That is
  * also how `/report` stops being footer-only, which the OSA codes' "easy to
- * find" wording is better served by (plan §6.1).
+ * find" wording is better served by (plan §6.1). Staff accounts see a fifth
+ * item there, the admin portal, and nobody else does — `accountMenuFor` at the
+ * foot of this file.
  */
 
 export type NavItem = {
@@ -248,9 +250,59 @@ export function activeSection(pathname: string): NavItem | undefined {
  * reason Plans does not need a cell in a five-item bar, and the reason
  * `/report` is no longer reachable on a phone only from the site footer.
  */
-export const ACCOUNT_MENU: readonly { id: string; label: string; href: Route }[] = [
+export type AccountMenuItem = {
+  readonly id: string;
+  readonly label: string;
+  readonly href: Route;
+  /**
+   * Drawn as staff's rather than as a rider destination.
+   *
+   * Only the portal carries it, and it is a presentation flag, not a gate:
+   * whether the item is in the menu at all is decided by `accountMenuFor`.
+   */
+  readonly staff?: true;
+};
+
+export const ACCOUNT_MENU: readonly AccountMenuItem[] = [
   { id: 'account', label: 'Your account', href: ROUTES.account },
   { id: 'coach', label: 'Coach / parent view', href: ROUTES.coach },
   { id: 'plans', label: 'Plans and pricing', href: ROUTES.plans },
   { id: 'report', label: 'Report something', href: ROUTES.report },
 ];
+
+/**
+ * The staff portal's way in, for the handful of accounts that have one.
+ *
+ * Last, and behind a heavier keyline than the four above it (`additions.css`),
+ * because it is a different register: the four are about the rider reading
+ * them, and this one is about everybody else's data. It is not in `TOP_NAV` or
+ * `MOBILE_NAV` — a link two people use does not earn a cell in a five-item bar,
+ * and the menu is already the place for destinations that are not places to
+ * ride.
+ *
+ * Until now `/admin` was reached by typing the address, which `lib/routes.ts`
+ * recorded as a deliberate hold rather than a decision: a nav entry "would have
+ * to render conditionally on `role`, on every page". It does now, and the
+ * conditional is one boolean computed once in `app/(app)/layout.tsx`.
+ */
+export const ACCOUNT_MENU_ADMIN: AccountMenuItem = {
+  id: 'admin',
+  label: 'Admin portal',
+  href: ROUTES.admin,
+  staff: true,
+};
+
+/**
+ * What this rider's avatar opens.
+ *
+ * **This is a display rule and nothing else.** The portal's actual gate is
+ * `requireStaff` in the `/admin` layout, re-checked in every server action
+ * behind it; a rider who forges the flag in their own browser, or who simply
+ * types the address, still meets the 404 that `lib/staff.ts` explains. What
+ * hiding the item buys is the other half of that 404: a rider who is not staff
+ * is never told the portal exists (plan §3 guarantee 1's register), and a staff
+ * member does not have to remember a URL.
+ */
+export function accountMenuFor(staff?: boolean): readonly AccountMenuItem[] {
+  return staff ? [...ACCOUNT_MENU, ACCOUNT_MENU_ADMIN] : ACCOUNT_MENU;
+}
