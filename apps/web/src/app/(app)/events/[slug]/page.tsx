@@ -6,7 +6,7 @@ import {
   type Spot,
   type SportId,
 } from '@landit/core';
-import { eventsFromRecords, listEventAttendance, listEvents, listSpots } from '@landit/db';
+import { eventsFromRecords, listEventAttendance, listEvents, listSpotsInPlace } from '@landit/db';
 import { Panel, SportChip, Tag, type IconName } from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -101,14 +101,10 @@ async function load(slug: string) {
 
   /*
    * A visitor has no attendance to fetch, and asking anyway would be a request
-   * the `OWN` rule can only answer with an empty list. Spots ride along for the
-   * "spots near" block; `listSpots` returns live spots plus the caller's own
-   * pending ones, so the filter below is what keeps somebody's unchecked
-   * submission off a public page.
+   * the `OWN` rule can only answer with an empty list.
    */
-  const [eventRecords, spotRecords, attendance] = await Promise.all([
+  const [eventRecords, attendance] = await Promise.all([
     listEvents(client),
-    listSpots(client),
     session ? listEventAttendance(client, session.rider.id) : Promise.resolve([]),
   ]);
 
@@ -119,22 +115,46 @@ async function load(slug: string) {
   const record = eventRecords.find((row) => row.slug === slug);
   if (!record) return null;
 
-  const spots: (Spot & { slug: string })[] = spotRecords
-    .filter((row) => row.status === 'live')
-    .map((row) => ({
-      // The slug is the row's, not the place's: `Spot` in `@landit/core` has no
-      // such field, and the "spots near" block needs one to link with.
-      slug: row.slug,
-      name: row.name,
-      town: row.town,
-      type: row.type,
-      lat: row.lat,
-      lng: row.lng,
-      sports: (row.sports ?? []) as SportId[],
-      tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
-      status: row.status,
-      ...(row.country ? { country: row.country } : {}),
-    }));
+  /*
+   * The spots for the "spots near" block, asked for **by this event's town and
+   * country** rather than read whole (`listSpotsInPlace`).
+   *
+   * This page used to fetch every spot there is and let `nearestFirst` pick
+   * four out of it. That was a few hundred rows when the block was written and
+   * became about thirty thousand with the world import, which is a whole-table
+   * read — thirty-odd paged requests and megabytes of towns and tags — on every
+   * view of every event page, to fill four rows at the foot of it. The page got
+   * slow enough to stop answering. `/spots` (issue #367) and `/spots/[slug]`
+   * had already stopped reading the table whole; this was the last caller that
+   * had not.
+   *
+   * **Never at the cost of this one**, the same rule the spot page reads its
+   * onward list under: an event page without its "spots near" block beats an
+   * event page that cannot be served because a second query failed.
+   *
+   * Live only, and the `status = 'live'` is now in the query rather than in a
+   * filter here — `spots` lists a rider their own pending submissions, and a
+   * page is a public artefact. One place, not two.
+   */
+  const spotRecords = await listSpotsInPlace(client, {
+    town: event.town,
+    ...(event.country ? { country: event.country } : {}),
+  }).catch((): never[] => []);
+
+  const spots: (Spot & { slug: string })[] = spotRecords.map((row) => ({
+    // The slug is the row's, not the place's: `Spot` in `@landit/core` has no
+    // such field, and the "spots near" block needs one to link with.
+    slug: row.slug,
+    name: row.name,
+    town: row.town,
+    type: row.type,
+    lat: row.lat,
+    lng: row.lng,
+    sports: (row.sports ?? []) as SportId[],
+    tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
+    status: row.status,
+    ...(row.country ? { country: row.country } : {}),
+  }));
 
   const going = attendance.some((row) => row.event === record.id);
 

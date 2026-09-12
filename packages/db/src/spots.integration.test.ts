@@ -1,4 +1,10 @@
-import { SPORT_IDS, SPOT_FEATURE_LIST, filterSpots, sortSpotsHomeFirst } from '@landit/core';
+import {
+  SPORT_IDS,
+  SPOT_FEATURE_LIST,
+  filterSpots,
+  nearestFirst,
+  sortSpotsHomeFirst,
+} from '@landit/core';
 import PocketBase from 'pocketbase';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -12,6 +18,7 @@ import {
   countSpotsBySport,
   getSpotsByIds,
   listSpotPoints,
+  listSpotsInPlace,
   pageSpots,
   spotListFilter,
 } from './spots';
@@ -23,9 +30,15 @@ import {
  * answer the same question the same way — for every sport, for a set of
  * searches, and for every feature the catalogue names — and that paging
  * through the home-first list produces exactly the order `sortSpotsHomeFirst`
- * would. The filter syntax that gets here was found by probing: on this
- * PocketBase a bare `?=` on a multi-select and `:each =` on a JSON column
- * both answer nothing, silently, and only a test like this one notices.
+ * would — and, since the world import, that the two narrow queries an event
+ * page gathers its "spots near" from return what reading the whole table
+ * returned.
+ *
+ * The filter syntax that gets here was found by probing: on this PocketBase a
+ * bare `?=` on a multi-select and `:each =` on a JSON column both answer
+ * nothing, silently, and only a test like this one notices. `town:lower =`,
+ * which `spotPlaceFilters` is built on, is proven here for that reason rather
+ * than assumed from the `~` beside it.
  */
 
 interface Row {
@@ -46,6 +59,13 @@ interface Probe {
   byIds: string[];
   totals: { query: string; server: number; core: number }[];
   pages: { home: string | null; got: string[]; expected: string[]; total: number }[];
+  places: { place: Place; got: string[]; expected: string[] }[];
+}
+
+/** A town and country to gather spots around, as an event page holds one. */
+interface Place {
+  readonly town?: string;
+  readonly country?: string;
 }
 
 let probe: Probe;
@@ -111,6 +131,51 @@ beforeAll(async () => {
         pages.push({ home, got, expected, total });
       }
 
+      /*
+       * The event page's "spots near" block, narrowed query against whole
+       * table. `nearestFirst` is the rule either way; what is being proved is
+       * that feeding it two bounded queries instead of thirty thousand rows
+       * does not change the four rows it hands back.
+       *
+       * The towns are taken from the data rather than written down, so this
+       * keeps testing real places as the imports change: the three with the
+       * most spots, one whose name is the start of another's (the `~`'s slop,
+       * where one exists), a town nothing matches inside a country that does,
+       * and a place nothing matches at all.
+       */
+      const byTown = new Map<string, number>();
+      for (const row of all) byTown.set(row.town, (byTown.get(row.town) ?? 0) + 1);
+      const towns = [...byTown.keys()].sort((a, b) => (byTown.get(b) ?? 0) - (byTown.get(a) ?? 0));
+      const countryOf = (town: string): string =>
+        all.find((row) => row.town === town)?.country ?? '';
+      const prefix = towns.find((town) =>
+        towns.some((other) => other !== town && other.toLowerCase().startsWith(town.toLowerCase())),
+      );
+
+      const wanted: Place[] = [
+        ...towns.slice(0, 3).map((town) => ({ town, country: countryOf(town) })),
+        ...(prefix ? [{ town: prefix, country: countryOf(prefix) }] : []),
+        // Case folded and padded, the way `nearnessBetween` forgives it.
+        { town: `  ${(towns[0] ?? '').toUpperCase()} `, country: countryOf(towns[0] ?? '') },
+        { town: 'Nowhere In Particular', country: countryOf(towns[0] ?? '') },
+        { town: 'Nowhere In Particular', country: 'Nowhereland' },
+        {},
+      ];
+
+      const places = [];
+      for (const place of wanted) {
+        const narrowed = await listSpotsInPlace(visitor, place);
+        places.push({
+          place,
+          got: nearestFirst(place, narrowed)
+            .slice(0, 4)
+            .map((row) => row.id),
+          expected: nearestFirst(place, all)
+            .slice(0, 4)
+            .map((row) => row.id),
+        });
+      }
+
       const ids = all
         .slice(0, 10)
         .map((s) => s.id)
@@ -124,6 +189,7 @@ beforeAll(async () => {
         ),
         totals,
         pages,
+        places,
       };
     },
     { hooks: true },
@@ -162,6 +228,28 @@ describe('the paged spots list on a real PocketBase', () => {
 
   it('serves every live spot as a point', () => {
     expect(probe.points).toBe(probe.all.length);
+  });
+
+  /*
+   * The event page used to read the whole `spots` collection to fill four rows
+   * and stopped being servable when the world import made that thirty thousand.
+   * These are the queries that replaced it, checked against the answer the
+   * whole-table read gave.
+   */
+  it('gives an event page the same spots near it as reading every spot did', () => {
+    expect(probe.places.length).toBeGreaterThan(4);
+    for (const { place, got, expected } of probe.places) {
+      expect(got, JSON.stringify(place)).toEqual(expected);
+    }
+  });
+
+  it('finds spots for a town it holds, and none for one it does not', () => {
+    const withTown = probe.places.filter((p) => p.place.town && !p.place.town.includes('Nowhere'));
+    expect(withTown.every((p) => p.got.length > 0)).toBe(true);
+
+    const nothing = probe.places.find((p) => p.place.country === 'Nowhereland');
+    expect(nothing?.got).toEqual([]);
+    expect(probe.places.find((p) => !p.place.town && !p.place.country)?.got).toEqual([]);
   });
 
   it('returns cards in the order asked, and drops an id it cannot use', () => {

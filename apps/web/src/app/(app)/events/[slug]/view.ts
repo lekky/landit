@@ -172,9 +172,15 @@ export function buildEventPageView(input: EventPageInput): EventPageView {
   /*
    * Spots are matched on the same two bands as events — same town, then the
    * rest of the country — because that is all either record supports. Ordered
-   * within a band by whatever the caller handed over, which for `listSpots` is
-   * alphabetical, and capped at four so the block stays a signpost rather than
-   * becoming a second spots list.
+   * within a band by whatever the caller handed over, which for
+   * `listSpotsInPlace` is alphabetical, and capped at four so the block stays a
+   * signpost rather than becoming a second spots list.
+   *
+   * The caller hands over the spots of this town and this country rather than
+   * every spot there is, which is why the two bands above are also the two
+   * queries it runs. `nearestFirst` is still the rule: the query is the looser
+   * of the two and only exists so that thirty thousand rows are not read to
+   * choose four.
    */
   const nearbySpots = nearestFirst(event, spots).slice(0, 4);
 

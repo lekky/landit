@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { pageWindows, spotListFilter } from './spots';
+import { pageWindows, spotListFilter, spotPlaceFilters } from './spots';
 
 /**
  * The pure halves of the paged spots list. The filters' *meaning* is proven
@@ -63,5 +63,34 @@ describe('pageWindows', () => {
 
   it('is only the others when there is no home list', () => {
     expect(pageWindows(0, 24, 24)).toEqual({ home: null, others: { start: 24, end: 48 } });
+  });
+});
+
+describe('spotPlaceFilters', () => {
+  it('asks for the town first and then the country, live rows only', () => {
+    expect(spotPlaceFilters({ town: 'Salford', country: 'UK' })).toEqual([
+      { filter: "status = 'live' && town:lower = {:town}", params: { town: 'salford' } },
+      { filter: "status = 'live' && country:lower = {:country}", params: { country: 'uk' } },
+    ]);
+  });
+
+  // Whole strings, because `nearnessBetween` compares whole strings: a
+  // contains here would file Indonesia's spots under India's.
+  it('compares whole strings, never a substring', () => {
+    for (const { filter } of spotPlaceFilters({ town: 'India', country: 'India' })) {
+      expect(filter).not.toContain('~');
+    }
+  });
+
+  it('folds the case it compares, the way `nearnessBetween` does', () => {
+    const [town] = spotPlaceFilters({ town: '  SALFORD ' });
+    expect(town?.params).toEqual({ town: 'salford' });
+  });
+
+  // A band with an empty needle is a query nobody asked for, and on this
+  // collection every query nobody asked for is thirty thousand rows.
+  it('leaves out a band it has nothing to match on', () => {
+    expect(spotPlaceFilters({ town: 'Salford', country: '  ' })).toHaveLength(1);
+    expect(spotPlaceFilters({})).toEqual([]);
   });
 });
