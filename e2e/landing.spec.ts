@@ -22,11 +22,18 @@ test('the hero renders, headline through to the footer', async ({ page }) => {
   // The wordmark is the second half of that sentence, so it carries alt text
   // rather than being decorative.
   //
-  // `exact` matters: the mark appears three times on this page — top bar, hero
-  // and footer — and the other two are `Wordmark`, alt "Land The Trick". Without
-  // it this matches all three case-insensitively and fails on strict mode. The
-  // lower-case alt is what makes the hero's the one that reads as a sentence.
+  // `exact` matters: the mark appears twice on this page — hero and footer —
+  // and the footer's is `Wordmark`, alt "Land The Trick". Without it this
+  // matches both case-insensitively and fails on strict mode. The lower-case
+  // alt is what makes the hero's the one that reads as a sentence.
+  //
+  // It was three until 2026-09-12, when the top bar's copy was dropped: the
+  // hero's lockup starts about 40px below it and said the same thing larger.
   await expect(page.getByAltText('land the trick', { exact: true })).toBeVisible();
+  // The bar keeps its two buttons and loses the mark, so nothing on this page
+  // links home. `/plans` and `/progress` below still assert that the shared
+  // `Wordmark` does, on the screens that kept it.
+  await expect(page.getByRole('link', { name: 'Land The Trick, home' })).toHaveCount(0);
 
   await expect(page.getByRole('contentinfo')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Privacy policy' })).toBeVisible();
@@ -47,6 +54,49 @@ test('the two peeks go somewhere a stranger can actually read', async ({ page })
   await page.getByRole('link', { name: /Browse the spots/ }).click();
   await page.waitForURL('**/spots');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+});
+
+/**
+ * The story's two entry points.
+ *
+ * Both exist because they catch different visitors — the byline is read by
+ * someone who never scrolls, the band by someone who does — so a change that
+ * quietly drops one is the regression worth catching. Before 2026-09-12 the
+ * only link to `/story` on the whole site was a single footer row.
+ *
+ * The quote itself is not asserted here. The page imports `STORY_PULL_QUOTE`
+ * from `content/story.ts` rather than typing it out, so the two saying the same
+ * thing is a compile-time fact and a copy of the sentence in this file would
+ * only be a third place for it to drift. What a browser can check, and this
+ * does, is that the band renders and both routes into it work.
+ */
+test('the story is reachable from the hero and from the band', async ({ page }) => {
+  await page.goto('/');
+
+  const links = page.getByRole('link', { name: /Read why/ });
+  await expect(links).toHaveCount(2);
+  for (const link of await links.all()) {
+    await expect(link).toHaveAttribute('href', '/story');
+  }
+
+  // The band, by the parts of it that are this page's own words rather than the
+  // story module's.
+  await expect(page.getByText('Why this exists')).toBeVisible();
+  await expect(page.getByRole('blockquote')).toBeVisible();
+
+  await page.getByRole('link', { name: /Read why we made this/ }).click();
+  await page.waitForURL('**/story');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+});
+
+test('the hero keeps one trust line, not the pack’s three', async ({ page }) => {
+  await page.goto('/');
+
+  // The two that went are both still made further down the page, in the parent
+  // FAQ, so this asserts they are gone from the hero rather than from the site.
+  await expect(page.getByText('Free forever tier')).toBeVisible();
+  await expect(page.getByText('Works offline at the park')).toHaveCount(0);
+  await expect(page.getByText('No messaging, no strangers')).toHaveCount(0);
 });
 
 test('every call to action goes somewhere real', async ({ page }) => {

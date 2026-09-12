@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 
 import siteStyles from '@/components/site/site.module.css';
 import { SiteFooter } from '@/components/site/SiteFooter';
-import { Wordmark } from '@/components/site/Wordmark';
+import { STORY_BYLINE, STORY_PULL_QUOTE } from '@/content/story';
 import { seasonGrid, seasonLegend } from '@/lib/landingSeason';
 import { ROUTES } from '@/lib/routes';
 import { currentRider } from '@/lib/session';
@@ -157,8 +157,15 @@ export default async function LandingPage() {
     <div className={`${siteStyles.wash} ${styles.page}`}>
       <LandingMotion />
 
+      {/*
+       * No wordmark in this bar, where every other page carrying `siteStyles.bar`
+       * has one (Rachid, 2026-09-12, in chat). The hero's lockup is the second
+       * half of the headline and starts about 40px below it, so the bar's copy
+       * was the mark announcing the mark — and on a phone it spent the top of
+       * the fold saying nothing the next element did not say larger. The link
+       * home goes with it, which costs this page nothing: it is home.
+       */}
       <header className={siteStyles.bar}>
-        <Wordmark href={ROUTES.home} />
         <nav className={styles.nav} aria-label="Main">
           <LandingCta href={ROUTES.library} target="library" place="bar" className={styles.navLink}>
             Trick library
@@ -245,20 +252,47 @@ export default async function LandingPage() {
             what&rsquo;s next. Hundreds of tricks waiting to be ticked off.
           </p>
 
+          {/*
+           * Who made it, above the email field (Rachid, 2026-09-12, in chat).
+           *
+           * The one argument on this page nobody else can copy is that a twelve
+           * year old could not find a trick tracker and built one, and until now
+           * the only link to `/story` anywhere on the site was a single footer
+           * row. This is the half of that argument that a visitor who never
+           * scrolls still reads; the band under the stripe is the other half.
+           *
+           * A rule and a line of type rather than a thumbnail: both Greystone
+           * photographs are shot from behind and neither reads at 42px, and the
+           * band 500px below is where the picture earns its room.
+           */}
+          <p className={styles.byline}>
+            <b>Miles is 12 and rides a scooter.</b> He went looking for a website where you could
+            tick off scooter tricks, there wasn&rsquo;t one, so he and his dad built it.{' '}
+            <LandingCta
+              className={styles.bylineLink}
+              href={ROUTES.story}
+              target="story"
+              place="hero"
+            >
+              Read why &rarr;
+            </LandingCta>
+          </p>
+
           <HeroSignUp />
 
+          {/*
+           * One line, where the pack draws three (Rachid, 2026-09-12, in chat).
+           * "No messaging, no strangers" and "Works offline at the park" are both
+           * true and both answered at length in the parent FAQ further down —
+           * "Can my kid talk to strangers on it?" and the home-screen answer —
+           * so neither claim leaves the page. Free forever is the one that
+           * belongs beside the button, and on a phone the row stacks, so the
+           * other two were about 60px of the fold repeating the page.
+           */}
           <div className={styles.trust}>
             <span>
               <Icon name="check" size={15} strokeWidth={3} />
               Free forever tier
-            </span>
-            <span>
-              <Icon name="lock" size={15} strokeWidth={2.6} />
-              No messaging, no strangers
-            </span>
-            <span>
-              <Icon name="check" size={15} strokeWidth={3} />
-              Works offline at the park
             </span>
           </div>
 
@@ -306,6 +340,59 @@ export default async function LandingPage() {
         <i style={{ background: '#f5266e' }} />
         <i style={{ background: 'var(--ink)' }} />
       </div>
+
+      {/*
+       * Why the product exists, in his words, before the three steps of using it
+       * (Rachid, 2026-09-12, in chat).
+       *
+       * The first thing after the hero and the last thing before "Step one",
+       * which is where a visitor has just decided whether to keep scrolling. It
+       * costs the fold nothing because it is below it, and a sentence from the
+       * interview does work no button label can.
+       *
+       * **The quote and the byline are imported, not typed.** `STORY_PULL_QUOTE`
+       * and `STORY_BYLINE` come from `content/story.ts`, so this band cannot
+       * drift away from the page it is sending people to — the failure the
+       * fridge-checklist origin story already caused once (issue #298). The pink
+       * rule is `story.module.css`'s own `.quote` treatment for the same reason:
+       * the band should look like where it goes.
+       *
+       * The photograph is the t-shirt shot rather than the riding one, so the
+       * brand reads at this size, and it is cropped from the top so the graphic
+       * sits in the upper half of the frame at both widths. Both are cleared
+       * under the same rule as the story page itself: a public park, no uniform,
+       * no other child's face turned to the camera. Do not swap in a photo that
+       * has not been through that check.
+       */}
+      <section className={styles.story} aria-labelledby="story-band">
+        <div className={styles.storyIn}>
+          <figure className={styles.storyFig}>
+            <Image
+              src="/story/greystone-tee.jpg"
+              alt="Miles seen from behind on his scooter at Greystone, wearing a Land The Trick t-shirt"
+              width={901}
+              height={1600}
+              sizes="(max-width: 620px) 100vw, 270px"
+            />
+          </figure>
+          <div className={styles.storyCopy}>
+            <span className="eyebrow" id="story-band">
+              Why this exists
+            </span>
+            <blockquote className={`d ${styles.storyQuote}`}>
+              &ldquo;{STORY_PULL_QUOTE}&rdquo;
+            </blockquote>
+            <p className={styles.storyBy}>
+              <b>{STORY_BYLINE}.</b> He looked for a website where you could tick off scooter
+              tricks, and there wasn&rsquo;t one. He had the idea and picked the tricks; his dad did
+              the coding.
+            </p>
+            <LandingCta className="btn" href={ROUTES.story} target="story" place="band">
+              Read why we made this &rarr;
+            </LandingCta>
+          </div>
+        </div>
+      </section>
 
       <div className={styles.body}>
         {/* ------------------------------------------------- feature rows */}
