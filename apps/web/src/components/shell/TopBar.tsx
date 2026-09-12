@@ -30,6 +30,16 @@ export type TopBarRider = {
   avatarId?: string;
   /** Weeks in a row (plan §1) — a count, whatever the streak is counting. */
   streak: number;
+  /**
+   * Whether this account is staff, for the account menu's admin entry only.
+   *
+   * Decided on the server (`isStaff`, in `app/(app)/layout.tsx`) and carried
+   * here because the menu is a client component. It grants nothing: `/admin`
+   * is gated by `requireStaff` on every render and re-checked in every server
+   * action behind it, so a rider who sets this in their own browser gets the
+   * same 404 as one who types the address.
+   */
+  staff?: boolean;
 };
 
 export function TopBar({ rider }: { rider?: TopBarRider }) {
@@ -64,8 +74,9 @@ export function TopBar({ rider }: { rider?: TopBarRider }) {
                 {rider.streak}
               </span>
               {/* The avatar opens the four destinations that are not places
-                  to ride — account, coach view, plans, report. On a phone this
-                  is the only way to any of them that is not the site footer. */}
+                  to ride — account, coach view, plans, report — and, for staff
+                  only, the admin portal. On a phone this is the only way to any
+                  of them that is not the site footer. */}
               <AccountMenu rider={rider} />
             </>
           ) : (

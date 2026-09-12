@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
-import { ACCOUNT_MENU } from './nav';
+import { accountMenuFor } from './nav';
 import type { TopBarRider } from './TopBar';
 
 /**
@@ -19,6 +19,12 @@ import type { TopBarRider } from './TopBar';
  * codes' "easy to find" wording asks better of (plan §6.1). The avatar was
  * already in the top bar at every width and already meant "you"; it now opens
  * the four instead of going straight to one of them.
+ *
+ * A staff account gets a fifth item, the admin portal, drawn in the portal's
+ * own violet under a heavier keyline. Non-staff are not shown a disabled entry
+ * or anything else that says a portal exists — `accountMenuFor` gives them the
+ * four, and the gate that actually decides the question is `requireStaff` on
+ * the server (`lib/staff.ts`), which this menu cannot weaken.
  *
  * Deliberately a plain menu of links and no more. There is no sign-out here:
  * signing out is a form post (`SignOutForm`) and it belongs on the account
@@ -64,6 +70,8 @@ export function AccountMenu({ rider }: { rider: TopBarRider }) {
     };
   }, [open, setOpen]);
 
+  const items = accountMenuFor(rider.staff);
+
   return (
     <div className="accountmenu" ref={holder}>
       <button
@@ -86,12 +94,12 @@ export function AccountMenu({ rider }: { rider: TopBarRider }) {
 
       {open && (
         <div className="accountmenu-sheet" id={menuId} role="menu">
-          {ACCOUNT_MENU.map((item) => (
+          {items.map((item) => (
             <Link
               key={item.id}
               role="menuitem"
               href={item.href}
-              className="accountmenu-item"
+              className={item.staff ? 'accountmenu-item staff' : 'accountmenu-item'}
               onClick={() => {
                 capture(ANALYTICS_EVENTS.navClicked, { to: item.id, where: 'account-menu' });
                 setOpen(false);

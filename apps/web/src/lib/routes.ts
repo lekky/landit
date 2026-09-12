@@ -100,18 +100,20 @@ export const ROUTES = {
   /**
    * The staff portal (T16), and the one route here that is not for riders.
    *
-   * Deliberately **not** wired into `components/shell/nav.ts`. Partly for the
-   * reason that file records — Wave 6 runs two concurrent sessions and one
-   * shared array is one rebase conflict in the file that decides whether a
-   * screen is reachable — and partly because a staff entry in the rider nav is
-   * a design question nobody has answered: the prototype's app had no routes,
-   * so it could show the tab to everyone and let the gate refuse. A real bar
-   * would have to render conditionally on `role`, on every page, for a link
-   * two people use.
+   * It is in neither bar, and that has not changed: a link two people use does
+   * not earn one of nine top-bar slots or one of five on a phone. What changed
+   * (2026-09-12) is that staff no longer reach it only by typing the address —
+   * the top bar's avatar menu carries it as a fifth item for accounts whose
+   * `role` is `staff`, and for nobody else (`accountMenuFor` in
+   * `components/shell/nav.ts`).
    *
-   * So the portal is reached by typing the address, which is what the plan's
-   * "role gate" implies and what staff will do anyway. The nav entry, if it is
-   * wanted, is a wave-6 wiring chore alongside T15's `plans` line.
+   * The design question this used to record as unanswered — "a real bar would
+   * have to render conditionally on `role`, on every page" — is answered by
+   * where the conditional sits: one `isStaff` call in `app/(app)/layout.tsx`,
+   * which already holds the rider record for the streak chip and the avatar, so
+   * the menu costs no extra read. Hiding the item is presentation only;
+   * `requireStaff` is still what decides whether this route exists for the
+   * person asking, and still answers a 404 rather than a 403.
    */
   admin: '/admin',
   adminRiders: '/admin/riders',

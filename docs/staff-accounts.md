@@ -19,7 +19,8 @@ trust one boolean.
 2. Open the PocketBase dashboard for the environment (`/_/`) and sign in as superuser. The
    superuser account is the owner's; it is not a rider login and it is not shared with staff.
 3. **Collections → users**, find the record by handle, set `role` to `staff`, save.
-4. They now see `/admin` on their next request. Nothing else changes about their account: they
+4. They now see `/admin` on their next request, and an "Admin portal" row in the menu behind the
+   top bar's avatar. Nothing else changes about their account: they
    keep their own tricks, their own plan and their own privacy setting.
 
 Removing it is the same steps with `rider`. It takes effect immediately — `requireStaff` re-reads
@@ -36,7 +37,10 @@ grant visible in `audit_log` like any other change to the four protected fields.
 
 ## What the role does and does not buy
 
-**Does:** `/admin` renders instead of a 404. That is the entire difference.
+**Does:** `/admin` renders instead of a 404, and the top bar's avatar menu carries an "Admin
+portal" row into it. That is the entire difference — and the row is a drawn link, not a second
+gate: it is hidden from non-staff so that the menu keeps the 404's secret, but forging it in a
+browser opens nothing, because `requireStaff` re-reads `role` on every request behind it.
 
 **Does not:** any extra power over the API. A staff member's own token is an ordinary rider token
 and is refused by exactly the same rules — they cannot patch another rider's plan, cannot suspend

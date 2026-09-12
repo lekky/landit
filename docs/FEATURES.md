@@ -30,7 +30,7 @@ consent gates under-threshold riders; there is deliberately no stranger-contact 
 | Social | `/crew`, `/join/[code]`, `/riders/[handle]` | Up to 5 owned crews, server-minted invite codes (25 uses / 14 days), crew board + fixed-sentence activity feed, public profiles. |
 | Money | `/plans`, Stripe Checkout | Rookie free / Shredder £3.99 / Legend £6.99 monthly (yearly ≈ 2 months free). Under-16s never see a payment form — the guardian gets a checkout link by email. |
 | Account | `/account`, `/coach`, `/report` | Profile editor (sports, avatar, level, goal, stance) that saves as a rider changes it, with no Save button — an answer that is not yet complete is held rather than written, so the stored one survives; privacy is the deliberate exception and keeps its button. Guardian panel, data export, account closure; read-only coach view (free, unlisted); report/appeal form that works signed out. |
-| Staff | `/admin` + 9 tabs | See below. Hidden from non-staff with a 404, not a 403. |
+| Staff | `/admin` + 9 tabs | See below. Hidden from non-staff with a 404, not a 403, and absent from their account menu. |
 
 ## Data model (PocketBase)
 
@@ -122,7 +122,8 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
 ## Staff portal
 
 `/admin` (role gate, 404 to non-staff, role settable only from the PocketBase superuser
-dashboard): overview (rider/trick/spot counts, riders by plan, by sport and by how they found us —
+dashboard; reached from the top bar's avatar menu, which carries an "Admin portal" row for
+staff accounts and shows non-staff nothing at all about a portal): overview (rider/trick/spot counts, riders by plan, by sport and by how they found us —
 the last with a paid split withheld below 10 riders per option); riders (last seen, from
 `users.last_seen` which the server stamps on authentication and throttles to 15 minutes — the
 column showed `last_ride` until `feat-last-seen`, and so reported rides while headed "Last active";
