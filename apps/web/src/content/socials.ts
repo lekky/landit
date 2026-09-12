@@ -8,7 +8,7 @@
  * landing hero is the third place that needs them, which is one too many to
  * keep synchronising by hand.
  *
- * **The handles are not the same on both platforms.** Instagram is
+ * **The handles are not the same on every platform.** Instagram is
  * `@landthetrickapp` — `@landthetrick` was taken there — while TikTok is
  * `@landthetrick` (owner, 2026-09-11, in chat). That asymmetry is the exact
  * thing the old duplication got wrong once already: the Instagram link pointed
@@ -24,13 +24,18 @@
  */
 
 /** Stable per-account key. Doubles as the `landing_cta` target, so it is a fixed string. */
-export type SocialId = 'instagram' | 'tiktok';
+export type SocialId = 'instagram' | 'tiktok' | 'facebook';
 
 export type Social = {
   id: SocialId;
   /** The platform, as a person would say it. The accessible name of a logo link. */
   name: string;
-  /** The account, `@` included — different per platform, see above. */
+  /**
+   * What the account is called, said the way that platform says it: an `@`
+   * handle where the platform issues one, and the page's own name where it does
+   * not. It is the second half of the accessible name, so it answers "which
+   * account am I about to open" and nothing else.
+   */
   handle: string;
   href: string;
 };
@@ -47,6 +52,34 @@ export const SOCIALS: readonly Social[] = [
     name: 'TikTok',
     handle: '@landthetrick',
     href: 'https://tiktok.com/@landthetrick',
+  },
+  /*
+   * The Facebook page (owner, 2026-09-12, in chat). A page rather than a
+   * profile, and the third account the site links: it had been running since
+   * 2026-09-11 with nothing on the site pointing at it.
+   *
+   * **Two things about this URL are deliberate, and both are the kind of thing
+   * a later session will want to "tidy".**
+   *
+   * It is the numeric page id, because this page has no vanity username yet.
+   * `facebook.com/<id>` is the canonical address Facebook itself serves for
+   * such a page and it never stops resolving, including after a username is
+   * claimed. What was offered first was a `facebook.com/share/...` link, which
+   * is a redirect token: fine to paste to a person, wrong here. Half the job of
+   * this list is `SOCIAL_SAME_AS` below — the claim that this profile is this
+   * brand — and a share token identifies nothing a search engine can reconcile.
+   *
+   * The handle is therefore the page's name, not an `@` anything. Inventing
+   * `@landthetrick` here would put a handle we do not own into a screen
+   * reader's mouth. **If a username is claimed, this entry is the one place to
+   * change** — and the numeric link keeps working either way, so it is an
+   * improvement rather than a repair.
+   */
+  {
+    id: 'facebook',
+    name: 'Facebook',
+    handle: 'Land The Trick',
+    href: 'https://facebook.com/1324987644027132',
   },
 ];
 

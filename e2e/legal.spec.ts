@@ -279,9 +279,14 @@ test('the footer has no dead labels, and Contact lands on the addresses', async 
   // Exact hrefs, not a `/landthetrick/` pattern: the Instagram link pointed at
   // `instagram.com/landthetrick` until 2026-09-11, which is not the account —
   // the handle there is `@landthetrickapp` — and a loose pattern matched it.
+  // Facebook's is the numeric page id rather than a vanity username, because the
+  // page has not claimed one — see `content/socials.ts`. Asserted exactly like
+  // the other two: if a username is claimed later, this line changes with it,
+  // and until then a pattern would have hidden a share-link URL slipping in.
   const socials = {
     Instagram: 'https://instagram.com/landthetrickapp',
     TikTok: 'https://tiktok.com/@landthetrick',
+    Facebook: 'https://facebook.com/1324987644027132',
   };
   for (const [name, href] of Object.entries(socials)) {
     await expect(footer.getByRole('link', { name })).toHaveAttribute('href', href);

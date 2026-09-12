@@ -1379,13 +1379,24 @@ all four are removed rather than reworded:
   every child using the app that a staff area exists and took the two people who need it nowhere.
   The working door is the conditional link on `/account`, which T17 built. The `compact` prop that
   hid the label went with it — every caller was passing a switch with nothing left to switch.
-- **The three social tags are the real accounts**, `@landthetrick` on Instagram, YouTube and TikTok
+- **The social tags are the real accounts**, `@landthetrick` on Instagram, YouTube and TikTok
   (owner, 2026-08-30, in chat). They had been spans since T5, styled like links and going nowhere.
-  Two corrections since: the YouTube tag went on 2026-09-05 (the channel was never claimed), and the
+  Three corrections since: the YouTube tag went on 2026-09-05 (the channel was never claimed); the
   Instagram handle is **`@landthetrickapp`**, not `@landthetrick`, which was already taken there
-  (owner, 2026-09-11, in chat). TikTok keeps `@landthetrick`. The footer and the `sameAs` list in
-  `lib/structuredData.ts` carry the same two entries, and `e2e/legal.spec.ts` asserts the exact
-  hrefs rather than a shared `landthetrick` pattern, which is what let the wrong handle pass.
+  (owner, 2026-09-11, in chat), while TikTok keeps `@landthetrick`; and **the Facebook page was
+  added on 2026-09-12** (owner, in chat — the page had been posting since 2026-09-11 with nothing on
+  the site linking it). The footer, the landing bar's logo tiles and the `sameAs` list in
+  `lib/structuredData.ts` all derive from `content/socials.ts`, and `e2e/legal.spec.ts` asserts the
+  exact hrefs rather than a shared `landthetrick` pattern, which is what let the wrong handle pass.
+  - **Facebook's href is the numeric page id**, `facebook.com/1324987644027132`, because the page has
+    claimed no vanity username. That is the canonical address Facebook serves for such a page and it
+    keeps resolving after a username is claimed, so claiming one is an improvement to one line rather
+    than a repair. What it is deliberately *not* is the `facebook.com/share/...` link the page was
+    first offered as: a redirect token identifies nothing, and half the job of this list is the
+    `sameAs` claim that a given profile is this brand.
+  - Its tile takes the landing page's **yellow**, not Facebook blue: `--blue` passes contrast against
+    neither ink nor paper (issue #278). Yellow was the last of the page's three accents, so a fourth
+    account is a colour decision as well as a link.
 - **The footer's `Contact` entry lands on the About document's "Get in touch" section**, not the top
   of the same page `About Land The Trick` already opens. Two entries, one destination, is what made
   it read as a stub for a contact page nobody built. `legalHref` takes an optional section anchor

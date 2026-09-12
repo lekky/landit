@@ -547,17 +547,37 @@ a.bylineLink:focus-visible {
 /*
  * TikTok's mark is one filled path where Instagram's is three stroked shapes,
  * so in the same 19px box it carries noticeably more ink. The scale takes that
- * back optically rather than by giving the two `svg` elements different sizes,
- * which would have made the two tiles' contents different heights.
+ * back optically rather than by giving the `svg` elements different sizes,
+ * which would have made the tiles' contents different heights.
  *
  * A class the component asks for by name, not `li:last-child`. Two reasons, and
  * the second is why the obvious version was rewritten: order is not the fact
  * being described here — reordering `SOCIALS` would put the correction on the
  * stroked mark — and a bare `li:last-child` in a CSS module is not scoped to
  * the module at all, which is the leak #445 went and fixed.
+ *
+ * `SocialLinks.tsx`'s `MARK_WEIGHTS` says which mark gets which of these.
  */
 .socialMarkSolid {
   transform: scale(0.92);
+}
+/*
+ * Facebook's mark is a filled disc touching all four edges of its viewBox, where
+ * Instagram's rounded square stops at 2.6 and TikTok's note is narrower still.
+ * So it is the most ink and the largest silhouette of the three, and `solid`'s
+ * 0.92 is not enough: measured in the built page, that leaves an 17.4px disc
+ * against Instagram's 14.9px square, and the tile reads as a black circle with
+ * yellow corners rather than a mark on a yellow tile.
+ *
+ * **0.84 is deliberately not the size that makes the numbers match.** That would
+ * be 0.79, where the disc measures 14.9px against the square's 14.9px — and at
+ * 0.79 it looks too small, because a circle and a square of equal height do not
+ * read as equal size. The disc needs the few percent of overshoot that type
+ * designers give a round letter beside a flat-sided one. 0.84 is that overshoot,
+ * checked by eye against the other two tiles rather than by arithmetic.
+ */
+.socialMarkDisc {
+  transform: scale(0.84);
 }
 /*
  * The platform and the handle, for a screen reader and nothing else. The

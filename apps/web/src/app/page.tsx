@@ -183,7 +183,7 @@ export default async function LandingPage() {
         </nav>
         <span className={styles.barEnd}>
           {/*
-           * The Instagram and TikTok accounts, as two logo tiles
+           * The Instagram, TikTok and Facebook accounts, as logo tiles
            * (`SocialLinks.tsx`, Rachid, 2026-09-12, in chat). The question
            * behind them was "is there a good way to get people to check us out
            * and actually see we're real?" — and a live account is the answer
@@ -191,10 +191,10 @@ export default async function LandingPage() {
            * for it, and the story band 500px down is a photograph we chose.
            *
            * **First in this strip, before Sign in, and that ordering is
-           * deliberate.** These are the two weakest calls to action in the bar
-           * and the only ones that leave the site, so they read left to right
-           * as least to most wanted, ending on Start free. Putting them after
-           * the buttons would have made the last thing in the bar a way off the
+           * deliberate.** These are the weakest calls to action in the bar and
+           * the only ones that leave the site, so they read left to right as
+           * least to most wanted, ending on Start free. Putting them after the
+           * buttons would have made the last thing in the bar a way off the
            * page.
            *
            * Why the bar at all rather than inside the hero, which is where this
