@@ -201,8 +201,10 @@ test('the avatar opens the four destinations that are not places to ride', async
 
   // And nothing about a staff portal, which is the visible half of the 404 an
   // ordinary rider meets at `/admin` (`lib/staff.ts`): no disabled row, no
-  // greyed label, no mention.
-  await expect(menu.getByRole('menuitem')).toHaveCount(4);
+  // greyed label, no mention. Five rows, not four: the fifth is Sign out, which
+  // is not a destination and has its own test below.
+  await expect(menu.getByRole('menuitem')).toHaveCount(5);
+  await expect(menu.locator('a[role="menuitem"]')).toHaveCount(4);
   await expect(menu.getByRole('menuitem', { name: 'Admin portal' })).toHaveCount(0);
 
   await page.keyboard.press('Escape');
@@ -225,15 +227,50 @@ test('a staff account gets a fifth item, the admin portal, drawn as staff', asyn
   const menu = page.getByRole('menu');
 
   const items = menu.getByRole('menuitem');
-  await expect(items).toHaveCount(5);
+  await expect(items).toHaveCount(6);
 
+  // Last of the *destinations* — Sign out sits below it and is not one.
+  const links = menu.locator('a[role="menuitem"]');
   const admin = menu.getByRole('menuitem', { name: 'Admin portal', exact: true });
   await expect(admin).toHaveAttribute('href', '/admin');
-  await expect(items.last()).toHaveAttribute('href', '/admin');
+  await expect(links).toHaveCount(5);
+  await expect(links.last()).toHaveAttribute('href', '/admin');
 
   // `--violet` (#8a3be0), and the 3px keyline that separates the register.
   await expect(admin).toHaveCSS('color', 'rgb(138, 59, 224)');
   await expect(admin).toHaveCSS('border-top-width', '3px');
+});
+
+test('sign out is the last row of the menu, for staff and riders alike', async ({ page }) => {
+  /*
+   * The way out of the app used to be the account screen only, which on a phone
+   * put it behind a screen a rider had to open in order to close the app. It is
+   * a `button` in a form rather than a link, because it posts `signOutAction` —
+   * the same one the account screen and the staff portal post to — so this
+   * checks the row is a submit and that it is genuinely last, under the 3px
+   * keyline that separates it from the destinations above.
+   */
+  await page.setViewportSize({ width: 800, height: 800 });
+
+  for (const [what, url] of [
+    ['a rider', SHELL],
+    ['staff', `${SHELL}?staff=1`],
+  ] as const) {
+    await page.goto(url);
+    await page.getByRole('button', { name: 'Your account and settings' }).click();
+    const menu = page.getByRole('menu');
+
+    const signOut = menu.getByRole('menuitem', { name: 'Sign out', exact: true });
+    await expect(signOut, `${what} cannot see Sign out in the account menu`).toBeVisible();
+    await expect(signOut).toHaveAttribute('type', 'submit');
+    await expect(signOut).toHaveCSS('border-top-width', '3px');
+
+    // Last, below the admin row where there is one.
+    const items = menu.getByRole('menuitem');
+    await expect(items.last()).toHaveText('Sign out');
+
+    await page.keyboard.press('Escape');
+  }
 });
 
 test('every nav item whose screen exists is a real link', async ({ page }) => {

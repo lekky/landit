@@ -74,9 +74,9 @@ export function TopBar({ rider }: { rider?: TopBarRider }) {
                 {rider.streak}
               </span>
               {/* The avatar opens the four destinations that are not places
-                  to ride — account, coach view, plans, report — and, for staff
-                  only, the admin portal. On a phone this is the only way to any
-                  of them that is not the site footer. */}
+                  to ride — account, coach view, plans, report — for staff only,
+                  the admin portal, and Sign out at the foot. On a phone this is
+                  the only way to any of them that is not the site footer. */}
               <AccountMenu rider={rider} />
             </>
           ) : (
