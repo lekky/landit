@@ -145,24 +145,32 @@ to merged and cleans up after itself (step 8). Then, in order:
     whether the fix is strictly in scope — a one-line correction in a file you have open is not
     scope creep. What still gets an issue: anything needing a decision only the owner can make,
     anything touching code another session owns, and anything you cannot verify before merging.
-12. **Close with a TPO handover — three bullets, always these three, always in this order**
-    (Rachid, 2026-09-12, in chat). Prose is where a handover goes to die: the owner should be
-    able to read the last thing a session says and know whether anything is waiting on them
-    without mining a paragraph for it.
-    - **What I did** — the work in behaviour terms, what a rider would notice, not
-      implementation.
-    - **What changed** — what is actually different now: behaviour, routes, data, the
-      `ANALYTICS_EVENTS` entries added or touched, and the state of the branch and the checks
-      **read from the tool rather than assumed** (step 9). Anything that failed or was skipped
-      goes here, with the evidence, not left out.
-    - **What you need to do** — every decision only the owner can make, and every action
-      waiting on them: raise a PR, redeploy (merging is not shipping), change something in a
-      dashboard, answer a question. Say **"nothing"** when there is nothing, so that an empty
-      list is a statement rather than an omission.
+12. **Close with a TPO handover — these five sections, in this order** (Rachid, 2026-09-12,
+    in chat). Prose is where a handover goes to die: the owner should be able to read the last
+    thing a session says and know what happened and what is waiting on them, without mining a
+    paragraph for it.
+    1. **What we changed or fixed** — concise bullets, behaviour a rider would notice rather
+       than implementation.
+    2. **Why we did it** — concise bullets, the benefit rather than the mechanism. A bullet
+       here that only restates section 1 in other words means the work needs a better reason
+       or the bullet needs deleting.
+    3. **GitHub issues raised** — each as a link with a succinct why (step 11 wrote them while
+       the file paths were still in context; this is where they surface). Say "none" rather
+       than leaving the section out.
+    4. **Next step** — *optional, and only when there is one.* Anything manual now waiting on
+       a person: **a redeploy — merging is not shipping**, a new environment variable, a
+       dashboard setting, a decision only the owner can make. Omit the heading when there is
+       nothing, so its presence always means something.
+    5. **Always finish by asking whether the PR should be raised and merged.** One line,
+       always last, always a question — step 8 means a session never raises or merges one
+       unasked, and green checks are the evidence offered when asking, not permission. It is
+       per-PR: a yes does not carry to the next piece of work.
 
-    Sub-bullets under any of the three are fine. Detail below them is fine. What is not fine is
-    a handover that leaves the third bullet implied — a session that needed a decision and
-    buried it in prose has not handed over, it has just stopped.
+    Detail and sub-bullets under any section are fine. Report the branch and the checks as
+    they actually are, **read from the tool rather than assumed** (step 9); anything that
+    failed or was skipped is said plainly, with the evidence. What is not fine is dropping
+    section 5 because the checks are green, or folding section 4 into section 1 so a redeploy
+    reads as something already done.
 
 ## Rules the plan depends on
 
