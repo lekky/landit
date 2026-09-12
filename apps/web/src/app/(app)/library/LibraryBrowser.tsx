@@ -24,10 +24,11 @@ import {
 import { Empty, foregroundFor, Icon, Panel, Pill, TrickCard } from '@landit/ui-web';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { SportSwitch } from '@/components/shell/SportSwitch';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { libraryArrival, rememberLibraryPlace } from '@/lib/libraryPlace';
 import { ROUTES, libraryHref, trickHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { useSport } from '@/providers/sport';
@@ -49,6 +50,14 @@ import styles from './library.module.css';
  * any other and opens a page that explains it; the refusal that matters happens
  * in the `trick_progress` hook (plan §3 guarantee 3), and nothing on this screen
  * is load-bearing for it.
+ *
+ * **The grid keeps the rider's place for the hop into a trick page** (2026-09-12,
+ * `lib/libraryPlace.ts`). Client state is the right answer for narrowing a list
+ * of this size and it has one cost: the state goes when the screen does, so
+ * opening a trick and coming back used to mean re-searching, re-filtering and
+ * re-scrolling a 259-card grid. The offset and the narrowing are now written
+ * down on the way out and reinstated on the way back — for that one hop only,
+ * and in memory only.
  */
 export function LibraryBrowser({
   tricks,
@@ -80,13 +89,86 @@ export function LibraryBrowser({
   const router = useRouter();
   const { sport } = useSport();
 
-  const [search, setSearch] = useState('');
+  /*
+   * Where this rider was the last time they were on this screen, if they have
+   * just come back from a trick page (`lib/libraryPlace.ts`). Null on any other
+   * arrival, and null on the server, so a page load renders exactly what it did
+   * before this existed and there is nothing for hydration to disagree about.
+   *
+   * Read in a `useState` initialiser rather than an effect, because the
+   * narrowing has to be in place for the **first** render: setting it afterwards
+   * would paint the whole library and then take most of it away, which is the
+   * flash `initialMine` and `initialCategory` are resolved on the server to
+   * avoid. It is a plain read, not a take, so React rendering this twice in
+   * development lands the rider in the same place both times.
+   */
+  const [arrival] = useState(() => libraryArrival(sport));
+  const wasNarrowedTo = arrival?.narrowing ?? null;
+
+  const [search, setSearch] = useState(wasNarrowedTo?.search ?? '');
   const [category, setCategory] = useState<CategoryId | null>(initialCategory);
-  const [difficulty, setDifficulty] = useState<number | null>(null);
-  const [status, setStatus] = useState<TrickStatusFilter>('all');
-  const [sort, setSort] = useState<TrickSort>('easiest');
+  const [difficulty, setDifficulty] = useState<number | null>(wasNarrowedTo?.difficulty ?? null);
+  const [status, setStatus] = useState<TrickStatusFilter>(wasNarrowedTo?.status ?? 'all');
+  const [sort, setSort] = useState<TrickSort>(wasNarrowedTo?.sort ?? 'easiest');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [mine, setMineState] = useState(initialMine);
+
+  /*
+   * Put them back at the offset they left, once the grid above is laid out.
+   *
+   * Twice, because two other things move this page in the same beat: Next
+   * scrolls a forward navigation to the top of the new page, and the browser
+   * makes its own attempt on a Back — against a document that is usually still
+   * a fraction of its final height, which is why Back landed near the top
+   * rather than where it was. The arrow out of a trick page turns Next's scroll
+   * off when there is a place to restore (`BackToLibrary`), and the frame after
+   * this settles whatever is left. One frame is enough: a trick card is text
+   * and a border, so the grid's height is final as soon as it is rendered.
+   */
+  useEffect(() => {
+    if (!arrival) return;
+    const { scrollY } = arrival;
+    window.scrollTo(0, scrollY);
+    const frame = window.requestAnimationFrame(() => window.scrollTo(0, scrollY));
+    return () => window.cancelAnimationFrame(frame);
+  }, [arrival]);
+
+  /*
+   * And write it down, on every press anywhere on this screen.
+   *
+   * The press that matters is the one that opens a trick, but this does not
+   * need to know which press that was: the last one before the screen goes is
+   * the one that took the rider off it, and recording a few presses that went
+   * nowhere costs an object.
+   *
+   * **Not in an unmount cleanup**, which is where this started and is wrong in
+   * a way worth writing down. A cleanup looks like the perfect moment — the
+   * screen is going, so `window.scrollY` must still be its own — and in the
+   * ordinary case it is. But a navigation in a transition can render the new
+   * page, put the old one back while the payload lands, and commit again, so
+   * the cleanup runs *twice*; by the second one the framework has scrolled the
+   * new page to the top and `window.scrollY` is 0. That is exactly what it
+   * recorded (every time, in dev), and no assertion about the narrowing would
+   * have caught it — the search text came back perfectly and the offset was
+   * always the top of the page. A press is a moment the rider chose, and there
+   * is nothing ambiguous about where the page is when it happens.
+   *
+   * `onClickCapture` rather than `onClick`, so the capture reaches this before
+   * the card's own navigation, and a keyboard Enter on a focused card counts
+   * like a tap does.
+   *
+   * The address carries `mine` and `cat` because the server resolves those on
+   * the way back in; everything else here has no address and would otherwise be
+   * gone.
+   */
+  const keepPlace = () => {
+    rememberLibraryPlace({
+      href: libraryHref({ mine, cat: category ?? undefined }),
+      sport,
+      narrowing: { search, difficulty, status, sort },
+      scrollY: window.scrollY,
+    });
+  };
 
   const pool = useMemo(() => tricksFor(sport, tricks), [sport, tricks]);
   /*
@@ -247,7 +329,7 @@ export function LibraryBrowser({
   );
 
   return (
-    <div>
+    <div onClickCapture={keepPlace}>
       <SportSwitch note={(id) => tricksFor(id, tricks).length} label="Trick library sport" />
 
       <div className={styles.head}>

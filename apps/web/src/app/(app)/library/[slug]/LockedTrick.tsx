@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ROUTES, trickHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 
+import { BackToLibrary } from './BackToLibrary';
 import { PaywallSeen } from './PaywallSeen';
 
 import styles from './trick.module.css';
@@ -51,9 +52,9 @@ export function LockedTrick({
       {/* Renders nothing; counts the paywall being seen (§6.8). */}
       <PaywallSeen trickId={trick.id} sport={trick.sport} tier={tier} />
 
-      <Link className={`cond ${styles.back}`} href={ROUTES.library}>
-        <Icon name="back" size={16} /> All tricks
-      </Link>
+      {/* The same arrow the unlocked page carries: back to the library address
+          the rider left, at the offset they left it (`BackToLibrary`). */}
+      <BackToLibrary />
 
       <Panel className={styles.panel}>
         <div className={`${styles.header} ${styles.headerLocked}`}>
@@ -109,9 +110,7 @@ export function LockedTrick({
             <Link className="btn" href={ROUTES.plans}>
               See plans
             </Link>
-            <Link className="btn ghost" href={ROUTES.library}>
-              Back to the library
-            </Link>
+            <BackToLibrary button />
           </div>
 
           {prereqs.length > 0 && (

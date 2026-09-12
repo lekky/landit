@@ -1839,6 +1839,37 @@ borrows the prototype clips panel's layout and none of its behaviour. The rest o
   The first-landed date ships without it; tracked as an issue, and it is the only fidelity gap on
   screen 09.
 
+**Added 2026-09-12: the grid gives a rider back their place.** Opening a trick and coming back put
+every rider at the top of an unnarrowed library — the page unmounts, so the search box, the tier,
+the status and the sort (all React state, by T7's own decision that filtering ninety records is a
+client job) were gone, and the browser's scroll restoration has nothing to restore against a
+document still being rendered. On a 259-trick grid that made comparing two tricks a re-narrow and
+a re-scroll every time.
+
+What is kept, and the shape of the promise, is `apps/web/src/lib/libraryPlace.ts`:
+
+- **The whole view, not just the offset** (owner, 2026-09-12, in chat, choosing this over
+  restoring the scroll alone). An offset restored into a differently narrowed grid points at
+  different tricks, so the narrowing comes back with it. `?mine=1` and `?cat=` stay the address's
+  job and are resolved on the server as before; the arrow out of a trick page now returns to the
+  address the rider left, so it and a browser Back land on the same URL.
+- **One hop, library → trick → back.** The place is forgotten by the first screen that is not
+  `/library` (`PlaceKeeper`, in the app shell), so an arrival from anywhere else is the plain
+  top-of-grid arrival it always was.
+- **In memory only.** No `sessionStorage`, no cookie, no query parameter — the same rule
+  `useHereOnce` follows, and it matters more here because the memory holds a search box a child
+  typed into. It dies with the tab.
+- **It should be deleted when Next's Cache Components are switched on.** `cacheComponents: true`
+  keeps a navigated-away page mounted in React's `<Activity>` with its state, DOM and scroll
+  position intact, which is this file for every screen at once. That is a repo-wide caching
+  decision and not a library one, so it is not made here; whoever makes it should take this out
+  rather than leave two mechanisms moving one scroll offset.
+
+No analytics event: nothing new is offered to press, and the navigation either way round is already
+a `$pageview`. `e2e/library.spec.ts` carries four tests, because only a browser can see the three
+things this depends on — when React unmounts the grid, when Next scrolls a new page to the top, and
+how tall the document is when the browser makes its own attempt at a Back.
+
 **T8 · Home + streak + announcements.** Dashboard, stat blocks, "I rode today", streak logic wired
 to `core` (timezone-aware), announcement banner + dismissal, working-on/start-here, wish list,
 stickers/crew teaser panels. The streak is the **weekly** one (§1): wire `logWeeklyRide`,

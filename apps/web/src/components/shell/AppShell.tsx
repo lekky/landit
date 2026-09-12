@@ -9,6 +9,7 @@ import { SportProvider } from '@/providers/sport';
 import { ToastProvider } from '@/providers/toast';
 
 import { MobileNav } from './MobileNav';
+import { PlaceKeeper } from './PlaceKeeper';
 import { TopBar, type TopBarRider } from './TopBar';
 
 /**
@@ -55,6 +56,12 @@ export function AppShell({
         <ModalProvider>
           <div className="app">
             <ServiceWorkerRegistrar rider={riderId} />
+            {/*
+              Renders nothing; keeps the library's "put me back where I was"
+              honest by forgetting the place as soon as a rider is on another
+              screen (`components/shell/PlaceKeeper.tsx`).
+            */}
+            <PlaceKeeper />
             {/*
               Ahead of the top bar so it is the first thing a keyboard rider
               reaches — otherwise they tab all nine destinations before the
