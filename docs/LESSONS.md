@@ -502,6 +502,27 @@ wherever the pack styles an element type rather than a class — `.btn` had it t
 `a:hover` in the token sheet that outranks `.btn` and turns every link-button pink. Check the
 selector, not just the class name, the first time you put a design-system class on a different tag.
 
+**A CSS module that names a shared global class in a descendant selector writes a rule that can
+never match.** `crew.module.css` had `.stat .d { font-size: 20px; display: block }` — the board's
+score over its unit, exactly as the prototype draws it. The JSX writes `className="d"`, the global
+type class from `tokens.css`; the build hashes the module's bare `.d` into
+`.crew-module__hash__d`, and the two never meet. So the rule had been dead since the screen was
+written, and `/crew` shipped `0WEEKS` and `35LANDED` as single words — reported by the owner on
+2026-09-12, a month after launch. A sweep for the same shape found **seven** of them across five
+modules, including the one `#376`'s mobile audit had cited as evidence that the board's labels
+were 9.5px: it read the CSS, and the CSS was not running.
+
+Nothing catches this. It is valid CSS, it is valid CSS-modules, all three gates are green, and the
+screen renders — just unstyled in one corner. The rule is **`:global(...)` around any class the
+module does not itself define** (`admin.module.css`'s `.scrollTable :global(.arow)` is the pattern
+to copy), and the check is to grep a module's descendant selectors against the class names in
+`packages/ui-web/src/styles/`: a bare one that appears there and not in the module is dead. Issue
+#444 asks for that check to become a lint rule, because a sweep only finds today's seven.
+
+The before/after was proved with a throwaway Playwright spec that made two riders, put them in a
+crew and screenshotted the seven places — the same move §3a's `toDayKey` paragraph describes, and
+the only thing that separates "the selector looks right now" from "the pixels changed".
+
 **A layout's `metadata` is resolved before the layout runs, so it survives the gate the layout
 contains.** T16 put `requireStaff()` in `app/(app)/admin/layout.tsx` — the right place, since it
 covers every screen T17 adds without anyone remembering to — and a `metadata` export beside it

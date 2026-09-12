@@ -83,7 +83,9 @@
   font-size: 26px;
 }
 
-.stat .lab {
+/* `:global`: `.lab` is `tokens.css`'s shared class, not this module's, so a
+   bare `.lab` would be hashed into a local name and match nothing. */
+.stat :global(.lab) {
   color: var(--ink-3);
   margin-top: 4px;
   display: block;
@@ -205,11 +207,11 @@
   margin-top: 10px;
 }
 
-.stickerCount .d {
+.stickerCount :global(.d) {
   font-size: 30px;
 }
 
-.stickerCount .cond {
+.stickerCount :global(.cond) {
   font-size: 14.5px;
   color: var(--ink-2);
 }
