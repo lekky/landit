@@ -27,7 +27,7 @@ import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
  */
 
 /** Where a call to action goes. Fixed strings, not routes, so a path change here is not a funnel break. */
-export type CtaTarget = 'signup' | 'signin' | 'spots' | 'events' | 'plans' | 'library';
+export type CtaTarget = 'signup' | 'signin' | 'spots' | 'events' | 'plans' | 'library' | 'story';
 
 /** Which zone it was pressed in. The first three are the landing page's. */
 export type CtaPlace = 'bar' | 'hero' | 'band' | 'story';

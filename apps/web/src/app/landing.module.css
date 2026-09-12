@@ -33,15 +33,17 @@
 /* ------------------------------------------------------------------ top bar */
 
 /*
- * The bar the pack draws: wordmark, four nav links, then Sign in and Start
- * free. It composes `site.module.css`'s `.bar` rather than editing it — that
- * class is shared with `/legal`, `/offline`, `/coming-soon` and the 404, none
- * of which want a marketing nav.
+ * The bar the pack draws: four nav links, then Sign in and Start free. It
+ * composes `site.module.css`'s `.bar` rather than editing it — that class is
+ * shared with `/legal`, `/offline`, `/coming-soon` and the 404, none of which
+ * want a marketing nav, and all of which keep the wordmark this page dropped.
+ *
+ * No `margin-left` any more: it existed to hold the nav off the wordmark, and
+ * with the mark gone it was 26px of dead space before the first link.
  */
 .nav {
   display: flex;
   gap: 22px;
-  margin-left: 26px;
 }
 .navLink {
   font-family: var(--fc);
@@ -288,6 +290,57 @@
   color: var(--hero-body);
 }
 
+/*
+ * Who made it, between the lede and the email field.
+ *
+ * Left-aligned in a centred box, where everything else in the hero is centred:
+ * it is a byline, and a centred two-line byline reads as another piece of
+ * marketing copy. The yellow rule is what separates it from the lede above
+ * without a border, a fill or a shadow, none of which it wants — this is the
+ * one thing in the hero that is not asking to be pressed.
+ *
+ * `max-width` is a little over the lede's 540px so the sentence sets on two
+ * lines at desktop width rather than three.
+ */
+.byline {
+  display: block;
+  max-width: 545px;
+  margin: 0 auto 24px;
+  padding: 2px 0 3px 16px;
+  border-left: 4px solid var(--gyellow);
+  text-align: left;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--hero-body);
+}
+.byline b {
+  font-weight: 600;
+  color: #fff;
+}
+/*
+ * `a.` and the repeated `color`, for the same reason `.peek:hover` carries one:
+ * `tokens.css` paints every link pink on hover and a single class does not
+ * outrank it, which on this ground would flip a yellow link to pink mid-hero
+ * (issue #297). The underline is a border rather than `text-decoration` so it
+ * keeps its weight against the condensed caps.
+ */
+a.bylineLink {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gyellow);
+  border-bottom: 2px solid var(--gyellow);
+  padding-bottom: 1px;
+  white-space: nowrap;
+}
+a.bylineLink:hover,
+a.bylineLink:focus-visible {
+  color: #fff;
+  border-bottom-color: #fff;
+}
+
 /* The email shortcut into sign-up. */
 .form {
   display: flex;
@@ -454,6 +507,93 @@
 .stripe i {
   flex: 1;
   display: block;
+}
+
+/* --------------------------------------------------------------- story band */
+
+/*
+ * Why the product exists, directly under the stripe and before the first
+ * feature row.
+ *
+ * Paper on the wash with the standard border and a deeper shadow than `--sh`:
+ * it is the only panel above the fold's fold, so it is allowed to sit a little
+ * further off the page than the rows below it. Nothing here is a new colour —
+ * the pink rule on the quote is `story.module.css`'s `.quote`, transcribed
+ * rather than referenced because the two files do not share a stylesheet, and
+ * it is what makes the band look like the page it is sending people to.
+ */
+.story {
+  padding: 34px 18px 0;
+}
+.storyIn {
+  max-width: 1060px;
+  margin: 0 auto;
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: 8px 8px 0 var(--ink);
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  align-items: stretch;
+  /* The floor, for the day somebody shortens the copy. Above it the words set
+     the height; see `.storyFig`. */
+  min-height: 340px;
+}
+/*
+ * The photograph is a 901×1600 portrait and the frame is nothing like that
+ * shape at either width, so it is cropped rather than fitted.
+ *
+ * **The picture is taken out of flow to do it.** Left in flow, a 270px column
+ * of a 16:9-and-then-some portrait is 479px tall, and because a grid row is as
+ * tall as its tallest item that number became the panel's height — leaving the
+ * copy beside it stretched over about 165px of nothing. Absolute against a
+ * stretched figure inverts it: the words set the height and the crop follows,
+ * which is the only arrangement where editing this copy cannot open a hole.
+ *
+ * `object-position` is the whole point of the crop. The t-shirt graphic sits
+ * about a third of the way down the source image, and a centred crop puts it
+ * below the bottom edge of the frame.
+ */
+.storyFig {
+  position: relative;
+  margin: 0;
+  border-right: var(--bd);
+  overflow: hidden;
+  background: var(--ink);
+}
+.storyFig img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 26%;
+}
+.storyCopy {
+  padding: 26px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.storyQuote {
+  margin: 0;
+  padding: 2px 0 2px 18px;
+  border-left: 6px solid var(--pink);
+  font-size: clamp(21px, 2.6vw, 30px);
+  line-height: 1.18;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.storyBy {
+  margin: 0;
+  max-width: 48ch;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.storyBy b {
+  font-weight: 700;
 }
 
 /* ------------------------------------------------------------- feature rows */
@@ -896,8 +1036,53 @@
   .peekArrow {
     margin-left: auto;
   }
+  .byline {
+    margin-bottom: 20px;
+    padding-left: 13px;
+    border-left-width: 3px;
+    font-size: 14px;
+  }
   .stripe {
     height: 9px;
+  }
+
+  /* The band stacks, and the picture turns from a portrait column into a band
+     across the top of the panel. */
+  .story {
+    padding: 24px 16px 0;
+  }
+  .storyIn {
+    grid-template-columns: minmax(0, 1fr);
+    box-shadow: var(--sh);
+    min-height: 0;
+  }
+  /*
+   * Stacked, the picture has no column to take its height from, so the frame
+   * carries the ratio and the image still covers it from the inside. 4:3 rather
+   * than anything taller: a 901×1600 portrait run full width on a 390px phone
+   * is 690px of photograph before the reader reaches the quote it belongs to,
+   * which is the trap the story page's own `pair` layout was written to avoid.
+   */
+  .storyFig {
+    border-right: 0;
+    border-bottom: var(--bd);
+    aspect-ratio: 4 / 3;
+  }
+  .storyFig img {
+    object-position: 50% 34%;
+  }
+  .storyCopy {
+    padding: 20px 18px 22px;
+    gap: 12px;
+  }
+  .storyQuote {
+    font-size: 21px;
+  }
+  /* The one button in the band, at the 44px floor and full width like the form
+     above it — a 120px button under a full-width panel reads as an afterthought. */
+  .storyCopy :global(.btn) {
+    width: 100%;
+    text-align: center;
   }
 
   .body {

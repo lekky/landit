@@ -100,6 +100,18 @@ export const STORY_UPDATED = 'September 2026';
 export const STORY_DESCRIPTION =
   'Miles is 12, rides a scooter, and could not find anywhere to keep track of the tricks he had landed. So he and his dad built one.';
 
+/**
+ * The one line that explains why the product exists, named so the landing page
+ * can quote it without retyping it.
+ *
+ * It is used twice: as the `why` chapter's big pulled quote below, and as the
+ * quote in the landing page's story band. Pulled out rather than copied because
+ * it is his sentence from the interview, and two copies of a transcription is
+ * how one of them quietly becomes a paraphrase. Editing it here edits both.
+ */
+export const STORY_PULL_QUOTE =
+  'Then I couldn’t remember what tricks I had learnt, or wanted to learn next.';
+
 export const STORY: readonly StoryChapter[] = [
   {
     id: 'start',
@@ -252,7 +264,7 @@ export const STORY: readonly StoryChapter[] = [
       {
         kind: 'quote',
         big: true,
-        text: 'Then I couldn’t remember what tricks I had learnt, or wanted to learn next.',
+        text: STORY_PULL_QUOTE,
       },
       {
         kind: 'p',

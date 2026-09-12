@@ -366,9 +366,14 @@ export const ANALYTICS_EVENTS = {
    * Something on the signed-out landing page was pressed.
    *
    * Carries `target` — where it goes (`signup`, `signin`, `library`, `spots`,
-   * `events`, `plans`) — and `place`, which of the page's three zones it
-   * was pressed in (`bar`, `hero`, `band`). Both are fixed strings chosen here,
-   * so neither can carry anything a visitor typed.
+   * `events`, `plans`, `story`) — and `place`, which of the page's three zones
+   * it was pressed in (`bar`, `hero`, `band`). Both are fixed strings chosen
+   * here, so neither can carry anything a visitor typed.
+   *
+   * `target: 'story'` is pressed from two of those zones and the pair is the
+   * point: `hero` is the byline line above the email field, `band` is the quote
+   * band under the stripe. Which of the two a stranger takes is what says
+   * whether the story needs to be above the fold at all.
    *
    * **Emphatically not the email address.** The hero's field is a sign-up
    * shortcut, and this event fires on the press, never with its contents; the
