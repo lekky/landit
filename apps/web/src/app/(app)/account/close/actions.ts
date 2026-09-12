@@ -10,9 +10,12 @@ import { SESSION_COOKIE, currentRider } from '@/lib/session';
 /**
  * Ending an account (T18; plan §6.5).
  *
- * **A separate file from `actions.ts`** so the two panels this screen has grown
- * are not one rebase conflict, and because these are a different kind of thing:
- * `actions.ts` edits a profile, this ends one.
+ * **It sits under `/account/close` rather than beside the profile editor**
+ * (2026-09-12, owner in chat), which is where the screen it serves went. It was
+ * `account/dataActions.ts` — a separate file from `actions.ts` so the panels
+ * that screen had grown were not one rebase conflict, and because these are a
+ * different kind of thing: `actions.ts` edits a profile, this ends one. Both
+ * reasons still hold; the route is now the boundary that expresses them.
  *
  * **Nothing here decides anything.** `POST /api/landit/account/delete` re-checks
  * the password on the server and does the erasure; `pocketbase/hooks/lib/
@@ -22,7 +25,9 @@ import { SESSION_COOKIE, currentRider } from '@/lib/session';
  * already invalidated every token the account held.
  *
  * The export is not here at all. It is a download, so it is a route handler —
- * `apps/web/src/app/api/account/export/route.ts` says why.
+ * `apps/web/src/app/api/account/export/route.ts` says why. It also stayed
+ * behind on `/account`: a rider taking a copy of their tricks is doing an
+ * ordinary thing, and only the ending moved.
  */
 
 export interface DeleteAccountState {

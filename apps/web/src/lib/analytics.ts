@@ -187,6 +187,26 @@ export const ANALYTICS_EVENTS = {
   profileSaved: 'profile_saved',
   /** A privacy toggle moved. Carries which setting and its new value. */
   privacySet: 'privacy_set',
+  /**
+   * Somebody opened `/account/close`. Carries nothing at all.
+   *
+   * It exists because the page was deliberately made harder to find
+   * (2026-09-12): closing an account used to be a panel on `/account` and is
+   * now a link off it. Without this we could not tell "nobody wants to leave"
+   * from "nobody can find the door", and the second is a problem — the right
+   * to erasure has to stay reachable.
+   */
+  accountCloseOpened: 'account_close_opened',
+  /**
+   * An account closure was submitted. Carries `outcome` — `attempted` on
+   * submit, `failed` when the server refused — and nothing else.
+   *
+   * There is no `closed`, and that is the shape of the thing rather than an
+   * omission: a successful erasure redirects to a signed-out home page, and
+   * the account the event would have described no longer exists. Attempted
+   * minus failed is the count that landed.
+   */
+  accountClosed: 'account_closed',
 
   /* ------------------------------------------------------- safeguarding -- */
   /** A rider asked a grown-up for consent. Never the email address. */

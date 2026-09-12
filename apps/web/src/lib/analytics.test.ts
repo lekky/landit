@@ -216,6 +216,12 @@ describe('the event catalogue', () => {
     // boundary now that autocapture is refused (see `analytics.ts`).
     expect([...names].sort()).toEqual(
       [
+        // Closing an account moved off `/account` onto a page of its own
+        // (2026-09-12). `account_close_opened` is what says whether riders can
+        // still find the door; `account_closed` carries `attempted` and
+        // `failed` only, because a success redirects to a signed-out home.
+        'account_close_opened',
+        'account_closed',
         // A refused sign-up, sign-in, reset or confirmation (#370): which form
         // and a fixed reason. Never the address, never PocketBase's message.
         'auth_refused',

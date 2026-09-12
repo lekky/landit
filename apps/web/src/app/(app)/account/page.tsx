@@ -169,7 +169,14 @@ export default async function AccountPage() {
         </p>
       </Panel>
 
-      {/* T18: the two things the privacy policy promises and had no control for. */}
+      {/*
+        T18: the two things the privacy policy promises and had no control for.
+        The download is here; closing an account is a link from here to
+        `/account/close`, which is where the panel that used to sit under this
+        one went (2026-09-12, owner in chat). Two paragraphs about irreversible
+        erasure are not what a rider who came to change their stance should
+        scroll through.
+      */}
       <DataPanel />
 
       <div className={styles.signOut}>

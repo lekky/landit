@@ -1,0 +1,65 @@
+/*
+ * Closing an account. A reading page before it is a form, so it is narrower
+ * than the account screen it came off: the consequences are two long
+ * paragraphs, and a rider is meant to actually read them.
+ *
+ * **`.copy` is not `cond`, where the panel this replaced was.** On `/account`
+ * those paragraphs were a blurb under a panel label, and blurbs there are set
+ * in condensed uppercase like every other one on the screen. Here they are the
+ * page — the thing a rider came to read before doing something irreversible —
+ * so they take the register `.lede` uses for body copy on every other screen.
+ * Same house style, applied to the role the text now has.
+ */
+.page {
+  max-width: 66ch;
+}
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-3);
+  font-size: 13.5px;
+  margin-bottom: 14px;
+  text-decoration: none;
+}
+.back:hover {
+  color: var(--ink);
+}
+.head {
+  font-size: clamp(30px, 5.4vw, 44px);
+  margin: 6px 0 22px;
+}
+.panel {
+  padding: 18px 20px;
+}
+.copy {
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0 0 14px;
+}
+.form {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.form :global(.field) {
+  flex: 1 1 240px;
+}
+/* `cond` in the markup carries the family; these two are the panel's own. */
+.hint {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.footnote {
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}

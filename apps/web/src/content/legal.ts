@@ -188,6 +188,16 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         h: 'Getting your data or deleting it',
         p: [
           'Ask us and we will send you everything we hold on you, or delete all of it. Both are free and we aim to do it within 30 days.',
+          /*
+           * Where the buttons are (2026-09-12). Closing an account moved off
+           * `/account` onto `/account/close` to stop it being the loudest thing
+           * on a screen riders visit for ordinary reasons, and a promise made
+           * here is only kept if a reader can find what keeps it. Told as plain
+           * words rather than links on purpose: `p` is a list of strings by
+           * design, and this page reads signed out, where both destinations are
+           * behind a sign-in wall.
+           */
+          'You do not have to wait for us, either. Your account page has a download of everything we hold on you, and a page for closing your account.',
           `Email ${CONTACT.privacy}.`,
         ],
       },

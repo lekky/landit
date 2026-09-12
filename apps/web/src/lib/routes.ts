@@ -39,6 +39,24 @@ export const ROUTES = {
   verifyEmail: '/verify-email',
   onboarding: '/onboarding',
   account: '/account',
+  /**
+   * Closing an account, at an address of its own (2026-09-12, owner in chat).
+   *
+   * It lived on `/account` until then, as a panel between the profile editor
+   * and the sign-out row: two paragraphs about erasure being irreversible, put
+   * in front of every rider who came to change their stance. Ending an account
+   * is a rare and deliberate thing, and it should be somewhere a rider goes on
+   * purpose rather than something the account screen hands them.
+   *
+   * A route rather than a `<details>` because the copy has real work to do —
+   * what erasure keeps and why, and two confirmations — and it reads better on
+   * a page than folded into a panel that has to stay small.
+   *
+   * **Hidden, not buried.** `/account` still links it, and the privacy policy
+   * says where it is. UK GDPR wants erasure reachable, so the one thing this
+   * change may not do is make it unfindable.
+   */
+  accountClose: '/account/close',
   library: '/library',
   /**
    * The glossary (T29): the words riders use, readable signed out like the
