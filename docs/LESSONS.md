@@ -523,6 +523,24 @@ The before/after was proved with a throwaway Playwright spec that made two rider
 crew and screenshotted the seven places — the same move §3a's `toDayKey` paragraph describes, and
 the only thing that separates "the selector looks right now" from "the pixels changed".
 
+**A CSS module scopes a class against other files, not against itself — so a name already used
+further down the same file silently wins.** The landing page's new social tiles were written as
+`.tile`, `.tileMark` and `.tileName`. All three names were already in `landing.module.css`, 600
+lines below, for the season grid: same file, same hash, so the grid's `.tile` won on source order
+and painted the two logos into 78px paper cards with a 2.5px border and a `min-height` nobody had
+asked for. The component looked right, the CSS looked right, and all three gates were green —
+CSS modules guarantee you cannot collide with *another* module, and it is easy to read that as a
+guarantee you cannot collide at all.
+
+What caught it was measuring rather than looking: a Playwright `getBoundingClientRect` on the tile
+reported 52x78 where the rule said 52x52, and walking `document.styleSheets` for every rule
+matching the element named the other `.tile` in one line. On a dark hero a 78px tile and a 52px
+tile are not obviously different in a screenshot, so the eye would have passed it.
+The rule is to **grep the module for a class name before adding it** — `grep -cE "^\.name[ ,:{]"`
+over the file — and to prefix a feature's classes (`.socialTile`, `.socialMark`) in any module
+long enough that you cannot hold its names in your head. Same family as the `:global(...)` lesson
+above: both are the cascade quietly answering a question you thought scoping had settled.
+
 **A layout's `metadata` is resolved before the layout runs, so it survives the gate the layout
 contains.** T16 put `requireStaff()` in `app/(app)/admin/layout.tsx` — the right place, since it
 covers every screen T17 adds without anyone remembering to — and a `metadata` export beside it
