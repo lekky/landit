@@ -382,9 +382,9 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
        *   what an undecided product question sounds like when it is written
        *   down as a plan.
        *
-       * Three things about the replacement are deliberate, and two of them are
+       * Four things about the replacement are deliberate, and three of them are
        * absences a later session would otherwise read as an oversight and fix
-       * (all three: owner, 2026-09-12, in chat).
+       * (all four: owner, 2026-09-12, in chat).
        *
        * - **It leads on the passion project, because that is the true answer.**
        *   The product was built to be used by the people who built it and would
@@ -410,6 +410,15 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
        *   the plan cards be the place a figure is quoted and tested. Do not
        *   helpfully re-derive it from `@landit/core` here: an accurate number is
        *   still a number a parent will hold us to next time it moves.
+       * - **It does not say "we never sell data about children" either.** That
+       *   was the other half of the old sentence and it went the same way, on
+       *   the owner's instruction. The commitment itself is unchanged and is
+       *   still published — the privacy policy above carries it as "We do not
+       *   sell your data", which is the document a parent looking for it goes
+       *   to, and §3 guarantee 1 plus the API rules are what actually enforce
+       *   it. What is gone is this page restating it. The section is about what
+       *   keeps the lights on, and a promise repeated on a page that was not
+       *   asking the question reads as protesting too much.
        *
        * The money paragraph says the cost is real and currently unmet. That is a
        * fact about today and it is allowed to age: if subscriptions do come to
@@ -421,7 +430,6 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
         p: [
           'This is a passion project. We built it because we wanted to use it ourselves, and it would exist whether or not anybody ever paid for it.',
           'It does cost money to keep going, though: a server, a domain, backups, and somebody looking after all three. Subscriptions are what pay for that. Right now they do not cover it, and the difference comes out of our own pocket.',
-          'What we will never do is make money by selling data about children.',
           'The free tier is a real one, not a teaser. It covers a proper spread of tricks in every sport, easy ones and hard ones, and it does not expire.',
           'So if you are on a paid plan: you are the reason it stays up for everybody riding here on the free one. Thank you.',
         ],

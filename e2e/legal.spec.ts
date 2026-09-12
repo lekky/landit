@@ -234,13 +234,13 @@ test('the About page says what pays for the site, not what the site earns (2026-
   // does not currently cover its own costs, and a page announcing otherwise to a
   // parent is flattering rather than true.
   expect(body).not.toMatch(/how we make money/i);
-  // The one promise that must survive any future rewrite of this section. It is
-  // the child-safety half of what the old copy said; the other half was "not
-  // advertising", which is deliberately gone (see `content/legal.ts`) because
-  // whether Land The Trick ever carries ads is an open question the owner is
-  // keeping open. Nothing here asserts its absence, because three other surfaces
-  // still say it and that is a copy decision for the owner, not a test.
-  expect(body).toMatch(/selling data about children/i);
+  // Nothing here asserts what the section promises, because on the owner's
+  // instruction it no longer promises anything: both halves of the old
+  // "Not advertising, and not by selling data about children" are gone, the
+  // first to keep advertising an open question and the second because the
+  // privacy policy is where that commitment is published and enforced. This
+  // test holds the two *claims* off the page and leaves the prose to the owner.
+  //
   // No number of free tricks, whatever `PLANS` happens to say. The figure has
   // moved twice and is expected to move again, so this page describes the shape
   // of the free tier instead. Matched on the phrase rather than on a digit: the
