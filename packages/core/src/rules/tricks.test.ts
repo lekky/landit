@@ -81,25 +81,26 @@ describe('the free / paid split', () => {
     expect(isTrickFree(noOverride)).toBe(true);
   });
 
-  it('splits the shipped library 30 free / 229 paid, ten free per sport', () => {
+  it('splits the shipped library 60 free / 199 paid, twenty free per sport', () => {
     // Read through `Trick`: the canonical data is `as const`, so a trick with
     // no override has no `free` key in its inferred type at all.
     const library: readonly Trick[] = TRICKS;
     const free = library.filter(isTrickFree);
-    expect(free).toHaveLength(30);
-    expect(library.filter((t) => !isTrickFree(t))).toHaveLength(library.length - 30);
+    expect(free).toHaveLength(60);
+    expect(library.filter((t) => !isTrickFree(t))).toHaveLength(library.length - 60);
 
     /*
-     * The free tier is a fixed ten per sport, spread 4 Rookie / 3 Easy / 2
-     * Spicy / 1 Gnarly and nothing at Pro (owner, 2026-09-04, in chat; the
-     * reasoning is written down above `TRICKS` in `../data/tricks.ts`).
+     * The free tier is a fixed twenty per sport: every Rookie trick, a fill of
+     * Easy, four Spicy and two Gnarly, nothing at Pro (owner, 2026-09-12, in
+     * chat; the reasoning is written down above `TRICKS` in
+     * `../data/tricks.ts`). It doubles the ten of 2026-09-04.
      *
      * Named here on purpose, and this is the point of the test: `free` is how
      * the free tier moves silently, so a swap has to be argued for in a diff
      * rather than noticed a month later on the plans page. `../data/data.test`
-     * asserts the *shape* — the 4/3/2/1 counts and the prerequisite closure
-     * that makes every one of them reachable — which is the part that must
-     * hold whichever tricks fill the slots.
+     * asserts the *shape* — the per-difficulty counts and the prerequisite
+     * closure that makes every one of them reachable — which is the part that
+     * must hold whichever tricks fill the slots.
      */
     const freeIds = (sport: 'scooter' | 'skate' | 'bmx') =>
       free
@@ -112,13 +113,23 @@ describe('the free / paid split', () => {
         'bunny-hop',
         'tic-tac',
         'fakie',
+        'kickturn',
+        'tail-tap',
         'pump',
         '180',
         '50-50',
         'drop-in',
+        'manual',
+        'quarter-pipe-air',
+        'gap',
+        'hippie-jump',
+        'acid-drop',
         'tailwhip',
         'bar-spin',
+        'nose-manual',
+        'boardslide',
         '360',
+        'bar-to-whip',
       ].sort(),
     );
     expect(freeIds('skate')).toEqual(
@@ -126,13 +137,23 @@ describe('the free / paid split', () => {
         'sk-kickturn',
         'sk-tic-tac',
         'sk-fakie-roll',
+        'sk-curb-drop',
+        'sk-ramp-kickturn',
         'sk-pump',
         'sk-ollie',
         'sk-manual',
         'sk-drop-in',
+        'sk-shuvit',
+        'sk-fakie-ollie',
+        'sk-curb-ollie',
+        'sk-rock-to-fakie',
+        'sk-powerslide',
         'sk-kickflip',
         'sk-50-50',
+        'sk-axle-stall',
+        'sk-indy',
         'sk-wallride',
+        'sk-backside-air',
       ].sort(),
     );
     expect(freeIds('bmx')).toEqual(
@@ -144,24 +165,72 @@ describe('the free / paid split', () => {
         'bmx-bunny-hop',
         'bmx-drop-in',
         'bmx-air',
+        'bmx-manual',
+        'bmx-fakie',
+        'bmx-x-up',
+        'bmx-nollie',
+        'bmx-180',
+        'bmx-hop-on-off',
+        'bmx-double-peg-stall',
         'bmx-double-peg',
         'bmx-one-hander',
+        'bmx-wallride',
+        'bmx-half-cab',
         'bmx-flyout-tailwhip',
+        'bmx-360',
       ].sort(),
     );
 
     /*
-     * "No difficulty-1 trick is ever paid" was true until 2026-09-04 and is
-     * not any more: scooter and skate each have six Rookie entries and only
-     * four free slots, so two of each are paid. Recorded as an assertion
-     * rather than deleted, because it is a decision and not an accident — a
-     * session that thinks it is a bug should read the note in `../data/tricks`
-     * before changing it.
+     * **No difficulty-1 trick is paid**, in any sport. It was true until
+     * 2026-09-04, false while the tier was ten (four slots against six Rookie
+     * entries in scooter and skate), and is true again at twenty because the
+     * Rookie slot is now "all of them" rather than a count. Asserted rather
+     * than assumed: it is the half of the shape a staff edit could undo without
+     * moving any of the counts `../data/data.test` pins.
      */
-    const paidRookie = library.filter((t) => t.diff === 1 && !isTrickFree(t)).map((t) => t.id);
-    expect(paidRookie.sort()).toEqual(
-      ['kickturn', 'tail-tap', 'sk-curb-drop', 'sk-ramp-kickturn'].sort(),
-    );
+    expect(library.filter((t) => t.diff === 1 && !isTrickFree(t))).toEqual([]);
+
+    /*
+     * Every trick that was free when the tier was ten is still free at twenty.
+     * A rider may already hold `trick_progress` on one, and taking a trick back
+     * behind the paywall strands that progress somewhere they can see it and
+     * not touch it.
+     */
+    const freeAtTen = [
+      'bunny-hop',
+      'tic-tac',
+      'fakie',
+      'pump',
+      '180',
+      '50-50',
+      'drop-in',
+      'tailwhip',
+      'bar-spin',
+      '360',
+      'sk-kickturn',
+      'sk-tic-tac',
+      'sk-fakie-roll',
+      'sk-pump',
+      'sk-ollie',
+      'sk-manual',
+      'sk-drop-in',
+      'sk-kickflip',
+      'sk-50-50',
+      'sk-wallride',
+      'bmx-wheelie',
+      'bmx-pump',
+      'bmx-track-stand',
+      'bmx-curb-drop',
+      'bmx-bunny-hop',
+      'bmx-drop-in',
+      'bmx-air',
+      'bmx-double-peg',
+      'bmx-one-hander',
+      'bmx-flyout-tailwhip',
+    ];
+    const stillFree = new Set(free.map((t) => t.id));
+    for (const id of freeAtTen) expect(stillFree.has(id), `${id} was free at ten`).toBe(true);
 
     // The overrides are what implement all of the above, in both directions:
     // pulling a Spicy or Gnarly trick into the free tier, and pushing an easy
@@ -301,8 +370,17 @@ describe('what to try next', () => {
   it('suggests only tricks that are unlocked, untracked and paid for', () => {
     const suggestions = suggestedNextTricks({}, 'rookie', 'scooter');
     // Nothing landed yet, so only no-prerequisite free scooter tricks qualify.
-    // `x-up` used to be here and is paid since the 2026-09-04 free-tier shape.
-    expect(suggestions.map((t) => t.id).sort()).toEqual(['bunny-hop', 'fakie', 'pump', 'tic-tac']);
+    // `x-up` is still paid; `kickturn` came back into the free tier on
+    // 2026-09-12, when Rookie became "every difficulty-1 trick" rather than a
+    // count of four. `chairman` is the sport's other no-prerequisite trick and
+    // stays paid, which is what keeps this list from being "everything easy".
+    expect(suggestions.map((t) => t.id).sort()).toEqual([
+      'bunny-hop',
+      'fakie',
+      'kickturn',
+      'pump',
+      'tic-tac',
+    ]);
   });
 
   it('opens up the next layer once a prerequisite is landed', () => {
@@ -311,7 +389,8 @@ describe('what to try next', () => {
     expect(suggested).not.toContain('bunny-hop'); // already landed
     expect(suggested).toContain('50-50'); // diff 2 and free, prerequisite met
     expect(suggested).toContain('tailwhip'); // diff 3 but freed — see #75
-    expect(suggested).not.toContain('manual'); // diff 2 but paid since 4 Sep
+    expect(suggested).toContain('manual'); // diff 2, freed by the 12 Sep twenty
+    expect(suggested).not.toContain('x-up'); // diff 2, unlocked, still paid
     expect(suggested).not.toContain('no-footer'); // diff 3, behind the paywall
   });
 

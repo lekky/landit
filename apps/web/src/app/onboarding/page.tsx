@@ -1,5 +1,5 @@
-import type { CategoryId, Difficulty, SportId } from '@landit/core';
-import { listTricks } from '@landit/db';
+import { isTrickFree, type CategoryId, type Difficulty, type SportId } from '@landit/core';
+import { listTricks, tricksFromRecords } from '@landit/db';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
@@ -29,12 +29,26 @@ export default async function OnboardingPage() {
   let tricks: OnboardingTrick[] = [];
   try {
     const rows = await listTricks(session.client);
+    /*
+     * Freeness is resolved here, through the rule, rather than read off the
+     * row: `free_override` is nullable and an empty one means "inherit from
+     * `diff`", so only `isTrickFree` knows the answer. `tricksFromRecords` keys
+     * by slug, which is what the rule shape uses; the record id stays on the
+     * row because a pick is written as `trick_progress` and needs one.
+     *
+     * A row the map somehow misses falls back to paid. Failing closed matches
+     * the hook: offering a locked trick costs a rider a pick that vanishes,
+     * where withholding a free one costs them a suggestion they can still find
+     * in the library.
+     */
+    const freeBySlug = new Map(tricksFromRecords(rows).map((t) => [t.id, isTrickFree(t)]));
     tricks = rows.map((row) => ({
       id: row.id,
       name: row.name,
       sport: row.sport as SportId,
       cat: row.cat as CategoryId,
       diff: row.diff as Difficulty,
+      free: freeBySlug.get(row.slug) ?? false,
     }));
   } catch {
     // An unseeded or unreachable library is not a reason to block a rider from

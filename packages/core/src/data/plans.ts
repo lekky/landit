@@ -54,29 +54,31 @@ const GB = 1024 * 1024 * 1024;
  * ---
  *
  * **What the free tier actually is, and why the copy says what it says**
- * (rewritten 2026-09-04, `chore-plan-card-rewrite`, closing issue #286).
+ * (rewritten 2026-09-04, `chore-plan-card-rewrite`, closing issue #286; the
+ * numbers moved 2026-09-12 when the tier doubled, the argument did not).
  *
  * Rookie is **not a tier boundary**, and describing it as one was false in both
- * directions for months. "Every Rookie and Easy trick" was wrong because four
- * BMX difficulty-2 tricks carry `free: false`; "Spicy, Gnarly and Pro tricks"
- * as the missing line was wrong because a skater already gets four Spicy tricks
- * free, a scooter rider gets the Tailwhip and a BMX rider the Double Peg Grind.
- * Shredder's "unlocks the Spicy, Gnarly and Pro tiers" was the same untruth
- * read from the other side. A parent comparing the cards against the library
- * would have found the cards wrong.
+ * directions for months. "Every Rookie and Easy trick" was wrong because most
+ * of each sport's Easy band is paid — eight of sixteen in scooter and skate,
+ * eight of eighteen in BMX; "Spicy, Gnarly and Pro tricks" as the missing line
+ * was wrong because every sport gets four Spicy tricks and two Gnarly ones
+ * free, the Tailwhip and the Kickflip among them. Shredder's "unlocks the
+ * Spicy, Gnarly and Pro tiers" was the same untruth read from the other side.
+ * A parent comparing the cards against the library would have found the cards
+ * wrong.
  *
- * The free tier is instead a **deliberate hand-picked spread: ten tricks in
+ * The free tier is instead a **deliberate hand-picked spread: twenty tricks in
  * each sport, weighted towards the easy end but reaching past it** (owner's
- * decision, 2026-09-04 — the shape is 4 Rookie / 3 Easy / 2 Spicy / 1 Gnarly
- * per sport, nothing free at Pro, implemented in `./tricks.ts`). The reason is
- * a product one: an experienced rider on the free plan who only ever sees
- * tricks they landed years ago is shown nothing, and they are the person most
- * able to pay.
+ * decision, 2026-09-12, doubling the ten of 2026-09-04 — the shape is every
+ * Rookie trick, an Easy fill, 4 Spicy and 2 Gnarly per sport, nothing free at
+ * Pro, implemented in `./tricks.ts`). The reason is a product one: an
+ * experienced rider on the free plan who only ever sees tricks they landed
+ * years ago is shown nothing, and they are the person most able to pay.
  *
- * So the copy names **ten**, and it names **three sports**, and it names no
- * tier at all. Two rules govern it:
+ * So the copy names **twenty**, and it names **three sports**, and it names no
+ * tier at all. Three rules govern it:
  *
- * - **"Ten" is safe to write down; a library count is not.** It is a
+ * - **"Twenty" is safe to write down; a library count is not.** It is a
  *   deliberated, per-sport, tested number — `data.test.ts` fails if any sport
  *   drifts off it — which is exactly the condition `./stickers.ts` sets for a
  *   name that quotes a value (issue #10). A line saying "87 paid tricks" would
@@ -84,6 +86,9 @@ const GB = 1024 * 1024 * 1024;
  * - **No line names a tier as the boundary**, because the boundary is not a
  *   tier and cannot become one again without this comment and those tests
  *   changing on purpose.
+ * - **Shredder quotes the same number as Rookie**, because its pitch sells the
+ *   gap between them. It said "the ten we picked for you" for the whole life of
+ *   the ten-trick tier, so a test now fails if either card says "ten" at all.
  */
 /**
  * The allowance each plan grants, and the one place the numbers live.
@@ -112,10 +117,10 @@ export const PLANS = [
     name: 'Rookie',
     hue: '#10A06A',
     pitch:
-      'Ten hand-picked tricks in every sport, easy ones and hard ones, tracked properly. No trial, no card.',
+      'Twenty hand-picked tricks in every sport, easy ones and hard ones, tracked properly. No trial, no card.',
     perks: [
       'Scooter, skateboard and BMX libraries',
-      'Ten free tricks in each sport, not just the beginner ones',
+      'Twenty free tricks in each sport, not just the beginner ones',
       'Track every trick through 5 stages',
       'Digital sticker wall',
       "This week's challenge",
@@ -153,7 +158,8 @@ export const PLANS = [
     name: 'Shredder',
     hue: '#FF5A1F',
     popular: true,
-    pitch: 'The whole library, not just the ten we picked for you. The whips, flips and tre flips.',
+    pitch:
+      'The whole library, not just the twenty we picked for you. The whips, flips and tre flips.',
     perks: [
       'Everything in Rookie',
       'Every trick in all three sports, nothing locked',

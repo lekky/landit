@@ -482,8 +482,9 @@ describe('what a rider on the free tier can reach', () => {
       const earned = earnedStickerIds(freeRider(sport));
       expect(earned, sport).toContain('first-land');
       expect(earned, sport).toContain('on-lock');
-      // Ten free tricks per sport is the floor the owner set for `ten-deep`;
-      // `rolling-deep` inherits it unchanged.
+      // Ten landed is the floor the owner set for `ten-deep`; `rolling-deep`
+      // inherits it unchanged, and the free tier has cleared it twice over
+      // since it doubled to twenty a sport on 2026-09-12.
       expect(earned, sport).toContain('rolling-deep');
     }
   });

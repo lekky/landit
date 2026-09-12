@@ -148,17 +148,32 @@ describe('the trick library', () => {
     expect(TRICKS.every((t) => t.isLive)).toBe(true);
   });
 
-  it('gives every sport ten free tricks, spread 4 / 3 / 2 / 1 and nothing at Pro', () => {
-    // The owner's shape (2026-09-04), written down in `./tricks.ts`. It is a
-    // count per difficulty rather than a list of ids, so a session may swap
-    // which trick fills a slot without editing this test — but not how many.
+  it('gives every sport twenty free tricks: all Rookie, an Easy fill, 4 Spicy, 2 Gnarly, no Pro', () => {
+    /*
+     * The owner's shape (2026-09-12), written down in `./tricks.ts`. It is
+     * counts per difficulty rather than a list of ids, so a session may swap
+     * which trick fills a slot without editing this test — but not how many.
+     *
+     * Rookie is asserted as "all of them" rather than as a number, because that
+     * is what the rule says. 4/3/2/1 could not simply double: no sport has
+     * eight Rookie tricks, so the Easy fill absorbs the difference and is the
+     * only band that differs between sports.
+     */
     for (const sport of SPORT_IDS) {
-      const free = allTricks.filter((t) => t.sport === sport && isTrickFree(t));
-      expect(free.length, sport).toBe(10);
-      expect(
-        [1, 2, 3, 4, 5].map((d) => free.filter((t) => t.diff === d).length),
-        sport,
-      ).toEqual([4, 3, 2, 1, 0]);
+      const inSport = allTricks.filter((t) => t.sport === sport);
+      const free = inSport.filter(isTrickFree);
+      expect(free.length, sport).toBe(20);
+
+      const freeAt = (d: number) => free.filter((t) => t.diff === d).length;
+      const rookie = freeAt(1);
+      expect(rookie, `${sport} frees every Rookie trick`).toBe(
+        inSport.filter((t) => t.diff === 1).length,
+      );
+      expect(freeAt(3), `${sport} Spicy`).toBe(4);
+      expect(freeAt(4), `${sport} Gnarly`).toBe(2);
+      expect(freeAt(5), `${sport} Pro`).toBe(0);
+      // The fill, whatever Rookie left to fill: 8 in scooter and skate, 10 in BMX.
+      expect(freeAt(2), `${sport} Easy fill`).toBe(20 - rookie - 4 - 2);
     }
   });
 
@@ -491,8 +506,8 @@ describe('plans (implementation plan §2.4)', () => {
   const everyLine = (plan: Plan): readonly string[] => [...plan.perks, ...plan.missing, plan.pitch];
 
   it('describes the paywall as a spread, never as a tier line (issue #286)', () => {
-    // The free tier is a hand-picked ten per sport, not "everything up to
-    // Easy": four BMX difficulty-2 tricks are paid, and every sport has free
+    // The free tier is a hand-picked twenty per sport, not "everything up to
+    // Easy": half of each sport's Easy band is paid, and every sport has free
     // tricks above Easy. So a card that names a tier as the boundary is false
     // in one direction or the other, whichever side it is written from.
     //
@@ -559,17 +574,27 @@ describe('plans (implementation plan §2.4)', () => {
   it('promises exactly the number of free tricks the library actually holds', () => {
     // The one number the cards are allowed to quote, and this is what makes it
     // allowed (issue #10): it is per-sport, deliberate and asserted, so it
-    // cannot drift the way a library count would. If `tricks.ts` moves off ten
-    // in any sport, the copy is what needs rewriting — not this test.
-    const FREE_PER_SPORT = 10;
+    // cannot drift the way a library count would. If `tricks.ts` moves off
+    // twenty in any sport, the copy is what needs rewriting — not this test.
+    const FREE_PER_SPORT = 20;
     for (const id of SPORT_IDS) {
       const free = TRICKS.filter((t) => t.sport === id && isTrickFree(t));
       expect(free, `free tricks in ${id}`).toHaveLength(FREE_PER_SPORT);
     }
 
-    const claim = PLAN.rookie.perks.filter((p) => /\bten\b/i.test(p));
+    const claim = PLAN.rookie.perks.filter((p) => /\btwenty\b/i.test(p));
     expect(claim).toHaveLength(1);
-    expect(PLAN.rookie.pitch).toMatch(/\bten\b/i);
+    expect(PLAN.rookie.pitch).toMatch(/\btwenty\b/i);
+
+    // And Shredder's pitch sells the gap, so it quotes the same number. It said
+    // "the ten we picked for you" for the whole life of the ten-trick tier and
+    // would have gone stale silently here.
+    expect(PLAN.shredder.pitch).toMatch(/\btwenty\b/i);
+    for (const plan of [PLAN.rookie, PLAN.shredder]) {
+      for (const line of [plan.pitch, ...plan.perks, ...plan.missing]) {
+        expect(line, `${plan.id}: "${line}"`).not.toMatch(/\bten\b/i);
+      }
+    }
   });
 
   it('sells no avatar, because no avatar is gated on a plan', () => {
