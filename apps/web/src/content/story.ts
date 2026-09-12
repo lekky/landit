@@ -5,12 +5,18 @@
  * September 2026 and edited only for length and order; where a sentence is a
  * rewrite rather than a transcription it is because two of his answers were one
  * thought split across a follow-up question. Two lines are his exactly and
- * should not be tidied by anybody later — "I didn't decide to. I just went."
+ * should not be tidied by anybody later: "I didn't decide to. I just went."
  * and "be brave. It'll be fine." They are the reason the page works.
+ *
+ * **The prose here carries no em dashes** (owner, 2026-09-12, in chat). Where
+ * one used to join two clauses the sentence now takes a comma or a full stop.
+ * That is a house rule for this page and not a transcription question: none of
+ * them were his, they were punctuation added in the edit. A future session
+ * adding a line here writes it without one.
  *
  * **What is deliberately not here**, agreed with the owner before it was
  * written (Rachid, 2026-09-04, in chat): no surname, no school, no home area,
- * no sister's name, and no home park beyond Greystone in Manchester — which is
+ * no sister's name, and no home park beyond Greystone in Manchester, which is
  * a public indoor park and a destination, not an address. A story page on a
  * product used by children is exactly the page where an identifying detail
  * would get added without anybody meaning to. If a future session adds a fact
@@ -19,9 +25,10 @@
  * **The ramp photos are the rider's own garden.** They were cleared on the same
  * basis: a hedge, some grass and a basketball hoop say nothing about where it
  * is. Do not replace them with a shot that has a house number, a street or a
- * school uniform in it.
+ * school uniform in it. The two Greystone photos were cleared the same way:
+ * a public park, no uniform, and no other child's face turned to the camera.
  *
- * This is not the same page as `/legal/about`, which is the factual one — what
+ * This is not the same page as `/legal/about`, which is the factual one: what
  * the product is, what pays to keep it running, who to email. That page
  * answers "what is this"; this one answers "why does it exist". They are kept
  * apart rather than merged: the About document belongs in the set with the
@@ -29,20 +36,40 @@
  * of learning to drop in does not. The About page points here in prose and the
  * footer lists both.
  *
- * Until 2026-09-04 that page carried a *different* origin story — a paper
- * checklist on a fridge — which was a placeholder from before this one was
+ * Until 2026-09-04 that page carried a *different* origin story, a paper
+ * checklist on a fridge, which was a placeholder from before this one was
  * written down (owner, in chat, issue #298). If a future session finds the two
  * disagreeing again, this page is the one with the interview behind it.
  */
 
-/** A photo. `src` is unset while the picture is still to be taken. */
+/**
+ * A photo.
+ *
+ * `src` is unset while a picture is still to be taken, and the page draws an
+ * honest empty frame of the right footprint instead of a broken image. Every
+ * photo on the page has one as of 2026-09-12; the placeholder path stays for
+ * the next photo somebody writes in before it has been taken.
+ */
 export type StoryPhoto = {
+  /**
+   * Fixed id, and the only thing `story_photo_opened` sends. Chosen in this
+   * repository, so the event cannot carry anything a rider typed.
+   */
+  id: string;
   /** Shown inside the placeholder frame while there is no `src`. */
   label: string;
   /** Public path, once the file exists. */
   src?: string;
-  /** Required once `src` is set — the page will not render an undescribed photo. */
+  /** Required once `src` is set: the page will not render an undescribed photo. */
   alt?: string;
+  /**
+   * One line under the frame, in his voice. A photo with a caption is part of
+   * the story; a photo without one is decoration beside it.
+   */
+  caption?: string;
+  /** Intrinsic pixel size of `src`. Required with it, so nothing reflows on load. */
+  width?: number;
+  height?: number;
 };
 
 export type StoryBlock =
@@ -51,7 +78,15 @@ export type StoryBlock =
   | { kind: 'lead'; text: string }
   /** A pulled line. `big` is for the two that carry the page. */
   | { kind: 'quote'; text: string; big?: boolean }
-  | { kind: 'photos'; items: readonly StoryPhoto[] };
+  /**
+   * Photos. Two abreast at most, and by default they stack on a phone.
+   *
+   * `pair` keeps them side by side at every width, which is what the two-photo
+   * blocks want: a pair that stacks on a 375px screen is two 460px-tall
+   * portraits before the reader reaches the next sentence, and the pair reads
+   * as one moment rather than two pictures.
+   */
+  | { kind: 'photos'; items: readonly StoryPhoto[]; layout?: 'pair' };
 
 export type StoryChapter = {
   id: string;
@@ -69,10 +104,43 @@ export const STORY: readonly StoryChapter[] = [
   {
     id: 'start',
     blocks: [
+      /*
+       * The page opens on him riding, not on a paragraph.
+       *
+       * These two were at the very foot of the page until 2026-09-12 (owner, in
+       * chat): the one thing a visitor should take from the page is that a
+       * twelve year old who actually rides is behind it, and that was the last
+       * thing they saw rather than the first. A `pair` so the opening is one
+       * band of photo on a phone instead of most of a screen each.
+       */
+      {
+        kind: 'photos',
+        layout: 'pair',
+        items: [
+          {
+            id: 'greystone-riding',
+            label: 'Riding at Greystone',
+            src: '/story/greystone-riding.jpg',
+            alt: 'Miles riding his scooter down a concrete transition at Greystone indoor park',
+            caption: 'Greystone, in Manchester.',
+            width: 901,
+            height: 1600,
+          },
+          {
+            id: 'greystone-tee',
+            label: 'Greystone',
+            src: '/story/greystone-tee.jpg',
+            alt: 'Miles seen from behind on his scooter at Greystone, wearing a Land The Trick t-shirt',
+            caption: 'Greystone again, in a Land The Trick t-shirt.',
+            width: 901,
+            height: 1600,
+          },
+        ],
+      },
       { kind: 'lead', text: 'I wanted to be a mountain biker because of a video game.' },
       {
         kind: 'p',
-        text: 'I was playing Descenders, and it looked so cool that I wanted to try it in real life. I stuck at it for a couple of months and I wasn’t really getting any better — and a good mountain bike costs a lot more than a skateboard or a scooter does.',
+        text: 'I was playing Descenders, and it looked so cool that I wanted to try it in real life. I stuck at it for a couple of months and I wasn’t really getting any better, and a good mountain bike costs a lot more than a skateboard or a scooter does.',
       },
       {
         kind: 'p',
@@ -80,11 +148,11 @@ export const STORY: readonly StoryChapter[] = [
       },
       {
         kind: 'p',
-        text: 'Then I found Greystone, in Manchester. I only found it because I wanted to skateboard and my sister wanted to do gymnastics, and Greystone did both — so it was the one place that worked for the two of us.',
+        text: 'Then I found Greystone, in Manchester. I only found it because I wanted to skateboard and my sister wanted to do gymnastics, and Greystone did both, so it was the one place that worked for the two of us.',
       },
       {
         kind: 'p',
-        text: 'While I was there I borrowed one of their scooters. That was it, really. I started having lessons, and I got my own for Christmas — a 2 Bare Feet.',
+        text: 'While I was there I borrowed one of their scooters. That was it, really. I started having lessons, and I got my own for Christmas, a 2 Bare Feet.',
       },
     ],
   },
@@ -105,7 +173,7 @@ export const STORY: readonly StoryChapter[] = [
     blocks: [
       {
         kind: 'p',
-        text: 'I couldn’t keep going to Greystone all the time. You can’t go every day — it’s quite expensive, and my parents aren’t free to take me every day anyway.',
+        text: 'I couldn’t keep going to Greystone all the time. You can’t go every day. It’s quite expensive, and my parents aren’t free to take me every day anyway.',
       },
       {
         kind: 'p',
@@ -116,17 +184,48 @@ export const STORY: readonly StoryChapter[] = [
         kind: 'p',
         text: 'My birthday was coming up, so that’s what I asked for, and my grandad gave it to me as my present. He’s a builder and he still works, and he helped me do it. We built it over a few weeks, on and off, and then it was done. It’s about seven metres long and two metres wide, in the garden.',
       },
+      /* The build and the finish, side by side: the same object a fortnight apart. */
+      {
+        kind: 'photos',
+        layout: 'pair',
+        items: [
+          {
+            id: 'ramp-building',
+            label: 'Building the ramp',
+            src: '/story/ramp-building.jpg',
+            alt: 'Miles sitting on the half-built ramp while two adults fix a sheet of plywood to the frame',
+            caption: 'Building it with my grandad.',
+            width: 901,
+            height: 1600,
+          },
+          {
+            id: 'ramp-finished',
+            label: 'The finished ramp',
+            src: '/story/ramp-finished.jpg',
+            alt: 'The finished ramp in bare plywood standing on the garden lawn under a blue sky',
+            caption: 'Built, before it got painted.',
+            width: 901,
+            height: 1600,
+          },
+        ],
+      },
       { kind: 'p', text: 'Then my mum painted my name on it, in graffiti, as a surprise.' },
+      /*
+       * The surprise gets the frame to itself, directly under the sentence that
+       * says it happened. It is the one photo on the page that is a reveal
+       * rather than a record, and a pair would have made it a comparison.
+       */
       {
         kind: 'photos',
         items: [
           {
-            label: 'The ramp — photo to come',
-            alt: 'The ramp Miles built in his garden, with his name painted across the flat in silver graffiti',
-          },
-          {
-            label: 'The ramp from the deck — photo to come',
-            alt: 'The same ramp seen from the top of the deck, looking down the transition',
+            id: 'ramp-painted',
+            label: 'The painted ramp',
+            src: '/story/ramp-painted.jpg',
+            alt: 'The ramp painted dark grey with his name across the flat in silver graffiti, under a yellow crown',
+            caption: 'My name on it, in graffiti.',
+            width: 1292,
+            height: 1600,
           },
         ],
       },
@@ -139,7 +238,7 @@ export const STORY: readonly StoryChapter[] = [
     blocks: [
       {
         kind: 'p',
-        text: 'The tailwhip took me ages. I can backflip on the mega ramp — I learned it into the foam pit first, then landed it on the real one. Right now I’m trying to get a fingerwhip. I’m really close. I just can’t land it.',
+        text: 'The tailwhip took me ages. I can backflip on the mega ramp. I learned it into the foam pit first, then landed it on the real one. Right now I’m trying to get a fingerwhip. I’m really close. I just can’t land it.',
       },
       {
         kind: 'p',
@@ -171,7 +270,7 @@ export const STORY: readonly StoryChapter[] = [
     blocks: [
       {
         kind: 'p',
-        text: 'My dad Rachid did the coding. I had the idea, and I did the design, and I know the tricks — which sounds like the easy part and wasn’t.',
+        text: 'My dad Rachid did the coding. I had the idea, and I did the design, and I know the tricks, which sounds like the easy part and wasn’t.',
       },
       {
         kind: 'p',
@@ -200,15 +299,6 @@ export const STORY: readonly StoryChapter[] = [
       {
         kind: 'p',
         text: 'I reckon I’ll be a lot better at riding. And I hope the site is better too, and more people have used it to track their tricks and learn new ones.',
-      },
-      {
-        kind: 'photos',
-        items: [
-          {
-            label: 'Miles at Greystone — photo to come',
-            alt: 'Miles riding his scooter at Greystone',
-          },
-        ],
       },
     ],
   },

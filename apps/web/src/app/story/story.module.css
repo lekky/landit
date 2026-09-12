@@ -6,7 +6,7 @@
  * signpost pointing at itself. The measure, the paragraph size and the section
  * rule are the legal document's, so the two pages read as the same site.
  *
- * The design language is the house one throughout — zero radius, hard offset
+ * The design language is the house one throughout: zero radius, hard offset
  * shadows, never blurred (`design-handoff/README.md`).
  */
 
@@ -98,7 +98,7 @@
 }
 
 /*
- * The two lines that carry the page — the turn, and the advice. Bigger, on
+ * The two lines that carry the page, the turn and the advice. Bigger, on
  * paper, and boxed, because they are what somebody who scrolls without reading
  * should still come away with.
  */
@@ -114,12 +114,15 @@
 }
 
 /*
- * Photos: two side by side, and they stack below 620px.
+ * Photos.
  *
  * The track has a **fixed maximum**, not `1fr`. With `1fr` a lone photo
  * stretches to the whole measure, and `aspect-ratio` then turns a 724px column
- * into a 965px-tall portrait block — most of a laptop screen holding one
+ * into a 965px-tall portrait block: most of a laptop screen holding one
  * picture, which is what the closing shot did before this was capped.
+ *
+ * Two abreast at most, and by default they stack below 620px. `.photosPair`
+ * is the exception, below.
  */
 .photos {
   display: grid;
@@ -127,6 +130,12 @@
   gap: 14px;
   margin: 6px 0;
 }
+
+.figure {
+  margin: 0;
+  min-width: 0;
+}
+
 .photo {
   border: var(--bd);
   box-shadow: var(--sh-sm);
@@ -138,6 +147,7 @@
   aspect-ratio: 3 / 4;
   position: relative;
   overflow: hidden;
+  width: 100%;
 }
 .photoImg {
   object-fit: cover;
@@ -145,6 +155,139 @@
 /* The placeholder frame keeps the same footprint the real photo will take. */
 .photoSlot {
   height: 100%;
+}
+
+/*
+ * A photo you can press.
+ *
+ * It is a `button`, so it resets like one and then takes the frame's own
+ * border and shadow back. The press moves the frame onto its shadow rather
+ * than dimming or scaling it, which is how every other pressable thing in the
+ * design behaves (`design-handoff/README.md`): hard offsets, no blur, no fade.
+ */
+.photoButton {
+  display: block;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: zoom-in;
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+.photoButton:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--sh);
+}
+.photoButton:active {
+  transform: translate(3px, 3px);
+  box-shadow: none;
+}
+.photoButton:focus-visible {
+  outline: 3px solid var(--pink);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .photoButton {
+    transition: none;
+  }
+}
+
+/*
+ * The affordance. Without it a photo that expands looks exactly like a photo
+ * that does not, and nobody finds a gesture nothing advertises. It sits in the
+ * corner over the image rather than under it, so it costs no layout, and it
+ * has a hard ink keyline so it survives whatever the photo is doing behind it.
+ */
+.expand {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 4px 8px;
+  background: var(--yellow);
+  color: var(--on-light);
+  border-top: var(--bd);
+  border-left: var(--bd);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+/*
+ * A pair that stays a pair, and stays small.
+ *
+ * Two portraits stacked on a 375px screen are about 920px of photograph before
+ * the reader reaches the next sentence. Side by side they are one 227px band,
+ * which is what the two-photo blocks are: one moment, photographed twice.
+ *
+ * **Capped well under the single photo's 355px on anything wider than a
+ * phone.** At 355 a pair is 473px tall, and the opening pair then fills a
+ * laptop screen on its own: a reader arriving at a story page saw two
+ * photographs and no writing. At 262 the pair is a band beside the prose, and
+ * the one photo that does get the full 355 is the painted ramp, which is the
+ * only reveal on the page and now the only thing set at that size.
+ */
+.photosPair {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 621px) {
+  .photosPair {
+    grid-template-columns: repeat(2, minmax(0, 262px));
+  }
+}
+
+/* One line under the frame, saying what it is. */
+.caption {
+  margin-top: 7px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-3);
+  text-wrap: pretty;
+}
+
+/*
+ * The expanded photo.
+ *
+ * `.modal`'s own `width: min(520px, 100%)` is overridden to `auto` so the panel
+ * hugs the picture instead of framing a portrait in a 520px box with paper
+ * either side. The height is what bounds it, and both `width` and `height` are
+ * `auto` on the image: with only one of them set Next warns that the aspect
+ * ratio has been changed, and with neither the intrinsic 1600px wins and a
+ * panel that should fit the screen scrolls instead.
+ */
+.lightbox {
+  width: auto;
+  max-width: min(92vw, 760px);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lightboxImg {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 72vh;
+  object-fit: contain;
+  margin: 0 auto;
+  border: var(--bd);
+}
+@supports (height: 1dvh) {
+  .lightboxImg {
+    max-height: 72dvh;
+  }
+}
+.lightboxFoot {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.lightboxCaption {
+  font-size: 13px;
+  color: var(--ink-2);
+  min-width: 0;
 }
 
 /* The end panel: where the page sends you. */
@@ -179,6 +322,14 @@
 @media (max-width: 620px) {
   .photos {
     grid-template-columns: 1fr;
+  }
+  /* Stated after `.photos` above so the pair keeps its two columns here. */
+  .photosPair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .expand {
+    padding: 3px 6px;
+    font-size: 10px;
   }
   .quoteBig {
     padding: 18px 16px;
