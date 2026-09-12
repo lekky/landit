@@ -30,6 +30,7 @@ export type CollectionName =
   | 'spots'
   | 'stickers'
   | 'subscriptions'
+  | 'suggestions'
   | 'trick_log'
   | 'trick_notes'
   | 'trick_prereqs'
@@ -57,6 +58,8 @@ export type StickersSport = 'scooter' | 'skate' | 'bmx';
 export type SubscriptionsPayerKind = 'rider' | 'guardian';
 export type SubscriptionsSource = 'stripe' | 'apple' | 'google' | 'staff';
 export type SubscriptionsStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'expired';
+export type SuggestionsStatus = 'new' | 'reviewing' | 'accepted' | 'declined';
+export type SuggestionsTopic = 'trick' | 'feature' | 'event' | 'bug' | 'other';
 export type TrickLogStage = 'want' | 'trying' | 'some' | 'most' | 'every';
 export type TrickNotesStage = 'want' | 'trying' | 'some' | 'most' | 'every';
 export type TrickProgressStage = 'want' | 'trying' | 'some' | 'most' | 'every';
@@ -677,6 +680,33 @@ export interface SubscriptionsCreate {
 /** The shape accepted when updating a `subscriptions` record. */
 export type SubscriptionsUpdate = Partial<SubscriptionsCreate>;
 
+/** A `suggestions` record as PocketBase returns it. */
+export interface SuggestionsRecord {
+  collectionId: string;
+  collectionName: string;
+  id: string;
+  rider: string;
+  topic: SuggestionsTopic;
+  detail: string;
+  status: SuggestionsStatus;
+  note: string;
+  created: string;
+  updated: string;
+}
+
+/** The shape accepted when creating a `suggestions` record. */
+export interface SuggestionsCreate {
+  id?: string;
+  rider?: string;
+  topic: SuggestionsTopic;
+  detail?: string;
+  status?: SuggestionsStatus;
+  note?: string;
+}
+
+/** The shape accepted when updating a `suggestions` record. */
+export type SuggestionsUpdate = Partial<SuggestionsCreate>;
+
 /** A `trick_log` record as PocketBase returns it. */
 export interface TrickLogRecord {
   collectionId: string;
@@ -914,6 +944,7 @@ export interface CollectionRecords {
   spots: SpotsRecord;
   stickers: StickersRecord;
   subscriptions: SubscriptionsRecord;
+  suggestions: SuggestionsRecord;
   trick_log: TrickLogRecord;
   trick_notes: TrickNotesRecord;
   trick_prereqs: TrickPrereqsRecord;
@@ -942,6 +973,7 @@ export interface CollectionCreates {
   spots: SpotsCreate;
   stickers: StickersCreate;
   subscriptions: SubscriptionsCreate;
+  suggestions: SuggestionsCreate;
   trick_log: TrickLogCreate;
   trick_notes: TrickNotesCreate;
   trick_prereqs: TrickPrereqsCreate;
@@ -970,6 +1002,7 @@ export interface CollectionUpdates {
   spots: SpotsUpdate;
   stickers: StickersUpdate;
   subscriptions: SubscriptionsUpdate;
+  suggestions: SuggestionsUpdate;
   trick_log: TrickLogUpdate;
   trick_notes: TrickNotesUpdate;
   trick_prereqs: TrickPrereqsUpdate;

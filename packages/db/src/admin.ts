@@ -22,6 +22,8 @@ import type {
   SpotsRecord,
   SpotsStatus,
   StickersRecord,
+  SuggestionsRecord,
+  SuggestionsStatus,
   UsersPlan,
   UsersRecord,
 } from './generated/collections';
@@ -1115,5 +1117,78 @@ export async function setReportTriage(
     id: reportId,
     action: `admin.report_${triage.status}`,
     patch: { status: triage.status, outcome: triage.outcome ?? '' },
+  });
+}
+
+// ------------------------------------------------------------ suggestions --
+
+/**
+ * The ideas queue, which is **not** the moderation queue above it.
+ *
+ * Same shape, different collection, and the separation is the whole point:
+ * `suggestions` has its own rate limits, so no volume of ideas can cost a rider
+ * their ability to file a safeguarding report. See
+ * `pocketbase/hooks/97_suggestions.pb.js`.
+ *
+ * Paged like the reports queue, and for a milder version of the same reason: a
+ * suggestion box is a thing riders enjoy using, so it grows.
+ */
+export async function listSuggestions(
+  client: Client,
+  filter: { readonly status?: SuggestionsStatus } = {},
+  page: { readonly page?: number; readonly perPage?: number } = {},
+): Promise<Page<SuggestionsRecord>> {
+  return records(client, 'suggestions').page({
+    filter: filter.status ? 'status = {:status}' : undefined,
+    params: filter.status ? { status: filter.status } : undefined,
+    sort: '-created',
+    page: page.page ?? 1,
+    perPage: page.perPage ?? 25,
+  });
+}
+
+/** How many suggestions sit at each of the statuses asked for. One small request each. */
+export async function suggestionCounts(
+  client: Client,
+  statuses: readonly SuggestionsStatus[],
+): Promise<ReportCounts> {
+  const pages = await Promise.all(
+    statuses.map((status) =>
+      records(client, 'suggestions').page({
+        filter: 'status = {:status}',
+        params: { status },
+        perPage: 1,
+      }),
+    ),
+  );
+
+  const counts: Record<string, number> = {};
+  statuses.forEach((status, i) => {
+    counts[status] = pages[i]?.totalItems ?? 0;
+  });
+  return counts;
+}
+
+/**
+ * Triage one suggestion, and log it.
+ *
+ * `status` and `note` are the two fields the collection refuses to every client
+ * — `updateRule: null`, and the create hook pins both — so this is the only way
+ * either of them moves. The note is read back by the rider who sent the idea,
+ * which is the one way this queue differs from moderation's `outcome`: write it
+ * as something a fourteen year old should read.
+ */
+export async function setSuggestionTriage(
+  client: Client,
+  actor: StaffActor,
+  suggestionId: string,
+  triage: { readonly status: SuggestionsStatus; readonly note?: string },
+): Promise<SuggestionsRecord> {
+  return applyStaffChange(client, {
+    actor,
+    collection: 'suggestions',
+    id: suggestionId,
+    action: `admin.suggestion_${triage.status}`,
+    patch: { status: triage.status, note: triage.note ?? '' },
   });
 }

@@ -566,6 +566,32 @@ export interface AdminPlanCard {
 
 export type AdminReportStatus = 'open' | 'reviewing' | 'actioned' | 'dismissed';
 
+export type AdminSuggestionStatus = 'new' | 'reviewing' | 'accepted' | 'declined';
+
+/**
+ * One idea, as the Ideas tab draws it.
+ *
+ * Shorter than `AdminReportRow` by exactly the fields that exist to protect
+ * somebody: there is no subject, no reporter and no appeal, because a
+ * suggestion is about the website rather than about a person. The rider who
+ * sent it is not carried at all — staff are judging the idea, and whose it was
+ * is not part of that.
+ *
+ * `note` is the one field that travels back out to a rider: it is shown to
+ * whoever sent the idea, on their own row, which the `suggestions` view rule
+ * limits to them.
+ */
+export interface AdminSuggestionRow {
+  readonly id: string;
+  readonly status: AdminSuggestionStatus;
+  readonly topic: string;
+  readonly topicLabel: string;
+  readonly detail: string;
+  readonly note: string;
+  readonly sent: string;
+  readonly updated: string;
+}
+
 export interface AdminReportRow {
   readonly id: string;
   readonly status: AdminReportStatus;

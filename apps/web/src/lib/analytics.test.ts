@@ -305,6 +305,9 @@ describe('the event catalogue', () => {
         // `content/story.ts`, and nothing else: nobody on that page has an
         // account, so there is no rider fact to send.
         'story_photo_opened',
+        // An idea sent from `/suggest` (2026-09-12): the topic, one of five ids
+        // this repo wrote, and which entry point it came from. Never the idea.
+        'suggestion_filed',
         // An onward link from a trick page — the road, the unlocks, the
         // similar tricks, the practise line or the cross-sport panel. Slugs
         // and feature tags only.

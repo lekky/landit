@@ -13,10 +13,12 @@ import { ROUTES } from '@/lib/routes';
  * The next tab somebody adds gets the same one-line handover — path into
  * `ROUTES`, entry below.
  *
- * **Moderation is the tenth, and it is not the prototype's.** `landit-admin.jsx`
- * predates the `reports` collection entirely; the queue over it is plan §7's
- * ask, so it goes at the end rather than inside the nine, where its absence
- * from the design pack would read as a transcription error.
+ * **Moderation is the tenth and Ideas the eleventh, and neither is the
+ * prototype's.** `landit-admin.jsx` predates the `reports` collection entirely
+ * and the `suggestions` one by a year; the queue over the first is plan §7's
+ * ask and the second arrived with `/suggest` (2026-09-12). Both go at the end
+ * rather than inside the nine, where their absence from the design pack would
+ * read as a transcription error.
  */
 export type AdminTab = {
   readonly id: string;
@@ -36,6 +38,15 @@ export const ADMIN_TABS: readonly AdminTab[] = [
   { id: 'notices', label: 'Announcements', href: ROUTES.adminNotices },
   { id: 'plans', label: 'Plans', href: ROUTES.adminPlans },
   { id: 'moderation', label: 'Moderation', href: ROUTES.adminModeration },
+  /*
+   * The eleventh, and the second that is not the prototype's. It sits after
+   * Moderation rather than beside the content tabs because the two are a pair:
+   * both are queues of things riders sent us, and staff working through one
+   * will want the other. They stay two tabs over two collections for the reason
+   * `/suggest` exists at all — a shared rate limit would let ideas crowd out
+   * safeguarding reports.
+   */
+  { id: 'suggestions', label: 'Ideas', href: ROUTES.adminSuggestions },
 ];
 
 /**

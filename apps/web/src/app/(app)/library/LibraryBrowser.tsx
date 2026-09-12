@@ -27,6 +27,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import { SportSwitch } from '@/components/shell/SportSwitch';
+import { SuggestPrompt } from '@/components/suggest/SuggestPrompt';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { libraryArrival, rememberLibraryPlace } from '@/lib/libraryPlace';
 import { ROUTES, libraryHref, trickHref } from '@/lib/routes';
@@ -513,6 +514,20 @@ export function LibraryBrowser({
               onCta={reset}
             />
           )}
+
+          {/*
+            The way to tell us a trick is missing, at the foot of the list that
+            made a rider notice.
+
+            It is under the grid rather than beside the filters because it is
+            the answer to "I have looked and it is not here", and a rider only
+            knows that once they have got to the bottom. `topic` is baked in, so
+            the form opens on the right radio button and the count knows the
+            library earned the suggestion (`suggestion_filed`, `where`).
+          */}
+          <SuggestPrompt topic="trick" from="library">
+            Missing a trick, or is one of these named wrong?
+          </SuggestPrompt>
         </div>
       </div>
     </div>
