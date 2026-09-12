@@ -41,13 +41,13 @@ import styles from './landing.module.css';
  * obvious spot — last in the hero, after the sign-up field and the two doors
  * that need no account — starts *below* a laptop fold, and a row added to be
  * seen becomes one a visitor has to scroll for. Directly under the form clears
- * the fold at both sizes, but it drops a way off the site into the middle of the
- * one sequence on this page that works — and that slot is the byline's now. The
- * bar is the only
- * placement that is genuinely at the top, and it is free: 34px tiles fit inside
- * the height Sign in and Start free already set, so the bar is 60px with them
- * and 60px without, and at 960px — four nav links, both buttons, both tiles —
- * nothing overflows.
+ * the fold at both sizes, but it drops a way off the site into the middle of
+ * the one sequence on this page that works, and that slot is the byline's now.
+ *
+ * The bar is the only placement that is genuinely at the top, and it is free:
+ * 34px tiles fit inside the height Sign in and Start free already set, so the
+ * bar is 60px with them and 60px without, and at 960px — four nav links, both
+ * buttons, both tiles — nothing overflows.
  *
  * What it costs is the company it keeps: two outbound links in the same strip
  * as the one button this page most wants pressed. That is the trade, and
