@@ -123,7 +123,10 @@ dashboard): overview (rider/trick/spot counts, riders by plan, by sport and by h
 the last with a paid split withheld below 10 riders per option); riders (last seen, from
 `users.last_seen` which the server stamps on authentication and throttles to 15 minutes — the
 column showed `last_ride` until `feat-last-seen`, and so reported rides while headed "Last active";
-sheet with email/age/last ride/plan, plan override, suspend); tricks (copy, tier, and the T28
+an account tag of ok/guardian/withdrawn/suspended, where the middle two are the consent gate's two
+halves — `revoked` read as `ok` until 2026-09-12, so a withdrawn consent was invisible to staff;
+sheet with email/age/last ride/plan, the latest guardian request — address, standing and dates,
+per-rider so no other guardian's address is in the page — plan override, suspend); tricks (copy, tier, and the T28
 content — why it's this tier, and three or four common mistakes as what/fix rows), stickers,
 spots (approve/reject), events, challenges, notices, plans (copy + display prices only —
 entitlement flags read-only); moderation queue for reports/appeals. Every mutation is audited

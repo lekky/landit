@@ -380,6 +380,35 @@
   word-break: break-word;
 }
 
+/*
+ * The latest guardian request.
+ *
+ * Its own band under the facts grid rather than a fifth cell in it, because it
+ * is three things about one event — an address, a standing and two dates — and
+ * the facts grid is built for one label over one value. Same 3px rule and the
+ * same padding as the band above it, so it reads as another row of the header
+ * rather than as a panel bolted on.
+ *
+ * `word-break` on the head for the reason `.sheetFactValue` already carries it:
+ * the sheet is a fixed 620px, and a long address with no break opportunity
+ * would widen the modal and push its close control off the edge.
+ */
+.sheetGuardian {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-bottom: 3px solid var(--ink);
+}
+
+.sheetGuardianHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
 .sheetStats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));

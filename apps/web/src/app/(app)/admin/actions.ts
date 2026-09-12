@@ -10,16 +10,23 @@ import {
   records,
   setRiderPlan,
   setRiderSuspended,
+  type GuardianConsentsRecord,
   type UsersPlan,
 } from '@landit/db';
 import { revalidatePath } from 'next/cache';
 
-import { monthYear, relativeTime } from '@/lib/dates';
+import { monthYear, relativeTime, shortDate } from '@/lib/dates';
 import { ROUTES } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { isOwner, requireStaff } from '@/lib/staff';
 
-import { bandLabel, type RiderSheetView, type TrackedTrickView } from './view';
+import {
+  bandLabel,
+  guardianStanding,
+  type GuardianConsentView,
+  type RiderSheetView,
+  type TrackedTrickView,
+} from './view';
 
 /**
  * Every staff write the portal makes (plan §7, T16).
@@ -66,11 +73,23 @@ export async function riderSheetAction(userId: string): Promise<RiderSheetView |
   const rider = await getRider(pb, userId).catch(() => null);
   if (!rider) return null;
 
-  const [tricks, progress, clips, plans] = await Promise.all([
+  const [tricks, progress, clips, plans, consents] = await Promise.all([
     listTricks(pb, { includeHidden: true }),
     listTrickProgress(pb, userId),
     records(pb, 'clips').page({ filter: 'user = {:u}', params: { u: userId }, perPage: 1 }),
     records(pb, 'plans').list(),
+    // The newest request only, and one row of it. `guardian_consents` grows by
+    // a record every time a rider asks — the hook writes rather than edits,
+    // because it is evidence — so this is a `page` with `perPage: 1` and not a
+    // list: an account that has asked eleven times should still cost one row
+    // to render. Sorted by `requested` rather than `created`, which are the
+    // same value today and would stop being if a row were ever backfilled.
+    records(pb, 'guardian_consents').page({
+      filter: 'user = {:u}',
+      params: { u: userId },
+      sort: '-requested',
+      perPage: 1,
+    }),
   ]);
 
   const trickById = new Map(tricks.map((t) => [t.id, t]));
@@ -125,6 +144,33 @@ export async function riderSheetAction(userId: string): Promise<RiderSheetView |
     landed: tracked.filter((t) => t.landed).length,
     clips: clips.totalItems,
     canDelete: isOwner(staff.rider) && rider.id !== staff.rider.id,
+    guardian: guardianView(consents.items[0], now, zone),
+  };
+}
+
+/**
+ * The latest guardian request, formatted for the sheet — or `null` when there
+ * has never been one, which is every account the gate has never applied to.
+ *
+ * Dates are finished here rather than in the browser, as everything else on
+ * this screen is and for the same reason: `toLocaleDateString` disagrees
+ * between Node and Chromium and takes the tree down with it (LESSONS §3a).
+ * `shortDate` and not `shortDateTime` — the audit log is where the minute
+ * matters; here the useful fact is which day, and how long a parent has been
+ * sitting on an email.
+ */
+function guardianView(
+  record: GuardianConsentsRecord | undefined,
+  now: string,
+  zone: string,
+): GuardianConsentView | null {
+  if (!record) return null;
+  const answered = record.revoked || record.granted || '';
+  return {
+    email: record.guardian_email,
+    ...guardianStanding(record, new Date(now)),
+    requested: record.requested ? shortDate(record.requested, zone) : '—',
+    answered: answered ? shortDate(answered, zone) : null,
   };
 }
 
