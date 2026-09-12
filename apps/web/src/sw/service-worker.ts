@@ -3,6 +3,7 @@ import {
   OFFLINE_PATH,
   isCacheableAsset,
   isCacheablePage,
+  isImmutableAsset,
 } from '@landit/core';
 
 /**
@@ -232,12 +233,23 @@ async function handleNavigation(request: Request, url: URL): Promise<Response> {
 }
 
 /**
- * Assets: cache first in production, network first in development (#268).
+ * Assets: cache first for hashed build output, network first for everything
+ * else, and network first for all of it in development (#268).
  *
- * In a production build `/_next/static/…` is content-hashed, so a cached copy
+ * `/_next/static/…` is content-hashed in a production build, so a cached copy
  * cannot be a stale version of itself — a changed file is a different URL —
  * and cache-first is what makes an offline page render with its stylesheet
  * rather than as unstyled text.
+ *
+ * **That reasoning only ever covered the hashed paths, and the code applied it
+ * to all of them.** `/icons/`, `/avatars/` and the manifest keep their URLs
+ * across releases, so cache-first meant the first copy a rider ever fetched was
+ * the last one they would ever see: #247 replaced the placeholder app icon with
+ * the real artwork at the same URLs, and the owner was still being shown the
+ * placeholder in a home-screen install prompt three weeks later. Those paths are
+ * network-first now, with the cache behind them — `isImmutableAsset` draws the
+ * line, and `OFFLINE_CACHE_VERSION` was bumped to throw the stale copies away.
+ * Nothing is served stale while there is signal to check it against.
  *
  * Under `next dev` that assumption is false: Turbopack names a chunk by its
  * module path, so `_1j7xebs._.css` is the same URL before and after an edit,
@@ -266,7 +278,7 @@ function isLocalOrigin(): boolean {
 async function handleAsset(request: Request): Promise<Response> {
   const cache = await caches.open(SHELL_CACHE);
 
-  if (!isLocalOrigin()) {
+  if (!isLocalOrigin() && isImmutableAsset(new URL(request.url).pathname)) {
     const cached = await cache.match(request);
     if (cached) return cached;
   }

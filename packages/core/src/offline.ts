@@ -31,8 +31,18 @@
  * with a stale cache from a previous release gets it thrown away rather than
  * silently kept — the escape hatch for the day a cached page turns out to hold
  * something it should not.
+ *
+ * **v2 (2026-09-12).** The owner was shown the install notification wearing the
+ * pre-logo placeholder icon — the tilted yellow square with the scooter in it —
+ * three weeks after #247 replaced it. #247 wrote the real artwork to the *same*
+ * URLs the generated placeholder had served (`/icons/icon-192.png` and friends)
+ * and did not bump this, so every rider who had loaded the site between T19
+ * shipping the worker and #247 landing kept the placeholder on disk, and
+ * `handleAsset`'s cache-first branch went on answering from it forever. The bump
+ * is what evicts it; `isImmutableAsset` below is what stops the next asset at a
+ * stable URL going the same way.
  */
-export const OFFLINE_CACHE_VERSION = 1 as const;
+export const OFFLINE_CACHE_VERSION = 2 as const;
 
 /** The page shown when a rider asks for something no cache can answer. */
 export const OFFLINE_PATH = '/offline' as const;
@@ -70,14 +80,20 @@ export function isCacheablePage(pathname: string): boolean {
 /**
  * Is this a build asset that may be kept?
  *
- * Only things whose URL changes when their content does, or that never change
- * at all:
+ * What may be *stored*. Whether a stored copy may be answered with **without
+ * asking the network first** is a different question, and `isImmutableAsset`
+ * below is the one that answers it — the two were conflated until 2026-09-12
+ * and the placeholder app icon outlived its replacement by three weeks as a
+ * result (see `OFFLINE_CACHE_VERSION`).
  *
  * - `/_next/static/…` — hashed by the bundler, so a cached copy can never be
  *   the wrong version of itself. This is what makes a cold offline load render
  *   with its stylesheet instead of as unstyled text.
- * - `/avatars/…` and `/icons/…` — the avatar set and the app icons.
- * - the manifest, which the browser re-reads on its own schedule.
+ * - `/avatars/…` and `/icons/…` — the avatar set and the app icons. These keep
+ *   their URLs across releases, so a copy on disk **can** be a stale version of
+ *   itself.
+ * - the manifest, which the browser re-reads on its own schedule — and which
+ *   names the icons, so a stale one is a stale home screen.
  *
  * Deliberately **not** `/_next/image` (it takes a query it would have to be
  * trusted to normalise), and nothing on PocketBase's origin: a rider's records
@@ -93,6 +109,30 @@ export function isCacheableAsset(pathname: string): boolean {
   return (
     path.startsWith('/_next/static/') || path.startsWith('/avatars/') || path.startsWith('/icons/')
   );
+}
+
+/**
+ * Is this asset's URL a promise that its bytes never change?
+ *
+ * True only for `/_next/static/…`, which the bundler content-hashes: a changed
+ * file is a different URL there, so a hit on disk cannot be the wrong version
+ * and may be served without asking anybody. That is what keeps an offline load
+ * styled rather than a wall of unstyled text.
+ *
+ * False for everything else `isCacheableAsset` allows — `/icons/`, `/avatars/`
+ * and the manifest all keep their paths across releases. Those are still worth
+ * caching, because they are still what a rider sees at the park with no signal;
+ * they are just not worth *trusting* while there is signal to check them
+ * against. `handleAsset` in `apps/web/src/sw/service-worker.ts` reads this to
+ * pick its strategy, and the split is the fix for the placeholder icon that
+ * survived #247 (see `OFFLINE_CACHE_VERSION`).
+ *
+ * Kept separate from `isCacheableAsset` rather than folded into it: the two
+ * answer different questions, and an asset that is cacheable but not immutable
+ * is the normal case, not an exception.
+ */
+export function isImmutableAsset(pathname: string): boolean {
+  return normalise(pathname).startsWith('/_next/static/');
 }
 
 /**

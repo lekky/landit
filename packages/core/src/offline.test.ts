@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isCacheableAsset, isCacheablePage } from './offline';
+import { isCacheableAsset, isCacheablePage, isImmutableAsset } from './offline';
 
 /**
  * An allowlist is only worth testing on the things it must **refuse**, so most
@@ -85,5 +85,38 @@ describe('isCacheableAsset', () => {
     expect(isCacheableAsset('/_next/staticky/x.js')).toBe(false);
     expect(isCacheableAsset('/avatars-of-doom/x.png')).toBe(false);
     expect(isCacheableAsset('/icons')).toBe(false);
+  });
+});
+
+describe('isImmutableAsset', () => {
+  it('trusts hashed build output, which changes URL when it changes bytes', () => {
+    expect(isImmutableAsset('/_next/static/chunks/main-abc123.js')).toBe(true);
+    expect(isImmutableAsset('/_next/static/css/9f8e7d.css')).toBe(true);
+  });
+
+  /**
+   * The regression #247 left behind: the app icons, the avatars and the manifest
+   * all keep their paths across releases, so none of them may be answered from
+   * disk while there is a network to ask. Cache-first on `/icons/` is what kept
+   * showing the owner the pre-logo placeholder three weeks after it was deleted.
+   */
+  it('does not trust an asset whose URL survives a change to its content', () => {
+    expect(isImmutableAsset('/icons/icon-192.png')).toBe(false);
+    expect(isImmutableAsset('/icons/icon-maskable-512.png')).toBe(false);
+    expect(isImmutableAsset('/avatars/helmet-land.png')).toBe(false);
+    expect(isImmutableAsset('/manifest.webmanifest')).toBe(false);
+  });
+
+  it('is narrower than the store rule, never wider', () => {
+    // Anything trusted must also be storable, or the worker would be trusting a
+    // cache entry it never writes.
+    for (const path of ['/_next/static/chunks/a.js', '/icons/icon-512.png', '/api/health']) {
+      if (isImmutableAsset(path)) expect(isCacheableAsset(path)).toBe(true);
+    }
+  });
+
+  it('refuses a path that only looks hashed', () => {
+    expect(isImmutableAsset('/_next/staticky/x.js')).toBe(false);
+    expect(isImmutableAsset('/_next/image?url=%2Favatars%2Fbolt.png')).toBe(false);
   });
 });
