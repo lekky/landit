@@ -278,23 +278,19 @@ export default async function LandingPage() {
             </LandingCta>
           </p>
 
-          <HeroSignUp />
-
           {/*
-           * One line, where the pack draws three (Rachid, 2026-09-12, in chat).
-           * "No messaging, no strangers" and "Works offline at the park" are both
-           * true and both answered at length in the parent FAQ further down —
-           * "Can my kid talk to strangers on it?" and the home-screen answer —
-           * so neither claim leaves the page. Free forever is the one that
-           * belongs beside the button, and on a phone the row stacks, so the
-           * other two were about 60px of the fold repeating the page.
+           * The free claim is in the button, not under it (Rachid, 2026-09-12,
+           * in chat).
+           *
+           * It used to be a checked line of its own below the form — the last
+           * survivor of a three-claim row, the other two ("no messaging, no
+           * strangers" and "works offline at the park") having gone to the FAQ
+           * further down, which still answers both at length. A claim on the
+           * button is read by everyone who reads the button; a line under it
+           * was another stacked row of the fold on a phone saying what the
+           * press already promises. So the label carries it and the row goes.
            */}
-          <div className={styles.trust}>
-            <span>
-              <Icon name="check" size={15} strokeWidth={3} />
-              Free forever tier
-            </span>
-          </div>
+          <HeroSignUp />
 
           {/*
            * The two doors that need no account. Both screens read signed out
