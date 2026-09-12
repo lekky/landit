@@ -555,6 +555,25 @@ export const ANALYTICS_EVENTS = {
    * it costs every visitor whose map is on screen.
    */
   spotsMapClusterOpened: 'spots_map_cluster_opened',
+  /**
+   * A photo on `/story` was expanded.
+   *
+   * Carries `photo`, a `StoryPhoto.id` from `content/story.ts`
+   * (`greystone-riding`, `ramp-painted`, and so on): five fixed strings
+   * written in this repository, so the event cannot carry anything anybody
+   * typed. Nobody on that page has an account, so there is no rider fact
+   * available to send in the first place.
+   *
+   * It exists because the photos are the one thing on the page a visitor can
+   * do, and the page's design turns on whether they do it. The frames are
+   * small on purpose, so that a story reads as writing with photographs in it
+   * rather than a gallery, and the bet is that a reader who wants the detail
+   * will press for it. If nobody ever presses, the frames are too quiet or the
+   * pictures are not wanted, and this is the only way to tell which page
+   * furniture earned its room. `landing_cta` with `place: 'story'` already
+   * says whether the page sends anybody onward; this says whether it is read.
+   */
+  storyPhotoOpened: 'story_photo_opened',
 } as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];

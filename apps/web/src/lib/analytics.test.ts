@@ -286,6 +286,10 @@ describe('the event catalogue', () => {
         'sticker_shelf_expanded',
         'sticker_shared',
         'sticker_view_switched',
+        // A photo on the story page expanded. A `StoryPhoto.id` from
+        // `content/story.ts`, and nothing else: nobody on that page has an
+        // account, so there is no rider fact to send.
+        'story_photo_opened',
         // An onward link from a trick page — the road, the unlocks, the
         // similar tricks, the practise line or the cross-sport panel. Slugs
         // and feature tags only.

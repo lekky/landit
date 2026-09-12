@@ -1,6 +1,5 @@
-import { Panel, Slot } from '@landit/ui-web';
+import { Panel } from '@landit/ui-web';
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 
 import siteStyles from '@/components/site/site.module.css';
@@ -13,25 +12,26 @@ import {
   STORY_TITLE,
   STORY_UPDATED,
   type StoryBlock,
-  type StoryPhoto,
 } from '@/content/story';
 import { LandingCta } from '@/app/LandingCta';
 import { ROUTES } from '@/lib/routes';
 
+import { StoryPhotos } from './StoryPhotos';
 import styles from './story.module.css';
 
 /**
  * Why Land The Trick exists, in the words of the rider whose idea it was.
  *
- * Statically rendered, and every word of it comes from `content/story.ts` —
+ * Statically rendered, and every word of it comes from `content/story.ts`,
  * which is also where the note lives about what may and may not be said on a
- * page that names a child. Read that file before editing this one.
+ * page that names a child, and the rule that the prose here carries no em
+ * dashes. Read that file before editing this one.
  *
- * The photos are placeholders until the pictures exist. That is the reason
- * `StoryPhoto.src` is optional rather than a path to an image nobody has taken:
- * a broken `<img>` on a live page is worse than an honest empty frame, and the
- * frame holds the exact footprint the photo will take so dropping the files in
- * later is a content change and not a layout one.
+ * The photos live in `StoryPhotos`, the page's one interactive piece: the
+ * frames are small so the page still reads as writing with photographs in it,
+ * and pressing one opens it whole. `StoryPhoto.src` stays optional so a photo
+ * can be written in before it has been taken, and gets an honest empty frame
+ * of the right footprint rather than a broken `<img>` on a live page.
  */
 
 export const metadata: Metadata = {
@@ -46,27 +46,6 @@ export const metadata: Metadata = {
   },
 };
 
-function Photo({ photo }: { photo: StoryPhoto }) {
-  if (!photo.src) {
-    return (
-      <div className={styles.photo}>
-        <Slot className={styles.photoSlot} label={photo.label} />
-      </div>
-    );
-  }
-  return (
-    <div className={styles.photo}>
-      <Image
-        className={styles.photoImg}
-        src={photo.src}
-        alt={photo.alt ?? photo.label}
-        fill
-        sizes="(max-width: 620px) 100vw, 370px"
-      />
-    </div>
-  );
-}
-
 function Block({ block }: { block: StoryBlock }) {
   switch (block.kind) {
     case 'lead':
@@ -76,13 +55,7 @@ function Block({ block }: { block: StoryBlock }) {
         <p className={`d ${styles.quote} ${block.big ? styles.quoteBig : ''}`}>{block.text}</p>
       );
     case 'photos':
-      return (
-        <div className={styles.photos}>
-          {block.items.map((photo) => (
-            <Photo key={photo.label} photo={photo} />
-          ))}
-        </div>
-      );
+      return <StoryPhotos items={block.items} layout={block.layout} />;
     case 'p':
     default:
       return <p className={styles.paragraph}>{block.text}</p>;
@@ -116,7 +89,7 @@ export default function StoryPage() {
               <div className={styles.blocks}>
                 {chapter.blocks.map((block, i) => (
                   // The index is the key because a chapter's blocks are a fixed
-                  // literal in `content/story.ts` — they are never reordered,
+                  // literal in `content/story.ts`: they are never reordered,
                   // filtered or appended to at runtime, and two paragraphs are
                   // allowed to hold identical text.
                   <Block key={`${chapter.id}-${i}`} block={block} />
@@ -129,9 +102,9 @@ export default function StoryPage() {
         {/*
           Where the page sends you. `LandingCta` rather than a plain `Link`
           because it is the thing that counts the press, and it counts it into
-          the same `landing_cta` funnel the landing page uses — `place: 'story'`
-          is what separates them. It is also the only client component on this
-          page, so the story itself ships no JavaScript.
+          the same `landing_cta` funnel the landing page uses, and `place:
+          'story'` is what separates them. It and `StoryPhotos` are the only
+          client components on this page, so the prose itself ships none.
         */}
         <Panel className={styles.end}>
           <div className={styles.endCopy}>
