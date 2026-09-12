@@ -30,6 +30,22 @@ import styles from './site.module.css';
  * `Land It - Avatars.html`, a page of the design pack that no task in §7 turns
  * into a route, so there is nothing for it to become. Filed as an issue rather
  * than guessed at.
+ *
+ * **Below 760px the four columns are disclosures** (plan §7 T5, thirteenth
+ * divergence, 2026-09-12). Flat, they were 906px of footer on a 390px phone —
+ * more than a screen — because seventeen links at the 44px touch floor cannot
+ * be made short, only folded. The fold is the `input`/`label` pair below rather
+ * than `<details>`, and that choice is load-bearing rather than old-fashioned:
+ * a closed `<details>` hides its content in the UA shadow tree, which author
+ * CSS cannot re-open, so the same markup could not be a disclosure on a phone
+ * and four plain columns on a desktop. The checkbox can: `.colLinks` is visible
+ * by default and only the phone query hides it, so a stylesheet that never
+ * arrives leaves every link on the page.
+ *
+ * The cost of folding is that the four column headings are one tap further
+ * away, which is why **Report something** is now in the always-visible bottom
+ * strip as well. That link is the one this footer is not allowed to make
+ * harder to find (T18, and the note on the Company column below).
  */
 
 type FooterLink = { label: string; href: Route };
@@ -170,20 +186,37 @@ export function SiteFooter({ minimal = false }: SiteFooterProps) {
           </div>
 
           {/*
-            Each column is a labelled `nav`, not a bare div. The three titles
+            Each column is a labelled `nav`, not a bare div. The four titles
             already read as group headings to a sighted rider; `aria-labelledby`
             is what makes "The app", "Company" and "Legal" mean the same thing in
             a landmark list, so the footer stops being one undifferentiated run
-            of eighteen links.
+            of seventeen links.
+
+            The `input` is the phone's fold and nothing else: it is
+            `display: none` from 760px up, so on a desktop it is not focusable,
+            not announced, and the `label` is an ordinary heading over an
+            ordinary column. Below 760px it is the only state in the footer, and
+            `.colToggle:checked ~ .colLinks` is why the order here — input,
+            label, links — is not free to change.
           */}
           {!minimal &&
             COLUMNS.map((col) => {
-              const titleId = `footer-col-${col.title.toLowerCase().replace(/\s+/g, '-')}`;
+              const slug = col.title.toLowerCase().replace(/\s+/g, '-');
+              const titleId = `footer-col-${slug}`;
+              const toggleId = `footer-toggle-${slug}`;
               return (
-                <nav key={col.title} aria-labelledby={titleId}>
-                  <div className={`lab ${styles.colTitle}`} id={titleId}>
+                <nav key={col.title} className={styles.col} aria-labelledby={titleId}>
+                  <input className={styles.colToggle} id={toggleId} type="checkbox" />
+                  <label className={`lab ${styles.colTitle}`} htmlFor={toggleId} id={titleId}>
                     {col.title}
-                  </div>
+                    {/*
+                      Drawn rather than typed: two bars, the upright of which is
+                      scaled away when the section is open, so a plus becomes a
+                      minus at exactly the weight of the rules around it. A glyph
+                      would have been the font's idea of a minus sign instead.
+                    */}
+                    <span aria-hidden="true" className={styles.colMark} />
+                  </label>
                   <div className={styles.colLinks}>
                     {col.links.map((link) => (
                       <FooterLinkItem key={link.label} {...link} />
@@ -208,6 +241,22 @@ export function SiteFooter({ minimal = false }: SiteFooterProps) {
             <Link className={`cond ${styles.bottomLink}`} href={legalHref('terms')}>
               Terms
             </Link>
+            {/*
+              Deliberately the same destination as the Company column's last
+              entry, the way Privacy and Terms have always restated the Legal
+              column's first two. On a phone that column is folded, and reporting
+              is the one thing this footer may not put behind a tap (T18).
+
+              Not on the holding page: `/report` is not in `proxy.ts`'s
+              `ALWAYS_OPEN`, so while the gate is shut it answers with the
+              holding page — a footer entry that opens nothing, which is the
+              thing the note at the top of this file forbids.
+            */}
+            {!minimal && (
+              <Link className={`cond ${styles.bottomLink}`} href={ROUTES.report}>
+                Report something
+              </Link>
+            )}
           </div>
         </div>
       </div>

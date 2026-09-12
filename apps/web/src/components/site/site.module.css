@@ -41,6 +41,23 @@
  * The footer. Its greys are literal rather than tokens: they are a dark-surface
  * ramp that exists nowhere else in the design, so tokenising them would invent
  * five tokens used by one component.
+ *
+ * Three layouts, and the phone one is the reason the other two were re-cut
+ * (plan §7 T5, thirteenth divergence, 2026-09-12):
+ *
+ * - **1001px and up** — the brand beside four columns, as screenshot 02 draws
+ *   it. Explicit tracks now, not `auto-fit`.
+ * - **760–1000px** — the brand takes a row of its own above the four columns.
+ *   Under `auto-fit` it was still sharing the row, and `minmax(130px, 1fr)`
+ *   let four columns squeeze it to about 110px: "Every trick you / can do, on a
+ *   / scooter," down the left of a 768px tablet.
+ * - **759px and down** — one column, and the four link columns fold. See
+ *   `.colToggle`.
+ *
+ * `align-items: start` is load-bearing above 760px and not cosmetic: grid
+ * stretches every cell to its row, so the three-link columns were rendering as
+ * tall as the six-link one and the two-up phone layout had two voids in it
+ * around 150px deep each.
  */
 .footer {
   background: var(--ink);
@@ -54,11 +71,12 @@
 }
 .grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) repeat(auto-fit, minmax(130px, 1fr));
+  grid-template-columns: minmax(0, 1.35fr) repeat(4, minmax(0, 1fr));
+  align-items: start;
   gap: 28px;
 }
 .brand {
-  max-width: 300px;
+  max-width: 320px;
 }
 .brandCopy {
   margin: 0;
@@ -77,12 +95,13 @@
   padding: 5px 10px;
   color: var(--ink-soft);
 }
-/* `a.` so this outranks `a:hover { color: var(--pink) }` in the design system. */
-a.socialTag:hover {
-  border-color: var(--paper);
-  color: var(--paper);
+.col {
+  /* The fold's checkbox is taken out of flow against this. */
+  position: relative;
+  min-width: 0;
 }
 .colTitle {
+  display: block;
   color: var(--ink-soft);
   margin-bottom: 12px;
 }
@@ -102,9 +121,35 @@ a.socialTag:hover {
   text-align: left;
   line-height: 1.35;
 }
-a.link:hover {
-  color: var(--paper);
+
+/*
+ * The phone's fold, off everywhere else.
+ *
+ * `display: none` above 760px rather than merely hidden: a checkbox that cannot
+ * change anything should not be in the tab order or in the accessibility tree,
+ * and with it gone the `label` is read as the plain heading it looks like.
+ * Below 760px it is visually hidden but still focusable — `opacity: 0` and a
+ * 1px box, never `display: none` or `visibility: hidden`, both of which would
+ * take the keyboard with them. The ring is drawn on the heading instead.
+ */
+.colToggle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
 }
+.colMark {
+  display: none;
+}
+@media (min-width: 760px) {
+  .colToggle {
+    display: none;
+  }
+}
+
 .bottom {
   border-top: 2px solid var(--ink-raise);
   margin-top: 30px;
@@ -118,8 +163,16 @@ a.link:hover {
   font-size: 13px;
   letter-spacing: 0.04em;
 }
+/*
+ * The one line on this surface that is safety copy rather than furniture, and
+ * it was `--ink-mute` at 11px — the quietest thing in the footer. `--ink-soft`
+ * with a yellow rule in front of it is still the design's own dark-surface ramp
+ * and its own accent; nothing new is invented to say it.
+ */
 .bottomWarn {
-  color: var(--ink-mute);
+  color: var(--ink-soft);
+  border-left: 3px solid var(--yellow);
+  padding-left: 9px;
 }
 .bottomLinks {
   margin-left: auto;
@@ -131,20 +184,44 @@ a.link:hover {
   color: var(--ink-mute);
   font-size: 13px;
 }
-/* `a.` so this outranks `a:hover { color: var(--pink) }` in the design system. */
-a.bottomLink:hover {
-  color: var(--paper);
-}
-@media (max-width: 760px) {
-  .grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 22px;
+
+/*
+ * `a.` so these outrank `a:hover { color: var(--pink) }` in the design system.
+ * `(hover: hover)` so a tap on a phone does not leave the link sitting there
+ * looking hovered until something else is touched (issue #397 — the global
+ * sweep is its own job; these three are in a file this change had open).
+ */
+@media (hover: hover) {
+  a.socialTag:hover {
+    border-color: var(--paper);
+    color: var(--paper);
+  }
+  a.link:hover {
+    color: var(--paper);
+  }
+  a.bottomLink:hover {
+    color: var(--paper);
   }
 }
+
+/* The brand gets a row of its own before four columns can crush it. */
+@media (max-width: 1000px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 26px 22px;
+  }
+  .brand {
+    grid-column: 1 / -1;
+    max-width: 520px;
+  }
+}
+
 /*
  * 44px targets on a phone (#375). The column links were 18px tall with 9px
  * between them, so there is no gap to borrow: each link takes the whole 44px
  * and the column gets longer. The bottom row keeps its spacing and borrows it.
+ * The social tags were the one control this missed first time round — 11px
+ * `.lab` in 5px of padding is a 26px tag.
  */
 @media (max-width: 860px) {
   .colLinks {
@@ -153,9 +230,104 @@ a.bottomLink:hover {
   .link {
     padding: 13px 0;
   }
+  /* 14px, not the 13px the text links take: an 11px `.lab` sets a 17px line
+     box where a 13.5px `.cond` link sets an 18px one, and 13px either side of
+     17px is 43. */
+  .socialTag {
+    padding: 14px 16px;
+  }
   .bottomLink {
     display: inline-block;
     padding: 13px 7px;
     margin: -13px -7px;
+  }
+}
+
+/*
+ * The phone. One column, and the four link columns become a ruled stack of
+ * disclosures: heading rows at the 44px floor, a rule between each, the whole
+ * thing closing into the bottom strip so the rules read as one list rather than
+ * as four boxes. 906px of footer on a 390px phone, 969px at 320px, becomes
+ * about 570px.
+ */
+@media (max-width: 759px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .brand {
+    grid-column: auto;
+    max-width: none;
+    margin-bottom: 22px;
+  }
+  .col {
+    border-top: 2px solid var(--ink-raise);
+  }
+  .colTitle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin: 0;
+    padding: 16px 1px;
+    font-size: 12.5px;
+    color: var(--paper);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /*
+    The checkbox is a 1px box in the corner, so its own ring would land nowhere
+    a rider is looking. `:focus-visible` keeps it off a pointer tap.
+  */
+  .colToggle:focus-visible ~ .colTitle {
+    outline: 2px solid var(--yellow);
+    outline-offset: -2px;
+  }
+  .colMark {
+    display: block;
+    position: relative;
+    width: 13px;
+    height: 13px;
+    flex: none;
+  }
+  .colMark::before,
+  .colMark::after {
+    content: '';
+    position: absolute;
+    background: currentColor;
+  }
+  /* The bar: 13px wide, 3px tall, centred. */
+  .colMark::before {
+    inset: 5px 0;
+  }
+  /* The upright, scaled away when the section is open. */
+  .colMark::after {
+    inset: 0 5px;
+  }
+  .colToggle:checked ~ .colTitle .colMark::after {
+    transform: scaleY(0);
+  }
+  .colLinks {
+    display: none;
+    padding-bottom: 8px;
+  }
+  .colToggle:checked ~ .colLinks {
+    display: flex;
+  }
+  /*
+    No margin, so this rule is the last one in the stack above rather than a
+    second rule under a gap. With `minimal` there are no sections and the
+    brand's own margin carries it.
+  */
+  .bottom {
+    margin-top: 0;
+    padding-top: 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .bottomLinks {
+    margin-left: 0;
+    gap: 16px;
   }
 }
