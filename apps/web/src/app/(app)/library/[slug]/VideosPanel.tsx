@@ -14,6 +14,7 @@ import { useState, useTransition } from 'react';
 
 import { VideoEmbed } from '@/components/video/VideoEmbed';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { runAction } from '@/lib/runAction';
 
 import tile from '@/components/video/video.module.css';
 import { ROUTES } from '@/lib/routes';
@@ -121,15 +122,17 @@ export function VideosPanel({
     }
     setProblem(null);
     startTransition(async () => {
-      const result = await addVideoLinkAction({
-        trickId,
-        slug,
-        link: pasted,
-        // Private by default, always. A rider opens a video afterwards, on the
-        // tile, which is one deliberate act rather than a default they were
-        // handed (plan §6.4 standard 7).
-        visibility: 'private',
-      });
+      const result = await runAction('video_add', () =>
+        addVideoLinkAction({
+          trickId,
+          slug,
+          link: pasted,
+          // Private by default, always. A rider opens a video afterwards, on the
+          // tile, which is one deliberate act rather than a default they were
+          // handed (plan §6.4 standard 7).
+          visibility: 'private',
+        }),
+      );
       if (result.ok) {
         // That a link was added, and for which trick. Never the URL — a
         // rider's own YouTube channel is a thing about them, not the product.
@@ -143,7 +146,9 @@ export function VideosPanel({
 
   const changeVisibility = (videoLinkId: string, visibility: VideoVisibilityId) => {
     startTransition(async () => {
-      const result = await setVideoLinkVisibilityAction({ videoLinkId, slug, visibility });
+      const result = await runAction('video_visibility', () =>
+        setVideoLinkVisibilityAction({ videoLinkId, slug, visibility }),
+      );
       if (result.ok) capture(ANALYTICS_EVENTS.videoVisibilitySet, { slug, visibility });
       if (!result.ok) toast(result.message, 'var(--red)');
     });
@@ -151,7 +156,9 @@ export function VideosPanel({
 
   const remove = (videoLinkId: string) => {
     startTransition(async () => {
-      const result = await removeVideoLinkAction({ videoLinkId, slug });
+      const result = await runAction('video_remove', () =>
+        removeVideoLinkAction({ videoLinkId, slug }),
+      );
       if (result.ok) capture(ANALYTICS_EVENTS.videoLinkRemoved, { slug });
       if (!result.ok) toast(result.message, 'var(--red)');
     });

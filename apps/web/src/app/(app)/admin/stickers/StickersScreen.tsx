@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
+import { runAction } from '@/lib/runAction';
 
 import { StaffEditor } from '../StaffEditor';
 import { saveStickerAction, setStickerLiveAction } from '../content-actions';
@@ -46,7 +47,7 @@ export function StickersScreen({ rows }: { rows: readonly AdminStickerRow[] }) {
 
   const onToggle = (row: AdminStickerRow) => {
     startTransition(async () => {
-      const result = await setStickerLiveAction(row.id, !row.isLive);
+      const result = await runAction('admin_save', () => setStickerLiveAction(row.id, !row.isLive));
       if (result.ok) toast(row.isLive ? `${row.name} hidden` : `${row.name} back on the wall`);
       else toast(result.message, 'var(--red)');
       router.refresh();
@@ -201,12 +202,14 @@ export function StickersScreen({ rows }: { rows: readonly AdminStickerRow[] }) {
           ]}
           onSave={async (value) => {
             const raw = String(value.n ?? '').trim();
-            const result = await saveStickerAction(editing.id, {
-              name: String(value.name ?? ''),
-              cond: String(value.cond ?? ''),
-              threshold: editing.threshold === null || raw === '' ? null : Number(raw),
-              hue: String(value.hue ?? ''),
-            });
+            const result = await runAction('admin_save', () =>
+              saveStickerAction(editing.id, {
+                name: String(value.name ?? ''),
+                cond: String(value.cond ?? ''),
+                threshold: editing.threshold === null || raw === '' ? null : Number(raw),
+                hue: String(value.hue ?? ''),
+              }),
+            );
             if (result.ok) {
               toast(`${String(value.name)} updated — riders see it on their next log`, editing.hue);
               router.refresh();

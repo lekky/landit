@@ -14,6 +14,7 @@ import { Button, Panel, Pill } from '@landit/ui-web';
 import { useState, useTransition } from 'react';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { runActionOr } from '@/lib/runAction';
 
 import { submitSpotAction } from './actions';
 import styles from './spots.module.css';
@@ -72,7 +73,11 @@ export function AddSpotForm({
   const submit = () => {
     setMessage(null);
     startTransition(async () => {
-      const result = await submitSpotAction({ ...form, sports, tags: form.tags });
+      const result = await runActionOr(
+        'spot_submit',
+        () => submitSpotAction({ ...form, sports, tags: form.tags }),
+        (message) => ({ ok: false as const, message }),
+      );
       if (result.ok) {
         // How many spots get submitted, and for which sports. Never the name,
         // the address or anything else typed into this form.

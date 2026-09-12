@@ -4,6 +4,7 @@ import { Avatar, Modal, SportChip, Tag } from '@landit/ui-web';
 import { useEffect, useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
+import { runAction } from '@/lib/runAction';
 
 import {
   deleteRiderAction,
@@ -66,7 +67,9 @@ export function RiderSheet({
 
   const onPlan = (slug: string) => {
     startTransition(async () => {
-      const result = await setRiderPlanAction(rider.id, slug as never);
+      const result = await runAction('admin_save', () =>
+        setRiderPlanAction(rider.id, slug as never),
+      );
       if (result.ok) {
         const next = plans.find((p) => p.slug === slug);
         toast(`${rider.name.split(' ')[0]} moved to ${next?.name ?? slug}`, next?.hue);
@@ -81,7 +84,7 @@ export function RiderSheet({
   const onSuspend = () => {
     const next = !suspended;
     startTransition(async () => {
-      const result = await setRiderSuspendedAction(rider.id, next);
+      const result = await runAction('admin_save', () => setRiderSuspendedAction(rider.id, next));
       if (result.ok) {
         toast(
           `${rider.name.split(' ')[0]} ${next ? 'suspended' : 'restored'}`,
@@ -110,7 +113,7 @@ export function RiderSheet({
   const onDelete = () => {
     if (!handleMatches) return;
     startTransition(async () => {
-      const result = await deleteRiderAction(rider.id, typed);
+      const result = await runAction('admin_save', () => deleteRiderAction(rider.id, typed));
       if (result.ok) {
         toast(`@${rider.handle} deleted`, 'var(--red)');
         onChanged();

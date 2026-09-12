@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
+import { runAction } from '@/lib/runAction';
 
 import { StaffEditor, type EditorValue } from '../StaffEditor';
 import {
@@ -136,7 +137,7 @@ export function TricksScreen({
 
   const run = (work: () => Promise<{ ok: boolean; message?: string }>, done: string) => {
     startTransition(async () => {
-      const result = await work();
+      const result = await runAction('admin_save', work);
       if (result.ok) toast(done);
       else toast(result.message ?? 'That did not save.', 'var(--red)');
       router.refresh();
@@ -180,7 +181,9 @@ export function TricksScreen({
 
   const onAdd = () => {
     startTransition(async () => {
-      const result = await createTrickAction(formFrom(addForm, sport));
+      const result = await runAction('admin_save', () =>
+        createTrickAction(formFrom(addForm, sport)),
+      );
       if (result.ok) {
         toast(`${addForm.name.trim()} added to the library`, 'var(--lime)');
         setAddForm(BLANK);
@@ -477,9 +480,8 @@ export function TricksScreen({
             },
           ]}
           onSave={async (value) => {
-            const result = await saveTrickAction(
-              editing.id,
-              formFrom(value, editing.sport as SportId),
+            const result = await runAction('admin_save', () =>
+              saveTrickAction(editing.id, formFrom(value, editing.sport as SportId)),
             );
             if (result.ok) {
               toast(`${String(value.name)} updated`, 'var(--lime)');

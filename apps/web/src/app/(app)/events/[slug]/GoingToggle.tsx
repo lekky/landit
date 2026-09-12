@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { runActionOr } from '@/lib/runAction';
 import { useToast } from '@/providers/toast';
 
 import { setAttendanceAction } from '../actions';
@@ -49,7 +50,11 @@ export function GoingToggle({
     const next = !going;
     setGoing(next);
     startTransition(async () => {
-      const result = await setAttendanceAction(slug, next);
+      const result = await runActionOr(
+        'event_attendance',
+        () => setAttendanceAction(slug, next),
+        (error) => ({ error }),
+      );
       if (result.error) {
         setGoing(!next);
         toast(result.error, 'var(--red)');

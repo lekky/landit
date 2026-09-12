@@ -25,6 +25,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 
 import { SportSwitch } from '@/components/shell/SportSwitch';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { runActionOr } from '@/lib/runAction';
 import { ROUTES, eventHrefFrom, pastEventsHref, signInHref } from '@/lib/routes';
 import { useSport } from '@/providers/sport';
 import { useToast } from '@/providers/toast';
@@ -232,7 +233,11 @@ export function EventsScreen({
     });
 
     startTransition(async () => {
-      const result = await setAttendanceAction(event.id, next);
+      const result = await runActionOr(
+        'event_attendance',
+        () => setAttendanceAction(event.id, next),
+        (error) => ({ error }),
+      );
       if (!result.error)
         capture(ANALYTICS_EVENTS.eventAttendanceSet, { event: event.id, going: next });
       if (result.error) {

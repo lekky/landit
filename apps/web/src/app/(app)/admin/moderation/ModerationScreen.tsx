@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
+import { runAction } from '@/lib/runAction';
 
 import { Pager, useTableNav } from '../Pager';
 import { setReportTriageAction } from '../content-actions';
@@ -74,7 +75,9 @@ export function ModerationScreen({
   const triage = (row: AdminReportRow, to: AdminReportStatus) => {
     startTransition(async () => {
       const outcome = outcomes[row.id] ?? row.outcome;
-      const result = await setReportTriageAction(row.id, to, outcome);
+      const result = await runAction('admin_save', () =>
+        setReportTriageAction(row.id, to, outcome),
+      );
       if (result.ok) toast(`Marked ${STATUS_LOOK[to].label.toLowerCase()}`, STATUS_LOOK[to].color);
       else toast(result.message, 'var(--red)');
       router.refresh();

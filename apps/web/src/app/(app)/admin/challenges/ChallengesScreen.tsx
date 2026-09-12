@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
+import { runAction, runActionOr } from '@/lib/runAction';
 
 import { Pager, useTableNav } from '../Pager';
 
@@ -173,13 +174,23 @@ export function ChallengesScreen({
       // Asked of the server rather than trusted from the row: the table may have
       // been on screen a while, and a number that is stale in the one sentence
       // warning about data loss is worse than no number.
-      const logged = await challengeLogCountAction(row.id);
-      const warning = logged
-        ? `Delete ${row.week || row.title}? ${logged} rider ${logged === 1 ? 'entry' : 'entries'} logged against it will go with it, and that cannot be undone.`
-        : `Delete ${row.week || row.title}? Nothing has been logged against it yet.`;
+      const logged = await runActionOr(
+        'admin_read',
+        () => challengeLogCountAction(row.id),
+        // A read, not a write, and the only thing it feeds is the number in the
+        // warning below. `null` makes the sentence say it could not be counted
+        // rather than the handler dying before the confirm appears.
+        () => null,
+      );
+      const warning =
+        logged === null
+          ? `Delete ${row.week || row.title}? Could not reach the server to count what has been logged against it, and deleting cannot be undone.`
+          : logged
+            ? `Delete ${row.week || row.title}? ${logged} rider ${logged === 1 ? 'entry' : 'entries'} logged against it will go with it, and that cannot be undone.`
+            : `Delete ${row.week || row.title}? Nothing has been logged against it yet.`;
       if (!confirm(warning)) return;
 
-      const result = await deleteChallengeAction(row.id);
+      const result = await runAction('admin_save', () => deleteChallengeAction(row.id));
       if (result.ok) toast(`${row.title} deleted`, 'var(--red)');
       else toast(result.message, 'var(--red)');
       router.refresh();
@@ -361,7 +372,9 @@ export function ChallengesScreen({
           fields={FIELDS}
           value={valueOf(editing)}
           onSave={async (value) => {
-            const result = await saveChallengeAction(editing.id, challengeFrom(value));
+            const result = await runAction('admin_save', () =>
+              saveChallengeAction(editing.id, challengeFrom(value)),
+            );
             if (result.ok) {
               toast(`${String(value.title)} updated`, String(value.hue));
               router.refresh();
@@ -380,7 +393,9 @@ export function ChallengesScreen({
           fields={FIELDS}
           value={BLANK}
           onSave={async (value) => {
-            const result = await createChallengeAction(sport, challengeFrom(value));
+            const result = await runAction('admin_save', () =>
+              createChallengeAction(sport, challengeFrom(value)),
+            );
             if (result.ok) {
               toast('Week scheduled', String(value.hue));
               router.refresh();

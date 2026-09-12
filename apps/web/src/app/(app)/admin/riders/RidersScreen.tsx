@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
+import { runAction } from '@/lib/runAction';
 
 import { Pager, useTableNav } from '../Pager';
 import { setRiderPlanAction } from '../actions';
@@ -114,7 +115,9 @@ export function RidersScreen({
 
   const onPlanChange = (rider: AdminRiderRow, slug: string) => {
     startTransition(async () => {
-      const result = await setRiderPlanAction(rider.id, slug as never);
+      const result = await runAction('admin_save', () =>
+        setRiderPlanAction(rider.id, slug as never),
+      );
       if (result.ok) {
         const name = plans.find((p) => p.slug === slug);
         toast(`${rider.name.split(' ')[0]} moved to ${name?.name ?? slug}`, name?.hue);

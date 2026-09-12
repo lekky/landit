@@ -293,6 +293,65 @@ test('stopping tracking asks first, and keeps the badge', async ({ page }) => {
   await expect(page.getByRole('img', { name: `${freeTrick.name} award, earned` })).toBeVisible();
 });
 
+/*
+ * The bug behind "Stop tracking doesn't seem to save all the time" (owner,
+ * 2026-09-12, in chat), asserted from the outside.
+ *
+ * A stage write that the server *refuses* was always handled — the ladder snaps
+ * back and says why. A write that never reached the server was not: the action
+ * threw, so neither the revert nor the toast ran, and the band sat there
+ * reading "Nothing logged yet" over a row still in the database. The rider
+ * found out days later.
+ *
+ * This has to be a browser test. The translation itself is unit-tested in
+ * `apps/web/src/lib/runAction.test.ts`, but what no unit test can reach is
+ * whether the *screen* puts the stage back and says something — three pieces
+ * (`runAction`, the optimistic revert, the toast) cooperating over a real
+ * failed POST. And the failure mode is silence, which is exactly the shape of
+ * bug that survives a green build.
+ *
+ * Offline is the honest way to produce it: the trick page is cacheable offline
+ * (plan §2.3), so a rider at a park genuinely can be looking at this screen
+ * with no route to anywhere, and Server Function queueing is deliberately off.
+ */
+test('a stop-tracking that never reaches the server says so, and does not lie about the stage', async ({
+  page,
+}) => {
+  await signUpRookie(page);
+  await page.goto(`/library/${freeTrick.id}`);
+
+  await page.getByRole('button', { name: 'Sometimes' }).click();
+  await expect(page.locator('.toast', { hasText: /Logged as/i })).toBeVisible();
+
+  await page.context().setOffline(true);
+  await page.getByRole('button', { name: 'Stop tracking' }).click();
+  await page.getByRole('button', { name: 'Stop tracking' }).last().click();
+
+  /*
+   * The two halves of the fix, and the test fails on either.
+   *
+   * `/did not save/` rather than the exact sentence: which of the two wordings
+   * appears depends on `navigator.onLine`, and Chromium under Playwright's
+   * offline emulation reports itself online (see `offline.spec.ts`). Both
+   * sentences carry this phrase, and it is the part that matters — the rider is
+   * told the write did not happen.
+   */
+  await expect(page.locator('.toast', { hasText: /did not save/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sometimes' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+
+  // And the server agrees with the screen, which is the whole point: before the
+  // fix these two disagreed, and only the reload ever revealed it.
+  await page.context().setOffline(false);
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Sometimes' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+});
+
 // Until 2026-08-17 this asserted the clips panel rendered as an upsell. The
 // owner reversed clip hosting that day (plan §1, §6.6): Land The Trick hosts no video,
 // so the trick page offers none and advertises none. What is asserted now is the

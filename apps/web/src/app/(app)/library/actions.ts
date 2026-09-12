@@ -95,6 +95,11 @@ export async function setStageAction(input: {
   // the *rest* of the screen — the counts, the "all N of yours" link, which
   // tricks are in the section at all — disagreeing with it until the next load.
   revalidatePath(ROUTES.dashboard);
+  // And the progress screen, which is built from `trick_progress` by the same
+  // `trickProgressById` the library uses. It was the one reader of this row
+  // never told the row had moved, so a rider who stopped tracking a trick found
+  // it still counted there — which reads as the write not having saved.
+  revalidatePath(ROUTES.progress);
   return { ok: true, earned };
 }
 

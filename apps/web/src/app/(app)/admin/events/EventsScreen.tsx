@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
+import { runAction } from '@/lib/runAction';
 
 import { Pager, useTableNav } from '../Pager';
 import { StaffEditor, type EditorValue } from '../StaffEditor';
@@ -176,7 +177,7 @@ export function EventsScreen({
       return;
     }
     startTransition(async () => {
-      const result = await setEventLiveAction(row.id, !row.isLive);
+      const result = await runAction('admin_save', () => setEventLiveAction(row.id, !row.isLive));
       if (result.ok) {
         toast(row.isLive ? `${row.name} taken down` : `${row.name} back on the calendar`);
       } else {
@@ -335,7 +336,9 @@ export function EventsScreen({
             sports: [...editing.sports],
           }}
           onSave={async (value) => {
-            const result = await saveEventAction(editing.id, eventFrom(value));
+            const result = await runAction('admin_save', () =>
+              saveEventAction(editing.id, eventFrom(value)),
+            );
             if (result.ok) {
               toast(`${String(value.name)} updated`);
               router.refresh();
@@ -354,7 +357,7 @@ export function EventsScreen({
           fields={fields}
           value={BLANK}
           onSave={async (value) => {
-            const result = await createEventAction(eventFrom(value));
+            const result = await runAction('admin_save', () => createEventAction(eventFrom(value)));
             if (result.ok) {
               toast(`${String(value.name)} published`, 'var(--sky)');
               router.refresh();

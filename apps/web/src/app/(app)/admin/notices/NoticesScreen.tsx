@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
+import { runAction } from '@/lib/runAction';
 
 import { Pager, useTableNav } from '../Pager';
 import { postNoticeAction, setNoticeLiveAction } from '../content-actions';
@@ -75,7 +76,7 @@ export function NoticesScreen({
 
   const post = () => {
     startTransition(async () => {
-      const result = await postNoticeAction(form);
+      const result = await runAction('admin_save', () => postNoticeAction(form));
       if (result.ok) {
         toast('Posted to riders', form.hue);
         setForm(BLANK);
@@ -88,7 +89,7 @@ export function NoticesScreen({
 
   const toggle = (row: AdminNoticeRow) => {
     startTransition(async () => {
-      const result = await setNoticeLiveAction(row.id, !row.isLive);
+      const result = await runAction('admin_save', () => setNoticeLiveAction(row.id, !row.isLive));
       if (result.ok) toast(row.isLive ? 'Pulled from riders' : 'Back up on Home');
       else toast(result.message, 'var(--red)');
       router.refresh();

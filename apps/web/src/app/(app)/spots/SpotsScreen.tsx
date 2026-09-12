@@ -18,6 +18,7 @@ import type { SpotPoint } from '@landit/db';
 import { Button, Empty, Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { runActionOr } from '@/lib/runAction';
 
 import { SportSwitch } from '@/components/shell/SportSwitch';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
@@ -363,9 +364,14 @@ export function SpotsScreen({
   const fetchPage = useCallback(
     async (forKey: string, page: number, append: boolean) => {
       const ticket = ++latest.current;
-      const result = await spotsPageAction(
-        { search: settledSearch, sport: querySport, feature },
-        page,
+      // A read, but the same hole: a thrown fetch skipped `setError` below and
+      // left the list simply stopped, with nothing on screen saying why.
+      const result = await runActionOr(
+        'spots_page',
+        () => spotsPageAction({ search: settledSearch, sport: querySport, feature }, page),
+        // The empty page beside the message is what the type asks for; the
+        // branch below reads `error` first and never gets as far as it.
+        (error) => ({ error, spots: [], total: 0 }),
       );
       if (ticket !== latest.current) return;
       if (result.error) {
@@ -435,7 +441,10 @@ export function SpotsScreen({
     // its own falls back to the cards on screen, which is what it drew before.
     const listWaiting = pointsMode;
     void (async () => {
-      const result = await spotsPointsAction();
+      const result = await runActionOr('spots_points', spotsPointsAction, (error) => ({
+        error,
+        points: [],
+      }));
       if (result.error) {
         pointsAsked.current = false;
         if (listWaiting) setError(result.error);
@@ -524,7 +533,14 @@ export function SpotsScreen({
     for (const id of missing) inFlight.current.add(id);
     const ticket = ++latest.current;
     void (async () => {
-      const result = await spotsCardsAction(missing);
+      const result = await runActionOr(
+        'spots_cards',
+        () => spotsCardsAction(missing),
+        (error) => ({
+          error,
+          spots: [],
+        }),
+      );
       for (const id of missing) inFlight.current.delete(id);
       if (ticket !== latest.current) return;
       if (result.error) {
@@ -628,7 +644,11 @@ export function SpotsScreen({
     const id = mapSelectedId;
     inFlight.current.add(id);
     void (async () => {
-      const result = await spotsCardsAction([id]);
+      const result = await runActionOr(
+        'spots_cards',
+        () => spotsCardsAction([id]),
+        (error) => ({ error, spots: [] }),
+      );
       inFlight.current.delete(id);
       if (result.error) {
         setError(result.error);
