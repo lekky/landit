@@ -89,12 +89,19 @@ test('the story is reachable from the hero and from the band', async ({ page }) 
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });
 
-test('the hero keeps one trust line, not the pack’s three', async ({ page }) => {
+test('the hero makes the free claim once, and in the button', async ({ page }) => {
   await page.goto('/');
 
-  // The two that went are both still made further down the page, in the parent
-  // FAQ, so this asserts they are gone from the hero rather than from the site.
-  await expect(page.getByText('Free forever tier')).toBeVisible();
+  // The claim is the label now, not a checked line under the form: the button
+  // is read by everyone who reads the button, and the line was a stacked row
+  // of a phone's fold repeating what the press already promises.
+  await expect(page.getByRole('button', { name: 'Get started, join for free' })).toBeVisible();
+  await expect(page.getByText('Free forever tier')).toHaveCount(0);
+
+  // The three claims that used to sit under the form are all gone from the
+  // hero, and all still made further down the page — free forever in the plans
+  // block, the other two in the parent FAQ. So this asserts they left the
+  // hero, not the site.
   await expect(page.getByText('Works offline at the park')).toHaveCount(0);
   await expect(page.getByText('No messaging, no strangers')).toHaveCount(0);
 });
@@ -115,7 +122,7 @@ test('the hero email carries into sign-up, and never through the URL', async ({ 
 
   const email = 'hero-handoff@landit.invalid';
   await page.getByLabel('Email address').fill(email);
-  await page.getByRole('button', { name: 'Get started — free' }).click();
+  await page.getByRole('button', { name: 'Get started, join for free' }).click();
 
   await page.waitForURL('**/signup');
   // The address arrived...

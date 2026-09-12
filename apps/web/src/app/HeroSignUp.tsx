@@ -39,8 +39,15 @@ export function HeroSignUp() {
         aria-label="Email address"
         autoComplete="email"
       />
+      {/*
+       * The label carries the free claim, which used to be a checked line
+       * under the form (`page.tsx` says why it moved). "Join for free" and not
+       * "free forever": the Rookie plan is free forever and the page says so
+       * twice further down, but the button is where somebody decides whether
+       * signing up costs them anything, and that is the smaller promise.
+       */}
       <button className="btn lg" type="submit">
-        Get started — free
+        Get started, join for free
       </button>
     </form>
   );
