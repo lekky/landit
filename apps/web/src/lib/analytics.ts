@@ -366,9 +366,18 @@ export const ANALYTICS_EVENTS = {
    * Something on the signed-out landing page was pressed.
    *
    * Carries `target` — where it goes (`signup`, `signin`, `library`, `spots`,
-   * `events`, `plans`, `story`) — and `place`, which of the page's three zones
-   * it was pressed in (`bar`, `hero`, `band`). Both are fixed strings chosen
-   * here, so neither can carry anything a visitor typed.
+   * `events`, `plans`, `story`, `instagram`, `tiktok`) — and `place`, which of
+   * the page's three zones it was pressed in (`bar`, `hero`, `band`). Both are
+   * fixed strings chosen here, so neither can carry anything a visitor typed.
+   *
+   * `instagram` and `tiktok` are the top bar's two logo tiles, and the only
+   * targets that leave the site. They are the one thing on this page that can
+   * be measured *against* it: the row exists so a stranger can check the
+   * product is real, and it is also the only way off the page, so the question
+   * is whether a visitor who goes to Instagram was ever going to sign up. Read
+   * them beside `place: 'bar'`'s other targets rather than on their own — two
+   * tiles pressed more often than the Start free button beside them says
+   * something about the bar, not about Instagram.
    *
    * `target: 'story'` is pressed from two of those zones and the pair is the
    * point: `hero` is the byline line above the email field, `band` is the quote

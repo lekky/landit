@@ -15,6 +15,7 @@ import { sportsList } from '@/lib/sports';
 import { HeroSignUp } from './HeroSignUp';
 import { LandingCta } from './LandingCta';
 import { LandingMotion } from './LandingMotion';
+import { SocialLinks } from './SocialLinks';
 import styles from './landing.module.css';
 
 /**
@@ -181,6 +182,28 @@ export default async function LandingPage() {
           </LandingCta>
         </nav>
         <span className={styles.barEnd}>
+          {/*
+           * The Instagram and TikTok accounts, as two logo tiles
+           * (`SocialLinks.tsx`, Rachid, 2026-09-12, in chat). The question
+           * behind them was "is there a good way to get people to check us out
+           * and actually see we're real?" — and a live account is the answer
+           * this page could not give: every other proof on it is our own word
+           * for it, and the story band 500px down is a photograph we chose.
+           *
+           * **First in this strip, before Sign in, and that ordering is
+           * deliberate.** These are the two weakest calls to action in the bar
+           * and the only ones that leave the site, so they read left to right
+           * as least to most wanted, ending on Start free. Putting them after
+           * the buttons would have made the last thing in the bar a way off the
+           * page.
+           *
+           * Why the bar at all rather than inside the hero, which is where this
+           * was first built: the hero is 952px tall on its own, so the row
+           * lands below a laptop fold anywhere after the two no-sign-up doors,
+           * and above them it interrupts the email field. `SocialLinks.tsx`
+           * carries the measurements and the two placements that lost.
+           */}
+          <SocialLinks place="bar" />
           <LandingCta href={ROUTES.signIn} target="signin" place="bar" className="btn ghost sm">
             Sign in
           </LandingCta>
@@ -253,13 +276,33 @@ export default async function LandingPage() {
           </p>
 
           {/*
-           * Who made it, above the email field (Rachid, 2026-09-12, in chat).
+           * The free claim is in the button, not under it (Rachid, 2026-09-12,
+           * in chat).
+           *
+           * It used to be a checked line of its own below the form — the last
+           * survivor of a three-claim row, the other two ("no messaging, no
+           * strangers" and "works offline at the park") having gone to the FAQ
+           * further down, which still answers both at length. A claim on the
+           * button is read by everyone who reads the button; a line under it
+           * was another stacked row of the fold on a phone saying what the
+           * press already promises. So the label carries it and the row goes.
+           */}
+          <HeroSignUp />
+
+          {/*
+           * Who made it, under the call to action (Rachid, 2026-09-12, in
+           * chat). It sat between the lede and the email field until then.
            *
            * The one argument on this page nobody else can copy is that a twelve
            * year old could not find a trick tracker and built one, and until now
            * the only link to `/story` anywhere on the site was a single footer
            * row. This is the half of that argument that a visitor who never
            * scrolls still reads; the band under the stripe is the other half.
+           *
+           * It is the first thing under the form now that the free-tier line is
+           * not (#453, merged while this was being built): the claim moved onto
+           * the button label, so the gap this fills is one that had just opened
+           * rather than one this change made.
            *
            * A rule and a line of type rather than a thumbnail: both Greystone
            * photographs are shot from behind and neither reads at 42px, and the
@@ -277,20 +320,6 @@ export default async function LandingPage() {
               Read why &rarr;
             </LandingCta>
           </p>
-
-          {/*
-           * The free claim is in the button, not under it (Rachid, 2026-09-12,
-           * in chat).
-           *
-           * It used to be a checked line of its own below the form — the last
-           * survivor of a three-claim row, the other two ("no messaging, no
-           * strangers" and "works offline at the park") having gone to the FAQ
-           * further down, which still answers both at length. A claim on the
-           * button is read by everyone who reads the button; a line under it
-           * was another stacked row of the fold on a phone saying what the
-           * press already promises. So the label carries it and the row goes.
-           */}
-          <HeroSignUp />
 
           {/*
            * The two doors that need no account. Both screens read signed out

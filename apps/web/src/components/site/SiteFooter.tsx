@@ -2,6 +2,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 
 import { LEGAL_CONTACT_HEADING, legalSectionId } from '@/content/legal';
+import { SOCIALS } from '@/content/socials';
 import { ROUTES, legalHref } from '@/lib/routes';
 import { sportsWithArticles } from '@/lib/sports';
 
@@ -104,27 +105,6 @@ const COLUMNS: readonly FooterColumn[] = [
   },
 ];
 
-/**
- * The real accounts (owner, 2026-08-30, in chat). The handles are *not* the
- * same across both: Instagram is `@landthetrickapp` — `@landthetrick` was taken
- * there — while TikTok is `@landthetrick` (owner, 2026-09-11, in chat). The
- * Instagram link pointed at the TikTok handle until then and went nowhere.
- *
- * A YouTube row sat here until 2026-09-05, pointing at a `@landthetrick`
- * channel that does not exist — a footer link to nothing (owner, in chat). Only
- * accounts that are actually claimed go in this list; the same entries are
- * restated as `sameAs` in `lib/structuredData.ts`, so an account gained or lost
- * is edited in both.
- *
- * External, so plain anchors rather than `Link` — `typedRoutes` types `href` as
- * an internal route and there is nothing for Next to prefetch. `rel` is the
- * ordinary hygiene for a `target="_blank"`.
- */
-const SOCIALS: readonly { name: string; href: string }[] = [
-  { name: 'Instagram', href: 'https://instagram.com/landthetrickapp' },
-  { name: 'TikTok', href: 'https://tiktok.com/@landthetrick' },
-];
-
 function FooterLinkItem({ label, href }: FooterLink) {
   return (
     <Link className={`cond ${styles.link}`} href={href}>
@@ -170,10 +150,23 @@ export function SiteFooter({ minimal = false }: SiteFooterProps) {
               Every trick you can do, on {sportsWithArticles()}, tracked properly. Log it, learn it,
               land it.
             </p>
+            {/*
+              The accounts come from `content/socials.ts`, which is where the
+              rule about them lives too: only claimed accounts, and the handles
+              differ between the two platforms. They were typed out here and
+              again as `sameAs` in `lib/structuredData.ts`, each with a comment
+              telling the next session to remember the other; the landing hero
+              was the third place that needed them, which is one too many to
+              keep in step by hand.
+
+              External, so plain anchors rather than `Link` — `typedRoutes`
+              types `href` as an internal route and there is nothing for Next to
+              prefetch. `rel` is the ordinary hygiene for `target="_blank"`.
+            */}
             <div className={styles.social}>
               {SOCIALS.map((social) => (
                 <a
-                  key={social.name}
+                  key={social.id}
                   className={`lab ${styles.socialTag}`}
                   href={social.href}
                   target="_blank"
