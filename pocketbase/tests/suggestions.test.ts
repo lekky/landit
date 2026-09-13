@@ -1,3 +1,6 @@
+// Imported rather than read as text: the assertion that uses it is about what
+// the running server says, not about the source of either file.
+import { SUGGESTION_REFUSALS } from '@landit/core';
 import { describe, expect, it } from 'vitest';
 
 import { call, makeRider, superuser } from './helpers';
@@ -206,6 +209,51 @@ describe('an idea never spends the safeguarding budget', () => {
 
     expect((await suggest({ detail: 'Still able to suggest things.' }, rider.token)).status).toBe(
       200,
+    );
+  });
+});
+
+describe('what the rider is told', () => {
+  it('refuses in sentences the web app knows it may show', async () => {
+    // `SUGGESTION_REFUSALS` is the list the action checks a refusal against
+    // before showing it (`apps/web/src/lib/suggestRefusal.ts`); anything not on
+    // it becomes the form's apology. So every refusal the hook makes is provoked
+    // here for real, and a sentence reworded in the hook but not in `core` fails
+    // this rather than quietly turning into "try again". The last assertion runs
+    // the other way: every sentence on the list is one the server really says.
+    const writer = await makeRider();
+    const refusals = [
+      await suggest({ topic: 'spot' }, writer.token),
+      await suggest({ detail: '   ' }, writer.token),
+      await suggest({ detail: 'x'.repeat(1001) }, writer.token),
+    ];
+
+    // Three an hour, then the window limit.
+    const quick = await makeRider();
+    for (let i = 0; i < 3; i += 1) {
+      expect((await suggest({ detail: `Idea number ${i}.` }, quick.token)).status).toBe(200);
+    }
+    refusals.push(await suggest({ detail: 'One too many.' }, quick.token));
+
+    // Ten still waiting, then the open limit. Filed as superuser so the window
+    // limit, which is checked second, never gets the chance to answer first.
+    const patient = await makeRider();
+    const staff = await superuser();
+    for (let i = 0; i < 10; i += 1) {
+      const seeded = await call('POST', '/api/collections/suggestions/records', {
+        token: staff,
+        body: { rider: patient.id, topic: 'trick', detail: `Waiting ${i}.`, status: 'new' },
+      });
+      expect(seeded.status).toBe(200);
+    }
+    refusals.push(await suggest({ detail: 'And another.' }, patient.token));
+
+    expect(refusals.map((refused) => refused.status)).toEqual([400, 400, 400, 429, 429]);
+    for (const refused of refusals) {
+      expect(SUGGESTION_REFUSALS).toContain(refused.body.message);
+    }
+    expect(new Set(refusals.map((refused) => refused.body.message))).toEqual(
+      new Set(SUGGESTION_REFUSALS),
     );
   });
 });
