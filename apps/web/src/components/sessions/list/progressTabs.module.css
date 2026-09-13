@@ -1,6 +1,7 @@
 /*
  * Progress › tabs (T37), design 1a/2a: two 3px-keyline tabs sitting on a 3px
- * rule, the current one paper and joined to the page below it.
+ * rule, the current one paper. The rule runs unbroken under both tabs (owner,
+ * 2026-09-13, in chat).
  */
 
 .tabs {
@@ -20,7 +21,6 @@
   border-bottom: none;
   background: #e6dcc4;
   color: #57503f;
-  margin-bottom: -3px;
 }
 .tab + .tab {
   margin-left: -3px;
@@ -38,7 +38,6 @@
 .tab.on:hover {
   background: var(--paper);
   color: var(--ink);
-  border-bottom: 3px solid var(--paper);
 }
 
 .tab:focus-visible {
