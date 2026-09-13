@@ -86,8 +86,6 @@ export function WatchPanel({ trick, video }: { trick: Trick; video: TrickVideo }
           Something wrong?
         </Link>
       </div>
-
-      <p className={styles.watchNote}>Nothing loads from YouTube until you press play.</p>
     </div>
   );
 }
