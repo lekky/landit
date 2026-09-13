@@ -47,6 +47,7 @@ const row = (over: Partial<TricksRecord> & Pick<TricksRecord, 'id' | 'slug'>): T
   video_source: '' as TricksRecord['video_source'],
   video_off_reason: '',
   video_checked: '',
+  video_thumb: '',
   is_live: true,
   created: '',
   updated: '',

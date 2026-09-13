@@ -150,6 +150,21 @@ export interface TrickVideo {
   readonly offReason?: string;
   /** When the nightly check last got an answer about this id. Absent means never. */
   readonly checkedAt?: string;
+  /**
+   * Where the stored preview frame lives, as `tricks/<recordId>/<filename>` —
+   * the path PocketBase serves a file at, without the host.
+   *
+   * **The host is deliberately not here.** This package is shared by the web
+   * app, the PocketBase hooks and (later) an Expo app, and each knows its own
+   * PocketBase URL; baking one in would make this the only file in
+   * `@landit/core` that cares which deployment it is running against.
+   *
+   * Absent is the normal state and renders as the drawn poster — no
+   * thumbnail fetched yet, a fetch that failed, or a video added a minute ago.
+   * A preview is never fetched from YouTube at render time: that request is the
+   * whole thing `VideoEmbed` exists to avoid (plan §6.8).
+   */
+  readonly thumbPath?: string;
 }
 
 /** Where a trick's tutorial came from. See {@link TrickVideo.source}. */

@@ -43,11 +43,24 @@ export function VideoEmbed({
   videoId,
   label,
   onPlay,
+  posterSrc,
 }: {
   /** Eleven characters. Anything else throws, by design. */
   videoId: string;
   /** What this video is of, for the play button's accessible name. */
   label: string;
+  /**
+   * A real preview frame to draw behind the play mark (2026-09-13).
+   *
+   * Optional and additive: a rider's own video links pass nothing and get the
+   * drawn poster exactly as before. **It must be a URL on our own host** — the
+   * staff tutorial passes one from `tricks.video_thumb`, fetched once
+   * server-side, precisely so the page does not ask `i.ytimg.com` for a
+   * thumbnail on load. Point 2 below is the rule this prop implements rather
+   * than the exception to it: what changed is *where the image comes from*, not
+   * that the page may now talk to Google before the press.
+   */
+  posterSrc?: string;
   /**
    * Fired once, on the press that mounts the iframe (T35).
    *
@@ -86,6 +99,28 @@ export function VideoEmbed({
         }}
         aria-label={`Play ${label}`}
       >
+        {/*
+          A plain `<img>` rather than `next/image`: the source is a PocketBase
+          host that differs between a laptop, CI and the box, so `next/image`
+          would need `remotePatterns` kept in step with three deployments to
+          optimise a 320×180 thumbnail. `alt=""` because the button already
+          names what it plays — a description here would be read out twice.
+        */}
+        {posterSrc && (
+          <>
+            {/*
+              A plain `<img>`, and the rule is silenced rather than satisfied:
+              `next/image` would need `remotePatterns` listing every PocketBase
+              host this runs against — a laptop, CI and the box — kept in step
+              by hand, and a mismatch renders a *broken* image rather than an
+              unoptimised one. The file is a ~15KB 320×180 JPEG our own backend
+              already serves, so the optimiser has almost nothing to save.
+            */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className={styles.posterShot} src={posterSrc} alt="" loading="lazy" />
+            <span className={styles.posterScrim} />
+          </>
+        )}
         <span className={styles.playMark}>
           <Icon name="play" size={22} />
         </span>

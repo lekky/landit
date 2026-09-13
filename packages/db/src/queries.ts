@@ -184,6 +184,7 @@ export function tricksFromRecords(
  * place to keep the pattern in step.
  */
 function videoOf(row: {
+  id?: unknown;
   video_id?: unknown;
   video_title?: unknown;
   video_channel?: unknown;
@@ -191,6 +192,7 @@ function videoOf(row: {
   video_source?: unknown;
   video_off_reason?: unknown;
   video_checked?: unknown;
+  video_thumb?: unknown;
 }): { video: TrickVideo } | Record<string, never> {
   const id = typeof row.video_id === 'string' ? row.video_id.trim() : '';
   const title = typeof row.video_title === 'string' ? row.video_title.trim() : '';
@@ -207,6 +209,8 @@ function videoOf(row: {
     row.video_source === 'auto' || row.video_source === 'staff' ? row.video_source : undefined;
   const offReason = typeof row.video_off_reason === 'string' ? row.video_off_reason.trim() : '';
   const checkedAt = typeof row.video_checked === 'string' ? row.video_checked.trim() : '';
+  const thumbFile = typeof row.video_thumb === 'string' ? row.video_thumb.trim() : '';
+  const recordId = typeof row.id === 'string' ? row.id.trim() : '';
 
   return {
     video: {
@@ -221,6 +225,11 @@ function videoOf(row: {
       ...(source ? { source } : {}),
       ...(offReason ? { offReason } : {}),
       ...(checkedAt ? { checkedAt } : {}),
+      // The stored preview frame, as the path PocketBase serves it at. Needs
+      // the *record* id, not the slug — `Trick.id` is the slug, so this is the
+      // one place the two are both in scope. Both halves or nothing: a filename
+      // with no record id cannot be turned into a URL by anybody downstream.
+      ...(thumbFile && recordId ? { thumbPath: `tricks/${recordId}/${thumbFile}` } : {}),
     },
   };
 }

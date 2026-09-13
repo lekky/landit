@@ -39,7 +39,7 @@ const dryRun = process.argv.includes('--dry-run');
 const pb = await createSuperuserClient(flag('url') ? { url: flag('url') } : {});
 
 const trickRows = await records(pb, 'tricks').list({
-  fields: 'id,slug,video_id,video_source,video_hidden',
+  fields: 'id,slug,video_id,video_source,video_hidden,video_thumb',
 });
 const bySlug = new Map(trickRows.map((row) => [row.slug, row]));
 
@@ -79,6 +79,11 @@ for (const pick of VIDEO_PICKS) {
       video_hidden: hidden,
       video_source: 'auto',
       video_off_reason: '',
+      // Only when the video actually changed. A stored frame belongs to the id
+      // it was fetched for, so keeping it across a swap would show the previous
+      // video's first frame under the new one's title — but clearing it on
+      // every run would re-download the whole catalogue each time.
+      ...(row.video_id === pick.videoId ? {} : { video_thumb: null }),
     });
   }
 
