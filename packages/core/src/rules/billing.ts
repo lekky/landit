@@ -1,6 +1,6 @@
 import type { Plan } from '../types';
 
-import type { AgeBand, ConsentState } from './consent';
+import { countryOf, type AgeBand, type ConsentState } from './consent';
 
 /**
  * What a subscription costs, and who is allowed to buy one (plan §2.4, §6.2,
@@ -62,6 +62,45 @@ export function planPricePence(
 export function formatPricePence(pence: number): string {
   if (pence <= 0) return 'Free';
   return `£${(pence / 100).toFixed(2)}`;
+}
+
+/**
+ * The country whose currency every price in this product is quoted in.
+ *
+ * It sits beside `formatPricePence` because that function's `£` is the fact it
+ * names. There is one currency, it is sterling, and a Stripe price is created
+ * in one currency — so this is not a default that something else can override.
+ * Multi-currency is issue #170, and it is a tax position (VAT OSS for EU
+ * consumers, sales-tax nexus for the US) rather than a formatting change; when
+ * it is picked up, `packages/core` is additive-only and a currency-aware
+ * formatter joins `formatPricePence` rather than replacing it, the way
+ * `distanceLabelIn` joined `distanceLabel` in the same §1 change.
+ */
+export const PRICING_COUNTRY = 'GB';
+
+/**
+ * Whether a reader in this country is being shown a price in somebody else's
+ * currency — which is the whole of what the plans page tells them about it.
+ *
+ * Stripe takes a card from anywhere against a GBP price, so a parent in Dublin
+ * or Toronto can already buy today; what they are not told is that the charge
+ * lands in pounds and their bank will convert it. A surprise on a bank
+ * statement is the worst place for that to arrive, so the card says it first.
+ *
+ * **An unknown country is not foreign.** `''` — a header with no region, a
+ * rider record with no country — returns `false`, so the note stays off. The
+ * quiet direction is the right one here: the reader most likely to produce no
+ * signal is a British one on a mostly-British product, and a conversion-fee
+ * warning on the main market's paywall is noise that costs conversions. This is
+ * the opposite of how the consent thresholds fail, deliberately — nothing about
+ * a missing note is unsafe, whereas a missing consent gate is.
+ *
+ * A sign-up country is ISO-3166-2, so `countryOf` is what turns `GB-SCT` into
+ * `GB` and keeps Scotland out of the foreign column.
+ */
+export function pricesAreForeignTo(country: string | null | undefined): boolean {
+  const code = countryOf(country ?? '');
+  return code !== '' && code !== PRICING_COUNTRY;
 }
 
 /**

@@ -10,6 +10,8 @@ import {
   isPaidPlan,
   planPeriodLabel,
   planPricePence,
+  PRICING_COUNTRY,
+  pricesAreForeignTo,
   requiredPayerKind,
   requiresGuardianPayer,
   statusEntitles,
@@ -59,6 +61,41 @@ describe('prices', () => {
     expect(isBillingPeriod('monthly')).toBe(true);
     expect(isBillingPeriod('weekly')).toBe(false);
     expect(isBillingPeriod(null)).toBe(false);
+  });
+});
+
+describe('whose currency the prices are in', () => {
+  it('prices in the country whose sign the formatter writes', () => {
+    // The two have to agree: `formatPricePence` hardcodes `£`, and
+    // `PRICING_COUNTRY` is what tells a reader elsewhere that it is not theirs.
+    expect(PRICING_COUNTRY).toBe('GB');
+    expect(formatPricePence(399).startsWith('£')).toBe(true);
+  });
+
+  it('is not foreign to a reader in the UK, including the other three nations', () => {
+    expect(pricesAreForeignTo('GB')).toBe(false);
+    expect(pricesAreForeignTo('gb')).toBe(false);
+    // ISO-3166-2 at sign-up, so a Scottish rider arrives as `GB-SCT`.
+    expect(pricesAreForeignTo('GB-SCT')).toBe(false);
+    expect(pricesAreForeignTo('GB-WLS')).toBe(false);
+  });
+
+  it('is foreign everywhere else', () => {
+    expect(pricesAreForeignTo('IE')).toBe(true);
+    expect(pricesAreForeignTo('US')).toBe(true);
+    expect(pricesAreForeignTo('FR')).toBe(true);
+    expect(pricesAreForeignTo('CA')).toBe(true);
+  });
+
+  it('says nothing when it does not know where the reader is', () => {
+    // The quiet direction on purpose: an unknown reader on a mostly-British
+    // product is most likely British, and a conversion-fee line on the main
+    // market's paywall costs conversions. Nothing about a missing note is
+    // unsafe — which is why this fails the opposite way to the consent gates.
+    expect(pricesAreForeignTo('')).toBe(false);
+    expect(pricesAreForeignTo(null)).toBe(false);
+    expect(pricesAreForeignTo(undefined)).toBe(false);
+    expect(pricesAreForeignTo('   ')).toBe(false);
   });
 });
 

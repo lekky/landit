@@ -3,6 +3,7 @@ import {
   formatPricePence,
   isPaidPlan,
   planPeriodLabel,
+  pricesAreForeignTo,
   yearlySavingLabel,
   type BillingPeriod,
   type PlanId,
@@ -50,6 +51,15 @@ export interface PlansView {
   readonly upgradeRoute: UpgradeRoute;
   /** Whether a Stripe account is configured on this deployment at all. */
   readonly checkoutLive: boolean;
+  /**
+   * Whether this reader is being quoted a price in somebody else's currency,
+   * and should be told so before they press a button (issue #170).
+   *
+   * Resolved **on the server**, from the declared country or the request's
+   * `Accept-Language`, because `PlansScreen` hydrates and nothing on a screen
+   * that hydrates may be locale-derived (LESSONS §5).
+   */
+  readonly pricesAreForeign: boolean;
   /** Whether there is a subscription to manage. */
   readonly hasSubscription: boolean;
   readonly currentPlanSlug: string;
@@ -88,6 +98,13 @@ export function buildPlansView(input: {
   readonly upgradeRoute: UpgradeRoute;
   readonly checkoutLive: boolean;
   readonly hasSubscription: boolean;
+  /**
+   * Where the reader is, as the page resolved it: the declared country for a
+   * signed-in rider, the request's `Accept-Language` region for a visitor, `''`
+   * when neither says anything. Only `pricesAreForeignTo` reads it, and nothing
+   * is stored.
+   */
+  readonly country: string;
 }): PlansView {
   const cards = input.plans.map((record): PlanCardView => {
     const canonical = PLAN[record.slug as PlanId];
@@ -134,6 +151,7 @@ export function buildPlansView(input: {
     signedIn: input.signedIn,
     upgradeRoute: input.upgradeRoute,
     checkoutLive: input.checkoutLive,
+    pricesAreForeign: pricesAreForeignTo(input.country),
     hasSubscription: input.hasSubscription,
     currentPlanSlug: input.currentPlanSlug,
   };
