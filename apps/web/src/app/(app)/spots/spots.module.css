@@ -1245,3 +1245,88 @@
     margin-top: 10px;
   }
 }
+
+/* ------------------------------------------------------------- faves -- */
+
+/*
+ * The star on a card and on a spot page.
+ *
+ * It sits over a card that is a stretched link (`.cardLink`, `inset: 0`), so
+ * it needs the same `z-index` treatment as every other control in a card:
+ * above the link, or the press goes to the page instead of the star.
+ *
+ * 44px square, which is the phone hit target the mobile audit (#376, #379)
+ * asked for throughout — the star itself is 20px and the rest is padding, so
+ * the mark stays small and quiet while the target does not.
+ */
+.fave {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+
+/*
+ * Filled in CSS rather than through `Icon`'s `fill` prop, which drops the
+ * stroke: this keeps the hard black outline the design puts on everything.
+ */
+.faveOn svg {
+  fill: var(--yellow);
+}
+
+.fave:hover {
+  transform: scale(1.12);
+}
+
+/* #397: a :hover that sticks after a tap. Only a real pointer gets the grow. */
+@media (hover: none) {
+  .fave:hover {
+    transform: none;
+  }
+}
+
+.fave[aria-busy='true'] {
+  opacity: 0.55;
+}
+
+/* The star on a card's top row, beside "Report". */
+.cardFave {
+  margin: -10px -8px -10px 0;
+}
+
+/*
+ * The faves filter pill. `.nearMe`'s shape, for the same reason: a pill with an
+ * icon in it needs the row to be a flex line or the star sits hard against the
+ * word.
+ */
+.favePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/*
+ * The count. A rider's own number, shown only to them — it is never sent
+ * anywhere (see `spots_faves_viewed` in `lib/analytics.ts`). Tabular figures so
+ * the pill does not change width as faves are added and removed.
+ */
+.faveCount {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The refusal from a fave that the server would not take. */
+.faveError {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--pink);
+}

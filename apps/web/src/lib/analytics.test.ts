@@ -296,12 +296,21 @@ describe('the event catalogue', () => {
         'signed_in',
         'signed_out',
         'signed_up',
+        // A spot starred, and unstarred. `source` (which control) and the
+        // spot's `type`, and nothing that says *which* spot — a fave is the
+        // strongest thing this product knows about where a rider rides.
+        'spot_favourited',
         'spot_map_selected',
         'spot_page_opened',
         'spot_submitted',
+        'spot_unfavourited',
         // "Search this area" on the spots map. Which layout it was pressed in,
         // and never anything about the view itself.
         'spots_area_searched',
+        // The Faves filter switched on. No properties at all: whether it is
+        // used is the whole question, and a count of somebody's faves is a
+        // rider fact.
+        'spots_faves_viewed',
         // A numbered block on the spots map, opened (#388). `view` only.
         'spots_map_cluster_opened',
         'spots_map_ground',

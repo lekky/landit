@@ -65,7 +65,7 @@ onRecordCreateRequest((e) => {
   e.next();
 }, 'crew_invites');
 
-/** Attendance, dismissals and notes are always the caller's own. */
+/** Attendance, dismissals, notes and faves are always the caller's own. */
 onRecordCreateRequest(
   (e) => {
     if (!e.hasSuperuserAuth() && e.auth) e.record.set('user', e.auth.id);
@@ -74,6 +74,7 @@ onRecordCreateRequest(
   'event_attendance',
   'announcement_dismissals',
   'trick_notes',
+  'spot_favourites',
 );
 
 /**

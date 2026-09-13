@@ -824,6 +824,55 @@ export const ANALYTICS_EVENTS = {
    */
   spotsMapClusterOpened: 'spots_map_cluster_opened',
   /**
+   * A spot was added to the rider's faves.
+   *
+   * Carries `source` — `'card'` for the heart on a list card, `'spot_page'`
+   * for the one on `/spots/[slug]` — and `type`, the spot's kind (`Concrete`,
+   * `Street spot`, `Indoor park`). Both are fixed sets chosen in this
+   * repository.
+   *
+   * **Never the spot's name, its slug or its id**, for the reason
+   * `spot_page_opened` sets out at length: a submitted spot's name is text a
+   * child typed and its slug is that text with the punctuation removed. And
+   * never a count of how many faves the rider now holds — a rider's own
+   * totals are a rider fact, and the head of this list forbids those.
+   *
+   * A favourite is also the strongest signal this product has about *where a
+   * rider rides*, which is precisely the thing §6.4 standard 10 keeps out of
+   * every property. `type` is a facet the list already filters by and says
+   * nothing about a place; the id, the town and the country would all say
+   * where, and none of them is here.
+   *
+   * It exists because faves are a bet: that riders return to the same three or
+   * four parks and want them to hand. If nothing is ever faved, the control is
+   * noise on every card and should come off.
+   */
+  spotFavourited: 'spot_favourited',
+  /**
+   * A spot was taken off the rider's faves.
+   *
+   * Carries the same `source` as `spot_favourited`, plus `'faves'` for a
+   * removal made from the faves view itself — which is the one worth watching.
+   * Removing from the faves list is tidying; removing from a card in the full
+   * list more often means a mis-tap on a heart that sits beside a link.
+   *
+   * Same silences as `spot_favourited`: no name, no slug, no id, no count.
+   */
+  spotUnfavourited: 'spot_unfavourited',
+  /**
+   * The faves filter was switched on, and the list became the rider's own
+   * spots.
+   *
+   * Carries nothing at all — not how many faves it showed, which is a rider
+   * fact, and not which spots were in it. Whether the filter is *used* is the
+   * entire question; a number attached to it answers nothing this cannot.
+   *
+   * It pairs with `spot_favourited`: faving is cheap and could happen without
+   * anybody ever coming back to the list, and a feature that is filled and
+   * never read is a different failure from one that is never filled.
+   */
+  spotsFavesViewed: 'spots_faves_viewed',
+  /**
    * A photo on `/story` was expanded.
    *
    * Carries `photo`, a `StoryPhoto.id` from `content/story.ts`

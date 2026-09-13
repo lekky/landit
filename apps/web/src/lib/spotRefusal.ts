@@ -1,4 +1,4 @@
-import { SPOT_SUBMISSION_REFUSALS } from '@landit/core';
+import { SPOT_FAVOURITE_REFUSALS, SPOT_SUBMISSION_REFUSALS } from '@landit/core';
 import { refusalMessage } from '@landit/db';
 
 /**
@@ -31,4 +31,25 @@ export function spotSubmissionRefusal(error: unknown): string | null {
   if (error.status !== 400) return null;
   const said = refusalMessage(error);
   return said !== null && SPOT_SUBMISSION_REFUSALS.includes(said) ? said : null;
+}
+
+/**
+ * The same job for a favourite, against `64_spot_favourites.pb.js`.
+ *
+ * A separate function rather than a second argument, because the two lists are
+ * separate on purpose: passing a submission's refusal through on a favourite
+ * would show a rider "8 tags at most." for a heart they tapped, which is worse
+ * than the apology it replaced.
+ *
+ * **Both a 400 and a 429 come through here**, where the submission's version
+ * takes only the 400. The favourite hook's ceiling ("You can keep 200 faves")
+ * is a 429 and is the one refusal a rider can actually do something about, so
+ * hiding it behind "try again" would leave them tapping a heart that will never
+ * fill with nothing saying why.
+ */
+export function spotFavouriteRefusalMessage(error: unknown): string | null {
+  if (typeof error !== 'object' || error === null || !('status' in error)) return null;
+  if (error.status !== 400 && error.status !== 429) return null;
+  const said = refusalMessage(error);
+  return said !== null && SPOT_FAVOURITE_REFUSALS.includes(said) ? said : null;
 }

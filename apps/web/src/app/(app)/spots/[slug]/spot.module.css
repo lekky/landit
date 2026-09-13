@@ -655,3 +655,50 @@
     overflow: visible;
   }
 }
+
+/* ------------------------------------------------------------- faves -- */
+
+/*
+ * "Fave" in the strip, beside Directions. The wrapper exists so a refusal has
+ * somewhere to go that is not inside the button — the strip is a flex row, and
+ * a sentence dropped straight into it would push Directions off the end.
+ */
+.faveWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.faveBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  /* The phone hit target the mobile audit asks for throughout (#377). */
+  min-height: 44px;
+}
+
+/*
+ * The faved state, written as two classes so it beats `.btn.ghost` — which is
+ * also two, and would otherwise keep the button `--paper` and leave these rules
+ * doing nothing at all.
+ *
+ * The star is filled in CSS rather than through `Icon`'s `fill` prop, which
+ * drops the stroke: this keeps the hard black outline the design puts on every
+ * mark. `--yellow` behind it is the design's "this one is on", the same move
+ * `.mapPickOn` makes with `--sky` on the list.
+ */
+.faveBtn.faveBtnOn {
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.faveBtn.faveBtnOn svg {
+  fill: var(--ink);
+}
+
+.faveError {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pink);
+  max-width: 30ch;
+}

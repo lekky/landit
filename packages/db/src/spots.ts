@@ -2,7 +2,7 @@ import { SPORT_IDS, unindexedSpotSourceIds, spotFeatureId, type SportId } from '
 
 import type { Client } from './clients';
 import { records } from './collections';
-import type { SpotsRecord } from './generated/collections';
+import type { SpotFavouritesRecord, SpotsRecord } from './generated/collections';
 
 /**
  * The spots list, a page at a time (issue #367).
@@ -468,4 +468,84 @@ export async function listSpotsInPlace(client: Client, place: SpotPlace): Promis
     }
   }
   return rows;
+}
+
+/* ----------------------------------------------------------- favourites -- */
+
+/**
+ * A rider's favourite spots.
+ *
+ * Four small functions rather than one, because the screen needs the *ids* far
+ * more often than it needs the rows: every card on `/spots` has to know whether
+ * its heart is filled, and that is one cheap read of the rider's own
+ * collection, not a join against thirty thousand spots.
+ *
+ * **Nothing here decides who may see what.** Every rule on `spot_favourites` is
+ * `OWN`, so a client holding a rider's token reads that rider's rows and
+ * nobody's else's — a caller cannot widen it by asking differently, and these
+ * functions never pass a `user` filter they were handed by a browser. The
+ * session client is the authorisation.
+ */
+
+/**
+ * The spot ids this rider has favourited, newest first.
+ *
+ * Ids, not spots: the list screen wants to know which of the cards it is
+ * already rendering are favourites, and that question is answered by a set of
+ * fifteen-character strings rather than by fetching the spots again.
+ */
+export async function listFavouriteSpotIds(client: Client): Promise<string[]> {
+  const rows = await records(client, 'spot_favourites').list({ sort: '-created' });
+  return rows.map((row) => row.spot).filter((id) => !!id);
+}
+
+/**
+ * The rider's favourite spots as spots, newest favourite first.
+ *
+ * Two reads rather than an `expand`, because `expand` on a relation hands back
+ * a nested shape the rest of this package does not speak, and because
+ * `getSpotsByIds` already drops anything the caller may not read — which is the
+ * behaviour a stale favourite needs. A spot that has since been taken off the
+ * map simply does not come back, and the faves list is shorter by one rather
+ * than carrying a card it cannot fill in.
+ */
+export async function listFavouriteSpots(client: Client): Promise<SpotsRecord[]> {
+  const ids = await listFavouriteSpotIds(client);
+  if (!ids.length) return [];
+  return getSpotsByIds(client, ids);
+}
+
+/**
+ * Mark a spot as a favourite. Idempotent by way of the unique `(user, spot)`
+ * index: a second tap, or a second tab, gets the row that is already there
+ * rather than a duplicate or an error the rider has to read.
+ *
+ * `user` is passed for the type's sake and is not what decides ownership — the
+ * hook in `60_ownership.pb.js` overwrites it from the token, so a body claiming
+ * somebody else's id writes a row belonging to the caller.
+ */
+export async function favouriteSpot(
+  client: Client,
+  userId: string,
+  spotId: string,
+): Promise<SpotFavouritesRecord> {
+  const existing = await records(client, 'spot_favourites').first(
+    'user = {:user} && spot = {:spot}',
+    { user: userId, spot: spotId },
+  );
+  if (existing) return existing;
+  return records(client, 'spot_favourites').create({ user: userId, spot: spotId });
+}
+
+/** Take a spot off the rider's faves. Silent when it was never on. */
+export async function unfavouriteSpot(
+  client: Client,
+  userId: string,
+  spotId: string,
+): Promise<void> {
+  const existing = await records(client, 'spot_favourites').first(
+    'user = {:user} && spot = {:spot}',
+    { user: userId, spot: spotId },
+  );
+  if (existing) await records(client, 'spot_favourites').remove(existing.id);
 }
