@@ -1723,10 +1723,3 @@ a.practiseLink:hover {
 .watchReport:focus-visible {
   color: var(--ink);
 }
-
-.watchNote {
-  margin: 9px 0 0;
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--ink-3);
-}
