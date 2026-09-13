@@ -223,7 +223,7 @@ export async function saveTrickAction(id: string, form: TrickForm): Promise<Staf
     // — and marking those "checked" would quietly claim somebody watched a
     // video they never opened. That claim is the only thing the `auto` filter
     // is for, so it has to be earned. Confirming an automatic pick *without*
-    // changing it is the row's own "Mark checked" button.
+    // changing it is "Approve and set live" in the row's video modal.
     const before = await records(staff.superuser, 'tricks').first('id = {:id}', { id });
     if (patch.video_id !== (before?.video_id ?? '')) {
       // A stored preview frame belongs to the id it was fetched for, so a swap
@@ -381,16 +381,23 @@ export async function setTrickVideoHiddenAction(
 }
 
 /**
- * Confirm an automatically-picked tutorial as watched and correct.
+ * Approve a tutorial and put it on the trick page — the review modal's
+ * "Approve and set live" (Rachid, 2026-09-13, in chat).
  *
  * The curation pass matched videos by title and channel without anybody
- * watching them (Rachid, 2026-09-13, in chat), so `video_source = 'auto'` means
- * "nobody has laid eyes on this". This is the button that says somebody has.
- * It exists separately from the editor because confirming a pick *as it stands*
- * changes no field the editor writes, and a save that changed nothing could not
- * be told apart from a save that skipped the video entirely.
+ * watching them, so `video_source = 'auto'` means "nobody has laid eyes on
+ * this". The button sits under the player, so pressing it is the claim that
+ * somebody now has. It exists separately from the editor because confirming a
+ * pick *as it stands* changes no field the editor writes, and a save that
+ * changed nothing could not be told apart from a save that skipped the video.
+ *
+ * **One write, both columns.** Approving a video that is switched off has to
+ * switch it on too — that is what "set live" means — and two writes would leave
+ * a window, or a failure, where it is marked watched and still off. Turning it
+ * on clears `video_off_reason` in the tricks hook, the same as the old "Show
+ * video" did.
  */
-export async function markTrickVideoCheckedAction(id: string): Promise<StaffWriteResult> {
+export async function approveTrickVideoAction(id: string): Promise<StaffWriteResult> {
   const staff = await requireStaff();
 
   try {
@@ -398,8 +405,8 @@ export async function markTrickVideoCheckedAction(id: string): Promise<StaffWrit
       actor: staff.actor,
       collection: 'tricks',
       id,
-      action: 'admin.trick_video_checked',
-      patch: { video_source: 'staff' as const },
+      action: 'admin.trick_video_approved',
+      patch: { video_source: 'staff' as const, video_hidden: false },
     });
   } catch (error) {
     return refusal(error, 'That did not save. Try again in a moment.');

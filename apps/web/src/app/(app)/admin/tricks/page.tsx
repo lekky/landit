@@ -87,6 +87,7 @@ export default async function AdminTricksPage() {
       videoSource: trick?.video?.source ?? '',
       videoOffReason: trick?.video?.offReason ?? '',
       videoCheckedAt: trick?.video?.checkedAt ?? '',
+      videoThumbPath: trick?.video?.thumbPath ?? '',
     };
   });
 

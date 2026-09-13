@@ -10,7 +10,7 @@
  * 2026-09-13, in chat). Every row is written with `video_source = 'auto'`,
  * which the staff portal shows as "Not checked" and can filter to, because
  * nobody watched any of these — they were matched from a search result's title
- * and channel. A staff member pressing "Mark checked" is what upgrades one.
+ * and channel. A staff member pressing "Approve and set live" is what upgrades one.
  *
  * **It never overwrites a human.** A trick whose video a person chose or
  * confirmed (`video_source = 'staff'`) is left exactly as it is, and so is one
