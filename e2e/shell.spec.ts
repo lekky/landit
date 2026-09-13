@@ -177,7 +177,7 @@ test('no bottom-bar label wraps, down to the narrowest phone anyone still uses',
   }
 });
 
-test('the avatar opens the four destinations that are not places to ride', async ({ page }) => {
+test('the avatar opens the five destinations that are not places to ride', async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 800 });
   await page.goto(SHELL);
 
@@ -192,6 +192,11 @@ test('the avatar opens the four destinations that are not places to ride', async
     ['Your account', '/account'],
     ['Coach / parent view', '/coach'],
     ['Plans and pricing', '/plans'],
+    // The two "tell us something" routes, adjacent and in this order. Ideas
+    // first: a rider unsure which of the two they want should see both, and the
+    // cheerful one comes before the safeguarding one in a menu most people open
+    // looking for their account.
+    ['Tell us an idea', '/suggest'],
     // Footer-only before this, underneath a scrolled page. The OSA codes ask
     // for a reporting route that is easy to find (plan §6.1).
     ['Report something', '/report'],
@@ -201,10 +206,10 @@ test('the avatar opens the four destinations that are not places to ride', async
 
   // And nothing about a staff portal, which is the visible half of the 404 an
   // ordinary rider meets at `/admin` (`lib/staff.ts`): no disabled row, no
-  // greyed label, no mention. Five rows, not four: the fifth is Sign out, which
+  // greyed label, no mention. Six rows, not five: the sixth is Sign out, which
   // is not a destination and has its own test below.
-  await expect(menu.getByRole('menuitem')).toHaveCount(5);
-  await expect(menu.locator('a[role="menuitem"]')).toHaveCount(4);
+  await expect(menu.getByRole('menuitem')).toHaveCount(6);
+  await expect(menu.locator('a[role="menuitem"]')).toHaveCount(5);
   await expect(menu.getByRole('menuitem', { name: 'Admin portal' })).toHaveCount(0);
 
   await page.keyboard.press('Escape');
@@ -212,7 +217,7 @@ test('the avatar opens the four destinations that are not places to ride', async
   await expect(trigger).toHaveAttribute('aria-expanded', 'false');
 });
 
-test('a staff account gets a fifth item, the admin portal, drawn as staff', async ({ page }) => {
+test('a staff account gets a sixth item, the admin portal, drawn as staff', async ({ page }) => {
   /*
    * `?staff=1` is the preview page's staff sample rider — the real flag comes
    * from `users.role` through `app/(app)/layout.tsx`, and the gate that decides
@@ -227,13 +232,13 @@ test('a staff account gets a fifth item, the admin portal, drawn as staff', asyn
   const menu = page.getByRole('menu');
 
   const items = menu.getByRole('menuitem');
-  await expect(items).toHaveCount(6);
+  await expect(items).toHaveCount(7);
 
   // Last of the *destinations* — Sign out sits below it and is not one.
   const links = menu.locator('a[role="menuitem"]');
   const admin = menu.getByRole('menuitem', { name: 'Admin portal', exact: true });
   await expect(admin).toHaveAttribute('href', '/admin');
-  await expect(links).toHaveCount(5);
+  await expect(links).toHaveCount(6);
   await expect(links.last()).toHaveAttribute('href', '/admin');
 
   // `--violet` (#8a3be0), and the 3px keyline that separates the register.

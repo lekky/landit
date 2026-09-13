@@ -76,6 +76,8 @@ export {
   type ReportInput,
 } from './account';
 
+export { fileSuggestion, type SuggestionInput } from './suggestions';
+
 export {
   isForbidden,
   isNotFound,
@@ -195,13 +197,16 @@ export {
   listAdminStickers,
   listReports,
   listStaffAudit,
+  listSuggestions,
   relationCountsFor,
   reportCounts,
   spotCounts,
+  suggestionCounts,
   setReportTriage,
   setRiderPlan,
   setRiderSuspended,
   setSpotStatus,
+  setSuggestionTriage,
   writeStaffAudit,
   type AdminChallengeFilter,
   type AdminEventFilter,

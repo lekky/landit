@@ -272,6 +272,7 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 | `spots` | Includes `status` (`pending`/`live`/`rejected`) and `submitted_by` — that is the review queue |
 | `events`, `event_attendance` | "I'm going" |
 | `announcements`, `announcement_dismissals` | Replaces `seenNotices`. `audience` field (all / plan / sport) per the composer |
+| `suggestions` | Added 2026-09-12. Rider (required — this route is signed-in only), `topic` (trick / feature / event / bug / other), detail, `status` (new / reviewing / accepted / declined), staff `note` the rider reads back. **Deliberately not a sixth `reports.subject_type`**: sharing that collection would share its rate limit, and a rider who spent it on ideas could not then file a safeguarding report (§7, `website-feedback-mechanism`) |
 | `audit_log` | Actor, action, entity, before, after. The handoff flags its absence explicitly |
 | `reports` | Reporter (nullable — the OSA wants a route for non-users too), subject (`profile` / `clip` / `spot`), reason, status, outcome, `complaint_of` self-link for appeals against our own moderation decisions. The safeguarding page promises reporting; the prototype has no flow for it — the collection goes in now so the buttons have somewhere to write |
 
@@ -4268,6 +4269,52 @@ It is `/account/close` now, and what is left behind is a line of text in the "Yo
 - **What deletion means is untouched.** Anonymise-and-retain (2026-08-17, above),
   `pocketbase/hooks/lib/erasure.js`, and both confirmations including the server-checked password.
   This task moved a screen.
+
+**`website-feedback-mechanism` · a suggestion box, separate from the report form (owner, 2026-09-12,
+in chat).** The owner asked for a way to collect ideas — new tricks, things the site should do,
+anything — and asked whether `/report` was the right home for it, as a new option in its dropdown.
+It is not, and the reason is a safety one rather than a question of tidiness.
+
+`/report` is the OSA route (§6.1, §6.5). It is rate-limited at five an hour and twenty open, every
+one of its reasons is harm-shaped, and it lands in the queue the safeguarding page promises to
+answer within one working day. Three things follow from putting ideas through it:
+
+- **A rider who spent the hourly allowance on trick requests could not then report a child in
+  danger.** That is the argument. The other two matter, but this one is on its own sufficient.
+- A moderator scanning for "somebody might hurt themselves" would be reading past "please add the
+  Bri Flip" to find it.
+- The screen's own copy would stop being true. It opens "Something here is not right" and ends by
+  naming 999; a "Suggest an idea" radio in that fieldset makes the page lie about itself — the same
+  softening T18 refused to make when it shipped the video subject disabled rather than hidden.
+
+**The leak already existed.** `reports.subject_type` has an `other` blurbed "Anything about Land The
+Trick itself", so feature ideas have been arriving in the safeguarding queue since T18, filed
+against a harm reason because there was no honest one to pick.
+
+So: **a second collection all the way down** — `suggestions`, `97_suggestions.pb.js`, its own rate
+limits (three an hour, ten open), its own staff tab — sharing only the report form's *shape*, which
+was already the right shape for somebody on a phone. `pocketbase/tests/suggestions.test.ts` proves
+the separation in both directions: spending the idea limit leaves the report route open, and five
+reports do not block an idea. Four decisions the owner made in the brief:
+
+- **Two entry points.** "Tell us an idea" in the account menu, beside "Report something" and before
+  it; and an in-context line at the foot of the trick library — "Missing a trick, or is one of these
+  named wrong?" — which is the one expected to do the work. A rider does not open their account menu
+  because they noticed a trick was missing. `suggestion_filed` carries `where`, so which of the two
+  earns the suggestions is a measurement rather than an argument.
+- **Riders only**, where `/report` is public. No duty asks for an anonymous suggestion box, and an
+  open free-text box pointed at a small team is a spam target. It is therefore in `GATED_ROUTES` and
+  out of the sitemap. A consent-limited rider *can* use it: that gate stops a child reaching other
+  riders (§3 guarantee 4), and a suggestion reaches nobody but us.
+- **A topic and a free-text box**, nothing else. Five topics — trick, feature, event, bug, other.
+  **No `spot` topic**, because the spots screen already has `AddSpotForm`, which writes a real
+  reviewable row; a second route for spot ideas would be a worse copy of a form that works.
+- **Staff's note is read back by the rider who sent the idea**, which is the one way the queue
+  differs from Moderation's `outcome`. `suggestions`' view rule limits a rider to their own rows.
+
+**Nothing a rider writes here is ever shown to another rider** — no idea board, no voting, no "most
+requested" page. Each of those renders one rider's typing to another, which is the stranger-contact
+surface §6.1 does not have.
 
 ### Dependency graph
 

@@ -200,14 +200,14 @@ describe('the top bar is untouched by the phone restructure', () => {
  * `/admin` layout and in every server action beneath it, and none of it is
  * reachable from here. What is worth pinning down is the half that is this
  * file's — that an ordinary rider is shown nothing at all about a portal, which
- * is the same answer the 404 gives, and that the four rider destinations are
- * not disturbed by a staff account seeing a fifth.
+ * is the same answer the 404 gives, and that the five rider destinations are
+ * not disturbed by a staff account seeing a sixth.
  */
 describe('accountMenuFor', () => {
-  it('gives an ordinary rider the four, and nothing that says a portal exists', () => {
+  it('gives an ordinary rider the five, and nothing that says a portal exists', () => {
     const menu = accountMenuFor(false);
 
-    expect(menu.map((item) => item.id)).toEqual(['account', 'coach', 'plans', 'report']);
+    expect(menu.map((item) => item.id)).toEqual(['account', 'coach', 'plans', 'suggest', 'report']);
     expect(menu.some((item) => item.href.startsWith('/admin'))).toBe(false);
     expect(menu.some((item) => item.staff)).toBe(false);
   });
@@ -221,9 +221,28 @@ describe('accountMenuFor', () => {
   it('adds the portal last for staff, leaving the rider destinations in place', () => {
     const menu = accountMenuFor(true);
 
-    expect(menu.map((item) => item.id)).toEqual(['account', 'coach', 'plans', 'report', 'admin']);
+    expect(menu.map((item) => item.id)).toEqual([
+      'account',
+      'coach',
+      'plans',
+      'suggest',
+      'report',
+      'admin',
+    ]);
     expect(menu.at(-1)).toBe(ACCOUNT_MENU_ADMIN);
-    expect(menu.slice(0, 4)).toEqual([...ACCOUNT_MENU]);
+    expect(menu.slice(0, 5)).toEqual([...ACCOUNT_MENU]);
+  });
+
+  it('keeps the two "tell us" routes adjacent, ideas before reports', () => {
+    /*
+     * Not decoration. `/suggest` exists because ideas filed as reports spend
+     * the safeguarding rate limit, and the thing that stops a rider filing one
+     * as the other is being able to see both at once. If a later edit separates
+     * them, or puts the safeguarding route first in a menu most people open
+     * looking for their account, this is the line that should argue about it.
+     */
+    const ids = ACCOUNT_MENU.map((item) => item.id);
+    expect(ids.indexOf('report') - ids.indexOf('suggest')).toBe(1);
   });
 
   it('marks only the portal as staff, which is what draws it differently', () => {
@@ -236,6 +255,6 @@ describe('accountMenuFor', () => {
 
   it('never mutates the shared list it builds from', () => {
     accountMenuFor(true);
-    expect(ACCOUNT_MENU).toHaveLength(4);
+    expect(ACCOUNT_MENU).toHaveLength(5);
   });
 });

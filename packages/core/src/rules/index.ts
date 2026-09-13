@@ -301,6 +301,19 @@ export {
 } from './slug';
 export { computeSportStats, computeStats, sportsOf, type StatsCatalogue } from './stats';
 export {
+  SUGGESTION_DETAIL_MAX,
+  SUGGESTION_MAX_OPEN,
+  SUGGESTION_MAX_PER_WINDOW,
+  SUGGESTION_TOPICS,
+  SUGGESTION_TOPIC_IDS,
+  SUGGESTION_WINDOW_MINUTES,
+  isSuggestionTopic,
+  suggestionProblems,
+  suggestionTopicLabel,
+  type SuggestionDraft,
+  type SuggestionTopicId,
+} from './suggestions';
+export {
   FOUNDER_JOINED_BY,
   KIND_DEFAULT_N,
   KIND_RULES,

@@ -100,6 +100,21 @@ export const ROUTES = {
    */
   report: '/report',
   /**
+   * Telling us what to build (2026-09-12).
+   *
+   * The other half of `/report`, and separate from it on purpose: a report is
+   * the Online Safety Act route with a safeguarding queue and a five-an-hour
+   * cap behind it, and ideas sharing that cap would mean a rider could spend
+   * their ability to report harm on trick requests. Reasoned in full in the
+   * page's own doc comment.
+   *
+   * **Gated, where `/report` is public.** No legal duty asks for an anonymous
+   * suggestion box, and an open free-text box pointed at a small team is a spam
+   * target (owner decision, 2026-09-12, in chat). It is therefore in
+   * `GATED_ROUTES` and not in the sitemap.
+   */
+  suggest: '/suggest',
+  /**
    * Membership (T15). The one screen in the app group that reads signed out:
    * the site footer links it, and a person deciding whether to sign up should
    * not have to sign up to find out what it costs.
@@ -153,6 +168,7 @@ export const ROUTES = {
   adminNotices: '/admin/notices',
   adminPlans: '/admin/plans',
   adminModeration: '/admin/moderation',
+  adminSuggestions: '/admin/suggestions',
 } as const satisfies Record<string, Route>;
 
 /**
@@ -350,6 +366,22 @@ export const reportHref = (subject?: { type: string; id?: string }): Route => {
   const query = new URLSearchParams({ about: subject.type });
   if (subject.id) query.set('id', subject.id);
   return `${ROUTES.report}?${query.toString()}`;
+};
+
+/**
+ * The suggestion box, pointed at a topic and stamped with where it was opened.
+ *
+ * `from` is a fixed id chosen by the caller, never a URL and never anything a
+ * rider typed: it becomes an analytics property, and the catalogue's rule is
+ * that only facts this repo wrote may travel (`lib/analytics.ts`). The page
+ * re-checks it against the same short list rather than trusting the query.
+ */
+export const suggestHref = (about?: string, from?: string): Route => {
+  const query = new URLSearchParams();
+  if (about) query.set('about', about);
+  if (from) query.set('from', from);
+  const search = query.toString();
+  return search ? `${ROUTES.suggest}?${search}` : ROUTES.suggest;
 };
 
 /** The appeal form, for a complaint about how we handled a report. */

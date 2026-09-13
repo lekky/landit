@@ -61,4 +61,14 @@ export const GATED_ROUTES: readonly Route[] = [
   ROUTES.coach,
   ROUTES.account,
   ROUTES.onboarding,
+  /*
+   * The suggestion box, which is the one route here that a reader might expect
+   * to find in the list above: its sibling `/report` is public. It is not, and
+   * the difference is a decision rather than an oversight — the reporting route
+   * is public because the OSA codes require a route for somebody with no
+   * account, and no duty asks the same of a suggestion box (owner,
+   * 2026-09-12, in chat). It redirects a signed-out visitor to `/signin`, so
+   * advertising it would be advertising a redirect.
+   */
+  ROUTES.suggest,
 ];

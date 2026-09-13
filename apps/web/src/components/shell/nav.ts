@@ -42,13 +42,13 @@ import { ROUTES } from '@/lib/routes';
  * filter rather than as navigation (issue #379, item 5). `alsoActiveFor` is
  * what keeps the bar lit while a rider is on either screen.
  *
- * The four destinations that are not sections — Account, Coach view, Plans and
- * Report something — are account-shaped rather than places to ride, and they
- * live behind the top bar's avatar in `AccountMenu`, at every width. That is
- * also how `/report` stops being footer-only, which the OSA codes' "easy to
- * find" wording is better served by (plan §6.1). Staff accounts see a fifth
- * item there, the admin portal, and nobody else does — `accountMenuFor` at the
- * foot of this file.
+ * The five destinations that are not sections — Account, Coach view, Plans,
+ * Tell us an idea and Report something — are account-shaped rather than places
+ * to ride, and they live behind the top bar's avatar in `AccountMenu`, at every
+ * width. That is also how `/report` stops being footer-only, which the OSA
+ * codes' "easy to find" wording is better served by (plan §6.1). Staff accounts
+ * see a sixth item there, the admin portal, and nobody else does —
+ * `accountMenuFor` at the foot of this file.
  */
 
 export type NavItem = {
@@ -246,7 +246,7 @@ export function activeSection(pathname: string): NavItem | undefined {
  * What the top bar's avatar opens (`AccountMenu`).
  *
  * Here rather than in the component because it is navigation, and because the
- * covers-everything test above has to be able to count it: these four are the
+ * covers-everything test above has to be able to count it: these five are the
  * reason Plans does not need a cell in a five-item bar, and the reason
  * `/report` is no longer reachable on a phone only from the site footer.
  */
@@ -267,14 +267,26 @@ export const ACCOUNT_MENU: readonly AccountMenuItem[] = [
   { id: 'account', label: 'Your account', href: ROUTES.account },
   { id: 'coach', label: 'Coach / parent view', href: ROUTES.coach },
   { id: 'plans', label: 'Plans and pricing', href: ROUTES.plans },
+  /*
+   * The two "tell us something" routes, in this order and next to each other.
+   *
+   * Ideas first, deliberately. The register descends — account, plans, an idea,
+   * something wrong — and a rider scanning the menu meets the cheerful one
+   * before the safeguarding one, which is the right way round for a list most
+   * people open looking for their account. They are adjacent because a rider
+   * who is not sure which of the two they want should be able to see both
+   * without scrolling, and because that adjacency is what stops ideas being
+   * filed as reports (`/suggest`'s doc comment).
+   */
+  { id: 'suggest', label: 'Tell us an idea', href: ROUTES.suggest },
   { id: 'report', label: 'Report something', href: ROUTES.report },
 ];
 
 /**
  * The staff portal's way in, for the handful of accounts that have one.
  *
- * Last, and behind a heavier keyline than the four above it (`additions.css`),
- * because it is a different register: the four are about the rider reading
+ * Last, and behind a heavier keyline than the five above it (`additions.css`),
+ * because it is a different register: the five are about the rider reading
  * them, and this one is about everybody else's data. It is not in `TOP_NAV` or
  * `MOBILE_NAV` — a link two people use does not earn a cell in a five-item bar,
  * and the menu is already the place for destinations that are not places to

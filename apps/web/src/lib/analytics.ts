@@ -215,6 +215,25 @@ export const ANALYTICS_EVENTS = {
   consentDecided: 'consent_decided',
   /** A report was filed. **That** it happened, and what kind — never a word of it. */
   reportFiled: 'report_filed',
+  /**
+   * An idea was sent (`/suggest`). **That** it happened, what kind, and which
+   * entry point it came from — never a word of the idea itself.
+   *
+   * `about` is one of the five ids in `SUGGESTION_TOPICS`
+   * (`packages/core/src/rules/suggestions.ts`) and `where` is one of `library`,
+   * `account-menu` or `direct`: two closed lists this repo wrote, which is what
+   * makes them sendable under the rule at the head of this file. The free-text
+   * box next to them is exactly the kind of thing that must never travel, and
+   * the reason `autocapture` is off.
+   *
+   * It is filed under safeguarding only because it sits beside `report_filed`
+   * in the code; the two counts answer opposite questions. This one is the
+   * first measure of whether riders will tell us anything when the box is not
+   * a complaint — and `where` is what says whether the in-context link under
+   * the library beats the entry buried in the account menu, which is the one
+   * design question this feature could not answer in advance.
+   */
+  suggestionFiled: 'suggestion_filed',
 
   /* --------------------------------------------------------- onboarding -- */
   onboardingStep: 'onboarding_step',

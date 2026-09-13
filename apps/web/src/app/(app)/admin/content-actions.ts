@@ -9,6 +9,7 @@ import {
   refusalMessage,
   setReportTriage,
   setSpotStatus,
+  setSuggestionTriage,
   type AnnouncementsAudience,
   type AnnouncementsAudiencePlan,
   type AnnouncementsAudienceSport,
@@ -18,6 +19,7 @@ import {
   type ReportsStatus,
   type SpotsSports,
   type SpotsStatus,
+  type SuggestionsStatus,
   type TricksCat,
   type TricksSport,
 } from '@landit/db';
@@ -897,6 +899,37 @@ export async function setReportTriageAction(
   }
 
   revalidateContent(ROUTES.adminModeration);
+  return { ok: true };
+}
+
+/**
+ * Triage a suggestion.
+ *
+ * The ideas queue's only write, and the note it carries is the one thing in the
+ * staff portal written *to* a rider: `suggestions` lets whoever sent an idea
+ * read their own row back, note included. So it is stored as typed, trimmed to
+ * the field's 600, and never summarised on the way in.
+ *
+ * Separate from `setReportTriageAction` all the way down to the collection it
+ * touches — see `/suggest` for why the two queues are not one.
+ */
+export async function setSuggestionTriageAction(
+  id: string,
+  status: SuggestionsStatus,
+  note: string,
+): Promise<StaffWriteResult> {
+  const staff = await requireStaff();
+
+  try {
+    await setSuggestionTriage(staff.superuser, staff.actor, id, {
+      status,
+      note: note.trim().slice(0, 600),
+    });
+  } catch (error) {
+    return refusal(error, 'That did not save. Try again in a moment.');
+  }
+
+  revalidateContent(ROUTES.adminSuggestions);
   return { ok: true };
 }
 

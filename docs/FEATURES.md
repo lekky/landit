@@ -29,8 +29,8 @@ consent gates under-threshold riders; there is deliberately no stranger-contact 
 | World | `/spots`, `/spots/[slug]`, `/events`, `/events/[slug]`, `/events/past`, `/events/past/[year]/[town]` | 98 researched real venues plus ~3,100 French skateparks imported from the Ministry of Sport’s open-data census (issue #362: seeded once and never overwritten, `sports: ['skate']` and `operating: unknown` until staff say otherwise, every row stamped with an internal `source`/`licence`, credited in the line under the map) and ~25,300 more worldwide from the world import (2026-09-11: the places on Trucks and Fins' map, matched to OpenStreetMap within 150 m where it has them — about 60% — facts only, no prose or photos; pump tracks listed for BMX; internal licence column records that no licence was granted; credited as OpenStreetMap contributors and GeoNames) and ~7,700 OpenStreetMap-only parks whose outline encloses at least 300 m² (#390: plain ODbL, private and point-only objects left out) on a MapLibre/OpenFreeMap map (no key, no account), served a page of 24 at a time from the server — search, sport and feature filters are PocketBase queries mirroring the core rules, the reader’s country leads the order, and "Near me" sorts a compact point list in the browser then fetches the nearest cards by id (issue #367; plan §6.4 standard 10 as amended 2026-09-08), and "Search this area" — offered over the map once a rider has moved it — narrows the list to the spots in view, nearest its middle first, the same way (the view never leaves the browser, the map stops re-framing itself while an area is held, and a "This area ×" pill or "Near me" ends it), and the map draws every matching spot — grouped into numbered blocks where they crowd, each opening to the zoom at which it splits, with the chosen spot always its own pin (issue #388; the compact point list is fetched whenever the map is on screen) — with a Plain/Detail ground toggle, opening on Detail (there is no satellite layer — see plan §7 T13) + rider submissions; on a phone the map is a sheet that comes up when a spot is chosen — three quarters of the screen, above the nav rather than over it, and modal: a scrim, the page held still behind it, and one finger dragging the map rather than the list; filtered by a multi-select sport row — “Every spot” plus one pill per sport, opening on every spot, any combination allowed, and the same three sports for every rider whatever their profile records (2026-09-12; the global sport tabs are gone from this screen and from `/events`). Every approved spot also has a public, crawlable page of its own at `/spots/[slug]` — a "What's here" grid explaining each feature in plain words, the exact map pin, the listing with explicit "not listed" states, and the nearest other spots; only `status = 'live'` spots get one, and the submitter is never shown; the world import's pages carry `noindex` and are left out of the sitemap, and each page reads only the spots around it for its onward list. The map's point list (every live spot) is read once and served from the web server's memory for five minutes, refreshed in the background (issue #393). 74 researched events with "I'm going", each with a public page of its own carrying the listing, a schematic town-accurate map, and what else is on nearby (upcoming / today / over, derived per request from the reader's clock; past events keep their page and stay in the sitemap). The calendar shows upcoming events only and the archive at `/events/past` shows finished ones only — two routes over one split made in `@landit/core`, with a year-and-town index that lists **only** the corners holding events (an empty corner a reader types answers with an empty state and `noindex`). An event row's name links to its page, the Details modal is kept as the quick look and is addressable at `?event=slug`, and a spot card is a link to its page with map selection moved to an explicit "Show on map" button. Both readable signed out; distances use the reader's units; geolocation is never prompted for unless a rider presses for it (both screens re-read it on load where the browser already grants it, and the calendar says "Nearest first" while it does), announced whenever it is in hand, kept in memory only, never sent to the server. |
 | Social | `/crew`, `/join/[code]`, `/riders/[handle]` | Up to 5 owned crews, server-minted invite codes (25 uses / 14 days), crew board + fixed-sentence activity feed, public profiles. |
 | Money | `/plans`, Stripe Checkout | Rookie free / Shredder £3.99 / Legend £6.99 monthly (yearly ≈ 2 months free). Under-16s never see a payment form — the guardian gets a checkout link by email. |
-| Account | `/account`, `/account/close`, `/coach`, `/report` | Profile editor (sports, avatar, level, goal, stance) that saves as a rider changes it, with no Save button — an answer that is not yet complete is held rather than written, so the stored one survives; privacy is the deliberate exception and keeps its button. Guardian panel and data export; account closure on a page of its own, linked from the data panel rather than sitting on the account screen; read-only coach view (free, unlisted); report/appeal form that works signed out. |
-| Staff | `/admin` + 9 tabs | See below. Hidden from non-staff with a 404, not a 403, and absent from their account menu. |
+| Account | `/account`, `/account/close`, `/coach`, `/report`, `/suggest` | Profile editor (sports, avatar, level, goal, stance) that saves as a rider changes it, with no Save button — an answer that is not yet complete is held rather than written, so the stored one survives; privacy is the deliberate exception and keeps its button. Guardian panel and data export; account closure on a page of its own, linked from the data panel rather than sitting on the account screen; read-only coach view (free, unlisted); report/appeal form that works signed out; suggestion box (`/suggest`, riders only) for tricks, features, events and bugs — a separate collection from reports, so ideas cannot spend the safeguarding rate limit. |
+| Staff | `/admin` + 10 tabs | See below. Hidden from non-staff with a 404, not a 403, and absent from their account menu. |
 
 ## Data model (PocketBase)
 
@@ -43,7 +43,8 @@ snapshot, capped at 50 per trick in a hook), `clips` (now YouTube-link rows — 
 clip-hosting feature), `stickers` + `rider_stickers` (hook-written only), `crews` + `crew_members`
 + `crew_invites`, `challenges` + `challenge_log`, `spots` (pending/live/rejected), `events` +
 `event_attendance` (own-only, so "who else is going" cannot exist), `announcements` +
-dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-only).
+dismissals, `reports` (open create, incl. signed out), `suggestions` (signed-in create, own-read,
+staff `note` read back by its sender), `audit_log` (superuser-only).
 
 ## Server-side enforcement (pocketbase/hooks — the four guarantees plus the rest)
 
@@ -61,7 +62,9 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
   no crews, no spots, no events, no subscription — until a guardian approves by email; consent
   lapses and releases automatically on age-band boundaries at next sign-in.
 - **Rate limits**: handle changes 20/h; spot submissions 3/h + 10 pending; consent requests 3/h,
-  10/day, 5/day per guardian address; reports 5/h + 20 open; exports 5/h.
+  10/day, 5/day per guardian address; reports 5/h + 20 open; suggestions 3/h + 10 open, counted
+  against their own collection so ideas and safeguarding reports never share an allowance;
+  exports 5/h.
 - **Also server-owned**: role/plan/consent/suspension/streak fields frozen against client writes;
   sticker awards; one live challenge per sport with a log window; subscription→plan resolution
   (staff overrides outrank provider rows); an audit row for every staff-collection write; the
@@ -109,11 +112,12 @@ dismissals, `reports` (open create, incl. signed out), `audit_log` (superuser-on
 
 - **No stranger contact**: no messaging, no DMs, no algorithmic feed, no crew discovery or search,
   no "who else is going", no comments. The only rider-authored free text that leaves them goes to
-  staff (reports) or stays owner-only (notes).
+  staff (reports and suggestions) or stays owner-only (notes). **No idea board and no voting** —
+  a suggestion is read by staff and by the rider who sent it, never by another rider.
 - **No video hosting** (reversed 2026-08-17): riders link YouTube videos instead.
 - **No DOB stored**, no geolocation stored, no third-party map account (OpenFreeMap). PostHog is
   wired but **cookie-less and profile-less** — no cookie, no device storage, no `identify()`, no
-  autocapture, no session replay, and inert without a key. 47 hand-written events cover nearly
+  autocapture, no session replay, and inert without a key. 58 hand-written events cover nearly
   every rider action; autocapture is refused on purpose, because it would send the text of what
   was clicked. Riders are counted by a server-side hash that is re-salted nightly, so "unique"
   means unique per day (Sentry is wired but inert without a DSN).
@@ -133,7 +137,8 @@ sheet with email/age/last ride/plan, the latest guardian request — address, st
 per-rider so no other guardian's address is in the page — plan override, suspend); tricks (copy, tier, and the T28
 content — why it's this tier, and three or four common mistakes as what/fix rows), stickers,
 spots (approve/reject), events, challenges, notices, plans (copy + display prices only —
-entitlement flags read-only); moderation queue for reports/appeals. Every mutation is audited
+entitlement flags read-only); moderation queue for reports/appeals; an Ideas queue over
+`suggestions`, deliberately a separate tab over a separate collection. Every mutation is audited
 twice (app layer + hook layer). Under 900px wide the riders, tricks, stickers and spots tables
 show each row as a card with its column names printed in it, and events and challenges scroll
 sideways with the name column pinned; at 900px and above every table is unchanged.

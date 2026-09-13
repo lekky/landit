@@ -1,0 +1,22 @@
+/*
+ * The in-context link into `/suggest`.
+ *
+ * One rule, and that is the design: it is a line of text under a screen's real
+ * content, not a panel competing with it. The link inherits the app's own link
+ * styling, including the global `a:hover` (issue #297), so nothing here sets a
+ * colour.
+ *
+ * The keyline is `2.5px solid var(--wash)`, which is this codebase's light
+ * separator — the same one the admin tables, the coach view and the trick page
+ * use. Not `var(--bd)`: a 3px ink rule is the design's *structural* line and
+ * would make this read as the start of a new section rather than the end of the
+ * one above it.
+ */
+
+.prompt {
+  color: var(--ink-3);
+  font-size: 13px;
+  margin: 26px 0 0;
+  padding-top: 14px;
+  border-top: 2.5px solid var(--wash);
+}
