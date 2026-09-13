@@ -1,3 +1,4 @@
+import { SPORT_IDS } from '@landit/core';
 import { describe, expect, it } from 'vitest';
 
 import { pageWindows, spotListFilter, spotPlaceFilters } from './spots';
@@ -23,9 +24,31 @@ describe('spotListFilter', () => {
 
   it('lets a park with no sports listed match every sport', () => {
     const { filter, params } = spotListFilter({ sport: 'bmx' });
-    expect(params).toEqual({ sport: 'bmx' });
-    expect(filter).toContain('sports:each ?= {:sport}');
+    expect(params).toEqual({ sport0: 'bmx' });
+    expect(filter).toContain('sports:each ?= {:sport0}');
     expect(filter).toContain('sports:length = 0');
+  });
+
+  it('ORs the chosen sports, with one escape for the untagged park', () => {
+    const { filter, params } = spotListFilter({ sports: ['scooter', 'bmx'] });
+    expect(params).toEqual({ sport0: 'scooter', sport1: 'bmx' });
+    expect(filter).toContain(
+      '(sports:each ?= {:sport0} || sports:each ?= {:sport1} || sports:length = 0)',
+    );
+  });
+
+  it('asks for no sport clause when every sport is chosen', () => {
+    // Every sport matches everything the unfiltered query matches, and three
+    // `:each` scans of a JSON column to prove it is three scans wasted.
+    expect(spotListFilter({ sports: [...SPORT_IDS] })).toEqual({
+      filter: "status = 'live'",
+      params: {},
+    });
+  });
+
+  it('prefers the chosen list over the single sport a caller also sent', () => {
+    const { params } = spotListFilter({ sport: 'skate', sports: ['bmx'] });
+    expect(params).toEqual({ sport0: 'bmx' });
   });
 
   it('matches a feature as a whole tag, quotes included, case folded', () => {
@@ -35,7 +58,7 @@ describe('spotListFilter', () => {
   });
 
   it('leaves out a clause whose value is empty or null', () => {
-    expect(spotListFilter({ search: '   ', sport: null, feature: '' }).filter).toBe(
+    expect(spotListFilter({ search: '   ', sport: null, sports: [], feature: '' }).filter).toBe(
       "status = 'live'",
     );
   });

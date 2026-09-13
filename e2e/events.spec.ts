@@ -1,3 +1,4 @@
+import { SPORT_IDS } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
 import { seedLibrary } from './support/seed-library';
@@ -58,7 +59,22 @@ function birthDate(years: number): string {
     .slice(0, 10);
 }
 
-async function newRider(page: Page): Promise<void> {
+/**
+ * A rider who signs up and keeps onboarding's default single sport.
+ *
+ * The case the sport filter was rebuilt for (owner, 2026-09-12). `SportSwitch`
+ * renders nothing below two sports and is fed by the rider's own
+ * `users.sports`, so this rider used to reach `/events` with no tab row at all
+ * and a lone pill reading "Good for Scooter" — every scooter-less event on the
+ * calendar hidden, with no control on the screen that could bring it back.
+ */
+async function newRiderOneSport(page: Page): Promise<void> {
+  await signUp(page);
+  await finishOnboarding(page);
+  await page.waitForURL('**/home');
+}
+
+async function signUp(page: Page): Promise<void> {
   await page.goto('/signup');
   await page.getByLabel('Your name').fill('Events Tester');
   await page.getByLabel('Email').fill(`e2e-events-${unique()}@landit.invalid`);
@@ -68,6 +84,10 @@ async function newRider(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Create account' }).click();
 
   await page.waitForURL('**/onboarding');
+}
+
+async function newRider(page: Page): Promise<void> {
+  await signUp(page);
   await pickEverySport(page);
   await finishOnboarding(page);
   await page.waitForURL('**/home');
@@ -122,10 +142,17 @@ test('"I’m going" sticks across a reload', async ({ page }) => {
   await newRider(page);
   await page.goto('/events');
 
-  // Only the one upcoming event is on the list by default, so this is unambiguous.
+  /*
+   * Scoped to the Jam's own row. The calendar used to hold a single upcoming
+   * event, so a bare "I'm going" was unambiguous; the seed gained a second one
+   * on 2026-09-12 (the BMX-only comp the sport filter needs in order to have
+   * something to hide), and an unscoped locator now finds two buttons and
+   * fails on strict mode — the locator doing its job.
+   */
+  const jam = page.locator('[class*="row"]').filter({ hasText: 'E2E Northern Jam' });
   await expect(page.getByText('E2E Northern Jam')).toBeVisible();
-  await page.getByRole('button', { name: "I'm going" }).click();
-  await expect(page.getByRole('button', { name: '✓ Going' })).toBeVisible({ timeout: 15_000 });
+  await jam.getByRole('button', { name: "I'm going" }).click();
+  await expect(jam.getByRole('button', { name: '✓ Going' })).toBeVisible({ timeout: 15_000 });
 
   // The toast fires only after `setAttendanceAction` resolves (EventsScreen's
   // startTransition awaits it), so it is the one signal on this screen the
@@ -138,7 +165,12 @@ test('"I’m going" sticks across a reload', async ({ page }) => {
   });
 
   await page.reload();
-  await expect(page.getByRole('button', { name: '✓ Going' })).toBeVisible();
+  await expect(
+    page
+      .locator('[class*="row"]')
+      .filter({ hasText: 'E2E Northern Jam' })
+      .getByRole('button', { name: '✓ Going' }),
+  ).toBeVisible();
   await expect(page.getByText(/You’re down for 1 event/)).toBeVisible();
 });
 
@@ -203,6 +235,66 @@ test('the archive index only offers corners that hold something', async ({ page 
     page.getByRole('heading', { level: 2, name: /No past events listed/ }),
   ).toBeVisible();
   await expect(page.locator('meta[name="robots"][content*="noindex"]')).toHaveCount(1);
+});
+
+test('the calendar opens on every sport, whatever the rider rides', async ({ page }) => {
+  /*
+   * The defect (owner, 2026-09-12: "it should default to every sport… but also
+   * it only shows every sport or good for skate. Where are the other options?").
+   *
+   * A rider who records one sport got a calendar filtered to it, and a filter
+   * they could not widen past two states — the tab row that chose the sport is
+   * not rendered below two sports. Both halves are asserted here: what the
+   * screen opens showing, and what it offers.
+   */
+  await newRiderOneSport(page);
+  await page.goto('/events');
+
+  // An event for a sport this rider does not ride is on the calendar anyway,
+  // because the calendar is what is on and not what they ride.
+  await expect(page.getByText('E2E BMX Only Comp')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Every sport' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+
+  // And every sport is offered, to a rider who rides one of them.
+  const row = page.getByRole('group', { name: 'Filter events by sport' });
+  await expect(row.getByRole('button')).toHaveCount(SPORT_IDS.length + 1);
+  // The global tab row is gone from this screen — the filter row replaced it.
+  await expect(page.getByRole('tablist', { name: 'Events by sport' })).toHaveCount(0);
+});
+
+test('the sport pills narrow the calendar, one sport or several', async ({ page }) => {
+  /*
+   * "Pick everything, or one of each, or multiple" (owner, 2026-09-12). The
+   * control this replaced could say one sport or all of them and nothing in
+   * between.
+   */
+  await newRider(page);
+  await page.goto('/events');
+
+  const row = page.getByRole('group', { name: 'Filter events by sport' });
+  const bmxOnly = page.getByText('E2E BMX Only Comp');
+  const everySport = page.getByText('E2E Northern Jam');
+
+  // One sport: the BMX-only comp goes when the calendar is narrowed to skate,
+  // and the event that is good for every sport stays.
+  await row.getByRole('button', { name: /^Skate/ }).click();
+  await expect(bmxOnly).toHaveCount(0);
+  await expect(everySport).toBeVisible();
+
+  // Several: adding BMX brings it back rather than replacing skate. Any of the
+  // chosen sports matches, so this is both calendars at once.
+  await row.getByRole('button', { name: /^BMX/ }).click();
+  await expect(row.getByRole('button', { name: /^Skate/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(bmxOnly).toBeVisible();
+  await expect(everySport).toBeVisible();
+
+  // And back to everything, which is where it started.
+  await page.getByRole('button', { name: 'Every sport' }).click();
+  await expect(row.getByRole('button', { name: /^BMX/ })).toHaveAttribute('aria-pressed', 'false');
+  await expect(bmxOnly).toBeVisible();
 });
 
 test('the kind pills offer the kinds the half on screen actually holds', async ({ page }) => {

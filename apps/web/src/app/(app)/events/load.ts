@@ -2,10 +2,8 @@ import {
   DEFAULT_TIMEZONE,
   SPORT_IDS,
   regionFromAcceptLanguage,
-  sportsOf,
   unitsForCountry,
   type DistanceUnits,
-  type SportId,
 } from '@landit/core';
 import { eventsFromRecords, listEventAttendance, listEvents } from '@landit/db';
 import { headers } from 'next/headers';
@@ -64,12 +62,17 @@ export async function loadEvents(
   const view = buildEventsView({
     events: eventsFromRecords(eventRecords),
     /*
-     * A visitor gets every sport, not `sportsOf`'s lone-rider default of
-     * scooter: the shell shows a visitor all three tabs, and a tab whose note
-     * is missing from `countBySport` reads as "0 on" — a calendar that looks
-     * empty for skate and BMX before anybody has filtered anything.
+     * Every sport, for everybody — a rider's own `users.sports` is not consulted
+     * here any more (Rachid, 2026-09-12, in chat).
+     *
+     * This used to be the rider's sports, because the screen's filter could
+     * only reach the sport the global switch was on. The filter is now a
+     * multi-select over `SPORT_IDS` (`SportFilter`), so a rider who records
+     * only skate can still ask for BMX — and a count missing from
+     * `countBySport` would render on that BMX pill as "0" while the calendar
+     * behind it was full.
      */
-    sports: session ? sportsOf({ sports: session.rider.sports as SportId[] }) : [...SPORT_IDS],
+    sports: [...SPORT_IDS],
     going,
     clock: { timezone: session?.rider.timezone || DEFAULT_TIMEZONE },
     scope,

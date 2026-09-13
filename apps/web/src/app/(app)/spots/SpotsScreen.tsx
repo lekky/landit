@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  SPORTS,
   spotCredits,
   distanceLabelIn,
   filterSpots,
@@ -19,8 +18,9 @@ import { Button, Empty, Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { runActionOr } from '@/lib/runAction';
+import { sportFilterProperty } from '@/lib/sportFilter';
 
-import { SportSwitch } from '@/components/shell/SportSwitch';
+import { SportFilter } from '@/components/filters/SportFilter';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { reportHref, spotHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
@@ -88,9 +88,15 @@ const SEARCH_DEBOUNCE_MS = 250;
  */
 const SHEET_WIDTH = '(max-width: 860px)';
 
-/** The list query, as one string, so "did it change" is one comparison. */
-function queryKey(search: string, sport: SportId | null, feature: string | null): string {
-  return `${search.trim().toLowerCase()}|${sport ?? ''}|${feature ?? ''}`;
+/**
+ * The list query, as one string, so "did it change" is one comparison.
+ *
+ * The sports are joined in `SPORT_IDS` order — `SportFilter` hands them over
+ * that way whatever order they were pressed in — so choosing scooter then BMX
+ * and choosing BMX then scooter are the same query and do not refetch.
+ */
+function queryKey(search: string, sports: readonly SportId[], feature: string | null): string {
+  return `${search.trim().toLowerCase()}|${sports.join('+')}|${feature ?? ''}`;
 }
 
 /** What the server has handed over so far for one query. */
@@ -157,20 +163,17 @@ interface Loaded {
 export function SpotsScreen({
   initialSpots,
   initialTotal,
-  initialSport,
   countsBySport,
   ownSpots,
   signedIn,
   units,
   initialFeature = null,
 }: {
-  /** The first page, rendered on the server for `initialSport` and `initialFeature`. */
+  /** The first page, rendered on the server unfiltered but for `initialFeature`. */
   readonly initialSpots: readonly SpotView[];
   /** How many spots that first query matches in all. */
   readonly initialTotal: number;
-  /** The sport the server rendered the first page for — the provider's default. */
-  readonly initialSport: SportId;
-  /** Live spots per sport, over the whole collection, for the tab row's note. */
+  /** Live spots per sport, over the whole collection, for the filter pills' counts. */
   readonly countsBySport: Readonly<Record<string, number>>;
   /** The rider's own submissions that are not on the map: pending or turned down. */
   readonly ownSpots: readonly SpotView[];
@@ -184,7 +187,11 @@ export function SpotsScreen({
    */
   readonly initialFeature?: string | null;
 }) {
-  const { sports, sport } = useSport();
+  /*
+   * The rider's own sports, and only for the "Add a spot" form's default ticks.
+   * The list is no longer filtered by the global switch — see the filter row.
+   */
+  const { sports: ownSports } = useSport();
 
   const [search, setSearch] = useState('');
   /*
@@ -207,7 +214,18 @@ export function SpotsScreen({
    */
   const [feature, setFeature] = useState<string | null>(initialFeature);
   const featureLabel = feature ? (spotFeature(feature)?.label ?? feature) : null;
-  const [everySport, setEverySport] = useState(false);
+  /*
+   * Which sports the list is narrowed to. **Empty is every spot, and empty is
+   * where it opens** (Rachid, 2026-09-12, in chat).
+   *
+   * It used to be `everySport`, a boolean starting `false` — so the screen
+   * opened filtered to whatever sport the global switch was on, and the only
+   * way to another sport was to change that switch, which changed home, the
+   * library and progress with it. On a rider who records one sport the switch
+   * is not rendered at all (`SportSwitch` needs two), so the other sports'
+   * spots were unreachable. See `SportFilter`.
+   */
+  const [sports, setSports] = useState<readonly SportId[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /*
    * Whether the map sheet is up. **Only a phone can see this** — the sheet
@@ -316,8 +334,7 @@ export function SpotsScreen({
 
   /* ------------------------------------------------------- the query -- */
 
-  const querySport = everySport ? null : sport;
-  const key = queryKey(settledSearch, querySport, feature);
+  const key = queryKey(settledSearch, sports, feature);
 
   /*
    * Every reply is checked against the request that is *current* when it
@@ -350,7 +367,9 @@ export function SpotsScreen({
   /* ---------------------------------------------------- home-first mode -- */
 
   const [loaded, setLoaded] = useState<Loaded>(() => ({
-    key: queryKey('', initialSport, initialFeature),
+    // The server renders the unfiltered first page, which is the query the
+    // screen opens on — so there is no swap on hydration any more.
+    key: queryKey('', [], initialFeature),
     spots: initialSpots,
     total: initialTotal,
     page: 1,
@@ -368,7 +387,7 @@ export function SpotsScreen({
       // left the list simply stopped, with nothing on screen saying why.
       const result = await runActionOr(
         'spots_page',
-        () => spotsPageAction({ search: settledSearch, sport: querySport, feature }, page),
+        () => spotsPageAction({ search: settledSearch, sports, feature }, page),
         // The empty page beside the message is what the type asks for; the
         // branch below reads `error` first and never gets as far as it.
         (error) => ({ error, spots: [], total: 0 }),
@@ -387,7 +406,7 @@ export function SpotsScreen({
         page,
       }));
     },
-    [settledSearch, querySport, feature, remember],
+    [settledSearch, sports, feature, remember],
   );
 
   const nearMode = here.point !== null;
@@ -460,9 +479,8 @@ export function SpotsScreen({
    * draws (issue #388), and what both orderings below start from.
    */
   const matchingPoints = useMemo(
-    () =>
-      points ? filterSpots(points, { search: settledSearch, sport: querySport, feature }) : null,
-    [points, settledSearch, querySport, feature],
+    () => (points ? filterSpots(points, { search: settledSearch, sports, feature }) : null),
+    [points, settledSearch, sports, feature],
   );
 
   /** The nearest-first list, narrowed by the same query, as ids in order. */
@@ -838,15 +856,12 @@ export function SpotsScreen({
    */
 
   /*
-   * How many live spots each sport has, for the tab row's note. Counted on the
-   * server over every live spot rather than the filtered list: the note answers
-   * "is it worth switching to BMX?", and a count that shrank as you typed a
+   * How many live spots each sport has, for the filter pills' counts. Counted
+   * on the server over every live spot rather than the filtered list: the count
+   * answers "is it worth adding BMX?", and one that shrank as you typed a
    * search would answer a question nobody asked.
    */
-  const sportNote = useCallback(
-    (id: SportId) => `${countsBySport[id] ?? 0} spots`,
-    [countsBySport],
-  );
+  const sportNote = useCallback((id: SportId) => String(countsBySport[id] ?? 0), [countsBySport]);
 
   const mine = useMemo(() => ownSpots.filter((spot) => spot.status === 'pending'), [ownSpots]);
   // `listRule` returns a rider's own submission at any status, so a rejected
@@ -858,23 +873,19 @@ export function SpotsScreen({
   return (
     <div>
       {/*
-        The sport tabs, which this screen did without until BMX landed.
+        There is no `SportSwitch` here any more (Rachid, 2026-09-12, in chat),
+        and the filter row below carries every sport instead.
 
-        **It used to roll its own switch and could only ever reach two sports.**
-        A "Switch to {other}" pill picked `sports.find(id => id !== sport)` — the
-        *first* sport that was not the current one — so a rider on Scooter was
-        offered Skate and BMX was unreachable from this screen entirely, in
-        either direction. That pill is the prototype's (`landit-screens-b.jsx`),
-        written when there were two sports and correct for exactly that long.
-
-        This is `SportSwitch`, the same component every other sport-filtered
-        screen already uses (home, library, events, stickers, challenge,
-        progress), so /spots stops being the one screen that switches sport
-        differently from the rest of the product — and it grows a fourth tab on
-        its own if a fourth sport is ever added.
+        T13 put the tab row here in 2026-08-31, correcting a prototype pill that
+        could only ever reach two sports — that reasoning still holds and is why
+        the row is not being replaced by anything like it. What it could not fix
+        is that the row is a *preference*: it is global state shared with home,
+        the library, progress and stickers, so looking for a BMX park changed
+        all four, and it is fed by the rider's own `users.sports`, so a rider who
+        records one sport never saw it and had no way past "Good for Skate".
+        A filter over `SPORT_IDS` answers both, and answers the third thing
+        neither could: "scooter and BMX". Recorded in plan §7 T13.
       */}
-      <SportSwitch note={sportNote} label="Spots by sport" />
-
       <div className={styles.head}>
         <div>
           <span className="eyebrow">Spots</span>
@@ -893,7 +904,13 @@ export function SpotsScreen({
       {formOpen && (
         <AddSpotForm
           signedIn={signedIn}
-          defaultSports={everySport ? sports : [sport]}
+          /*
+           * What the submission form ticks to start with: the sports the rider
+           * has filtered to, else the sports they ride. Unchanged in intent —
+           * the filter is the better guess at what they are looking at, and
+           * their own sports are the fallback when they have not narrowed it.
+           */
+          defaultSports={sports.length ? sports : ownSports}
           pendingCount={pendingCount}
           onDone={() => setFormOpen(false)}
         />
@@ -918,12 +935,21 @@ export function SpotsScreen({
         <span className="lab" style={{ color: 'var(--ink-3)' }}>
           Show
         </span>
-        <Pill on={!everySport} onClick={() => setEverySport(false)}>
-          Good for {SPORTS[sport].short}
-        </Pill>
-        <Pill on={everySport} onClick={() => setEverySport(true)}>
-          Every spot
-        </Pill>
+        <SportFilter
+          value={sports}
+          onChange={(next) => {
+            setSports(next);
+            // Catalogue facts only: which screen, and which sports. Never the
+            // rider's own sports, never the search text, never a position.
+            capture(ANALYTICS_EVENTS.sportFilterSet, {
+              screen: 'spots',
+              sports: sportFilterProperty(next),
+            });
+          }}
+          everyLabel="Every spot"
+          note={sportNote}
+          label="Filter spots by sport"
+        />
         {/*
           The feature the list arrived narrowed to, as a pill that is already
           on. Pressing it is the only way off: there is no picker to choose a

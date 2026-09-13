@@ -2407,6 +2407,33 @@ owner:
   The two "Show" pills stay; the third is gone. A **deliberate divergence from the prototype**,
   recorded here because the prototype is the behavioural spec: it was written when there were two
   sports and was correct for exactly that long.
+  **Superseded on 2026-09-12 by the multi-select filter below**, which removes `SportSwitch` from
+  /spots again. The reasoning above still stands and is why nothing like the "Switch to" pill came
+  back; what replaced it is wider, not narrower.
+- **The sport filter is a multi-select over `SPORT_IDS`, and `SportSwitch` is gone from /spots and
+  /events** *(Rachid, 2026-09-12, in chat: "it should default to every sport… but also it only
+  shows every sport or good for skate. Where are the other options?", then "I just want them to be
+  able to pick everything, or one of each, or multiple").* Both screens filtered with a two-state
+  pill bound to `useSport` — "Every spot" or "Good for {the sport you ride}" — under a tab row that
+  chose which sport that was. Three faults, which compounded:
+  - **The tab row is not always there.** `SportSwitch` returns `null` below two sports and is fed
+    by the rider's own `users.sports`, so a rider who records one sport saw no row and a pill
+    hard-wired to that sport. On /events, which opened filtered, that hid every event for the other
+    two sports behind a control that was not on the screen. This is the bug the owner hit.
+  - **The tab row is a preference, not a filter.** It is global state shared with home, the
+    library, progress and stickers, so looking up a BMX jam changed all four. What is on at the
+    park on Saturday is not a statement about what you ride.
+  - **Neither could say "scooter and BMX"** — one sport or all of them, nothing between.
+
+  So the filter is `components/filters/SportFilter.tsx`: "Every sport" plus one pill per
+  `SPORT_IDS` entry, multi-select, **opening on every sport** on both screens, and offering every
+  sport to every rider whatever their profile records. Chosen sports are OR-ed — a rider asking for
+  scooter and BMX wants both lists, not the places that suit both — in `spotMatchesSports`
+  (`packages/core`) and clause-for-clause in `spotListFilter` (`packages/db`), both additive, with
+  the single-sport `sport` field left working for callers that only have one. The switch itself is
+  untouched and still global everywhere else; these two screens simply stopped reading it. /spots
+  now renders its first page unfiltered on the server, which also removes the post-hydration list
+  swap that page's docstring used to describe. Counted by `sport_filter_set`.
 - **There is no satellite view, and the toggle is what could be given instead** *(owner asked for
   satellite 2026-08-31 and chose this over paid imagery, in chat).* Every satellite layer with
   usable coverage is somebody's licensed product. Esri's key-free `World_Imagery` endpoint works

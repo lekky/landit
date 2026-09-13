@@ -191,10 +191,35 @@ export function spotMatchesFeature(spot: SpotLike, feature: string | null | unde
   return (spot.tags ?? []).some((tag) => spotFeatureId(tag) === wanted);
 }
 
+/**
+ * Is this spot good for any of those sports?
+ *
+ * The multi-select form of `spotMatchesSport`, added when `/spots` and
+ * `/events` stopped filtering to one sport at a time (Rachid, 2026-09-12, in
+ * chat). An empty list is "every sport", the same as a `null` sport, so the
+ * caller does not have to special-case the unfiltered screen — which is the
+ * state both screens now open in.
+ *
+ * **Any, not all.** A rider who chooses scooter and BMX is asking for both
+ * lists at once, not for the places that suit both; a spot good for either
+ * belongs in the answer. The untagged-spot rule is unchanged and comes from
+ * `spotMatchesSport`: a park nobody has tagged is not a park for nobody.
+ */
+export function spotMatchesSports(spot: SpotLike, sports: readonly SportId[] | null): boolean {
+  if (!sports || sports.length === 0) return true;
+  return sports.some((sport) => spotMatchesSport(spot, sport));
+}
+
 export interface SpotQuery {
   readonly search?: string;
   /** `null` is the prototype's "Every spot" pill. */
   readonly sport?: SportId | null;
+  /**
+   * The sports chosen in the filter row, any of which is a match. Empty or
+   * absent is every sport. Takes precedence over `sport`, which predates it and
+   * is kept for callers that only ever have one.
+   */
+  readonly sports?: readonly SportId[];
   /**
    * A feature tag the list is narrowed to — `/spots?feature=flat`, which a
    * trick page's "Where to practise" line opens (T31). Absent means no
@@ -208,7 +233,9 @@ export function filterSpots<T extends SpotLike>(spots: readonly T[], query: Spot
   return spots.filter(
     (spot) =>
       spotMatchesSearch(spot, query.search ?? '') &&
-      spotMatchesSport(spot, query.sport ?? null) &&
+      (query.sports?.length
+        ? spotMatchesSports(spot, query.sports)
+        : spotMatchesSport(spot, query.sport ?? null)) &&
       spotMatchesFeature(spot, query.feature ?? null),
   );
 }

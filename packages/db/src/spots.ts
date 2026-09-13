@@ -1,4 +1,4 @@
-import { unindexedSpotSourceIds, spotFeatureId, type SportId } from '@landit/core';
+import { SPORT_IDS, unindexedSpotSourceIds, spotFeatureId, type SportId } from '@landit/core';
 
 import type { Client } from './clients';
 import { records } from './collections';
@@ -33,6 +33,13 @@ export interface SpotListQuery {
   readonly search?: string;
   /** `null` is "Every spot". */
   readonly sport?: SportId | null;
+  /**
+   * The sports chosen in the filter row, any of which is a match — the
+   * multi-select `/spots` gained on 2026-09-12. Empty or absent is every spot,
+   * and so is a list holding every sport there is. Takes precedence over
+   * `sport`, which predates it and is kept for callers that only have one.
+   */
+  readonly sports?: readonly SportId[];
   /** A feature id from `SPOT_FEATURES`, already validated by the caller. */
   readonly feature?: string | null;
 }
@@ -73,9 +80,25 @@ export function spotListFilter(query: SpotListQuery): SpotFilter {
     clauses.push('(name:lower ~ {:q} || town:lower ~ {:q} || tags:lower ~ {:q})');
     params.q = needle;
   }
-  if (query.sport) {
-    clauses.push('(sports:each ?= {:sport} || sports:length = 0)');
-    params.sport = query.sport;
+  /*
+   * One sport or several, mirroring `spotMatchesSports` clause for clause.
+   *
+   * Chosen sports are OR-ed, because "scooter and BMX" asks for both lists at
+   * once rather than for the spots that suit both — and the untagged-spot
+   * escape (`sports:length = 0`) is OR-ed alongside them exactly once, so a
+   * park nobody has tagged comes back whichever sports were picked.
+   *
+   * Picking every sport there is adds no clause at all: it matches everything
+   * the unfiltered query matches, and saying so in SQL would be three
+   * `:each` scans of a JSON column to arrive back where we started.
+   */
+  const chosen = query.sports?.length ? query.sports : query.sport ? [query.sport] : [];
+  if (chosen.length && chosen.length < SPORT_IDS.length) {
+    const matches = chosen.map((sport, index) => {
+      params[`sport${index}`] = sport;
+      return `sports:each ?= {:sport${index}}`;
+    });
+    clauses.push(`(${[...matches, 'sports:length = 0'].join(' || ')})`);
   }
   const feature = query.feature ? spotFeatureId(query.feature) : '';
   if (feature) {

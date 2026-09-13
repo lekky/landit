@@ -274,6 +274,7 @@ export {
   spotMatchesFeature,
   spotMatchesSearch,
   spotMatchesSport,
+  spotMatchesSports,
   spotsInBounds,
   spotSubmissionProblems,
   SPOT_SUBMISSION_REFUSALS,

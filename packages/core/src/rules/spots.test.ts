@@ -26,6 +26,7 @@ import {
   spotMatchesFeature,
   spotMatchesSearch,
   spotMatchesSport,
+  spotMatchesSports,
   spotsInBounds,
   spotSubmissionProblems,
   unitsForCountry,
@@ -284,6 +285,30 @@ describe('narrowing the list', () => {
     expect(spotMatchesSport(spots[2]!, 'bmx')).toBe(true);
     expect(spotMatchesSport(spots[1]!, 'bmx')).toBe(false);
     expect(spotMatchesSport(spots[1]!, null)).toBe(true);
+  });
+
+  it('matches any of several sports, not all of them', () => {
+    // "Scooter and BMX" asks for both lists at once, not for the places that
+    // suit both — the multi-select filter, 2026-09-12.
+    const bmxOnly = { name: 'Trails', town: 'Sheffield', tags: [], sports: ['bmx'] };
+    expect(spotMatchesSports(spots[1]!, ['scooter', 'skate'])).toBe(true);
+    expect(spotMatchesSports(spots[1]!, ['scooter', 'bmx'])).toBe(false);
+    expect(spotMatchesSports(bmxOnly, ['scooter', 'bmx'])).toBe(true);
+    // The untagged park's rule survives every combination.
+    expect(spotMatchesSports(spots[2]!, ['bmx'])).toBe(true);
+  });
+
+  it('treats no sports chosen as every sport', () => {
+    expect(spotMatchesSports(spots[1]!, [])).toBe(true);
+    expect(spotMatchesSports(spots[1]!, null)).toBe(true);
+    expect(filterSpots(spots, { sports: [] }).length).toBe(3);
+  });
+
+  it('lets the chosen list win over a single sport sent alongside it', () => {
+    expect(filterSpots(spots, { sport: 'skate', sports: ['scooter'] }).map((s) => s.name)).toEqual([
+      'Rampworx',
+      'Untagged',
+    ]);
   });
 
   it('combines the search box and the sport pill', () => {

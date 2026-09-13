@@ -542,6 +542,35 @@ export const ANALYTICS_EVENTS = {
    */
   nearbySortUsed: 'nearby_sort_used',
   /**
+   * A list was narrowed by sport — the multi-select pill row on `/events` and
+   * `/spots` (Rachid, 2026-09-12, in chat).
+   *
+   * Carries `screen` (`'events' | 'spots'`) and `sports`: either the literal
+   * `'all'`, or the chosen sport ids in `SPORT_IDS` order joined with `+` —
+   * `'bmx'`, `'scooter+bmx'`, and so on. Both are catalogue facts. The ids are
+   * three fixed strings written in this repository, the order is fixed here so
+   * two riders who chose the same sports produce the same value rather than a
+   * record of which pill they pressed first, and nothing about the rider
+   * travels — not what they ride, not what the other filters said, not what
+   * they had typed in the search box.
+   *
+   * It exists because these two screens just stopped defaulting to one sport.
+   * They used to open filtered to whatever the rider rides; they now open on
+   * everything, on the reasoning that a rider looking at what is on wants to
+   * see what is on. That is a bet, and this is the only thing that settles it:
+   * if riders narrow to their own sport on nearly every visit, the old default
+   * was right and the answer is to remember their choice rather than to hand
+   * them a wider list each time. `'all'` never firing and `'all'` being the
+   * only value are opposite findings with opposite next steps, and neither is
+   * visible in `event_page_opened` or `spot_page_opened`, which cannot tell a
+   * rider who filtered from one who did not.
+   *
+   * Deliberately not fired on load. This counts a press, so the denominator is
+   * "riders who touched the filter" — a screen opening on `'all'` by default is
+   * not evidence of anything and would drown the presses that are.
+   */
+  sportFilterSet: 'sport_filter_set',
+  /**
    * The spots map was switched between its two grounds.
    *
    * Carries `ground` — `'plain'` or `'detail'`, two fixed strings that describe

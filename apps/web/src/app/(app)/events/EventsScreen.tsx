@@ -1,11 +1,11 @@
 'use client';
 
 import {
-  SPORTS,
   distanceKm,
   distanceLabelIn,
   type DistanceUnits,
   type EventKind,
+  type SportId,
 } from '@landit/core';
 import {
   Button,
@@ -23,11 +23,11 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
-import { SportSwitch } from '@/components/shell/SportSwitch';
+import { SportFilter } from '@/components/filters/SportFilter';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { runActionOr } from '@/lib/runAction';
+import { sportFilterProperty } from '@/lib/sportFilter';
 import { ROUTES, eventHrefFrom, pastEventsHref, signInHref } from '@/lib/routes';
-import { useSport } from '@/providers/sport';
 import { useToast } from '@/providers/toast';
 
 // The spots screen's hook, unchanged and unmoved. It is the whole of Children's
@@ -149,7 +149,6 @@ export function EventsScreen({
    */
   readonly signedIn: boolean;
 }) {
-  const { sport } = useSport();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const here = useHereOnce({ resumeWhenGranted: true });
@@ -193,7 +192,17 @@ export function EventsScreen({
   }, [view.defaultCountry, view.scope]);
 
   const [kind, setKind] = useState<EventKind | null>(null);
-  const [mySportOnly, setMySportOnly] = useState(true);
+  /*
+   * Which sports the calendar is narrowed to. **Empty is every sport, and empty
+   * is where it opens** (Rachid, 2026-09-12, in chat).
+   *
+   * It used to be `mySportOnly`, a boolean starting `true`, which meant the
+   * calendar opened hiding every event that was not for the one sport the
+   * global switch happened to be on. On a rider whose profile records a single
+   * sport that switch is not even rendered (`SportSwitch` needs two), so the
+   * hidden events had no control that could bring them back. See `SportFilter`.
+   */
+  const [sports, setSports] = useState<readonly SportId[]>([]);
   /*
    * Opens on the reader's own country where the calendar has events in it, and
    * on Everywhere where it does not (`eventCountryForRegion`). The value comes
@@ -216,7 +225,10 @@ export function EventsScreen({
     const needle = search.trim().toLowerCase();
     const narrowed = view.events.filter((event) => {
       if (kind && event.kind !== kind) return false;
-      if (mySportOnly && !event.sportIds.includes(sport)) return false;
+      // Any of the chosen sports, not all of them: a rider who picks scooter
+      // and BMX is asking for both calendars at once, and an event good for
+      // either belongs in that list.
+      if (sports.length && !event.sportIds.some((id) => sports.includes(id))) return false;
       if (country && event.country !== country) return false;
       if (needle) {
         const haystack =
@@ -247,7 +259,7 @@ export function EventsScreen({
         return gap === 0 ? a.index - b.index : gap;
       })
       .map((entry) => entry.event);
-  }, [view.events, kind, mySportOnly, sport, country, search, here.point]);
+  }, [view.events, kind, sports, country, search, here.point]);
 
   const pageCount = Math.max(1, Math.ceil(list.length / PER_PAGE));
 
@@ -350,8 +362,19 @@ export function EventsScreen({
 
   return (
     <div className={styles.page}>
-      <SportSwitch note={(id) => `${view.countBySport[id] ?? 0} on`} label="Events by sport" />
+      {/*
+        There is no `SportSwitch` here any more, and that is the point.
 
+        The global sport switch used to sit above this heading and decide what
+        the one sport pill below filtered to. It is a *preference* — which sport
+        you ride — and it is shared with home, the library, progress and
+        stickers, so looking up a BMX jam changed all four. Browsing what is on
+        is not a statement about what you ride, and a rider who records one
+        sport never saw the row at all. The filter row now carries every sport
+        itself (`SportFilter`), so this screen no longer reads or writes the
+        preference. Recorded in plan §7 T13, which put the row on `/spots`
+        deliberately in 2026-08-31.
+      */}
       <div className={styles.headRow}>
         <div>
           <span className="eyebrow">{past ? 'The archive' : 'Events'}</span>
@@ -478,9 +501,21 @@ export function EventsScreen({
           </Pill>
         ))}
         <span className={styles.spacer} />
-        <Pill on={mySportOnly} onClick={() => setMySportOnly((v) => !v)}>
-          {mySportOnly ? `Good for ${SPORTS[sport].short}` : 'Every sport'}
-        </Pill>
+        <SportFilter
+          value={sports}
+          onChange={(next) => {
+            setSports(next);
+            // Catalogue facts only: which screen, and which sports. Never the
+            // rider's own sports, and never what else the row was filtered to.
+            capture(ANALYTICS_EVENTS.sportFilterSet, {
+              screen: 'events',
+              sports: sportFilterProperty(next),
+            });
+          }}
+          everyLabel="Every sport"
+          note={(id) => String(view.countBySport[id] ?? 0)}
+          label="Filter events by sport"
+        />
       </div>
 
       {archive && <ArchiveIndex archive={archive} />}
@@ -648,15 +683,20 @@ export function EventsScreen({
         <Empty
           icon="flag"
           title={past ? 'Nothing in the archive for that' : 'Nothing listed yet'}
+          /*
+           * The copy no longer names a sport, because the filter no longer has
+           * exactly one to name — it can be every sport, or two of the three.
+           * "That filter" covers all of it and stays true whatever was pressed.
+           */
           sub={
             past
-              ? `No past ${SPORTS[sport].short.toLowerCase()} events match that filter. Try every sport, or widen it.`
-              : `No ${SPORTS[sport].short.toLowerCase()} events on the calendar for that filter. Try every sport, or check back.`
+              ? 'Nothing in the archive matches that filter. Try widening it.'
+              : 'Nothing on the calendar matches that filter. Try widening it, or check back.'
           }
           cta="Show everything"
           onCta={() => {
             setKind(null);
-            setMySportOnly(false);
+            setSports([]);
             setCountry('');
             setSearch('');
           }}

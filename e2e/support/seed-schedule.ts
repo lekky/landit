@@ -33,6 +33,8 @@ export interface SeededSchedule {
   readonly liveGoal: number;
   /** Slug of the event every sport is good for. */
   readonly sharedEvent: string;
+  /** Slug of the upcoming event only one sport is good for. */
+  readonly bmxOnlyEvent: string;
 }
 
 export const LIVE_GOAL = 3;
@@ -132,6 +134,27 @@ export async function seedSchedule(): Promise<SeededSchedule> {
     is_live: true,
   });
 
+  /*
+   * One upcoming event for a single sport, so the sport filter has something to
+   * *hide*. Every other seeded event is good for all three, which means an
+   * unfiltered calendar and a filtered one look identical and a broken filter
+   * would pass. `Comp` and not a third kind, because "the calendar holds a Comp
+   * and nothing else" is asserted by the kind-pill spec.
+   */
+  await upsert('events', 'e2e-bmx-only', {
+    name: 'E2E BMX Only Comp',
+    kind: 'Comp',
+    town: 'Sheffield',
+    venue: 'The Works',
+    date: day(21),
+    sports: ['bmx'],
+    level: 'All levels',
+    price: '£5 entry',
+    spots_copy: '30 riders',
+    blurb: 'Pegs and rails, BMX only.',
+    is_live: true,
+  });
+
   await upsert('events', 'e2e-gone', {
     name: 'E2E Last Month Session',
     kind: 'Session',
@@ -146,5 +169,11 @@ export async function seedSchedule(): Promise<SeededSchedule> {
     is_live: true,
   });
 
-  return { live, finished, liveGoal: LIVE_GOAL, sharedEvent: 'e2e-jam' };
+  return {
+    live,
+    finished,
+    liveGoal: LIVE_GOAL,
+    sharedEvent: 'e2e-jam',
+    bmxOnlyEvent: 'e2e-bmx-only',
+  };
 }

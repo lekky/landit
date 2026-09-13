@@ -83,8 +83,19 @@ function readQuery(input: unknown): SpotListQuery {
   const raw = (input ?? {}) as Record<string, unknown>;
   const search = typeof raw.search === 'string' ? raw.search.slice(0, MAX_SEARCH) : '';
   const sport = SPORT_IDS.find((id) => id === raw.sport) ?? null;
+  /*
+   * The multi-select's chosen sports, reduced to `SPORT_IDS` the same way the
+   * single one always was — a server action is a POST anybody can send, so
+   * this is the fixed set and not the caller's list. Order and duplicates are
+   * the caller's too, so the value is rebuilt from `SPORT_IDS` rather than
+   * filtered in place: a hundred copies of `'bmx'` becomes one clause, and an
+   * array of junk becomes the unfiltered query rather than a long one.
+   */
+  const sports = Array.isArray(raw.sports)
+    ? SPORT_IDS.filter((id) => (raw.sports as unknown[]).includes(id))
+    : [];
   const feature = typeof raw.feature === 'string' ? (spotFeature(raw.feature)?.id ?? null) : null;
-  return { search, sport: sport as SportId | null, feature };
+  return { search, sport: sport as SportId | null, sports, feature };
 }
 
 /** One page of the list, the reader's country first. */
