@@ -3,14 +3,16 @@
 import {
   CUSTOM_GOAL_ID,
   PRIVACY,
+  SESSION_VISIBILITY_IDS,
   SPORT_IDS,
   profileChoiceProblem,
   type LevelId,
   type PrivacyId,
+  type SessionVisibilityId,
   type SportId,
   type StanceId,
 } from '@landit/core';
-import { requestGuardianConsent, updateProfile } from '@landit/db';
+import { requestGuardianConsent, setSessionVisibilityDefault, updateProfile } from '@landit/db';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -99,6 +101,50 @@ export async function setPrivacyAction(
 
   revalidatePath(ROUTES.account);
   return { saved: true };
+}
+
+/* ------------------------------------------------ who sees new sessions -- */
+
+export type SessionVisibilityDefaultResult =
+  { readonly ok: true } | { readonly ok: false; readonly message: string };
+
+/**
+ * Change who sees this rider's **new** sessions (T40; D2, Rachid, 2026-09-13,
+ * in chat). It pre-sets the picker on the session form and nothing else: a
+ * session already logged keeps the visibility it was saved with.
+ *
+ * Nothing here grants anything, for the reason `setPrivacyAction` gives. The
+ * write is the rider's own client, so `users.updateRule` limits it to their own
+ * record, and the session read rules still cap every session at the profile's
+ * own visibility — choosing Public here cannot make a private profile's
+ * sessions public.
+ *
+ * Returns `{ ok }` rather than throwing, and is called through
+ * `runAction('session_visibility_default', …)` so a thrown request comes back
+ * as a refusal too (issue #433).
+ */
+export async function setSessionVisibilityDefaultAction(input: {
+  visibility: string;
+}): Promise<SessionVisibilityDefaultResult> {
+  const session = await currentRider();
+  if (!session) return { ok: false, message: 'Sign in to change your settings.' };
+
+  if (!(SESSION_VISIBILITY_IDS as readonly string[]).includes(input.visibility)) {
+    return { ok: false, message: 'Pick one of the three.' };
+  }
+
+  try {
+    await setSessionVisibilityDefault(
+      session.client,
+      session.rider.id,
+      input.visibility as SessionVisibilityId,
+    );
+  } catch {
+    return { ok: false, message: 'We could not save that just now. Try again in a moment.' };
+  }
+
+  revalidatePath(ROUTES.account);
+  return { ok: true };
 }
 
 /* -------------------------------------------------------------- profile -- */

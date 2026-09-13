@@ -9,6 +9,7 @@ import { ROUTES } from '@/lib/routes';
 
 import { openBillingPortalAction } from './actions';
 import { PlanCard } from './PlanCard';
+import { SessionPlanComparison } from './SessionPlanComparison';
 import type { PlansView } from './view';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
@@ -181,6 +182,13 @@ export function PlansScreen({ view }: { view: PlansView }) {
           Prices are in pounds sterling. Your bank may add a conversion fee.
         </p>
       )}
+
+      {/*
+        Sessions (T40): what each plan logs, rendered from the same records as
+        the cards. Under the cards and the currency note, so the note stays
+        beside the prices it is about.
+      */}
+      <SessionPlanComparison comparison={view.sessions} />
 
       {view.signedIn && view.hasSubscription && (
         <Panel flat className={styles.notice}>

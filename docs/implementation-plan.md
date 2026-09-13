@@ -4900,11 +4900,33 @@ the design left open, taken here and open to the owner's correction:
   12", "Six riders" and "Dry and warm · you said sunny" have no stored source; the page says
   "Landed it · now Most times", core's `sessionChangeLabel` lines, and the weather label.
 
-**T40 · Limits and settings.** The fifth-session wall with the grace (1g, 2e), the Rookie clip lock,
-the plan comparison (table on desktop, stacked cards on phone), the Settings · sessions radio
-(`setSessionVisibilityDefault`), and the plan-card perk lines rendered from the new plan fields
-(`sessionsPerMonthLabel`, `sessionClipAllowanceLabel`) — a copy change to the plans page the owner
-should see. Fires `session_quota_wall_seen`. Depends on T36.
+**T40 · Settings and plans.** The Settings · sessions radio and the plan comparison (1g, 2e).
+Depends on T36. **The fifth-session wall with its grace and the Rookie clip lock moved to T38**
+(2026-09-13), because both live inside the form flow, and `session_quota_wall_seen` went with them.
+
+- **Who sees new sessions** is a panel on `/account`, directly under "Who can see your profile"
+  (`SessionVisibilityPanel`). Its choices and blurbs are `SESSION_VISIBILITIES`; it saves through
+  `setSessionVisibilityDefaultAction` → `setSessionVisibilityDefault` with the rider's own client,
+  called via `runAction('session_visibility_default', …)`. **It saves on a button, not on the tap**
+  the design shows, for the reason the profile privacy panel above it does: a setting about who can
+  see a child changes when they say so. **No analytics event**: the catalogue has none for this
+  setting (`privacy_set` is the profile control's), and adding one is outside this task.
+- **"What each plan logs"** is a section on `/plans` under the cards: a table above 700px, three
+  stacked cards at or below it. There is no app-side upgrade screen, so `/plans` is the only place.
+  Every allowance is rendered from the `plans` records (`sessionAllowanceFromRecord`,
+  `sessionClipAllowanceFromRecord` → `sessionPlanComparison` in `apps/web/src/lib/sessionPlanRows.ts`,
+  through `sessionsPerMonthLabel` and `sessionClipAllowanceLabel`), unit-tested there. **Three
+  departures from the design:** no "Session insights" row, because the Legend cell ("Best days, best
+  length, spots that move you up") describes analysis nothing computes, and a paid line for a feature
+  that does not exist is what "Exclusive avatar drops" was removed for; the clip cells read the
+  derived label ("10 clip links") rather than an unnumbered "Video links, private until you say
+  otherwise"; and the closing line says "the monthly allowance" rather than typing "four".
+- **The plan-card perk lines were not added.** Two held tests stand in the way, and changing either
+  is a copy decision rather than an additive line: `pocketbase/tests/free-tier-twenty.test.ts` pins
+  every Rookie and Shredder perk to the copy in migration `1789171200`, so a new line needs a new
+  plan-copy migration (the shape issue #446 asks the owner to choose) and that test repointed at it;
+  and `data.test.ts` and `video.test.ts` forbid the word "clip" on any card (plan §6.6), which
+  `sessionClipAllowanceLabel` returns. Waiting on the owner.
 
 ### Dependency graph
 

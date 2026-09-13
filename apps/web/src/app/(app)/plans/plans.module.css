@@ -264,6 +264,223 @@
   color: var(--ink-2);
 }
 
+/* ------------------------------------------- what each plan logs (T40) -- */
+
+/*
+ * Screenshots 1g (desktop table) and 2e (phone cards) of the session-tracking
+ * handoff, transcribed. Two colours are literals because the token set has no
+ * name for them and the handoff gives them one job each: `#fdfaee` is "paper
+ * alt", the alternate table row, and `#0b6d47` is the dark green that carries
+ * "Always" on paper at 4.5:1 (`--green` does not). `#efe7d4` is the handoff's
+ * list rule. The column heads take the plan record's `hue` inline, like the
+ * cards above.
+ */
+
+.sessions {
+  margin-top: 34px;
+}
+
+.sessionsHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.sessionsDiamond {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  box-sizing: border-box;
+  background: var(--orange);
+  border: 2.5px solid var(--ink);
+  transform: rotate(45deg);
+}
+
+.sessionsTitle {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1;
+}
+
+.sessionsRule {
+  flex: 1;
+  height: 3px;
+  background: var(--ink);
+}
+
+/* Room for the 5px shadow, which `overflow-x` would otherwise clip. */
+.sessionsTableWrap {
+  overflow-x: auto;
+  padding: 0 5px 5px 0;
+}
+
+.sessionsTable {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+/* `minmax(0, 1.4fr) repeat(3, minmax(0, 1fr))` in the design: 1.4 / 4.4. */
+.sessionsLabelCol {
+  width: 31.8%;
+}
+
+.sessionsCorner {
+  background: var(--ink);
+}
+
+.sessionsPlanHead {
+  padding: 10px 12px;
+  border-left: 3px solid var(--ink);
+  text-align: left;
+  vertical-align: top;
+  font-weight: inherit;
+}
+
+.sessionsPlanName {
+  display: block;
+  margin: 0;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.sessionsPlanPrice {
+  display: block;
+  margin-top: 3px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+
+.sessionsRow {
+  border-top: 2.5px solid var(--ink);
+  background: var(--paper);
+}
+
+.sessionsRow:nth-child(even) {
+  background: #fdfaee;
+}
+
+.sessionsRowLabel {
+  padding: 9px 13px;
+  text-align: left;
+  vertical-align: top;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.sessionsCell {
+  padding: 9px 13px;
+  border-left: 2.5px solid var(--ink);
+  vertical-align: top;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.sessionsCell[data-tone='strong'],
+.sessionsLineValue[data-tone='strong'] {
+  font-weight: 700;
+}
+
+.sessionsCell[data-tone='muted'],
+.sessionsLineValue[data-tone='muted'] {
+  color: var(--ink-3);
+}
+
+.sessionsCell[data-tone='always'],
+.sessionsLineValue[data-tone='always'] {
+  color: #0b6d47;
+  font-weight: 700;
+}
+
+.sessionsCards {
+  display: none;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.sessionsCard {
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.sessionsCardHead {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  padding: 10px 13px;
+  border-bottom: 3px solid var(--ink);
+}
+
+.sessionsCardPrice {
+  margin-left: auto;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+
+.sessionsLines {
+  margin: 0;
+  padding: 4px 13px 10px;
+}
+
+.sessionsLine {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  padding: 7px 0;
+  border-bottom: 2px solid #efe7d4;
+}
+
+.sessionsLineLabel {
+  width: 104px;
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  color: var(--ink-3);
+}
+
+.sessionsLineValue {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.sessionsNote {
+  margin: 9px 0 0;
+  max-width: 76ch;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+/* The handoff's breakpoint: phone at 700px and below. */
+@media (max-width: 700px) {
+  .sessionsTableWrap {
+    display: none;
+  }
+
+  .sessionsCards {
+    display: flex;
+  }
+
+  .sessionsNote {
+    font-size: 12.5px;
+  }
+}
+
 /* ------------------------------------------------------------------- FAQ -- */
 
 .faq {
