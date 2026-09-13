@@ -599,3 +599,85 @@ test('arriving at the library any other way starts at the top, as it always did'
   await expect.poll(() => offset(page), { timeout: 2000 }).toBeLessThan(40);
   await expect(page.getByLabel('Search tricks')).toHaveValue('');
 });
+
+/*
+ * The reset, and where it is deliberately not offered (Rachid, 2026-09-13, in
+ * chat).
+ *
+ * Stopping tracking keeps everything and is asserted above. This is the other
+ * answer, for a rider who tapped a stage by accident: it deletes the trick's
+ * whole history, the first-landed date and the badge, and it is the only thing
+ * in the product that destroys a rider's own record. So the test is as much
+ * about what guards it as what it does — it is reachable only once a rider has
+ * already decided to stop, and never on a trick with no history at all.
+ */
+test('the reset is not offered while a trick is still tracked', async ({ page }) => {
+  await signUpRookie(page);
+  await page.goto(`/library/${freeTrick.id}`);
+
+  // Nothing tracked, nothing to clear, and nowhere to clear it from.
+  await expect(page.getByRole('button', { name: 'Clear history', exact: true })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Sometimes' }).click();
+  await expect(page.locator('.toast', { hasText: /Logged as/i })).toBeVisible();
+  await expect(page.getByText('★ first landed')).toBeVisible();
+
+  // Tracked, so there is history — and still no way to destroy it from here.
+  await expect(page.getByRole('button', { name: 'Clear history', exact: true })).toHaveCount(0);
+
+  // The stop-tracking confirm keeps its two answers and gains nothing.
+  await page.getByRole('button', { name: 'Stop tracking' }).click();
+  await expect(page.getByText(/Stop tracking this trick\?/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Clear history', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /clear/i })).toHaveCount(0);
+});
+
+test('a rider who stopped tracking can clear the history, and it takes the badge', async ({
+  page,
+}) => {
+  await signUpRookie(page);
+  await page.goto(`/library/${freeTrick.id}`);
+
+  await page.getByRole('button', { name: 'Sometimes' }).click();
+  await expect(page.locator('.toast', { hasText: /Logged as/i })).toBeVisible();
+  await expect(page.getByRole('img', { name: `${freeTrick.name} award, earned` })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Stop tracking' }).click();
+  await page.getByRole('button', { name: 'Stop tracking' }).last().click();
+  await expect(page.locator('.toast', { hasText: /Stopped tracking/i })).toBeVisible();
+  await page.reload();
+
+  /*
+   * Untracked, but the history stayed and so did the badge — which is what
+   * stopping promises. The star marks the first landing in the timeline, and it
+   * is the one string on this page that only a history row carries: the band's
+   * "Nothing logged yet" is shared with the empty summary, so it cannot stand
+   * in for this.
+   */
+  await expect(page.getByText('★ first landed')).toBeVisible();
+  await expect(page.getByRole('img', { name: `${freeTrick.name} award, earned` })).toBeVisible();
+
+  // The reset asks first, and backing out of it writes nothing.
+  await page.getByRole('button', { name: 'Clear history', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Clear your history?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Keep it' }).click();
+  await page.reload();
+  await expect(page.getByText('★ first landed')).toBeVisible();
+
+  // Through the confirm, and now it goes.
+  await page.getByRole('button', { name: 'Clear history', exact: true }).click();
+  await page.getByRole('button', { name: 'Clear it all' }).click();
+  await expect(page.locator('.toast', { hasText: /History cleared/i })).toBeVisible();
+
+  await page.reload();
+  /*
+   * The timeline is empty and the badge has gone — which is the difference
+   * between this and stopping tracking, and what the confirm promised. The
+   * panel itself stays, now reading "Nothing logged yet": it is where the rows
+   * were, so it is the honest place for the sentence saying there are none. And
+   * with no history left there is nothing to reset, so the button goes too.
+   */
+  await expect(page.getByText('★ first landed')).toHaveCount(0);
+  await expect(page.getByRole('img', { name: `${freeTrick.name} award, earned` })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Clear history', exact: true })).toHaveCount(0);
+});

@@ -1,6 +1,7 @@
 import { STAGE, isLandedStage, type TrickHistory } from '@landit/core';
 import { Panel } from '@landit/ui-web';
 
+import { ClearHistoryButton } from './ClearHistory';
 import styles from './trick.module.css';
 
 /**
@@ -17,7 +18,21 @@ import styles from './trick.module.css';
  * colour from `STAGE`, which is the code's palette rather than the design's
  * (owner, 2026-09-07): Learning is `#FF9F1C` here, not yellow.
  */
-export function HistoryPanel({ history }: { history: TrickHistory }) {
+export function HistoryPanel({
+  history,
+  clear,
+}: {
+  history: TrickHistory;
+  /**
+   * The reset, for a rider who is no longer tracking this trick.
+   *
+   * `null` whenever the band above is already carrying it — a rider on a stage
+   * reaches the same thing through "Stop tracking", and two doors to one
+   * destructive act on one screen is one too many. The page decides; this panel
+   * only draws what it is handed, and `null` is the ordinary case.
+   */
+  clear?: { trickId: string; slug: string; count: number; holdsBadge: boolean } | null;
+}) {
   return (
     <Panel flat className={`${styles.sidePanel} ${styles.history}`}>
       <div className={`d ${styles.panelTitle}`}>Your history with this trick</div>
@@ -50,6 +65,17 @@ export function HistoryPanel({ history }: { history: TrickHistory }) {
             );
           })}
         </ol>
+      )}
+
+      {clear && (
+        <div className={styles.historyFoot}>
+          <ClearHistoryButton
+            trickId={clear.trickId}
+            slug={clear.slug}
+            count={clear.count}
+            holdsBadge={clear.holdsBadge}
+          />
+        </div>
       )}
     </Panel>
   );

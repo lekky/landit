@@ -87,6 +87,7 @@ export type RequestName =
   | 'note_add'
   | 'note_update'
   | 'note_remove'
+  | 'trick_history_clear'
   | 'challenge_log'
   | 'ride_logged'
   | 'session_delete'

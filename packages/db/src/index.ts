@@ -146,6 +146,7 @@ export {
   addTrickNote,
   addVideoLink,
   attendEvent,
+  clearTrickHistory,
   clearTrickStage,
   createCrew,
   createCrewInvite,

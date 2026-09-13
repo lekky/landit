@@ -696,7 +696,23 @@ export default async function TrickPage({ params }: Params) {
             */}
             {data.history && (
               <div className={styles.secHistory}>
-                <HistoryPanel history={data.history} />
+                <HistoryPanel
+                  history={data.history}
+                  /* Only when the band is not already carrying it: a rider on a
+                     stage resets through "Stop tracking", and a rider who
+                     stopped first would otherwise have no way back to rows they
+                     never meant to write. */
+                  clear={
+                    !stage && data.history.entries.length > 0
+                      ? {
+                          trickId: record.id,
+                          slug: trick.id,
+                          count: data.history.entries.length,
+                          holdsBadge: data.awardEarnedLabel !== null,
+                        }
+                      : null
+                  }
+                />
               </div>
             )}
 

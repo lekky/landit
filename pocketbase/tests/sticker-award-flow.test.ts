@@ -450,3 +450,231 @@ describe('the award era, over HTTP', () => {
     expect(Object.keys(await held(rider))).toContain('keeping-it-real');
   });
 });
+
+/**
+ * Clearing a trick's history, and what it is allowed to take with it.
+ *
+ * Stopping tracking keeps everything; this is the other answer, offered only
+ * when there is history and only behind two confirms (Rachid, 2026-09-13, in
+ * chat). The claim being proved is the narrow one, because the wide version is
+ * the dangerous one: **a rider wiping one trick loses the awards that counted
+ * that trick, and nothing else.** Issue #78 settled that an award must never go
+ * backwards under somebody else's edit, and none of this runs on one.
+ *
+ * All of it is requests and status codes. `rider_stickers` is `deleteRule:
+ * null`, so every removal below is the server's own — a test that could delete
+ * the row itself would be testing nothing.
+ */
+describe('clearing a history, and the awards that go with it', () => {
+  /** The log row the app writes beside every stage move. Deletable by its owner. */
+  async function log(rider: Rider, trickId: string, stage = 'some') {
+    return call<{ id: string }>('POST', '/api/collections/trick_log/records', {
+      token: rider.token,
+      body: { user: rider.id, trick: trickId, stage, at: '2026-09-01 10:00:00.000Z' },
+    });
+  }
+
+  /** What the trick page's "Stop and clear history" does, in the order it does it. */
+  async function clearHistory(rider: Rider, trickId: string) {
+    const progress = await call<{ items: { id: string }[] }>(
+      'GET',
+      '/api/collections/trick_progress/records',
+      {
+        token: rider.token,
+        query: { filter: `user = "${rider.id}" && trick = "${trickId}"` },
+      },
+    );
+    for (const row of progress.body.items ?? []) {
+      await call('DELETE', `/api/collections/trick_progress/records/${row.id}`, {
+        token: rider.token,
+      });
+    }
+
+    const rows = await call<{ items: { id: string }[] }>(
+      'GET',
+      '/api/collections/trick_log/records',
+      { token: rider.token, query: { filter: `user = "${rider.id}" && trick = "${trickId}"` } },
+    );
+    for (const row of rows.body.items ?? []) {
+      await call('DELETE', `/api/collections/trick_log/records/${row.id}`, { token: rider.token });
+    }
+  }
+
+  it('takes back the trick badge the cleared history earned', async () => {
+    const { freeTrick } = await baseFixtures();
+    const rider = await makeRider();
+
+    await track(rider, freeTrick);
+    await log(rider, freeTrick);
+    expect(Object.keys(await held(rider))).toContain('fixture-bunny-hop');
+
+    await clearHistory(rider, freeTrick);
+
+    // The row is gone from the server, not merely hidden by a screen.
+    expect(Object.keys(await held(rider))).not.toContain('fixture-bunny-hop');
+  });
+
+  it('takes back the volume award the cleared trick was the only entry in', async () => {
+    const { freeTrick } = await baseFixtures();
+    const rider = await makeRider();
+
+    await track(rider, freeTrick);
+    await log(rider, freeTrick);
+    expect(Object.keys(await held(rider))).toContain('first-land');
+
+    await clearHistory(rider, freeTrick);
+    expect(Object.keys(await held(rider))).not.toContain('first-land');
+  });
+
+  it('keeps a volume award another trick still earns, so one reset is not a reset of everything', async () => {
+    const { freeTrick, freeTrickSkate } = await baseFixtures();
+    const rider = await makeRider();
+
+    await track(rider, freeTrick);
+    await log(rider, freeTrick);
+    await track(rider, freeTrickSkate);
+    await log(rider, freeTrickSkate);
+    expect(Object.keys(await held(rider))).toContain('first-land');
+
+    await clearHistory(rider, freeTrick);
+
+    const after = Object.keys(await held(rider));
+    // The scooter badge goes with its history; the skate trick still stands,
+    // and `first-land` is still true because of it.
+    expect(after).not.toContain('fixture-bunny-hop');
+    expect(after).toContain('first-land');
+  });
+
+  it('keeps the comeback, whose rule reads false for everyone who holds it', async () => {
+    const { freeTrick } = await baseFixtures();
+    const rider = await makeRider();
+    const token = await superuser();
+
+    // `comeback` is transition-based: `KIND_RULES.comeback` is a permanent
+    // `false` and `awardSpecific` grants it at the moment of the ride. So a
+    // pass that re-judged everything it found would take this from every rider
+    // who has one, every time anybody cleared anything. It is the sharpest
+    // version of the mistake and the reason the revoke works off an allowlist.
+    await call('PATCH', `/api/collections/users/records/${rider.id}`, {
+      token,
+      body: { last_ride: '2026-06-01 00:00:00.000Z' },
+    });
+    await call('PATCH', `/api/collections/users/records/${rider.id}`, {
+      token,
+      body: { last_ride: '2026-08-29 00:00:00.000Z' },
+    });
+    expect(Object.keys(await held(rider))).toContain('comeback');
+
+    await track(rider, freeTrick);
+    await log(rider, freeTrick);
+    await clearHistory(rider, freeTrick);
+
+    expect(Object.keys(await held(rider))).toContain('comeback');
+  });
+
+  it('keeps a streak award a rider has since let lapse', async () => {
+    const { freeTrick } = await baseFixtures();
+    const rider = await makeRider();
+    const token = await superuser();
+
+    // Earned at four weeks, then the streak breaks — which is ordinary, and is
+    // why `KIND_RULES.streak` reads the streak a rider is on rather than the
+    // best they ever held. The award stays; clearing a trick's history is not
+    // the product's chance to re-litigate it.
+    await call('PATCH', `/api/collections/users/records/${rider.id}`, {
+      token,
+      body: { streak: 4 },
+    });
+    expect(Object.keys(await held(rider))).toContain('hot-streak');
+    await call('PATCH', `/api/collections/users/records/${rider.id}`, {
+      token,
+      body: { streak: 0 },
+    });
+
+    await track(rider, freeTrick);
+    await log(rider, freeTrick);
+    await clearHistory(rider, freeTrick);
+
+    expect(Object.keys(await held(rider))).toContain('hot-streak');
+  });
+
+  it("stands down when staff delete the trick, so a catalogue edit takes nobody's award", async () => {
+    // `trick_log.trick` is `cascadeDelete`, so removing a trick empties every
+    // rider's log for it — arriving at the revoke hook looking exactly like a
+    // rider clearing their history. Issue #78 settled that an award must never
+    // go backwards under somebody else's edit, and this is the sharpest version
+    // of that: one staff delete stripping awards from everybody at once.
+    const rider = await makeRider();
+    const token = await superuser();
+
+    const doomed = await ensureRecord('tricks', "slug = 'fixture-revoke-doomed'", {
+      slug: 'fixture-revoke-doomed',
+      name: 'Fixture Revoke Doomed',
+      sport: 'scooter',
+      cat: 'flat',
+      diff: 1,
+      is_live: true,
+    });
+
+    await track(rider, doomed.id);
+    await log(rider, doomed.id);
+    expect(Object.keys(await held(rider))).toContain('first-land');
+
+    const removed = await call('DELETE', `/api/collections/tricks/records/${doomed.id}`, {
+      token,
+    });
+    expect(removed.status).toBe(204);
+
+    // The rider's landed count is now zero and `first-land`'s rule reads false,
+    // but they did not ask for anything and the award stays.
+    expect(Object.keys(await held(rider))).toContain('first-land');
+  });
+
+  it('leaves every other rider alone', async () => {
+    const { freeTrick } = await baseFixtures();
+    const mine = await makeRider();
+    const theirs = await makeRider();
+
+    await track(mine, freeTrick);
+    await log(mine, freeTrick);
+    await track(theirs, freeTrick);
+    await log(theirs, freeTrick);
+
+    await clearHistory(mine, freeTrick);
+
+    expect(Object.keys(await held(mine))).not.toContain('fixture-bunny-hop');
+    expect(Object.keys(await held(theirs))).toContain('fixture-bunny-hop');
+  });
+
+  it('holds the award until the last row goes, so a half-cleared history is not judged', async () => {
+    const { freeTrick } = await baseFixtures();
+    const rider = await makeRider();
+
+    await track(rider, freeTrick);
+    const first = await log(rider, freeTrick);
+    await log(rider, freeTrick, 'most');
+    expect(Object.keys(await held(rider))).toContain('fixture-bunny-hop');
+
+    // The progress row and one of the two log rows. The trick is untracked and
+    // the badge's rule already reads false, but history remains, so the reset
+    // has not happened and the badge stays.
+    const progress = await call<{ items: { id: string }[] }>(
+      'GET',
+      '/api/collections/trick_progress/records',
+      { token: rider.token, query: { filter: `user = "${rider.id}" && trick = "${freeTrick}"` } },
+    );
+    for (const row of progress.body.items ?? []) {
+      await call('DELETE', `/api/collections/trick_progress/records/${row.id}`, {
+        token: rider.token,
+      });
+    }
+    await call('DELETE', `/api/collections/trick_log/records/${first.body.id}`, {
+      token: rider.token,
+    });
+    expect(Object.keys(await held(rider))).toContain('fixture-bunny-hop');
+
+    // The last row, and now it goes.
+    await clearHistory(rider, freeTrick);
+    expect(Object.keys(await held(rider))).not.toContain('fixture-bunny-hop');
+  });
+});

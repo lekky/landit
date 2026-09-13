@@ -351,6 +351,12 @@ describe('the event catalogue', () => {
         // An onward link from a trick page — the road, the unlocks, the
         // similar tricks, the practise line or the cross-sport panel. Slugs
         // and feature tags only.
+        // The reset behind the history panel's "Clear history" (2026-09-13): a
+        // rider deleting their whole `trick_log` for one trick, and with it any
+        // badge the trick had earned them. The slug and how many entries went —
+        // never summed with `trick_logged`, because an ordinary untrack
+        // destroys nothing.
+        'trick_history_cleared',
         'trick_link_followed',
         'trick_logged',
         // The share card opened on a trick page — the twin of `sticker_shared`,
