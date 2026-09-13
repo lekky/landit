@@ -113,7 +113,10 @@ test('the bottom bar is five sections, in the order a phone wants them', async (
     ['Home', '/home'],
     ['Tricks', '/library'],
     ['What’s on', '/spots'],
-    ['Progress', '/progress'],
+    // The e2e server runs with `LANDIT_SESSIONS_OPEN=1`, so the Progress cell
+    // lands on Sessions and folds Progress and Stickers into its drawer
+    // (2026-09-13). With sessions off it is `/progress`, as it always was.
+    ['Progress', '/progress/sessions'],
     ['Crew', '/crew'],
   ] as const) {
     await expect(
@@ -291,7 +294,7 @@ test('every nav item whose screen exists is a real link', async ({ page }) => {
   for (const [name, href] of [
     ['Home', '/home'],
     ['Tricks', '/library'],
-    ['Progress', '/progress'],
+    ['Progress', '/progress/sessions'],
     ['Stickers', '/stickers'],
     ['Crew', '/crew'],
     ['Challenge', '/challenge'],

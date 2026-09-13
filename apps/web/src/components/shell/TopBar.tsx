@@ -8,7 +8,7 @@ import { Wordmark } from '@/components/site/Wordmark';
 import { ROUTES } from '@/lib/routes';
 
 import { AccountMenu } from './AccountMenu';
-import { TOP_NAV, isNavActive } from './nav';
+import { isNavActive, topNavFor } from './nav';
 
 /**
  * The sticky ink top bar: mark, nav, streak chip and avatar (`landit-app.jsx`).
@@ -42,7 +42,15 @@ export type TopBarRider = {
   staff?: boolean;
 };
 
-export function TopBar({ rider }: { rider?: TopBarRider }) {
+export function TopBar({
+  rider,
+  sessionsEnabled,
+}: {
+  rider?: TopBarRider;
+  /** Sessions are open to this rider, so Progress lands on them (T41). */
+  sessionsEnabled?: boolean;
+}) {
+  const items = topNavFor(sessionsEnabled);
   const pathname = usePathname();
 
   return (
@@ -51,7 +59,7 @@ export function TopBar({ rider }: { rider?: TopBarRider }) {
         <Wordmark href={rider ? ROUTES.dashboard : ROUTES.home} />
 
         <nav className="nav" aria-label="Main">
-          {TOP_NAV.map((item) => {
+          {items.map((item) => {
             const active = isNavActive(item, pathname);
             return (
               <Link

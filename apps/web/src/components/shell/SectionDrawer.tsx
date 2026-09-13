@@ -50,6 +50,12 @@ export function SectionDrawer({
    */
   onNavigate: () => void;
 }) {
+  const lit = tabs
+    .map((tab) => tab.href)
+    .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
+    .sort((a, b) => b.length - a.length)
+    .at(0);
+
   return (
     /*
      * `role="group"`, because `aria-label` on a bare div is not exposed to a
@@ -63,7 +69,11 @@ export function SectionDrawer({
         // The same prefix rule the bar uses, so `/events/brighton-jam` is still
         // Events. `isNavActive` is not reused: it answers for a whole section,
         // and every tab in a section would come back true.
-        const on = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+        //
+        // **Longest match wins**, which matters since the Progress section
+        // gained Sessions at `/progress/sessions` (2026-09-13): `/progress` is
+        // a prefix of it, so a plain prefix rule lit two tabs on one screen.
+        const on = tab.href === lit;
         return (
           <Link
             key={tab.id}

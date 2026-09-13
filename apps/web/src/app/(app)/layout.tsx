@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { AppShell } from '@/components/shell/AppShell';
 import { VerifyEmailBanner } from '@/components/verify/VerifyEmailBanner';
 import { currentRider } from '@/lib/session';
+import { sessionsEnabledFor } from '@/lib/sessionsPreview';
 import { isStaff } from '@/lib/staff';
 import { VERIFY_DISMISSED_COOKIE } from '@/lib/verify';
 
@@ -81,6 +82,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       }
       riderId={rider?.id}
       sports={rider?.sports?.length ? (rider.sports as SportId[]) : undefined}
+      /*
+       * Decided here for the same reason `staff` is, two lines up: this is the
+       * last place holding the rider record, and both bars are client
+       * components that are never handed one. It decides what the bar *draws*;
+       * each `/progress/sessions` route still asks the gate itself.
+       */
+      sessionsEnabled={rider ? sessionsEnabledFor(rider) : false}
     >
       {showVerifyBanner ? <VerifyEmailBanner email={rider!.email} /> : null}
       {children}

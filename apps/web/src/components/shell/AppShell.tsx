@@ -35,6 +35,7 @@ export function AppShell({
   rider,
   riderId,
   sports,
+  sessionsEnabled,
 }: {
   children: ReactNode;
   /** The signed-in rider, once there is one (T6). */
@@ -49,6 +50,12 @@ export function AppShell({
   riderId?: string;
   /** The sports this rider tracks. Defaults to all of them. */
   sports?: readonly SportId[];
+  /**
+   * Sessions are open to this rider (T41). Both bars ask, because the Progress
+   * section lands on Sessions and folds the other two screens behind it — and
+   * must not, for a rider the preview does not cover.
+   */
+  sessionsEnabled?: boolean;
 }) {
   return (
     <SportProvider sports={sports}>
@@ -70,13 +77,13 @@ export function AppShell({
             <a className="skiplink" href="#main">
               Skip to content
             </a>
-            <TopBar rider={rider} />
+            <TopBar rider={rider} sessionsEnabled={sessionsEnabled} />
             <OfflineBanner />
             <main id="main" className="page">
               {children}
             </main>
             <SiteFooter />
-            <MobileNav />
+            <MobileNav sessionsEnabled={sessionsEnabled} />
           </div>
         </ModalProvider>
       </ToastProvider>

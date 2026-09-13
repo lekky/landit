@@ -2,6 +2,7 @@ import type { IconName } from '@landit/ui-web';
 import type { Route } from 'next';
 
 import { ROUTES } from '@/lib/routes';
+import { SESSIONS_PATH } from '@/lib/sessionRoutes';
 
 /**
  * The rider app's navigation — two shapes over one set of destinations.
@@ -145,8 +146,32 @@ export const WHATS_ON_TABS: readonly SectionTab[] = [
   { id: 'events', label: 'Events', icon: 'flag', href: ROUTES.events },
 ];
 
-/** The two screens under the bottom bar's "Progress". */
+/**
+ * The screens under the bottom bar's "Progress", when sessions are not on.
+ *
+ * Two, as it was from the start: where the rider is at, and the sticker wall.
+ */
 export const PROGRESS_TABS: readonly SectionTab[] = [
+  { id: 'progress', label: 'Progress', icon: 'chart', href: ROUTES.progress },
+  { id: 'stickers', label: 'Stickers', icon: 'star', href: ROUTES.stickers },
+];
+
+/**
+ * The same section with sessions on: **three screens, Sessions first**
+ * (Rachid, 2026-09-13, in chat — "sessions should be the main page and then
+ * progress and stickers are added to the slide-up panel thing").
+ *
+ * Sessions leads because logging one is the thing a rider opens the app to do,
+ * where Progress and the sticker wall are both read rather than acted on. The
+ * order is also load-bearing: the drawer announces itself on arrival at the
+ * section's own screen, so the first tab has to *be* that screen or a rider
+ * landing on Sessions would meet a list headed by something else.
+ *
+ * `/progress` is unmoved and still "Where you're at" — nothing that links to it
+ * breaks, and a rider without sessions sees exactly the section they always did.
+ */
+export const PROGRESS_TABS_WITH_SESSIONS: readonly SectionTab[] = [
+  { id: 'sessions', label: 'Sessions', icon: 'clock', href: SESSIONS_PATH as Route },
   { id: 'progress', label: 'Progress', icon: 'chart', href: ROUTES.progress },
   { id: 'stickers', label: 'Stickers', icon: 'star', href: ROUTES.stickers },
 ];
@@ -210,6 +235,41 @@ export const MOBILE_NAV: readonly NavItem[] = [
 ];
 
 /**
+ * The two bars, for a rider who can see sessions (plan §7, T41).
+ *
+ * The Progress cell lands on **Sessions** and folds the other two screens
+ * behind it (Rachid, 2026-09-13, in chat). Every other cell is untouched, and
+ * with sessions off both functions answer with the constants above — which is
+ * what a rider outside the preview gets, and what stops the bar offering a
+ * screen that would 404 on them.
+ *
+ * Shaped like `accountMenuFor(staff)` and for the same reason: whether a
+ * destination is drawn is a display rule decided once, on the server, from the
+ * rider record. The gate that matters is still `sessionsEnabledFor` on each
+ * `/progress/sessions` route.
+ */
+export function topNavFor(sessionsEnabled?: boolean): readonly NavItem[] {
+  if (!sessionsEnabled) return TOP_NAV;
+  return TOP_NAV.map((item) =>
+    item.id === 'progress' ? { ...item, href: SESSIONS_PATH as Route } : item,
+  );
+}
+
+export function mobileNavFor(sessionsEnabled?: boolean): readonly NavItem[] {
+  if (!sessionsEnabled) return MOBILE_NAV;
+  return MOBILE_NAV.map((item) =>
+    item.id === 'progress'
+      ? {
+          ...item,
+          href: SESSIONS_PATH as Route,
+          reaches: [ROUTES.progress, ROUTES.stickers],
+          tabs: PROGRESS_TABS_WITH_SESSIONS,
+        }
+      : item,
+  );
+}
+
+/**
  * Whether a nav item is the one being looked at.
  *
  * A trick page counts as Tricks and a rider profile counts as Crew — the
@@ -238,8 +298,8 @@ export function isNavActive(item: NavItem, pathname: string): boolean {
  * a bar lit on Progress with a What's on drawer under it would be worse than
  * no drawer. One function, `isNavActive`, one answer.
  */
-export function activeSection(pathname: string): NavItem | undefined {
-  return MOBILE_NAV.find((item) => isNavActive(item, pathname));
+export function activeSection(pathname: string, sessionsEnabled?: boolean): NavItem | undefined {
+  return mobileNavFor(sessionsEnabled).find((item) => isNavActive(item, pathname));
 }
 
 /**
