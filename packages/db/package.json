@@ -13,6 +13,7 @@
     "test": "vitest run",
     "typegen": "node scripts/generate-types.mjs",
     "curation:worksheet": "node --experimental-strip-types --import ./scripts/register-ts-resolve.mjs scripts/curation-worksheet.mts",
+    "video:thumbs": "node --experimental-strip-types --import ./scripts/register-ts-resolve.mjs scripts/video-thumbs.mts",
     "video:check": "node --experimental-strip-types --import ./scripts/register-ts-resolve.mjs scripts/video-check.mts",
     "video:import": "node --experimental-strip-types --import ./scripts/register-ts-resolve.mjs scripts/video-import.mts",
     "seed": "node --experimental-strip-types --import ./scripts/register-ts-resolve.mjs scripts/seed.mts",

@@ -225,8 +225,13 @@ export async function saveTrickAction(id: string, form: TrickForm): Promise<Staf
     // is for, so it has to be earned. Confirming an automatic pick *without*
     // changing it is the row's own "Mark checked" button.
     const before = await records(staff.superuser, 'tricks').first('id = {:id}', { id });
-    if (patch.video_id && patch.video_id !== (before?.video_id ?? '')) {
-      Object.assign(patch, { video_source: 'staff' as const });
+    if (patch.video_id !== (before?.video_id ?? '')) {
+      // A stored preview frame belongs to the id it was fetched for, so a swap
+      // has to drop it — otherwise the poster shows the previous video's first
+      // frame under the new one's title, which is worse than no frame at all.
+      // `video:thumbs` fetches the replacement on its next run.
+      Object.assign(patch, { video_thumb: null });
+      if (patch.video_id) Object.assign(patch, { video_source: 'staff' as const });
     }
   } catch {
     // The read is an improvement to the audit trail, not a precondition for

@@ -248,3 +248,45 @@
   gap: 10px;
   margin-top: 12px;
 }
+
+/*
+ * The stored preview frame, when there is one (2026-09-13).
+ *
+ * **Served by our own PocketBase, never by YouTube.** The image is fetched once
+ * server-side into `tricks.video_thumb`; asking `i.ytimg.com` for it at render
+ * time is the page-load request to Google that the click-to-play gate exists to
+ * prevent (plan §6.8, and `e2e/video-links.spec.ts` fails on it).
+ *
+ * It sits *behind* the play mark and the label rather than replacing them, so
+ * the control reads the same whether or not a thumbnail exists — a video that
+ * has one and a video that does not are the same button in the same place. The
+ * scrim keeps the white play mark and "Watch on YouTube" legible over a frame
+ * that could be any brightness, which a real tutorial thumbnail very often is.
+ */
+.posterShot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Under the play mark and the label, which are the thing being pressed. */
+  z-index: 0;
+}
+/*
+ * `~` and not `+`: the scrim sits between the image and the play mark, so the
+ * adjacent-sibling selector matched neither and the play button rendered
+ * *underneath* the scrim — invisible on every trick that had a thumbnail. Only
+ * looking at the page caught it; the label kept its z-index and the panel still
+ * looked plausible.
+ */
+.posterShot ~ .playMark,
+.posterShot ~ .posterLabel {
+  position: relative;
+  z-index: 1;
+}
+.posterScrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 38%);
+  z-index: 0;
+}

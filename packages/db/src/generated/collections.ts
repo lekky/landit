@@ -850,6 +850,7 @@ export interface TricksRecord {
   video_source: TricksVideoSource;
   video_off_reason: string;
   video_checked: string;
+  video_thumb: string;
 }
 
 /** The shape accepted when creating a `tricks` record. */
@@ -875,6 +876,7 @@ export interface TricksCreate {
   video_source?: TricksVideoSource;
   video_off_reason?: string;
   video_checked?: string;
+  video_thumb?: string;
 }
 
 /** The shape accepted when updating a `tricks` record. */

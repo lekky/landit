@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import { VideoEmbed } from '@/components/video/VideoEmbed';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { pbFileUrl } from '@/lib/pbFile';
 
 import styles from './trick.module.css';
 
@@ -44,6 +45,10 @@ export function WatchPanel({ trick, video }: { trick: Trick; video: TrickVideo }
       <VideoEmbed
         videoId={video.id}
         label={`how to ${trick.name}`}
+        // The stored frame when the fetcher has been round, and nothing when it
+        // has not — `pbFileUrl` returns undefined for an absent or unexpected
+        // path, and `VideoEmbed` falls back to the drawn poster.
+        posterSrc={pbFileUrl(video.thumbPath)}
         onPlay={() =>
           capture(ANALYTICS_EVENTS.trickVideoPlayed, {
             trick: trick.id,
