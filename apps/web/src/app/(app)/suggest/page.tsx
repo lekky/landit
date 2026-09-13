@@ -1,4 +1,4 @@
-import { CONTACT, isSuggestionTopic, type SuggestionTopicId } from '@landit/core';
+import { isSuggestionTopic, type SuggestionTopicId } from '@landit/core';
 import { Panel } from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -92,12 +92,8 @@ export default async function SuggestPage({
         </ul>
       </Panel>
 
+      {/* The email address is offered once, beside "Send it", where the choice is made. */}
       <SuggestForm {...(about ? { about } : {})} {...(from ? { from } : {})} />
-
-      <p className={`cond ${styles.footNote}`}>
-        Prefer email? <a href={`mailto:${CONTACT.hello}`}>{CONTACT.hello}</a> reaches the same
-        people.
-      </p>
     </div>
   );
 }

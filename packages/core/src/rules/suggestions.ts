@@ -90,6 +90,34 @@ export const SUGGESTION_WINDOW_MINUTES = 60;
 export const SUGGESTION_MAX_PER_WINDOW = 3;
 export const SUGGESTION_MAX_OPEN = 10;
 
+/**
+ * Every sentence `pocketbase/hooks/97_suggestions.pb.js` refuses with, word for
+ * word — and so the only server wording the suggestion form may show a rider.
+ *
+ * **Why a list, and not "whatever the server said"** — the same reason as
+ * `SPOT_SUBMISSION_REFUSALS`. A refusal on a suggestion can come from the hook,
+ * whose sentences are written for a rider, or from PocketBase itself, whose are
+ * written for a developer. The second kind reached the live site on 2026-09-13:
+ * the web app was deployed with `/suggest` before PocketBase had the
+ * `suggestions` collection, and riders pressing "Send it" were told "Missing or
+ * invalid collection context." Anything not on this list gets the form's own
+ * apology instead.
+ *
+ * The hook cannot import this file (it runs in PocketBase's JSVM), so the
+ * sentences are copied there; `pocketbase/tests/suggestions.test.ts` provokes
+ * each refusal over HTTP and fails if the two drift. "Sign in to send us an
+ * idea." is left off because it cannot arrive: the collection's create rule
+ * refuses a signed-out request before the hook runs, and the action checks the
+ * session before it asks.
+ */
+export const SUGGESTION_REFUSALS: readonly string[] = Object.freeze([
+  'Pick what this is about.',
+  'Tell us the idea, in your own words.',
+  `Keep it under ${SUGGESTION_DETAIL_MAX} characters.`,
+  'You have a few ideas waiting with us already. We read all of them — give us a chance to catch up before the next one.',
+  'That is a lot of ideas in one go. Give it an hour — the ones you have sent are already with us.',
+]);
+
 export const SUGGESTION_TOPIC_IDS: readonly SuggestionTopicId[] = SUGGESTION_TOPICS.map(
   (t) => t.id,
 );

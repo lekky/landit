@@ -43,7 +43,23 @@ export interface SuggestFormProps {
   readonly from?: string;
 }
 
-export function SuggestForm({ about, from }: SuggestFormProps) {
+/**
+ * "Send another" used to be a link to `/suggest` — the page it was already on.
+ * Next treats that as a no-op soft navigation, so the action state kept its
+ * `filedAs` and the thank-you panel never went away (reported 2026-09-13). A
+ * fresh `key` remounts the form instead, which resets the action state and the
+ * textarea together.
+ */
+export function SuggestForm(props: SuggestFormProps) {
+  const [round, setRound] = useState(0);
+  return <SuggestFormRound key={round} {...props} onAnother={() => setRound((n) => n + 1)} />;
+}
+
+function SuggestFormRound({
+  about,
+  from,
+  onAnother,
+}: SuggestFormProps & { readonly onAnother: () => void }) {
   const [result, action, pending] = useActionState<SuggestionFormState | undefined, FormData>(
     fileSuggestionAction,
     undefined,
@@ -76,9 +92,9 @@ export function SuggestForm({ about, from }: SuggestFormProps) {
           <Link className="btn sm ghost" href={ROUTES.dashboard}>
             Back to riding
           </Link>
-          <Link className="btn sm ghost" href={ROUTES.suggest}>
+          <button type="button" className="btn sm ghost" onClick={onAnother}>
             Send another
-          </Link>
+          </button>
         </div>
       </Panel>
     );

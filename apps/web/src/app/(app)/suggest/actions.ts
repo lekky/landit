@@ -1,9 +1,10 @@
 'use server';
 
 import { isSuggestionTopic, suggestionProblems, type SuggestionTopicId } from '@landit/core';
-import { fileSuggestion, isRateLimited, refusalMessage } from '@landit/db';
+import { fileSuggestion, isRateLimited } from '@landit/db';
 
 import { currentRider } from '@/lib/session';
+import { suggestionRefusal } from '@/lib/suggestRefusal';
 
 /**
  * Sending us an idea.
@@ -20,6 +21,10 @@ import { currentRider } from '@/lib/session';
  * this action deliberately does not try to guess at
  * (`pocketbase/hooks/97_suggestions.pb.js`). A 429 is shown as what it is — the
  * server's own sentence — rather than flattened into "something went wrong".
+ *
+ * **Only the hook's sentences, though** (`suggestionRefusal`). Anything else the
+ * server says is PocketBase talking to a developer, and on 2026-09-13 that is
+ * what riders read: "Missing or invalid collection context."
  */
 
 export interface SuggestionFormState {
@@ -57,11 +62,11 @@ export async function fileSuggestionAction(
     return { filedAs: filed.id };
   } catch (error) {
     if (isRateLimited(error)) {
-      return { error: refusalMessage(error) ?? 'That is a lot of ideas in one go.' };
+      return { error: suggestionRefusal(error) ?? 'That is a lot of ideas in one go.' };
     }
     return {
       error:
-        refusalMessage(error) ??
+        suggestionRefusal(error) ??
         'We could not send that just now. Try again in a moment, or email us.',
     };
   }
