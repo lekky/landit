@@ -1,6 +1,7 @@
 import { CONTACT, isSuggestionTopic, type SuggestionTopicId } from '@landit/core';
 import { Panel } from '@landit/ui-web';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { ROUTES, signInHref } from '@/lib/routes';
@@ -85,8 +86,8 @@ export default async function SuggestPage({
           <li>We cannot build everything — but the ideas that keep coming up get built.</li>
           <li>
             If something here is <strong>not safe or not right</strong>, that is a different form:{' '}
-            <a href={ROUTES.report}>tell us something is wrong</a>. It goes to safeguarding and gets
-            answered within one working day.
+            <Link href={ROUTES.report}>tell us something is wrong</Link>. It goes to safeguarding
+            and gets answered within one working day.
           </li>
         </ul>
       </Panel>
