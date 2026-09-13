@@ -77,7 +77,7 @@ export default async function AdminTricksPage() {
       // here exactly as it does on the trick page.
       hard: trick?.hard ?? '',
       mistakes: trick?.mistakes ?? [],
-      // Same reasoning (T34): read through the mapping, so a row carrying a
+      // Same reasoning (T35): read through the mapping, so a row carrying a
       // link with no title reads as "no video" here exactly as it does on the
       // trick page, rather than showing staff a half video the page will not.
       videoId: trick?.video?.id ?? '',

@@ -558,7 +558,7 @@ export default async function TrickPage({ params }: Params) {
               uses; the slug is what turns on "Back to the trick" over there.
             */}
             {/*
-              "Watch it" (T34), first in the column and therefore the first
+              "Watch it" (T35), first in the column and therefore the first
               thing under the stage ladder on a phone — the owner asked for
               prominence where there is a video (2026-09-12, in chat), and this
               is the most prominent slot that leaves T26's award-led hero alone.

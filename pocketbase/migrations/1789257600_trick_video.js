@@ -2,7 +2,7 @@
 
 /**
  * `tricks.video_id`, `tricks.video_title` and `tricks.video_channel` — the
- * staff-picked tutorial gets its columns (T34; Rachid, 2026-09-12, in chat).
+ * staff-picked tutorial gets its columns (T35; Rachid, 2026-09-12, in chat).
  *
  * **Why three columns and not one.** The id is what plays. The title and the
  * channel are what the panel can *say* before anything plays, and they have to

@@ -97,12 +97,12 @@ export interface TrickMistake {
 }
 
 /**
- * The one tutorial video a trick page shows (T34).
+ * The one tutorial video a trick page shows (T35).
  *
  * **Staff picked, never found.** There is no search, no ranking and no
  * automatic fill: a video is on a trick because a person watched it and typed
  * it into the staff portal, which is what the approval *is*. The measured
- * reason is in plan §7 T34 — an automatic top-result pick puts pole vaulting on
+ * reason is in plan §7 T35 — an automatic top-result pick puts pole vaulting on
  * Pole Tap and moped kick-starting on Kickturn, and this is a product for
  * children.
  *
@@ -174,13 +174,13 @@ export interface Trick {
    */
   readonly hard?: string;
   /**
-   * The staff-picked tutorial for this trick (T34), or absent.
+   * The staff-picked tutorial for this trick (T35), or absent.
    *
    * **Absent is the common case and renders as nothing at all.** Not every
    * trick has a tutorial anybody has made — measured at roughly four in five
    * across the library, and far worse on scooter, where the beginner skills
    * live inside compilations and the rare combinations have no video at all
-   * (plan §7 T34). A trick without one shows no panel: no placeholder, no
+   * (plan §7 T35). A trick without one shows no panel: no placeholder, no
    * "coming soon", and never another sport's video, however close
    * `CROSS_SPORT` says the movement is (owner, 2026-09-12, in chat). A rider on
    * a trick with no video should not be able to tell that other tricks have

@@ -4,7 +4,7 @@ import { SUPERUSER_EMAIL, SUPERUSER_PASSWORD } from './fixtures';
 import { POCKETBASE_URL, ensureSuperuser } from './seed-library';
 
 /**
- * Put a staff-picked tutorial on one trick in the e2e database (T34).
+ * Put a staff-picked tutorial on one trick in the e2e database (T35).
  *
  * **Without this the whole spec would pass by finding nothing.** The video
  * columns are database-only on purpose — they are not in the canonical `TRICKS`

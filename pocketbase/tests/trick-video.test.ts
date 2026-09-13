@@ -4,7 +4,7 @@ import { call, ensureRecord, superuser } from './helpers';
 
 /**
  * `tricks.video_id`, `video_title` and `video_channel` exist, round-trip to a
- * signed-out reader, and are held to their rules on every write path (T34).
+ * signed-out reader, and are held to their rules on every write path (T35).
  *
  * Three things this proves that nothing else can.
  *

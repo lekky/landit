@@ -9,7 +9,7 @@ import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import styles from './trick.module.css';
 
 /**
- * "Watch it" — the staff-picked tutorial for this trick (T34).
+ * "Watch it" — the staff-picked tutorial for this trick (T35).
  *
  * **Why the panel exists.** The trick page tells a rider what the trick is,
  * what usually goes wrong, why it sits at its tier and what comes before it,
@@ -24,7 +24,7 @@ import styles from './trick.module.css';
  *
  * **Why there is no empty state.** The page renders this only when the trick
  * has a video, and most tricks do not — measured at roughly four in five across
- * the library, and far worse on scooter (plan §7 T34). No placeholder, no
+ * the library, and far worse on scooter (plan §7 T35). No placeholder, no
  * "coming soon", and **never another sport's video**, however close
  * `CROSS_SPORT` says the movement is: a rider on a trick with no video should
  * not be able to tell that other tricks have one. The cross-sport panel still

@@ -158,7 +158,7 @@ export function tricksFromRecords(
     // Never a throw, because one bad row would take the whole library down.
     ...mistakesOf(row.mistakes),
     ...(typeof row.hard === 'string' && row.hard.trim() ? { hard: row.hard } : {}),
-    // The staff-picked tutorial (T34). Database-only — it is never in the
+    // The staff-picked tutorial (T35). Database-only — it is never in the
     // canonical `TRICKS` data and the seed never writes it — so this mapping is
     // the *only* way a video reaches a `Trick`. Absent, empty, and a row from a
     // database older than `1789257600_trick_video.js` all become no field,
@@ -169,7 +169,7 @@ export function tricksFromRecords(
 }
 
 /**
- * The three `tricks.video_*` columns as the `Trick` field, or nothing (T34).
+ * The three `tricks.video_*` columns as the `Trick` field, or nothing (T35).
  *
  * **Both halves or neither.** The hook refuses a link without a title on the
  * way in, so a row that has one and not the other is a hand edit or a database

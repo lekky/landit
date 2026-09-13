@@ -8,7 +8,7 @@ import {
 } from './support/seed-trick-video';
 
 /**
- * "Watch it" — the staff-picked tutorial on a trick page (T34).
+ * "Watch it" — the staff-picked tutorial on a trick page (T35).
  *
  * Three things this file is for, and only the first is ordinary.
  *

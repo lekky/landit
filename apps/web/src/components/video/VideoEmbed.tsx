@@ -49,7 +49,7 @@ export function VideoEmbed({
   /** What this video is of, for the play button's accessible name. */
   label: string;
   /**
-   * Fired once, on the press that mounts the iframe (T34).
+   * Fired once, on the press that mounts the iframe (T35).
    *
    * Optional and additive: a rider's own video links pass nothing and behave
    * exactly as they did. The trick page's staff-picked tutorial passes an

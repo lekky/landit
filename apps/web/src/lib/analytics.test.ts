@@ -313,7 +313,7 @@ describe('the event catalogue', () => {
         // and feature tags only.
         'trick_link_followed',
         'trick_logged',
-        // The staff-picked tutorial on a trick page (T34): the slug, the sport
+        // The staff-picked tutorial on a trick page (T35): the slug, the sport
         // and the tier when it is played, and the slug alone when somebody
         // follows "Something wrong?" out to the report form. Catalogue facts —
         // never the video's title, which is somebody else's text.

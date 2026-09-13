@@ -729,7 +729,7 @@ function enforceTrickContentLimits(record) {
 
 /**
  * The staff-picked tutorial keeps its shape, and the stored id is always an id
- * (T34).
+ * (T35).
  *
  * Two guarantees, both of which have to bind below the client because the staff
  * editor is not a security boundary:

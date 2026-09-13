@@ -59,7 +59,7 @@ onRecordUpdate((e) => {
 
 /**
  * The staff-picked tutorial is whole or absent, and `video_id` is always an id
- * (T34).
+ * (T35).
  *
  * Model hooks for the same reason the content limits are: the staff editor
  * checks the same rules client-side for a friendlier message, and this is where

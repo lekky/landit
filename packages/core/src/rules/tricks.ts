@@ -4,7 +4,7 @@ import { LANDED_STAGES } from '../data/stages';
 import { SPORT_IDS } from '../data/sports';
 import { TRICKS } from '../data/tricks';
 import { PLAN } from '../data/plans';
-// The trick video (T34) is checked with the same parser a rider's own link
+// The trick video (T35) is checked with the same parser a rider's own link
 // goes through. `video.ts` imports only types, so there is no cycle here.
 import { parseYouTubeVideoId } from './video';
 import type {
@@ -238,7 +238,7 @@ export function trickContentProblems(
   return problems;
 }
 
-/* ------------------------------------------------- the trick video (T34) -- */
+/* ------------------------------------------------- the trick video (T35) -- */
 
 /**
  * What a staff-picked tutorial's title and channel are allowed to be.

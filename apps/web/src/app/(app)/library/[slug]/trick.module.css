@@ -1564,7 +1564,7 @@ a.practiseLink:hover {
   }
 
   /*
-   * "Watch it" (T34) leads the phone page, ahead of the history and the facts.
+   * "Watch it" (T35) leads the phone page, ahead of the history and the facts.
    *
    * The desktop column order puts it first already; on a phone the sections are
    * re-ordered by hand, so first has to be said. The owner asked for prominence
@@ -1658,7 +1658,7 @@ a.practiseLink:hover {
   }
 }
 
-/* -------------------------------------------------- "Watch it" (T34) -- */
+/* -------------------------------------------------- "Watch it" (T35) -- */
 
 /*
  * The staff-picked tutorial, at the top of the left column.

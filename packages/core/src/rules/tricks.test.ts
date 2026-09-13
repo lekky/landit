@@ -618,7 +618,7 @@ describe('more like this (T31)', () => {
   });
 });
 
-describe('the staff-picked trick video (T34)', () => {
+describe('the staff-picked trick video (T35)', () => {
   const ID = 'dQw4w9WgXcQ';
   const TITLE = 'How to Abubaca the easy way';
 

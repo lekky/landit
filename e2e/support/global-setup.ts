@@ -62,7 +62,7 @@ export default async function globalSetup(): Promise<void> {
   await seedSpots();
   // The trick video is database-only — the seed deliberately never writes one
   // (issue #273) — so without this one write the "Watch it" panel cannot render
-  // anywhere and every assertion about it passes by finding nothing (T34).
+  // anywhere and every assertion about it passes by finding nothing (T35).
   await seedTrickVideo(VIDEO_TRICK.id);
 
   const trick = TRICKS.find((t) => t.isLive) ?? TRICKS[0];

@@ -543,7 +543,7 @@ export const ANALYTICS_EVENTS = {
    */
   trickLinkFollowed: 'trick_link_followed',
   /**
-   * The staff-picked tutorial on a trick page was played (T34).
+   * The staff-picked tutorial on a trick page was played (T35).
    *
    * Carries `trick` (the slug), `sport` and `tier` (the difficulty, 1–5) —
    * three catalogue facts, all written in this repository. Never who watched
@@ -562,7 +562,7 @@ export const ANALYTICS_EVENTS = {
    */
   trickVideoPlayed: 'trick_video_played',
   /**
-   * Somebody followed "Something wrong?" out of a trick page's tutorial (T34).
+   * Somebody followed "Something wrong?" out of a trick page's tutorial (T35).
    *
    * Carries `trick` and nothing else. It is deliberately **not**
    * `report_filed`: this counts leaving the trick page for the form, which is

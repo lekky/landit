@@ -181,7 +181,7 @@ describe('tricksFromRecords', () => {
   });
 
   /*
-   * The staff-picked tutorial (T34). The mapping is the only way a video
+   * The staff-picked tutorial (T35). The mapping is the only way a video
    * reaches a `Trick` — it is not in the canonical data and the seed never
    * writes it — so *absent* here is what makes the trick page render no panel,
    * which is the state most of the library is in.

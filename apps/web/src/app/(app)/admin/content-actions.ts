@@ -148,7 +148,7 @@ export interface TrickForm {
    */
   readonly mistakes: readonly TrickMistake[];
   /**
-   * The staff-picked tutorial (T34): the link as it was pasted, the title, and
+   * The staff-picked tutorial (T35): the link as it was pasted, the title, and
    * who made it. All three empty means no video, which is the normal state and
    * renders as no panel on the trick page.
    *
@@ -197,7 +197,7 @@ function trickMistakesOf(form: TrickForm): TrickMistake[] {
 function trickContentRefusal(form: TrickForm): StaffWriteResult | null {
   const problems = [
     ...trickContentProblems(trickMistakesOf(form), form.hard.trim()),
-    // The video's own limits (T34), checked here for the message and in the
+    // The video's own limits (T35), checked here for the message and in the
     // tricks hook for the guarantee — same split as the content limits above.
     ...trickVideoProblems({
       link: form.videoLink,
