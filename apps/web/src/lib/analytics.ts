@@ -273,6 +273,69 @@ export const ANALYTICS_EVENTS = {
   /** The coach-view toggle on the progress screen. */
   insightsSet: 'insights_set',
 
+  /* ----------------------------------------------------------- sessions -- */
+  /*
+   * Sessions (T36, plan §1 D1–D6). Defined here by the data task; the screens
+   * that fire them are T37–T40.
+   *
+   * **The rule every one of these keeps, stated once:** a session is the first
+   * thing this product stores that says *where a rider was and when* (D1,
+   * amending §6.4 standard 10), so **no session event ever carries a spot, an
+   * event, a time, a date, a duration, a feel, a trick, a crew-mate, a clip or
+   * the words of an aim or a note.** Not as an id, not as a slug, not as a
+   * count of anything a rider did. What travels is which control, which form,
+   * which view, and a plan slug — catalogue facts, the same for everybody.
+   */
+  /**
+   * A session form was opened. Carries `source` — where it was opened from:
+   * `'progress'` (the Sessions tab), `'spot'`, `'event'` or `'trick'` (the
+   * "Log a session here" blocks), or `'quick_log_escalate'` (the quick log's
+   * "Add tricks, clip and notes →"). Five fixed strings.
+   *
+   * **Never which spot, event or trick** it was opened on: the page it was
+   * opened from is a place, and `source: 'spot'` already says all this needs.
+   *
+   * It exists to say which entry point riders actually log from, and whether
+   * the three-tap quick log is enough or gets escalated most of the time.
+   */
+  sessionLogOpened: 'session_log_opened',
+  /**
+   * A session was saved. Carries `form` — `'quick'` or `'full'` — and
+   * `has_clip`, a boolean. Fired after the server accepted the write, never
+   * optimistically. A session refused by the monthly quota does **not** fire
+   * this (the ride it carried still fires `ride_logged` where the ride was new).
+   *
+   * `has_clip` is a yes or no, never the platform and never the link: whether
+   * clips are used at all is the question D5's allowance is a bet on.
+   */
+  sessionLogged: 'session_logged',
+  /** An existing session was edited and saved. No properties. */
+  sessionEdited: 'session_edited',
+  /** A session was deleted, through the confirm. No properties. */
+  sessionDeleted: 'session_deleted',
+  /**
+   * The Sessions tab was switched between its two views. Carries `view` —
+   * `'feed'` or `'list'`. The press only; the default view on load is not
+   * evidence of anything.
+   */
+  sessionsViewSet: 'sessions_view_set',
+  /**
+   * The fifth-session wall was shown to a rider. Carries `plan` — the plan
+   * slug, a catalogue fact — and nothing else: not the count, not the month,
+   * not how many sessions the rider has.
+   *
+   * It exists because "capacity is sellable" (the design's rationale for D6)
+   * is a bet, and this is the denominator for whether the wall converts or is
+   * simply met and dismissed.
+   */
+  sessionQuotaWallSeen: 'session_quota_wall_seen',
+  /**
+   * "Save this one anyway" — the once-per-account grace — was used, and the
+   * session saved. Carries `plan`. Paired with `session_quota_wall_seen`, it
+   * says how often the wall ends in the free way out rather than a plan.
+   */
+  sessionGraceUsed: 'session_grace_used',
+
   /* ------------------------------------------------------------- crews -- */
   crewCreated: 'crew_created',
   crewJoined: 'crew_joined',

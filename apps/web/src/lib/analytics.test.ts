@@ -293,6 +293,17 @@ describe('the event catalogue', () => {
         'profile_saved',
         'report_filed',
         'ride_logged',
+        // Sessions (T36). Which entry point, which form, whether there was a
+        // clip (yes or no), which view, and a plan slug on the quota wall and
+        // the grace. A session is where and when a rider was (D1), so none of
+        // these carries a spot, an event, a time, a duration or a trick.
+        'session_deleted',
+        'session_edited',
+        'session_grace_used',
+        'session_log_opened',
+        'session_logged',
+        'session_quota_wall_seen',
+        'sessions_view_set',
         'signed_in',
         'signed_out',
         'signed_up',
