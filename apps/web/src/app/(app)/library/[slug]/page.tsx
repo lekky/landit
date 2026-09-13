@@ -52,6 +52,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { GlossaryText } from '@/components/glossary/GlossaryText';
+import { TrickSessionsBlock } from '@/components/sessions/blocks/TrickSessionsBlock';
 import { shortDate } from '@/lib/dates';
 import { jsonLdText, trickHowToLd } from '@/lib/structuredData';
 import { ROUTES, trickHref } from '@/lib/routes';
@@ -658,6 +659,8 @@ export default async function TrickPage({ params }: Params) {
                 unlockPlanName={data.unlockPlanName}
               />
             </div>
+
+            <TrickSessionsBlock trickId={record.id} trickName={trick.name} session={session} />
 
             <div className={styles.secPractise}>
               <PractiseLine slug={trick.id} cat={trick.cat} sport={trick.sport} />

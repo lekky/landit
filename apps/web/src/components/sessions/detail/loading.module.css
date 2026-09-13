@@ -1,0 +1,63 @@
+.page {
+  max-width: 1180px;
+  margin: 46px auto 0;
+}
+
+.card {
+  background: #fffdf5;
+  border: 3px solid #12100b;
+  box-shadow: 5px 5px 0 #12100b;
+}
+
+.hero {
+  background: #ff5a1f;
+  border-bottom: 3px solid #12100b;
+  padding: 18px 22px;
+  min-height: 120px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pill {
+  display: block;
+  width: 260px;
+  max-width: 70%;
+  height: 20px;
+  background: #12100b;
+  opacity: 0.85;
+}
+
+.title {
+  display: block;
+  width: 420px;
+  max-width: 90%;
+  height: 50px;
+  background: #fffdf5;
+  opacity: 0.35;
+}
+
+.strip {
+  height: 62px;
+  background: #fff7e4;
+}
+
+@media (max-width: 700px) {
+  .page {
+    margin-top: 0;
+  }
+  .card {
+    box-shadow: 3px 3px 0 #12100b;
+  }
+  .hero {
+    min-height: 96px;
+    padding: 14px 13px;
+  }
+  .title {
+    height: 36px;
+  }
+  .strip {
+    height: 150px;
+  }
+}
