@@ -223,7 +223,7 @@ export async function saveTrickAction(id: string, form: TrickForm): Promise<Staf
     // — and marking those "checked" would quietly claim somebody watched a
     // video they never opened. That claim is the only thing the `auto` filter
     // is for, so it has to be earned. Confirming an automatic pick *without*
-    // changing it is "Approve and set live" in the row's video modal.
+    // changing it is Approve in the row's video modal.
     const before = await records(staff.superuser, 'tricks').first('id = {:id}', { id });
     if (patch.video_id !== (before?.video_id ?? '')) {
       // A stored preview frame belongs to the id it was fetched for, so a swap
@@ -382,7 +382,11 @@ export async function setTrickVideoHiddenAction(
 
 /**
  * Approve a tutorial and put it on the trick page — the review modal's
- * "Approve and set live" (Rachid, 2026-09-13, in chat).
+ * Approve button (Rachid, 2026-09-13, in chat).
+ *
+ * The button reads "Approve and set live" only where that is what the press
+ * does: on a switched-off video. A video that is merely unwatched is already on
+ * the trick page, so there it reads "Approve" (same owner, same day).
  *
  * The curation pass matched videos by title and channel without anybody
  * watching them, so `video_source = 'auto'` means "nobody has laid eyes on

@@ -287,12 +287,13 @@
  * a module class are both one class, so which wins would come down to
  * stylesheet injection order.
  *
- * **Actions is a fixed width.** It holds up to three buttons — Edit, View video,
- * Remove — and rows with no video show two, so an `auto` track would re-measure
- * per row and bring back the misalignment this exists to remove. The width is
- * what those three need on one line (it was 372px for four, before the video
- * buttons moved into the review modal, 2026-09-13). `.rowActions` still wraps as
- * a backstop if another is ever added.
+ * **Actions is a fixed width.** It holds up to three buttons — View video, Edit,
+ * Remove trick — and rows with no video show two, so an `auto` track would
+ * re-measure per row and bring back the misalignment this exists to remove. The
+ * width is what those three need on one line (it was 372px for four, before the
+ * video buttons moved into the review modal, 2026-09-13; 260px until "Remove"
+ * was named "Remove trick" later the same day). `.rowActions` still wraps as a
+ * backstop if another is ever added.
  *
  * Below 900px this is dropped and each trick becomes a labelled card, which is
  * what `.cardRow` further down does — seven pinned columns in 350px would be
@@ -308,7 +309,7 @@
       minmax(96px, 1fr) /* builds on */
       minmax(150px, 1fr) /* free plan */
       minmax(104px, 0.7fr) /* tutorial */
-      260px; /* actions */
+      288px; /* actions */
     align-items: center;
   }
 }
@@ -606,6 +607,23 @@
   flex-wrap: wrap;
 }
 
+/*
+ * The buttons that change the row, pushed to its right-hand end — the trick
+ * library's Edit and Remove trick, away from the View video it shares the cell
+ * with (Rachid, 2026-09-13, in chat).
+ *
+ * `margin-left: auto` rather than `justify-content: space-between` on the
+ * parent, because a trick with no video renders no left-hand button at all and
+ * `space-between` would put this group back on the left for exactly those rows.
+ * A margin holds the right edge whether or not anything sits opposite it.
+ */
+.rowActionsEnd {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
 .rowTitle {
   min-width: 0;
 }
@@ -622,8 +640,9 @@
 /*
  * The trick library's video review modal (`tricks/VideoReviewModal.tsx`).
  * The player carries its own hard-shadowed frame from `video.module.css`; this
- * only spaces what sits under it. The footer pushes its buttons right so
- * "Approve and set live" lands in the same place on every video in the queue.
+ * only spaces what sits under it. The footer pushes its buttons right, so the
+ * approve button's edge lands in the same place on every video in the queue
+ * (its label is the shorter "Approve" on anything not switched off).
  */
 .reviewBody {
   display: flex;
