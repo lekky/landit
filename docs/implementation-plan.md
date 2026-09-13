@@ -4928,6 +4928,31 @@ Depends on T36. **The fifth-session wall with its grace and the Rookie clip lock
   and `data.test.ts` and `video.test.ts` forbid the word "clip" on any card (plan §6.6), which
   `sessionClipAllowanceLabel` returns. Waiting on the owner.
 
+**T41 · Sessions in owner-only preview.** Added 2026-09-13 (Rachid, in chat: "enable only for me
+now"), so the owner can use T36–T40 on the live site before anyone else sees them. Depends on
+T36–T40.
+
+- **Web:** every surface asks `sessionsEnabledFor` (`apps/web/src/lib/sessionsPreview.ts`), which is
+  `isOwner` — the Sessions tab on Progress, every `/progress/sessions` route (the layout answers
+  404), the spot, event and trick blocks (`riderFor` returns nobody), the "Who sees new sessions"
+  panel on `/account` and the plans comparison. Unset `LANDIT_OWNER_ID` fails closed: nobody sees
+  sessions. `LANDIT_SESSIONS_OPEN=1` opens them to everyone, signed out included, which is exactly how
+  T37–T40 behaved before the gate (the `/plans` comparison shows to a visitor, a session URL sends a
+  signed-out visitor to sign in, the blocks still need a rider) — the e2e server runs that way, since
+  its riders are made during the run, and releasing sessions is setting it on the web app
+  and unsetting `LANDIT_SESSIONS_PREVIEW_ID` on PocketBase, two values and two restarts.
+- **API:** `enforceSession` refuses a session write for any rider but the one named in
+  `LANDIT_SESSIONS_PREVIEW_ID` on the PocketBase instance (`sessionsPreviewAllows` in
+  `hooks/lib/session_rules.js`, unit-tested). **Unset means open**, the opposite of the web gate,
+  and deliberately: the integration suite runs against one PocketBase with riders it creates, and
+  the preview must not become a permanent second key once sessions are released. So production must
+  set it for as long as the preview lasts, and releasing sessions is unsetting it plus removing the
+  web gate.
+- The migrations still run for everyone: the `sessions`, `session_tricks` and `session_grace`
+  collections and the new `plans` and `users` fields exist on the live database, unread by any
+  screen but the owner's.
+- No analytics event: nobody but the owner can reach anything to count.
+
 ### Dependency graph
 
 ```

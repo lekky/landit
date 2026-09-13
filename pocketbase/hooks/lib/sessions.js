@@ -108,6 +108,13 @@ function enforceSession(app, record, isCreate) {
 
   const userId = record.getString('user');
   if (!userId) throw new BadRequestError('A session needs a rider.');
+
+  // 0. The owner-only preview (T41). Before anything else is looked at, and
+  // with no superuser bypass, like every other model-layer rule here.
+  if (!rules.sessionsPreviewAllows(userId, $os.getenv('LANDIT_SESSIONS_PREVIEW_ID'))) {
+    throw new ForbiddenError(rules.SESSIONS_PREVIEW_REFUSAL);
+  }
+
   let user;
   try {
     user = app.findRecordById('users', userId);

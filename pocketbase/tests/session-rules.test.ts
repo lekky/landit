@@ -99,12 +99,33 @@ interface HookSessionRules {
     alreadyPromoted: boolean;
     current: unknown;
   }) => { stageFrom: string | null; stageTo: string } | null;
+  SESSIONS_PREVIEW_REFUSAL: string;
+  sessionsPreviewAllows: (userId: unknown, previewId: unknown) => boolean;
 }
 
 const hook = load<HookSessionRules>('../hooks/lib/session_rules.js');
 const video = load<{ parseYouTubeVideoId: YouTubeParser }>('../hooks/lib/video.js');
 const labels = load<Record<string, Record<string, string>>>('../hooks/lib/labels.js');
 const hookParse = (raw: unknown) => hook.parseClipLink(raw, video.parseYouTubeVideoId);
+
+describe('the owner-only preview (T41)', () => {
+  it('lets everyone write when no preview id is set, so the suite and a released box are open', () => {
+    for (const unset of ['', '   ', null, undefined]) {
+      expect(hook.sessionsPreviewAllows('rider456', unset)).toBe(true);
+    }
+  });
+
+  it('lets only the named rider write while the preview is on', () => {
+    expect(hook.sessionsPreviewAllows('owner123', 'owner123')).toBe(true);
+    expect(hook.sessionsPreviewAllows('owner123', '  owner123  ')).toBe(true);
+    expect(hook.sessionsPreviewAllows('rider456', 'owner123')).toBe(false);
+    expect(hook.sessionsPreviewAllows('', 'owner123')).toBe(false);
+  });
+
+  it('refuses in words a rider can read', () => {
+    expect(hook.SESSIONS_PREVIEW_REFUSAL).toBe('Sessions are not open yet.');
+  });
+});
 
 describe('the clip parsers are the same function', () => {
   for (const { input, expected, why } of CLIP_LINK_CASES) {

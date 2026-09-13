@@ -14,6 +14,7 @@ import { redirect } from 'next/navigation';
 import { ProgressScreen } from '@/components/progress/ProgressScreen';
 import { ROUTES } from '@/lib/routes';
 import { currentRider } from '@/lib/session';
+import { sessionsEnabledFor } from '@/lib/sessionsPreview';
 
 import { buildProgressView } from './view';
 
@@ -70,6 +71,7 @@ export default async function ProgressPage() {
       plan={plan}
       entitledToInsights={planIncludesInsights(plan)}
       optedIntoInsights={rider.insights_opt_in === true}
+      sessionsEnabled={sessionsEnabledFor(rider)}
     />
   );
 }

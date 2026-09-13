@@ -5,6 +5,7 @@ import { headers } from 'next/headers';
 
 import { ROUTES } from '@/lib/routes';
 import { anonymousClient, currentRider } from '@/lib/session';
+import { sessionsEnabledFor } from '@/lib/sessionsPreview';
 import { stripeConfig } from '@/lib/stripe';
 
 import { PlansScreen } from './PlansScreen';
@@ -78,5 +79,5 @@ export default async function PlansPage() {
     country,
   });
 
-  return <PlansScreen view={view} />;
+  return <PlansScreen view={view} showSessions={sessionsEnabledFor(rider)} />;
 }

@@ -1,6 +1,7 @@
 import { getSpotsByIds, type Client } from '@landit/db';
 
 import { currentRider, type RiderSession } from '@/lib/session';
+import { sessionsEnabledFor } from '@/lib/sessionsPreview';
 
 /**
  * Who the blocks are for.
@@ -10,12 +11,16 @@ import { currentRider, type RiderSession } from '@/lib/session';
  * once itself. **A signed-out visitor costs no read either way**: `null` is
  * passed straight through, and `currentRider` returns before any request when
  * there is no cookie.
+ *
+ * **Owner-only preview (T41):** nobody but the rider `sessionsEnabledFor`
+ * names, so all three blocks render nothing — and read nothing — for everyone
+ * else.
  */
 export async function riderFor(
   session: RiderSession | null | undefined,
 ): Promise<RiderSession | null> {
-  if (session !== undefined) return session;
-  return currentRider();
+  const viewer = session !== undefined ? session : await currentRider();
+  return viewer && sessionsEnabledFor(viewer.rider) ? viewer : null;
 }
 
 /** Spot names by id, for rows that name where a session was. Never throws. */
