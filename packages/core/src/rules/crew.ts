@@ -143,7 +143,7 @@ export function formatInviteCode(raw: string | null | undefined): string {
 
 /* ---------------------------------------------------------- activity feed -- */
 
-export type CrewActivityKind = 'stage' | 'sticker';
+export type CrewActivityKind = 'stage' | 'sticker' | 'session';
 
 export interface CrewActivityItem {
   readonly id: string;
@@ -163,12 +163,19 @@ export interface CrewActivityItem {
 /**
  * What the feed says about one thing that happened.
  *
- * The whole vocabulary of the feed is these five sentences. That is the point:
+ * The whole vocabulary of the feed is these six sentences. That is the point:
  * a feed made of sentences the product wrote cannot become a place riders talk
  * to each other, and "no rider-to-rider messaging, ever" (plan §6.1) has to be
  * true of the shapes as well as of the intent.
+ *
+ * The session line (2026-09-13) is deliberately the emptiest of the six:
+ * **"logged a session", and not one word more.** A session knows where a rider
+ * was and when (plan §1 D1), and the aim and the notes are a child's own words
+ * — none of which may reach another rider through a feed. What a crew-mate
+ * learns from it is that somebody rode, which is the whole of what this is for.
  */
 export function crewActivityLine(item: CrewActivityItem): string {
+  if (item.kind === 'session') return 'logged a session';
   if (item.kind === 'sticker') {
     return `earned the ${item.stickerName ?? 'a'} sticker`;
   }

@@ -103,6 +103,25 @@ describe('crewActivityLine', () => {
     expect(crewActivityLine({ ...base, kind: 'sticker', stickerName: 'Ledge Rat' })).toBe(
       'earned the Ledge Rat sticker',
     );
+    expect(crewActivityLine({ ...base, kind: 'session' })).toBe('logged a session');
+  });
+
+  it('says nothing about a session but that it happened', () => {
+    /*
+     * A session knows where a rider was and when (plan §1 D1), and its aim and
+     * notes are a child's own words. None of that may reach a crew-mate, so the
+     * line is fixed: anything passed alongside it is ignored rather than
+     * quietly appended by a later edit to the switch above.
+     */
+    expect(
+      crewActivityLine({
+        ...base,
+        kind: 'session',
+        trickName: 'Tailwhip',
+        stage: 'every',
+        stickerName: 'Ledge Rat',
+      }),
+    ).toBe('logged a session');
   });
 });
 

@@ -370,9 +370,50 @@ describe('updateSession', () => {
     expect(calls).toContainEqual({
       collection: 'session_tricks',
       method: 'update',
-      args: ['e1', { landed: true }],
+      args: ['e1', { landed: true, stage_pick: '' }],
     });
     const created = calls.find((c) => c.collection === 'session_tricks' && c.method === 'create');
     expect(created?.args[0]).toMatchObject({ session: 's1', trick: 'new', landed: false });
+  });
+
+  it('saves the stage the rider picked, and clears one they took back', async () => {
+    // The pick is a request; the hook decides what it does. What this holds is
+    // that the request reaches it, and that taking it back reaches it too.
+    const existing = [
+      { id: 'e1', session: 's1', trick: 'keep', landed: true, stage_pick: 'most' },
+      { id: 'e2', session: 's1', trick: 'also', landed: false, stage_pick: '' },
+    ];
+    const { client, calls } = fakeClient({
+      list: (c) => (c === 'session_tricks' ? existing : []),
+    });
+    await updateSession(client, 's1', {
+      tricks: [
+        { trickId: 'keep', landed: false, stagePick: null },
+        { trickId: 'also', landed: true, stagePick: 'some' },
+      ],
+    });
+    expect(calls).toContainEqual({
+      collection: 'session_tricks',
+      method: 'update',
+      args: ['e1', { landed: false, stage_pick: '' }],
+    });
+    expect(calls).toContainEqual({
+      collection: 'session_tricks',
+      method: 'update',
+      args: ['e2', { landed: true, stage_pick: 'some' }],
+    });
+  });
+
+  it('leaves an entry alone when neither the landing nor the pick changed', async () => {
+    const existing = [{ id: 'e1', session: 's1', trick: 'keep', landed: true, stage_pick: 'most' }];
+    const { client, calls } = fakeClient({
+      list: (c) => (c === 'session_tricks' ? existing : []),
+    });
+    await updateSession(client, 's1', {
+      tricks: [{ trickId: 'keep', landed: true, stagePick: 'most' }],
+    });
+    expect(calls.some((c) => c.collection === 'session_tricks' && c.method === 'update')).toBe(
+      false,
+    );
   });
 });

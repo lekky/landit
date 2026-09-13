@@ -138,6 +138,13 @@ onRecordCreateRequest((e) => {
  *
  * **Why there is no ranking.** Plan §6.1: no algorithmic feed. The order is the
  * timestamp and the tie-break is the id.
+ *
+ * **Sessions carry a third test** on top of the two above (2026-09-13). A
+ * session says where a rider was and when (plan §1 D1), so the rider's own
+ * `visibility` on it decides: `public` and `members` reach a crew-mate,
+ * `private` reaches nobody. That is the `sessions` read rule's answer, applied
+ * here rather than inferred — and it is why the feed can carry sessions while
+ * the board's session *count* does not ask (see `80_routes.pb.js`).
  */
 routerAdd(
   'GET',
@@ -231,6 +238,41 @@ routerAdd(
           stage: row.getString('stage'),
           trick: trick.name,
           sport: trick.sport,
+        });
+      }
+
+      /*
+       * Sessions (2026-09-13, Rachid in chat: "just happened should also
+       * include sessions logged").
+       *
+       * **Two gates, not one.** The rider test above says whether this rider's
+       * activity reaches the viewer at all; this says whether *this session*
+       * does, and it is the session's own `visibility` — the same three values
+       * the `sessions` read rule enforces. `private` reaches nobody but its
+       * owner, which is the setting's whole promise and is not weakened by the
+       * reader happening to be in the crew.
+       *
+       * `members` is included because every reader of this route is already a
+       * member of a crew the owner is in — that is what the membership check at
+       * the top established. Nothing about the session travels but the fact and
+       * the hour: no spot, no aim, no notes, no tricks (`crewActivityLine`).
+       */
+      for (const row of e.app.findRecordsByFilter(
+        'sessions',
+        'user = {:user}',
+        '-started_at',
+        FEED_LIMIT,
+        0,
+        { user: riderId },
+      )) {
+        const visibility = row.getString('visibility');
+        if (!isSelf && visibility !== 'public' && visibility !== 'members') continue;
+        items.push({
+          id: row.id,
+          kind: 'session',
+          at: row.getDateTime('started_at').string(),
+          rider: who,
+          sport: row.getString('sport'),
         });
       }
 

@@ -33,6 +33,7 @@ interface BoardRow {
   name: string;
   handle: string;
   landed: number;
+  sessions: number;
   flair: boolean;
   role: string;
   [key: string]: unknown;
@@ -79,9 +80,53 @@ const join = (rider: Rider, code: string) =>
     body: { code },
   });
 
-const board = (rider: Rider, crewId: string) =>
-  call<{ riders?: BoardRow[]; message?: string }>('GET', `/api/landit/crew-board/${crewId}`, {
+const board = (rider: Rider, crewId: string, month?: string) =>
+  call<{ riders?: BoardRow[]; month?: string; message?: string }>(
+    'GET',
+    `/api/landit/crew-board/${crewId}`,
+    { token: rider.token, ...(month ? { query: { month } } : {}) },
+  );
+
+/** This month, on UTC's clock — which is a plausible month key everywhere. */
+const thisMonth = () => new Date().toISOString().slice(0, 7);
+
+/** A live spot to hang a session on. Sessions need one; the hook checks. */
+async function liveSpot(): Promise<string> {
+  const created = await call<{ id: string }>('POST', '/api/collections/spots/records', {
+    token: await superuser(),
+    body: {
+      name: `Crew Park ${Math.random().toString(36).slice(2, 8)}`,
+      town: 'Leeds',
+      type: 'Concrete',
+      lat: 53.8,
+      lng: -1.55,
+      status: 'live',
+    },
+  });
+  if (created.status !== 200) throw new Error(`spot failed: ${JSON.stringify(created)}`);
+  return created.body.id;
+}
+
+/** Open a rider's profile far enough for the feed's own gate to let them through. */
+const openProfile = (rider: Rider, privacy: string) =>
+  call('PATCH', `/api/collections/users/records/${rider.id}`, {
     token: rider.token,
+    body: { privacy },
+  });
+
+/** One session, logged the way the app logs one. */
+const logSession = (rider: Rider, spot: string, visibility: string) =>
+  call<{ id: string; month_key: string }>('POST', '/api/collections/sessions/records', {
+    token: rider.token,
+    body: {
+      user: rider.id,
+      started_at: new Date(Date.now() - 3_600_000).toISOString(),
+      duration_minutes: 60,
+      sport: 'scooter',
+      spot,
+      feel: 'good',
+      visibility,
+    },
   });
 
 const feed = (rider: Rider, crewId: string) =>
@@ -574,5 +619,113 @@ describe('a crew keeps an owner when its owner leaves (issue #143)', () => {
     // Nobody left to promote: the crew stays, ownerless, rather than being
     // deleted from under people — that is the decision the issue leaves open.
     expect((await crewRecord(crew.id)).status).toBe(200);
+  });
+});
+
+/* ------------------------------------------------------ sessions (2026-09-13) -- */
+
+describe('the board counts sessions this month, and the feed carries them', () => {
+  let spot: string;
+
+  beforeAll(async () => {
+    spot = await liveSpot();
+  });
+
+  it('counts every session a rider logged this month, whatever its visibility', async () => {
+    /*
+     * The weeks column became a session count (Rachid, 2026-09-13, in chat),
+     * and the count is the board's, not the feed's: it counts all three
+     * visibilities, exactly as `landed` counts every landed trick whatever the
+     * rider's privacy. Plan §3 guarantee 1 is the licence and also the limit —
+     * "by name and score" — and a number opens nothing.
+     */
+    const owner = await makeRider();
+    const mate = await makeRider();
+    const crew = (await makeCrew(owner, { name: 'Counting' })).body;
+    expect((await join(mate, (await mintInvite(owner, crew.id)).body.code)).status).toBe(200);
+
+    for (const visibility of ['public', 'members', 'private']) {
+      expect((await logSession(mate, spot, visibility)).status).toBe(200);
+    }
+
+    const rows = (await board(owner, crew.id, thisMonth())).body;
+    expect(rows.month).toBe(thisMonth());
+    expect(rows.riders?.find((r) => r.id === mate.id)?.sessions).toBe(3);
+    expect(rows.riders?.find((r) => r.id === owner.id)?.sessions).toBe(0);
+  });
+
+  it('counts none for a month the caller invented, rather than counting that month', async () => {
+    // The key is bounds-checked against "now somewhere on earth", so a caller
+    // cannot ask the board to score a month of their choosing — and an absent
+    // month counts nothing rather than guessing at one.
+    const owner = await makeRider();
+    const crew = (await makeCrew(owner, { name: 'Bounded' })).body;
+    expect((await logSession(owner, spot, 'private')).status).toBe(200);
+
+    expect((await board(owner, crew.id, '1999-01')).body.riders?.[0]?.sessions).toBe(0);
+    expect((await board(owner, crew.id)).body.riders?.[0]?.sessions).toBe(0);
+    expect((await board(owner, crew.id, thisMonth())).body.riders?.[0]?.sessions).toBe(1);
+  });
+
+  it('puts a crew-mate’s public and crew sessions in the feed, and never a private one', async () => {
+    const owner = await makeRider();
+    const mate = await makeRider();
+    const crew = (await makeCrew(owner, { name: 'Just Happened' })).body;
+    expect((await join(mate, (await mintInvite(owner, crew.id)).body.code)).status).toBe(200);
+    // The rider gate first: a `private` profile is in no feed at all, whatever
+    // any one session says. This one opens far enough to be tested on the
+    // session's own setting.
+    expect((await openProfile(mate, 'members')).status).toBe(200);
+
+    const shown = [
+      (await logSession(mate, spot, 'public')).body.id,
+      (await logSession(mate, spot, 'members')).body.id,
+    ];
+    const hidden = (await logSession(mate, spot, 'private')).body.id;
+
+    const items = (await feed(owner, crew.id)).body.items ?? [];
+    const sessions = items.filter((item) => item.kind === 'session');
+    expect(sessions.map((item) => item.id).sort()).toEqual([...shown].sort());
+    expect(sessions.map((item) => item.id)).not.toContain(hidden);
+  });
+
+  it('keeps a private profile’s sessions out, however open the session itself is', async () => {
+    // The two gates in order: this rider's *profile* is private, so nothing of
+    // theirs is in the feed — a `public` session included.
+    const owner = await makeRider();
+    const mate = await makeRider();
+    const crew = (await makeCrew(owner, { name: 'Closed Door' })).body;
+    expect((await join(mate, (await mintInvite(owner, crew.id)).body.code)).status).toBe(200);
+    expect((await logSession(mate, spot, 'public')).status).toBe(200);
+
+    const items = (await feed(owner, crew.id)).body.items ?? [];
+    expect(items.filter((i) => i.rider.id === mate.id)).toEqual([]);
+  });
+
+  it('shows a rider their own private session, because it is theirs', async () => {
+    const owner = await makeRider();
+    const crew = (await makeCrew(owner, { name: 'My Own' })).body;
+    const mine = (await logSession(owner, spot, 'private')).body.id;
+
+    const items = (await feed(owner, crew.id)).body.items ?? [];
+    expect(items.filter((i) => i.kind === 'session').map((i) => i.id)).toEqual([mine]);
+  });
+
+  it('carries nothing about a session but that it happened', async () => {
+    /*
+     * A session says where a rider was and when (plan §1 D1). The feed payload
+     * is checked key by key rather than by reading the sentence, because it is
+     * the *payload* that would leak — a screen can only draw what it is sent.
+     */
+    const owner = await makeRider();
+    const mate = await makeRider();
+    const crew = (await makeCrew(owner, { name: 'Nothing Else' })).body;
+    expect((await join(mate, (await mintInvite(owner, crew.id)).body.code)).status).toBe(200);
+    expect((await openProfile(mate, 'members')).status).toBe(200);
+    expect((await logSession(mate, spot, 'public')).status).toBe(200);
+
+    const item = (await feed(owner, crew.id)).body.items!.find((i) => i.kind === 'session')!;
+    expect(Object.keys(item).sort()).toEqual(['at', 'id', 'kind', 'rider', 'sport']);
+    expect(JSON.stringify(item)).not.toContain(spot);
   });
 });

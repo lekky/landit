@@ -248,9 +248,17 @@ function Board({
               </span>
             </span>
             <span className={styles.rowStats}>
+              {/*
+                Sessions this month, where the weekly streak used to be
+                (Rachid, 2026-09-13, in chat). The streak is a number a rider
+                cannot see the working of; turning up is a thing they did, and
+                it resets with the board's own month. "This month's board"
+                above is what makes the window readable — the label says
+                `sessions`, and the heading says when.
+              */}
               <span className={styles.stat}>
-                <span className="d">{row.streak}</span>
-                <span className="lab">weeks</span>
+                <span className="d">{row.sessions}</span>
+                <span className="lab">sessions</span>
               </span>
               <span className={styles.stat}>
                 <span className="d">{row.landed}</span>

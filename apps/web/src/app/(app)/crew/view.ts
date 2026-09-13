@@ -21,7 +21,21 @@ export interface BoardRowView {
   readonly handle: string;
   readonly avatarKey: string | null;
   readonly sports: readonly SportLook[];
+  /**
+   * The rider's weekly streak. No longer drawn on the board (2026-09-13) but
+   * still on the payload, because the field is theirs and Home reads it.
+   */
   readonly streak: number;
+  /**
+   * Sessions this rider logged **this month** — the board's own window, and
+   * what replaced the weeks column.
+   *
+   * All of them, whatever each session's visibility, exactly as `landed`
+   * counts every landed trick whatever the rider's privacy: plan §3 guarantee
+   * 1's "by name and score" is the licence and the limit. It is a number and
+   * it opens nothing; the feed beside it applies the per-session test.
+   */
+  readonly sessions: number;
   readonly landed: number;
   readonly isMe: boolean;
   readonly isOwner: boolean;

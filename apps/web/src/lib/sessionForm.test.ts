@@ -1,4 +1,4 @@
-import { SESSION_REFUSALS, sessionQuotaStatus } from '@landit/core';
+import { SESSION_REFUSALS, sessionQuotaStatus, type StageId } from '@landit/core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -211,7 +211,8 @@ describe('reading what the browser sent', () => {
           filled({
             tricks: [
               { trickId: TRICK, landed: true },
-              { trickId: OTHER_TRICK, landed: false, stagePick: 'legend' },
+              // Not a stage at all — what a stale or hand-edited payload looks like.
+              { trickId: OTHER_TRICK, landed: false, stagePick: 'legend' as unknown as StageId },
             ],
           }),
         ),
