@@ -90,6 +90,8 @@ export type RequestName =
   | 'challenge_log'
   | 'ride_logged'
   | 'session_delete'
+  | 'session_log'
+  | 'session_edit'
   /* ------------------------------------------------------- content -- */
   | 'video_add'
   | 'video_visibility'
