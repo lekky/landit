@@ -4833,6 +4833,36 @@ across, and edit mode (2g with Delete and Save changes). All twelve fields, the 
 with the ride already saved. Fires `session_log_opened`, `session_logged`, `session_edited` and
 `session_grace_used`. Depends on T36; composes T40's wall.
 
+*As built (2026-09-13, branch `t38-session-form`).* The form owns the fifth-session wall and the
+Rookie clip lock in its own flow (`components/sessions/form/SessionWall.tsx`, `FullForm.tsx`), so
+it fires `session_quota_wall_seen` itself; T40 keeps the plan comparison and the settings radio.
+- **Routes.** `progress/sessions/new` and `progress/sessions/[id]/edit` are full pages (phone,
+  shared links, refreshes). `progress/sessions/@modal/(.)new` and `@modal/(.)[id]/edit` intercept
+  the same screens over the list on a soft navigation, into the slot T37's
+  `progress/sessions/layout.tsx` renders; `@modal/page.tsx` returns null so landing back on the
+  list empties the slot. Closing a modal is `router.back()`; a save calls `router.refresh()`. On a
+  phone the intercepted full form is a full screen and the quick log, saved state and wall are a
+  bottom sheet.
+- **Writes.** `logSessionAction` (only ever `logSession`, so the ride saves first) and
+  `editSessionAction` (`updateSession`, with the patch worked out against the session as the
+  server holds it), both through `runAction` with the new request names `session_log` and
+  `session_edit`. Refusals map as the task says; `other` is shown under the field its sentence
+  names, else in our words — never PocketBase's (issue #489). A new ride carried by a session also
+  fires `ride_logged`, as the catalogue says.
+- **Tunable defaults the design does not state:** the quick log sends **one hour** as the duration
+  (it has no duration control); an event counts as "on here today" when its pin is within **1 km**
+  of the spot (events carry a point, not a spot); the trick list suggests the rider's **three most
+  recently logged** tracked tricks on the chosen sport, with locked tricks for their plan left out
+  (a refused paid-trick entry would otherwise throw after the session had saved).
+- **Not designed, decided here and kept plain:** the spot picker behind "Change" is a search over
+  the spots screen's own `/api/spots/points` and `/api/spots/names`, recent spots when empty, and
+  "Near me" on `useHereOnce`'s unchanged rules. **"Where" does not pre-fill the nearest spot**: it
+  pre-fills the linked spot or the most recent one, because a nearest pre-fill would download every
+  live spot's point on each form open. The streak line says weeks, not the design's "day 12",
+  because the streak is weekly (T8). "Rode with" lists the crew board's riders, so a crew-mate with
+  a private profile cannot be tagged from here; one already tagged is kept and counted. "+ Someone
+  else" is gone (D3).
+
 **T39 · Session detail and blocks.** One session (1e desktop, 2c phone): the hero, the stat strip,
 the clip player (`ClipPoster variant="player"`), "What this one changed" (`sessionChanges`), the
 tricks with stage moves, crew chips, the visibility card, weather, and newer/older. And the three
