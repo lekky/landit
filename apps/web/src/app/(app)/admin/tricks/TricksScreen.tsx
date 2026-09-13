@@ -185,7 +185,11 @@ function videoChipOf(row: AdminTrickRow): { label: string; color: string; title:
     return {
       label: 'Not checked',
       color: 'var(--amber, #E08A1F)',
-      title: 'Matched automatically by title and channel. Nobody has watched it yet.',
+      // Says it is live, because this is the state that reads as though it is
+      // not: "not checked" is about who has watched it, not about whether
+      // riders can see it. Only `videoHidden` keeps it off the trick page.
+      title:
+        'Matched automatically by title and channel. Nobody has watched it yet, and it is on the trick page.',
     };
   }
   return { label: 'Checked', color: 'var(--green)', title: 'Confirmed by a staff member.' };
@@ -591,16 +595,16 @@ export function TricksScreen({
             */}
             <VideoChip row={row} />
 
+            {/*
+              Two groups, not one row of three (Rachid, 2026-09-13, in chat).
+              "View video" is the button this screen is worked with — it opens
+              the review queue — and it sat between Edit and a red, unconfirmed
+              Remove. Watching goes left; the two that change the trick go
+              right, together, so the destructive one is the furthest thing on
+              the row from the one pressed all day. `.rowActionsEnd` does the
+              splitting, at both widths.
+            */}
             <div className={styles.rowActions}>
-              <button
-                type="button"
-                className="btn sm ghost"
-                style={{ fontSize: 11, padding: '4px 9px' }}
-                onClick={() => setEditing(row)}
-              >
-                Edit
-              </button>
-
               {/* Only where there is a video to watch. Approving and switching
                   off happen inside, with the video on screen. */}
               {row.videoId && (
@@ -614,19 +618,33 @@ export function TricksScreen({
                   View video
                 </button>
               )}
-              <button
-                type="button"
-                className="btn sm"
-                disabled={pending}
-                style={{
-                  fontSize: 11,
-                  padding: '4px 9px',
-                  background: row.isLive ? 'var(--red)' : 'var(--green)',
-                }}
-                onClick={() => onToggleLive(row)}
-              >
-                {row.isLive ? 'Remove' : 'Restore'}
-              </button>
+
+              <div className={styles.rowActionsEnd}>
+                <button
+                  type="button"
+                  className="btn sm ghost"
+                  style={{ fontSize: 11, padding: '4px 9px' }}
+                  onClick={() => setEditing(row)}
+                >
+                  Edit
+                </button>
+                {/* Named, rather than a bare "Remove": it is red, it has no
+                    confirm step, and on a card it lands next to two buttons
+                    that change nothing. What it removes should be on it. */}
+                <button
+                  type="button"
+                  className="btn sm"
+                  disabled={pending}
+                  style={{
+                    fontSize: 11,
+                    padding: '4px 9px',
+                    background: row.isLive ? 'var(--red)' : 'var(--green)',
+                  }}
+                  onClick={() => onToggleLive(row)}
+                >
+                  {row.isLive ? 'Remove trick' : 'Restore trick'}
+                </button>
+              </div>
             </div>
           </div>
         ))}

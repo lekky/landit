@@ -55,6 +55,25 @@ export function VideoReviewModal({
   // the button says so rather than offering a press that writes nothing.
   const approved = !row.videoHidden && row.videoSource !== 'auto';
 
+  /*
+   * What the press will actually do, said in the label (Rachid, 2026-09-13, in
+   * chat: "'approve and set live' is wrong on this card because 'not checked'
+   * is live, right?" — it is).
+   *
+   * A rider sees a tutorial whenever `video_hidden` is false; `video_source`
+   * has nothing to do with it (`library/[slug]/page.tsx` renders the panel on
+   * `!video.hidden` alone). So "Not checked" means matched automatically, never
+   * watched, **and on the trick page right now** — and a button offering to set
+   * it live told a staff member it was off when it was not. Only a switched-off
+   * video is being set live by this press; on a live one, approving is the
+   * whole of it.
+   */
+  const approveLabel = approved
+    ? 'Approved and live'
+    : row.videoHidden
+      ? 'Approve and set live'
+      : 'Approve';
+
   return (
     <Modal
       title={row.name}
@@ -85,7 +104,7 @@ export function VideoReviewModal({
             style={{ background: approved ? undefined : 'var(--green)' }}
             onClick={onApprove}
           >
-            {approved ? 'Approved and live' : 'Approve and set live'}
+            {approveLabel}
           </button>
         </div>
       }
