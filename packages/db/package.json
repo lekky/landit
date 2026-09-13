@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "typegen": "node scripts/generate-types.mjs",
+    "curation:worksheet": "node --experimental-strip-types --import ./scripts/register-ts-resolve.mjs scripts/curation-worksheet.mts",
     "seed": "node --experimental-strip-types --import ./scripts/register-ts-resolve.mjs scripts/seed.mts",
     "import:france": "node --experimental-strip-types --import ./scripts/register-ts-resolve.mjs scripts/import-france.mts",
     "import:world": "node --experimental-strip-types --import ./scripts/register-ts-resolve.mjs scripts/import-world.mts"
