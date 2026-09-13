@@ -1,0 +1,224 @@
+/*
+ * Session primitives (T36) — `components/sessions.tsx`.
+ *
+ * Values from the session-tracking handoff's "Design tokens"
+ * (`landit-research/session-tracking-2026-09-13/README.md`). Radius 0 everywhere;
+ * shadows are hard offsets and never blurred; the hover lift is the one `.btn`
+ * already has — up-left 1px with the shadow grown 2px, pressed down 2px to 1px.
+ */
+
+/* ---------------------------------------------------------------- card -- */
+
+.hcard {
+  --hcard-sh: 4px;
+  position: relative;
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--hcard-sh) var(--hcard-sh) 0 var(--ink);
+}
+.hcard.lift {
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+.hcard.lift:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: calc(var(--hcard-sh) + 2px) calc(var(--hcard-sh) + 2px) 0 var(--ink);
+}
+.hcard.lift:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+/* --------------------------------------------------------------- chips -- */
+
+.metachip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 2px solid var(--ink);
+  background: var(--paper-2);
+  color: var(--ink);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1;
+  padding: 3px 7px;
+  white-space: nowrap;
+}
+
+.trickpill {
+  display: inline-flex;
+  align-items: stretch;
+  border: 2px solid var(--ink);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--on-light);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.trickpill .tp-name {
+  background: var(--paper);
+  color: var(--ink);
+  padding: 4px 8px;
+}
+.trickpill .tp-move {
+  background: #9ce05b;
+  border-left: 2px solid var(--ink);
+  padding: 4px 8px;
+}
+a.trickpill:hover .tp-name {
+  background: var(--paper-2);
+}
+
+/* --------------------------------------------------------- feel swatch -- */
+
+.feelswatch {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  box-sizing: border-box;
+  border: 2px solid var(--ink);
+}
+
+/* ---------------------------------------------------------- visibility -- */
+
+.vislabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink-3);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------ segmented pick -- */
+
+.segpick {
+  display: grid;
+  grid-template-columns: repeat(var(--seg-n, 2), minmax(0, 1fr));
+  gap: 6px;
+}
+.segpick .seg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 7px 4px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2.5px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.05;
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+.segpick .seg:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.segpick .seg:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.segpick .seg:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.segpick .seg:focus-visible,
+.clipposter:focus-visible,
+a.trickpill:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------- stages -- */
+
+.stagepill {
+  display: inline-block;
+  border: 2px solid var(--ink);
+  padding: 2px 7px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.stagemove {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.stagemove .sm-arrow {
+  font-family: var(--fc);
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------- clips -- */
+
+.platbadge {
+  display: inline-block;
+  border: 2px solid var(--ink);
+  padding: 2px 6px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.clipposter {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #2a2620;
+  border: 2.5px solid var(--ink);
+  overflow: hidden;
+}
+.clipposter.thumb {
+  max-width: 168px;
+}
+.clipposter.player {
+  border-width: 3px;
+}
+.clipposter .cp-tab {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-width: 0 2px 2px 0;
+}
+.clipposter .cp-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, -50%);
+}
+.clipposter.player .cp-play {
+  width: 72px;
+  height: 72px;
+}
