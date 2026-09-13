@@ -51,8 +51,6 @@ import type { FormSpot, FormTrick, SessionFormData } from './types';
 type Change = (patch: Partial<SessionFormValues>) => void;
 type Errors = Partial<Record<SessionField, string>>;
 
-const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five'];
-
 /* ---------------------------------------------------------- the chrome -- */
 
 export function FormHeader(props: {
@@ -668,10 +666,6 @@ export function FullForm(props: {
                 onChange={(sport) => onChange({ sport })}
                 className={styles.seg}
               />
-              <p className={styles.hint}>
-                You ride {NUMBER_WORDS[data.sports.length] ?? data.sports.length} sports, so we ask.
-                One sport and this row is gone.
-              </p>
             </Card>
           ) : null}
 

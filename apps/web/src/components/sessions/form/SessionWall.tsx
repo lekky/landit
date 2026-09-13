@@ -78,13 +78,7 @@ export function SessionWall(props: {
         </div>
       ) : null}
 
-      <p className={styles.wallCopy}>
-        {props.rideCounted
-          ? 'You rode today, so the ride and the streak are already saved — that part is never behind a plan.'
-          : 'Your streak is untouched — that part is never behind a plan.'}{' '}
-        What needs {upgrade?.name ?? 'a paid plan'} is keeping the rest: the spot, the tricks, the
-        clip and the notes.
-      </p>
+      <p className={styles.wallCopy}>Upgrade to save more this month.</p>
 
       {props.errorLine ? (
         <p className={styles.errorLine} role="alert">
