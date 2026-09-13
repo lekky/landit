@@ -15,6 +15,7 @@ import { redirect } from 'next/navigation';
 
 import { ROUTES, legalHref, riderHref } from '@/lib/routes';
 import { currentRider } from '@/lib/session';
+import { sessionsEnabledFor } from '@/lib/sessionsPreview';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { isStaff } from '@/lib/staff';
 
@@ -111,7 +112,11 @@ export default async function AccountPage() {
         visible than the profile it belongs to. `sessionVisibilityDefault`
         reads an unset field as `private` (D2).
       */}
-      <SessionVisibilityPanel value={sessionVisibilityDefault(rider.session_visibility_default)} />
+      {sessionsEnabledFor(rider) ? (
+        <SessionVisibilityPanel
+          value={sessionVisibilityDefault(rider.session_visibility_default)}
+        />
+      ) : null}
 
       {/*
        * A theme picker sat here from 2026-09-01 until 2026-09-04, offering

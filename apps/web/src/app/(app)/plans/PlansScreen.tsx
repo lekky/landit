@@ -77,7 +77,14 @@ const FAQ: readonly { readonly q: string; readonly a: string }[] = [
 /** Ties the Yearly button to the saving tag via `aria-describedby`. */
 const SAVING_TAG_ID = 'plans-yearly-saving';
 
-export function PlansScreen({ view }: { view: PlansView }) {
+export function PlansScreen({
+  view,
+  showSessions,
+}: {
+  view: PlansView;
+  /** Owner-only preview (T41): the sessions comparison shows for `sessionsEnabledFor` alone. */
+  showSessions: boolean;
+}) {
   const [period, setPeriod] = useState<BillingPeriod>('monthly');
   const [portal, portalAction, portalPending] = useActionState<{ error?: string }, FormData>(
     openBillingPortalAction,
@@ -188,7 +195,7 @@ export function PlansScreen({ view }: { view: PlansView }) {
         the cards. Under the cards and the currency note, so the note stays
         beside the prices it is about.
       */}
-      <SessionPlanComparison comparison={view.sessions} />
+      {showSessions ? <SessionPlanComparison comparison={view.sessions} /> : null}
 
       {view.signedIn && view.hasSubscription && (
         <Panel flat className={styles.notice}>

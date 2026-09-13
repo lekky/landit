@@ -37,6 +37,8 @@ export type ProgressScreenProps = {
   readonly plan: PlanId;
   readonly entitledToInsights: boolean;
   readonly optedIntoInsights: boolean;
+  /** Owner-only preview (T41): the Sessions tab shows for `sessionsEnabledFor` alone. */
+  readonly sessionsEnabled: boolean;
 };
 
 export function ProgressScreen({
@@ -44,6 +46,7 @@ export function ProgressScreen({
   plan,
   entitledToInsights,
   optedIntoInsights,
+  sessionsEnabled,
 }: ProgressScreenProps) {
   const { sport } = useSport();
   const router = useRouter();
@@ -56,7 +59,7 @@ export function ProgressScreen({
           <span className="eyebrow">Progress</span>
           <h1 className={`d ${styles.head}`}>Where you&rsquo;re at</h1>
         </div>
-        <ProgressTabs current="tricks" />
+        {sessionsEnabled ? <ProgressTabs current="tricks" /> : null}
         <Panel className={styles.pad}>
           <p className={styles.plain}>
             Pick a sport in your account and this fills up as you track tricks.
@@ -76,7 +79,7 @@ export function ProgressScreen({
         <h1 className={`d ${styles.head}`}>Where you&rsquo;re at</h1>
       </div>
 
-      <ProgressTabs current="tricks" />
+      {sessionsEnabled ? <ProgressTabs current="tricks" /> : null}
 
       <SportSwitch note={pctOf} label="Progress by sport" />
 

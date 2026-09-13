@@ -128,6 +128,9 @@ export default defineConfig({
             // route. The seed provisions exactly this pair in `.pb_e2e`.
             POCKETBASE_SUPERUSER_EMAIL: SUPERUSER_EMAIL,
             POCKETBASE_SUPERUSER_PASSWORD: SUPERUSER_PASSWORD,
+            // Sessions are in owner-only preview (plan §7, T41), and no rider
+            // this suite makes is the owner. Open, the way a release will be.
+            LANDIT_SESSIONS_OPEN: '1',
             // The pre-launch gate (`apps/web/src/proxy.ts`) would serve the
             // holding page instead of the app. An unset flag already means
             // "live" outside production, so this is belt and braces — but the

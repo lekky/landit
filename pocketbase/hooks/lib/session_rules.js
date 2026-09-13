@@ -216,7 +216,28 @@ function sessionStagePromotion(input) {
   return { stageFrom: input.current ? input.current : null, stageTo: stageTo };
 }
 
+// ---------------------------------------------------------------- preview --
+
+/** What a rider outside the owner-only preview reads if they write a session directly. */
+const SESSIONS_PREVIEW_REFUSAL = 'Sessions are not open yet.';
+
+/**
+ * The owner-only preview (plan §7, T41): may this rider write a session?
+ *
+ * `previewId` is `LANDIT_SESSIONS_PREVIEW_ID` from the PocketBase instance.
+ * **Empty means open** — the opposite of the web's `LANDIT_OWNER_ID` gate, and
+ * on purpose: the integration suite runs one PocketBase with riders it makes,
+ * and once sessions are released this must not linger as a second key. So the
+ * live instance sets it for as long as the preview lasts.
+ */
+function sessionsPreviewAllows(userId, previewId) {
+  const only = String(previewId === null || previewId === undefined ? '' : previewId).trim();
+  return only === '' || String(userId) === only;
+}
+
 module.exports = {
+  SESSIONS_PREVIEW_REFUSAL,
+  sessionsPreviewAllows,
   CLIP_PLATFORM_IDS,
   SESSION_DURATION_MINUTES,
   SESSION_FEEL_IDS,
