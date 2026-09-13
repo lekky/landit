@@ -197,6 +197,14 @@ export function baseFixtures(): Promise<Fixtures> {
       // encoding rests on and a fixture should assert it, not rely on it.
       video_link_cap: 0,
       video_links_unlimited: false,
+      // Sessions (T36, D5/D6): four a month and no clips. Mirrors
+      // `@landit/core`'s plan data; `session-rules.test.ts` holds them in step,
+      // and `sessions.test.ts` reads the numbers back off the record rather
+      // than assuming them.
+      session_month_cap: 4,
+      sessions_unlimited: false,
+      session_clip_cap: 0,
+      session_clips_unlimited: false,
       is_live: true,
     });
     await ensureRecord('plans', "slug = 'shredder'", {
@@ -213,6 +221,11 @@ export function baseFixtures(): Promise<Fixtures> {
       // `video-link-parser.test.ts`.
       video_link_cap: 10,
       video_links_unlimited: false,
+      session_month_cap: 0,
+      sessions_unlimited: true,
+      // `SHREDDER_SESSION_CLIP_CAP`, a tunable default. Read back, never assumed.
+      session_clip_cap: 10,
+      session_clips_unlimited: false,
       is_live: true,
     });
     await ensureRecord('plans', "slug = 'legend'", {
@@ -228,6 +241,10 @@ export function baseFixtures(): Promise<Fixtures> {
       // sentinel here for a later `count < cap` to compare against literally.
       video_link_cap: 0,
       video_links_unlimited: true,
+      session_month_cap: 0,
+      sessions_unlimited: true,
+      session_clip_cap: 0,
+      session_clips_unlimited: true,
       is_live: true,
     });
 

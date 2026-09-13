@@ -169,6 +169,8 @@ export default tseslint.config(
         onRecordUpdateRequest: 'readonly',
         onRecordDeleteRequest: 'readonly',
         onRecordAuthRequest: 'readonly',
+        // T36: strips "rode with" riders a viewer could not see (66_sessions.pb.js).
+        onRecordEnrich: 'readonly',
         onRecordAfterCreateSuccess: 'readonly',
         onRecordAfterUpdateSuccess: 'readonly',
         onRecordAfterDeleteSuccess: 'readonly',
