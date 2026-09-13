@@ -1,0 +1,68 @@
+/*
+ * Progress › tabs (T37), design 1a/2a: two 3px-keyline tabs sitting on a 3px
+ * rule, the current one paper and joined to the page below it.
+ */
+
+.tabs {
+  display: flex;
+  border-bottom: 3px solid var(--ink);
+}
+
+.tab {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 10px 20px;
+  border: 3px solid var(--ink);
+  border-bottom: none;
+  background: #e6dcc4;
+  color: #57503f;
+  margin-bottom: -3px;
+}
+.tab + .tab {
+  margin-left: -3px;
+}
+.tab:hover {
+  color: #57503f;
+}
+@media (hover: hover) {
+  .tab:hover {
+    color: var(--ink);
+  }
+}
+
+.tab.on,
+.tab.on:hover {
+  background: var(--paper);
+  color: var(--ink);
+  border-bottom: 3px solid var(--paper);
+}
+
+.tab:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+  .tab {
+    position: relative;
+    flex: 1;
+    text-align: center;
+    font-size: 13.5px;
+    letter-spacing: 0.09em;
+    padding: 9px 4px;
+  }
+  /* A 44px tap target without a taller tab. */
+  .tab::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 44px;
+    transform: translateY(-50%);
+  }
+}
