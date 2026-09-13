@@ -7,13 +7,12 @@ import {
   spotFeature,
   type SportId,
 } from '@landit/core';
-import { getSpotsByIds, listSpotPoints, pageSpots, type SpotListQuery } from '@landit/db';
+import { getSpotsByIds, pageSpots, type SpotListQuery } from '@landit/db';
 import { headers } from 'next/headers';
 
 import { anonymousClient, currentRider } from '@/lib/session';
-import { staleWhileRevalidate } from '@/lib/staleCache';
 
-import { SPOTS_PAGE, toPointTuple, toSpotView, type SpotPointTuple, type SpotView } from './view';
+import { SPOTS_PAGE, toSpotView, type SpotView } from './view';
 
 /**
  * The spots list, served a page at a time (issue #367).
@@ -21,9 +20,13 @@ import { SPOTS_PAGE, toPointTuple, toSpotView, type SpotPointTuple, type SpotVie
  * `/spots` used to put every live spot into the page — 1.34 MB of HTML once
  * France's census landed — so a rider on a phone downloaded and hydrated the
  * whole world's list to see twenty-four cards. These three actions are what
- * the screen calls instead: a page of the list under the current query, the
- * compact points "Near me" orders in the browser, and the cards for a handful
- * of ids once they are on screen.
+ * the screen calls instead: a page of the list under the current query, and
+ * the cards for a handful of ids once they are on screen.
+ *
+ * **The point list is no longer one of them.** Every live spot's point used to
+ * come back through `spotsPointsAction` here; it is now `GET /api/spots/points`
+ * and `GET /api/spots/names`, because a Server Function is a POST and no
+ * browser will ever cache one. See `lib/spotPoints.ts`.
  *
  * **Every input is a stranger's.** A server action is a POST anybody can
  * send, so the query is validated to the same fixed sets the page validates
@@ -53,11 +56,6 @@ const MAX_IDS = SPOTS_PAGE * 2;
 export interface SpotsPageResult {
   readonly spots: SpotView[];
   readonly total: number;
-  readonly error?: string;
-}
-
-export interface SpotsPointsResult {
-  readonly points: SpotPointTuple[];
   readonly error?: string;
 }
 
@@ -112,37 +110,6 @@ export async function spotsPageAction(input: unknown, page: unknown): Promise<Sp
     return { spots: result.items.map(toSpotView), total: result.total };
   } catch {
     return { spots: [], total: 0, error: FAILED };
-  }
-}
-
-/** How long the point list is served from memory before a refresh starts. */
-const POINTS_TTL_MS = 5 * 60_000;
-
-/**
- * Every live spot as a point, cached for every caller (issue #393; the owner,
- * 2026-09-11, in chat: option 1).
- *
- * Since the map draws every matching spot (#391) this list is fetched on every
- * map load, and since the world import it is 28,731 rows — measured at 4.3 to
- * 4.6 seconds of PocketBase work each time. It is the same for everyone: the
- * query asks for live rows only, so the caller's own pending submission was
- * never in it, and it is read with the anonymous client so nothing about who
- * asked can end up in the shared copy. The server keeps one copy for five
- * minutes and serves it stale while a single read refreshes it
- * (`staleWhileRevalidate`), so a newly approved spot or a staff edit reaches
- * the map up to five minutes late — the trade the owner accepted.
- */
-const spotPoints = staleWhileRevalidate(
-  async () => (await listSpotPoints(anonymousClient())).map(toPointTuple),
-  { ttlMs: POINTS_TTL_MS },
-);
-
-/** Every live spot as a point, for the map and for nearest-first in the browser. */
-export async function spotsPointsAction(): Promise<SpotsPointsResult> {
-  try {
-    return { points: await spotPoints.get() };
-  } catch {
-    return { points: [], error: FAILED };
   }
 }
 

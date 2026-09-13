@@ -263,6 +263,12 @@ describe('the event catalogue', () => {
         // whether it announced itself on arrival or the rider opened it — the
         // only way to tell whether the folded second screen is ever found.
         'nav_section_opened',
+        // How long nearest-first took, as one of five buckets — never a count
+        // of milliseconds, which would measure one child's device precisely
+        // enough to tell it from another's. `nearbyTiming.test.ts` is what
+        // holds that line; this entry is here because the speed-up it measures
+        // has no other evidence (owner, 2026-09-12, in chat).
+        'nearby_sort_ready',
         'nearby_sort_used',
         // T30: session notes became a dated log, so a note can now be removed
         // as well as saved. Neither event carries a word of the note.

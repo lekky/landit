@@ -28,11 +28,27 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  *
  * `getCurrentPosition`, deliberately, and not `watchPosition`: the product needs
  * "how far is this from me" once, and a watch is a live tracking session held
- * open on a child's device for as long as the tab is. `maximumAge` is left at
- * the default so nothing is served out of a cache the rider did not know about,
- * and `enableHighAccuracy` stays off — a mile-scale distance does not need GPS,
- * and asking for it is both slower and more precise about a child than the
- * feature warrants.
+ * open on a child's device for as long as the tab is. `enableHighAccuracy` stays
+ * off — a mile-scale distance does not need GPS, and asking for it is both
+ * slower and more precise about a child than the feature warrants.
+ *
+ * ## `maximumAge` (Rachid, 2026-09-12, in chat)
+ *
+ * **A fix the device took in the last minute is good enough.** This was `0` —
+ * the default — which forbids the browser from answering out of its own cache
+ * and makes every press wait for a brand new fix: one to ten seconds on a
+ * phone, and the largest single part of the wait the owner reported as "Spots
+ * takes way too long to pick the location". A minute of slack means a rider who
+ * pressed "Near me" on `/events` and then opened `/spots` is answered
+ * immediately, and a rider who has moved far enough in sixty seconds for it to
+ * change which park is nearest was travelling too fast to be at one.
+ *
+ * The reason it was `0` — "nothing served out of a cache the rider did not know
+ * about" — was about *our* caches, and this is not one. The position comes from
+ * the browser's own store, on the rider's own device, put there by a reading
+ * the rider allowed; none of the four promises above mentions it, and none of
+ * them changes. We still hold it in state and nowhere else, still show it while
+ * it is held, still drop it on navigation, and still never send it anywhere.
  *
  * ## `resumeWhenGranted` (Rachid, 2026-08-30, in chat)
  *
@@ -72,6 +88,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type HerePermission = 'off' | 'asking' | 'on' | 'refused';
 
+/**
+ * How old a position the browser already holds may be and still be handed over
+ * rather than measured again. See the `maximumAge` note above.
+ */
+const MAX_FIX_AGE_MS = 60_000;
+
 export interface HereOnce {
   readonly state: HerePermission;
   /** The point, while it is held. Null in every other state. */
@@ -84,6 +106,24 @@ export interface HereOnce {
    * a reason to show less than the full indicator.
    */
   readonly resumed: boolean;
+  /**
+   * Whether a reading is in flight right now — a press, or the silent resume.
+   *
+   * **For work a screen can start before the position lands, and nothing else.**
+   * `/spots` has to download every live spot's point before it can sort by
+   * distance, and it used to wait for the position first, so a rider on a phone
+   * paid for the fix and the download one after the other. Both start together
+   * now, and this is the signal that lets them: it says a position is *coming*,
+   * which is all the screen needs to know to begin.
+   *
+   * **It is deliberately not `state`.** `state` is what the rider is shown, and
+   * the silent resume must not show them anything — a rider who pressed nothing
+   * is told nothing, which is the promise that makes the resume defensible.
+   * This is the part of the same fact that the screen may act on without
+   * putting it on screen, which is why it is a separate field rather than a
+   * fifth `HerePermission`.
+   */
+  readonly reading: boolean;
   readonly ask: () => void;
   readonly forget: () => void;
 }
@@ -132,6 +172,7 @@ export function useHereOnce({ resumeWhenGranted = false }: HereOnceOptions = {})
   const [point, setPoint] = useState<LatLng | null>(null);
   const [message, setMessage] = useState('');
   const [resumed, setResumed] = useState(false);
+  const [reading, setReading] = useState(false);
 
   /**
    * Bumped by every press and by unmount. The resume reads it before it starts
@@ -152,9 +193,22 @@ export function useHereOnce({ resumeWhenGranted = false }: HereOnceOptions = {})
 
     const mine = generation.current;
     if (!silent) setState('asking');
+    /*
+     * Raised here rather than when the resume's permission query starts,
+     * which is the difference between "a position is coming" and "we are
+     * finding out whether one is allowed". A rider whose browser answers
+     * `prompt` gets no reading at all, and must not have a megabyte of spot
+     * points fetched on their behalf for a press they never made.
+     */
+    setReading(true);
+
+    const settle = () => {
+      if (generation.current === mine) setReading(false);
+    };
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        settle();
         if (generation.current !== mine) return;
         setPoint({ lat: position.coords.latitude, lng: position.coords.longitude });
         setMessage('');
@@ -162,13 +216,14 @@ export function useHereOnce({ resumeWhenGranted = false }: HereOnceOptions = {})
         setState('on');
       },
       (error) => {
+        settle();
         if (generation.current !== mine) return;
         setPoint(null);
         if (silent) return;
         setMessage(REFUSALS[error.code] ?? 'We could not work out where you are.');
         setState('refused');
       },
-      { enableHighAccuracy: false, timeout: 10_000 },
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: MAX_FIX_AGE_MS },
     );
   }, []);
 
@@ -182,6 +237,7 @@ export function useHereOnce({ resumeWhenGranted = false }: HereOnceOptions = {})
     setPoint(null);
     setMessage('');
     setResumed(false);
+    setReading(false);
     setState('off');
   }, []);
 
@@ -211,5 +267,5 @@ export function useHereOnce({ resumeWhenGranted = false }: HereOnceOptions = {})
     };
   }, [resumeWhenGranted, read]);
 
-  return { state, point, message, resumed, ask, forget };
+  return { state, point, message, resumed, reading, ask, forget };
 }

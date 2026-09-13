@@ -13,7 +13,6 @@ import {
   type MapBounds,
   type SportId,
 } from '@landit/core';
-import type { SpotPoint } from '@landit/db';
 import { Button, Empty, Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -28,10 +27,13 @@ import { useSport } from '@/providers/sport';
 
 import { AddSpotForm } from './AddSpotForm';
 import { SpotMap } from './SpotMap';
-import { spotsCardsAction, spotsPageAction, spotsPointsAction } from './listActions';
+import { spotsCardsAction, spotsPageAction } from './listActions';
 import { useHereOnce } from '@/lib/useHereOnce';
+import { fetchSpotNames, fetchSpotPoints } from '@/lib/spotsFetch';
+import { mergePoints, type SpotNamesBody, type SpotPointsBody } from '@/lib/spotsWire';
+import { nearbyReadyBucket } from '@/lib/nearbyTiming';
 import styles from './spots.module.css';
-import { SPOTS_PAGE, fromPointTuple, type SpotView } from './view';
+import { SPOTS_PAGE, type SpotView } from './view';
 
 const MONTHS = [
   'January',
@@ -127,12 +129,15 @@ interface Loaded {
  *   the feature pill; the server sorts the reader's country ahead of the rest
  *   and pages it. "Show more" asks for the next page and appends.
  * - **Nearest-first**, while a position is held. Distance is sorted here, in
- *   the browser, over a compact list of every live spot's point — fetched once
- *   when the position first arrives — and the same query narrows that list
- *   with the same `filterSpots` the server mirrors. The cards for the
- *   nearest screenful are then fetched by id. That request is the one thing
- *   about "Near me" that reaches our server (plan §6.4, standard 10, amended
- *   2026-09-08): never the position, only the ids the position chose.
+ *   the browser, over a compact list of every live spot's point — fetched from
+ *   `/api/spots/points` the moment a position is *asked for*, so the download
+ *   and the fix overlap rather than queue (2026-09-12) — and the same query
+ *   narrows that list with the same `filterSpots` the server mirrors. The
+ *   cards for the nearest screenful are then fetched by id. That request is
+ *   the one thing about "Near me" that reaches our server (plan §6.4,
+ *   standard 10, amended 2026-09-08): never the position, only the ids the
+ *   position chose. Spot names and towns are a second, smaller fetch that only
+ *   a typed search and the map's pins wait on — see `lib/spotPoints.ts`.
  * - **This area**, while a view of the map is held — "Search this area",
  *   offered on the map once the rider has moved it (2026-09-11). The same
  *   points, the same query, cut to the view by `spotsInBounds` and ordered
@@ -332,6 +337,36 @@ export function SpotsScreen({
     });
   }, [here.state, here.resumed]);
 
+  /*
+   * When the current attempt at nearest-first began, for `nearby_sort_ready`.
+   *
+   * A ref rather than state, because nothing renders differently for it and a
+   * clock that caused a render would be measuring itself. `performance.now()`
+   * rather than `Date.now()`: it is monotonic, so a phone that adjusts its
+   * system clock mid-press cannot turn a two-second wait into a negative one.
+   *
+   * In an effect, so it is the commit after the one that began the reading —
+   * a frame's understatement on a measurement whose buckets are seconds wide,
+   * and the price of not writing a ref during render.
+   *
+   * Started where the work starts — the moment a reading begins, which for a
+   * resumed rider is before they have touched anything — and cleared by
+   * `forget()` taking `reading` and the position away together, so a rider who
+   * turns it off and on again is timed from the second press.
+   */
+  const startedAt = useRef<number | null>(null);
+  const timed = useRef(false);
+  useEffect(() => {
+    if (here.reading) {
+      startedAt.current ??= performance.now();
+      return;
+    }
+    if (here.state === 'off') {
+      startedAt.current = null;
+      timed.current = false;
+    }
+  }, [here.reading, here.state]);
+
   /* ------------------------------------------------------- the query -- */
 
   const key = queryKey(settledSearch, sports, feature);
@@ -436,52 +471,124 @@ export function SpotsScreen({
 
   /*
    * Every live spot as a point, fetched once and kept for the rest of the
-   * visit — the first time a position or an area is held, or the first time
-   * the map is on screen, whichever comes first.
+   * visit — the first time a position is being read or held, the first time an
+   * area is held, or the first time the map is on screen, whichever comes
+   * first.
    *
-   * **The map is the new reason** (issue #388; owner, 2026-09-11): it draws
-   * every matching spot from these, clustered. On a wide screen the map is a
-   * column that is always there, so that is on load; on a phone it is the
-   * first time the sheet comes up, and a rider who never opens it never pays.
-   * Still never in the page's own HTML, which is what #367 took out.
+   * **The map is one reason** (issue #388; owner, 2026-09-11): it draws every
+   * matching spot from these, clustered. On a wide screen the map is a column
+   * that is always there, so that is on load; on a phone it is the first time
+   * the sheet comes up, and a rider who never opens it never pays. Still never
+   * in the page's own HTML, which is what #367 took out.
+   *
+   * **`here.reading` is the other, and it is the fix for "Spots takes way too
+   * long"** (owner, 2026-09-12, in chat). This used to wait for `pointsMode`,
+   * which is only true once a position has actually *landed* — so on a phone a
+   * rider pressed "Near me", waited one to ten seconds for the fix, and only
+   * then started a download of every spot in the world. The two have nothing to
+   * do with each other: the list is the same list wherever the rider turns out
+   * to be. Starting both at the press takes the whole fix out of the wait.
+   *
+   * It is `reading` and not `state === 'asking'` because the silent resume
+   * deliberately sets no visible state, and a returning rider whose browser
+   * already grants location is exactly the one who should not wait twice.
    *
    * `isSheet` lags the first commit by design (see its note), so the width is
    * also read directly here: a phone must not fetch on the render before the
    * screen has learnt it is a phone.
    */
-  const [points, setPoints] = useState<readonly SpotPoint[] | null>(null);
+  const [points, setPoints] = useState<SpotPointsBody | null>(null);
   const pointsAsked = useRef(false);
   useEffect(() => {
     if (points || pointsAsked.current) return;
     const sheet = isSheet || window.matchMedia(SHEET_WIDTH).matches;
-    if (!pointsMode && sheet && !mapOpen) return;
+    if (!pointsMode && !here.reading && sheet && !mapOpen) return;
     pointsAsked.current = true;
     // Only a list that is waiting on these says so when they fail. The map on
-    // its own falls back to the cards on screen, which is what it drew before.
+    // its own falls back to the cards on screen, which is what it drew before,
+    // and so does a fetch begun for a position that has not arrived yet.
     const listWaiting = pointsMode;
     void (async () => {
-      const result = await runActionOr('spots_points', spotsPointsAction, (error) => ({
-        error,
-        points: [],
-      }));
-      if (result.error) {
+      const result = await runActionOr<SpotPointsBody | { error: string }>(
+        'spots_points',
+        fetchSpotPoints,
+        (error) => ({ error }),
+      );
+      if ('error' in result) {
         pointsAsked.current = false;
         if (listWaiting) setError(result.error);
         else console.warn('[spots] every spot could not be loaded; the map shows the list');
         return;
       }
-      setPoints(result.points.map(fromPointTuple));
+      setPoints(result);
     })();
-  }, [pointsMode, points, isSheet, mapOpen]);
+  }, [pointsMode, points, isSheet, mapOpen, here.reading]);
+
+  /*
+   * The names and towns, which are half the bytes and which only two things
+   * need: a search a rider has typed, and the map's own pin labels. See
+   * `lib/spotPoints.ts` for the split and what it saves.
+   *
+   * Asked for *after* the points rather than beside them, deliberately. Two
+   * fetches in flight at once share one connection, so racing them would have
+   * the half the list is waiting on finish at nearly the same moment as the
+   * half nothing is waiting on — which is the situation this split exists to
+   * end. In sequence, the list sorts as soon as its own half lands.
+   */
+  const mapWillDraw = mapOpen || !isSheet;
+  const wantNames = !!points && (settledSearch.trim() !== '' || mapWillDraw);
+  const [names, setNames] = useState<SpotNamesBody | null>(null);
+  const namesAsked = useRef(false);
+  useEffect(() => {
+    if (!wantNames || names || namesAsked.current) return;
+    namesAsked.current = true;
+    void (async () => {
+      const result = await runActionOr<SpotNamesBody | { error: string }>(
+        'spots_names',
+        fetchSpotNames,
+        (error) => ({ error }),
+      );
+      if ('error' in result) {
+        namesAsked.current = false;
+        // A search that cannot match is worth saying; a pin with no label is
+        // not, because the map falls back to the cards it drew before.
+        if (settledSearch.trim() !== '') setError(result.error);
+        else console.warn('[spots] spot names could not be loaded; the map shows the list');
+        return;
+      }
+      setNames(result);
+    })();
+  }, [wantNames, names, settledSearch]);
+
+  /**
+   * The two halves as one list, and whether the words are in it yet.
+   *
+   * `named` is false while only the points have arrived — and while a stale
+   * `names` describes a snapshot the points have moved on from, which
+   * `mergePoints` refuses to pair rather than labelling spots with their
+   * neighbours' names.
+   */
+  const { spots: allPoints, named } = useMemo(
+    () => (points ? mergePoints(points, names) : { spots: null, named: false }),
+    [points, names],
+  );
 
   /**
    * Every live spot under the query, once the points are in: what the map
    * draws (issue #388), and what both orderings below start from.
+   *
+   * **A search waits for the words.** Without them every name and town is the
+   * empty string, so `spotMatchesSearch` would match nothing and the screen
+   * would say there are no spots called that — a wrong answer, where waiting
+   * is merely a slow one. Sport and feature do not wait, because the bitmask
+   * and the tags came with the points.
    */
-  const matchingPoints = useMemo(
-    () => (points ? filterSpots(points, { search: settledSearch, sports, feature }) : null),
-    [points, settledSearch, sports, feature],
-  );
+  const searching = settledSearch.trim() !== '';
+  const matchingPoints = useMemo(() => {
+    if (!allPoints) return null;
+    if (searching && !named) return null;
+    return filterSpots(allPoints, { search: settledSearch, sports, feature });
+  }, [allPoints, named, searching, settledSearch, sports, feature]);
 
   /** The nearest-first list, narrowed by the same query, as ids in order. */
   const nearIds = useMemo(() => {
@@ -584,6 +691,34 @@ export function SpotsScreen({
     return loaded.spots;
   }, [orderedIds, wantedIds, cards, loaded.spots]);
 
+  /*
+   * Nearest-first is *ready* — the press is paid off and there are cards on
+   * screen in distance order.
+   *
+   * Measured to here rather than to the sorted ids, because a list of ids the
+   * rider cannot see is not an answer: the cards are a further round trip, and
+   * leaving it out would have reported the part of the wait we had already
+   * fixed. `nearIds` and not `orderedIds`, so "Search this area" — which is a
+   * question about a place rather than about the rider — is not timed as
+   * though it were a press of "Near me".
+   *
+   * Once per position held. `timed` and `startedAt` are cleared together when
+   * the rider turns the position off, so a second press is timed afresh.
+   */
+  useEffect(() => {
+    if (timed.current || areaMode || !nearIds) return;
+    const started = startedAt.current;
+    if (started === null) return;
+    if (!wantedIds.length || wantedIds.some((id) => !cards.has(id))) return;
+
+    timed.current = true;
+    capture(ANALYTICS_EVENTS.nearbySortReady, {
+      screen: 'spots',
+      source: here.resumed ? 'resumed' : 'pressed',
+      bucket: nearbyReadyBucket(performance.now() - started),
+    });
+  }, [areaMode, nearIds, wantedIds, cards, here.resumed]);
+
   /** How many match the query in all, and how many are not yet on screen. */
   const total = orderedIds ? orderedIds.length : loaded.total;
   const more = Math.max(0, total - (orderedIds ? shown : loaded.spots.length));
@@ -608,7 +743,7 @@ export function SpotsScreen({
    * take a second on a phone and "loading" alone reads as broken.
    */
   const waiting =
-    pointsMode && !points
+    pointsMode && !matchingPoints
       ? areaMode
         ? 'searching this area'
         : 'finding the nearest'
@@ -628,8 +763,17 @@ export function SpotsScreen({
    * What the map draws: every spot matching the query once the points are in
    * (issue #388; owner, 2026-09-11, in chat), clustered by `SpotMap` where they
    * crowd — and the cards on screen until then, which is what it drew before.
+   *
+   * **`named` is part of "in".** A pin carries the spot's name, and the names
+   * are now a second fetch (see `lib/spotPoints.ts`), so between the two the
+   * points would draw thirty thousand pins labelled with nothing. The cards on
+   * screen have their names already, so falling back to them for that moment
+   * costs a rider a fuller map for a beat rather than an unreadable one.
    */
-  const mapSpots = useMemo(() => matchingPoints ?? plotted, [matchingPoints, plotted]);
+  const mapSpots = useMemo(
+    () => (named && matchingPoints ? matchingPoints : plotted),
+    [named, matchingPoints, plotted],
+  );
   const mapIds = useMemo(() => new Set(mapSpots.map((spot) => spot.id)), [mapSpots]);
 
   /*

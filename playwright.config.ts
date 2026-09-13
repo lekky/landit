@@ -50,7 +50,33 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
 
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        /*
+         * `PW_CHROMIUM` — a browser to use instead of the one Playwright
+         * downloads (issue #450).
+         *
+         * Unset everywhere it matters: CI and a local checkout both run the
+         * pinned build, and this changes nothing for them. It exists for a
+         * Claude Code web session, where Chromium is preinstalled at a
+         * revision Playwright refuses (1194 against the 1234 it wants) and
+         * there is no way to fetch the one it asks for — so `pnpm e2e` cannot
+         * start a browser at all, and a session working on a screen has no way
+         * to run the specs that cover it.
+         *
+         * Pointing it at the preinstalled binary is how the spots specs were
+         * run against this change. A mismatched build is worth knowing about:
+         * it is close enough to trust for "does this screen still work" and
+         * not for a rendering difference, which is why it is an override a
+         * person opts into rather than a fallback that quietly takes over.
+         */
+        launchOptions: { executablePath: process.env.PW_CHROMIUM || undefined },
+      },
+    },
+  ],
 
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? // Pointing the run at a server you started yourself means you own both of
