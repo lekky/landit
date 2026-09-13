@@ -89,6 +89,7 @@ export type RequestName =
   | 'note_remove'
   | 'challenge_log'
   | 'ride_logged'
+  | 'session_delete'
   /* ------------------------------------------------------- content -- */
   | 'video_add'
   | 'video_visibility'

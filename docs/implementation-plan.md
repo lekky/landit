@@ -4662,7 +4662,23 @@ show only that rider's sessions.
 `VisibilityLabel { visibility, label }` (+ `VISIBILITY_ICONS`),
 `PlatformBadge { platform, label?, color? }`,
 `ClipPoster { platform, href: clipWatchUrl(clip), variant?: 'thumb'|'player', onOpen? }`.
-Painted sport art is the existing `Equipment`; icons are `Icon` from `icons.tsx`.
+Painted sport art is the existing `Equipment`; icons are `Icon` from `icons.tsx`, which gained
+`eye`, `pencil`, `trash`, `clock`, `chevron` (points down; rotate with CSS), `arrow-left` and
+`arrow-right` for these screens.
+
+*App-side shared pieces* (so the four screen sessions do not each add them):
+- **Routes** — `apps/web/src/lib/sessionRoutes.ts`: `sessionsHref()` (`/progress/sessions`),
+  `sessionHref(id)`, `editSessionHref(id)` (`/progress/sessions/<id>/edit`),
+  `newSessionHref({ spot?, event?, trick?, quick? })` (`/progress/sessions/new?spot=…&event=…&trick=…&quick=1`),
+  `readNewSessionPrefill(searchParams)`, `isRecordId`, `SESSIONS_PATH`. **Record ids only** — the
+  builders throw on anything else and the reader drops it, because a spot name or trick slug can be
+  a child's words.
+- **Delete** — `apps/web/src/components/sessions/DeleteSessionDialog.tsx`:
+  `DeleteSessionDialog { session: { id, spotName, dateLabel }, onClose, onDeleted(id) }`, the
+  design's confirm on the shared `Modal`; it calls `deleteSessionAction({ sessionId })`
+  (`components/sessions/actions.ts`, the rider's own client) through
+  `runAction('session_delete', …)` and fires `session_deleted` on success. The words are
+  `deleteSessionCopy` in `apps/web/src/lib/sessionDelete.ts`.
 
 *Analytics* (`apps/web/src/lib/analytics.ts`, defined here, fired by the screens):
 `session_log_opened { source: progress|spot|event|trick|quick_log_escalate }`,
