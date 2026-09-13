@@ -57,27 +57,27 @@ test('the two peeks go somewhere a stranger can actually read', async ({ page })
 });
 
 /**
- * The story's two entry points.
+ * The story's entry point on this page.
  *
- * Both exist because they catch different visitors — the byline is read by
- * someone who never scrolls, the band by someone who does — so a change that
- * quietly drops one is the regression worth catching. Before 2026-09-12 the
- * only link to `/story` on the whole site was a single footer row.
+ * There were two until 2026-09-13 — a byline line under the sign-up form for
+ * someone who never scrolls, and the band for someone who does. The byline was
+ * removed, so the band is the only one left here, and the count below is what
+ * catches a change that drops that one too. Before 2026-09-12 the only link to
+ * `/story` on the whole site was a single footer row, which is the state this
+ * guards against returning to.
  *
  * The quote itself is not asserted here. The page imports `STORY_PULL_QUOTE`
  * from `content/story.ts` rather than typing it out, so the two saying the same
  * thing is a compile-time fact and a copy of the sentence in this file would
  * only be a third place for it to drift. What a browser can check, and this
- * does, is that the band renders and both routes into it work.
+ * does, is that the band renders and the route into it works.
  */
-test('the story is reachable from the hero and from the band', async ({ page }) => {
+test('the story is reachable from the band', async ({ page }) => {
   await page.goto('/');
 
   const links = page.getByRole('link', { name: /Read why/ });
-  await expect(links).toHaveCount(2);
-  for (const link of await links.all()) {
-    await expect(link).toHaveAttribute('href', '/story');
-  }
+  await expect(links).toHaveCount(1);
+  await expect(links.first()).toHaveAttribute('href', '/story');
 
   // The band, by the parts of it that are this page's own words rather than the
   // story module's.
