@@ -27,6 +27,7 @@ export type CollectionName =
   | 'plans'
   | 'reports'
   | 'rider_stickers'
+  | 'spot_favourites'
   | 'spots'
   | 'stickers'
   | 'subscriptions'
@@ -547,6 +548,26 @@ export interface RiderStickersCreate {
 /** The shape accepted when updating a `rider_stickers` record. */
 export type RiderStickersUpdate = Partial<RiderStickersCreate>;
 
+/** A `spot_favourites` record as PocketBase returns it. */
+export interface SpotFavouritesRecord {
+  collectionId: string;
+  collectionName: string;
+  id: string;
+  user: string;
+  spot: string;
+  created: string;
+}
+
+/** The shape accepted when creating a `spot_favourites` record. */
+export interface SpotFavouritesCreate {
+  id?: string;
+  user: string;
+  spot: string;
+}
+
+/** The shape accepted when updating a `spot_favourites` record. */
+export type SpotFavouritesUpdate = Partial<SpotFavouritesCreate>;
+
 /** A `spots` record as PocketBase returns it. */
 export interface SpotsRecord {
   collectionId: string;
@@ -947,6 +968,7 @@ export interface CollectionRecords {
   plans: PlansRecord;
   reports: ReportsRecord;
   rider_stickers: RiderStickersRecord;
+  spot_favourites: SpotFavouritesRecord;
   spots: SpotsRecord;
   stickers: StickersRecord;
   subscriptions: SubscriptionsRecord;
@@ -976,6 +998,7 @@ export interface CollectionCreates {
   plans: PlansCreate;
   reports: ReportsCreate;
   rider_stickers: RiderStickersCreate;
+  spot_favourites: SpotFavouritesCreate;
   spots: SpotsCreate;
   stickers: StickersCreate;
   subscriptions: SubscriptionsCreate;
@@ -1005,6 +1028,7 @@ export interface CollectionUpdates {
   plans: PlansUpdate;
   reports: ReportsUpdate;
   rider_stickers: RiderStickersUpdate;
+  spot_favourites: SpotFavouritesUpdate;
   spots: SpotsUpdate;
   stickers: StickersUpdate;
   subscriptions: SubscriptionsUpdate;

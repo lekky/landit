@@ -21,6 +21,9 @@ import {
   regionFromAcceptLanguage,
   sortSpotsByDistance,
   splitSpotTags,
+  SPOT_FAVOURITE_MAX_HELD,
+  SPOT_FAVOURITE_REFUSALS,
+  spotFavouriteRefusal,
   SPOT_MAX_TAGS,
   spotLatLng,
   spotMatchesFeature,
@@ -643,5 +646,40 @@ describe('importedSpotSports', () => {
     const first = importedSpotSports({ bmx: true });
     first.pop();
     expect(importedSpotSports({ bmx: true })).toEqual(['scooter', 'skate', 'bmx']);
+  });
+});
+
+describe('whether a rider may add one more favourite spot', () => {
+  it('says yes right up to the ceiling, and no at it', () => {
+    expect(spotFavouriteRefusal(0)).toBeNull();
+    expect(spotFavouriteRefusal(SPOT_FAVOURITE_MAX_HELD - 1)).toBeNull();
+    expect(spotFavouriteRefusal(SPOT_FAVOURITE_MAX_HELD)).not.toBeNull();
+  });
+
+  /*
+   * A rider whose count has somehow passed the ceiling — the ceiling moved
+   * down, or two tabs raced past it — still has to be told to remove one
+   * rather than shown a control that silently does nothing.
+   */
+  it('keeps refusing above the ceiling', () => {
+    expect(spotFavouriteRefusal(SPOT_FAVOURITE_MAX_HELD + 40)).not.toBeNull();
+  });
+
+  /*
+   * The sentence has to be one the web app will actually show. Anything not on
+   * `SPOT_FAVOURITE_REFUSALS` falls back to the generic apology in
+   * `spotFavouriteRefusalMessage`, so a reworded refusal that skipped the list
+   * would reach a rider as "try again" with no reason.
+   */
+  it('refuses in a sentence the app is allowed to show', () => {
+    const said = spotFavouriteRefusal(SPOT_FAVOURITE_MAX_HELD);
+    expect(said).not.toBeNull();
+    expect(SPOT_FAVOURITE_REFUSALS).toContain(said);
+  });
+
+  it('names the number in the sentence, so it cannot drift from the constant', () => {
+    expect(spotFavouriteRefusal(SPOT_FAVOURITE_MAX_HELD)).toContain(
+      String(SPOT_FAVOURITE_MAX_HELD),
+    );
   });
 });

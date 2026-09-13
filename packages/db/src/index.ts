@@ -231,7 +231,10 @@ export {
 
 export {
   countSpotsBySport,
+  favouriteSpot,
   getSpotsByIds,
+  listFavouriteSpotIds,
+  listFavouriteSpots,
   listOwnSpots,
   listSpotPoints,
   listIndexedSpots,
@@ -241,6 +244,7 @@ export {
   pageWindows,
   spotListFilter,
   spotPlaceFilters,
+  unfavouriteSpot,
   type SpotFilter,
   type SpotListQuery,
   type SpotPlace,

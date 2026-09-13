@@ -94,6 +94,7 @@ export type RequestName =
   | 'video_visibility'
   | 'video_remove'
   | 'spot_submit'
+  | 'spot_favourite'
   | 'event_attendance'
   /* ------------------------------------------------------- account -- */
   | 'profile_save'
@@ -105,7 +106,8 @@ export type RequestName =
   | 'spots_page'
   | 'spots_points'
   | 'spots_names'
-  | 'spots_cards';
+  | 'spots_cards'
+  | 'spots_faves';
 
 /**
  * Whether losing this call lost something a rider wrote, or only something a
@@ -119,6 +121,7 @@ const READS: ReadonlySet<RequestName> = new Set<RequestName>([
   'spots_points',
   'spots_names',
   'spots_cards',
+  'spots_faves',
 ]);
 
 /**

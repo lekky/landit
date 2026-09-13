@@ -965,3 +965,64 @@ export function importedSpotSports(evidence: ImportedSportsEvidence = {}): Sport
   const banned = new Set<SportId>(evidence.banned ?? []);
   return listed.filter((sport) => !banned.has(sport));
 }
+
+/* -------------------------------------------------------------- favourites -- */
+
+/**
+ * How many spots one rider may hold as favourites, and how fast they may add
+ * them.
+ *
+ * **Tunable defaults, not deliberated decisions**, the same status the plan
+ * gives `WEEKLY_RIDE_TARGET` and the submission limits above. What is
+ * deliberate is that a ceiling exists at all and that it is enforced on the
+ * *server*: both numbers are mirrored in
+ * `pocketbase/hooks/64_spot_favourites.pb.js`, which is where a favourite is
+ * actually refused, and `pocketbase/tests/spot-favourites.test.ts` fails if the
+ * two copies drift. The copies here exist so the screen can say why a heart
+ * would not fill, never so the client can decide.
+ *
+ * Neither number is a plan entitlement. **Favourites are free on every plan**
+ * (owner decision, 2026-09-13, in chat) — the paywall in this product is over
+ * trick content, and `/spots` is readable signed out, so a bookmark of a public
+ * place is not a thing to sell. These are flood limits against a script, and
+ * they are set far above what riding looks like: 200 held is more parks than
+ * anybody has been to, and 60 an hour is a rider marking their whole town in
+ * one sitting and still not reaching it.
+ */
+export const SPOT_FAVOURITE_MAX_HELD = 200;
+export const SPOT_FAVOURITE_WINDOW_MINUTES = 60;
+export const SPOT_FAVOURITE_MAX_PER_WINDOW = 60;
+
+/**
+ * Every sentence `pocketbase/hooks/64_spot_favourites.pb.js` refuses with, word
+ * for word.
+ *
+ * Same job as `SPOT_SUBMISSION_REFUSALS` and the same reason: a 400 or a 429 on
+ * a favourite comes both from the hook, whose sentences are written for a
+ * rider, and from PocketBase itself, whose are written for a developer. The
+ * favourite action shows the server's own words only when they are on this
+ * list, and a generic line otherwise, so a hook throwing something it did not
+ * mean to cannot put "Failed to create record." in front of a fourteen year
+ * old.
+ */
+export const SPOT_FAVOURITE_REFUSALS: readonly string[] = Object.freeze([
+  'Sign in to save a spot.',
+  'That spot is not on the map.',
+  `You can keep ${SPOT_FAVOURITE_MAX_HELD} faves. Remove one to add another.`,
+  'That is a lot of faves at once. Try again in a little while.',
+]);
+
+/**
+ * Whether this rider may add one more favourite, in the words they would read.
+ * `null` means yes.
+ *
+ * Pure, so the screen can grey the control out before a request exists and the
+ * hook can refuse the same case with the same sentence. The rider's own count
+ * is the only input: nothing here knows about plans, because there is nothing
+ * to know (see `SPOT_FAVOURITE_MAX_HELD`).
+ */
+export function spotFavouriteRefusal(held: number): string | null {
+  return held >= SPOT_FAVOURITE_MAX_HELD
+    ? `You can keep ${SPOT_FAVOURITE_MAX_HELD} faves. Remove one to add another.`
+    : null;
+}

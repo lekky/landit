@@ -64,6 +64,7 @@ const OWN_COLLECTIONS = [
   'challenge_log',
   'event_attendance',
   'announcement_dismissals',
+  'spot_favourites',
 ];
 
 /**
@@ -418,6 +419,14 @@ function exportFor(app, rider) {
     })),
     event_attendance: rows('event_attendance', (row) => ({
       event: nameOf('events', row.getString('event')),
+      created: on(row, 'created'),
+    })),
+    // A rider's faves are theirs to take with them, and the spot's *name* is
+    // the only useful thing in the row — an export listing fifteen record ids
+    // tells the person reading it nothing. The name is a public one either way:
+    // every favouritable spot is live, or is the rider's own submission.
+    spot_favourites: rows('spot_favourites', (row) => ({
+      spot: nameOf('spots', row.getString('spot')),
       created: on(row, 'created'),
     })),
     subscriptions: rows('subscriptions', (row) => ({

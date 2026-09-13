@@ -26,12 +26,14 @@ import { SPORT_LOOKS } from '@/lib/sports';
 import { useSport } from '@/providers/sport';
 
 import { AddSpotForm } from './AddSpotForm';
+import { FaveButton } from './FaveButton';
 import { SpotMap } from './SpotMap';
 import { spotsCardsAction, spotsPageAction } from './listActions';
 import { useHereOnce } from '@/lib/useHereOnce';
 import { fetchSpotNames, fetchSpotPoints } from '@/lib/spotsFetch';
 import { mergePoints, type SpotNamesBody, type SpotPointsBody } from '@/lib/spotsWire';
 import { nearbyReadyBucket } from '@/lib/nearbyTiming';
+import { useFavourites } from './useFavourites';
 import styles from './spots.module.css';
 import { SPOTS_PAGE, type SpotView } from './view';
 
@@ -219,6 +221,28 @@ export function SpotsScreen({
    */
   const [feature, setFeature] = useState<string | null>(initialFeature);
   const featureLabel = feature ? (spotFeature(feature)?.label ?? feature) : null;
+
+  /*
+   * The rider's own faves, and whether the list is narrowed to them.
+   *
+   * `useFavourites` reads them once on mount and owns every write; this screen
+   * only asks which ids are in and hands presses back. It deliberately does not
+   * wait on the points download that "Near me" needs — opening your own faves
+   * should not cost a map of the world (issue #472).
+   */
+  const faves = useFavourites(signedIn);
+  const [favesOn, setFavesOn] = useState(false);
+  /*
+   * A rider who unfaves their last spot while the filter is on would be left
+   * looking at an empty list with no obvious way out, so the filter lets go of
+   * itself. Written during render rather than in an effect, the same pattern
+   * the page reset below uses, so the empty list is never painted.
+   */
+  const [lastFaveCount, setLastFaveCount] = useState(faves.ids.size);
+  if (faves.ids.size !== lastFaveCount) {
+    setLastFaveCount(faves.ids.size);
+    if (favesOn && faves.ids.size === 0) setFavesOn(false);
+  }
   /*
    * Which sports the list is narrowed to. **Empty is every spot, and empty is
    * where it opens** (Rachid, 2026-09-12, in chat).
@@ -462,10 +486,13 @@ export function SpotsScreen({
   // query that changes again before the tick ends — a fast typist beating the
   // debounce — is cancelled here and never leaves the browser.
   useEffect(() => {
-    if (pointsMode || loaded.key === key) return;
+    // `favesOn` joins the two points modes here for the same reason they are
+    // here: the faves view has its own list and never asks for a page, so a
+    // fetch under it is a request whose answer nothing on screen will read.
+    if (pointsMode || favesOn || loaded.key === key) return;
     const timer = window.setTimeout(() => void fetchPage(key, 1, false), 0);
     return () => window.clearTimeout(timer);
-  }, [pointsMode, loaded.key, key, fetchPage]);
+  }, [pointsMode, favesOn, loaded.key, key, fetchPage]);
 
   /* -------------------------------------------------- nearest-first mode -- */
 
@@ -606,8 +633,55 @@ export function SpotsScreen({
     return spotsInBounds(matchingPoints, area).map((point) => point.id);
   }, [area, matchingPoints]);
 
-  /** Whichever list is ordered in the browser, if either is — area first. */
-  const orderedIds = areaIds ?? nearIds;
+  /*
+   * The faves list, as ids in order, under the same query as everything else.
+   *
+   * **Filtered here rather than over the points**, which is the whole reason
+   * faves are cheap: `nearIds` and `areaIds` both need `matchingPoints`, and
+   * that is the ~437 KB points download. A rider holds at most
+   * `SPOT_FAVOURITE_MAX_HELD` of these and the cards are already in hand, so
+   * the same `filterSpots` rule runs over a couple of hundred rows in the
+   * browser and the search box, the sport filter and a feature pill all keep
+   * working inside the faves view without a byte being fetched.
+   *
+   * **Newest fave first**, which is the order the server sent them in, rather
+   * than name or distance: the spot a rider just added is the one they are
+   * looking for.
+   */
+  const faveIds = useMemo(() => {
+    if (!favesOn) return null;
+    return filterSpots(faves.spots, { search: settledSearch, sports, feature }).map(
+      (spot) => spot.id,
+    );
+  }, [favesOn, faves.spots, settledSearch, sports, feature]);
+
+  /*
+   * The fave cards are read *alongside* `cards` rather than copied into it.
+   *
+   * Copying them in was the obvious move and is the wrong one: it means a
+   * `setCards` inside an effect on every change to the faves list, which is a
+   * cascading render for a result nothing had to wait for. Two lookups instead,
+   * behind the pair below, so the list, the map and "Show more" still need to
+   * know nothing about faves — `orderedIds` stays the only place this mode
+   * exists — and nothing asks the server for a card it is already holding.
+   */
+  const faveById = useMemo(
+    () => new Map(faves.spots.map((spot) => [spot.id, spot])),
+    [faves.spots],
+  );
+  /** The card for an id, from either store. `null` when it is still in flight. */
+  const cardFor = useCallback(
+    (id: string): SpotView | null => cards.get(id) ?? faveById.get(id) ?? null,
+    [cards, faveById],
+  );
+  /** Whether an id has been answered at all — a `null` in `cards` counts. */
+  const hasCard = useCallback(
+    (id: string): boolean => cards.has(id) || faveById.has(id),
+    [cards, faveById],
+  );
+
+  /** Whichever list is ordered in the browser, if any is — faves, then area. */
+  const orderedIds = faveIds ?? areaIds ?? nearIds;
 
   /*
    * The list is shown a screenful at a time (2026-08-18, owner: "maybe need
@@ -630,11 +704,13 @@ export function SpotsScreen({
    * they had already scrolled past. This is React's documented "adjust state
    * when a prop changes" pattern; the extra render is discarded before paint.
    */
-  const mode = area
-    ? `area:${area.south},${area.west},${area.north},${area.east}`
-    : nearMode
-      ? 'near'
-      : 'home';
+  const mode = favesOn
+    ? 'faves'
+    : area
+      ? `area:${area.south},${area.west},${area.north},${area.east}`
+      : nearMode
+        ? 'near'
+        : 'home';
   const listKey = `${key}|${mode}`;
   const [lastKey, setLastKey] = useState(listKey);
   if (listKey !== lastKey) {
@@ -653,7 +729,7 @@ export function SpotsScreen({
   const wantedIds = useMemo(() => orderedIds?.slice(0, shown) ?? [], [orderedIds, shown]);
   const inFlight = useRef(new Set<string>());
   useEffect(() => {
-    const missing = wantedIds.filter((id) => !cards.has(id) && !inFlight.current.has(id));
+    const missing = wantedIds.filter((id) => !hasCard(id) && !inFlight.current.has(id));
     if (!missing.length) return;
     for (const id of missing) inFlight.current.add(id);
     const ticket = ++latest.current;
@@ -675,7 +751,7 @@ export function SpotsScreen({
       setError(null);
       remember(result.spots, missing);
     })();
-  }, [wantedIds, cards, remember]);
+  }, [wantedIds, hasCard, remember]);
 
   /* ----------------------------------------------------------- the list -- */
 
@@ -686,10 +762,10 @@ export function SpotsScreen({
    */
   const visible = useMemo<readonly SpotView[]>(() => {
     if (orderedIds) {
-      return wantedIds.map((id) => cards.get(id)).filter((spot): spot is SpotView => !!spot);
+      return wantedIds.map(cardFor).filter((spot): spot is SpotView => !!spot);
     }
     return loaded.spots;
-  }, [orderedIds, wantedIds, cards, loaded.spots]);
+  }, [orderedIds, wantedIds, cardFor, loaded.spots]);
 
   /*
    * Nearest-first is *ready* — the press is paid off and there are cards on
@@ -709,7 +785,7 @@ export function SpotsScreen({
     if (timed.current || areaMode || !nearIds) return;
     const started = startedAt.current;
     if (started === null) return;
-    if (!wantedIds.length || wantedIds.some((id) => !cards.has(id))) return;
+    if (!wantedIds.length || wantedIds.some((id) => !hasCard(id))) return;
 
     timed.current = true;
     capture(ANALYTICS_EVENTS.nearbySortReady, {
@@ -717,7 +793,7 @@ export function SpotsScreen({
       source: here.resumed ? 'resumed' : 'pressed',
       bucket: nearbyReadyBucket(performance.now() - started),
     });
-  }, [areaMode, nearIds, wantedIds, cards, here.resumed]);
+  }, [areaMode, nearIds, wantedIds, hasCard, here.resumed]);
 
   /** How many match the query in all, and how many are not yet on screen. */
   const total = orderedIds ? orderedIds.length : loaded.total;
@@ -725,7 +801,7 @@ export function SpotsScreen({
 
   /** Something asked for is still on its way. Derived, so it cannot go stale. */
   const loading = orderedIds
-    ? wantedIds.some((id) => !cards.has(id))
+    ? wantedIds.some((id) => !hasCard(id))
     : morePending || (!pointsMode && loaded.key !== key);
 
   const showMore = useCallback(() => {
@@ -1095,6 +1171,43 @@ export function SpotsScreen({
           label="Filter spots by sport"
         />
         {/*
+          Faves.
+
+          **Rendered only for a rider who has some**, which is why it is not a
+          permanent pill: an always-on "Faves (0)" is a control that teaches
+          nothing and takes room on a filter row the mobile audit already says
+          is too tall (#377). The way in is the star on a card; this appears
+          once there is something behind it.
+
+          It reads as the same kind of thing as the feature and area pills —
+          on, and pressed to come off — because it is: a narrowing of the one
+          list, not a second screen. The count is the rider's own and stays in
+          their browser; `spots_faves_viewed` deliberately carries no number.
+        */}
+        {signedIn && faves.ids.size > 0 && (
+          <Pill
+            on={favesOn}
+            onClick={() => {
+              const next = !favesOn;
+              setFavesOn(next);
+              // A question about the rider's own list ends the two about
+              // places, the same way "Near me" ends the area question.
+              if (next) {
+                setArea(null);
+                capture(ANALYTICS_EVENTS.spotsFavesViewed, {});
+              }
+            }}
+            aria-label={favesOn ? 'Showing your faves. Show every spot' : 'Show your faves only'}
+            className={styles.favePill}
+          >
+            <Icon name="star" size={13} strokeWidth={2.6} />
+            <span>
+              Faves <span className={styles.faveCount}>{faves.ids.size}</span>
+              {favesOn ? ' ×' : ''}
+            </span>
+          </Pill>
+        )}
+        {/*
           The feature the list arrived narrowed to, as a pill that is already
           on. Pressing it is the only way off: there is no picker to choose a
           different one, because this screen has no feature filter of its own
@@ -1169,7 +1282,13 @@ export function SpotsScreen({
           */}
           <div className={`lab ${styles.count}`} aria-live="polite">
             {total} spot{total === 1 ? '' : 's'}
-            {areaIds ? ' in this area' : here.state === 'on' ? ' · nearest first' : ''}
+            {favesOn
+              ? ' in your faves'
+              : areaIds
+                ? ' in this area'
+                : here.state === 'on'
+                  ? ' · nearest first'
+                  : ''}
             {more > 0 ? ` · showing ${visible.length}` : ''}
             {waiting ? ` · ${waiting}…` : ''}
           </div>
@@ -1177,6 +1296,18 @@ export function SpotsScreen({
           {error && (
             <p className={styles.pendingNote} role="alert">
               {error}
+            </p>
+          )}
+
+          {/*
+            A fave the server would not take — the ceiling, most likely. Said
+            here rather than on the star itself, which has no room for a
+            sentence, and `role="alert"` because the rider pressed something
+            and nothing else on screen will tell them it did not happen.
+          */}
+          {faves.error && (
+            <p className={styles.faveError} role="alert">
+              {faves.error}
             </p>
           )}
 
@@ -1259,6 +1390,31 @@ export function SpotsScreen({
                       small, and `aria-label` says which spot it reports, which
                       the corner has no room to.
                     */}
+                    {/*
+                      The star, beside Report in the card's corner.
+
+                      Only for a signed-in rider, and only once their faves
+                      have loaded: a star that renders empty and fills a beat
+                      later tells every returning rider they have no faves for
+                      exactly as long as the read takes.
+
+                      `source: 'faves'` when the press is made inside the faves
+                      view, because removing from your own list is tidying and
+                      removing from the full list is more often a mis-tap on a
+                      star that sits beside a link — two different facts, and
+                      `spot_unfavourited` keeps them apart.
+                    */}
+                    {signedIn && faves.ready && (
+                      <FaveButton
+                        spot={spot}
+                        on={faves.ids.has(spot.id)}
+                        pending={faves.pending.has(spot.id)}
+                        source={favesOn ? 'faves' : 'card'}
+                        onToggle={faves.toggle}
+                        size={19}
+                        className={styles.cardFave}
+                      />
+                    )}
                     <Link
                       className={`cond ${styles.report}`}
                       href={reportHref({ type: 'spot', id: spot.id })}
@@ -1333,7 +1489,22 @@ export function SpotsScreen({
             </Button>
           )}
 
-          {!visible.length && !waiting && !mine.length && (
+          {/*
+            The faves view gets its own empty state, and it can only be reached
+            one way: the filter is on, the rider has faves (the pill does not
+            exist otherwise), and a search or a sport has narrowed them all
+            away. "Add a spot" would be the wrong offer — nothing is missing
+            from the map — so the way out is the filters themselves.
+          */}
+          {favesOn && !visible.length && !waiting && (
+            <Empty
+              icon="star"
+              title="No faves match that"
+              sub="Your faves are still there. Clear the search or the sport filter to see them."
+            />
+          )}
+
+          {!favesOn && !visible.length && !waiting && !mine.length && (
             <Empty
               icon="map"
               title="No spots there yet"

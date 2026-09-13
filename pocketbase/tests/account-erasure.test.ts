@@ -24,6 +24,7 @@ interface ExportPayload {
   trick_log: { trick: string; stage: string; at: string }[];
   trick_notes: { trick: string; body: string }[];
   clips: { trick: string; video_id: string; video_url: string }[];
+  spot_favourites: { spot: string; created: string }[];
   reports_filed: { detail: string }[];
   guardian_consents: Record<string, unknown>[];
   message?: string;
@@ -127,6 +128,39 @@ describe('taking your data with you', () => {
     expect(mine.body.account.id).toBe(rider.id);
   });
 
+  /*
+   * A collection added after this route was written is a collection the route
+   * silently leaves out — `OWN_COLLECTIONS` in `hooks/lib/erasure.js` is a
+   * hand-kept list, and a rider's download is only complete if every list that
+   * holds their rows is on it. This is here so the next one cannot be forgotten
+   * quietly: a fave is data about a rider, and `/legal` promises they can have
+   * it and can have it deleted.
+   */
+  it('includes the rider’s favourite spots, named rather than by row id', async () => {
+    const rider = await makeRider();
+    const spot = await call<{ id: string }>('POST', '/api/collections/spots/records', {
+      token: await superuser(),
+      body: {
+        name: 'Erasure Park',
+        town: 'Liverpool',
+        type: 'Concrete',
+        lat: 53.41,
+        lng: -2.98,
+        status: 'live',
+      },
+    });
+    const faved = await call('POST', '/api/collections/spot_favourites/records', {
+      token: rider.token,
+      body: { user: rider.id, spot: spot.body.id },
+    });
+    expect(faved.status).toBe(200);
+
+    const mine = await exportFor(rider.token);
+    expect(mine.status).toBe(200);
+    expect(mine.body.spot_favourites).toHaveLength(1);
+    expect(mine.body.spot_favourites[0]?.spot).toBe('Erasure Park');
+  });
+
   it('is refused signed out', async () => {
     expect((await call('POST', '/api/landit/account/export', { body: {} })).status).toBe(401);
   });
@@ -198,6 +232,21 @@ describe('ending an account', () => {
       token: rider.token,
       body: { user: rider.id, trick: fixtures.freeTrick, body: 'A private note.' },
     });
+    const spot = await call<{ id: string }>('POST', '/api/collections/spots/records', {
+      token: await superuser(),
+      body: {
+        name: 'Wipe Park',
+        town: 'Liverpool',
+        type: 'Concrete',
+        lat: 53.42,
+        lng: -2.97,
+        status: 'live',
+      },
+    });
+    await call('POST', '/api/collections/spot_favourites/records', {
+      token: rider.token,
+      body: { user: rider.id, spot: spot.body.id },
+    });
 
     const gone = await deleteAccount(rider.token, { password, confirm: 'DELETE' });
     expect(gone.status).toBe(200);
@@ -238,6 +287,16 @@ describe('ending an account', () => {
       },
     );
     expect(notes.body.totalItems).toBe(0);
+
+    // And the faves, which are on `OWN_COLLECTIONS` for exactly this. Read
+    // with a superuser so the assertion is "the rows are gone" rather than
+    // "the rules stopped answering", which a suspended account would also do.
+    const faves = await call<{ totalItems: number }>(
+      'GET',
+      '/api/collections/spot_favourites/records',
+      { token, query: { filter: `user = "${rider.id}"` } },
+    );
+    expect(faves.body.totalItems).toBe(0);
   });
 
   it('keeps the safeguarding trail, with the identity reduced to a pseudonym', async () => {

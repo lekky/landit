@@ -2786,6 +2786,50 @@ all. It now attempts the paint and treats MapLibre's "Style is not done loading"
 the next `styledata`", which is the check adding a source actually needs (`styleNotReady` in
 `SpotMap.tsx`); the clustered source uses the same rule.
 
+**Favourite spots (2026-09-13, owner in chat: "you should be able to favourite spots and see your
+faves and remove ones you").** A rider marks a spot with a star, from a list card or from the spot's
+own page, and a **Faves** pill on `/spots` narrows the list to them. Five decisions, all of them
+recorded here because the last two diverge from what the neighbouring collection does:
+
+- **A filter on `/spots`, not a page of its own** *(owner's call, 2026-09-13, in chat).* Faves are
+  a narrowing of the one list, so they get the shape the feature and area pills already have: on,
+  and pressed to come off. The search box, the sport filter and a feature pill all keep working
+  inside it. A `/spots/faves` route would have duplicated the card grid, the empty state and the
+  map wiring for no gain.
+- **The pill exists only once a rider has faves.** An always-on "Faves (0)" teaches nothing and
+  takes room on a filter row #377 already says is too tall on a phone. The way in is the star on a
+  card; the pill appears once there is something behind it, and lets go of itself when the last
+  fave is removed rather than leaving a rider looking at an empty list.
+- **Free on every plan, and no ceiling that is an entitlement** *(owner's call, 2026-09-13, in
+  chat).* The paywall in this product is over trick content; a spot is a public place and `/spots`
+  is readable signed out, so a bookmark of one is not a thing to sell. The two numbers in
+  `64_spot_favourites.pb.js` — 200 held, 60 an hour — are **tunable defaults, not deliberated
+  decisions**, mirrored in `packages/core/src/rules/spots.ts` and held to it by
+  `pocketbase/tests/spot-favourites.test.ts`. They exist against a script, not against a rider.
+- **A favourite is private and there is no path to a public count.** Every rule on
+  `spot_favourites` is `OWN`. A "12 riders faved this" line on a spot page would turn a public
+  place into a signal about which children are at it, which is the stranger-contact surface §6.1
+  does not have — so it is refused by the rules rather than merely not built.
+- **The consent gate does not apply, which is a deliberate divergence from `event_attendance`.**
+  That collection is `OWN_AND_CONSENTED`; this one is not. Guarantee 4 exists to stop a child
+  reaching *other riders*, and a favourite reaches nobody: going to an event is a child saying they
+  will be at a place at a time, and bookmarking a park is a note to self. Same reasoning
+  `suggestions` was built on. A rider waiting on a guardian can still mark the park at the end of
+  their road, and there is a test that says so.
+
+**Filtered in the browser over the rider's own cards, never over the points.** "Near me" and
+"Search this area" both need the ~437 KB point download; faves deliberately do not. The cards come
+back with the ids in one small read, go into the same store every other mode reads from, and
+`filterSpots` runs over at most two hundred rows — so opening your own faves costs nothing like
+opening the map (the complaint in #472). The faves list then joins `areaIds` and `nearIds` as a
+third `orderedIds` source, which is the only place in `SpotsScreen.tsx` this mode exists.
+
+Analytics: `spot_favourited` and `spot_unfavourited` carry `source` (`card`, `spot_page`, `faves`)
+and the spot's `type`; `spots_faves_viewed` carries nothing at all. **Never the spot's id, name,
+slug, town or country, and never a count of what a rider holds** — a favourite is the strongest
+statement this product has about where a rider actually rides, which is exactly what §6.4
+standard 10 keeps out of every property.
+
 **T14 · Clips. ~~Built 2026-08-17 (PR #112).~~ REVERTED 2026-08-17 (PR: `chore-revert-clips`).**
 
 The task was: upload through PocketBase's file field backed by R2, token-gated playback, per-plan

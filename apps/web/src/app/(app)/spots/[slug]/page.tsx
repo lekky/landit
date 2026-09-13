@@ -24,6 +24,9 @@ import { ROUTES, libraryHref, reportHref, spotHref } from '@/lib/routes';
 import { SPORT_LOOKS, sportsList } from '@/lib/sports';
 import { anonymousClient, currentRider } from '@/lib/session';
 
+import { toSpotView } from '../view';
+
+import { SpotFave } from './SpotFave';
 import { SpotPageOpened } from './SpotPageOpened';
 import { SpotPin } from './SpotPin';
 import styles from './spot.module.css';
@@ -362,13 +365,23 @@ export default async function SpotPage({ params }: Params) {
           child for their location to fill a strip. Issue filed to bring the
           reader's own distance in from the list screen.
         */}
-        {maps ? (
-          <div className={styles.stripPush}>
+        {/*
+          Fave, and Directions. Both are "what do I do with this place now",
+          which is what the right-hand end of the strip is for.
+
+          `SpotFave` is a client island and renders nothing at all for a reader
+          with no account — which is what keeps this page's *server* render
+          independent of who is reading it. A public, crawlable page whose HTML
+          differed by rider would be a page no cache could hold.
+        */}
+        <div className={styles.stripPush}>
+          <SpotFave spot={toSpotView(spot)} signedIn={!!session} />
+          {maps ? (
             <a className="btn sm" href={maps} target="_blank" rel="noreferrer noopener">
               Directions &rarr;
             </a>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
 
       <div className={styles.cols}>
