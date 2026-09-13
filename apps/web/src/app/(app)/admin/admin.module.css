@@ -271,6 +271,49 @@
   }
 }
 
+/*
+ * The trick table's columns, pinned — same reasoning as `.riderRow` above, and
+ * added for the same symptom.
+ *
+ * This table was left on `.arow`'s flex for a long time and got away with it,
+ * because six cells of roughly even width negotiate to something readable. The
+ * tutorial chip (2026-09-13) made seven, and the Free plan chip's width already
+ * varies per row — "By difficulty · Rookie" against "Shredder" — so the
+ * remainder left for the last two cells differed on every line and the chip
+ * overlapped the plan button. Nothing was wrong with the data; the columns were
+ * being negotiated per row.
+ *
+ * **Doubled selector on purpose**, exactly as `.riderRow.riderRow`: `.arow` and
+ * a module class are both one class, so which wins would come down to
+ * stylesheet injection order.
+ *
+ * **Actions is a fixed 372px.** It holds up to four buttons — Edit, Hide video,
+ * Mark checked, Remove — and only some rows show all four, so an `auto` track
+ * would re-measure per row and bring back the misalignment this exists to
+ * remove. 372px is what those four need on one line: at anything narrower
+ * Remove wraps, and only on the rows that have all four, so the table gained a
+ * ragged mix of one- and two-line rows. `.rowActions` still wraps as a
+ * backstop if a fifth is ever added.
+ *
+ * Below 900px this is dropped and each trick becomes a labelled card, which is
+ * what `.cardRow` further down does — seven pinned columns in 350px would be
+ * one column of clipped text.
+ */
+@media (min-width: 900px) {
+  .trickRow.trickRow {
+    display: grid;
+    grid-template-columns:
+      minmax(140px, 1.9fr) /* trick */
+      minmax(76px, 0.6fr) /* category */
+      minmax(116px, 0.9fr) /* difficulty */
+      minmax(96px, 1fr) /* builds on */
+      minmax(150px, 1fr) /* free plan */
+      minmax(104px, 0.7fr) /* tutorial */
+      372px; /* actions */
+    align-items: center;
+  }
+}
+
 .riderCell {
   display: flex;
   align-items: center;

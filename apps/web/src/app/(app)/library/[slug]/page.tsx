@@ -569,7 +569,17 @@ export default async function TrickPage({ params }: Params) {
               the section, the same way the cross-sport panel's does — an empty
               panel and an empty gap are both impossible.
             */}
-            {trick.video && (
+            {/*
+              `hidden` is the second half of the same condition, and it is
+              checked here rather than in the mapping because the staff portal
+              reads tricks through that mapping and has to be able to see a
+              hidden video in order to put it back. A hidden video renders
+              exactly like no video: no head, no panel, no gap, no hint that
+              other tricks have one. That is what makes the nightly liveness
+              check safe to let run unattended — the worst it can do is return a
+              trick to the state most of the library is already in.
+            */}
+            {trick.video && !trick.video.hidden && (
               <div className={styles.secWatch}>
                 <SectionHead color={category.color}>Watch it</SectionHead>
                 <WatchPanel trick={trick} video={trick.video} />

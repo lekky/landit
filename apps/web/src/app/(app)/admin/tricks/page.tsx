@@ -83,6 +83,10 @@ export default async function AdminTricksPage() {
       videoId: trick?.video?.id ?? '',
       videoTitle: trick?.video?.title ?? '',
       videoChannel: trick?.video?.channel ?? '',
+      videoHidden: trick?.video?.hidden ?? false,
+      videoSource: trick?.video?.source ?? '',
+      videoOffReason: trick?.video?.offReason ?? '',
+      videoCheckedAt: trick?.video?.checkedAt ?? '',
     };
   });
 

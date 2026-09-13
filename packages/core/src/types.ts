@@ -123,7 +123,37 @@ export interface TrickVideo {
   readonly title: string;
   /** Who made it. Absent when staff did not record it. */
   readonly channel?: string;
+  /**
+   * Switched off — by a staff member on the Tricks tab, or by the nightly
+   * liveness check when YouTube stopped serving it.
+   *
+   * The trick page renders no panel when this is true, which is the same page
+   * a trick with no video at all shows. Hiding rather than clearing the link
+   * is deliberate: a video that was briefly private comes back with one click
+   * instead of needing to be curated again from nothing.
+   *
+   * Absent means "not hidden" — the reading a row from a database older than
+   * `1789344000_trick_video_review.js` must get.
+   */
+  readonly hidden?: boolean;
+  /**
+   * Who chose it. `auto` was matched from a title and a channel without anyone
+   * watching it; `staff` was confirmed by a person opening the editor and
+   * saving. Absent on rows that predate the column.
+   *
+   * This is what the staff portal's "not yet checked" filter reads. It exists
+   * because the pass was done automatically (Rachid, 2026-09-13, in chat) and
+   * "a link is present" therefore no longer means "a human approved this".
+   */
+  readonly source?: TrickVideoSource;
+  /** Why the nightly check switched it off, in its own words. Absent when it did not. */
+  readonly offReason?: string;
+  /** When the nightly check last got an answer about this id. Absent means never. */
+  readonly checkedAt?: string;
 }
+
+/** Where a trick's tutorial came from. See {@link TrickVideo.source}. */
+export type TrickVideoSource = 'auto' | 'staff';
 
 export interface Trick {
   readonly id: string;

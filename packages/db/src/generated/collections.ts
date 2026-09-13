@@ -66,6 +66,7 @@ export type TrickProgressStage = 'want' | 'trying' | 'some' | 'most' | 'every';
 export type TricksCat = 'flat' | 'street' | 'park' | 'hybrid' | 'air';
 export type TricksFreeOverride = 'free' | 'paid';
 export type TricksSport = 'scooter' | 'skate' | 'bmx';
+export type TricksVideoSource = 'auto' | 'staff';
 export type UsersAgeBand = 'under_13' | '13_15' | '16_17' | 'adult';
 export type UsersConsentState = 'not_required' | 'pending' | 'granted' | 'revoked';
 export type UsersHeardAbout = 'friend' | 'skatepark' | 'youtube' | 'tiktok' | 'instagram' | 'coach' | 'family' | 'search' | 'elsewhere';
@@ -824,6 +825,10 @@ export interface TricksRecord {
   video_id: string;
   video_title: string;
   video_channel: string;
+  video_hidden: boolean;
+  video_source: TricksVideoSource;
+  video_off_reason: string;
+  video_checked: string;
 }
 
 /** The shape accepted when creating a `tricks` record. */
@@ -845,6 +850,10 @@ export interface TricksCreate {
   video_id?: string;
   video_title?: string;
   video_channel?: string;
+  video_hidden?: boolean;
+  video_source?: TricksVideoSource;
+  video_off_reason?: string;
+  video_checked?: string;
 }
 
 /** The shape accepted when updating a `tricks` record. */

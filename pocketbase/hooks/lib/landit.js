@@ -762,8 +762,17 @@ function enforceTrickVideo(record) {
   const title = record.getString('video_title').trim();
   const channel = record.getString('video_channel').trim();
 
-  // Nobody has picked one. The normal state, and not an error.
-  if (!link && !title && !channel) return;
+  // Nobody has picked one. The normal state, and not an error — but the four
+  // review columns describe a video, so none of them may outlive one. A trick
+  // whose link is cleared must not keep "switched off because it was deleted"
+  // hanging on it for the next person who picks a video for that trick.
+  if (!link && !title && !channel) {
+    record.set('video_hidden', false);
+    record.set('video_source', '');
+    record.set('video_off_reason', '');
+    record.set('video_checked', '');
+    return;
+  }
 
   if (!link) {
     throw new BadRequestError('Paste the YouTube link, or clear the title and channel.');
@@ -785,6 +794,21 @@ function enforceTrickVideo(record) {
   }
   if (channel && wordCount(channel) > CHANNEL_MAX_WORDS) {
     throw new BadRequestError(`Keep the channel name to ${CHANNEL_MAX_WORDS} words.`);
+  }
+
+  // `video_source` is a closed list. An unrecognised value reads as "unknown
+  // origin" rather than failing the write: the column is a staff filter, not a
+  // guarantee, and a bad value must never be the reason a curation edit is lost.
+  const source = record.getString('video_source').trim();
+  if (source && source !== 'auto' && source !== 'staff') {
+    record.set('video_source', '');
+  }
+
+  // A reason belongs to a video that is actually off. Un-hiding one — the click
+  // a staff member makes after checking a flagged video is fine — clears the
+  // note the job left, so the next reader is not told a live video is deleted.
+  if (!record.getBool('video_hidden')) {
+    record.set('video_off_reason', '');
   }
 }
 

@@ -22,9 +22,11 @@ import { runAction } from '@/lib/runAction';
 import { StaffEditor, type EditorValue } from '../StaffEditor';
 import {
   createTrickAction,
+  markTrickVideoCheckedAction,
   saveTrickAction,
   setTrickLiveAction,
   setTrickTierAction,
+  setTrickVideoHiddenAction,
   type TrickForm,
 } from '../content-actions';
 import type { AdminTrickRow, TrickTier } from '../view';
@@ -100,6 +102,93 @@ const TIER_FIELD_OPTIONS = [
   ['paid', 'Shredder and up'],
 ] as const;
 
+/**
+ * The tutorial filter (Rachid, 2026-09-13, in chat: "filter to show is any do
+ * or don't have a video").
+ *
+ * `unchecked` and `off` are the two the curation pass made necessary. The pass
+ * matched videos by title and channel without anybody watching them, so "has a
+ * video" stopped meaning "has a video somebody approved" — `unchecked` is the
+ * queue that difference creates, and it is the one a staff member works down.
+ * `off` collects both what a person switched off and what the nightly liveness
+ * check did, because from this tab they need the same second look.
+ */
+const VIDEO_FILTERS = [
+  ['all', 'All'],
+  ['has', 'Has a video'],
+  ['none', 'No video'],
+  ['unchecked', 'Not yet checked'],
+  ['off', 'Switched off'],
+] as const;
+
+type VideoFilter = (typeof VIDEO_FILTERS)[number][0];
+
+/** Does this row belong in the current tutorial filter? */
+function matchesVideoFilter(row: AdminTrickRow, filter: VideoFilter): boolean {
+  switch (filter) {
+    case 'has':
+      return Boolean(row.videoId);
+    case 'none':
+      return !row.videoId;
+    case 'unchecked':
+      // Deliberately not "everything that is not `staff`". A row with no video
+      // has nothing to check, and a row from before the column existed was
+      // typed in by a person — neither belongs in a review queue.
+      return Boolean(row.videoId) && row.videoSource === 'auto';
+    case 'off':
+      return Boolean(row.videoId) && row.videoHidden;
+    default:
+      return true;
+  }
+}
+
+/**
+ * The row's tutorial state as one chip.
+ *
+ * The hover text is on the wrapping span rather than the `Tag`, which takes no
+ * `title` — and `Tag` lives in `@landit/ui-web`, where a new prop for one
+ * staff-only cell would be a change to shared code that every other caller
+ * carries (CLAUDE.md step 5).
+ */
+function VideoChip({ row }: { row: AdminTrickRow }) {
+  const chip = videoChipOf(row);
+  return (
+    <span className={styles.controlCell} data-label="Tutorial" title={chip.title}>
+      <Tag color={chip.color} style={{ fontSize: 10 }}>
+        {chip.label}
+      </Tag>
+    </span>
+  );
+}
+
+/** What the row's tutorial chip says, and the colour it says it in. */
+function videoChipOf(row: AdminTrickRow): { label: string; color: string; title: string } {
+  if (!row.videoId) {
+    return {
+      label: 'No video',
+      color: 'var(--ink-3)',
+      title: 'Nobody has picked a tutorial for this trick. The trick page shows no panel.',
+    };
+  }
+  if (row.videoHidden) {
+    return {
+      label: row.videoOffReason ? `Off · ${row.videoOffReason}` : 'Off',
+      color: 'var(--red)',
+      title: row.videoOffReason
+        ? `The nightly check switched this off: ${row.videoOffReason}. Riders see no panel.`
+        : 'Switched off by staff. Riders see no panel.',
+    };
+  }
+  if (row.videoSource === 'auto') {
+    return {
+      label: 'Not checked',
+      color: 'var(--amber, #E08A1F)',
+      title: 'Matched automatically by title and channel. Nobody has watched it yet.',
+    };
+  }
+  return { label: 'Checked', color: 'var(--green)', title: 'Confirmed by a staff member.' };
+}
+
 const CAT_OPTIONS = CATEGORY_IDS.map((id) => [id, CATS[id].label] as const);
 const DIFF_OPTIONS = [1, 2, 3, 4, 5].map(
   (d) => [String(d), `${d} · ${TIERS_LABEL[d - 1]}`] as const,
@@ -131,13 +220,17 @@ export function TricksScreen({
 
   const [sport, setSport] = useState<SportId>(SPORT_IDS[0]);
   const [query, setQuery] = useState('');
+  const [videoFilter, setVideoFilter] = useState<VideoFilter>('all');
   const [adding, setAdding] = useState(false);
   const [addForm, setAddForm] = useState(BLANK);
   const [editing, setEditing] = useState<AdminTrickRow | null>(null);
 
   const needle = query.trim().toLowerCase();
   const list = rows.filter(
-    (row) => row.sport === sport && (!needle || row.name.toLowerCase().includes(needle)),
+    (row) =>
+      row.sport === sport &&
+      (!needle || row.name.toLowerCase().includes(needle)) &&
+      matchesVideoFilter(row, videoFilter),
   );
 
   const run = (work: () => Promise<{ ok: boolean; message?: string }>, done: string) => {
@@ -170,6 +263,17 @@ export function TricksScreen({
       () => setTrickLiveAction(row.id, !row.isLive),
       row.isLive ? `${row.name} hidden` : `${row.name} back in the library`,
     );
+  };
+
+  const onToggleVideo = (row: AdminTrickRow) => {
+    run(
+      () => setTrickVideoHiddenAction(row.id, !row.videoHidden),
+      row.videoHidden ? `${row.name}: tutorial back on` : `${row.name}: tutorial off`,
+    );
+  };
+
+  const onMarkChecked = (row: AdminTrickRow) => {
+    run(() => markTrickVideoCheckedAction(row.id), `${row.name}: tutorial checked`);
   };
 
   const formFrom = (value: EditorValue, fallbackSport: SportId): TrickForm => ({
@@ -223,6 +327,22 @@ export function TricksScreen({
         <button type="button" className="btn sm" onClick={() => setAdding((v) => !v)}>
           {adding ? 'Cancel' : '+ Add trick'}
         </button>
+      </div>
+
+      {/*
+        The tutorial filter sits on its own line rather than in the toolbar
+        above: that row already carries three sport pills, a search box and the
+        add button, and on a phone a fourth group wraps into an unreadable
+        jumble. The counts are of the *current sport*, because that is the list
+        being filtered — a count of the whole library next to a per-sport list
+        would be a number that matches nothing on screen.
+      */}
+      <div className={styles.toolbar} role="group" aria-label="Filter by tutorial">
+        {VIDEO_FILTERS.map(([id, label]) => (
+          <Pill key={id} on={videoFilter === id} onClick={() => setVideoFilter(id)}>
+            {label} · {rows.filter((r) => r.sport === sport && matchesVideoFilter(r, id)).length}
+          </Pill>
+        ))}
       </div>
 
       {adding && (
@@ -331,19 +451,20 @@ export function TricksScreen({
       <Panel className={`${styles.table} ${pending ? styles.busy : ''}`}>
         {/* Hidden on a phone, where each trick is a card and every cell prints
             its own `data-label` (issue #371; `admin.module.css`). */}
-        <div className={`arow ${styles.tableHead} ${styles.cardHead}`}>
+        <div className={`arow ${styles.tableHead} ${styles.cardHead} ${styles.trickRow}`}>
           <span className="lab">Trick</span>
           <span className="lab">Category</span>
           <span className="lab">Difficulty</span>
           <span className="lab">Builds on</span>
           <span className="lab">Free plan</span>
+          <span className="lab">Tutorial</span>
           <span className="lab">Actions</span>
         </div>
 
         {list.map((row) => (
           <div
             key={row.id}
-            className={`arow ${styles.tableRow} ${styles.cardRow} ${row.isLive ? '' : styles.hiddenRow}`}
+            className={`arow ${styles.tableRow} ${styles.cardRow} ${styles.trickRow} ${row.isLive ? '' : styles.hiddenRow}`}
           >
             <div className={styles.rowTitle}>
               <div className="cond" style={{ fontSize: 15 }}>
@@ -401,6 +522,15 @@ export function TricksScreen({
               </button>
             </span>
 
+            {/*
+              The tutorial state, as one chip. It is read-only on purpose: the
+              two things a staff member does to a video — switch it off and
+              confirm it — are separate buttons below, because a chip that
+              cycled through four states would make "switched off because
+              YouTube deleted it" something you could click into by accident.
+            */}
+            <VideoChip row={row} />
+
             <div className={styles.rowActions}>
               <button
                 type="button"
@@ -410,6 +540,37 @@ export function TricksScreen({
               >
                 Edit
               </button>
+
+              {/* Only where there is a video to act on. */}
+              {row.videoId && (
+                <button
+                  type="button"
+                  className="btn sm ghost"
+                  disabled={pending}
+                  style={{ fontSize: 11, padding: '4px 9px' }}
+                  title={
+                    row.videoHidden
+                      ? 'Put the tutorial back on the trick page'
+                      : 'Take the tutorial off the trick page. The link is kept.'
+                  }
+                  onClick={() => onToggleVideo(row)}
+                >
+                  {row.videoHidden ? 'Show video' : 'Hide video'}
+                </button>
+              )}
+
+              {row.videoId && row.videoSource === 'auto' && !row.videoHidden && (
+                <button
+                  type="button"
+                  className="btn sm ghost"
+                  disabled={pending}
+                  style={{ fontSize: 11, padding: '4px 9px' }}
+                  title="Say that you have watched this video and it is the right one"
+                  onClick={() => onMarkChecked(row)}
+                >
+                  Mark checked
+                </button>
+              )}
               <button
                 type="button"
                 className="btn sm"

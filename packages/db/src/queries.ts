@@ -187,6 +187,10 @@ function videoOf(row: {
   video_id?: unknown;
   video_title?: unknown;
   video_channel?: unknown;
+  video_hidden?: unknown;
+  video_source?: unknown;
+  video_off_reason?: unknown;
+  video_checked?: unknown;
 }): { video: TrickVideo } | Record<string, never> {
   const id = typeof row.video_id === 'string' ? row.video_id.trim() : '';
   const title = typeof row.video_title === 'string' ? row.video_title.trim() : '';
@@ -194,7 +198,31 @@ function videoOf(row: {
 
   if (!id || !title) return {};
 
-  return { video: { id, title, ...(channel ? { channel } : {}) } };
+  // The four review columns are read the same forgiving way as the first three:
+  // anything that is not the shape expected reads as absent, so a row from a
+  // database older than `1789344000_trick_video_review.js` is a live,
+  // never-checked video of unrecorded origin — which is the truth about the
+  // handful a person typed in before the columns existed.
+  const source =
+    row.video_source === 'auto' || row.video_source === 'staff' ? row.video_source : undefined;
+  const offReason = typeof row.video_off_reason === 'string' ? row.video_off_reason.trim() : '';
+  const checkedAt = typeof row.video_checked === 'string' ? row.video_checked.trim() : '';
+
+  return {
+    video: {
+      id,
+      title,
+      ...(channel ? { channel } : {}),
+      // `hidden` is carried rather than used to drop the video, because the
+      // staff portal reads tricks through this same mapping and has to be able
+      // to see and un-hide one. Keeping it *off* a rider's page is the trick
+      // page's job — see `WatchPanel`'s caller.
+      ...(row.video_hidden === true ? { hidden: true } : {}),
+      ...(source ? { source } : {}),
+      ...(offReason ? { offReason } : {}),
+      ...(checkedAt ? { checkedAt } : {}),
+    },
+  };
 }
 
 /**

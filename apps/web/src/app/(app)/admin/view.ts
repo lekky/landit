@@ -1,4 +1,10 @@
-import { approvalExpired, HEARD_ABOUT, isConsentLimited, type TrickMistake } from '@landit/core';
+import {
+  approvalExpired,
+  HEARD_ABOUT,
+  isConsentLimited,
+  type TrickMistake,
+  type TrickVideoSource,
+} from '@landit/core';
 import type { SportLook } from '@landit/ui-web';
 
 /**
@@ -486,6 +492,19 @@ export interface AdminTrickRow {
   readonly videoId: string;
   readonly videoTitle: string;
   readonly videoChannel: string;
+  /**
+   * Switched off, by a staff member or by the nightly liveness check. A hidden
+   * video shows riders nothing at all, so this tab is the only place it can be
+   * seen — which is why the row keeps rendering it rather than reading as
+   * "no video".
+   */
+  readonly videoHidden: boolean;
+  /** `auto` means nobody has watched it yet; `staff` means somebody has. Empty on older rows. */
+  readonly videoSource: '' | TrickVideoSource;
+  /** Why the nightly check switched it off. Empty when a person did, or when it is on. */
+  readonly videoOffReason: string;
+  /** When the nightly check last got an answer about this id. Empty means never. */
+  readonly videoCheckedAt: string;
 }
 
 export interface AdminStickerRow {
