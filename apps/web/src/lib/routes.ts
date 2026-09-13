@@ -181,6 +181,7 @@ export const ROUTES = {
   adminPlans: '/admin/plans',
   adminModeration: '/admin/moderation',
   adminSuggestions: '/admin/suggestions',
+  adminVideoChecks: '/admin/video-checks',
 } as const satisfies Record<string, Route>;
 
 /**

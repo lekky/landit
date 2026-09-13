@@ -519,6 +519,61 @@ guardian email is the mechanism the child-safety position rests on, so #31 stays
 are.
 
 
+### 9. The nightly tutorial check (`video:check`) — **not done**
+
+The curated tutorials (#462, #463) go dead on their own: a channel deletes a video, or makes it
+private, and the trick page keeps offering it. `video:check` asks YouTube which ones still play,
+switches off the ones that do not, puts back any that returned, and writes a row to
+`video_check_runs` that the portal's **Video checks** tab reads.
+
+**It runs in the web app's own container**, as a Coolify scheduled task. That is not a compromise:
+the image is the whole pnpm workspace (`apps/web/Dockerfile` copies `/repo` forward wholesale), so
+`packages/db/scripts` and its `pnpm` are already in there, and the app already holds
+`POCKETBASE_URL` and both `POCKETBASE_SUPERUSER_*` variables because its own server code uses the
+superuser client. Nothing needs building or deploying for this — one variable and one scheduled
+task.
+
+**Step one, the variable.** Land The Trick app → Environment Variables → add:
+
+| | |
+| --- | --- |
+| Name | `YOUTUBE_API_KEY` |
+| Value | a YouTube Data API v3 key (below) |
+| Coolify settings | Runtime → "Available in the container"; **not** a build variable; **Literal** ticked |
+
+The key comes from a Google Cloud project: console.cloud.google.com → new project → enable
+**YouTube Data API v3** → APIs & Services → Credentials → **API key**, then restrict it to that one
+API. No billing account is needed. Quota is 50 ids a call at one unit each, so the whole library is
+about six units against a free 10,000 a day — the daily allowance is roughly 1,600 runs.
+
+**Step two, the task.** Same application → **Scheduled Tasks** → add:
+
+| | |
+| --- | --- |
+| Name | `video-check` |
+| Command | `pnpm --filter @landit/db video:check` |
+| Frequency | `0 3 * * *` |
+| Container | the app's own (leave the default) |
+
+03:00 UTC daily. A whole day's grace before anyone notices a dead tutorial, at the hour nobody is
+riding.
+
+**What a red run means.** The script exits non-zero and changes nothing when the key is missing or
+when YouTube refuses a batch — a 403 for an over-quota key would otherwise read as "every video is
+missing" and hide the entire catalogue. Coolify shows the task as failed, and the run still records
+itself in `video_check_runs` with the reason, so the Video checks tab shows the night it broke
+rather than a gap.
+
+**Why the history exists at all.** Every run writes a row, including the ordinary nights that
+change nothing. A history of *changes* alone is blank when all is well, which makes "nothing was
+wrong" and "this stopped running in August" the same picture — and the second is what quietly
+leaves dead links on trick pages. The boring rows are what make a gap in the dates mean something.
+
+**The sibling nobody has scheduled.** `video:thumbs` fetches the preview frame for any tutorial
+without one, and staff changing a link in the portal clears that trick's frame. It is not on a
+schedule and has been run by hand; if the portal's video controls get regular use it wants the same
+treatment as the above, at a different hour.
+
 ## Not done yet (infra track, implementation-plan.md §7)
 
 Steps 1–8 above are the sequence; this is the progress.

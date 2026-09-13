@@ -26,6 +26,7 @@ import type {
   SuggestionsStatus,
   UsersPlan,
   UsersRecord,
+  VideoCheckRunsRecord,
 } from './generated/collections';
 
 /**
@@ -1190,5 +1191,31 @@ export async function setSuggestionTriage(
     id: suggestionId,
     action: `admin.suggestion_${triage.status}`,
     patch: { status: triage.status, note: triage.note ?? '' },
+  });
+}
+
+// -------------------------------------------------------- video check log --
+
+/**
+ * One page of the nightly tutorial check's history, newest first (#463).
+ *
+ * No filter and no search, deliberately. The collection is one row a night, so
+ * a year of it is 365 rows and the only question anyone brings to it is "what
+ * happened lately, and has it been running?" — both of which a reverse-dated
+ * page answers on its first screen. A filter here would be scaffolding for a
+ * question nobody has asked.
+ *
+ * `-created` rather than `-updated`: a run row is written once and never
+ * touched again, so the two agree, and the one that reads as the truth is when
+ * the run happened.
+ */
+export async function listVideoCheckRunsPage(
+  client: Client,
+  page: { readonly page?: number; readonly perPage?: number } = {},
+): Promise<Page<VideoCheckRunsRecord>> {
+  return records(client, 'video_check_runs').page({
+    sort: '-created',
+    page: page.page ?? 1,
+    perPage: page.perPage ?? 25,
   });
 }

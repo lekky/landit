@@ -20,6 +20,7 @@ import {
   listAdminSpotsPage,
   listAdminStickers,
   listReports,
+  listVideoCheckRunsPage,
   relationCountsFor,
   reportCounts,
   spotCounts,
@@ -723,5 +724,25 @@ describe('deleteRider', () => {
 
     expect(calls.some((c) => c.method === 'delete')).toBe(false);
     expect(auditRows(calls)).toHaveLength(0);
+  });
+});
+
+describe('the nightly check’s history', () => {
+  it('reads newest first, with no filter at all', async () => {
+    const { client, calls } = fakeClient();
+    await listVideoCheckRunsPage(client, { page: 3, perPage: 30 });
+
+    const call = calls.find((c) => c.method === 'getList');
+    expect(call?.collection).toBe('video_check_runs');
+    expect(call?.args[0]).toBe(3);
+    expect(call?.args[1]).toBe(30);
+
+    // No filter, deliberately: one row a night means a year is 365 rows, and
+    // the only question the page answers is "what happened lately".
+    const options = call?.args[2] as { filter?: string; sort?: string };
+    expect(options.filter).toBeUndefined();
+    // `-created`, so a gap in the dates — the job having stopped — shows on the
+    // first screen rather than on the last page.
+    expect(options.sort).toBe('-created');
   });
 });

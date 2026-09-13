@@ -47,6 +47,13 @@ export const ADMIN_TABS: readonly AdminTab[] = [
    * safeguarding reports.
    */
   { id: 'suggestions', label: 'Ideas', href: ROUTES.adminSuggestions },
+  /*
+   * The twelfth, and the first that is nobody's queue: it is a job's history
+   * rather than a pile of things to work through. It sits last because that is
+   * how often it is wanted — the nightly tutorial check looks after itself, and
+   * this tab is where a staff member goes to confirm that it did.
+   */
+  { id: 'video-checks', label: 'Video checks', href: ROUTES.adminVideoChecks },
 ];
 
 /**

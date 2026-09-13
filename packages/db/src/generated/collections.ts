@@ -37,7 +37,8 @@ export type CollectionName =
   | 'trick_prereqs'
   | 'trick_progress'
   | 'tricks'
-  | 'users';
+  | 'users'
+  | 'video_check_runs';
 
 export type AnnouncementsAudience = 'all' | 'plan' | 'sport';
 export type AnnouncementsAudiencePlan = 'rookie' | 'shredder' | 'legend';
@@ -962,6 +963,32 @@ export interface UsersCreate {
 /** The shape accepted when updating a `users` record. */
 export type UsersUpdate = Partial<UsersCreate>;
 
+/** A `video_check_runs` record as PocketBase returns it. */
+export interface VideoCheckRunsRecord {
+  collectionId: string;
+  collectionName: string;
+  id: string;
+  checked: number;
+  hidden: number;
+  restored: number;
+  changes: unknown;
+  note: string;
+  created: string;
+}
+
+/** The shape accepted when creating a `video_check_runs` record. */
+export interface VideoCheckRunsCreate {
+  id?: string;
+  checked?: number;
+  hidden?: number;
+  restored?: number;
+  changes?: unknown;
+  note?: string;
+}
+
+/** The shape accepted when updating a `video_check_runs` record. */
+export type VideoCheckRunsUpdate = Partial<VideoCheckRunsCreate>;
+
 /** Collection name to the record it holds. */
 export interface CollectionRecords {
   announcement_dismissals: AnnouncementDismissalsRecord;
@@ -990,6 +1017,7 @@ export interface CollectionRecords {
   trick_progress: TrickProgressRecord;
   tricks: TricksRecord;
   users: UsersRecord;
+  video_check_runs: VideoCheckRunsRecord;
 }
 
 /** Collection name to the shape its create accepts. */
@@ -1020,6 +1048,7 @@ export interface CollectionCreates {
   trick_progress: TrickProgressCreate;
   tricks: TricksCreate;
   users: UsersCreate;
+  video_check_runs: VideoCheckRunsCreate;
 }
 
 /** Collection name to the shape its update accepts. */
@@ -1050,4 +1079,5 @@ export interface CollectionUpdates {
   trick_progress: TrickProgressUpdate;
   tricks: TricksUpdate;
   users: UsersUpdate;
+  video_check_runs: VideoCheckRunsUpdate;
 }

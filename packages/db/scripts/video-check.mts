@@ -38,6 +38,11 @@ import {
   type VideoCheckRow,
   type YouTubeVideoItem,
 } from '../src/video-check.ts';
+import {
+  videoCheckLogEntry,
+  videoCheckRunRow,
+  type VideoCheckLogEntry,
+} from '../src/video-check-log.ts';
 
 function flag(name: string): string | undefined {
   const index = process.argv.indexOf(`--${name}`);
@@ -61,7 +66,7 @@ const pb = await createSuperuserClient(flag('url') ? { url: flag('url') } : {});
 // exactly where a video that has come back would be found.
 const trickRows = await records(pb, 'tricks').list({
   filter: 'video_id != ""',
-  fields: 'id,slug,video_id,video_hidden,video_off_reason',
+  fields: 'id,slug,name,video_id,video_hidden,video_off_reason',
 });
 
 const rows: VideoCheckRow[] = trickRows.map((record) => ({
@@ -72,8 +77,17 @@ const rows: VideoCheckRow[] = trickRows.map((record) => ({
   offReason: record.video_off_reason ?? '',
 }));
 
+/** Trick names, for a history that reads as tricks rather than as slugs. */
+const namesBySlug = new Map(trickRows.map((record) => [record.slug, record.name]));
+
 if (rows.length === 0) {
   console.log('No curated tutorials yet, so there was nothing to check.');
+  // Still a night the job ran, and the history's promise is that a gap in the
+  // dates means it stopped. An empty catalogue is a nothing-to-do run, not an
+  // absent one.
+  if (!dryRun) {
+    await records(pb, 'video_check_runs').create(videoCheckRunRow({ checked: 0, changes: [] }));
+  }
   process.exit(0);
 }
 
@@ -95,6 +109,19 @@ for (const batch of batches) {
     console.error(
       `YouTube answered ${response.status} for a batch of ${batch.length}. Nothing was changed.`,
     );
+
+    // The history still gets its row. A night the job could not do its job is
+    // exactly what the Video checks tab is for, and a silent exit here would
+    // leave the same gap in the dates as a job that never ran.
+    if (!dryRun) {
+      await records(pb, 'video_check_runs').create(
+        videoCheckRunRow({
+          checked: 0,
+          changes: [],
+          note: `YouTube answered ${response.status}; nothing was checked or changed.`,
+        }),
+      );
+    }
     process.exit(1);
   }
 
@@ -137,6 +164,22 @@ for (const change of changes) {
 for (const row of rows) {
   await records(pb, 'tricks').update(row.id, { video_checked: checked });
 }
+
+// The history row, written last so it records a run that actually finished.
+// It goes in on the quiet nights too — a page of "No changes" is what makes a
+// missing night visible, which is the question staff have about a job nobody
+// watches (`../src/video-check-log.ts`).
+const rowBySlug = new Map(rows.map((row) => [row.slug, row]));
+const entries: VideoCheckLogEntry[] = changes.map((change) =>
+  videoCheckLogEntry(change, {
+    name: namesBySlug.get(change.slug) ?? change.slug,
+    videoId: rowBySlug.get(change.slug)?.videoId ?? '',
+  }),
+);
+
+await records(pb, 'video_check_runs').create(
+  videoCheckRunRow({ checked: rows.length, changes: entries }),
+);
 
 console.log(
   `\nChecked ${rows.length} tutorial(s) in ${batches.length} call(s): ` +
