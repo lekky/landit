@@ -614,6 +614,39 @@ export function pastEvents(
 }
 
 /**
+ * The rider's own calendar: what they are down for, then what they have been
+ * to (Rachid, 2026-09-13, in chat — a third tab beside Upcoming and Past).
+ *
+ * **Both halves in one list, in that order.** "I'm going" was write-only until
+ * this existed: a rider could mark an event and the only thing the product ever
+ * said back was a counter at the foot of the calendar. What they actually want
+ * to ask is "what am I doing next, and what have I been to" — one question with
+ * two tenses, which is why it is one list and not two screens.
+ *
+ * **It re-derives nothing.** The split is `upcomingEvents` / `pastEvents`, the
+ * same pair every other events view is cut with, so a rider's own list cannot
+ * disagree with the calendar about which tense an event is in — the failure
+ * this whole file is arranged to prevent. Each half keeps its own order for its
+ * own reason: what is coming is soonest-first, what has been is most recent
+ * first.
+ *
+ * **`going` is slugs, and an unknown one is simply not here.** Attendance
+ * outlives the listing it points at — staff can hide an event, and a rider's
+ * row in `event_attendance` survives it — so a slug with nothing behind it is
+ * an ordinary state rather than an error. Nobody else's attendance can reach
+ * this function: `event_attendance` is `OWN`, so the only set that exists to
+ * pass is the reader's own (plan §6.1).
+ */
+export function myEvents(
+  going: ReadonlySet<string>,
+  events: readonly LandItEvent[] = EVENTS,
+  clock: RiderClock = {},
+): LandItEvent[] {
+  const mine = (event: LandItEvent) => going.has(event.id);
+  return [...upcomingEvents(events, clock).filter(mine), ...pastEvents(events, clock).filter(mine)];
+}
+
+/**
  * A past event's town as a URL segment — `/events/past/2026/ventnor`.
  *
  * The same `slugify` every other public URL in the product is built with, so a

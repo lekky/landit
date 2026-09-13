@@ -14,6 +14,7 @@ import {
   eventTownSlug,
   eventsFor,
   isEventPast,
+  myEvents,
   pastEventsIn,
   upcomingEvents,
   type EventArchiveIndex,
@@ -93,15 +94,22 @@ export interface EventView {
 }
 
 /**
- * Which half of the calendar a screen is showing.
+ * Which slice of the calendar a screen is showing.
  *
- * The two are **routes**, not a pill: `/events` and `/events/past`. The archive
- * is the half worth arriving on from a search result, and a filter has no
- * address. It also settles the prototype's bug outright — a view that cannot
- * express "both" cannot leak one into the other (`upcomingEvents` /
- * `pastEvents`, and the property test beside them).
+ * All three are **routes**, not pills: `/events`, `/events/past` and
+ * `/events/mine`. The archive is the half worth arriving on from a search
+ * result, and a filter has no address; `mine` needs one for a different reason
+ * — it is where a rider is sent back to after signing in, and it is a tab they
+ * will want to come back to.
+ *
+ * `upcoming` and `past` remain each other's exact complement, which settles the
+ * prototype's bug outright: a view that cannot express "both" cannot leak one
+ * into the other (`upcomingEvents` / `pastEvents`, and the property test beside
+ * them). **`mine` is not a third definition of "past"** — it is cut from those
+ * same two halves in `myEvents`, so a rider's own list can never disagree with
+ * the calendar about which tense a row is in.
  */
-export type EventsScope = 'upcoming' | 'past';
+export type EventsScope = 'upcoming' | 'past' | 'mine';
 
 /** The corner of the archive a page is narrowed to, if any. */
 export interface ArchiveWhere {
@@ -128,17 +136,33 @@ export interface ArchiveView {
 
 export interface EventsView {
   readonly events: readonly EventView[];
-  /** Which half of the calendar these events are. */
+  /** Which slice of the calendar these events are. */
   readonly scope: EventsScope;
-  /** How many events each half holds, for the segmented control's counts. */
+  /** How many events each tab holds, for the segmented control's counts. */
   readonly upcomingCount: number;
   readonly pastCount: number;
+  /**
+   * How many events the rider is down for or has been to — the third tab's
+   * count, and the only number on this view that is about the reader.
+   *
+   * Present on every scope, not just `mine`, because the tab and its count are
+   * on all three screens. It is zero for a visitor, who has no attendance to
+   * count: the tab is not rendered for them at all (`EventsScreen`).
+   */
+  readonly mineCount: number;
   /** Present on the archive only. */
   readonly archive: ArchiveView | null;
   /** Only the kinds present in the list, so no pill finds nothing. */
   readonly kinds: readonly { readonly id: EventKind; readonly color: string }[];
   /** How many events each sport has, for the sport filter's counts. */
   readonly countBySport: Readonly<Record<string, number>>;
+  /**
+   * How many rows **in this list** the rider is down for. Not `mineCount`: on
+   * the calendar it counts the upcoming ones only, which is what the "you're
+   * down for N events" panel at the foot has always meant. The screen also uses
+   * the gap between the two to keep the tab's count live as rows are toggled,
+   * without a reload.
+   */
   readonly goingCount: number;
   /**
    * The countries with an event behind them, alphabetically — the options the
@@ -165,7 +189,7 @@ export interface EventsViewInput {
   /** Event slugs this rider is down for. */
   readonly going: ReadonlySet<string>;
   readonly clock: { readonly timezone: string };
-  /** Which half to shape. Defaults to the calendar. */
+  /** Which tab to shape. Defaults to the calendar. */
   readonly scope?: EventsScope;
   /**
    * A corner of the archive, from `/events/past/[year]/[town]`. Ignored on the
@@ -196,6 +220,13 @@ export function buildEventsView(input: EventsViewInput): EventsView {
    */
   const upcoming = upcomingEvents(input.events, input.clock);
   const archiveAll = pastEventsIn({}, input.events, input.clock);
+  /*
+   * The rider's own tab, cut from those same two halves rather than from a
+   * third date comparison (`myEvents`). What they are down for first, what they
+   * have been to after — one question with two tenses, which is why it is one
+   * list and not two screens.
+   */
+  const mine = myEvents(input.going, input.events, input.clock);
 
   const where =
     scope === 'past' && input.where
@@ -203,11 +234,13 @@ export function buildEventsView(input: EventsViewInput): EventsView {
       : null;
 
   const list =
-    scope === 'past'
-      ? where
-        ? pastEventsIn(where, input.events, input.clock)
-        : archiveAll
-      : upcoming;
+    scope === 'mine'
+      ? mine
+      : scope === 'past'
+        ? where
+          ? pastEventsIn(where, input.events, input.clock)
+          : archiveAll
+        : upcoming;
 
   const events: EventView[] = list.map((event) => {
     const date = eventDateBlock(event.date);
@@ -257,25 +290,30 @@ export function buildEventsView(input: EventsViewInput): EventsView {
   // "three sports, not two").
   const countBySport: Record<string, number> = {};
   for (const sport of input.sports) {
-    // Counted within the half on screen: on the archive "12 on" has to mean
-    // twelve past events, not twelve on the whole calendar.
-    countBySport[sport] = eventsFor(sport, scope === 'past' ? archiveAll : upcoming).length;
+    // Counted within the tab on screen: on the archive "12 on" has to mean
+    // twelve past events, not twelve on the whole calendar — and on a rider's
+    // own tab it has to mean twelve of theirs.
+    countBySport[sport] = eventsFor(
+      sport,
+      scope === 'mine' ? mine : scope === 'past' ? archiveAll : upcoming,
+    ).length;
   }
 
   /*
-   * The pills and the country list are derived from **the half on screen**, not
+   * The pills and the country list are derived from **the tab on screen**, not
    * from the whole calendar. A kind pill on the archive that finds nothing is
    * the same disappointment `eventKindsPresent` was written to avoid, and it
    * would be a new one: every past event is a Session in a town nobody has
    * filtered to yet.
    */
-  const inScope = scope === 'past' ? archiveAll : upcoming;
+  const inScope = scope === 'mine' ? mine : scope === 'past' ? archiveAll : upcoming;
 
   return {
     events,
     scope,
     upcomingCount: upcoming.length,
     pastCount: archiveAll.length,
+    mineCount: mine.length,
     archive:
       scope === 'past'
         ? {
@@ -303,7 +341,7 @@ export function buildEventsView(input: EventsViewInput): EventsView {
     goingCount: events.filter((e) => e.going).length,
     countries: eventCountriesPresent(inScope),
     /*
-     * Taken from `inScope` — the half on screen — for the same reason the
+     * Taken from `inScope` — the tab on screen — for the same reason the
      * pills and the options are: the archive and the calendar are in different
      * sets of countries, and a calendar country defaulted onto the archive
      * would open that list on nothing at all.
@@ -313,6 +351,15 @@ export function buildEventsView(input: EventsViewInput): EventsView {
      * world exactly as the screen does today. We never guess a neighbour
      * (Rachid, 2026-09-12, in chat).
      */
-    defaultCountry: eventCountryForRegion(input.region, inScope) ?? '',
+    /*
+     * ...and never on `mine`. A country default exists because the calendar is
+     * two hundred and twenty-one events across thirty countries and a reader in
+     * Sweden should not have to hunt for a `<select>` to find themselves in it.
+     * A rider's own list is three events they chose by hand — narrowing *that*
+     * by country is not a helpful opening, it is hiding two of the three things
+     * they came to see, and a rider who travelled to a jam abroad would open
+     * their own tab on nothing.
+     */
+    defaultCountry: scope === 'mine' ? '' : (eventCountryForRegion(input.region, inScope) ?? ''),
   };
 }

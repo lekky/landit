@@ -1,7 +1,7 @@
 import { SPORT_IDS } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
-import { seedLibrary } from './support/seed-library';
+import { e2eSuperuser, seedLibrary } from './support/seed-library';
 import { seedSchedule } from './support/seed-schedule';
 import { finishOnboarding, pickEverySport } from './support/onboarding';
 
@@ -74,23 +74,46 @@ async function newRiderOneSport(page: Page): Promise<void> {
   await page.waitForURL('**/home');
 }
 
-async function signUp(page: Page): Promise<void> {
+async function signUp(page: Page): Promise<string> {
+  const email = `e2e-events-${unique()}@landit.invalid`;
   await page.goto('/signup');
   await page.getByLabel('Your name').fill('Events Tester');
-  await page.getByLabel('Email').fill(`e2e-events-${unique()}@landit.invalid`);
+  await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password').fill(password);
   await page.getByLabel('Where you live').selectOption('GB');
   await page.getByLabel('Date of birth').fill(birthDate(24));
   await page.getByRole('button', { name: 'Create account' }).click();
 
   await page.waitForURL('**/onboarding');
+  return email;
 }
 
-async function newRider(page: Page): Promise<void> {
-  await signUp(page);
+async function newRider(page: Page): Promise<string> {
+  const email = await signUp(page);
   await pickEverySport(page);
   await finishOnboarding(page);
   await page.waitForURL('**/home');
+  return email;
+}
+
+/**
+ * Put a rider down for an event **behind the screen**, as a superuser.
+ *
+ * The only way to reach the one state `/events/mine` exists to show that the UI
+ * cannot produce: attendance at an event that has already happened. "I'm going"
+ * is not offered on a finished row — it would be meaningless — so a rider's
+ * "been to" list can only ever be built by an event passing while they were
+ * down for it, which is a month of waiting rather than a test.
+ */
+async function markAttending(email: string, eventSlug: string): Promise<void> {
+  const client = await e2eSuperuser();
+  const rider = await client
+    .collection('users')
+    .getFirstListItem(client.filter('email = {:email}', { email }));
+  const event = await client
+    .collection('events')
+    .getFirstListItem(client.filter('slug = {:slug}', { slug: eventSlug }));
+  await client.collection('event_attendance').create({ user: rider.id, event: event.id });
 }
 
 /**
@@ -405,6 +428,81 @@ test('a visitor who is not signed in reads the whole calendar', async ({ page })
   await expect(page.getByText('E2E Last Month Session')).toBeVisible();
 });
 
+/*
+ * A rider's own events — the third tab (Rachid, 2026-09-13, in chat).
+ *
+ * "I'm going" was write-only: a rider could mark an event and the only thing
+ * the product said back was a counter at the foot of the calendar. What these
+ * assert is that the tab is wired to the rider's own attendance and to nobody
+ * else's — the split between the two tenses is proved as a property in
+ * `packages/core/src/rules/events.test.ts`.
+ */
+test('a rider’s own events get a tab, in both tenses', async ({ page }) => {
+  const email = await newRider(page);
+  // The one state the screen cannot produce for itself: attendance at an event
+  // that is already over.
+  await markAttending(email, 'e2e-gone');
+  await page.goto('/events');
+
+  const tab = page.getByRole('link', { name: /^Mine/ });
+  await expect(tab).toBeVisible();
+
+  const jam = page.locator('[class*="row"]').filter({ hasText: 'E2E Northern Jam' });
+  await jam.getByRole('button', { name: "I'm going" }).click();
+  await expect(page.getByText("You're down for E2E Northern Jam.")).toBeVisible({
+    timeout: 15_000,
+  });
+  // The count moves in the same frame as the button turns green: a number that
+  // needed a reload would read as the press not having worked.
+  await expect(tab).toContainText('2');
+
+  await tab.click();
+  await page.waitForURL('**/events/mine');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Your events');
+
+  // Both tenses, under their own headings and in that order — what is next
+  // first, because "what am I doing next" is the question the tab answers.
+  await expect(page.getByText('Coming up', { exact: true })).toBeVisible();
+  await expect(page.getByText('Been to', { exact: true })).toBeVisible();
+  // By role, because the "You're down for E2E Northern Jam" toast outlives the
+  // click through to this tab and a bare text match finds it too.
+  await expect(page.getByRole('link', { name: 'E2E Northern Jam' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'E2E Last Month Session' })).toBeVisible();
+  // And nothing they did not mark, however much of the calendar it is.
+  await expect(page.getByRole('link', { name: 'E2E BMX Only Comp' })).toHaveCount(0);
+
+  // Plan §6.1 again, on the one screen in the product that is a list of a
+  // rider's plans: it is theirs, and it says so.
+  await expect(page.getByText(/Only you can see this/)).toBeVisible();
+  await expect(page.getByText(/riders going/i)).toHaveCount(0);
+});
+
+test('a rider who has marked nothing is told what the button does', async ({ page }) => {
+  await newRider(page);
+  await page.goto('/events/mine');
+
+  // Not "nothing matches that filter": there is no filter, there is a feature
+  // they have not used, and the copy has to name the button that fills this.
+  await expect(
+    page.getByRole('heading', { level: 2, name: /You haven’t marked anything yet/ }),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: /See what’s coming up/ })).toBeVisible();
+});
+
+test('the Mine tab is not offered to a visitor, and cannot be read by one', async ({ page }) => {
+  await page.goto('/events');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('What’s coming up');
+  // A tab that could only ever read "Mine 0" and lead to a sign-in wall is an
+  // advert for a locked door.
+  await expect(page.getByRole('link', { name: /^Mine/ })).toHaveCount(0);
+
+  // And the address itself is one rider's attendance, which is nobody else's
+  // to read: `/events` and `/events/past` are public, this one is not.
+  await page.goto('/events/mine');
+  await page.waitForURL('**/signin?next=*');
+  expect(new URL(page.url()).searchParams.get('next')).toBe('/events/mine');
+});
+
 test('a visitor is offered sign-in where a rider is offered "I’m going"', async ({ page }) => {
   await page.goto('/events');
 
@@ -442,11 +540,18 @@ test('the calendar never asks for the rider’s location unless they press for i
   // the permission dialog. Checked before hydration is waited for, on purpose.
   expect(await geoCalls(page)).toBe(0);
 
-  const pill = page.getByRole('button', { name: 'Sort by nearest' });
-  await expect(pill).toBeVisible();
+  const sort = page.getByRole('group', { name: 'Sort events' });
+  const nearest = sort.getByRole('button', { name: 'Nearest' });
+  // The control is on the screen from the first paint, and pressing it is what
+  // asks — a pre-selected "Nearest" would be a dialog nobody opened.
+  await expect(nearest).toHaveAttribute('aria-pressed', 'false');
+  await expect(sort.getByRole('button', { name: 'Soonest' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
   await expect(page.getByText('Nearest first')).toHaveCount(0);
 
-  await pill.click();
+  await nearest.click();
   expect(await geoCalls(page)).toBe(1);
   await expect(page.getByText('Using your location')).toBeVisible();
   await expect(page.getByText('Nearest first')).toBeVisible();
@@ -454,6 +559,46 @@ test('the calendar never asks for the rider’s location unless they press for i
   await page.getByRole('button', { name: 'Turn off' }).click();
   await expect(page.getByText('Using your location')).toHaveCount(0);
   await expect(page.getByText('Nearest first')).toHaveCount(0);
+  // And the control says so rather than leaving "Nearest" lit over a list that
+  // is back in date order.
+  await expect(nearest).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('the calendar goes back to date order without giving up the distances', async ({
+  page,
+  context,
+}) => {
+  /*
+   * The defect this closes (Rachid, 2026-09-13, in chat: "events page should
+   * have sort by closest / soonest").
+   *
+   * Holding a position used to re-sort the whole calendar into distance order
+   * with no way back except turning location off — which took the "about 3 mi
+   * away" labels with it. A calendar in date order is a promise (the next thing
+   * you could go to is the top row) and a rider has to be able to have both.
+   */
+  await context.grantPermissions(['geolocation']);
+  await watchGeolocation(page);
+  await page.goto('/events');
+
+  const sort = page.getByRole('group', { name: 'Sort events' });
+  await expect(page.getByText('Nearest first')).toBeVisible();
+
+  await sort.getByRole('button', { name: 'Soonest' }).click();
+  await expect(page.getByText('Nearest first')).toHaveCount(0);
+  await expect(sort.getByRole('button', { name: 'Nearest' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
+  // The whole point: the position is still in use, so the rows can still say
+  // how far away they are. Turning location off was the old way back.
+  await expect(page.getByText('Using your location')).toBeVisible();
+  expect(await geoCalls(page)).toBe(1);
+
+  // And back again, without asking the browser a second time.
+  await sort.getByRole('button', { name: 'Nearest' }).click();
+  await expect(page.getByText('Nearest first')).toBeVisible();
+  expect(await geoCalls(page)).toBe(1);
 });
 
 test('the calendar opens nearest-first when the browser already allows it', async ({
@@ -477,7 +622,9 @@ test('the calendar opens nearest-first when the browser already allows it', asyn
   // to turn their location off at all.
   await page.getByRole('button', { name: 'Turn off' }).click();
   await expect(page.getByText('Using your location')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Sort by nearest' })).toBeVisible();
+  await expect(
+    page.getByRole('group', { name: 'Sort events' }).getByRole('button', { name: 'Soonest' }),
+  ).toHaveAttribute('aria-pressed', 'true');
   expect(await geoCalls(page)).toBe(1);
 });
 

@@ -723,6 +723,24 @@ Not all fifteen bite equally. These four change what gets built:
   held. On a resume the rider pressed nothing, and the location badge alone would tell them
   their position is in use without telling them their calendar has been re-sorted.
 
+  **Amended 2026-09-13 (Rachid, in chat: "events page should have sort by closest / soonest"):
+  the calendar states its order and lets a rider choose it.** The 2026-08-30 wording above was
+  right that distance order breaks a calendar's promise, and wrong about the remedy: telling a
+  rider their list has been re-sorted is not the same as letting them undo it. Holding a
+  position re-sorted the whole calendar with no way back except turning location *off*, which
+  also took the "about 3 mi away" labels with it — so "what's on soonest, and how far is each
+  one" was not a question the screen could answer. The single "Sort by nearest" pill is now a
+  two-option control, Soonest / Nearest (Most recent / Nearest on the archive). Nothing about
+  standard 10 moves: the press is still the prompt, the browser is still asked on every visit,
+  a resumed permission still opens nearest-first, the indicator and its "Turn off" are
+  unchanged, and no position is stored or sent. What changes is that the order is *stated* by
+  the control rather than inferred from a badge, and that choosing dates no longer costs the
+  rider their distances. The control always shows the order the list is really in — a refused
+  or switched-off position reads as Soonest, because a lit "Nearest" over a list the screen
+  could not sort by distance would be the screen lying about its own contents. `events_sort_set`
+  is what says whether the second order was wanted: `'date'` pressed while a position is held is
+  a rider undoing the automatic re-sort, which is the whole case for the control.
+
   **Amended 2026-09-08 (Rachid, in chat): nearest-first may ask our own server for the cards.**
   Until now "never reaches the server" held because `/spots` sent every spot to the browser and
   sorted there. With France's census the list is thousands of rows, so the page is served a page
@@ -2359,6 +2377,36 @@ modal, "I'm going". Inputs: `landit-screens-b.jsx`, `landit-screens-d.jsx`, scre
   T5 and T10 applied to the reporting paragraph and the vinyl panel. If booking is ever wanted it
   enters this plan as a decision first.
 
+- **A rider's own events are a third tab** (`claude/events-sort-attendance`, 2026-09-13; Rachid,
+  in chat: "ability to see the ones your marked as going to or have gone to"). "I'm going" was
+  write-only: a rider could mark an event and the only thing the product ever said back was a
+  counter at the foot of the calendar. `/events/mine` is the list behind that number — what they
+  are down for, then what they have been to, under "Coming up" and "Been to" — and it sits in the
+  same segmented control as Upcoming and Past, because that is where a rider already is when they
+  want it. Three things about it are decisions rather than details:
+
+  - **It is not a third opinion about what "past" means.** The list is `myEvents`, cut from
+    `upcomingEvents` and `pastEvents` — the same pair the other two tabs are cut from — so a
+    rider's own tab cannot tell them an event is coming up while the calendar calls it over.
+    That is the design handoff's recorded bug, and the reason every events view in this product
+    goes through one split in `@landit/core`.
+  - **It is the one events route behind sign-in.** `/events` and `/events/past` are public
+    because a live event is public data; this is one rider's attendance, which
+    `event_attendance`'s `OWN` rule makes readable to nobody else. It redirects a visitor to
+    sign in and back, carries `noindex`, and is listed in `GATED_ROUTES`. The tab itself is not
+    rendered for a visitor — a tab that could only read "Mine 0" and lead to a sign-in wall is
+    an advert for a locked door, and the row's own "Sign in to save" is where a visitor meets
+    this. **Still nobody else's attendance, anywhere** (§6.1): this is a rider's own list and
+    the screen says so.
+  - **It never opens filtered to a country.** The calendar defaults to the reader's own country
+    because it is two hundred and twenty-one events across thirty; a rider's own list is a
+    handful they chose by hand, and narrowing that would hide most of it — a rider who
+    travelled to a jam abroad would open their own tab on nothing.
+
+  It reuses `events_view_switched` with a third value rather than taking an event of its own, so
+  "how often is this switch used" stays one number. The count on the tab is the one number on the
+  screen that is about the reader, and it is never an analytics property.
+
 Two cross-route links are deliberately unwired, per LESSONS §3a: the history upsell states what the
 paid tiers keep without linking `/plans` (T15's), and the nav entries for both screens are the
 orchestrator's `chore-wire-wave5-links`, after every Wave 5 screen exists. `ROUTES` carries both
@@ -2682,9 +2730,10 @@ unable to turn their location off at all. `nearby_sort_used` carries `source: 'p
 may be.
 
 `e2e/events.spec.ts` pins the same two facts on the calendar, signed out, plus the "Nearest first"
-line appearing and disappearing with the position. It asserts no ordering: the seeded events carry
-no coordinates, so the screen keeps them in date order by its own rule about events nobody has
-plotted.
+line appearing and disappearing with the position — and, since 2026-09-13, that pressing "Soonest"
+puts the list back in date order while the position stays in use, without asking the browser a
+second time. It asserts no ordering: the seeded events carry no coordinates, so the screen keeps
+them in date order by its own rule about events nobody has plotted.
 
 **Search this area (2026-09-11, `feat-spots-map-area`; Rachid, in chat: a button, not a live
 search, and pins for the cards on screen only).** Moving the map by hand — a drag, a pinch, a

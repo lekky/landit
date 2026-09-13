@@ -306,12 +306,14 @@ export const ANALYTICS_EVENTS = {
    */
   eventPageOpened: 'event_page_opened',
   /**
-   * The calendar was switched between its two halves — Upcoming and the
-   * archive.
+   * The calendar was switched between its tabs — Upcoming, the archive, and a
+   * rider's own events.
    *
-   * Carries `view`, which is `'upcoming'` or `'past'`: the half being moved
-   * *to*, and one of two fixed strings chosen here. Nothing else — not which
-   * events were on screen, not the filters, not the reader.
+   * Carries `view`, which is `'upcoming'`, `'past'` or `'mine'`: the tab being
+   * moved *to*, and one of three fixed strings chosen here. Nothing else — not
+   * which events were on screen, not the filters, not the reader, and above all
+   * **not how many events are in their own tab**, which is a count of one
+   * rider's plans and a rider fact rather than a catalogue one.
    *
    * It exists because keeping finished events online is a bet, and this is the
    * only thing that settles it. The archive costs a route, a sitemap section
@@ -321,17 +323,55 @@ export const ANALYTICS_EVENTS = {
    * front door is furniture. Those are opposite findings and neither is
    * guessable from `event_page_opened`, which cannot tell an archive reader
    * from anybody else.
+   *
+   * `'mine'` joined it in 2026-09-13 rather than getting an event of its own,
+   * because it is the same press on the same control and splitting it would
+   * make "how often does anybody use this switch" two numbers that have to be
+   * added up by hand. It answers the same shape of question the archive's does:
+   * "I'm going" was write-only for a month — a rider could mark an event and
+   * the product never said it back — and if the tab that fixed that is never
+   * opened, the marking was never the point.
    */
   eventsViewSwitched: 'events_view_switched',
+  /**
+   * The events list was put in a different order — the Soonest / Nearest
+   * control above it (Rachid, 2026-09-13, in chat).
+   *
+   * Carries `order`, one of two fixed strings chosen here — `'date'` for the
+   * calendar's own order (soonest first, or most recent first in the archive)
+   * and `'nearest'` for distance — and `scope`, `'upcoming' | 'past' | 'mine'`.
+   * Both are catalogue facts. **Not the position, not the distance, not what
+   * came back**, for the same reason `nearby_sort_used` carries none of those:
+   * a distance to a named venue is a location by another route (§6.4
+   * standard 10).
+   *
+   * Fired on the press only, so the denominator is riders who touched the
+   * control. A list arriving in date order by default is not evidence of
+   * anything and would drown the presses that are.
+   *
+   * It exists because this screen used to re-sort itself. Sharing a position
+   * silently moved the whole calendar into distance order — an event in June
+   * above one next week — and the only way back to dates was to turn location
+   * off and lose the distance labels with it. Two orders and a control to pick
+   * between them is the fix, and this is what says whether anybody wanted the
+   * second one: `order: 'date'` being pressed *after* a location is held is a
+   * rider undoing an automatic re-sort, which is the whole case for the
+   * control existing. `nearby_sort_used` cannot see it — it counts a position
+   * being held, not what the list then did with it.
+   */
+  eventsSortSet: 'events_sort_set',
   /**
    * The calendar opened already narrowed to the reader's own country — or did
    * not, because we could not name one with events in it.
    *
-   * Fired once per load of `/events` and `/events/past`. Carries `outcome`,
-   * one of two fixed strings chosen here: `'home'` when the list opened on the
-   * reader's country, `'everywhere'` when it opened on the world. And `scope`,
-   * `'upcoming'` or `'past'`, because the two halves cover different sets of
-   * countries and a default that lands on one may miss on the other.
+   * Fired once per load of `/events`, `/events/past` and `/events/mine`.
+   * Carries `outcome`, one of two fixed strings chosen here: `'home'` when the
+   * list opened on the reader's country, `'everywhere'` when it opened on the
+   * world. And `scope`, `'upcoming' | 'past' | 'mine'`, because the tabs cover
+   * different sets of countries and a default that lands on one may miss on
+   * another — `'mine'` always reports `'everywhere'`, deliberately, because a
+   * list of three events a rider chose by hand is the one place a country
+   * default would hide more than it helped.
    *
    * **Never the country itself, and never the signal it came from.** The
    * country name would be a catalogue fact, but paired with `outcome: 'home'`

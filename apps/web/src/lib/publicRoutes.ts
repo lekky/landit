@@ -54,6 +54,14 @@ export const PUBLIC_ROUTES: readonly Route[] = [
  */
 export const GATED_ROUTES: readonly Route[] = [
   ROUTES.dashboard,
+  /*
+   * A rider's own events. Its two siblings, `/events` and `/events/past`, are
+   * both in the list above — and that is exactly why this one needs saying out
+   * loud: three tabs in one switch, two of them public and the third one
+   * private, because this one is a rider's own attendance rather than the
+   * calendar. It answers a signed-out visitor with a redirect.
+   */
+  ROUTES.eventsMine,
   ROUTES.progress,
   ROUTES.stickers,
   ROUTES.challenge,

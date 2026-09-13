@@ -31,6 +31,7 @@ import {
   eventsNear,
   filterEvents,
   isEventPast,
+  myEvents,
   nearestFirst,
   nearnessBetween,
   pastEvents,
@@ -625,6 +626,41 @@ describe('the archive: upcoming and past are two halves of one cut', () => {
   it('keeps a hidden event out of both halves', () => {
     const ids = [...upcomingEvents(list, clock), ...pastEvents(list, clock)].map((e) => e.id);
     expect(ids).not.toContain('hidden-past');
+  });
+
+  /*
+   * The rider's own tab, cut from the same two halves.
+   *
+   * The property that matters is not "it filters" — it is that a rider's list
+   * agrees with the calendar about which tense every row is in. `myEvents` is
+   * defined over `upcomingEvents` and `pastEvents` rather than over a date
+   * comparison of its own, so a third view cannot become the third opinion on
+   * what "past" means.
+   */
+  it('puts what a rider is down for first, and what they have been to after', () => {
+    const mine = myEvents(new Set(['soon', 'gone-may', 'today']), list, clock);
+    expect(mine.map((e) => e.id)).toEqual(['today', 'soon', 'gone-may']);
+  });
+
+  it('is exactly the calendar narrowed to the rider, with nothing reordered', () => {
+    const going = new Set(['soon', 'gone-jun', 'gone-2025', 'today']);
+    const mine = myEvents(going, list, clock).map((e) => e.id);
+    const both = [...upcomingEvents(list, clock), ...pastEvents(list, clock)]
+      .map((e) => e.id)
+      .filter((id) => going.has(id));
+    expect(mine).toEqual(both);
+    // No row twice, whatever the set says.
+    expect(new Set(mine).size).toBe(mine.length);
+  });
+
+  it('ignores attendance pointing at an event nobody can see any more', () => {
+    // Attendance outlives the listing: staff hide an event, the rider's row
+    // survives it, and a slug nothing answers to is an ordinary state.
+    expect(myEvents(new Set(['hidden-past', 'never-existed']), list, clock)).toEqual([]);
+  });
+
+  it('is empty for a rider who has marked nothing', () => {
+    expect(myEvents(new Set(), list, clock)).toEqual([]);
   });
 
   it('indexes only the year and town corners that actually hold events', () => {

@@ -239,8 +239,14 @@ describe('the event catalogue', () => {
         // countries and we can name two hundred and fifty — and this is the
         // only thing that says which side most readers land on.
         'events_country_defaulted',
-        // The segmented control between the calendar and the archive — the
-        // only thing that can say whether keeping finished events online is
+        // Which order the events list was put in. The screen used to re-sort
+        // itself the moment a position was held, with no way back to dates
+        // that did not also drop the distance labels; this is what says
+        // whether riders wanted the second order at all.
+        'events_sort_set',
+        // The segmented control between the calendar, the archive and a
+        // rider's own events — the only thing that can say whether keeping
+        // finished events online, or giving "I'm going" a list of its own, is
         // read by anybody through the product's own front door.
         'events_view_switched',
         // A glossary term reached — by a deep link from a trick's copy or by a
