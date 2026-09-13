@@ -4936,8 +4936,10 @@ T36–T40.
   `isOwner` — the Sessions tab on Progress, every `/progress/sessions` route (the layout answers
   404), the spot, event and trick blocks (`riderFor` returns nobody), the "Who sees new sessions"
   panel on `/account` and the plans comparison. Unset `LANDIT_OWNER_ID` fails closed: nobody sees
-  sessions. `LANDIT_SESSIONS_OPEN=1` opens them to every signed-in rider — the e2e server runs that
-  way, since its riders are made during the run, and releasing sessions is setting it on the web app
+  sessions. `LANDIT_SESSIONS_OPEN=1` opens them to everyone, signed out included, which is exactly how
+  T37–T40 behaved before the gate (the `/plans` comparison shows to a visitor, a session URL sends a
+  signed-out visitor to sign in, the blocks still need a rider) — the e2e server runs that way, since
+  its riders are made during the run, and releasing sessions is setting it on the web app
   and unsetting `LANDIT_SESSIONS_PREVIEW_ID` on PocketBase, two values and two restarts.
 - **API:** `enforceSession` refuses a session write for any rider but the one named in
   `LANDIT_SESSIONS_PREVIEW_ID` on the PocketBase instance (`sessionsPreviewAllows` in

@@ -31,11 +31,13 @@ describe('sessionsEnabledFor', () => {
     expect(sessionsEnabledFor(null)).toBe(false);
   });
 
-  it('opens them to every signed-in rider when LANDIT_SESSIONS_OPEN is 1', () => {
+  it('opens them to everyone, signed out included, when LANDIT_SESSIONS_OPEN is 1', () => {
     vi.stubEnv('LANDIT_SESSIONS_OPEN', '1');
     vi.stubEnv('LANDIT_OWNER_ID', 'owner123');
     expect(sessionsEnabledFor({ id: 'rider456' })).toBe(true);
-    expect(sessionsEnabledFor(null)).toBe(false);
+    // A visitor sees the /plans comparison and is sent to sign in by a session
+    // page, as before the preview; the blocks still need a rider of their own.
+    expect(sessionsEnabledFor(null)).toBe(true);
   });
 
   it('treats any other value of LANDIT_SESSIONS_OPEN as closed', () => {
