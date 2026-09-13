@@ -4,6 +4,7 @@ import type { PlanId, SportId } from '@landit/core';
 import { Bar, Panel, SectionHead, SkillNode, Tag } from '@landit/ui-web';
 
 import type { SportProgressView } from '@/app/(app)/progress/view';
+import { ProgressTabs } from '@/components/sessions/list/ProgressTabs';
 import { SportSwitch } from '@/components/shell/SportSwitch';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES, trickHref } from '@/lib/routes';
@@ -55,6 +56,7 @@ export function ProgressScreen({
           <span className="eyebrow">Progress</span>
           <h1 className={`d ${styles.head}`}>Where you&rsquo;re at</h1>
         </div>
+        <ProgressTabs current="tricks" />
         <Panel className={styles.pad}>
           <p className={styles.plain}>
             Pick a sport in your account and this fills up as you track tricks.
@@ -73,6 +75,8 @@ export function ProgressScreen({
         <span className="eyebrow">Progress</span>
         <h1 className={`d ${styles.head}`}>Where you&rsquo;re at</h1>
       </div>
+
+      <ProgressTabs current="tricks" />
 
       <SportSwitch note={pctOf} label="Progress by sport" />
 

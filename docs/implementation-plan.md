@@ -4757,6 +4757,74 @@ teaser) and the delete confirm ("tricks you moved up stay where they are"). Read
 `listOwnSessions`, `listSessionMonths`, `getSessionQuota`; writes `deleteSession`. Fires
 `sessions_view_set` and `session_deleted`. Depends on T36.
 
+##### What T37 built
+
+- **Route.** `app/(app)/progress/sessions/page.tsx` (signed-in and onboarded, like `/progress`),
+  `layout.tsx` rendering `{children}` and a `@modal` slot, and `@modal/default.tsx` returning
+  `null`. The screen is `components/sessions/list/` (`SessionsScreen`, `FeedCard`,
+  `SessionsTable`, `MonthAccordions`, `SessionsSidebar`, `Pager`, `ProgressTabs`). The existing
+  Progress page gains the same two tabs (`ProgressTabs current="tricks"`), and nothing else there
+  changed.
+- **One read of the diary, drawn four ways.** The server reads `listAllOwnSessions` and
+  `getSessionQuota` with the rider's own client, resolves spot, event, trick and crew-mate names
+  by id with the same client (`components/sessions/list/view.ts`), and formats every date and time
+  there (LESSONS §3a). The browser then filters, pages and groups with core's `filterSessions`,
+  `SESSIONS_PER_PAGE` and `groupSessionsByMonth`, so switching a filter, a page, the view or an
+  accordion is instant and never a second request. `listOwnSessions` and `listSessionMonths` are
+  not called: they are the same reads, paged or grouped on the server, and the design's
+  "filtering resets to page 1 and recomputes counts, hours and pagination" wants all of it in the
+  browser at once.
+- **Pure view logic** in `apps/web/src/lib/sessionList.ts`, unit-tested: which sport chips a rider
+  gets (none for a one-sport rider — "Scooter" beside "All" would do the same thing), the page
+  window and range label, which months open by default (this month and last), the bar heights.
+- **Analytics.** `sessions_view_set { view }` on the Feed/List toggle, `session_log_opened
+  { source: 'progress' }` on every "Log a session", `session_deleted` through the shared
+  `DeleteSessionDialog`. No new events.
+
+##### The `@modal` slot — what T38 adds
+
+The slot is `app/(app)/progress/sessions/@modal/`. This Next version (16.3) follows the documented
+parallel-plus-intercepting-routes modal pattern unchanged (`node_modules/next/dist/docs/01-app/
+03-api-reference/03-file-conventions/parallel-routes.md`, "Modals"). T38 adds, and T37 does not:
+
+1. The full pages, for a hard load, a shared link and the phone: `progress/sessions/new/page.tsx`
+   and `progress/sessions/[id]/edit/page.tsx`.
+2. The intercepts, rendering the same form inside the shared `Modal`:
+   `progress/sessions/@modal/(.)new/page.tsx` and `progress/sessions/@modal/(.)[id]/edit/page.tsx`.
+   `(.)` and not `(..)`: a slot is not a route segment, so `new` sits on the same level as the
+   slot's parent `sessions`.
+3. `progress/sessions/@modal/page.tsx` returning `null`. A soft navigation keeps a slot's last page
+   on screen, so without it a `router.push(sessionsHref())` after saving would leave the modal
+   open over the list. Close with `router.back()` (Esc, scrim, the header close), and call
+   `router.refresh()` after a save so the list and its sidebar read again.
+
+The list already links with `<Link href={newSessionHref()}>` and `<Link
+href={editSessionHref(id)}>`, which are the soft navigations that intercept. The phone form (1c) is
+full screen, not a modal: an intercept also fires on a phone, so the modal shell should render
+full-screen at ≤700px (or the intercept should render the full page's layout there). T39's
+`[id]/page.tsx` needs nothing in the slot; `default.tsx` covers it.
+
+##### Decided here, because the design did not
+
+- **The empty state** before a first session: a paper card, "Nothing logged yet", one line and the
+  Log a session button, with the sidebar beside it. Not designed; the owner should look at it.
+- **The quota card's link reads "See the plans →"** and goes to `/plans`. The design's "Log without
+  counting →" names an action that does not exist: logging always counts (D6), and the only
+  save-past-the-cap is the one-off grace, which is offered on the wall (T40), not from a sidebar.
+- **The streak line counts weeks** ("Logging a session keeps the streak. 3 weeks."), because the
+  streak is weekly (plan §1). The design's "Day 12" is a daily streak the product does not have.
+- **The desktop table takes the full width** and the sidebar is not drawn beside it: 1b is drawn at
+  1136px with no sidebar, and at 1280 the eight-column template does not fit beside a 302px
+  column. It pages at 25 rows, with the design's Newer / 1 / Older footer, so a long history does
+  not render as one enormous table.
+- **The phone pager** draws at most five page numbers in a sliding window.
+- **"I rode today" is not repeated in the Sessions header** (1a draws it). It is T8's control on
+  Home, with its own action and states, and copying it here would be a second version of it.
+- **The clip poster's platform tab sits top-left**, where T36's shared `ClipPoster` puts it; the
+  design draws it bottom-left. Changing the primitive is a shared-code change, not this task's.
+- **A spot the rider can no longer read** renders as "A spot no longer on the map", unlinked, and
+  its session still shows.
+
 **T38 · Session form.** The quick log (1d phone sheet, 2f desktop modal) with its saved state and
 "while it's fresh" prompts, the full form (1c phone, 2g desktop modal), escalation carrying values
 across, and edit mode (2g with Delete and Save changes). All twelve fields, the live clip badge
