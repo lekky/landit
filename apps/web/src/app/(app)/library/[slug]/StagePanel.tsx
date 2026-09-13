@@ -1,6 +1,6 @@
 'use client';
 
-import { STAGE, STAGES, type StageId } from '@landit/core';
+import { SITE_URL, STAGE, STAGES, isLandedStage, type StageId } from '@landit/core';
 import { Button, Icon, ShareCard } from '@landit/ui-web';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
@@ -9,6 +9,7 @@ import { useToast } from '@/providers/toast';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { runAction } from '@/lib/runAction';
+import { trickHref } from '@/lib/routes';
 
 import { acknowledgeStickersAction } from '../../stickers/actions';
 import { setStageAction } from '../actions';
@@ -105,12 +106,20 @@ export function StagePanel({
         // way out is one a dropped response silently swallows.
         const earned = result.earned ?? [];
         for (const sticker of earned) toast(`Sticker earned: ${sticker.name}`, sticker.hue);
-        if (earned.length) {
-          void acknowledgeStickersAction(earned.map((s) => s.id));
-          // And the badge in the hero, which the server draws from the row the
-          // hook has just written. Only on the tap that earned something.
-          router.refresh();
-        }
+        if (earned.length) void acknowledgeStickersAction(earned.map((s) => s.id));
+
+        // Two things on this page are server-rendered from the row that has
+        // just changed: the award badge in the hero, and the share card's
+        // "N tricks landed", which `buildShare` counts at page load.
+        //
+        // Refreshing only on the tap that earned something left the second one
+        // a trick behind — a rider landing their first trick and sharing it got
+        // a card reading "0 tricks landed", which is both wrong and the number
+        // on the thing they were about to post (owner, 2026-09-13, in chat).
+        // So the refresh is also asked for when this tap crossed the landed
+        // line in either direction, and an ordinary move between two trying
+        // stages still costs nothing.
+        if (earned.length || isLandedStage(previous) !== isLandedStage(next)) router.refresh();
         return;
       }
       setCurrent(previous);
@@ -195,7 +204,15 @@ export function StagePanel({
         {current && !confirming && (
           <div className={styles.bandActions}>
             {landedLabel && share && (
-              <Button size="sm" onClick={() => setSharing(true)}>
+              <Button
+                size="sm"
+                onClick={() => {
+                  // The slug is a catalogue fact; nothing here says who opened
+                  // it. Counted at the open, as the sticker wall counts its own.
+                  capture(ANALYTICS_EVENTS.trickShared, { slug });
+                  setSharing(true);
+                }}
+              >
                 Share it
               </Button>
             )}
@@ -253,11 +270,21 @@ export function StagePanel({
           meta={share.meta}
           dateLabel={share.dateLabel}
           caption={share.caption}
+          poster={{
+            url: `${SITE_URL}${trickHref(slug)}`,
+            fileName: `landed-the-${slug}.png`,
+          }}
           onCopied={(ok) =>
             ok
               ? toast('Caption copied', 'var(--sky)')
               : toast('Could not copy that — select it and copy by hand.', 'var(--red)')
           }
+          onShared={(method) => {
+            capture(ANALYTICS_EVENTS.shareImageSent, { kind: 'trick', method });
+            if (method === 'save') toast('Image saved', 'var(--green)');
+            if (method === 'clipboard') toast('No share sheet here. Caption copied', 'var(--sky)');
+          }}
+          onShareFailed={() => toast("Couldn't open the share sheet", 'var(--red)')}
           onClose={() => setSharing(false)}
         />
       )}

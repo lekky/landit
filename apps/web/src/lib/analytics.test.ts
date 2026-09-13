@@ -304,6 +304,10 @@ describe('the event catalogue', () => {
         'session_logged',
         'session_quota_wall_seen',
         'sessions_view_set',
+        // The share card's image actually left the device (2026-09-13).
+        // `kind` and `method`, both from fixed lists in the code — never the
+        // trick, the award or where it was sent.
+        'share_image_sent',
         'signed_in',
         'signed_out',
         'signed_up',
@@ -349,6 +353,10 @@ describe('the event catalogue', () => {
         // and feature tags only.
         'trick_link_followed',
         'trick_logged',
+        // The share card opened on a trick page — the twin of `sticker_shared`,
+        // which the trick side went without from T7 until 2026-09-13. The slug,
+        // and nothing else.
+        'trick_shared',
         // The staff-picked tutorial on a trick page (T35): the slug, the sport
         // and the tier when it is played, and the slug alone when somebody
         // follows "Something wrong?" out to the report form. Catalogue facts —

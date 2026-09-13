@@ -90,7 +90,19 @@ export {
   type ToastStackProps,
 } from './components/overlays';
 export { useModalLayer } from './components/modal-layer';
-export { ShareCard, type ShareCardProps, type ShareTrickLook } from './components/ShareCard';
+export {
+  ShareCard,
+  type ShareCardProps,
+  type SharePoster,
+  type ShareMethod,
+  type ShareTrickLook,
+} from './components/ShareCard';
+export {
+  SHARE_POSTER_HEIGHT,
+  SHARE_POSTER_WIDTH,
+  drawSharePoster,
+  type SharePosterSpec,
+} from './components/share-poster';
 export { StickerBadge, type StickerBadgeProps, type StickerLook } from './components/StickerBadge';
 export {
   CLIP_PLATFORM_LOOK,
