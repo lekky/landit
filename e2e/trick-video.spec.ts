@@ -36,7 +36,10 @@ import {
  * `seed-trick-video.ts` is what makes any of this meaningful: the video columns
  * are database-only, so without that one write no trick in the e2e database has
  * a video and the whole file would be green against a page that cannot draw a
- * panel under any circumstances.
+ * panel under any circumstances. It also explains why the two tricks are
+ * reserved BMX ones rather than the first free scooter tricks — the first
+ * version of this fixture landed a tutorial on `bunny-hop` and broke three of
+ * `video-links.spec.ts`' tests with a second Play button.
  */
 
 /**

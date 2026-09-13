@@ -1,4 +1,4 @@
-import { TRICKS, isTrickLocked, tricksFor } from '@landit/core';
+import { TRICKS, isTrickLocked, trickById } from '@landit/core';
 
 import { SUPERUSER_EMAIL, SUPERUSER_PASSWORD } from './fixtures';
 import { POCKETBASE_URL, ensureSuperuser } from './seed-library';
@@ -24,20 +24,50 @@ import { POCKETBASE_URL, ensureSuperuser } from './seed-library';
  */
 
 /**
- * The two tricks the spec works with, picked here so the fixture and the
- * assertions cannot disagree about which one has a video.
+ * The two tricks the spec works with — **reserved for this fixture, and pinned
+ * by slug on purpose.**
  *
- * Both are free scooter tricks, so a signed-out visitor gets the whole page
- * rather than the locked one, and they are taken in the library's own order so
- * the pair is stable across runs rather than whatever `find` happened to hit.
+ * The first version of this file took "the first free scooter trick", which is
+ * `bunny-hop`. So does `video-links.spec.ts`, by the same expression. Giving it
+ * a tutorial put a **second** Play button on that page, and three of that
+ * spec's tests broke on the strict-mode collision — including the one that
+ * proves nothing reaches Google before a press, which is the most load-bearing
+ * assertion in the suite. Only CI could catch it (issue #450 stops e2e running
+ * in a web session), and it cost a red run on the PR that added this.
+ *
+ * Two rules came out of it, and both are the reason for the shape below:
+ *
+ *  - **A fixture that writes to a shared database picks its rows by name, not
+ *    by position.** An index is a claim about every other spec's choices, made
+ *    silently and re-evaluated whenever the free-tier rules move.
+ *  - **These two slugs are reserved.** Nothing else in `e2e/` may `goto` them,
+ *    and this fixture may not move onto a trick something else does. BMX
+ *    because every trick-page spec that picks by expression picks scooter, and
+ *    these two specifically because no spec names them.
+ *
+ * Both are free, so a signed-out visitor gets the whole page rather than the
+ * locked one — asserted below rather than assumed, since "free" is a rule that
+ * has already moved once (T27's twenty per sport).
  */
-const FREE_SCOOTER = tricksFor('scooter', TRICKS).filter((t) => !isTrickLocked(t, 'rookie'));
+function reserved(slug: string) {
+  const trick = trickById(slug, TRICKS);
+  if (!trick) {
+    throw new Error(`The trick video fixture is pinned to ${slug}, which is no longer a trick.`);
+  }
+  if (isTrickLocked(trick, 'rookie')) {
+    throw new Error(
+      `The trick video fixture is pinned to ${slug}, which is now paid — a signed-out visitor ` +
+        'would get the locked page and the spec would assert against the wrong screen.',
+    );
+  }
+  return trick;
+}
 
 /** The one that gets the tutorial. */
-export const VIDEO_TRICK = FREE_SCOOTER[0]!;
+export const VIDEO_TRICK = reserved('bmx-wheelie');
 
 /** The one that must show no panel at all, and no trace that a panel exists. */
-export const NO_VIDEO_TRICK = FREE_SCOOTER[1]!;
+export const NO_VIDEO_TRICK = reserved('bmx-pump');
 
 /** A real YouTube id. Never fetched — the player is mounted, never played. */
 export const TRICK_VIDEO_ID = 'dQw4w9WgXcQ';
