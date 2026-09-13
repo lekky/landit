@@ -383,6 +383,28 @@ export interface Plan {
   readonly videoLinkCap: number;
   /** Whether the cap above does not apply at all. Legend's, at launch. */
   readonly videoLinksUnlimited: boolean;
+  /**
+   * How many **sessions** a rider may log in one calendar month (T36, owner's
+   * decision D6, Rachid, 2026-09-13, in chat). Same count-plus-boolean encoding
+   * as `videoLinkCap`, for the same reason — see `sessionAllowance` in
+   * `rules/sessions.ts`.
+   *
+   * **Optional, and absent reads as zero.** Optional so that adding it did not
+   * change the shape every existing `satisfies Plan` literal has to meet
+   * (additive-only); zero because that is the fail-closed direction. Every plan
+   * in `PLANS` sets it.
+   */
+  readonly sessionMonthCap?: number;
+  /** Whether the monthly session cap does not apply. Absent reads as `false`. */
+  readonly sessionsUnlimited?: boolean;
+  /**
+   * How many **session clip links** a rider may hold (D5). Its own allowance,
+   * deliberately separate from `videoLinkCap`, which counts trick video links.
+   * Absent reads as zero.
+   */
+  readonly sessionClipCap?: number;
+  /** Whether the session clip cap does not apply. Absent reads as `false`. */
+  readonly sessionClipsUnlimited?: boolean;
 }
 
 /* ------------------------------------------------------------ video links */
@@ -810,3 +832,109 @@ export type DayKey = string;
 
 /** An instant, however the caller happens to hold one. */
 export type Instant = Date | number | string;
+
+/* ---------------------------------------------------------------- sessions */
+
+/**
+ * How a session felt (T36). Five fixed ids; the labels and colours are
+ * `SESSION_FEELS` in `data/sessions.ts`.
+ */
+export type SessionFeelId = 'sent' | 'good' | 'fine' | 'rough' | 'hurt';
+
+/** The weather row. Optional on a session. */
+export type SessionWeatherId = 'sun' | 'cloud' | 'rain' | 'wind' | 'cold';
+
+/**
+ * How long a session ran, as the four chips the form offers: 30m, 1h, 2h, 3h+.
+ * `180` means "three hours or more", which is why it is a chip and not a
+ * number field.
+ */
+export type SessionDurationMinutes = 30 | 60 | 120 | 180;
+
+/**
+ * Who can see a session: the profile privacy ids, reused (owner's decision D2,
+ * Rachid, 2026-09-13, in chat), labelled Public / Crew / Only me.
+ *
+ * **`members` means crew-mates on a session**, where on a profile it means any
+ * signed-in rider. Same id, narrower audience — see `sessionVisibleTo`.
+ *
+ * A separate alias rather than a bare `PrivacyId` so a reader can tell which
+ * decision a field belongs to. It is *not* `VideoVisibilityId`: trick video
+ * links have no `public` state and that rule is unchanged.
+ */
+export type SessionVisibilityId = PrivacyId;
+
+/** Where a session clip lives (D4). Links only; nothing is hosted. */
+export type ClipPlatformId = 'youtube' | 'instagram' | 'tiktok';
+
+/**
+ * A parsed clip link: the platform and the id **only** (D4). Never the string
+ * a rider pasted — a watch URL is rebuilt from these by `clipWatchUrl`.
+ */
+export interface ClipLink {
+  readonly platform: ClipPlatformId;
+  readonly id: string;
+}
+
+/** One trick worked on in a session. */
+export interface SessionTrickEntry {
+  readonly trickId: string;
+  /** The rider said they landed it in this session. */
+  readonly landed: boolean;
+  /**
+   * The stage move this entry caused, written by the server exactly once. Both
+   * absent means it moved nothing — not landed, already at Every time, or a
+   * row from before the promotion ran.
+   */
+  readonly stageFrom?: StageId | null;
+  readonly stageTo?: StageId;
+}
+
+/**
+ * One logged session, as the screens render it (T36). `@landit/db`'s
+ * `sessionsFromRecords` builds these from `sessions` and `session_tricks`.
+ */
+export interface RideSession {
+  readonly id: string;
+  /** The rider it belongs to. */
+  readonly userId: string;
+  /** ISO instant, as PocketBase returns it. */
+  readonly startedAt: string;
+  readonly durationMinutes: SessionDurationMinutes;
+  readonly sport: SportId;
+  /** Empty only if the spot was since removed from the map. */
+  readonly spotId: string;
+  readonly eventId?: string;
+  readonly aim?: string;
+  readonly feel: SessionFeelId;
+  readonly weather?: SessionWeatherId;
+  readonly notes?: string;
+  /**
+   * Crew-mates tagged as "rode with". **Already filtered for the reader**: the
+   * server strips any id the requester could not see the profile of (D3,
+   * `66_sessions.pb.js`), so this is safe to render as-is.
+   */
+  readonly crewIds: readonly string[];
+  readonly clip?: ClipLink;
+  readonly visibility: SessionVisibilityId;
+  readonly trickEntries: readonly SessionTrickEntry[];
+  /**
+   * The rider-clock month the session was *logged* in, `YYYY-MM` — what the
+   * monthly quota counts. Empty to anybody but the owner.
+   */
+  readonly monthKey: string;
+  /** This session was saved with the once-per-account grace. Owner only. */
+  readonly graceUsed: boolean;
+  /** ISO instant the row was written. */
+  readonly created: string;
+}
+
+/**
+ * A count-plus-boolean allowance — the sessions-per-month cap and the session
+ * clip cap both use it. Same encoding as `VideoLinkAllowance`.
+ */
+export interface SessionAllowance {
+  /** Maximum, where `0` means none. Ignored when `unlimited` is true. */
+  readonly cap: number;
+  readonly unlimited: boolean;
+}
