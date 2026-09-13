@@ -12,6 +12,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { EventSessionsBlock } from '@/components/sessions/blocks/EventSessionsBlock';
 import { ROUTES, eventHref, reportHref, signInHref } from '@/lib/routes';
 import { anonymousClient, currentRider } from '@/lib/session';
 import { eventLd, jsonLdText } from '@/lib/structuredData';
@@ -287,6 +288,13 @@ export default async function EventPage({ params, searchParams }: Params) {
             <Fact label="Places" value={view.places} />
             <Fact label="Date" value={view.dateValue} note={view.dateQualifier} />
           </div>
+
+          <EventSessionsBlock
+            eventId={recordId}
+            eventName={view.name}
+            state={view.state}
+            dateLabel={view.longDate}
+          />
 
           <Panel flat>
             <div className={styles.panelHead}>

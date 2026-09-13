@@ -95,6 +95,7 @@ export type RequestName =
   /* ------------------------------------------------------- content -- */
   | 'video_add'
   | 'video_visibility'
+  | 'session_visibility'
   | 'video_remove'
   | 'spot_submit'
   | 'spot_favourite'

@@ -1,0 +1,499 @@
+/*
+ * The spot, event and trick page blocks (T39) — design 1f (desktop) and 2d
+ * (phone). Radius 0; hard offset shadows; phone ≤ 700px. Hover only where there
+ * is hover, so a tap never leaves a row highlighted. Every row is ≥ 44px tall.
+ */
+
+.spot,
+.event,
+.trick {
+  background: #fffdf5;
+  border: 3px solid #12100b;
+  color: #12100b;
+  margin: 22px 0;
+}
+
+.spot {
+  box-shadow: 5px 5px 0 #12100b;
+}
+
+.event,
+.trick {
+  box-shadow: 4px 4px 0 #12100b;
+  padding: 15px 16px;
+}
+
+/* ------------------------------------------------------------ spot ----- */
+
+.spotHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 17px;
+  border-bottom: 3px solid #12100b;
+  background: #3ac0ff;
+  flex-wrap: wrap;
+}
+
+.spotTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.spotTitle {
+  margin: 0;
+  font-family: var(--fd);
+  font-weight: 400;
+  font-size: 24px;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.badge {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  background: #12100b;
+  color: #fffdf5;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+.yellowCta,
+.purpleCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 3px solid #12100b;
+  box-shadow: 3px 3px 0 #12100b;
+  padding: 9px 16px;
+  text-decoration: none;
+  min-height: 44px;
+  box-sizing: border-box;
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+
+.yellowCta {
+  margin-left: auto;
+  background: #ffc23f;
+  color: #12100b;
+}
+
+.purpleCta {
+  margin-top: 13px;
+  background: #8a3be0;
+  color: #fffdf5;
+  padding: 9px 15px;
+}
+
+.spotRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 17px;
+  border-bottom: 2px solid #e4dcc8;
+  color: #12100b;
+  text-decoration: none;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.spotDate {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 14.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  width: 96px;
+  flex: none;
+}
+
+.spotDur {
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6e665a;
+  width: 52px;
+  flex: none;
+}
+
+.feelChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border: 2px solid #12100b;
+  color: #12100b;
+  padding: 1.5px 7px;
+  flex: none;
+}
+
+.chips {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 2px solid #12100b;
+  background: #fffdf5;
+  padding: 1.5px 7px;
+  white-space: nowrap;
+}
+
+.chipMoved {
+  background: #9ce05b;
+}
+
+.rowChev {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: #6e665a;
+}
+
+.spotFoot {
+  padding: 11px 17px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff7e4;
+}
+
+.footNote {
+  margin: 0;
+  font-family: var(--fb);
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: #3a352c;
+}
+
+.allLink {
+  margin-left: auto;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #c2410c;
+  text-decoration: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ----------------------------------------------------- event & trick -- */
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #6e665a;
+}
+
+.eventTitle {
+  margin: 6px 0 0;
+  font-family: var(--fd);
+  font-weight: 400;
+  font-size: 22px;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1.05;
+}
+
+.eventCopy {
+  margin: 9px 0 0;
+  font-family: var(--fb);
+  font-size: 14px;
+  line-height: 1.45;
+  color: #3a352c;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+}
+
+.listRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 2px solid #e4dcc8;
+  color: #12100b;
+  text-decoration: none;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.listDate {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  flex: none;
+}
+
+.listLine {
+  font-family: var(--fb);
+  font-size: 13.5px;
+  color: #3a352c;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trickHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.trickTitle {
+  margin: 0;
+  font-family: var(--fd);
+  font-weight: 400;
+  font-size: 21px;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.trickMeta {
+  margin-left: auto;
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 13.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6e665a;
+}
+
+.trickDate {
+  width: 78px;
+}
+
+.trickSpot {
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6e665a;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.moveChip {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border: 2px solid #12100b;
+  background: #9ce05b;
+  padding: 1.5px 7px;
+  flex: none;
+}
+
+/* ------------------------------------------------------------- hover -- */
+
+@media (hover: hover) {
+  .spotRow:hover,
+  .listRow:hover {
+    background: #fff7e4;
+  }
+  .yellowCta:hover,
+  .purpleCta:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0 #12100b;
+  }
+}
+
+.yellowCta:active,
+.purpleCta:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #12100b;
+}
+
+/* ------------------------------------------------------------- phone -- */
+
+@media (max-width: 700px) {
+  .spot {
+    box-shadow: 4px 4px 0 #12100b;
+  }
+
+  .spotHead {
+    display: block;
+    padding: 12px 13px;
+  }
+
+  .spotTitleRow {
+    flex-wrap: nowrap;
+    align-items: baseline;
+    gap: 9px;
+  }
+
+  .spotTitle {
+    font-size: 21px;
+  }
+
+  .badge {
+    margin-left: auto;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    flex: none;
+  }
+
+  .yellowCta {
+    display: flex;
+    width: 100%;
+    margin-top: 11px;
+    font-size: 15px;
+    padding: 11px;
+  }
+
+  .spotRow {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 7px 9px;
+    padding: 10px 13px;
+  }
+
+  .spotDate {
+    width: auto;
+    font-size: 14px;
+  }
+
+  .spotDur {
+    width: auto;
+    font-size: 13px;
+  }
+
+  .feelChip {
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    padding: 1.5px 6px;
+  }
+
+  .chips {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .chip {
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+
+  .spotFoot {
+    padding: 11px 13px;
+  }
+
+  .footNote {
+    font-size: 13px;
+  }
+
+  .event,
+  .trick {
+    padding: 13px;
+  }
+
+  .eyebrow {
+    font-size: 10.5px;
+    letter-spacing: 0.17em;
+  }
+
+  .eventTitle {
+    font-size: 20px;
+  }
+
+  .eventCopy {
+    font-size: 13.5px;
+    margin-top: 8px;
+  }
+
+  .purpleCta {
+    display: flex;
+    width: 100%;
+    margin-top: 12px;
+    font-size: 14.5px;
+    padding: 11px;
+  }
+
+  .trickHead {
+    display: block;
+  }
+
+  .trickTitle {
+    font-size: 19px;
+    line-height: 1.05;
+  }
+
+  .trickMeta {
+    display: block;
+    margin: 3px 0 0;
+    font-size: 12.5px;
+  }
+
+  .list {
+    margin-top: 9px;
+  }
+
+  .listDate {
+    font-size: 13.5px;
+  }
+
+  .trickDate {
+    width: 62px;
+  }
+
+  .trickSpot {
+    font-size: 13.5px;
+  }
+
+  .moveChip {
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    padding: 1.5px 6px;
+  }
+}

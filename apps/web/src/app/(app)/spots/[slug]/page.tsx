@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
+import { SpotSessionsBlock } from '@/components/sessions/blocks/SpotSessionsBlock';
 import { jsonLdText, spotPlaceLd } from '@/lib/structuredData';
 import { ROUTES, libraryHref, reportHref, spotHref } from '@/lib/routes';
 import { SPORT_LOOKS, sportsList } from '@/lib/sports';
@@ -401,6 +402,7 @@ export default async function SpotPage({ params }: Params) {
             </p>
           ) : null}
           <p className={styles.lede}>{lede(spot, tags)}</p>
+          <SpotSessionsBlock spotId={spot.id} session={session} />
 
           <section>
             <div className={styles.sectionHead}>

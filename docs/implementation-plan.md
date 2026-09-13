@@ -4870,6 +4870,36 @@ read-only blocks wired into the spot, event (live and past) and trick pages (1f,
 only the rider's own sessions with a "Log a session here" entry point. Reads `getSession` and the
 `…ForOwner` reads. Fires `session_log_opened` with `source: spot | event | trick`. Depends on T36.
 
+*What T39 built* (branch `t39-session-detail`). `/progress/sessions/[id]` with its `loading.tsx`;
+the view is assembled on the server in `components/sessions/detail/load.ts` and every word and
+count is a pure function in `apps/web/src/lib/sessionDetail.ts` (unit-tested). The blocks are
+`components/sessions/blocks/{Spot,Event,Trick}SessionsBlock`, each one import and one element on
+its host page, each behind its own `Suspense` so a signed-in page never waits on it. Decisions
+the design left open, taken here and open to the owner's correction:
+- **A signed-out visitor on a session URL is sent to sign in and brought back**, then the API
+  decides. `/progress` is in `GATED_ROUTES`; serving a public session to anyone with the link
+  would make part of a gated tree public without either list saying so. Always `noindex`.
+- **The title names the spot only for a viewer the API let read the session**; everyone else
+  gets "Session · Land The Trick". `load` is wrapped in React's `cache()` (issue #421), so the
+  metadata and the page share one set of reads.
+- **Someone who is not the owner** (a crew-mate on a Crew session) gets no Edit, Delete, "1 of
+  10" or visibility card, and "What this one changed" shows **stage moves only**: the streak,
+  week and "Nth session at this spot" lines are about the owner's diary, which that viewer's
+  client cannot see, so counted over what it can see they would be wrong.
+- **"Make it private" only ever narrows**, through `makeSessionPrivateAction` and
+  `runAction('session_visibility', …)` (a new `RequestName`). Opening a session up stays in the
+  form, where the profile ceiling is explained. No analytics event: the catalogue has none for it.
+- **The event block's CTA fills the event, not the spot.** An event holds a town and a venue
+  name, not a spot record, so there is no spot id to pass; its copy says "The event fills itself
+  in. You add the spot and how it went." rather than the design's "the spot and the event". The
+  live state shows on the event's day only (a session cannot start in the future); the past
+  state only when the rider logged something there.
+- **The trick block draws nothing before the first session that worked the trick**, and sits
+  after "The road to it" (on a phone, after the practise line, before the log).
+- **No invented data.** The design's "8 of 10 landed · best yet" trick note, "Streak held — day
+  12", "Six riders" and "Dry and warm · you said sunny" have no stored source; the page says
+  "Landed it · now Most times", core's `sessionChangeLabel` lines, and the weather label.
+
 **T40 · Limits and settings.** The fifth-session wall with the grace (1g, 2e), the Rookie clip lock,
 the plan comparison (table on desktop, stacked cards on phone), the Settings · sessions radio
 (`setSessionVisibilityDefault`), and the plan-card perk lines rendered from the new plan fields
