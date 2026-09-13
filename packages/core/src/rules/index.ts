@@ -77,6 +77,7 @@ export {
   eventsNear,
   filterEvents,
   isEventPast,
+  myEvents,
   nearestFirst,
   nearnessBetween,
   pastEvents,

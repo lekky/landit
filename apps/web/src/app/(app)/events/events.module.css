@@ -67,6 +67,33 @@
   color: var(--ink-3);
 }
 
+/* The Soonest / Nearest control. A label and its two options read as one
+   thing, so they sit in a group that wraps together rather than letting the
+   word "Sort" strand itself at the end of a line above its own pills. */
+.sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* "Coming up" / "Been to" — the group headings on a rider's own tab.
+   Louder than `.order`, which describes an ordering, and quieter than
+   `.showing`, which explains why a list is short: this one is a divider, and
+   the ink rule under it is what makes the second group read as a new block
+   rather than more rows. */
+.group {
+  color: var(--ink);
+  padding-bottom: 6px;
+  border-bottom: 3px solid var(--ink);
+  margin-top: 6px;
+}
+
+/* The first heading opens the list, so it needs no space above it. */
+.group:first-child {
+  margin-top: 0;
+}
+
 /* "Showing Australia · See everywhere".
    Louder than `.order`, because that line describes an ordering and this one
    describes a *filter*: it is the reason the list below it is short, and a

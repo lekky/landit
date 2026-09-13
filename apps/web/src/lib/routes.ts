@@ -82,6 +82,18 @@ export const ROUTES = {
    * that hold events are ever published (`eventArchiveIndex`).
    */
   eventsPast: '/events/past',
+  /**
+   * A rider's own events — what they are down for, and what they have been to
+   * (Rachid, 2026-09-13, in chat).
+   *
+   * A third address beside `/events` and `/events/past`, for the same reason
+   * the archive is one: it is a tab in the same switch, and a tab that is only
+   * client state has nothing to link to, nothing to bookmark and nothing to
+   * come back to after signing in. Unlike its two siblings it is **not
+   * public** — it is one rider's attendance and nobody else's, so it redirects
+   * a signed-out visitor to sign in and is listed in `GATED_ROUTES`.
+   */
+  eventsMine: '/events/mine',
   /** T10's sticker wall. Same rule as above: the nav entry is wired separately. */
   stickers: '/stickers',
   crew: '/crew',

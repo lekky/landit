@@ -21,7 +21,7 @@ import {
 } from '@landit/ui-web';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
 import { SportFilter } from '@/components/filters/SportFilter';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
@@ -155,6 +155,14 @@ export function EventsScreen({
   const pathname = usePathname();
   const params = useSearchParams();
   const past = view.scope === 'past';
+  /*
+   * A rider's own tab: what they are down for, then what they have been to. It
+   * is the one tab of the three that holds both tenses at once, which is why
+   * several things below key off it rather than off `past` — the group headings,
+   * the empty state, and the fact that a distance sort must not interleave the
+   * two.
+   */
+  const mine = view.scope === 'mine';
 
   /*
    * Nearest-first happened — counted once per position held, and tagged with
@@ -220,6 +228,46 @@ export function EventsScreen({
   const [going, setGoing] = useState<ReadonlySet<string>>(
     () => new Set(view.events.filter((e) => e.going).map((e) => e.id)),
   );
+  /*
+   * Which order the list is in — and `null` for "the rider has not said"
+   * (Rachid, 2026-09-13, in chat).
+   *
+   * This screen used to re-sort itself. Holding a position put the whole
+   * calendar into distance order, silently, and the only way back to dates was
+   * to turn location off — which took the "about 3 mi away" labels with it. So
+   * a rider who wanted "what's on soonest, and how far is each one" could not
+   * have it, and one who arrived on a resumed permission was never told their
+   * calendar had been reordered at all.
+   *
+   * Three states rather than two, because the automatic re-sort is worth
+   * keeping as a *default* and worth being able to overrule. `null` means the
+   * rider has pressed nothing, and defers to whether a position is held; the
+   * first press pins the order for the rest of the visit, including pinning
+   * dates while location stays on. It cannot upset hydration: the first render
+   * has no position and no press, so both sides compute `'date'`, which is the
+   * order the server already shaped the rows in.
+   */
+  const [sortPref, setSortPref] = useState<'date' | 'nearest' | null>(null);
+  /*
+   * The order the list is **actually** in, which is not always the one asked
+   * for: distance order needs a position, and a rider can refuse one, be
+   * refused one by their browser, or turn one off after choosing Nearest. In
+   * every one of those the list is in date order, so that is what the control
+   * says — a lit "Nearest" over a list the screen could not sort by distance
+   * would be the screen lying about its own contents.
+   */
+  const sort: 'date' | 'nearest' =
+    here.point && (sortPref ?? 'nearest') === 'nearest' ? 'nearest' : 'date';
+
+  const chooseSort = (next: 'date' | 'nearest') => {
+    setSortPref(next);
+    // Nearest cannot happen without a position, and standard 10 (plan §6.4) is
+    // that we never ask for one unprompted — so the press *is* the prompt, and
+    // a refusal simply leaves the list in date order (the memo below needs a
+    // point, not a preference).
+    if (next === 'nearest' && here.state === 'off') here.ask();
+    capture(ANALYTICS_EVENTS.eventsSortSet, { order: next, scope: view.scope });
+  };
 
   const list = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -238,14 +286,22 @@ export function EventsScreen({
       return true;
     });
 
-    // Nearest first only while the rider is actually sharing a position.
-    // Without one the list stays in the order the server shaped — soonest first
-    // on the calendar, most recent first in the archive.
-    if (!here.point) return narrowed;
+    // Nearest first only when it is asked for *and* a position is actually
+    // held: a rider can press Nearest and have their browser refuse, and the
+    // honest answer to that is the order the server already shaped — soonest
+    // first on the calendar, most recent first in the archive — rather than an
+    // arbitrary one presented as distance.
+    if (sort !== 'nearest' || !here.point) return narrowed;
     const from = here.point;
     return [...narrowed]
       .map((event, index) => ({ event, index }))
       .sort((a, b) => {
+        // A rider's own tab keeps its two tenses apart whatever the order is.
+        // Sorting the whole thing by distance would file last summer's jam
+        // between two things they are going to next month, under headings that
+        // would then repeat down the page — and "what am I doing next" is the
+        // question the tab exists to answer.
+        if (mine && a.event.past !== b.event.past) return a.event.past ? 1 : -1;
         const aHas = a.event.lat !== undefined && a.event.lng !== undefined;
         const bHas = b.event.lat !== undefined && b.event.lng !== undefined;
         // An event nobody has plotted cannot be near anything, so it keeps its
@@ -259,7 +315,7 @@ export function EventsScreen({
         return gap === 0 ? a.index - b.index : gap;
       })
       .map((entry) => entry.event);
-  }, [view.events, kind, sports, country, search, here.point]);
+  }, [view.events, kind, sports, country, search, here.point, sort, mine]);
 
   const pageCount = Math.max(1, Math.ceil(list.length / PER_PAGE));
 
@@ -349,6 +405,18 @@ export function EventsScreen({
   }, [pathname]);
 
   const goingCount = going.size;
+  /*
+   * What the Mine tab counts, kept live without a reload.
+   *
+   * The server's `mineCount` spans both tenses and every country, so it cannot
+   * be recomputed from `going` — which only ever holds the rows *this* tab
+   * loaded. What can be recomputed is the change: `view.goingCount` is what
+   * `going` started as, so the difference is exactly what the rider has toggled
+   * this visit. Only an upcoming row can be toggled at all, so the delta is
+   * always a real change to their own list rather than an artefact of which tab
+   * they are on.
+   */
+  const mineCount = view.mineCount + (going.size - view.goingCount);
   const archive = view.archive;
   const where = archive?.where ?? null;
 
@@ -377,15 +445,17 @@ export function EventsScreen({
       */}
       <div className={styles.headRow}>
         <div>
-          <span className="eyebrow">{past ? 'The archive' : 'Events'}</span>
+          <span className="eyebrow">{mine ? 'Yours' : past ? 'The archive' : 'Events'}</span>
           <h1 className={`d ${styles.head}`}>
-            {past ? 'Events that have already happened' : 'What’s coming up'}
+            {mine ? 'Your events' : past ? 'Events that have already happened' : 'What’s coming up'}
           </h1>
         </div>
         <p className={styles.lede}>
-          {past
-            ? 'Nothing here is happening. Kept online because riders still look these up.'
-            : 'Comps, coached sessions and one-skill classes near you. Staff add them, so the list stays real.'}
+          {mine
+            ? 'The ones you’re down for, and the ones you’ve been to. Only you can see this.'
+            : past
+              ? 'Nothing here is happening. Kept online because riders still look these up.'
+              : 'Comps, coached sessions and one-skill classes near you. Staff add them, so the list stays real.'}
         </p>
       </div>
 
@@ -397,11 +467,11 @@ export function EventsScreen({
         to be shared. `aria-current="page"` is what says which half you are on,
         so the ink fill is not carrying the meaning on its own.
       */}
-      <nav className={styles.viewSwitch} aria-label="Upcoming or past events">
+      <nav className={styles.viewSwitch} aria-label="Upcoming, past or your own events">
         <Link
           href={ROUTES.events}
           className={`cond ${styles.viewSwitchItem}`}
-          aria-current={past ? undefined : 'page'}
+          aria-current={view.scope === 'upcoming' ? 'page' : undefined}
           onClick={() => capture(ANALYTICS_EVENTS.eventsViewSwitched, { view: 'upcoming' })}
         >
           Upcoming <span className={styles.viewSwitchCount}>{view.upcomingCount}</span>
@@ -414,6 +484,30 @@ export function EventsScreen({
         >
           Past <span className={styles.viewSwitchCount}>{view.pastCount}</span>
         </Link>
+        {/*
+          A rider's own events, the third tab (Rachid, 2026-09-13, in chat).
+
+          **Only for somebody signed in.** A visitor has no attendance, so the
+          tab could only ever read "Mine 0" and lead to a sign-in wall — an
+          advert for a locked door, in the one control on the screen that is
+          otherwise about what is on. The row's own "Sign in to save" button is
+          where a visitor meets this feature, and it comes back here.
+
+          The count is live rather than the server's, so marking yourself down
+          for a jam moves the number in the same frame as the button turns
+          green (`mineCount`). It is the one number on this screen that is
+          about the reader, which is why it is never an analytics property.
+        */}
+        {signedIn && (
+          <Link
+            href={ROUTES.eventsMine}
+            className={`cond ${styles.viewSwitchItem}`}
+            aria-current={mine ? 'page' : undefined}
+            onClick={() => capture(ANALYTICS_EVENTS.eventsViewSwitched, { view: 'mine' })}
+          >
+            Mine <span className={styles.viewSwitchCount}>{mineCount}</span>
+          </Link>
+        )}
       </nav>
 
       <div className={`search ${styles.search}`}>
@@ -460,11 +554,38 @@ export function EventsScreen({
         <span className={styles.spacer} />
 
         {/*
-          Standard 10 (plan §6.4), on the same terms as `/spots`: off until this
-          is pressed, asked for again on every visit, announced while it is on,
-          and the way to turn it off travels with the indicator.
+          The order, as two options rather than one switch (Rachid, 2026-09-13,
+          in chat).
+
+          It used to be a single "Sort by nearest" pill, and pressing it was a
+          one-way door: the calendar went into distance order and stayed there
+          until location was turned off, which took the distance labels with it.
+          A calendar in date order is a promise — the next thing you could go to
+          is the top row — and a control that can only break that promise is not
+          a sort control, it is a toggle with a hidden second effect.
+
+          Two options, so the order is always *stated* rather than inferred from
+          whether a location badge happens to be lit. That matters most on a
+          resumed permission, where the rider pressed nothing at all and the
+          list arrives already reordered.
+
+          Standard 10 (plan §6.4) is unchanged and is the reason "Nearest" is a
+          button rather than a preselected option: the press is the prompt, the
+          browser is asked again on every visit, nothing is stored, and the way
+          to turn it off travels with the indicator below.
         */}
-        {here.state === 'off' && <Pill onClick={here.ask}>Sort by nearest</Pill>}
+        <span className={styles.sort} role="group" aria-label="Sort events">
+          <span className="lab" style={{ color: 'var(--ink-3)' }}>
+            Sort
+          </span>
+          <Pill on={sort === 'date'} onClick={() => chooseSort('date')}>
+            {past ? 'Most recent' : 'Soonest'}
+          </Pill>
+          <Pill on={sort === 'nearest'} onClick={() => chooseSort('nearest')}>
+            Nearest
+          </Pill>
+        </span>
+
         {here.state === 'asking' && (
           <span className={`cond ${styles.locating}`}>Asking your browser…</span>
         )}
@@ -477,6 +598,12 @@ export function EventsScreen({
             </button>
           </span>
         )}
+        {/*
+          A refusal is said next to the control that caused it, and the list
+          stays in date order underneath — `sort` may read `'nearest'` while
+          `here.point` is missing, and the memo answers that with the calendar's
+          own order rather than pretending to know a distance.
+        */}
         {here.state === 'refused' && (
           <span className={`cond ${styles.locating}`}>{here.message}</span>
         )}
@@ -560,7 +687,7 @@ export function EventsScreen({
             calendar had been re-sorted — and the archive says its own order
             because "most recent first" is the opposite of the calendar's.
           */}
-          {here.state === 'on' ? (
+          {sort === 'nearest' ? (
             <div className={`lab ${styles.order}`}>Nearest first</div>
           ) : past ? (
             <div className={`lab ${styles.order}`}>
@@ -568,50 +695,64 @@ export function EventsScreen({
               {where && where.town ? ` · ${where.town}, ${where.year}` : ''}
             </div>
           ) : null}
-          {shown.map((event) => (
-            <Panel
-              flat
-              key={event.id}
-              className={`${styles.row} ${event.past ? styles.rowPast : ''}`}
-            >
+          {shown.map((event, index) => (
+            <Fragment key={event.id}>
               {/*
+                "Coming up" and "Been to", on a rider's own tab only.
+
+                The rows already say which tense they are in — a finished one
+                wears "Over", drops its date block to ink and carries "12 weeks
+                ago" — but that is a fact about each row read one at a time. The
+                heading is the fact about the *list*, which is what somebody
+                scanning for "what am I doing next" is actually reading.
+
+                Rendered from the page slice rather than from the whole list, so
+                a group broken across a page boundary still says what it is at
+                the top of page two. The sort keeps the two tenses apart
+                (`list`), so this can never alternate down the page.
+              */}
+              {mine && (index === 0 || shown[index - 1]?.past !== event.past) && (
+                <div className={`lab ${styles.group}`}>{event.past ? 'Been to' : 'Coming up'}</div>
+              )}
+              <Panel flat className={`${styles.row} ${event.past ? styles.rowPast : ''}`}>
+                {/*
                 The date block wears the kind's colour — except on a finished
                 event, where the design drops it to ink so the row reads as done
                 before a word of it is read.
               */}
-              <div
-                className={styles.date}
-                style={{ background: event.past ? 'var(--ink)' : event.kindColor }}
-              >
-                <span className={`d ${styles.dateDay}`}>{event.day}</span>
-                <span className={`lab ${styles.dateMonth}`}>{event.month}</span>
-              </div>
+                <div
+                  className={styles.date}
+                  style={{ background: event.past ? 'var(--ink)' : event.kindColor }}
+                >
+                  <span className={`d ${styles.dateDay}`}>{event.day}</span>
+                  <span className={`lab ${styles.dateMonth}`}>{event.month}</span>
+                </div>
 
-              <div className={styles.rowBody}>
-                <div className={styles.rowMain}>
-                  <div className={styles.chips}>
-                    {/*
+                <div className={styles.rowBody}>
+                  <div className={styles.rowMain}>
+                    <div className={styles.chips}>
+                      {/*
                       "Over" first, in red, on a finished event. Colour never
                       carries the meaning on its own here — the word is the
                       signal and the red is the emphasis.
                     */}
-                    {event.past && (
-                      <Tag color="var(--red)" style={{ fontSize: 10 }}>
-                        Over
+                      {event.past && (
+                        <Tag color="var(--red)" style={{ fontSize: 10 }}>
+                          Over
+                        </Tag>
+                      )}
+                      <Tag color={event.kindColor} style={{ fontSize: 10 }}>
+                        {event.kind}
                       </Tag>
-                    )}
-                    <Tag color={event.kindColor} style={{ fontSize: 10 }}>
-                      {event.kind}
-                    </Tag>
-                    {event.sports.map((s) => (
-                      <SportChip
-                        key={s.id}
-                        small
-                        sport={{ label: s.label, color: s.color, icon: s.icon as IconName }}
-                      />
-                    ))}
-                  </div>
-                  {/*
+                      {event.sports.map((s) => (
+                        <SportChip
+                          key={s.id}
+                          small
+                          sport={{ label: s.label, color: s.color, icon: s.icon as IconName }}
+                        />
+                      ))}
+                    </div>
+                    {/*
                     The event's name is a link to its own page.
 
                     That is the one change to a row design that is otherwise
@@ -622,76 +763,95 @@ export function EventsScreen({
                     — three fixed strings decided on the server, never anything
                     a reader typed (`sourceOf` in the page).
                   */}
-                  <Link
-                    className={`d ${styles.name}`}
-                    href={eventHrefFrom(event.id, 'list')}
-                    onClick={(clicked) => clicked.stopPropagation()}
-                  >
-                    {event.name}
-                  </Link>
-                  <div className={`lab ${styles.meta}`}>
-                    {[event.venue, event.town, event.country, event.level]
-                      .filter(Boolean)
-                      .join(' · ')}
-                    {event.past && event.ago && <> · {event.ago}</>}
-                    {here.point && distanceLabelIn(here.point, event, units) && (
-                      <> · about {distanceLabelIn(here.point, event, units)} away</>
-                    )}
+                    <Link
+                      className={`d ${styles.name}`}
+                      href={eventHrefFrom(event.id, 'list')}
+                      onClick={(clicked) => clicked.stopPropagation()}
+                    >
+                      {event.name}
+                    </Link>
+                    <div className={`lab ${styles.meta}`}>
+                      {[event.venue, event.town, event.country, event.level]
+                        .filter(Boolean)
+                        .join(' · ')}
+                      {event.past && event.ago && <> · {event.ago}</>}
+                      {here.point && distanceLabelIn(here.point, event, units) && (
+                        <> · about {distanceLabelIn(here.point, event, units)} away</>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                <div className={styles.money}>
-                  <div className={`cond ${styles.price}`}>{event.price}</div>
-                  <div className={`lab ${styles.muted}`}>{event.places}</div>
-                </div>
+                  <div className={styles.money}>
+                    <div className={`cond ${styles.price}`}>{event.price}</div>
+                    <div className={`lab ${styles.muted}`}>{event.places}</div>
+                  </div>
 
-                <div className={styles.actions}>
-                  <Button size="sm" variant="ghost" onClick={() => openDetails(event)}>
-                    Details
-                  </Button>
-                  {/*
+                  <div className={styles.actions}>
+                    <Button size="sm" variant="ghost" onClick={() => openDetails(event)}>
+                      Details
+                    </Button>
+                    {/*
                     "I'm going" is meaningless once an event is over, so a
                     finished row offers the page instead — which is where the
                     archive actually leads somebody: what is on at that venue
                     next, and what else is near.
                   */}
-                  {event.past ? (
-                    <Link className="btn sm ink" href={eventHrefFrom(event.id, 'list')}>
-                      Full page →
-                    </Link>
-                  ) : signedIn ? (
-                    <Button
-                      size="sm"
-                      disabled={pending}
-                      onClick={() => toggle(event)}
-                      style={going.has(event.id) ? { background: 'var(--green)' } : undefined}
-                      aria-pressed={going.has(event.id)}
-                    >
-                      {going.has(event.id) ? '✓ Going' : "I'm going"}
-                    </Button>
-                  ) : (
-                    <Link className="btn sm" href={signInHref(ROUTES.events)}>
-                      Sign in to save
-                    </Link>
-                  )}
+                    {event.past ? (
+                      <Link className="btn sm ink" href={eventHrefFrom(event.id, 'list')}>
+                        Full page →
+                      </Link>
+                    ) : signedIn ? (
+                      <Button
+                        size="sm"
+                        disabled={pending}
+                        onClick={() => toggle(event)}
+                        style={going.has(event.id) ? { background: 'var(--green)' } : undefined}
+                        aria-pressed={going.has(event.id)}
+                      >
+                        {going.has(event.id) ? '✓ Going' : "I'm going"}
+                      </Button>
+                    ) : (
+                      <Link className="btn sm" href={signInHref(ROUTES.events)}>
+                        Sign in to save
+                      </Link>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Panel>
+              </Panel>
+            </Fragment>
           ))}
         </div>
+      ) : mine && view.events.length === 0 ? (
+        /*
+         * Nothing marked at all, which is a different answer from "your filter
+         * hides everything" and needs different words. A rider who has never
+         * pressed "I'm going" is not looking at a filter that went too far;
+         * they are looking at a feature they have not used, so the copy says
+         * what the button does and the way out is the calendar rather than a
+         * "show everything" that would show the same nothing.
+         */
+        <NothingMarked />
       ) : (
         <Empty
           icon="flag"
-          title={past ? 'Nothing in the archive for that' : 'Nothing listed yet'}
+          title={
+            mine
+              ? 'Nothing of yours matches that'
+              : past
+                ? 'Nothing in the archive for that'
+                : 'Nothing listed yet'
+          }
           /*
            * The copy no longer names a sport, because the filter no longer has
            * exactly one to name — it can be every sport, or two of the three.
            * "That filter" covers all of it and stays true whatever was pressed.
            */
           sub={
-            past
-              ? 'Nothing in the archive matches that filter. Try widening it.'
-              : 'Nothing on the calendar matches that filter. Try widening it, or check back.'
+            mine
+              ? 'You have events saved, but this filter hides all of them. Try widening it.'
+              : past
+                ? 'Nothing in the archive matches that filter. Try widening it.'
+                : 'Nothing on the calendar matches that filter. Try widening it, or check back.'
           }
           cta="Show everything"
           onCta={() => {
@@ -745,7 +905,16 @@ export function EventsScreen({
         organiser&rsquo;s link before you set off, and ring ahead where there is a number.
       </p>
 
-      {!past && goingCount > 0 && (
+      {/*
+        The counter that used to be the *only* thing "I'm going" ever said back.
+
+        It now has somewhere to send a rider, which is the whole point of the
+        third tab: a number with no list behind it is a dead end, and this was
+        one for a month. It stays on the calendar and is not repeated on
+        `/events/mine`, where the list itself is the answer and a panel counting
+        the rows above it would be furniture.
+      */}
+      {view.scope === 'upcoming' && goingCount > 0 && (
         <Panel className={styles.tally}>
           <span className={styles.tallyIcon}>
             <Icon name="flag" size={21} strokeWidth={2.3} />
@@ -756,6 +925,13 @@ export function EventsScreen({
             </div>
             <p className={styles.tallyNote}>Entry and payment happen at the venue.</p>
           </div>
+          <Link
+            className="btn sm"
+            href={ROUTES.eventsMine}
+            onClick={() => capture(ANALYTICS_EVENTS.eventsViewSwitched, { view: 'mine' })}
+          >
+            See yours &rarr;
+          </Link>
         </Panel>
       )}
 
@@ -873,6 +1049,39 @@ function EmptyCorner({
         </Link>
         <Link className="btn sm ghost" href={pastEventsHref()}>
           All past events
+        </Link>
+      </div>
+    </Panel>
+  );
+}
+
+/**
+ * A rider's own tab with nothing in it yet.
+ *
+ * Its own state rather than the shared `Empty`, for the same reason
+ * `EmptyCorner` is: the way out is a *link*, and `Empty`'s call to action is a
+ * callback. "Show everything" would be wrong here anyway — there is nothing to
+ * widen a filter onto, and the honest next step is the calendar.
+ *
+ * The copy names the button, because that is the missing knowledge. A rider who
+ * has never pressed "I'm going" does not know this page fills itself.
+ */
+function NothingMarked() {
+  return (
+    <Panel flat className={styles.emptyCorner}>
+      <span className="eyebrow">Yours</span>
+      <h2 className={`d ${styles.emptyCornerTitle}`}>You haven&rsquo;t marked anything yet</h2>
+      <p className={styles.emptyCornerNote}>
+        Press &ldquo;I&rsquo;m going&rdquo; on anything in the calendar and it turns up here, with
+        what you&rsquo;ve been to underneath it. Only you can see this — nobody else is told who is
+        going to what.
+      </p>
+      <div className={styles.emptyCornerActions}>
+        <Link className="btn sm" href={ROUTES.events}>
+          See what&rsquo;s coming up
+        </Link>
+        <Link className="btn sm ghost" href={pastEventsHref()}>
+          Browse the archive
         </Link>
       </div>
     </Panel>

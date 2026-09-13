@@ -13,15 +13,19 @@ import { anonymousClient, currentRider } from '@/lib/session';
 import { buildEventsView, type EventsScope, type EventsView } from './view';
 
 /**
- * One read of the calendar, shaped for whichever half is being shown.
+ * One read of the calendar, shaped for whichever tab is being shown.
  *
- * `/events` and `/events/past` (and `/events/past/[year]/[town]`) are the same
- * query, the same attendance join and the same units resolution over the same
- * collection — the only thing that differs is which half `buildEventsView` cuts
- * and whether it is narrowed to a year and a town. Three copies of this would
- * be three places for the "a visitor has no attendance to fetch" rule and the
- * `Accept-Language` fallback to drift apart, which is exactly the kind of
- * difference nothing in CI would notice.
+ * `/events`, `/events/past` (with `/events/past/[year]/[town]`) and
+ * `/events/mine` are the same query, the same attendance join and the same
+ * units resolution over the same collection — the only thing that differs is
+ * which slice `buildEventsView` cuts and whether it is narrowed to a year and a
+ * town. Four copies of this would be four places for the "a visitor has no
+ * attendance to fetch" rule and the `Accept-Language` fallback to drift apart,
+ * which is exactly the kind of difference nothing in CI would notice.
+ *
+ * The attendance join was always here, for every scope, because every scope's
+ * rows carry a "✓ Going" state and the tab count sits on all three screens —
+ * so `/events/mine` needed no new read, only a different cut.
  */
 export interface LoadedEvents {
   readonly view: EventsView;
