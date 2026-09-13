@@ -200,6 +200,9 @@ function canAddSessionClip(allowance, held) {
 
 // -------------------------------------------------------------- promotion --
 
+/** Core's `STAGE_IDS`, in the ladder's order. */
+const STAGE_IDS = ['want', 'trying', 'some', 'most', 'every'];
+
 /** Core's `landedStageAfter`. */
 function landedStageAfter(current) {
   if (current === 'some') return 'most';
@@ -208,10 +211,23 @@ function landedStageAfter(current) {
   return 'some';
 }
 
+/** Core's `stagesAbove`. */
+function stagesAbove(current) {
+  const from = current == null ? -1 : STAGE_IDS.indexOf(current);
+  return STAGE_IDS.slice(from + 1);
+}
+
+/** Core's `isStageMoveUp`. */
+function isStageMoveUp(current, target) {
+  return target != null && target !== '' && stagesAbove(current).indexOf(target) !== -1;
+}
+
 /** Core's `sessionStagePromotion`. Once, and never an inverse. */
 function sessionStagePromotion(input) {
-  if (!input.landed || input.alreadyPromoted) return null;
-  const stageTo = landedStageAfter(input.current);
+  if (input.alreadyPromoted) return null;
+  const picked = isStageMoveUp(input.current, input.stagePick) ? input.stagePick : null;
+  if (!picked && !input.landed) return null;
+  const stageTo = picked ? picked : landedStageAfter(input.current);
   if (!stageTo) return null;
   return { stageFrom: input.current ? input.current : null, stageTo: stageTo };
 }
@@ -249,6 +265,7 @@ module.exports = {
   MAX_UTC_OFFSET_HOURS,
   canAddSessionClip,
   clipLinkProblem,
+  isStageMoveUp,
   landedStageAfter,
   normaliseSessionVisibility,
   parseClipLink,
@@ -257,4 +274,5 @@ module.exports = {
   plausibleMonthKeys,
   sessionCreateDecision,
   sessionStagePromotion,
+  stagesAbove,
 };

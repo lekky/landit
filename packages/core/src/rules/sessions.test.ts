@@ -19,6 +19,7 @@ import {
   canAddSessionClip,
   filterSessions,
   groupSessionsByMonth,
+  isStageMoveUp,
   landedStageAfter,
   monthKeyOf,
   nextMonthStart,
@@ -54,6 +55,7 @@ import {
   sortSessionsNewestFirst,
   spotSessionSummary,
   stageMoveLabel,
+  stagesAbove,
   topSpots,
   trickSessionSummary,
   type SessionAudience,
@@ -374,6 +376,80 @@ describe('one-way stage promotion', () => {
     ).toBeNull();
   });
 
+  it('offers every stage above the one a trick is on, and none at Every time', () => {
+    expect(stagesAbove(null)).toEqual(['want', 'trying', 'some', 'most', 'every']);
+    expect(stagesAbove('want')).toEqual(['trying', 'some', 'most', 'every']);
+    expect(stagesAbove('trying')).toEqual(['some', 'most', 'every']);
+    expect(stagesAbove('most')).toEqual(['every']);
+    expect(stagesAbove('every')).toEqual([]);
+  });
+
+  it('moves a trick only up the ladder, never sideways or back', () => {
+    expect(isStageMoveUp('trying', 'most')).toBe(true);
+    expect(isStageMoveUp('trying', 'trying')).toBe(false);
+    expect(isStageMoveUp('most', 'some')).toBe(false);
+    expect(isStageMoveUp('every', 'every')).toBe(false);
+    expect(isStageMoveUp('trying', null)).toBe(false);
+    expect(isStageMoveUp(null, 'want')).toBe(true);
+  });
+
+  it('honours a picked stage, including a jump of more than one step', () => {
+    // The reason the picker exists: Learning straight to Most times, which the
+    // old tickbox could not express.
+    expect(
+      sessionStagePromotion({
+        landed: true,
+        alreadyPromoted: false,
+        current: 'trying',
+        stagePick: 'most',
+      }),
+    ).toEqual({ stageFrom: 'trying', stageTo: 'most' });
+
+    // A pick is enough on its own: "Want to learn" to "Learning" is a move
+    // nobody would call a landing.
+    expect(
+      sessionStagePromotion({
+        landed: false,
+        alreadyPromoted: false,
+        current: 'want',
+        stagePick: 'trying',
+      }),
+    ).toEqual({ stageFrom: 'want', stageTo: 'trying' });
+  });
+
+  it('ignores a pick that is stale, equal or below, and falls back to the landing', () => {
+    // The trick moved on since the form drew its picker. The landing still
+    // counts; the stale pick simply does not.
+    expect(
+      sessionStagePromotion({
+        landed: true,
+        alreadyPromoted: false,
+        current: 'most',
+        stagePick: 'some',
+      }),
+    ).toEqual({ stageFrom: 'most', stageTo: 'every' });
+
+    // With no landing behind it, a stale pick moves nothing at all.
+    expect(
+      sessionStagePromotion({
+        landed: false,
+        alreadyPromoted: false,
+        current: 'most',
+        stagePick: 'some',
+      }),
+    ).toBeNull();
+
+    // Once is still once, whatever the pick says.
+    expect(
+      sessionStagePromotion({
+        landed: false,
+        alreadyPromoted: true,
+        current: 'trying',
+        stagePick: 'every',
+      }),
+    ).toBeNull();
+  });
+
   it('labels the move for the lime half of a pill', () => {
     const moved: SessionTrickEntry = {
       trickId: 't',
@@ -419,6 +495,16 @@ describe('sessionProblems', () => {
     expect(
       sessionProblems({ ...good, weather: 'rain', clip: 'https://youtu.be/dQw4w9WgXcQ' }, now),
     ).toEqual({});
+  });
+
+  it('lets a session be saved without saying how it felt', () => {
+    // Optional since 2026-09-13 (Rachid, in chat): the ride is the thing worth
+    // keeping, and a rider is not made to rate it before they can keep it.
+    expect(sessionProblems({ ...good, feel: null }, now)).toEqual({});
+    expect(sessionProblems({ ...good, feel: undefined }, now)).toEqual({});
+    expect(sessionProblems({ ...good, feel: '' }, now)).toEqual({});
+    // A value that is not one of the five is still wrong, and still says so.
+    expect(sessionProblems({ ...good, feel: 'meh' }, now).feel).toBe(SESSION_REFUSALS.feel);
   });
 
   it('names each missing or malformed field in the shared words', () => {

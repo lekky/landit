@@ -29,6 +29,7 @@ import {
 const SPOT = 'spotaaaaaaaaaaa';
 const EVENT = 'eventaaaaaaaaaa';
 const TRICK = 'trickaaaaaaaaaa';
+const OTHER_TRICK = 'trickbbbbbbbbbb';
 const MATE = 'mateaaaaaaaaaaa';
 
 // 2026-09-13 15:20 UTC — 16:20 in London (BST).
@@ -144,8 +145,15 @@ describe('the field-to-input mapping', () => {
     expect(input).not.toHaveProperty('clip');
   });
 
+  it('builds an input for a session logged without a feel', () => {
+    // Optional since 2026-09-13: no feel is a session, not a problem, and the
+    // field is left off the write rather than sent empty.
+    const input = sessionInputFrom(filled({ feel: null }), CLOCK);
+    expect(input).not.toBeNull();
+    expect(input).not.toHaveProperty('feel');
+  });
+
   it('refuses to build an input the form has a problem with', () => {
-    expect(sessionInputFrom(filled({ feel: null }), CLOCK)).toBeNull();
     expect(sessionInputFrom(filled({ spotId: '' }), CLOCK)).toBeNull();
     expect(sessionInputFrom(filled({ clip: 'https://vm.tiktok.com/ZMabc/' }), CLOCK)).toBeNull();
     expect(
@@ -189,8 +197,30 @@ describe('the field-to-input mapping', () => {
 
 describe('reading what the browser sent', () => {
   it('accepts the form’s own shape', () => {
-    const values = filled({ tricks: [{ trickId: TRICK, landed: true }], crewIds: [MATE] });
+    const values = filled({
+      tricks: [{ trickId: TRICK, landed: true, stagePick: 'most' }],
+      crewIds: [MATE],
+    });
     expect(readFormValues(JSON.parse(JSON.stringify(values)))).toEqual(values);
+  });
+
+  it('normalises a trick entry that names no stage, or names a made-up one', () => {
+    const read = readFormValues(
+      JSON.parse(
+        JSON.stringify(
+          filled({
+            tricks: [
+              { trickId: TRICK, landed: true },
+              { trickId: OTHER_TRICK, landed: false, stagePick: 'legend' },
+            ],
+          }),
+        ),
+      ),
+    );
+    expect(read?.tricks).toEqual([
+      { trickId: TRICK, landed: true, stagePick: null },
+      { trickId: OTHER_TRICK, landed: false, stagePick: null },
+    ]);
   });
 
   it('refuses anything else rather than guessing', () => {

@@ -73,7 +73,11 @@ export function MonthAccordions({
                   return (
                     <Link key={s.id} href={s.viewHref} className={styles.mRow}>
                       <span className={styles.mDay}>{s.day}</span>
-                      <FeelSwatch feel={s.feel.id} color={s.feel.color} title={s.feel.label} />
+                      {s.feel ? (
+                        <FeelSwatch feel={s.feel.id} color={s.feel.color} title={s.feel.label} />
+                      ) : (
+                        <span className={styles.mNoFeel} aria-hidden="true" />
+                      )}
                       <span className={styles.mText}>
                         <span className={styles.mSpot}>{s.spot.name}</span>
                         <span className={styles.mSub}>{sub}</span>

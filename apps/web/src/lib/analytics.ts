@@ -283,6 +283,16 @@ export const ANALYTICS_EVENTS = {
    * door, and a constant is not a dimension. Nothing here identifies the rider.
    */
   trickHistoryCleared: 'trick_history_cleared',
+  /**
+   * A panel on a trick page was paged through. Carries `panel` — `'history'`
+   * or `'sessions'` — and `page`, the number arrived at.
+   *
+   * Both panels stopped at a fixed number of rows and said nothing about the
+   * rest (2026-09-13); they now page. Whether anybody reads past the first page
+   * is what says whether either panel should grow, and a page number is a fact
+   * about a control, not about a rider — no trick, no date, no session.
+   */
+  trickPanelPaged: 'trick_panel_paged',
   challengeLogged: 'challenge_logged',
   /** The coach-view toggle on the progress screen. */
   insightsSet: 'insights_set',
@@ -323,6 +333,20 @@ export const ANALYTICS_EVENTS = {
    * clips are used at all is the question D5's allowance is a bet on.
    */
   sessionLogged: 'session_logged',
+  /**
+   * A trick on the session form was moved up the stage ladder by the picker.
+   *
+   * Carries `from` and `to` — two of the five stage ids, or `'none'` for a
+   * trick the rider was not tracking. **Never the trick**, which is what the
+   * rule above forbids; a stage id is catalogue vocabulary, the same five words
+   * for every rider, and `trick_logged` already carries one.
+   *
+   * It exists because the picker replaced a tickbox that could only ever move a
+   * trick one step (2026-09-13). Whether riders actually jump two or three —
+   * Learning straight to Most times — is the question that says if the change
+   * was worth making, and nothing else in the catalogue can answer it.
+   */
+  sessionTrickStagePicked: 'session_trick_stage_picked',
   /** An existing session was edited and saved. No properties. */
   sessionEdited: 'session_edited',
   /** A session was deleted, through the confirm. No properties. */

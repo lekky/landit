@@ -303,6 +303,10 @@ describe('the event catalogue', () => {
         'session_log_opened',
         'session_logged',
         'session_quota_wall_seen',
+        // The stage picker that replaced "Landed it" on the session form
+        // (2026-09-13). `from` and `to` only — the five stage words, never the
+        // trick they were picked for.
+        'session_trick_stage_picked',
         'sessions_view_set',
         // The share card's image actually left the device (2026-09-13).
         // `kind` and `method`, both from fixed lists in the code — never the
@@ -359,6 +363,9 @@ describe('the event catalogue', () => {
         'trick_history_cleared',
         'trick_link_followed',
         'trick_logged',
+        // A trick page's history or sessions panel read past its first page
+        // (2026-09-13). Which panel and which page; nothing about what is on it.
+        'trick_panel_paged',
         // The share card opened on a trick page — the twin of `sticker_shared`,
         // which the trick side went without from T7 until 2026-09-13. The slug,
         // and nothing else.

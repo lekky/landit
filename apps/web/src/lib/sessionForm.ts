@@ -6,6 +6,7 @@ import {
   SESSION_VISIBILITIES,
   SPORT_IDS,
   STAGE,
+  STAGE_IDS,
   distanceKm,
   isSessionDuration,
   isSessionFeel,
@@ -56,6 +57,12 @@ export type WhenMode = 'now' | 'pick';
 export interface SessionTrickValue {
   readonly trickId: string;
   readonly landed: boolean;
+  /**
+   * The stage the rider is moving this trick to, or `null` for "worked on it,
+   * moved nothing" (2026-09-13). `landed` follows it — a landed stage is a
+   * landing — so the two can never say different things.
+   */
+  readonly stagePick?: StageId | null;
 }
 
 /** Everything the form holds. Plain data, so it can cross into a server action. */
@@ -145,12 +152,16 @@ export function editSessionValues(input: {
     readonly spotId: string;
     readonly eventId?: string;
     readonly aim?: string;
-    readonly feel: SessionFeelId;
+    readonly feel: SessionFeelId | null;
     readonly weather?: SessionWeatherId;
     readonly notes?: string;
     readonly crewIds: readonly string[];
     readonly visibility: SessionVisibilityId;
-    readonly trickEntries: readonly { trickId: string; landed: boolean }[];
+    readonly trickEntries: readonly {
+      trickId: string;
+      landed: boolean;
+      stagePick?: StageId | null;
+    }[];
   };
   /** `clipWatchUrl(session.clip)`, or `''`. */
   readonly clipText: string;
@@ -165,7 +176,11 @@ export function editSessionValues(input: {
     eventId: session.eventId ?? '',
     sport: session.sport,
     aim: session.aim ?? '',
-    tricks: session.trickEntries.map((e) => ({ trickId: e.trickId, landed: e.landed })),
+    tricks: session.trickEntries.map((e) => ({
+      trickId: e.trickId,
+      landed: e.landed,
+      stagePick: e.stagePick ?? null,
+    })),
     feel: session.feel,
     weather: session.weather ?? null,
     notes: session.notes ?? '',
@@ -328,7 +343,7 @@ export function sessionInputFrom(
 ): SessionInput | null {
   if (Object.keys(formProblems(values, clock, options)).length) return null;
   const startedAt = startedAtOf(values, clock);
-  if (!startedAt || !values.feel) return null;
+  if (!startedAt) return null;
   const clip = options.clipAllowed === false ? '' : values.clip.trim();
   return {
     startedAt,
@@ -337,20 +352,30 @@ export function sessionInputFrom(
     spotId: values.spotId,
     ...(values.eventId ? { eventId: values.eventId } : {}),
     aim: values.aim.trim(),
-    feel: values.feel,
+    // Optional since 2026-09-13: omitted rather than sent empty.
+    ...(values.feel ? { feel: values.feel } : {}),
     ...(values.weather ? { weather: values.weather } : {}),
     notes: values.notes.trim(),
     crewIds: [...values.crewIds],
     ...(clip ? { clip } : {}),
     visibility: values.visibility,
-    tricks: values.tricks.map((t) => ({ trickId: t.trickId, landed: t.landed })),
+    tricks: values.tricks.map((t) => ({
+      trickId: t.trickId,
+      landed: t.landed,
+      stagePick: t.stagePick ?? null,
+    })),
   };
 }
 
 function sameTricks(a: readonly SessionTrickValue[], b: readonly SessionTrickValue[]): boolean {
   if (a.length !== b.length) return false;
-  const byId = new Map(b.map((t) => [t.trickId, t.landed]));
-  return a.every((t) => byId.has(t.trickId) && byId.get(t.trickId) === t.landed);
+  const byId = new Map(b.map((t) => [t.trickId, t]));
+  return a.every((t) => {
+    const other = byId.get(t.trickId);
+    return (
+      !!other && other.landed === t.landed && (other.stagePick ?? null) === (t.stagePick ?? null)
+    );
+  });
 }
 
 function sameIds(a: readonly string[], b: readonly string[]): boolean {
@@ -385,14 +410,19 @@ export function sessionPatchFrom(
   if (values.spotId !== initial.spotId) patch.spotId = values.spotId;
   if (values.eventId !== initial.eventId) patch.eventId = values.eventId || null;
   if (values.aim.trim() !== initial.aim.trim()) patch.aim = values.aim.trim();
-  if (values.feel !== initial.feel && values.feel) patch.feel = values.feel;
+  // `null` is a real edit now — it clears a feel the rider no longer wants on it.
+  if (values.feel !== initial.feel) patch.feel = values.feel;
   if (values.weather !== initial.weather) patch.weather = values.weather;
   if (values.notes.trim() !== initial.notes.trim()) patch.notes = values.notes.trim();
   if (!sameIds(values.crewIds, initial.crewIds)) patch.crewIds = [...values.crewIds];
   if (values.clip.trim() !== initial.clip.trim()) patch.clip = values.clip.trim();
   if (values.visibility !== initial.visibility) patch.visibility = values.visibility;
   if (!sameTricks(values.tricks, initial.tricks)) {
-    patch.tricks = values.tricks.map((t) => ({ trickId: t.trickId, landed: t.landed }));
+    patch.tricks = values.tricks.map((t) => ({
+      trickId: t.trickId,
+      landed: t.landed,
+      stagePick: t.stagePick ?? null,
+    }));
   }
   return patch;
 }
@@ -449,10 +479,14 @@ export function readFormValues(raw: unknown): SessionFormValues | null {
   const tricks =
     tricksRaw && tricksRaw.length <= SESSION_LIMITS.tricksMax
       ? tricksRaw.map((t) => {
-          const entry = t as { trickId?: unknown; landed?: unknown };
-          return typeof entry?.trickId === 'string' && RECORD_ID.test(entry.trickId)
-            ? { trickId: entry.trickId, landed: entry.landed === true }
+          const entry = t as { trickId?: unknown; landed?: unknown; stagePick?: unknown };
+          if (typeof entry?.trickId !== 'string' || !RECORD_ID.test(entry.trickId)) return null;
+          // Anything that is not one of the five stages becomes no pick at all,
+          // the same fail-closed reading the other fields get here.
+          const pick = STAGE_IDS.includes(entry.stagePick as StageId)
+            ? (entry.stagePick as StageId)
             : null;
+          return { trickId: entry.trickId, landed: entry.landed === true, stagePick: pick };
         })
       : null;
 

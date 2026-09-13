@@ -882,6 +882,12 @@ export interface SessionTrickEntry {
   /** The rider said they landed it in this session. */
   readonly landed: boolean;
   /**
+   * The stage the rider chose to move it to, when they chose one (2026-09-13).
+   * A **request**, kept so re-opening the form shows what they picked; what
+   * actually happened is `stageFrom`/`stageTo` below, which the server writes.
+   */
+  readonly stagePick?: StageId | null;
+  /**
    * The stage move this entry caused, written by the server exactly once. Both
    * absent means it moved nothing — not landed, already at Every time, or a
    * row from before the promotion ran.
@@ -906,7 +912,12 @@ export interface RideSession {
   readonly spotId: string;
   readonly eventId?: string;
   readonly aim?: string;
-  readonly feel: SessionFeelId;
+  /**
+   * How it felt, or `null` for a session logged without saying (Rachid,
+   * 2026-09-13, in chat). Optional since then, so a reader must handle the
+   * absence rather than draw a face the rider never picked.
+   */
+  readonly feel: SessionFeelId | null;
   readonly weather?: SessionWeatherId;
   readonly notes?: string;
   /**

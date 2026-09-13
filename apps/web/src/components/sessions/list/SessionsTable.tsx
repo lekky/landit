@@ -98,10 +98,12 @@ export function SessionsTable({
                 ))}
               </div>
               <div role="cell" className={styles.tCell}>
-                <span className={styles.tFeel} style={{ background: item.feel.color }}>
-                  <FeelFace feel={item.feel.id} size={14} />
-                  {item.feel.label}
-                </span>
+                {item.feel ? (
+                  <span className={styles.tFeel} style={{ background: item.feel.color }}>
+                    <FeelFace feel={item.feel.id} size={14} />
+                    {item.feel.label}
+                  </span>
+                ) : null}
               </div>
               <div role="cell" className={styles.tMedia}>
                 {item.clip ? (

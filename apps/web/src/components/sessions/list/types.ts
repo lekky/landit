@@ -61,7 +61,12 @@ export interface SessionCardView {
   /** "2h", "3h+". */
   readonly duration: string;
   readonly weather: { readonly id: SessionWeatherId; readonly label: string } | null;
-  readonly feel: { readonly id: SessionFeelId; readonly label: string; readonly color: string };
+  /** `null` for a session logged without one — draw nothing rather than a face. */
+  readonly feel: {
+    readonly id: SessionFeelId;
+    readonly label: string;
+    readonly color: string;
+  } | null;
   /** "Ollie, Mia" — only the crew-mates the server let this reader see (D3). */
   readonly crew: string;
   readonly aim: string;

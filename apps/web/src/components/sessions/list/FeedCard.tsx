@@ -85,9 +85,14 @@ export function FeedCard({ item, onDelete }: { item: SessionCardView; onDelete: 
               {item.weather.label}
             </MetaChip>
           ) : null}
-          <MetaChip background={item.feel.color} icon={<FeelFace feel={item.feel.id} size={15} />}>
-            {item.feel.label}
-          </MetaChip>
+          {item.feel ? (
+            <MetaChip
+              background={item.feel.color}
+              icon={<FeelFace feel={item.feel.id} size={15} />}
+            >
+              {item.feel.label}
+            </MetaChip>
+          ) : null}
           {item.crew ? (
             <span className={styles.crew} title={`Rode with ${item.crew}`}>
               <Icon name="users" size={14} title="Rode with" />

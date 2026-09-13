@@ -186,11 +186,13 @@ function cardView(
     weather: session.weather
       ? { id: session.weather, label: sessionWeatherLabel(session.weather) }
       : null,
-    feel: {
-      id: session.feel,
-      label: sessionFeelLabel(session.feel),
-      color: sessionFeelColor(session.feel),
-    },
+    feel: session.feel
+      ? {
+          id: session.feel,
+          label: sessionFeelLabel(session.feel),
+          color: sessionFeelColor(session.feel),
+        }
+      : null,
     crew: session.crewIds
       .map((id) => names.riders.get(id)?.name?.trim())
       .filter(Boolean)

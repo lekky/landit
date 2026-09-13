@@ -89,17 +89,19 @@ async function SpotSessions({ spotId, session }: SpotSessionsBlockProps) {
       </div>
 
       {summary.sessions.slice(0, SHOWN).map((s) => {
-        const color = sessionFeelColor(s.feel);
+        const feel = s.feel;
         return (
           <Link key={s.id} href={sessionHref(s.id)} className={styles.spotRow}>
             <span className={styles.spotDate}>
               {sessionDateLabels(s.startedAt, timezone).dayMonthYear}
             </span>
             <span className={styles.spotDur}>{sessionDurationLabel(s.durationMinutes)}</span>
-            <span className={styles.feelChip} style={{ background: color }}>
-              <FeelFace feel={s.feel} size={13} />
-              {sessionFeelLabel(s.feel)}
-            </span>
+            {feel ? (
+              <span className={styles.feelChip} style={{ background: sessionFeelColor(feel) }}>
+                <FeelFace feel={feel} size={13} />
+                {sessionFeelLabel(feel)}
+              </span>
+            ) : null}
             <span className={styles.chips}>
               {s.trickEntries.map((entry) => (
                 <span
