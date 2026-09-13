@@ -290,38 +290,6 @@ export default async function LandingPage() {
           <HeroSignUp />
 
           {/*
-           * Who made it, under the call to action (Rachid, 2026-09-12, in
-           * chat). It sat between the lede and the email field until then.
-           *
-           * The one argument on this page nobody else can copy is that a twelve
-           * year old could not find a trick tracker and built one, and until now
-           * the only link to `/story` anywhere on the site was a single footer
-           * row. This is the half of that argument that a visitor who never
-           * scrolls still reads; the band under the stripe is the other half.
-           *
-           * It is the first thing under the form now that the free-tier line is
-           * not (#453, merged while this was being built): the claim moved onto
-           * the button label, so the gap this fills is one that had just opened
-           * rather than one this change made.
-           *
-           * A rule and a line of type rather than a thumbnail: both Graystone
-           * photographs are shot from behind and neither reads at 42px, and the
-           * band 500px below is where the picture earns its room.
-           */}
-          <p className={styles.byline}>
-            <b>Miles is 12 and rides a scooter.</b> He went looking for a website where you could
-            tick off scooter tricks, there wasn&rsquo;t one, so he and his dad built it.{' '}
-            <LandingCta
-              className={styles.bylineLink}
-              href={ROUTES.story}
-              target="story"
-              place="hero"
-            >
-              Read why &rarr;
-            </LandingCta>
-          </p>
-
-          {/*
            * The two doors that need no account. Both screens read signed out
            * already, so these are not teasers — they are the product.
            */}

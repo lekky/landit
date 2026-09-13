@@ -508,10 +508,11 @@ export const ANALYTICS_EVENTS = {
    * likeliest to take. `facebook` arrived on 2026-09-12, so a comparison
    * spanning that date is measuring the tile's absence, not its appeal.
    *
-   * `target: 'story'` is pressed from two of those zones and the pair is the
-   * point: `hero` is the byline line above the email field, `band` is the quote
-   * band under the stripe. Which of the two a stranger takes is what says
-   * whether the story needs to be above the fold at all.
+   * `target: 'story'` now comes from one zone only: `band`, the quote band
+   * under the stripe. It was also pressed from `hero` until the byline line
+   * under the sign-up form was removed (2026-09-13), so a `hero`/`band` split
+   * spanning that date is measuring the byline's removal, not a preference,
+   * and `hero` should read as zero afterwards.
    *
    * **Emphatically not the email address.** The hero's field is a sign-up
    * shortcut, and this event fires on the press, never with its contents; the
