@@ -953,6 +953,16 @@ export function EventsScreen({
 }
 
 /**
+ * How many town pills one year of the archive shows before it offers the rest.
+ *
+ * Eight is about four rows on a phone and one on a laptop — enough that a small
+ * archive never asks a rider to press anything, few enough that a big one
+ * cannot bury the events under its own index. It is a guess, and
+ * `archive_index_used` is what turns it into a measurement.
+ */
+const ARCHIVE_TOWNS_SHOWN = 8;
+
+/**
  * "Browse by year and town" — the archive's index panel.
  *
  * **Only corners that hold events** (Rachid, 2026-09-06, in chat). The
@@ -960,14 +970,41 @@ export function EventsScreen({
  * is a cross-product: eighty towns over four years is three hundred and twenty
  * addresses of which two dozen hold anything, and the rest are thin pages a
  * search engine reads as a doorway pattern. So the panel keeps the design's
- * shape — a year label with a row of town pills beside it — and repeats it per
- * year, with every pill pointing at a page that genuinely has events on it.
- * `eventArchiveIndex` is the single list behind both this panel and
- * `sitemap.ts`, so the two cannot drift into disagreeing about what exists.
+ * shape — a year, and a row of town pills beside it — with every pill pointing
+ * at a page that genuinely has events on it. `eventArchiveIndex` is the single
+ * list behind both this panel and `sitemap.ts`, so the two cannot drift into
+ * disagreeing about what exists.
+ *
+ * **A year at a time, capped** (Rachid, 2026-09-13, in chat). Capping the
+ * *addresses* was never the same as capping the *panel*: sixty-two real corners
+ * in one year all rendered at once is twenty-odd rows of pills, about fifteen
+ * hundred pixels of index between the header and the first past event on a
+ * phone, with the year label stranded on the first line where it labels a
+ * twentieth of what follows. So the index is the two steps the handoff draws —
+ * pick a year, then a town in it — and each year shows its first few towns with
+ * the rest behind one press.
+ *
+ * **Both steps are display, not navigation.** The year is panel-local state
+ * rather than a route: `/events/past/[year]/[town]` is the only corner there
+ * is, and a year on its own would be a new address with a new page to keep
+ * indexed. And every town link is rendered whichever year is showing and
+ * whether or not it is past the cap — hidden in CSS, never dropped from the
+ * markup — so the panel offers a crawler exactly what it offered before this
+ * change, which is the same set `sitemap.ts` advertises.
  */
 function ArchiveIndex({ archive }: { readonly archive: NonNullable<EventsView['archive']> }) {
   const { index, where } = archive;
+  const [year, setYear] = useState(where?.year ?? index.years[0] ?? 0);
+  const [showAllTowns, setShowAllTowns] = useState(false);
+
   if (!index.combinations.length) return null;
+
+  /*
+   * The year step is drawn only where there is a choice to make. A single-year
+   * archive gets one row, labelled with the year itself — the shape the panel
+   * has always had — rather than a step offering the one answer it will accept.
+   */
+  const pickYear = index.years.length > 1;
 
   return (
     <Panel className={styles.archive}>
@@ -979,27 +1016,80 @@ function ArchiveIndex({ archive }: { readonly archive: NonNullable<EventsView['a
         </p>
       </div>
 
-      {index.years.map((year) => (
-        <div key={year} className={styles.archiveRow}>
-          <span className={`lab ${styles.archiveYear}`}>{year}</span>
-          {index.combinations
-            .filter((combination) => combination.year === year)
-            .map((combination) => {
-              const on = where?.year === year && where.townSlug === combination.townSlug;
+      {pickYear && (
+        <div className={styles.archiveRow}>
+          <span className={`lab ${styles.archiveStep}`}>Year</span>
+          {index.years.map((option) => (
+            <Pill
+              key={option}
+              on={option === year}
+              className={styles.archivePill}
+              onClick={() => {
+                setYear(option);
+                setShowAllTowns(false);
+                // Which step was used, and nothing else: two fixed strings
+                // chosen here, never the year and never the town.
+                capture(ANALYTICS_EVENTS.archiveIndexUsed, { step: 'year' });
+              }}
+            >
+              {option}
+            </Pill>
+          ))}
+        </div>
+      )}
+
+      {index.years.map((option) => {
+        const towns = index.combinations.filter((combination) => combination.year === option);
+        const capped = !showAllTowns && towns.length > ARCHIVE_TOWNS_SHOWN;
+        return (
+          <div
+            key={option}
+            className={`${styles.archiveRow} ${option === year ? '' : styles.archiveOther}`}
+          >
+            <span className={`lab ${styles.archiveStep}`}>{pickYear ? 'Town' : option}</span>
+            {towns.map((combination, position) => {
+              const on = where?.year === option && where.townSlug === combination.townSlug;
               return (
                 <Link
                   key={combination.townSlug}
-                  href={pastEventsHref({ year, townSlug: combination.townSlug })}
-                  className={`pill ${on ? 'on' : ''} ${styles.archivePill}`}
+                  href={pastEventsHref({ year: option, townSlug: combination.townSlug })}
+                  className={`pill ${on ? 'on' : ''} ${styles.archivePill} ${
+                    capped && position >= ARCHIVE_TOWNS_SHOWN ? styles.archiveOver : ''
+                  }`}
                   aria-current={on ? 'page' : undefined}
                 >
-                  {combination.town}{' '}
-                  <span className={styles.archiveCount}>{combination.count}</span>
+                  {combination.town}
+                  {/* A count of one is on almost every pill and says nothing;
+                      the number is only information where a corner holds
+                      several. */}
+                  {combination.count > 1 && (
+                    <span className={styles.archiveCount}>{combination.count}</span>
+                  )}
                 </Link>
               );
             })}
-        </div>
-      ))}
+            {towns.length > ARCHIVE_TOWNS_SHOWN && (
+              /*
+               * A disclosure, not a filter, so it is a bare `.pill` rather than
+               * `<Pill>`: `<Pill>` always writes `aria-pressed`, and a control
+               * announcing itself "not pressed, expanded" is telling a screen
+               * reader two things at once. `aria-expanded` alone is the truth.
+               */
+              <button
+                type="button"
+                aria-expanded={showAllTowns}
+                className={`pill ${styles.archivePill}`}
+                onClick={() => {
+                  setShowAllTowns(!showAllTowns);
+                  if (!showAllTowns) capture(ANALYTICS_EVENTS.archiveIndexUsed, { step: 'towns' });
+                }}
+              >
+                {showAllTowns ? 'Fewer towns' : `All ${towns.length} towns`}
+              </button>
+            )}
+          </div>
+        );
+      })}
 
       {where && (
         <div className={styles.archiveRow}>

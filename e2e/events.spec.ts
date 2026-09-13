@@ -240,6 +240,12 @@ test('the archive index only offers corners that hold something', async ({ page 
   // Sheffield in that year holds the seeded past session, so it is a pill.
   const corner = page.getByRole('link', { name: /Sheffield/ });
   await expect(corner).toBeVisible();
+  /*
+   * And it is the town on its own. A corner holding one event is nearly every
+   * corner, so a "1" beside each of them is a digit on every pill that
+   * separates none of them (2026-09-13); the count is drawn only from two up.
+   */
+  await expect(corner).toHaveText('Sheffield');
   await corner.click();
   await page.waitForURL(`**/events/past/${year}/sheffield`);
   await expect(page.getByText('E2E Last Month Session')).toBeVisible();
