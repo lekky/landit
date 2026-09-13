@@ -499,6 +499,27 @@ export const ANALYTICS_EVENTS = {
   /** The share card was opened for an earned award. Carries the slug. */
   stickerShared: 'sticker_shared',
   /**
+   * The share card was opened for a landed trick — the trick-page twin of
+   * `stickerShared`, which the card has gone without since T7 wired it up.
+   * Carries the trick's slug, a catalogue fact, and nothing about the rider.
+   */
+  trickShared: 'trick_shared',
+  /**
+   * The share image actually left the device (2026-09-13). Carries `kind`
+   * (`trick` or `sticker`) and `method` — `file` when the share sheet took the
+   * PNG, `text` when the browser would only take the caption and the link,
+   * `clipboard` when there was no share sheet at all, and `save` for the
+   * download. Four fixed strings, the same for every rider.
+   *
+   * It exists because `stickerShared` and `trickShared` count a card being
+   * *opened*, which is what the product could measure while the card was a
+   * picture nobody could send. This is the one that says whether the image is
+   * used — and `method` is what says how much of the fallback ladder is load
+   * bearing, on a product whose riders are on school laptops as often as
+   * phones.
+   */
+  shareImageSent: 'share_image_sent',
+  /**
    * The wall's Earned / Not yet switch was used (T33). Carries `earned` or
    * `unearned` — two fixed strings, the same for every rider.
    *

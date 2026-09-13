@@ -1,6 +1,6 @@
 'use client';
 
-import type { SportId } from '@landit/core';
+import { SITE_URL, type SportId } from '@landit/core';
 import {
   Bar,
   Button,
@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { SportSwitch } from '@/components/shell/SportSwitch';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/providers/toast';
 import { useSport } from '@/providers/sport';
 
@@ -304,11 +305,21 @@ export function StickerWall({ view }: { view: StickerWallView }) {
           meta={view.shareMeta}
           dateLabel={view.dateLabel}
           caption={sharing.caption}
+          poster={{
+            url: `${SITE_URL}${ROUTES.stickers}`,
+            fileName: `earned-${sharing.slug}.png`,
+          }}
           onCopied={(ok) =>
             ok
               ? toast('Caption copied', 'var(--sky)')
               : toast('Could not copy that — select it and copy by hand.', 'var(--red)')
           }
+          onShared={(method) => {
+            capture(ANALYTICS_EVENTS.shareImageSent, { kind: 'sticker', method });
+            if (method === 'save') toast('Image saved', 'var(--green)');
+            if (method === 'clipboard') toast('No share sheet here. Caption copied', 'var(--sky)');
+          }}
+          onShareFailed={() => toast("Couldn't open the share sheet", 'var(--red)')}
           onClose={() => setSharing(null)}
         />
       )}
