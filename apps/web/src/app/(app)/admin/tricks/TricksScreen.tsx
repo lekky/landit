@@ -451,19 +451,20 @@ export function TricksScreen({
       <Panel className={`${styles.table} ${pending ? styles.busy : ''}`}>
         {/* Hidden on a phone, where each trick is a card and every cell prints
             its own `data-label` (issue #371; `admin.module.css`). */}
-        <div className={`arow ${styles.tableHead} ${styles.cardHead}`}>
+        <div className={`arow ${styles.tableHead} ${styles.cardHead} ${styles.trickRow}`}>
           <span className="lab">Trick</span>
           <span className="lab">Category</span>
           <span className="lab">Difficulty</span>
           <span className="lab">Builds on</span>
           <span className="lab">Free plan</span>
+          <span className="lab">Tutorial</span>
           <span className="lab">Actions</span>
         </div>
 
         {list.map((row) => (
           <div
             key={row.id}
-            className={`arow ${styles.tableRow} ${styles.cardRow} ${row.isLive ? '' : styles.hiddenRow}`}
+            className={`arow ${styles.tableRow} ${styles.cardRow} ${styles.trickRow} ${row.isLive ? '' : styles.hiddenRow}`}
           >
             <div className={styles.rowTitle}>
               <div className="cond" style={{ fontSize: 15 }}>
