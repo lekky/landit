@@ -530,8 +530,25 @@ switches off the ones that do not, puts back any that returned, and writes a row
 the image is the whole pnpm workspace (`apps/web/Dockerfile` copies `/repo` forward wholesale), so
 `packages/db/scripts` and its `pnpm` are already in there, and the app already holds
 `POCKETBASE_URL` and both `POCKETBASE_SUPERUSER_*` variables because its own server code uses the
-superuser client. Nothing needs building or deploying for this — one variable and one scheduled
-task.
+superuser client.
+
+**Step zero: redeploy PocketBase, and do it first.** `video_check_runs` is created by a migration,
+and `pocketbase/Dockerfile` copies `migrations/` **into the image** — so the collection appears when
+the *PocketBase* application is rebuilt and restarts, not when the web app is. A restart alone is
+not enough either: a migration added after the current image was built is not in that image.
+
+Skipping this is a specific, observed failure rather than a theoretical one (2026-09-13, first
+live run). The job checked the catalogue, correctly switched off two dead tutorials, and then died
+on its last line with:
+
+```
+ClientResponseError 404: Missing or invalid collection context.
+  url: 'https://api.landthetrick.com/api/collections/video_check_runs/records'
+```
+
+Which is the honest error — but it exits non-zero, so Coolify shows a failed task for a run that
+did its actual work, and the two switch-offs it made never reached the history. Redeploy PocketBase
+first and the ordering problem does not arise.
 
 **Step one, the variable.** Land The Trick app → Environment Variables → add:
 

@@ -1270,6 +1270,36 @@ context that was hours out of date while the file on disk said otherwise. Before
 what state their product is in, re-read the file rather than trusting the copy in context.
 
 
+## 8a. A migration ships with the image that carries it, not with the app that uses it
+
+The Video checks work (2026-09-13, #500) added a `video_check_runs` collection and a script that
+writes to it. The script runs in the **web app's** container; the collection is created by a
+migration in `pocketbase/migrations/`. The handover said "redeploy" and meant it, but named the
+wrong application — and a redeploy of the web app is exactly the deploy that cannot create the
+collection.
+
+The first live run then did something worth recognising on sight: **it worked, and it failed.** It
+read the catalogue, correctly switched off two dead tutorials, wrote every `video_checked` stamp,
+and died on its last line with `404: Missing or invalid collection context`. Coolify showed a
+failed task; production had in fact been correctly updated. Reading the exit code alone would have
+told you the opposite of what happened.
+
+**Ask which image carries the change, not which service consumes it.** `pocketbase/Dockerfile`
+copies `migrations/` in at build time, so a schema change reaches production when the *PocketBase*
+application is rebuilt — not when the app that reads the new collection is deployed, and not on a
+plain restart, because a migration added after the current image was built is not in that image. In
+a repo where two applications are built from one commit, "I deployed it" is not a statement about
+the commit; it is a statement about one of the two images.
+
+**Order the runbook by what creates a thing before what uses it.** The corrected runbook 9 opens
+with "step zero: redeploy PocketBase, and do it first" for this reason. A step list that begins at
+the thing you are excited about will keep producing this failure.
+
+**And when a job's real work and its bookkeeping can fail separately, say which one failed.** The
+error here was honest and well aimed — it named the URL and the collection — but the *shape* of the
+run (all the work done, one write missing) is not something an exit code can express. Whoever reads
+a red task next needs the log, not the status.
+
 ## 9. A third party that refuses your test browser
 
 Wiring PostHog (§6.8) built and typechecked and unit-tested clean, and sent **nothing**. Three
