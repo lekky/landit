@@ -287,13 +287,12 @@
  * a module class are both one class, so which wins would come down to
  * stylesheet injection order.
  *
- * **Actions is a fixed 372px.** It holds up to four buttons — Edit, Hide video,
- * Mark checked, Remove — and only some rows show all four, so an `auto` track
- * would re-measure per row and bring back the misalignment this exists to
- * remove. 372px is what those four need on one line: at anything narrower
- * Remove wraps, and only on the rows that have all four, so the table gained a
- * ragged mix of one- and two-line rows. `.rowActions` still wraps as a
- * backstop if a fifth is ever added.
+ * **Actions is a fixed width.** It holds up to three buttons — Edit, View video,
+ * Remove — and rows with no video show two, so an `auto` track would re-measure
+ * per row and bring back the misalignment this exists to remove. The width is
+ * what those three need on one line (it was 372px for four, before the video
+ * buttons moved into the review modal, 2026-09-13). `.rowActions` still wraps as
+ * a backstop if another is ever added.
  *
  * Below 900px this is dropped and each trick becomes a labelled card, which is
  * what `.cardRow` further down does — seven pinned columns in 350px would be
@@ -309,7 +308,7 @@
       minmax(96px, 1fr) /* builds on */
       minmax(150px, 1fr) /* free plan */
       minmax(104px, 0.7fr) /* tutorial */
-      372px; /* actions */
+      260px; /* actions */
     align-items: center;
   }
 }
@@ -618,6 +617,36 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-3);
+}
+
+/*
+ * The trick library's video review modal (`tricks/VideoReviewModal.tsx`).
+ * The player carries its own hard-shadowed frame from `video.module.css`; this
+ * only spaces what sits under it. The footer pushes its buttons right so
+ * "Approve and set live" lands in the same place on every video in the queue.
+ */
+.reviewBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px 20px;
+}
+
+.reviewState {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.reviewFoot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
 }
 
 /* The colour bar down the left of a challenge row. */

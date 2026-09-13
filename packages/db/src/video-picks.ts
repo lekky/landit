@@ -13,7 +13,7 @@
  * video and deciding, and the data model says so out loud rather than quietly:
  * the importer writes `video_source = 'auto'` on every row, the staff portal
  * shows those as "Not checked" and can filter to exactly them, and a person
- * pressing "Mark checked" is what upgrades one.
+ * pressing "Approve and set live" in the review modal is what upgrades one.
  *
  * **Why confidence is a stored judgement and not a score.** The measurement
  * behind T35 found the failure mode is semantic, not statistical: "Pole Tap"

@@ -505,6 +505,12 @@ export interface AdminTrickRow {
   readonly videoOffReason: string;
   /** When the nightly check last got an answer about this id. Empty means never. */
   readonly videoCheckedAt: string;
+  /**
+   * The stored preview frame, as a PocketBase file path — the same one the
+   * trick page draws, so the review modal's poster makes no request to Google
+   * before the play press either. Empty until `video:thumbs` has fetched one.
+   */
+  readonly videoThumbPath: string;
 }
 
 export interface AdminStickerRow {

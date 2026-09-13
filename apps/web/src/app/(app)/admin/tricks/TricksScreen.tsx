@@ -21,8 +21,8 @@ import { runAction } from '@/lib/runAction';
 
 import { StaffEditor, type EditorValue } from '../StaffEditor';
 import {
+  approveTrickVideoAction,
   createTrickAction,
-  markTrickVideoCheckedAction,
   saveTrickAction,
   setTrickLiveAction,
   setTrickTierAction,
@@ -32,6 +32,8 @@ import {
 import type { AdminTrickRow, TrickTier } from '../view';
 
 import styles from '../admin.module.css';
+
+import { VideoReviewModal } from './VideoReviewModal';
 
 /**
  * The trick library, as staff edit it.
@@ -224,6 +226,16 @@ export function TricksScreen({
   const [adding, setAdding] = useState(false);
   const [addForm, setAddForm] = useState(BLANK);
   const [editing, setEditing] = useState<AdminTrickRow | null>(null);
+  /**
+   * The video being reviewed, and the queue it was opened from.
+   *
+   * Held by id and read back out of `rows`, so the modal shows the state the
+   * refresh brought back rather than the row as it was when opened. The queue
+   * is the filtered list's ids *at the moment the modal opened*: approving a
+   * "Not yet checked" video drops it out of that filter on refresh, and a queue
+   * recomputed from the live list would lose its place every time it worked.
+   */
+  const [reviewing, setReviewing] = useState<{ id: string; queue: string[] } | null>(null);
 
   const needle = query.trim().toLowerCase();
   const list = rows.filter(
@@ -265,16 +277,63 @@ export function TricksScreen({
     );
   };
 
-  const onToggleVideo = (row: AdminTrickRow) => {
-    run(
-      () => setTrickVideoHiddenAction(row.id, !row.videoHidden),
-      row.videoHidden ? `${row.name}: tutorial back on` : `${row.name}: tutorial off`,
+  const onViewVideo = (row: AdminTrickRow) => {
+    setReviewing({ id: row.id, queue: list.filter((r) => r.videoId).map((r) => r.id) });
+  };
+
+  /** The id after the one on screen, or null at the end of the queue. */
+  const nextInQueue = (): string | null => {
+    if (!reviewing) return null;
+    const at = reviewing.queue.indexOf(reviewing.id);
+    return reviewing.queue[at + 1] ?? null;
+  };
+
+  const moveOn = () => {
+    const next = nextInQueue();
+    if (next) {
+      setReviewing((r) => (r ? { ...r, id: next } : r));
+    } else {
+      setReviewing(null);
+      toast('That was the last video in this list');
+    }
+  };
+
+  /** Write, then move on only if it saved — a refused write keeps the video on screen. */
+  const reviewWrite = (
+    work: () => Promise<{ ok: boolean; message?: string }>,
+    done: string,
+    color?: string,
+  ) => {
+    startTransition(async () => {
+      const result = await runAction('admin_save', work);
+      if (result.ok) {
+        toast(done, color);
+        moveOn();
+      } else {
+        toast(result.message ?? 'That did not save.', 'var(--red)');
+      }
+      router.refresh();
+    });
+  };
+
+  const onApproveVideo = (row: AdminTrickRow) => {
+    reviewWrite(
+      () => approveTrickVideoAction(row.id),
+      `${row.name}: tutorial approved and live`,
+      'var(--lime)',
     );
   };
 
-  const onMarkChecked = (row: AdminTrickRow) => {
-    run(() => markTrickVideoCheckedAction(row.id), `${row.name}: tutorial checked`);
+  const onSwitchOffVideo = (row: AdminTrickRow) => {
+    reviewWrite(() => setTrickVideoHiddenAction(row.id, true), `${row.name}: tutorial off`);
   };
+
+  const reviewRow = reviewing ? rows.find((r) => r.id === reviewing.id && r.videoId) : undefined;
+  const reviewPosition = (() => {
+    if (!reviewing) return '';
+    const label = VIDEO_FILTERS.find(([id]) => id === videoFilter)?.[1] ?? '';
+    return `${reviewing.queue.indexOf(reviewing.id) + 1} of ${reviewing.queue.length} · ${SPORTS[sport].label} · ${label}`;
+  })();
 
   const formFrom = (value: EditorValue, fallbackSport: SportId): TrickForm => ({
     name: String(value.name ?? ''),
@@ -523,11 +582,12 @@ export function TricksScreen({
             </span>
 
             {/*
-              The tutorial state, as one chip. It is read-only on purpose: the
-              two things a staff member does to a video — switch it off and
-              confirm it — are separate buttons below, because a chip that
-              cycled through four states would make "switched off because
-              YouTube deleted it" something you could click into by accident.
+              The tutorial state, as one chip. It is read-only on purpose: what
+              a staff member does to a video — approve it, switch it off — is
+              done in the review modal with the video in front of them, because
+              a chip that cycled through four states would make "switched off
+              because YouTube deleted it" something you could click into by
+              accident.
             */}
             <VideoChip row={row} />
 
@@ -541,34 +601,17 @@ export function TricksScreen({
                 Edit
               </button>
 
-              {/* Only where there is a video to act on. */}
+              {/* Only where there is a video to watch. Approving and switching
+                  off happen inside, with the video on screen. */}
               {row.videoId && (
                 <button
                   type="button"
                   className="btn sm ghost"
-                  disabled={pending}
                   style={{ fontSize: 11, padding: '4px 9px' }}
-                  title={
-                    row.videoHidden
-                      ? 'Put the tutorial back on the trick page'
-                      : 'Take the tutorial off the trick page. The link is kept.'
-                  }
-                  onClick={() => onToggleVideo(row)}
+                  title="Watch the tutorial here, then approve it or switch it off"
+                  onClick={() => onViewVideo(row)}
                 >
-                  {row.videoHidden ? 'Show video' : 'Hide video'}
-                </button>
-              )}
-
-              {row.videoId && row.videoSource === 'auto' && !row.videoHidden && (
-                <button
-                  type="button"
-                  className="btn sm ghost"
-                  disabled={pending}
-                  style={{ fontSize: 11, padding: '4px 9px' }}
-                  title="Say that you have watched this video and it is the right one"
-                  onClick={() => onMarkChecked(row)}
-                >
-                  Mark checked
+                  View video
                 </button>
               )}
               <button
@@ -597,6 +640,20 @@ export function TricksScreen({
         out of every rider&rsquo;s library; what they logged against it is kept, so putting it back
         restores their progress with it.
       </p>
+
+      {reviewing && reviewRow && (
+        <VideoReviewModal
+          row={reviewRow}
+          chip={videoChipOf(reviewRow)}
+          position={reviewPosition}
+          pending={pending}
+          hasNext={nextInQueue() !== null}
+          onApprove={() => onApproveVideo(reviewRow)}
+          onSwitchOff={() => onSwitchOffVideo(reviewRow)}
+          onSkip={moveOn}
+          onClose={() => setReviewing(null)}
+        />
+      )}
 
       {editing && (
         <StaffEditor
