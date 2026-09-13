@@ -1,12 +1,25 @@
 import { STAGE, isLandedStage, type TrickHistory } from '@landit/core';
 import { Panel } from '@landit/ui-web';
 
+import { PagedPanel } from '@/components/panels/PagedPanel';
+
 import { ClearHistoryButton } from './ClearHistory';
 import styles from './trick.module.css';
 
+/** Entries before the timeline pages. Six rows is about a phone's height. */
+const PER_PAGE = 6;
+
 /**
  * "Your history with this trick" (T31, section A): every stage the rider has
- * logged for it, oldest first, as a vertical timeline.
+ * logged for it, **newest first**, as a vertical timeline.
+ *
+ * Newest first since 2026-09-13 (Rachid, in chat). It read oldest-first from
+ * T31, which put the thing that just happened at the bottom of a growing list —
+ * fine at three entries and wrong at twenty, and this panel only ever grows.
+ * The order is reversed here rather than in `trickHistory`, which stays
+ * oldest-first: "first landed" and the summary are both computed by walking
+ * forwards, and a rule that has to reason about time should read in the
+ * direction time runs.
  *
  * Signed in only, and the page never renders it otherwise — there is no
  * "sign in to see your history" tease, because a visitor has none and the
@@ -39,12 +52,17 @@ export function HistoryPanel({
       <div className={`cond ${styles.historySummary}`}>{history.summary}</div>
 
       {history.entries.length > 0 && (
-        <ol className={styles.timeline}>
-          {history.entries.map((entry) => {
+        <PagedPanel
+          panel="history"
+          perPage={PER_PAGE}
+          noun="entries"
+          className={styles.timeline}
+          pagerClassName={styles.timelinePager}
+          rows={[...history.entries].reverse().map((entry) => {
             const stage = STAGE[entry.stage];
             const want = entry.stage === 'want';
             return (
-              <li
+              <div
                 key={`${entry.at}-${entry.stage}`}
                 className={`${styles.timelineRow}${isLandedStage(entry.stage) ? ` ${styles.timelineLanded}` : ''}`}
               >
@@ -61,10 +79,10 @@ export function HistoryPanel({
                     {entry.firstLanded ? '★ first landed' : '(estimated)'}
                   </span>
                 )}
-              </li>
+              </div>
             );
           })}
-        </ol>
+        />
       )}
 
       {clear && (

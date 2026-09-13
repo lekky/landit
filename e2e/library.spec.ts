@@ -255,6 +255,31 @@ test('a trick shows its award, and landing the trick stamps it', async ({ page }
 });
 
 /*
+ * The history reads newest first (Rachid, 2026-09-13, in chat).
+ *
+ * It ran oldest-first from T31, which put the thing that just happened at the
+ * bottom of a list that only ever grows. Asserted here rather than in a unit
+ * test because this is a screen, and the order a rider actually reads is the
+ * order the rows come out of the page in (`vitest.config.ts`, LESSONS §3a).
+ */
+test('the history puts the most recent thing first', async ({ page }) => {
+  await signUpRookie(page);
+  await page.goto(`/library/${freeTrick.id}`);
+
+  // Three stages in order, so the timeline has something to get wrong.
+  for (const stage of ['Want to learn', 'Learning', 'Sometimes'] as const) {
+    await page.getByRole('button', { name: stage, exact: true }).click();
+    await expect(page.locator('.toast', { hasText: /Logged as/i })).toBeVisible();
+    await expect(page.locator('.toast')).toBeHidden();
+  }
+
+  await page.reload();
+  const panel = page.locator('section', { hasText: 'Your history with this trick' }).last();
+  const stages = await panel.locator('[class*="timelineStage"]').allInnerTexts();
+  expect(stages.map((s) => s.trim())).toEqual(['Sometimes', 'Learning', 'Want to learn']);
+});
+
+/*
  * Stopping tracking asks first, and takes only the stage with it.
  *
  * The confirm is the trick-page pack's, and it is worth a test rather than a
