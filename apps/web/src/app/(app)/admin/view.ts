@@ -238,6 +238,30 @@ export function heardAboutPanel(counts: HeardAboutCounts): HeardAboutPanel {
   return { bars, note, of: counts.answered };
 }
 
+/**
+ * One rider's own answer to "Where did you find us?", for the sheet.
+ *
+ * The label rather than the id, because `friend` and `skatepark` are storage
+ * words and the sheet is read by a person: the nine labels in `HEARD_ABOUT` are
+ * the same sentences the rider picked from, so staff and rider are looking at
+ * the same wording. Driven off that catalogue rather than a second map here, so
+ * the panel above and this line can never disagree about what an id means and
+ * a tenth option needs no edit in this file.
+ *
+ * An em dash covers three cases on purpose, and they are not worth
+ * distinguishing on a staff screen: the rider skipped the question, their
+ * account predates it (see `HEARD_ABOUT_SINCE` — the question is asked once, at
+ * the end of onboarding, so most older accounts will never be asked), or they
+ * closed the account and `hooks/lib/erasure.js` cleared the field. All three
+ * mean "we hold no answer for this rider", which is what the dash says. Same
+ * contract as `bandLabel`, including mapping an id it does not recognise to the
+ * dash rather than printing a raw value.
+ */
+export function heardAboutLabel(source: string | undefined | null): string {
+  if (!source) return '—';
+  return HEARD_ABOUT.find((option) => option.id === source)?.label ?? '—';
+}
+
 export interface AdminAttentionRow {
   readonly label: string;
   /** Lit when there is something to do. */
@@ -364,6 +388,22 @@ export interface RiderSheetView {
   readonly email: string;
   /** "Under 13", "13–15", "16–17", "Adult", "—". */
   readonly ageBand: string;
+  /**
+   * How the rider says they found Land The Trick — one of the nine
+   * `HEARD_ABOUT` labels, pre-formatted, or an em dash. See `heardAboutLabel`.
+   *
+   * On the sheet and never on the table row, under the same rule as `email`
+   * (see the head of this file): the overview's panel already answers "which
+   * channels work" in aggregate, so a column of it on forty rows would put a
+   * per-child fact in front of staff who came to move a plan, to say nothing
+   * new. On the sheet it is context for the one account being looked at.
+   *
+   * Read-only here, and that is deliberate rather than unfinished: the field is
+   * write-once (`pocketbase/hooks/lib/landit.js`), because an answer that staff
+   * could rewrite would stop being a record of how a rider arrived. The sheet
+   * shows it; nothing on it offers to change it.
+   */
+  readonly heardAbout: string;
   readonly sports: readonly SportLook[];
   readonly tracked: readonly TrackedTrickView[];
   readonly landed: number;

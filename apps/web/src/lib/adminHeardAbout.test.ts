@@ -1,7 +1,7 @@
 import { HEARD_ABOUT, HEARD_ABOUT_IDS } from '@landit/core';
 import { describe, expect, it } from 'vitest';
 
-import { PAID_SHARE_FLOOR, heardAboutPanel } from '@/app/(app)/admin/view';
+import { PAID_SHARE_FLOOR, heardAboutLabel, heardAboutPanel } from '@/app/(app)/admin/view';
 
 /**
  * The "How riders found us" panel (issue #323).
@@ -117,5 +117,47 @@ describe('the note under the panel', () => {
 
     expect(one.note).toMatch(/1 rider who has answered/);
     expect(one.note).toMatch(/1 rider has not/);
+  });
+});
+
+/**
+ * The same answer for one rider, on the staff sheet (`riders/RiderSheet.tsx`).
+ *
+ * The panel above reports channels; this reports the account in front of you.
+ * Worth its own tests for one reason: every case below is a value the sheet must
+ * not print raw. A staff screen that rendered `tiktok`, or `undefined`, beside a
+ * child's email address would look exactly like a working one.
+ */
+describe('one rider\u2019s answer on the sheet', () => {
+  it('resolves an id to the label the rider picked from, not the stored word', () => {
+    // `friend` is a storage word; the rider chose a sentence. Staff should read
+    // the sentence, so the two of them are looking at the same wording.
+    for (const option of HEARD_ABOUT) {
+      expect(heardAboutLabel(option.id)).toBe(option.label);
+    }
+  });
+
+  it('never leaks a raw id', () => {
+    // The property that matters more than any single mapping above: whatever
+    // this returns, it came from the catalogue.
+    const labels = HEARD_ABOUT.map((o) => o.label);
+    for (const id of HEARD_ABOUT_IDS) expect(labels).toContain(heardAboutLabel(id));
+  });
+
+  it('gives an em dash for a rider with no answer held', () => {
+    // Three different causes, one meaning: skipped, an account older than the
+    // question, or a closed account whose field `erasure.js` cleared. None of
+    // them is worth a separate wording on a staff screen.
+    expect(heardAboutLabel('')).toBe('\u2014');
+    expect(heardAboutLabel(null)).toBe('\u2014');
+    expect(heardAboutLabel(undefined)).toBe('\u2014');
+  });
+
+  it('gives an em dash for an id it does not recognise, rather than printing it', () => {
+    // Same contract as `bandLabel`. If an option were ever removed from the
+    // catalogue while rows still carried it, the sheet says "nothing held" —
+    // it does not print a bare `myspace` next to a child's email address.
+    expect(heardAboutLabel('myspace')).toBe('\u2014');
+    expect(heardAboutLabel('FRIEND')).toBe('\u2014');
   });
 });
