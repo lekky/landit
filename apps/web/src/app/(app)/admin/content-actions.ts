@@ -214,13 +214,33 @@ export async function saveTrickAction(id: string, form: TrickForm): Promise<Staf
   const refused = trickContentRefusal(form);
   if (refused) return refused;
 
+  const patch = trickPatch(form);
+
+  try {
+    // Choosing a *different* video is the act that makes it staff-picked. It is
+    // read from the stored row rather than assumed, because most saves on this
+    // form are edits to the copy with the video fields carried along untouched
+    // — and marking those "checked" would quietly claim somebody watched a
+    // video they never opened. That claim is the only thing the `auto` filter
+    // is for, so it has to be earned. Confirming an automatic pick *without*
+    // changing it is the row's own "Mark checked" button.
+    const before = await records(staff.superuser, 'tricks').first('id = {:id}', { id });
+    if (patch.video_id && patch.video_id !== (before?.video_id ?? '')) {
+      Object.assign(patch, { video_source: 'staff' as const });
+    }
+  } catch {
+    // The read is an improvement to the audit trail, not a precondition for
+    // saving. A trick that cannot be re-read here still saves; it just keeps
+    // whatever `video_source` it had.
+  }
+
   try {
     await applyStaffChange(staff.superuser, {
       actor: staff.actor,
       collection: 'tricks',
       id,
       action: 'admin.trick_edit',
-      patch: trickPatch(form),
+      patch,
     });
   } catch (error) {
     return refusal(error, 'That did not save. Try again in a moment.');
@@ -243,6 +263,10 @@ export async function createTrickAction(form: TrickForm): Promise<StaffWriteResu
       action: 'admin.trick_add',
       data: {
         ...trickPatch(form),
+        // A person typing a link into the add form chose it themselves, so it
+        // is staff-picked from the moment it exists. Unlike the edit path there
+        // is no previous value to compare against — there is no previous row.
+        ...(parseYouTubeVideoId(form.videoLink.trim()) ? { video_source: 'staff' as const } : {}),
         slug: slugFor(form.sport.slice(0, 2), form.name),
         sport: form.sport as TricksSport,
         // Published live, because a staff member filling in this form is adding
@@ -307,6 +331,70 @@ export async function setTrickLiveAction(id: string, isLive: boolean): Promise<S
       id,
       action: isLive ? 'admin.trick_publish' : 'admin.trick_hide',
       patch: { is_live: isLive },
+    });
+  } catch (error) {
+    return refusal(error, 'That did not save. Try again in a moment.');
+  }
+
+  revalidateContent(ROUTES.adminTricks, ROUTES.library);
+  return { ok: true };
+}
+
+/**
+ * Switch a trick's tutorial off, or back on.
+ *
+ * The trick page renders no panel for a hidden video, which is the same page a
+ * trick with no video shows — so this is a complete removal from a rider's
+ * point of view, and reversible in one click, which clearing the link would not
+ * be. The nightly liveness check writes the same column when YouTube stops
+ * serving a video (`pnpm --filter @landit/db video:check`).
+ *
+ * Un-hiding clears `video_off_reason` in the tricks hook, not here: a staff
+ * member putting a video back has answered whatever the job objected to, and
+ * the guarantee belongs at the model layer where a superuser token meets it too.
+ */
+export async function setTrickVideoHiddenAction(
+  id: string,
+  hidden: boolean,
+): Promise<StaffWriteResult> {
+  const staff = await requireStaff();
+
+  try {
+    await applyStaffChange(staff.superuser, {
+      actor: staff.actor,
+      collection: 'tricks',
+      id,
+      action: hidden ? 'admin.trick_video_hide' : 'admin.trick_video_show',
+      patch: { video_hidden: hidden },
+    });
+  } catch (error) {
+    return refusal(error, 'That did not save. Try again in a moment.');
+  }
+
+  revalidateContent(ROUTES.adminTricks, ROUTES.library);
+  return { ok: true };
+}
+
+/**
+ * Confirm an automatically-picked tutorial as watched and correct.
+ *
+ * The curation pass matched videos by title and channel without anybody
+ * watching them (Rachid, 2026-09-13, in chat), so `video_source = 'auto'` means
+ * "nobody has laid eyes on this". This is the button that says somebody has.
+ * It exists separately from the editor because confirming a pick *as it stands*
+ * changes no field the editor writes, and a save that changed nothing could not
+ * be told apart from a save that skipped the video entirely.
+ */
+export async function markTrickVideoCheckedAction(id: string): Promise<StaffWriteResult> {
+  const staff = await requireStaff();
+
+  try {
+    await applyStaffChange(staff.superuser, {
+      actor: staff.actor,
+      collection: 'tricks',
+      id,
+      action: 'admin.trick_video_checked',
+      patch: { video_source: 'staff' as const },
     });
   } catch (error) {
     return refusal(error, 'That did not save. Try again in a moment.');
