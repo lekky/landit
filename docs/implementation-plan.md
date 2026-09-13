@@ -4216,6 +4216,32 @@ name appears on both tabs**, that Not yet caps the trick shelf at six while its 
 them all, and that "Show all" restores the full shelf and removes itself. The specs that want the locked half now ask for it through `showWholeWall` — without that
 they would assert over an empty collection and pass by finding nothing (LESSONS §5).
 
+**T34 · Closing an account gets a page of its own.** Added after launch (Rachid, 2026-09-12, in
+chat), from looking at the shipped `/account`: "the *Close your account* bit is a bit too
+in-your-face". T18 put the control on that screen as a panel between the profile editor and the
+sign-out row — a label, two paragraphs about erasure being irreversible, and a button — so every
+rider who came to change their stance scrolled through the end of their account to get past it.
+It is `/account/close` now, and what is left behind is a line of text in the "Your data" panel:
+*Done with Land The Trick? Closing your account.*
+
+- **Hidden is not gone, and the distance between the two is the whole design.** UK GDPR wants
+  erasure reachable. Three things keep it so: `/account` still links it, under the heading a rider
+  looking for it would look under; the privacy policy's "Getting your data or deleting it" now says
+  in plain words that the account page carries both controls; and `account_close_opened` counts
+  arrivals, so "nobody wants to leave" can be told apart from "nobody can find the door". A session
+  that wants to make this quieter still needs to keep all three.
+- **The export stayed on `/account`.** Taking a copy of your own tricks is an ordinary thing to
+  want, and only the ending was too loud. The two halves of the privacy policy's promise are now on
+  two screens, which the closing page answers by linking back for the download it tells a rider to
+  take first.
+- **Not a second settings screen**, which T23 above rules out for good reasons. Nothing is
+  *configured* at `/account/close`; it is one irreversible action, taken once, with the
+  consequences it carries printed above it. The copy is T18's, moved unchanged — it was never the
+  words that were too loud.
+- **What deletion means is untouched.** Anonymise-and-retain (2026-08-17, above),
+  `pocketbase/hooks/lib/erasure.js`, and both confirmations including the server-checked password.
+  This task moved a screen.
+
 ### Dependency graph
 
 ```
