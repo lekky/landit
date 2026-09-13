@@ -1060,3 +1060,60 @@
   flex: 1;
   min-width: 220px;
 }
+
+/*
+ * The Video checks table — four columns, pinned for the same reason the trick
+ * table's seven are (see `.trickRow` above): `.arow`'s flex negotiates widths
+ * per row, and the Result cell holds anything from a bare em dash to "2
+ * switched off, 3 back on", so an un-pinned table would step in and out on
+ * every line.
+ *
+ * **Doubled selector on purpose**, exactly as `.trickRow.trickRow`: `.arow` and
+ * a module class are both one class, so which wins would otherwise come down to
+ * stylesheet injection order.
+ *
+ * Below 900px it drops to `.cardRow`'s labelled cards, like every other table
+ * in the portal.
+ */
+@media (min-width: 900px) {
+  .checkRow.checkRow {
+    display: grid;
+    grid-template-columns:
+      minmax(150px, 1fr) /* ran */
+      minmax(120px, 0.7fr) /* checked */
+      minmax(170px, 1.1fr) /* result */
+      120px; /* detail */
+    align-items: center;
+  }
+}
+
+/*
+ * Why a run did not finish, under its own row.
+ *
+ * Full width rather than in the Result cell: it is a sentence from YouTube ("
+ * answered 403; nothing was checked or changed"), and a sentence in a 170px
+ * column is four words a line.
+ */
+.checkNote {
+  margin: 0;
+  padding: 8px 14px 12px;
+  font-size: 13px;
+  color: var(--red);
+}
+
+/* The expanded detail: one line per video the run touched. */
+.checkChanges {
+  margin: 0;
+  padding: 4px 14px 14px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkChange {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}

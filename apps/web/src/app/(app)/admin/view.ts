@@ -680,3 +680,35 @@ export interface AdminReportRow {
   readonly filed: string;
   readonly updated: string;
 }
+
+/**
+ * One night of the tutorial check, as the Video checks tab reads it (#463).
+ *
+ * A run row rather than a change row, which is the point of the screen: the
+ * boring "No changes" nights are what make a *missing* night visible, and a
+ * missing night is the failure staff cannot otherwise see. See
+ * `pocketbase/migrations/1789516800_video_check_runs.js`.
+ *
+ * Nothing here is a rider's. Every field is a catalogue fact about a video.
+ */
+export interface AdminVideoCheckRow {
+  readonly id: string;
+  readonly ran: string;
+  readonly checked: number;
+  readonly hidden: number;
+  readonly restored: number;
+  /** "2 switched off, 1 back on", or "No changes". */
+  readonly summary: string;
+  readonly changes: readonly AdminVideoCheckChange[];
+  /** Set when the run could not finish — a quota refusal, a batch that failed. */
+  readonly note: string;
+}
+
+export interface AdminVideoCheckChange {
+  readonly slug: string;
+  readonly name: string;
+  readonly videoId: string;
+  readonly action: 'off' | 'back';
+  /** Why it was switched off. Empty for one put back. */
+  readonly reason: string;
+}

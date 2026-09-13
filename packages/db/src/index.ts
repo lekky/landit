@@ -198,6 +198,7 @@ export {
   listReports,
   listStaffAudit,
   listSuggestions,
+  listVideoCheckRunsPage,
   relationCountsFor,
   reportCounts,
   spotCounts,
@@ -251,3 +252,12 @@ export {
   type SpotPage,
   type SpotPoint,
 } from './spots';
+
+export {
+  describeVideoCheckRun,
+  videoCheckLogEntry,
+  videoCheckRunRow,
+  type VideoCheckAction,
+  type VideoCheckLogEntry,
+  type VideoCheckRunRow,
+} from './video-check-log';
