@@ -9,7 +9,13 @@ import {
   type PlanId,
   type UpgradeRoute,
 } from '@landit/core';
-import type { PlansRecord } from '@landit/db';
+import {
+  sessionAllowanceFromRecord,
+  sessionClipAllowanceFromRecord,
+  type PlansRecord,
+} from '@landit/db';
+
+import { sessionPlanComparison, type SessionPlanComparison } from '@/lib/sessionPlanRows';
 
 /**
  * The plans page's data, shaped on the server (screenshot 20, plan §2.4).
@@ -63,6 +69,11 @@ export interface PlansView {
   /** Whether there is a subscription to manage. */
   readonly hasSubscription: boolean;
   readonly currentPlanSlug: string;
+  /**
+   * "What each plan logs" (T40). Resolved here from the same records as the
+   * cards, so the session allowances on the page are the ones on the records.
+   */
+  readonly sessions: SessionPlanComparison;
 }
 
 /** A `perks`/`missing` JSON column, which PocketBase hands back as `unknown`. */
@@ -154,5 +165,20 @@ export function buildPlansView(input: {
     pricesAreForeign: pricesAreForeignTo(input.country),
     hasSubscription: input.hasSubscription,
     currentPlanSlug: input.currentPlanSlug,
+    // The monthly price only, whatever the toggle says: the comparison is about
+    // what a plan logs, and "/ mo" is the design's head for every paid column.
+    sessions: sessionPlanComparison(
+      input.plans.map((record, i) => {
+        const card = cards[i]!;
+        return {
+          slug: card.slug,
+          name: card.name,
+          hue: card.hue,
+          price: card.paid ? `${card.price.monthly} / mo` : card.price.monthly,
+          sessions: sessionAllowanceFromRecord(record),
+          clips: sessionClipAllowanceFromRecord(record),
+        };
+      }),
+    ),
   };
 }

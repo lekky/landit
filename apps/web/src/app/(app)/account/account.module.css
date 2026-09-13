@@ -205,6 +205,142 @@
   font-size: 13.5px;
 }
 
+/* --------------------------------------- who sees new sessions (T40) ------- */
+
+/*
+ * "Settings · sessions" in screenshots 1g and 2e of the session-tracking
+ * handoff. The selected choice takes `--yellow`, as the design has it. The
+ * radio's ring and dot are the one round thing on the screen, because they are
+ * the design's and a radio is read by its shape. `#e4dcc8` is the handoff's
+ * rule colour, which has no token.
+ */
+
+.sessionVis {
+  padding: 13px 14px;
+  margin-top: 22px;
+}
+
+.sessionVisForm {
+  margin-top: 9px;
+}
+
+.sessionVisOptions {
+  display: grid;
+  gap: 7px;
+}
+
+.sessionVisOption {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 10px 11px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.sessionVisOption:has(input:checked) {
+  background: var(--yellow);
+}
+
+.sessionVisOption:has(input:focus-visible) {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Hover only where there is a pointer that hovers, so a tap leaves no tint. */
+@media (hover: hover) {
+  .sessionVisOption:hover {
+    background: var(--paper-2);
+  }
+
+  .sessionVisOption:has(input:checked):hover {
+    background: var(--yellow);
+  }
+}
+
+/*
+ * The native radio stays in the tree for keyboards and screen readers, laid
+ * invisibly over the whole choice so a tap anywhere on it lands on the input
+ * itself rather than on a 1px box in the corner.
+ */
+.sessionVisInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.sessionVisDot {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-top: 2px;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+.sessionVisDot::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.sessionVisOption:has(input:checked) .sessionVisDot::after {
+  background: var(--ink);
+}
+
+.sessionVisLabel {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+}
+
+.sessionVisBlurb {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--ink-2);
+}
+
+.sessionVisNote {
+  margin: 12px 0 0;
+  padding-top: 11px;
+  border-top: 2.5px solid #e4dcc8;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.sessionVisActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+@media (pointer: coarse) {
+  .sessionVisSave {
+    min-height: 44px;
+  }
+}
+
 .profileLinks {
   display: flex;
   gap: 10px;

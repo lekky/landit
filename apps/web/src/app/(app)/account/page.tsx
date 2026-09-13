@@ -1,6 +1,7 @@
 import {
   countryName,
   isConsentLimited,
+  sessionVisibilityDefault,
   type ConsentState,
   type LevelId,
   type PrivacyId,
@@ -24,6 +25,7 @@ import { DataPanel } from './DataPanel';
 import { GuardianPanel } from './GuardianPanel';
 import { PrivacyPanel } from './PrivacyPanel';
 import { ProfilePanel } from './ProfilePanel';
+import { SessionVisibilityPanel } from './SessionVisibilityPanel';
 
 export const metadata: Metadata = {
   title: 'Your account · Land The Trick',
@@ -102,6 +104,14 @@ export default async function AccountPage() {
         into a setting nobody consented to rather than one they were handed.
       */}
       <PrivacyPanel value={(rider.privacy || 'private') as PrivacyId} />
+
+      {/*
+        Who sees new sessions (T40). Beside the profile control because it is
+        the same kind of choice, and under it because a session is never more
+        visible than the profile it belongs to. `sessionVisibilityDefault`
+        reads an unset field as `private` (D2).
+      */}
+      <SessionVisibilityPanel value={sessionVisibilityDefault(rider.session_visibility_default)} />
 
       {/*
        * A theme picker sat here from 2026-09-01 until 2026-09-04, offering

@@ -102,6 +102,7 @@ export type RequestName =
   | 'event_attendance'
   /* ------------------------------------------------------- account -- */
   | 'profile_save'
+  | 'session_visibility_default'
   | 'crew_invite'
   /* --------------------------------------------------------- staff -- */
   | 'admin_save'
