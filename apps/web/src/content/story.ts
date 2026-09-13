@@ -16,7 +16,7 @@
  *
  * **What is deliberately not here**, agreed with the owner before it was
  * written (Rachid, 2026-09-04, in chat): no surname, no school, no home area,
- * no sister's name, and no home park beyond Greystone in Manchester, which is
+ * no sister's name, and no home park beyond Graystone in Manchester, which is
  * a public indoor park and a destination, not an address. A story page on a
  * product used by children is exactly the page where an identifying detail
  * would get added without anybody meaning to. If a future session adds a fact
@@ -25,8 +25,22 @@
  * **The ramp photos are the rider's own garden.** They were cleared on the same
  * basis: a hedge, some grass and a basketball hoop say nothing about where it
  * is. Do not replace them with a shot that has a house number, a street or a
- * school uniform in it. The two Greystone photos were cleared the same way:
+ * school uniform in it. The two Graystone photos were cleared the same way:
  * a public park, no uniform, and no other child's face turned to the camera.
+ *
+ * **The park is Graystone, with an `a`.** It read "Greystone" everywhere on
+ * this page until 2026-09-13. That is a real business with a real name, and
+ * `../../../../packages/core/src/data/spots.ts` has always had it right as
+ * "Graystone Action Sports", so the page was the only thing spelling a
+ * partner's name wrong. Correcting a proper noun is not tidying the
+ * transcription: a spoken word has no spelling, and the misspelling was
+ * introduced in the edit rather than said.
+ *
+ * **The photo `id`s and filenames still say `greystone`**, deliberately. The
+ * ids are what `story_photo_opened` sends, so renaming them would split one
+ * photo's analytics across two names for no reader-visible gain, and the
+ * filenames are paths nobody reads. Neither is prose. If they are ever renamed
+ * it wants doing as its own change, with the event history in mind.
  *
  * This is not the same page as `/legal/about`, which is the factual one: what
  * the product is, what pays to keep it running, who to email. That page
@@ -131,19 +145,19 @@ export const STORY: readonly StoryChapter[] = [
         items: [
           {
             id: 'greystone-riding',
-            label: 'Riding at Greystone',
+            label: 'Riding at Graystone',
             src: '/story/greystone-riding.jpg',
-            alt: 'Miles riding his scooter down a concrete transition at Greystone indoor park',
-            caption: 'Greystone, in Manchester.',
+            alt: 'Miles riding his scooter down a concrete transition at Graystone indoor park',
+            caption: 'Graystone, in Manchester.',
             width: 901,
             height: 1600,
           },
           {
             id: 'greystone-tee',
-            label: 'Greystone',
+            label: 'Graystone',
             src: '/story/greystone-tee.jpg',
-            alt: 'Miles seen from behind on his scooter at Greystone, wearing a Land The Trick t-shirt',
-            caption: 'Greystone again, in a Land The Trick t-shirt.',
+            alt: 'Miles seen from behind on his scooter at Graystone, wearing a Land The Trick t-shirt',
+            caption: 'Graystone again, in a Land The Trick t-shirt.',
             width: 901,
             height: 1600,
           },
@@ -160,7 +174,7 @@ export const STORY: readonly StoryChapter[] = [
       },
       {
         kind: 'p',
-        text: 'Then I found Greystone, in Manchester. I only found it because I wanted to skateboard and my sister wanted to do gymnastics, and Greystone did both, so it was the one place that worked for the two of us.',
+        text: 'Then I found Graystone, in Manchester. I only found it because I wanted to skateboard and my sister wanted to do gymnastics, and Graystone did both, so it was the one place that worked for the two of us.',
       },
       {
         kind: 'p',
@@ -185,7 +199,7 @@ export const STORY: readonly StoryChapter[] = [
     blocks: [
       {
         kind: 'p',
-        text: 'I couldn’t keep going to Greystone all the time. You can’t go every day. It’s quite expensive, and my parents aren’t free to take me every day anyway.',
+        text: 'I couldn’t keep going to Graystone all the time. You can’t go every day. It’s quite expensive, and my parents aren’t free to take me every day anyway.',
       },
       {
         kind: 'p',
