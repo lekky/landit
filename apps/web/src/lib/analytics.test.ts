@@ -222,6 +222,10 @@ describe('the event catalogue', () => {
         // `failed` only, because a success redirects to a signed-out home.
         'account_close_opened',
         'account_closed',
+        // The archive's year-and-town index was worked rather than scrolled
+        // past (2026-09-13). Carries `step` only — `'year'` or `'towns'` —
+        // because the corner a rider lands on is already a page load.
+        'archive_index_used',
         // A refused sign-up, sign-in, reset or confirmation (#370): which form
         // and a fixed reason. Never the address, never PocketBase's message.
         'auth_refused',

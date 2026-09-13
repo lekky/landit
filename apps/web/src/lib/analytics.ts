@@ -350,6 +350,23 @@ export const ANALYTICS_EVENTS = {
    */
   eventsCountryDefaulted: 'events_country_defaulted',
   /**
+   * The archive's "Browse by year and town" index was worked, rather than
+   * scrolled past.
+   *
+   * Carries `step`, one of two fixed strings chosen here: `'year'` when a
+   * different year was picked, `'towns'` when a year's town list was opened
+   * past its cap with "All N towns". Never the year, never the town, never how
+   * many corners the reader saw — the corner a rider actually lands on is
+   * already a page load, and this is only about the index that offered it.
+   *
+   * It exists because the panel is now two steps and a cap of twelve, and both
+   * numbers are guesses. If `'towns'` is pressed on most visits the cap is too
+   * tight and the panel should open longer; if neither step is ever used, the
+   * index is furniture and the archive is reached from search, which is the
+   * same finding `events_view_switched` is watching for from the other side.
+   */
+  archiveIndexUsed: 'archive_index_used',
+  /**
    * A glossary term was reached — by a deep link into `/glossary#term`, or by
    * following one of a term's "See it in" pills to a trick (T29).
    *

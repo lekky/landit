@@ -527,9 +527,13 @@
   align-items: center;
 }
 
-.archiveYear {
+/* The step's name — "Year", "Town", or the year itself on a single-year
+   archive. It sits on its own line above the pills rather than inline with
+   them: a label in the same wrapping row only labels the pills that happen to
+   land beside it, and a year of sixty-two towns wraps far past that. */
+.archiveStep {
+  flex: 1 0 100%;
   color: var(--paper-2);
-  min-width: 3.2rem;
 }
 
 /* `.pill` is styled for a paper ground; on ink it needs its own keyline and
@@ -546,12 +550,50 @@
 
 .archivePill:hover {
   color: var(--ink);
+  background: var(--paper-2);
+}
+
+/* Selected — the year being shown, or the corner this page *is*.
+   `.pill.on` fills with `--ink` and keeps its `--ink` keyline, which on a paper
+   ground is the design's inversion and on this panel is a pill that vanishes
+   into the background it sits on. Yellow is the inversion that survives the
+   dark ground, and it is why hover above is the quieter `--paper-2`: on one
+   panel, one colour can only mean one thing.
+
+   The selectors are this long for one reason. `additions.css` carries
+   `a.pill.on { color: var(--paper) }`, to stop a selected link inheriting the
+   orange `a` colour, and it beat a plain two-class rule here — which is how the
+   selected town first came out white on yellow. Adding `a.` only draws level
+   with it and leaves the answer to which stylesheet the bundler happens to
+   write last; `.archive` in front wins outright, whatever the order. */
+.archive .archivePill.on,
+.archive .archivePill.on:hover,
+.archive a.archivePill.on,
+.archive a.archivePill.on:hover {
   background: var(--yellow);
+  color: var(--ink);
 }
 
 .archiveCount {
   color: var(--ink-3);
   font-size: 11px;
+}
+
+/* What the index is not showing: the years other than the chosen one, and the
+   towns past a year's cap before "All N towns" is pressed.
+
+   **Hidden rather than unrendered.** Every corner `sitemap.ts` advertises stays
+   a link in the markup, so a crawler is offered exactly what it was before the
+   panel learned to fold. `display: none` also takes them out of the tab order
+   and the accessibility tree, so nobody meets a pill they cannot see.
+
+   Both are scoped under `.archive` deliberately. `.archivePill` sets
+   `display: inline-flex`, so a bare single-class rule here would tie with it
+   and be settled by whichever is written last — which is how the first attempt
+   at this hid nothing at all. The extra class wins outright. */
+.archive .archiveOther,
+.archive .archiveOver {
+  display: none;
 }
 
 /* -------------------------------------------- an empty corner ------------
