@@ -25,8 +25,31 @@ design pack.
 | **Kicker** | Optional. One line under the block. |
 | **URL bar** | `landthetrick.com`, or a deeper path where one fits. |
 
-A session writes those five slots and a caption. It writes **no styling**: the style is carried
-by attaching past posts to ChatGPT as references.
+## What a session hands over
+
+Four things, and the post is not handed over until all four are there. A session that stops at the
+slots has handed over something nobody can render (Rachid, 2026-09-13, in chat).
+
+1. **The five slots**, as above.
+2. **A caption per channel** — Facebook long, Instagram medium, TikTok short with hashtags. They
+   are written separately, not one caption trimmed three ways.
+3. **The alt text** for the finished poster, written from the slots. Every post on the accounts
+   carries it and it is the session, not the owner, that has the copy in front of it.
+4. **The ChatGPT render prompt**, ready to paste, naming which past posters to attach.
+
+A session invents **no styling**: it never designs a new visual language, and the one that exists
+is carried by attaching past posts to ChatGPT as references. But the prompt must still *describe*
+the house style back, because a reference image alone drifts — so the session opens the posters it
+is attaching, looks at them, and writes what it sees. Blind prompts reach for the app's design
+tokens in `design-handoff/`, which are **not** the poster style: the app is flat panels, hard
+offset shadows and Anton caps; the posters are brush script, paint splatter, cut-out riders and a
+palm-tree skyline. They have never matched, and they are not meant to.
+
+The prompt ends by listing the text verbatim with "reproduce these exactly, no rewording, no
+invented statistics" — a render left to its own devices will cheerfully put a number on a poster.
+
+Where the plate carries an AI-painted rider, which the house style does, the Instagram post is sent
+with `isAiGenerated: true`.
 
 ## The types
 
