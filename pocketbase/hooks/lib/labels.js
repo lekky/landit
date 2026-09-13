@@ -107,6 +107,52 @@ const CONSENT_LABELS = {
   revoked: 'Withdrawn by a guardian',
 };
 
+/** `packages/core/src/data/sessions.ts` (T36). */
+const SESSION_FEEL_LABELS = {
+  sent: 'Sent it',
+  good: 'Good',
+  fine: 'Fine',
+  rough: 'Rough',
+  hurt: 'Hurt',
+};
+
+/** `packages/core/src/data/sessions.ts`. */
+const SESSION_WEATHER_LABELS = {
+  sun: 'Sun',
+  cloud: 'Cloud',
+  rain: 'Rain',
+  wind: 'Wind',
+  cold: 'Cold',
+};
+
+/**
+ * `packages/core/src/data/sessions.ts`. Keyed by the minutes as a string,
+ * because that is what `labelFor` looks up.
+ */
+const SESSION_DURATION_LABELS = {
+  30: '30m',
+  60: '1h',
+  120: '2h',
+  180: '3h+',
+};
+
+/**
+ * `packages/core/src/data/sessions.ts`. **Not** `PRIVACY_LABELS`: on a session
+ * `members` reaches crew-mates, so the word is "Crew", not "Riders only".
+ */
+const SESSION_VISIBILITY_LABELS = {
+  public: 'Public',
+  members: 'Crew',
+  private: 'Only me',
+};
+
+/** `packages/core/src/data/sessions.ts`. */
+const CLIP_PLATFORM_LABELS = {
+  youtube: 'YouTube',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+};
+
 /**
  * The word for a stored code, or the code itself.
  *
@@ -151,8 +197,13 @@ function readableDate(raw) {
 
 module.exports = {
   AGE_BAND_LABELS,
+  CLIP_PLATFORM_LABELS,
   CONSENT_LABELS,
   HEARD_ABOUT_LABELS,
+  SESSION_DURATION_LABELS,
+  SESSION_FEEL_LABELS,
+  SESSION_VISIBILITY_LABELS,
+  SESSION_WEATHER_LABELS,
   GOAL_LABELS,
   LEVEL_LABELS,
   PRIVACY_LABELS,

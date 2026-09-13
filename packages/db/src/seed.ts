@@ -178,6 +178,14 @@ export function buildSeed(): SeedPlan {
           // an entitlement nobody set.
           video_link_cap: plan.videoLinkCap,
           video_links_unlimited: plan.videoLinksUnlimited,
+          // Sessions (T36, D5/D6): the monthly session allowance and the
+          // session clip allowance, from `@landit/core`. Absent on a plan
+          // literal reads as zero — the fail-closed direction.
+          // `1789603200_sessions.js` writes the same values onto existing rows.
+          session_month_cap: plan.sessionMonthCap ?? 0,
+          sessions_unlimited: plan.sessionsUnlimited === true,
+          session_clip_cap: plan.sessionClipCap ?? 0,
+          session_clips_unlimited: plan.sessionClipsUnlimited === true,
           is_live: true,
         })),
       },

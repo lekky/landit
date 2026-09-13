@@ -184,6 +184,45 @@ export const ICONS = {
    * `ico: 'placeholder'` on the record instead, and the gap is visible on the
    * wall until someone fills it.
    */
+  /*
+   * Seven glyphs the session-tracking handoff names as coming from this map,
+   * which it did not have (T36). Drawn on the same 24px grid for the same 2.2
+   * round stroke. `trash` is the prototype's own delete path, verbatim.
+   * `chevron` points down; turn it with CSS (`rotate(180deg)` for up,
+   * `rotate(-90deg)` for right) rather than adding three more.
+   */
+  eye: (
+    <g>
+      <path d="M2.5 12c2.4-4.3 5.6-6.5 9.5-6.5s7.1 2.2 9.5 6.5c-2.4 4.3-5.6 6.5-9.5 6.5S4.9 16.3 2.5 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </g>
+  ),
+  pencil: (
+    <g>
+      <path d="M4 20l1-4.5L16 4.5l3.5 3.5L8.5 19z" />
+      <path d="M13.5 7l3.5 3.5" />
+    </g>
+  ),
+  trash: <path d="M4 7h16M9 7V4h6v3M6.5 7l1 14h9l1-14" />,
+  clock: (
+    <g>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </g>
+  ),
+  chevron: <path d="M6 9l6 6 6-6" />,
+  'arrow-left': (
+    <g>
+      <path d="M20 12H4" />
+      <path d="M10 6l-6 6 6 6" />
+    </g>
+  ),
+  'arrow-right': (
+    <g>
+      <path d="M4 12h16" />
+      <path d="M14 6l6 6-6 6" />
+    </g>
+  ),
   placeholder: (
     <g>
       <rect x="3.5" y="3.5" width="17" height="17" />

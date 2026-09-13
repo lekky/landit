@@ -1,5 +1,6 @@
+import { ROOKIE_SESSIONS_PER_MONTH, SHREDDER_SESSION_CLIP_CAP } from '../rules/sessions';
 import { SHREDDER_VIDEO_LINK_CAP, videoLinkAllowanceLabel } from '../rules/video';
-import type { Plan, PlanId, VideoLinkAllowance } from '../types';
+import type { Plan, PlanId, SessionAllowance, VideoLinkAllowance } from '../types';
 
 /** One gigabyte. Only `clipCapBytes` uses it, and that field is dormant — see below. */
 const GB = 1024 * 1024 * 1024;
@@ -111,6 +112,34 @@ const VIDEO_LINKS = {
   legend: { cap: 0, unlimited: true },
 } as const satisfies Record<PlanId, VideoLinkAllowance>;
 
+/**
+ * Sessions (T36): how many a plan logs in a calendar month, and how many
+ * session clip links it holds. Owner's decisions D5 and D6 (Rachid, 2026-09-13,
+ * in chat), with the paid tiers' numbers read off screenshots 1g and 2e of the
+ * session-tracking handoff.
+ *
+ * - **Sessions a month**: Rookie four (the owner's), Shredder and Legend
+ *   unlimited (both screenshots: "Unlimited").
+ * - **Session clip links**: Rookie none (the owner's), Legend unlimited (the
+ *   screenshots: "Unlimited video links"), Shredder `SHREDDER_SESSION_CLIP_CAP`
+ *   — **a tunable default**, because the screenshots give Shredder no number.
+ *
+ * Deliberately **not** in `perks` yet. The plan cards render their perk lines
+ * from these fields in T40, which owns that copy; putting a sessions line on a
+ * card before the screens exist would advertise a feature nobody can reach.
+ */
+const SESSIONS = {
+  rookie: { cap: ROOKIE_SESSIONS_PER_MONTH, unlimited: false },
+  shredder: { cap: 0, unlimited: true },
+  legend: { cap: 0, unlimited: true },
+} as const satisfies Record<PlanId, SessionAllowance>;
+
+const SESSION_CLIPS = {
+  rookie: { cap: 0, unlimited: false },
+  shredder: { cap: SHREDDER_SESSION_CLIP_CAP, unlimited: false },
+  legend: { cap: 0, unlimited: true },
+} as const satisfies Record<PlanId, SessionAllowance>;
+
 export const PLANS = [
   {
     id: 'rookie',
@@ -152,6 +181,10 @@ export const PLANS = [
     includesFlair: false,
     videoLinkCap: VIDEO_LINKS.rookie.cap,
     videoLinksUnlimited: VIDEO_LINKS.rookie.unlimited,
+    sessionMonthCap: SESSIONS.rookie.cap,
+    sessionsUnlimited: SESSIONS.rookie.unlimited,
+    sessionClipCap: SESSION_CLIPS.rookie.cap,
+    sessionClipsUnlimited: SESSION_CLIPS.rookie.unlimited,
   },
   {
     id: 'shredder',
@@ -176,6 +209,10 @@ export const PLANS = [
     includesFlair: false,
     videoLinkCap: VIDEO_LINKS.shredder.cap,
     videoLinksUnlimited: VIDEO_LINKS.shredder.unlimited,
+    sessionMonthCap: SESSIONS.shredder.cap,
+    sessionsUnlimited: SESSIONS.shredder.unlimited,
+    sessionClipCap: SESSION_CLIPS.shredder.cap,
+    sessionClipsUnlimited: SESSION_CLIPS.shredder.unlimited,
   },
   {
     id: 'legend',
@@ -208,6 +245,10 @@ export const PLANS = [
     includesFlair: true,
     videoLinkCap: VIDEO_LINKS.legend.cap,
     videoLinksUnlimited: VIDEO_LINKS.legend.unlimited,
+    sessionMonthCap: SESSIONS.legend.cap,
+    sessionsUnlimited: SESSIONS.legend.unlimited,
+    sessionClipCap: SESSION_CLIPS.legend.cap,
+    sessionClipsUnlimited: SESSION_CLIPS.legend.unlimited,
   },
 ] as const satisfies readonly Plan[];
 

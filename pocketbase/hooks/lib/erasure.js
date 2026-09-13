@@ -65,6 +65,14 @@ const OWN_COLLECTIONS = [
   'event_attendance',
   'announcement_dismissals',
   'spot_favourites',
+  // T36. A session records where and when a rider rode (plan §1 D1), which is
+  // exactly the kind of row erasure exists to take. The trick entries are
+  // listed before the sessions they cascade from, so the loop below counts
+  // them rather than finding them already gone; the grace row goes too, since
+  // the account it was spent on no longer exists to spend it again.
+  'session_tricks',
+  'sessions',
+  'session_grace',
 ];
 
 /**
@@ -427,6 +435,57 @@ function exportFor(app, rider) {
     // every favouritable spot is live, or is the rider's own submission.
     spot_favourites: rows('spot_favourites', (row) => ({
       spot: nameOf('spots', row.getString('spot')),
+      created: on(row, 'created'),
+    })),
+    // T36. A session is where and when a rider rode (plan §1 D1), so every
+    // field of it is held about them and belongs in the download, in words.
+    // "Rode with" is a **count**, not a list of names: the handles are other
+    // riders' data, and a subject access request is not a way to read another
+    // rider's profile. The clip is spelled out as the link it was rebuilt from,
+    // for the reason `clips` rows carry `video_url`.
+    sessions: rows('sessions', (row) => {
+      const clipId = row.getString('clip_id');
+      const platform = row.getString('clip_platform');
+      let clipUrl = '';
+      if (clipId && platform === 'youtube') clipUrl = 'https://www.youtube.com/watch?v=' + clipId;
+      if (clipId && platform === 'instagram')
+        clipUrl = 'https://www.instagram.com/p/' + clipId + '/';
+      if (clipId && platform === 'tiktok') clipUrl = 'https://www.tiktok.com/embed/v2/' + clipId;
+      return {
+        started_at: on(row, 'started_at'),
+        duration: labels.labelFor(labels.SESSION_DURATION_LABELS, row.getInt('duration_minutes')),
+        sport: labels.labelFor(labels.SPORT_LABELS, row.getString('sport')),
+        spot: nameOf('spots', row.getString('spot')),
+        event: nameOf('events', row.getString('event')),
+        aim: row.getString('aim'),
+        feel: labels.labelFor(labels.SESSION_FEEL_LABELS, row.getString('feel')),
+        weather: labels.labelFor(labels.SESSION_WEATHER_LABELS, row.getString('weather')),
+        notes: row.getString('notes'),
+        rode_with_count: (row.getStringSlice('rode_with') || []).length,
+        clip_platform: labels.labelFor(labels.CLIP_PLATFORM_LABELS, platform),
+        clip_url: clipUrl,
+        visibility: labels.labelFor(labels.SESSION_VISIBILITY_LABELS, row.getString('visibility')),
+        month_logged: row.getString('month_key'),
+        saved_with_grace: row.getBool('grace'),
+        created: on(row, 'created'),
+      };
+    }),
+    session_tricks: rows('session_tricks', (row) => ({
+      trick: trickOf(row),
+      session_started_at: (() => {
+        try {
+          return on(app.findRecordById('sessions', row.getString('session')), 'started_at');
+        } catch {
+          return '';
+        }
+      })(),
+      landed: row.getBool('landed'),
+      stage_from: labels.labelFor(labels.STAGE_LABELS, row.getString('stage_from')),
+      stage_to: labels.labelFor(labels.STAGE_LABELS, row.getString('stage_to')),
+      created: on(row, 'created'),
+    })),
+    session_grace: rows('session_grace', (row) => ({
+      month: row.getString('month_key'),
       created: on(row, 'created'),
     })),
     subscriptions: rows('subscriptions', (row) => ({

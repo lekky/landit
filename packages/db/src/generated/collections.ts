@@ -27,6 +27,9 @@ export type CollectionName =
   | 'plans'
   | 'reports'
   | 'rider_stickers'
+  | 'session_grace'
+  | 'session_tricks'
+  | 'sessions'
   | 'spot_favourites'
   | 'spots'
   | 'stickers'
@@ -53,6 +56,13 @@ export type GuardianConsentsMethod = 'email_approval';
 export type ReportsReason = 'harassment' | 'unsafe' | 'illegal' | 'sexual' | 'self_harm' | 'spam' | 'other';
 export type ReportsStatus = 'open' | 'reviewing' | 'actioned' | 'dismissed';
 export type ReportsSubjectType = 'profile' | 'clip' | 'spot' | 'event' | 'other';
+export type SessionsClipPlatform = 'youtube' | 'instagram' | 'tiktok';
+export type SessionsFeel = 'sent' | 'good' | 'fine' | 'rough' | 'hurt';
+export type SessionsSport = 'scooter' | 'skate' | 'bmx';
+export type SessionsVisibility = 'public' | 'members' | 'private';
+export type SessionsWeather = 'sun' | 'cloud' | 'rain' | 'wind' | 'cold';
+export type SessionTricksStageFrom = 'want' | 'trying' | 'some' | 'most' | 'every';
+export type SessionTricksStageTo = 'want' | 'trying' | 'some' | 'most' | 'every';
 export type SpotsOperating = 'open' | 'closed' | 'unknown';
 export type SpotsSports = 'scooter' | 'skate' | 'bmx';
 export type SpotsStatus = 'pending' | 'live' | 'rejected';
@@ -76,6 +86,7 @@ export type UsersLevel = 'new' | 'some' | 'solid' | 'send';
 export type UsersPlan = 'rookie' | 'shredder' | 'legend';
 export type UsersPrivacy = 'public' | 'members' | 'private';
 export type UsersRole = 'rider' | 'staff';
+export type UsersSessionVisibilityDefault = 'public' | 'members' | 'private';
 export type UsersSports = 'scooter' | 'skate' | 'bmx';
 export type UsersStance = 'regular' | 'goofy' | 'switch';
 
@@ -463,6 +474,10 @@ export interface PlansRecord {
   includes_flair: boolean;
   video_link_cap: number;
   video_links_unlimited: boolean;
+  session_month_cap: number;
+  sessions_unlimited: boolean;
+  session_clip_cap: number;
+  session_clips_unlimited: boolean;
 }
 
 /** The shape accepted when creating a `plans` record. */
@@ -485,6 +500,10 @@ export interface PlansCreate {
   includes_flair?: boolean;
   video_link_cap?: number;
   video_links_unlimited?: boolean;
+  session_month_cap?: number;
+  sessions_unlimited?: boolean;
+  session_clip_cap?: number;
+  session_clips_unlimited?: boolean;
 }
 
 /** The shape accepted when updating a `plans` record. */
@@ -549,6 +568,106 @@ export interface RiderStickersCreate {
 
 /** The shape accepted when updating a `rider_stickers` record. */
 export type RiderStickersUpdate = Partial<RiderStickersCreate>;
+
+/** A `session_grace` record as PocketBase returns it. */
+export interface SessionGraceRecord {
+  collectionId: string;
+  collectionName: string;
+  id: string;
+  user: string;
+  session: string;
+  month_key: string;
+  created: string;
+}
+
+/** The shape accepted when creating a `session_grace` record. */
+export interface SessionGraceCreate {
+  id?: string;
+  user: string;
+  session?: string;
+  month_key?: string;
+}
+
+/** The shape accepted when updating a `session_grace` record. */
+export type SessionGraceUpdate = Partial<SessionGraceCreate>;
+
+/** A `session_tricks` record as PocketBase returns it. */
+export interface SessionTricksRecord {
+  collectionId: string;
+  collectionName: string;
+  id: string;
+  session: string;
+  user: string;
+  trick: string;
+  landed: boolean;
+  stage_from: SessionTricksStageFrom;
+  stage_to: SessionTricksStageTo;
+  created: string;
+  updated: string;
+}
+
+/** The shape accepted when creating a `session_tricks` record. */
+export interface SessionTricksCreate {
+  id?: string;
+  session: string;
+  user: string;
+  trick: string;
+  landed?: boolean;
+  stage_from?: SessionTricksStageFrom;
+  stage_to?: SessionTricksStageTo;
+}
+
+/** The shape accepted when updating a `session_tricks` record. */
+export type SessionTricksUpdate = Partial<SessionTricksCreate>;
+
+/** A `sessions` record as PocketBase returns it. */
+export interface SessionsRecord {
+  collectionId: string;
+  collectionName: string;
+  id: string;
+  user: string;
+  started_at: string;
+  duration_minutes: number;
+  sport: SessionsSport;
+  spot: string;
+  event: string;
+  aim: string;
+  feel: SessionsFeel;
+  weather: SessionsWeather;
+  notes: string;
+  rode_with: string[];
+  clip_platform: SessionsClipPlatform;
+  clip_id: string;
+  visibility: SessionsVisibility;
+  month_key: string;
+  grace: boolean;
+  created: string;
+  updated: string;
+}
+
+/** The shape accepted when creating a `sessions` record. */
+export interface SessionsCreate {
+  id?: string;
+  user: string;
+  started_at: string;
+  duration_minutes?: number;
+  sport: SessionsSport;
+  spot?: string;
+  event?: string;
+  aim?: string;
+  feel: SessionsFeel;
+  weather?: SessionsWeather;
+  notes?: string;
+  rode_with?: string[];
+  clip_platform?: SessionsClipPlatform;
+  clip_id?: string;
+  visibility?: SessionsVisibility;
+  month_key?: string;
+  grace?: boolean;
+}
+
+/** The shape accepted when updating a `sessions` record. */
+export type SessionsUpdate = Partial<SessionsCreate>;
 
 /** A `spot_favourites` record as PocketBase returns it. */
 export interface SpotFavouritesRecord {
@@ -923,6 +1042,7 @@ export interface UsersRecord {
   anonymised_at: string;
   heard_about: UsersHeardAbout;
   last_seen: string;
+  session_visibility_default: UsersSessionVisibilityDefault;
 }
 
 /** The shape accepted when creating a `users` record. */
@@ -958,6 +1078,7 @@ export interface UsersCreate {
   anonymised_at?: string;
   heard_about?: UsersHeardAbout;
   last_seen?: string;
+  session_visibility_default?: UsersSessionVisibilityDefault;
 }
 
 /** The shape accepted when updating a `users` record. */
@@ -1006,6 +1127,9 @@ export interface CollectionRecords {
   plans: PlansRecord;
   reports: ReportsRecord;
   rider_stickers: RiderStickersRecord;
+  session_grace: SessionGraceRecord;
+  session_tricks: SessionTricksRecord;
+  sessions: SessionsRecord;
   spot_favourites: SpotFavouritesRecord;
   spots: SpotsRecord;
   stickers: StickersRecord;
@@ -1037,6 +1161,9 @@ export interface CollectionCreates {
   plans: PlansCreate;
   reports: ReportsCreate;
   rider_stickers: RiderStickersCreate;
+  session_grace: SessionGraceCreate;
+  session_tricks: SessionTricksCreate;
+  sessions: SessionsCreate;
   spot_favourites: SpotFavouritesCreate;
   spots: SpotsCreate;
   stickers: StickersCreate;
@@ -1068,6 +1195,9 @@ export interface CollectionUpdates {
   plans: PlansUpdate;
   reports: ReportsUpdate;
   rider_stickers: RiderStickersUpdate;
+  session_grace: SessionGraceUpdate;
+  session_tricks: SessionTricksUpdate;
+  sessions: SessionsUpdate;
   spot_favourites: SpotFavouritesUpdate;
   spots: SpotsUpdate;
   stickers: StickersUpdate;

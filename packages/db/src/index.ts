@@ -254,6 +254,35 @@ export {
 } from './spots';
 
 export {
+  countSessionClips,
+  createSession,
+  deleteSession,
+  getSession,
+  getSessionQuota,
+  listAllOwnSessions,
+  listOwnSessions,
+  listSessionMonths,
+  listSessionsAtEventForOwner,
+  listSessionsAtSpotForOwner,
+  listSessionsForTrickForOwner,
+  logSession,
+  sessionAllowanceFromRecord,
+  sessionClipAllowanceFromRecord,
+  sessionFromRecord,
+  sessionsFromRecords,
+  setSessionVisibility,
+  setSessionVisibilityDefault,
+  updateSession,
+  type LogSessionResult,
+  type SessionDetail,
+  type SessionInput,
+  type SessionListQuery,
+  type SessionPatch,
+  type SessionQuota,
+  type SessionRefusal,
+} from './sessions';
+
+export {
   describeVideoCheckRun,
   videoCheckLogEntry,
   videoCheckRunRow,

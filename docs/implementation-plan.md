@@ -30,6 +30,12 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Transactional email | **MailerSend** | **Changed 2026-08-16 (Rachid); was Resend, confirmed 2026-08-15.** Resend is already in use on another product and its free tier carries one sending domain, so Land The Trick would have meant paying before launch for a service sending dozens of emails a month. MailerSend's free tier (500/month, one domain) covers launch volume many times over, and it is EU-based — the same reason PostHog EU and R2 EU were chosen (§6.5). **Nothing in the codebase names a provider:** PocketBase sends over plain SMTP, so this is five environment values and no code change, and switching again costs the same. Rolling our own on box1 was considered and rejected — a cold shared IP that also carries the other products, and the guardian-consent email is the one that must not land in spam. |
 | Pricing | **Rookie free; Shredder £3.99/mo · £39.99/yr; Legend £6.99/mo · £69.99/yr** | Confirmed 2026-08-15. Yearly ≈ 2 months free. Crew Pass dropped, replaced by the single-rider Legend tier — see §2.4. |
 | Achievements | **The printed award set replaces the 25 drawn stickers** (Rachid, 2026-08-30, in chat) | One badge per trick in the library plus platform, streak, contribution and completion awards — 135 records, art committed under `packages/ui-web/assets/stickers/`, built as T24. Three owner decisions ride with it, each a *scoped* amendment to "achievements are never for sale" rather than a reversal: the **`supporter`** badge exists (earned by being on a paid plan — recognition of backing, 0 stars, and it may never gate or rank anything); the **clip awards** (`first-clip`, `clipped-up`) count a paid-capped feature, so Rookie riders cannot start them; and the **completion awards** count whole categories, which the difficulty-≥3 paywall keeps out of free reach. The free floor is pinned by tests instead: entry awards, the volume ladder to `rolling-deep`, and each sport's rite of passage stay free-earnable. `promoter` ships dormant (no rider event submissions yet). Fifteen legacy stickers whose conditions matched an award became that award in place (earned rows carry over); ten retired. |
+| Sessions — where and when (D1) | **A logged session stores a spot (and optionally an event) and a time on the server** (Rachid, 2026-09-13, in chat) | The owner's framing, in his words: "This is not a kids app. It's adults too." Riders of every age log sessions, and **the guardian-consent gate and the four §3 guarantees stay exactly as they are**. This amends §6.4 standard 10 ("we store the spot's location, never the rider's") for sessions only — see the amendment there. The **"I rode today" tap stays location-free**, and **no analytics event carries a spot, an event, a time or a duration**. Built as T36. |
+| Session visibility (D2) | **Public / Crew / Only me**, on the profile privacy ids `public` / `members` / `private`; a new profile setting for who sees new sessions, **default `private`**; each session picks any of the three when logged (Rachid, 2026-09-13, in chat) | **The stricter of the session and the profile wins** (guarantee 1): a Public session on a Riders-only profile reaches signed-in riders, and nothing on a Private profile reaches anybody. On a session `members` means **crew-mates**, not every signed-in rider. A rider held behind the consent gate has sessions that reach nobody, whatever either setting says (guarantee 4). **A clip on a public session is visible with it** — a deliberate divergence from §6.6's "no public", which covers trick video links and is unchanged (§6.6, "Session clips"). |
+| "Rode with" (D3) | **Crew-mates only.** No free-text names (Rachid, 2026-09-13, in chat) | The hook refuses a tagged rider who is not in a crew with the rider, is held behind the consent gate or is suspended. A viewer of someone else's session is only ever sent the tagged riders whose own profiles they could open — enforced server-side for every read (`66_sessions.pb.js`, enrich hook), so no screen has to filter. |
+| Session clips (D4) | **One link to a YouTube, Instagram or TikTok video**, stored as `{ platform, id }` and never as the pasted string; no embeds and no fetched thumbnails (Rachid, 2026-09-13, in chat) | Pure parsers in `packages/core/src/rules/clip-links.ts`, transcribed for the hook with a side-by-side agreement test. TikTok's `vm.`/`vt.` short links are **refused**: their code is a redirect, and resolving one is a server fetch of a rider-supplied URL. The screens draw a local poster and open the clip at source (§6.8). |
+| Session clip allowance (D5) | **Its own allowance, separate from trick video links**: Rookie none, **Shredder 10**, Legend unlimited | Rookie's none and Legend's unlimited are the owner's; screenshots 1g and 2e give Shredder no number, so **Shredder's 10 is a tunable default, not a deliberated decision** (`SHREDDER_SESSION_CLIP_CAP`, the same standing as `SHREDDER_VIDEO_LINK_CAP`). Count plus boolean on `plans` (`session_clip_cap`, `session_clips_unlimited`), enforced at the model layer with no superuser bypass. |
+| Sessions a month (D6) | **Rookie logs 4 sessions a calendar month** on the rider's own clock; the UI warns at 3; the 5th is refused unless the rider uses a **one-off, once-per-account grace**. **Shredder and Legend unlimited** (both from screenshots 1g and 2e) (Rachid, 2026-09-13, in chat) | **The ride and the streak always save, even when the session is refused** — `logSession` marks the day's ride before it asks for the session, idempotent with the tap. Counted by the month a session is *logged* in, not the month it is dated, so the cap is not a field a rider can edit around. Count plus boolean on `plans` (`session_month_cap`, `sessions_unlimited`). **A stage move from a session is one-way**: a landed trick is promoted once, and editing or deleting the session never demotes it. Achievements are never for sale. |
 
 ---
 
@@ -274,6 +280,10 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 | `announcements`, `announcement_dismissals` | Replaces `seenNotices`. `audience` field (all / plan / sport) per the composer |
 | `suggestions` | Added 2026-09-12. Rider (required — this route is signed-in only), `topic` (trick / feature / event / bug / other), detail, `status` (new / reviewing / accepted / declined), staff `note` the rider reads back. **Deliberately not a sixth `reports.subject_type`**: sharing that collection would share its rate limit, and a rider who spent it on ideas could not then file a safeguarding report (§7, `website-feedback-mechanism`) |
 | `audit_log` | Actor, action, entity, before, after. The handoff flags its absence explicitly |
+| `sessions` | Added 2026-09-13 (T36, §1 D1–D6). One logged ride: `user`, `started_at`, `duration_minutes` (30/60/120/180), `sport`, `spot`, optional `event`, `aim`, `feel`, `weather`, `notes`, `rode_with` (crew-mates only), `clip_platform` + `clip_id` (the parsed id, never a URL), `visibility` (`public \| members \| private`), `month_key` (the rider-clock month it was logged in, which the quota counts) and `grace`. Read rule: the stricter of session and profile, Crew = shares a crew, nothing from a consent-limited or suspended owner. Hook `66_sessions.pb.js` |
+| `session_tricks` | Added 2026-09-13 (T36). `(session, trick) → landed`, with `user` copied from the session and `stage_from`/`stage_to` written once by the hook when a landing promotes the trick. Exactly as visible as its session. Paywalled like `trick_log` |
+| `session_grace` | Added 2026-09-13 (T36). One row per account that has used the once-per-account "save this one anyway". Unique on `user`, no create, update or delete rule, so deleting the session that spent it does not give it back |
+| `users.session_visibility_default`, `plans.session_*` | Added 2026-09-13 (T36). Who sees new sessions (empty reads as `private`), and the two session allowances as count + boolean: `session_month_cap` / `sessions_unlimited`, `session_clip_cap` / `session_clips_unlimited` |
 | `reports` | Reporter (nullable — the OSA wants a route for non-users too), subject (`profile` / `clip` / `spot`), reason, status, outcome, `complaint_of` self-link for appeals against our own moderation decisions. The safeguarding page promises reporting; the prototype has no flow for it — the collection goes in now so the buttons have somewhere to write |
 
 Additions the handoff implies but never names:
@@ -433,6 +443,16 @@ not by reading the rule text:
    **`youtube-nocookie.com` behind click-to-play**, so no request reaches Google on page load and
    §6.8's no-consent-banner position stays honest — asserted by counting requests in
    `e2e/video-links.spec.ts`, since the absence of a call cannot be proven by reading a component.
+
+   **Amended 2026-09-13 (Rachid, in chat): session clips.** Everything above is about **trick video
+   links** (`clips`) and none of it moved. A logged session (T36) may carry one clip link — YouTube,
+   Instagram or TikTok (§1 D4) — and **a clip on a `public` session is visible with that session**,
+   including to a signed-out visitor when the rider's profile is also `public` (§1 D2). Half of
+   this guarantee still binds session clips in full: nothing is hosted, what is stored is a parsed
+   `{ platform, id }` and never the pasted string, the parse happens at the model layer against a
+   superuser token as well, no embed loads and no thumbnail is fetched, and the profile is a ceiling
+   the session cannot exceed. What differs is that a `public` state exists for them, by the owner's
+   decision. `pocketbase/tests/sessions.test.ts` holds the matrix.
 3. **The paywall is a data-layer rule, not a UI rule.** The `trick_progress` create hook rejects a
    paid trick for a rookie-plan rider, whatever the client sends. If the paywall only lives in the
    client it is a suggestion.
@@ -445,6 +465,13 @@ not by reading the rule text:
    not appear on a crew board). The same list is in §6.2 as behaviour; this is where it is
    enforced. A client-side consent gate protects nobody, and this one is a promise made to a
    parent.
+
+   **Sessions (T36, 2026-09-13) hold to this in two places.** A consent-limited rider may log
+   sessions — a diary reaches nobody, like notes and faves — but the `sessions` and
+   `session_tricks` read rules test the *owner's* `consent_state` and `suspended`, so those
+   sessions are owner-only whatever their visibility says; and tagging another rider ("rode
+   with"), which does reach somebody, is refused for them and refused *of* them in
+   `66_sessions.pb.js`.
 
 ---
 
@@ -761,6 +788,21 @@ Not all fifteen bite equally. These four change what gets built:
   nobody has moved sits over the rider's nearest spots, so where a rider is looking can be
   where a rider is. The button only appears after a gesture of the rider's, but the rule is
   kept without leaning on that.
+
+  **Amended 2026-09-13 (Rachid, in chat): a logged session stores where and when.** "We store
+  the spot's location, never the rider's" is no longer true of sessions. A session (T36) records
+  **the spot a rider rode at, optionally the event, and the time**, on our server, because that
+  record is the feature: a diary of where a rider rode. The owner's framing is that this is not a
+  children's app alone — "It's adults too" — and the protections that make it safe to hold are
+  kept rather than relaxed: **new sessions are `private` by default** (a profile setting a rider
+  changes, §1 D2); **a session is never more visible than the profile**; **a consent-limited
+  rider's sessions reach nobody**; the spot, event and trick pages show **only the rider's own**
+  sessions, with no counts and no other riders; and "rode with" is **crew-mates only** (§1 D3).
+  Three things do not move at all. **No position is read or stored**: a session names a spot from
+  the map, never a coordinate from a device, and everything above about "Near me" and "Search this
+  area" stands. **The "I rode today" tap stays location-free.** And **no analytics event carries a
+  spot, an event, a time or a duration** — the session events in `analytics.ts` say which control
+  and which form, never where or when.
 - **Standard 12, profiling.** The Legend insights panel (§2.4) derives suggestions from a rider's
   own history. That is defensible and in the rider's interest, but it is profiling: off by
   default, opt-in, and it never leaves the rider's own data.
@@ -951,6 +993,31 @@ that form too and are moved from the superuser dashboard like the paywall's. One
 knowing: staff **can** freely edit the `perks` copy that quotes the cap, so a card could come to
 advertise a number the hook does not enforce. Filed rather than fixed — the seeded copy is rendered
 from the enforced number, and policing staff prose is a different feature.
+
+#### Session clips (T36, 2026-09-13)
+
+**Owner's decisions D2, D4 and D5 (Rachid, 2026-09-13, in chat; §1).** A logged session may carry
+**one link** to a clip the rider already posted — **YouTube, Instagram or TikTok**. Everything this
+section says about not hosting video applies unchanged: no upload, no bytes, no embed, no fetched
+thumbnail. What is stored is `{ platform, id }` in two columns on `sessions`, parsed at the model
+layer by `pocketbase/hooks/lib/session_rules.js` (a transcription of
+`packages/core/src/rules/clip-links.ts`, run side by side in
+`pocketbase/tests/session-rules.test.ts`); the watch URL is rebuilt from the id. The screens draw a
+local poster with a platform badge and open the clip **at source** on a press (§6.8). TikTok short
+links (`vm.tiktok.com`, `vt.tiktok.com`) are refused rather than resolved, because resolving one is
+a server fetch of a URL a rider supplied.
+
+**This is a deliberate divergence from "no `public`", and it is scoped to session clips.** A
+session can be `public` (D2), and a clip on a public session is visible with it. **The trick video
+link rule above is unchanged** — `clips` still has `private | members` only, `video.ts` still says
+so, and nothing in T36 touches either. Recorded in `rules/sessions.ts` and `rules/clip-links.ts` as
+well, so a reader of either does not conclude the trick rule moved.
+
+**Their own allowance (D5).** `plans.session_clip_cap` / `session_clips_unlimited`, separate from
+the video link fields: Rookie none, Legend unlimited (the owner's), **Shredder 10 as a tunable
+default** (`SHREDDER_SESSION_CLIP_CAP`) because the design gives no number. Enforced where the video
+link cap is — the model hook, no superuser bypass — counting sessions that hold a clip; swapping a
+held clip is not adding one.
 
 ### 6.7 Pricing
 
@@ -4520,6 +4587,196 @@ file would be green against a page that could not draw a panel under any circums
   request. A channel allowlist (Braille, Scooter Hut, TransWorld RideBMX, skatedeluxe, Alli Sports)
   would sharply improve the hit rate and make the human pass faster. Also its own issue: nothing
   gathered this way may publish itself.
+
+**T36 · Sessions: data, rules and shared primitives.** Added after launch (Rachid, 2026-09-13, in
+chat), the first of five tasks from the session-tracking handoff
+(`landit-research/session-tracking-2026-09-13/`, fourteen screens). A rider logs a **session** — one
+ride at a spot, optionally at an event — and keeps a history of them: when, where, how long, which
+sport, which tricks (and whether any was landed), an aim, how it felt, the weather, who they rode
+with, notes and one clip link. T36 is the foundation the four screen tasks build on: no screens,
+every rule, every refusal and every shared primitive.
+
+##### Contract for T37–T40
+
+**Read this before writing a screen.** Everything below is exported from the package root
+(`@landit/core`, `@landit/db`, `@landit/ui-web`).
+
+*Types* (`packages/core/src/types.ts`): `RideSession` (the session a screen renders),
+`SessionTrickEntry`, `ClipLink`, `ClipPlatformId`, `SessionVisibilityId`, `SessionFeelId`,
+`SessionWeatherId`, `SessionDurationMinutes`, `SessionAllowance`; `Plan` gains optional
+`sessionMonthCap`, `sessionsUnlimited`, `sessionClipCap`, `sessionClipsUnlimited`.
+
+*Tables* (`packages/core/src/data/sessions.ts`): `SESSION_FEELS` (id, label, colour),
+`SESSION_WEATHER`, `SESSION_WEATHER_SELECTED_COLOR`, `SESSION_DURATIONS` (30m/1h/2h/3h+),
+`SESSION_VISIBILITIES` (Public/Crew/Only me, with `blurb` for the settings radio and `help`),
+`DEFAULT_SESSION_VISIBILITY`, `CLIP_PLATFORMS` (label, badge colour), `SESSION_LIMITS`, and the
+`…_IDS` lists.
+
+*Rules* (`packages/core/src/rules/sessions.ts`, `rules/clip-links.ts`):
+- **Form**: `sessionProblems(draft, now?)` and `SESSION_REFUSALS` (the server sends the same
+  sentences); `parseClipLink`, `detectClipPlatform` (the live badge), `clipLinkProblem`,
+  `clipWatchUrl(clip)` (the **only** href a poster may use), `clipPlatformLabel`/`Color`;
+  `sessionVisibilityDefault(users.session_visibility_default)` to pre-set the picker;
+  `sessionCountsAsRideToday`; `landedStageAfter(current)` for the "→ Most times" preview.
+- **Quota** (T38, T40): `sessionAllowance(plan)`, `sessionQuotaStatus`, `sessionCreateDecision`,
+  `sessionQuotaLine`, `sessionQuotaPips`, `sessionQuotaResets(clock)` ("1 October", days away),
+  `sessionsPerMonthLabel`, `ROOKIE_SESSIONS_PER_MONTH`, `SESSION_QUOTA_WARN_AT`;
+  `sessionClipAllowance(plan)`, `canAddSessionClip`, `sessionClipsRemaining`,
+  `sessionClipAllowanceLabel`, `SHREDDER_SESSION_CLIP_CAP`.
+- **Lists and summaries** (T37, T39): `SESSIONS_PER_PAGE` (3), `sortSessionsNewestFirst`,
+  `filterSessions`, `adjacentSessions`, `groupSessionsByMonth`, `sessionMonthSummary`, `topSpots`,
+  `spotSessionSummary`, `eventSessions`, `trickSessionSummary`, `sessionStageMoves`,
+  `stageMoveLabel`, `sessionChanges` + `sessionChangeLabel` ("What this one changed"),
+  `sessionTimeLabel`, `sessionHours`, `sessionDurationLabel`, `sessionFeelLabel`,
+  `sessionFeelColor`, `sessionWeatherLabel`, `sessionVisibilityLabel`.
+- **Visibility, for reasoning only**: `sessionVisibleTo`, `riderProfileVisibleTo`. The server is the
+  boundary; a screen never filters with these.
+
+*Reads and writes* (`packages/db/src/sessions.ts`):
+- `listOwnSessions(client, { userId, sport?, atEvent?, page?, perPage? }) → Page<RideSession>`
+- `listAllOwnSessions(client, { userId, sport?, atEvent? }) → RideSession[]`
+- `listSessionMonths(client, { userId, timezone?, sport?, atEvent? }) → SessionMonthGroup<RideSession>[]`
+- `getSession(client, id) → { session, newerId, olderId } | null`
+- `listSessionsAtSpotForOwner(client, { userId, spotId })`, `listSessionsAtEventForOwner(client, { userId, eventId })`, `listSessionsForTrickForOwner(client, { userId, trickId })` `→ RideSession[]`
+- `getSessionQuota(client, { userId, plan: PlansRecord | null, timezone?, now? }) → SessionQuota` (status plus `monthKey`); `countSessionClips(client, userId)`
+- `logSession({ client, superuser, rider, input, useGrace?, now? }) → { ride, session, refusal }` — **the only way to log a new session**: it saves the ride first, then asks for the session, and returns a refusal (`quota | grace_used | clip | other`) rather than throwing.
+- `createSession(client, { userId, input, timezone?, now?, useGrace? })` (no ride — for tests and tooling), `updateSession(client, id, patch)` (trick entries diffed; never demotes), `deleteSession(client, id)`, `setSessionVisibility(client, id, visibility)`, `setSessionVisibilityDefault(client, userId, visibility)`
+- `SessionInput.clip` is **the clip box exactly as pasted** (or `''` to remove); never pre-parse it.
+
+*Which reads are safe to show another rider.* **All of them, with the viewer's own client** — the
+signed-in viewer's `createServerClient`, or a signed-out one. The collection rules decide which
+sessions come back (stricter of session and profile, Crew = shares a crew, nothing from a
+consent-limited owner), and the enrich hook in `pocketbase/hooks/66_sessions.pb.js` strips each
+session's `crewIds` to the riders whose profiles that viewer could open and hides `monthKey` and
+`graceUsed`. **Never read a session with the superuser client for display**: it skips both. The
+spot, event and trick blocks use the `…ForOwner` reads with the signed-in rider's own id, so they
+show only that rider's sessions.
+
+*Primitives* (`packages/ui-web/src/components/sessions.tsx`, styles in `styles/sessions.css`):
+`HardCard { shadow?: 2|3|4|5|7|8, lift?, background?, as? }`,
+`MetaChip { icon?, background? }`, `TrickPill { name, move?, href? }`,
+`FeelFace { feel, size?, title? }`, `FeelSwatch { feel, color, size? }` (+ `FEEL_FACES`),
+`WeatherIcon { weather, size?, title? }` (+ `WEATHER_ICONS`),
+`SegmentedPicker { options: {id,label,icon?,color?}[], value, onChange, label, selectedColor? }`,
+`StagePill { label, color }`, `StageMove { from | null, to }`,
+`VisibilityLabel { visibility, label }` (+ `VISIBILITY_ICONS`),
+`PlatformBadge { platform, label?, color? }`,
+`ClipPoster { platform, href: clipWatchUrl(clip), variant?: 'thumb'|'player', onOpen? }`.
+Painted sport art is the existing `Equipment`; icons are `Icon` from `icons.tsx`, which gained
+`eye`, `pencil`, `trash`, `clock`, `chevron` (points down; rotate with CSS), `arrow-left` and
+`arrow-right` for these screens.
+
+*App-side shared pieces* (so the four screen sessions do not each add them):
+- **Routes** — `apps/web/src/lib/sessionRoutes.ts`: `sessionsHref()` (`/progress/sessions`),
+  `sessionHref(id)`, `editSessionHref(id)` (`/progress/sessions/<id>/edit`),
+  `newSessionHref({ spot?, event?, trick?, quick? })` (`/progress/sessions/new?spot=…&event=…&trick=…&quick=1`),
+  `readNewSessionPrefill(searchParams)`, `isRecordId`, `SESSIONS_PATH`. **Record ids only** — the
+  builders throw on anything else and the reader drops it, because a spot name or trick slug can be
+  a child's words.
+- **Delete** — `apps/web/src/components/sessions/DeleteSessionDialog.tsx`:
+  `DeleteSessionDialog { session: { id, spotName, dateLabel }, onClose, onDeleted(id) }`, the
+  design's confirm on the shared `Modal`; it calls `deleteSessionAction({ sessionId })`
+  (`components/sessions/actions.ts`, the rider's own client) through
+  `runAction('session_delete', …)` and fires `session_deleted` on success. The words are
+  `deleteSessionCopy` in `apps/web/src/lib/sessionDelete.ts`.
+
+*Analytics* (`apps/web/src/lib/analytics.ts`, defined here, fired by the screens):
+`session_log_opened { source: progress|spot|event|trick|quick_log_escalate }`,
+`session_logged { form: quick|full, has_clip }`, `session_edited`, `session_deleted`,
+`sessions_view_set { view: feed|list }`, `session_quota_wall_seen { plan }`,
+`session_grace_used { plan }`. None carries a spot, event, time, duration or trick.
+
+##### What T36 built
+
+**Six owner's decisions govern it, and all six are §1 rows (D1–D6)**, with §6.4 standard 10 and
+§6.6 amended in place and guarantee 2 and 4 notes in §3. The short version: a session stores a spot
+and a time; it is Public / Crew / Only me, default private, never more visible than the profile;
+"rode with" is crew-mates; a clip is a YouTube, Instagram or TikTok link; Rookie holds no clips and
+logs four sessions a month with a once-per-account grace; and the ride always saves.
+
+**Data.** `1789603200_sessions.js` adds `sessions`, `session_tricks` and `session_grace`,
+`users.session_visibility_default`, and four `plans` fields, writing the allowances onto existing
+plan rows (the seed carries the same numbers from core). Additive: nothing existing moves. The trick
+entries are a join rather than JSON because three things query them — the trick page block, the
+reused paywall, and the once-only promotion. The grace is a collection with no delete rule, not a
+server-owned field on `users`, because a new frozen `users` field would have been a behaviour change
+to `guardUserWrite`.
+
+**Enforcement** (`pocketbase/hooks/66_sessions.pb.js`, `lib/sessions.js`, `lib/session_rules.js`).
+Model hooks with no superuser bypass for the shape, the spot (live, or the rider's own
+submission), the event (live), the crew tags, the clip parse and its allowance, the monthly quota
+and its grace, the paywall on trick entries and the promotion; an enrich hook for the D3 strip. The
+read rules walk from the owner through `crew_members` to decide Crew. Every refusal is a sentence
+shared with core.
+
+**Three implementation decisions worth knowing.**
+- **The quota counts the month a session was *logged* in, on the rider's clock.** goja has no
+  `Intl` (LESSONS §5), so `month_key` is computed in Node by `@landit/db` and sent with the write;
+  the hook accepts only a month some timezone is in right now and replaces anything else. The most a
+  lying client gains is choosing between two adjacent months for about a day at the turn — spending
+  next month's allowance early, never an extra session.
+- **"The ride always saves" lives in `logSession`, not a hook**, for T8's reason: the weekly streak
+  is timezone arithmetic and runs in Node. The ride is written first, so a refused session still
+  carries its ride. A session **backfilled to another day moves no streak** — the streak stores no
+  calendar to write a past day into — and is kept in the diary.
+- **The promotion is one landed step, floored at Sometimes** (`landedStageAfter`): Want, Learning
+  or untracked → Sometimes; Sometimes → Most times; Most times → Every time. It runs on create or on
+  the edit that ticks "Landed it", writes `trick_progress` then `trick_log` (dated at the session's
+  start) through `app.save` so the paywall and sticker hooks run, and records `stage_from`/`stage_to`
+  on the entry. An entry that has promoted never promotes again, and no path writes a lower stage
+  back.
+
+**Checked.** Core: every rule unit-tested, including the full visibility matrix, the Rookie month,
+the clock turning over in Auckland before Los Angeles, and the clip case table with watch URLs
+round-tripping. `pocketbase/tests/session-rules.test.ts` runs the hook copies beside core over the
+case table, a fuzz, the quota grid and the promotion, and holds the refusals, limits, select values,
+migration numbers, fixture numbers and export labels in step. `pocketbase/tests/sessions.test.ts`
+drives everything over HTTP — the 3 × 3 × 4 visibility matrix with trick entries, consent and
+suspension, crew tagging and the strip, clips on every plan, the quota and the grace, **the
+superuser cap and quota tests**, the promotion never demoting, the export and erasure — and its
+header records which test went red when each guard was broken on purpose. `@landit/db` and
+`@landit/ui-web` have stub and markup tests.
+
+**Not in this task, and where it went.**
+- **The screens**: T37–T40 below.
+- **The perk lines on the plan cards** are not changed: T40 renders them from the new fields.
+- **Icons the handoff lists that `icons.tsx` does not have** — eye, pencil, trash, clock, chevron,
+  arrow-left, arrow-right. The handoff says they were lifted from `icons.tsx`; they are not there,
+  and nothing in the prototype names their paths. Whichever screen needs one first adds it to
+  `ICONS` (additive).
+- **TikTok's watch URL** is `https://www.tiktok.com/embed/v2/<id>`, TikTok's documented id-only page,
+  not verified against the live site from here.
+- **Offline logging, the spot picker behind "Change", two sessions on one day and a signed-out
+  visitor on a public session's own page** are the handoff's "to decide" list, for the screen tasks
+  and the owner.
+
+**T37 · Sessions list.** The Progress › Sessions tab: the feed (1a desktop, 2a phone, three per page,
+Newer/Older), the desktop table (1b) and the phone month accordions (2b), the All / sport / At an
+event filters, the four sidebar cards (month summary, quota, where you ride, the Legend insights
+teaser) and the delete confirm ("tricks you moved up stay where they are"). Reads
+`listOwnSessions`, `listSessionMonths`, `getSessionQuota`; writes `deleteSession`. Fires
+`sessions_view_set` and `session_deleted`. Depends on T36.
+
+**T38 · Session form.** The quick log (1d phone sheet, 2f desktop modal) with its saved state and
+"while it's fresh" prompts, the full form (1c phone, 2g desktop modal), escalation carrying values
+across, and edit mode (2g with Delete and Save changes). All twelve fields, the live clip badge
+(`detectClipPlatform`), the "→ stage" preview, the profile default pre-set. Writes `logSession`
+(never `createSession`) and `updateSession`; shows the quota wall from T40 on a `quota` refusal
+with the ride already saved. Fires `session_log_opened`, `session_logged`, `session_edited` and
+`session_grace_used`. Depends on T36; composes T40's wall.
+
+**T39 · Session detail and blocks.** One session (1e desktop, 2c phone): the hero, the stat strip,
+the clip player (`ClipPoster variant="player"`), "What this one changed" (`sessionChanges`), the
+tricks with stage moves, crew chips, the visibility card, weather, and newer/older. And the three
+read-only blocks wired into the spot, event (live and past) and trick pages (1f, 2d), each showing
+only the rider's own sessions with a "Log a session here" entry point. Reads `getSession` and the
+`…ForOwner` reads. Fires `session_log_opened` with `source: spot | event | trick`. Depends on T36.
+
+**T40 · Limits and settings.** The fifth-session wall with the grace (1g, 2e), the Rookie clip lock,
+the plan comparison (table on desktop, stacked cards on phone), the Settings · sessions radio
+(`setSessionVisibilityDefault`), and the plan-card perk lines rendered from the new plan fields
+(`sessionsPerMonthLabel`, `sessionClipAllowanceLabel`) — a copy change to the plans page the owner
+should see. Fires `session_quota_wall_seen`. Depends on T36.
 
 ### Dependency graph
 
