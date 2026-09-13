@@ -40,7 +40,7 @@ test('the opening pair is above the first paragraph, not at the foot of the page
   await page.goto('/story');
 
   /*
-   * Both Greystone photos were at the very bottom until 2026-09-12, under "In a
+   * Both Graystone photos were at the very bottom until 2026-09-12, under "In a
    * year?", which put the page's evidence that a rider is behind it after
    * everything else. This asserts the order rather than the offsets: a y
    * coordinate would break on any type change, while "before the first

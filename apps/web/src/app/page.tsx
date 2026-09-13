@@ -304,7 +304,7 @@ export default async function LandingPage() {
            * the button label, so the gap this fills is one that had just opened
            * rather than one this change made.
            *
-           * A rule and a line of type rather than a thumbnail: both Greystone
+           * A rule and a line of type rather than a thumbnail: both Graystone
            * photographs are shot from behind and neither reads at 42px, and the
            * band 500px below is where the picture earns its room.
            */}
@@ -394,7 +394,7 @@ export default async function LandingPage() {
           <figure className={styles.storyFig}>
             <Image
               src="/story/greystone-tee.jpg"
-              alt="Miles seen from behind on his scooter at Greystone, wearing a Land The Trick t-shirt"
+              alt="Miles seen from behind on his scooter at Graystone, wearing a Land The Trick t-shirt"
               width={901}
               height={1600}
               sizes="(max-width: 620px) 100vw, 270px"
