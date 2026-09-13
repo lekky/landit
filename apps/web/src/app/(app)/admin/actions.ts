@@ -23,6 +23,7 @@ import { isOwner, requireStaff } from '@/lib/staff';
 import {
   bandLabel,
   guardianStanding,
+  heardAboutLabel,
   type GuardianConsentView,
   type RiderSheetView,
   type TrackedTrickView,
@@ -139,6 +140,10 @@ export async function riderSheetAction(userId: string): Promise<RiderSheetView |
     // looked at is the only one in the page (see `../view.ts`).
     email: rider.email ?? '',
     ageBand: bandLabel(rider.age_band),
+    // The channel that brought this rider in, resolved to the label they picked
+    // from. Read-only: `heard_about` is write-once, so there is no setter here
+    // for the sheet to call.
+    heardAbout: heardAboutLabel(rider.heard_about),
     sports: (rider.sports ?? []).map((id) => SPORT_LOOKS[id]).filter(Boolean),
     tracked,
     landed: tracked.filter((t) => t.landed).length,

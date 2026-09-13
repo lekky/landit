@@ -179,10 +179,10 @@ export function RiderSheet({
       </div>
 
       {/*
-        The two facts the table deliberately does not carry (`../view.ts`).
-        Both wait for `view` rather than guessing from the row, because the row
-        has never held either — an em dash here means "still loading", which is
-        the same thing it means once loaded for an account that has neither.
+        The facts the table deliberately does not carry (`../view.ts`).
+        Each waits for `view` rather than guessing from the row, because the row
+        has never held any of them — an em dash here means "still loading", which
+        is the same thing it means once loaded for an account that has none.
       */}
       <div className={styles.sheetFacts}>
         <div className={styles.sheetFact}>
@@ -196,6 +196,25 @@ export function RiderSheet({
             Age band
           </span>
           <span className={styles.sheetFactValue}>{view?.ageBand ?? '—'}</span>
+        </div>
+        {/*
+          Where this rider says they came from — the overview's "How riders
+          found us" panel, for one account. The panel can say eleven riders came
+          from YouTube and can never say whether any of them stayed, because
+          analytics here is cookieless with no person profiles; this line is the
+          other half of that, sitting a few pixels from the plan tag.
+
+          There is no control beside it, and that is the decision rather than an
+          omission: `heard_about` is answered once, at the end of onboarding, and
+          the hook refuses a rewrite (`pocketbase/hooks/lib/landit.js`) so that
+          the answer stays a record of how a rider arrived rather than a field
+          about how they feel today.
+        */}
+        <div className={styles.sheetFact}>
+          <span className="lab" style={{ color: 'var(--ink-3)' }}>
+            How they found us
+          </span>
+          <span className={styles.sheetFactValue}>{view?.heardAbout ?? '—'}</span>
         </div>
         {/*
           The ride figure the table used to show under "Last active". It is a
