@@ -398,6 +398,7 @@ export {
 export {
   FREE_MAX_DIFF,
   TRICK_CONTENT_LIMITS,
+  TRICK_VIDEO_LIMITS,
   crossSportEquivalents,
   fullPrereqChain,
   isLandedStage,
@@ -414,6 +415,7 @@ export {
   trickById,
   trickContentProblems,
   trickPositionFacts,
+  trickVideoProblems,
   tricksFor,
   tricksInCategory,
   wordCount,

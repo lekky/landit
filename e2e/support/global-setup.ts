@@ -2,6 +2,7 @@ import { TRICKS } from '@landit/core';
 
 import { seedLibrary } from './seed-library';
 import { seedSpots } from './seed-spots';
+import { VIDEO_TRICK, seedTrickVideo } from './seed-trick-video';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
 
@@ -59,6 +60,10 @@ export default async function globalSetup(): Promise<void> {
   // same trap applies to it: an unseeded `spots` makes every assertion about
   // the map and the list pass by finding nothing (T13).
   await seedSpots();
+  // The trick video is database-only — the seed deliberately never writes one
+  // (issue #273) — so without this one write the "Watch it" panel cannot render
+  // anywhere and every assertion about it passes by finding nothing (T35).
+  await seedTrickVideo(VIDEO_TRICK.id);
 
   const trick = TRICKS.find((t) => t.isLive) ?? TRICKS[0];
   await warm(['/', `/library/${trick.id}`]);

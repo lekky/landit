@@ -1563,6 +1563,19 @@ a.practiseLink:hover {
     display: contents;
   }
 
+  /*
+   * "Watch it" (T35) leads the phone page, ahead of the history and the facts.
+   *
+   * The desktop column order puts it first already; on a phone the sections are
+   * re-ordered by hand, so first has to be said. The owner asked for prominence
+   * where there is a video (2026-09-12, in chat), and a rider who has opened a
+   * trick on their phone at the park wants to see it done before they read
+   * their own history with it.
+   */
+  .secWatch {
+    order: -12;
+  }
+
   .secHistory {
     order: -11;
   }
@@ -1643,4 +1656,77 @@ a.practiseLink:hover {
   .timelineDate {
     width: 82px;
   }
+}
+
+/* -------------------------------------------------- "Watch it" (T35) -- */
+
+/*
+ * The staff-picked tutorial, at the top of the left column.
+ *
+ * The frame itself is `VideoEmbed`'s, so the poster, its stripes, the play mark
+ * and — crucially — the rule that nothing is requested from Google before the
+ * press are all the component's and not repeated here. What this adds is the
+ * foot under it: what the video is called, who made it, and the way to tell us
+ * something is wrong with it.
+ */
+.watch {
+  display: flex;
+  flex-direction: column;
+}
+
+.watchFoot {
+  border: 2.5px solid var(--ink);
+  border-top: 0;
+  background: var(--paper-2);
+  padding: 9px 11px;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+/* `min-width: 0` so a long title wraps rather than pushing the report link off
+   the row — the same reason `.headerText` has it. */
+.watchTitleBox {
+  min-width: 0;
+  flex: 1;
+}
+
+.watchTitle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.watchBy {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+
+.watchReport {
+  font-size: 11px;
+  color: var(--ink-3);
+  text-decoration: underline;
+  white-space: nowrap;
+  flex: none;
+}
+
+/*
+ * `a:hover { color: var(--pink) }` in the global stylesheet outranks a single
+ * class (issue #297), so the hover colour is stated at the same weight rather
+ * than left to lose silently.
+ */
+.watchReport:hover,
+.watchReport:focus-visible {
+  color: var(--ink);
+}
+
+.watchNote {
+  margin: 9px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-3);
 }

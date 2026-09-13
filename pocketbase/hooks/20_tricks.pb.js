@@ -56,3 +56,24 @@ onRecordUpdate((e) => {
   require(`${__hooks}/lib/landit.js`).enforceTrickContentLimits(e.record);
   e.next();
 }, 'tricks');
+
+/**
+ * The staff-picked tutorial is whole or absent, and `video_id` is always an id
+ * (T35).
+ *
+ * Model hooks for the same reason the content limits are: the staff editor
+ * checks the same rules client-side for a friendlier message, and this is where
+ * they bind — on every write path, so a superuser token goes through the same
+ * door as the portal. The re-parse is the half that matters most: it is what
+ * guarantees the string reaching an `<iframe src>` is eleven characters of
+ * YouTube id and not something a hand edit chose.
+ */
+onRecordCreate((e) => {
+  require(`${__hooks}/lib/landit.js`).enforceTrickVideo(e.record);
+  e.next();
+}, 'tricks');
+
+onRecordUpdate((e) => {
+  require(`${__hooks}/lib/landit.js`).enforceTrickVideo(e.record);
+  e.next();
+}, 'tricks');

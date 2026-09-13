@@ -40,6 +40,9 @@ const row = (over: Partial<TricksRecord> & Pick<TricksRecord, 'id' | 'slug'>): T
   supervise: false,
   mistakes: null,
   hard: '',
+  video_id: '',
+  video_title: '',
+  video_channel: '',
   is_live: true,
   created: '',
   updated: '',
@@ -175,6 +178,78 @@ describe('tricksFromRecords', () => {
   it('carries the hidden flag through, so the library can drop it', () => {
     const tricks = tricksFromRecords([row({ id: 'rec1', slug: 'pulled', is_live: false })]);
     expect(tricks[0]?.isLive).toBe(false);
+  });
+
+  /*
+   * The staff-picked tutorial (T35). The mapping is the only way a video
+   * reaches a `Trick` — it is not in the canonical data and the seed never
+   * writes it — so *absent* here is what makes the trick page render no panel,
+   * which is the state most of the library is in.
+   */
+  describe('the trick video', () => {
+    const ID = 'dQw4w9WgXcQ';
+
+    it('comes through whole when both halves are there', () => {
+      const tricks = tricksFromRecords([
+        row({
+          id: 'rec1',
+          slug: 'abubaca',
+          video_id: ID,
+          video_title: 'How to Abubaca',
+          video_channel: 'Ride BMX',
+        }),
+      ]);
+      expect(tricks[0]?.video).toEqual({ id: ID, title: 'How to Abubaca', channel: 'Ride BMX' });
+    });
+
+    it('leaves the channel out rather than carrying an empty one', () => {
+      const tricks = tricksFromRecords([
+        row({ id: 'rec1', slug: 'abubaca', video_id: ID, video_title: 'How to Abubaca' }),
+      ]);
+      expect(tricks[0]?.video).toEqual({ id: ID, title: 'How to Abubaca' });
+      expect(tricks[0]?.video && 'channel' in tricks[0].video).toBe(false);
+    });
+
+    it('is absent on a trick nobody has picked one for', () => {
+      const tricks = tricksFromRecords([row({ id: 'rec1', slug: 'pole-tap' })]);
+      expect(tricks[0]?.video).toBeUndefined();
+      expect('video' in tricks[0]!).toBe(false);
+    });
+
+    /*
+     * The hook refuses half a video on the way in, so a row with one half is a
+     * hand edit or a database older than the guard. Dropped whole rather than
+     * rendered as a play button with nothing to call it.
+     */
+    it('is absent when either half is missing, rather than half-drawn', () => {
+      const noTitle = tricksFromRecords([row({ id: 'rec1', slug: 'a', video_id: ID })]);
+      expect(noTitle[0]?.video).toBeUndefined();
+
+      const noId = tricksFromRecords([row({ id: 'rec2', slug: 'b', video_title: 'Orphan' })]);
+      expect(noId[0]?.video).toBeUndefined();
+    });
+
+    it('ignores whitespace-only columns, which read as empty to a person', () => {
+      const tricks = tricksFromRecords([
+        row({ id: 'rec1', slug: 'a', video_id: '   ', video_title: '  ' }),
+      ]);
+      expect(tricks[0]?.video).toBeUndefined();
+    });
+
+    /*
+     * A database older than `1789257600_trick_video.js` has no such columns at
+     * all. That has to read as "no video", never as a throw: one bad row would
+     * otherwise take the whole library down.
+     */
+    it('survives a row from a database that predates the columns', () => {
+      const older = row({ id: 'rec1', slug: 'a' }) as unknown as Record<string, unknown>;
+      delete older.video_id;
+      delete older.video_title;
+      delete older.video_channel;
+
+      const tricks = tricksFromRecords([older as unknown as TricksRecord]);
+      expect(tricks[0]?.video).toBeUndefined();
+    });
   });
 });
 

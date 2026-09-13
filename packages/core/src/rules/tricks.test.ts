@@ -5,6 +5,7 @@ import type { StageId, Trick } from '../types';
 import {
   FREE_MAX_DIFF,
   TRICK_CONTENT_LIMITS,
+  TRICK_VIDEO_LIMITS,
   crossSportEquivalents,
   fullPrereqChain,
   isLandedStage,
@@ -18,6 +19,7 @@ import {
   similarTricks,
   sportOf,
   suggestedNextTricks,
+  trickVideoProblems,
   trickById,
   trickContentProblems,
   trickPositionFacts,
@@ -613,5 +615,73 @@ describe('more like this (T31)', () => {
 
   it('never suggests a hidden trick', () => {
     expect(similarTricks(me, library, 10).some((t) => t.id === 'hidden')).toBe(false);
+  });
+});
+
+describe('the staff-picked trick video (T35)', () => {
+  const ID = 'dQw4w9WgXcQ';
+  const TITLE = 'How to Abubaca the easy way';
+
+  it('is happy with nothing at all, which is most of the library', () => {
+    expect(trickVideoProblems({})).toEqual([]);
+    expect(trickVideoProblems({ link: '  ', title: '', channel: '   ' })).toEqual([]);
+  });
+
+  it('takes any shape of YouTube link a staff member might paste', () => {
+    for (const link of [
+      `https://www.youtube.com/watch?v=${ID}&t=42s`,
+      `https://youtu.be/${ID}?si=abc`,
+      `https://www.youtube.com/shorts/${ID}`,
+      ID,
+    ]) {
+      expect(trickVideoProblems({ link, title: TITLE })).toEqual([]);
+    }
+  });
+
+  it('refuses anything that is not a YouTube link', () => {
+    for (const link of ['https://vimeo.com/12345', 'javascript:alert(1)', 'not a link', 'abc']) {
+      expect(trickVideoProblems({ link, title: TITLE })).toEqual(['That is not a YouTube link.']);
+    }
+  });
+
+  /*
+   * The rule the panel depends on: a play button that cannot say what it plays
+   * is not something to put on a child's page, so half a video is refused
+   * rather than saved and hidden.
+   */
+  it('refuses half a video, in either direction', () => {
+    expect(trickVideoProblems({ link: ID })).toEqual([
+      'Give the video its title, so the page can say what it plays.',
+    ]);
+    expect(trickVideoProblems({ title: TITLE })).toEqual([
+      'Paste the YouTube link, or clear the title and channel.',
+    ]);
+    // A channel on its own is still half a video: it names the link that is
+    // missing rather than passing because the title happens to be empty too.
+    expect(trickVideoProblems({ channel: 'Ride BMX' })).toEqual([
+      'Paste the YouTube link, or clear the title and channel.',
+      'Give the video its title, so the page can say what it plays.',
+    ]);
+  });
+
+  it('holds the title and the channel to their word counts', () => {
+    const longTitle = 'word '.repeat(TRICK_VIDEO_LIMITS.titleMaxWords + 1).trim();
+    expect(trickVideoProblems({ link: ID, title: longTitle })).toEqual([
+      `Keep the title to ${TRICK_VIDEO_LIMITS.titleMaxWords} words.`,
+    ]);
+
+    const longChannel = 'word '.repeat(TRICK_VIDEO_LIMITS.channelMaxWords + 1).trim();
+    expect(trickVideoProblems({ link: ID, title: TITLE, channel: longChannel })).toEqual([
+      `Keep the channel name to ${TRICK_VIDEO_LIMITS.channelMaxWords} words.`,
+    ]);
+  });
+
+  it('counts a title exactly on the limit as fine', () => {
+    const exact = 'word '.repeat(TRICK_VIDEO_LIMITS.titleMaxWords).trim();
+    expect(trickVideoProblems({ link: ID, title: exact })).toEqual([]);
+  });
+
+  it('lets the channel be left out, because a title is enough to say what plays', () => {
+    expect(trickVideoProblems({ link: ID, title: TITLE, channel: '' })).toEqual([]);
   });
 });

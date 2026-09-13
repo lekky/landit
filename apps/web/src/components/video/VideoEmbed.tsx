@@ -42,11 +42,22 @@ import styles from './video.module.css';
 export function VideoEmbed({
   videoId,
   label,
+  onPlay,
 }: {
   /** Eleven characters. Anything else throws, by design. */
   videoId: string;
   /** What this video is of, for the play button's accessible name. */
   label: string;
+  /**
+   * Fired once, on the press that mounts the iframe (T35).
+   *
+   * Optional and additive: a rider's own video links pass nothing and behave
+   * exactly as they did. The trick page's staff-picked tutorial passes an
+   * analytics capture, because the press *is* the event — this component's
+   * whole design means there is no earlier moment when a video can be said to
+   * have been watched.
+   */
+  onPlay?: () => void;
 }) {
   const [playing, setPlaying] = useState(false);
 
@@ -69,7 +80,10 @@ export function VideoEmbed({
       <button
         type="button"
         className={styles.poster}
-        onClick={() => setPlaying(true)}
+        onClick={() => {
+          onPlay?.();
+          setPlaying(true);
+        }}
         aria-label={`Play ${label}`}
       >
         <span className={styles.playMark}>

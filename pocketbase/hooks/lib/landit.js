@@ -727,6 +727,67 @@ function enforceTrickContentLimits(record) {
   }
 }
 
+/**
+ * The staff-picked tutorial keeps its shape, and the stored id is always an id
+ * (T35).
+ *
+ * Two guarantees, both of which have to bind below the client because the staff
+ * editor is not a security boundary:
+ *
+ *  1. **`video_id` is re-parsed on every write and overwritten with the
+ *     eleven-character id**, the same way `enforceVideoLink` does it for a
+ *     rider's own link (plan §3 guarantee 2). Whatever a staff member pastes —
+ *     a watch URL with a tracking query on it, a `youtu.be` link, a short —
+ *     what lands in the column is eleven characters of URL-safe base64 and
+ *     nothing else. `youtubeEmbedUrl` throws on anything but that, so this is
+ *     what stops a hand-edited row reaching an `<iframe src>` as a string
+ *     somebody chose.
+ *  2. **A video is whole or absent.** All three columns empty is the normal
+ *     state — most of the library has no tutorial and shows no panel. A link
+ *     with no title, or a title with no link, is refused: a play button that
+ *     cannot say what it plays is not something to put on a child's page.
+ *
+ * The word limits repeat `TRICK_VIDEO_LIMITS` in `packages/core`, which this
+ * file cannot import; `pocketbase/tests/trick-video.test.ts` is what proves the
+ * two agree, the same arrangement T28 made for the content limits.
+ */
+function enforceTrickVideo(record) {
+  const video = require(`${__hooks}/lib/video.js`);
+
+  // Repeated from `TRICK_VIDEO_LIMITS` in `packages/core/src/rules/tricks.ts`.
+  const TITLE_MAX_WORDS = 16;
+  const CHANNEL_MAX_WORDS = 6;
+
+  const link = record.getString('video_id').trim();
+  const title = record.getString('video_title').trim();
+  const channel = record.getString('video_channel').trim();
+
+  // Nobody has picked one. The normal state, and not an error.
+  if (!link && !title && !channel) return;
+
+  if (!link) {
+    throw new BadRequestError('Paste the YouTube link, or clear the title and channel.');
+  }
+
+  const parsed = video.parseYouTubeVideoId(link);
+  if (!parsed) {
+    throw new BadRequestError(
+      'That is not a YouTube link. Paste the address from the video — youtube.com/watch, youtu.be or a Shorts link.',
+    );
+  }
+  record.set('video_id', parsed);
+
+  if (!title) {
+    throw new BadRequestError('Give the video its title, so the page can say what it plays.');
+  }
+  if (wordCount(title) > TITLE_MAX_WORDS) {
+    throw new BadRequestError(`Keep the title to ${TITLE_MAX_WORDS} words.`);
+  }
+  if (channel && wordCount(channel) > CHANNEL_MAX_WORDS) {
+    throw new BadRequestError(`Keep the channel name to ${CHANNEL_MAX_WORDS} words.`);
+  }
+}
+
 // ---------------------------------------------------------- challenges ---
 
 /**
@@ -1093,6 +1154,7 @@ module.exports = {
   enforceSubscriptionEligibility,
   enforceTrickContentLimits,
   enforceTrickNote,
+  enforceTrickVideo,
   enforceVideoLink,
   findAll,
   guardInsightsOptIn,

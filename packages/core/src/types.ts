@@ -96,6 +96,35 @@ export interface TrickMistake {
   readonly fix: string;
 }
 
+/**
+ * The one tutorial video a trick page shows (T35).
+ *
+ * **Staff picked, never found.** There is no search, no ranking and no
+ * automatic fill: a video is on a trick because a person watched it and typed
+ * it into the staff portal, which is what the approval *is*. The measured
+ * reason is in plan §7 T35 — an automatic top-result pick puts pole vaulting on
+ * Pole Tap and moped kick-starting on Kickturn, and this is a product for
+ * children.
+ *
+ * **`title` and `channel` are stored, not fetched.** Asking YouTube for them
+ * would be a request to Google from a child's page, which is the whole thing
+ * `VideoEmbed` exists to avoid (plan §6.8, no consent banner). They are typed
+ * in beside the link, so the panel can name what it is about to play without
+ * anybody's server being contacted first.
+ *
+ * `channel` is optional because a title alone is enough to say what a rider is
+ * about to watch; `id` and `title` are not, because a play button with no
+ * label is a box a child is asked to trust.
+ */
+export interface TrickVideo {
+  /** The eleven-character YouTube id, already parsed. Never a URL. */
+  readonly id: string;
+  /** What the video is called, as a staff member typed it. */
+  readonly title: string;
+  /** Who made it. Absent when staff did not record it. */
+  readonly channel?: string;
+}
+
 export interface Trick {
   readonly id: string;
   readonly name: string;
@@ -144,6 +173,23 @@ export interface Trick {
    * `mistakes`.
    */
   readonly hard?: string;
+  /**
+   * The staff-picked tutorial for this trick (T35), or absent.
+   *
+   * **Absent is the common case and renders as nothing at all.** Not every
+   * trick has a tutorial anybody has made — measured at roughly four in five
+   * across the library, and far worse on scooter, where the beginner skills
+   * live inside compilations and the rare combinations have no video at all
+   * (plan §7 T35). A trick without one shows no panel: no placeholder, no
+   * "coming soon", and never another sport's video, however close
+   * `CROSS_SPORT` says the movement is (owner, 2026-09-12, in chat). A rider on
+   * a trick with no video should not be able to tell that other tricks have
+   * one.
+   *
+   * It lives **only in the database**, never in the canonical `TRICKS` data,
+   * so a seed run cannot revert what staff picked (issue #273).
+   */
+  readonly video?: TrickVideo;
   /** Hidden tricks stay in the database but out of the library. */
   readonly isLive: boolean;
 }

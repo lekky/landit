@@ -71,6 +71,7 @@ import { PractiseLine } from './PractiseLine';
 import { RoadPanel } from './RoadPanel';
 import { SimilarTricks } from './SimilarTricks';
 import { StagePanel, type TrickShareView } from './StagePanel';
+import { WatchPanel } from './WatchPanel';
 import styles from './trick.module.css';
 
 /**
@@ -556,6 +557,25 @@ export default async function TrickPage({ params }: Params) {
               The trick's sport narrows the glossary to the words that sport
               uses; the slug is what turns on "Back to the trick" over there.
             */}
+            {/*
+              "Watch it" (T35), first in the column and therefore the first
+              thing under the stage ladder on a phone — the owner asked for
+              prominence where there is a video (2026-09-12, in chat), and this
+              is the most prominent slot that leaves T26's award-led hero alone.
+
+              **Nothing at all when the trick has no video**, which is most of
+              them: no placeholder, no "coming soon", and never the equivalent
+              trick's video from another sport. The condition lives here, beside
+              the section, the same way the cross-sport panel's does — an empty
+              panel and an empty gap are both impossible.
+            */}
+            {trick.video && (
+              <div className={styles.secWatch}>
+                <SectionHead color={category.color}>Watch it</SectionHead>
+                <WatchPanel trick={trick} video={trick.video} />
+              </div>
+            )}
+
             <div className={styles.secLowdown}>
               <SectionHead color={category.color}>The lowdown</SectionHead>
               <p className={styles.prose}>

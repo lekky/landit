@@ -4316,6 +4316,118 @@ reports do not block an idea. Four decisions the owner made in the brief:
 requested" page. Each of those renders one rider's typing to another, which is the stranger-contact
 surface §6.1 does not have.
 
+**T35 · Watch it: the staff-picked tutorial.** Added after launch (Rachid, 2026-09-12, in chat),
+from the same question T22 came from: looking at the shipped product. The trick page tells a rider
+what the trick is, what usually goes wrong, why it sits at its tier and what comes before it, and
+**never once shows them the trick**. Children learn tricks by watching them.
+
+**The coverage was measured before anything was built, and the measurement is the reason for
+every rule below.** A stratified sample of 21 tricks — every sport crossed with every difficulty,
+weighted to the hard end — was searched on YouTube. Skate came back 7 of 7 with dedicated
+tutorials, BMX 5 of 6 (Abubaca and Toothpick Hangover, both obscure and both difficulty 5,
+returned four or more each), scooter 2 of 7 clean with 2 ambiguous and **3 with nothing**. The
+scooter failures are of two kinds and neither is fixable by a better query: **our word is not the
+riders' word** ("Pole Tap" returns pole vaulting and pole dancing; "Kickturn" returns moped
+kick-starting, and both still miss with "pro scooter" and "scootering" added), and **rare
+combinations have no tutorial at all** (scooter "Backflip No Hander" returns plain scooter
+backflips and no-hander backflips on BMX, and nothing for the combination). Extrapolated on the
+sport mix: roughly 90–95% on skate and BMX, 55–65% on scooter, **210–215 of 259 overall**.
+
+**Two rules, both the owner's (2026-09-12, in chat).**
+
+- **Prominence where there is a video.** The panel leads the left column, above The lowdown, and
+  is first in the phone order (`.secWatch { order: -12 }`) — ahead of the history and the facts
+  strip. It deliberately does **not** enter the hero: T26 and T26a made that band award-led on
+  purpose, and this is the most prominent slot that leaves that decision standing.
+- **Silence where there is not.** No video for this trick on this equipment means **no panel**: no
+  placeholder, no "coming soon", no greyed-out module, and **never another sport's video**, however
+  close `CROSS_SPORT` says the movement is. A rider on a trick with no video should not be able to
+  tell that other tricks have one. The cross-sport panel still links the *trick*, which is a
+  different thing from playing its video here.
+
+**Why this cannot be automated, which is the whole shape of the build.** An automatic top-result
+pick would have put a pole-dancing video on Pole Tap and moped kick-starting on Kickturn — on a
+product for children. Suitability is not machine-checkable either: tutorial channels carry
+swearing, slam compilations and adverts, and a channel that is fine today can post something else
+tomorrow. So **a video is on a trick because a person watched it and typed it into the staff
+portal, and that act is the approval.** There is no search, no ranking and no automatic fill.
+
+**No API key, no Google Cloud project, no quota.** `video_title` and `video_channel` are *stored*,
+typed in beside the link, rather than fetched. Asking YouTube what a video is called would be a
+request to Google from a child's page on load, which is exactly what `VideoEmbed`'s click-to-play
+gate exists to prevent (§6.8 — this product carries no consent banner, deliberately, and a
+page-load ping to a Google host would put one back on the roadmap). The panel reuses `VideoEmbed`
+rather than reimplementing it, so the poster is drawn and never fetched, and the iframe is mounted
+by the press rather than hidden by CSS.
+
+**Signed out too** (owner, same conversation). This is staff content on a public, indexed page, and
+a visitor who arrived from a search for "how to abubaca" should get the answer they came for.
+
+**Database-only, unlike T28's content.** `mistakes` and `hard` live in the canonical `TRICKS` data
+as well as in their columns, so the seed fills them. The three `video_*` columns are deliberately
+not in `@landit/core` at all, the seed never writes them, and `tricksFromRecords` is the only way a
+video reaches a `Trick`. That is what makes the staff edit the approval — and it sidesteps issue
+#273, since a seed run cannot revert a curation pass it does not know about.
+
+**Whole or absent, enforced twice.** A link with no title, or a title with no link, is refused:
+a play button that cannot say what it plays is not something to put on a child's page.
+`trickVideoProblems` in `@landit/core` gives the staff editor its message;
+`enforceTrickVideo` in `pocketbase/hooks/lib/landit.js` binds it on the model hooks, so a superuser
+token goes through the same door as the portal. The hook also **re-parses `video_id` on every write
+and overwrites the column with the eleven-character id** — the same treatment a rider's own link
+gets (§3 guarantee 2), and what guarantees the string reaching an `<iframe src>` is an id and not
+something a hand edit chose. The word limits are repeated in the hook, which cannot import the
+package, and `pocketbase/tests/trick-video.test.ts` is what holds the two in step — the arrangement
+T28 made for the content limits.
+
+**Analytics.** Two new events, both catalogue facts. `trick_video_played` carries the slug, the
+sport and the tier, fired on the press that mounts the iframe, because the component contacts
+nothing before then and there is no later signal either. It exists because curation is the
+expensive half of this feature and it is the only thing that will say whether the videos are worth
+the hours. `trick_video_reported` carries the slug alone, and is deliberately *not* `report_filed`:
+it counts leaving the page for the form, which is the signal that a video needs looking at even
+when the person changes their mind before sending anything.
+
+**A report control, because the video is somebody else's.** "Something wrong?" opens the report
+form at `?about=clip&id=<slug>` — the subject `clip` has existed since T18 and has had a real
+surface since T15b. Issue #153 is still open for the *rider's own* video links, which remain
+without one; this closes nothing there and does not pretend to.
+
+**Checked.** `trickVideoProblems` is unit-tested over every link shape a staff member might paste,
+both halves of the whole-or-absent rule, the word limits at, under and over the line, and the
+channel being optional. `queries.test.ts` covers the mapping: whole, channel-less, absent, either
+half missing, whitespace-only columns, and a row from a database that predates the migration —
+which must read as "no video" and never throw, because one bad row would otherwise take the whole
+library down. `pocketbase/tests/trick-video.test.ts` proves the columns exist, that five shapes of
+pasted link all come back out as the bare id, that a signed-out reader gets the video, and that
+each rule is refused **from a superuser token**. `e2e/trick-video.spec.ts` proves the panel renders
+for a signed-out visitor above the lowdown, that nothing contacts Google before the press and there
+is no iframe at all until then, and that a trick with no video shows no heading, no player and no
+"coming soon" — asserting the page rendered *first*, so the absence cannot pass by finding nothing.
+`e2e/support/seed-trick-video.ts` is what makes any of that meaningful: the columns are
+database-only, so without one fixture write no trick in the e2e database has a video and the whole
+file would be green against a page that could not draw a panel under any circumstances (LESSONS §5).
+
+**What is deliberately not in this task, and what a later session inherits.**
+
+- **The curation pass.** 259 tricks at two to four minutes each of watching is **10–15 hours** of
+  somebody's time, and it is the real bill. The mechanism ships with the catalogue empty, so the
+  site is unchanged for riders until a person adds the first one. Do the 60 free tricks first: they
+  are the pages signed-out visitors and search engines land on.
+- **The ~40 scooter tricks with nothing.** Leave the panel off, or link a timestamped compilation,
+  or show the closest relative from `CROSS_SPORT` under a "different bike, same movement" line —
+  an owner decision, and note that the third option is a *narrow* exception to the silence rule
+  above rather than a reversal of it.
+- **Link rot.** Videos get deleted, made private, or have embedding disabled, and a trick page with
+  a dead frame is worse than one with no frame. `videos.list` checks all 259 ids in six calls at
+  one quota unit each, so a nightly job that flags anything gone is cheap — but it needs the
+  YouTube Data API, which this task deliberately does not introduce. Its own issue.
+- **Gathering candidates in bulk.** `search.list` costs 100 quota units against a free 10,000/day,
+  so 259 tricks at two or three query variants is a week on the free tier or one quota-increase
+  request. A channel allowlist (Braille, Scooter Hut, TransWorld RideBMX, skatedeluxe, Alli Sports)
+  would sharply improve the hit rate and make the human pass faster. Also its own issue: nothing
+  gathered this way may publish itself.
+
 ### Dependency graph
 
 ```
