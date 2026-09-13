@@ -123,6 +123,47 @@ export async function deleteLogEntry(client: Client, logId: string): Promise<voi
   await records(client, 'trick_log').remove(logId);
 }
 
+/**
+ * Delete a rider's whole history with one trick, and say how many rows went.
+ *
+ * The other half of the sentence `clearTrickStage` above leaves hanging: a
+ * rider who untracks a trick has not un-landed it, *unless they say they have*.
+ * This is them saying so — "Clear history" in the trick page's history panel,
+ * offered once they have stopped tracking and behind its own confirm (Rachid,
+ * 2026-09-13, in chat) — and it is the only caller.
+ *
+ * Every date in the product recomputes from what remains rather than being
+ * cached anywhere (plan §3), so there is nothing else to correct here: the
+ * first-landed date, the history timeline and the progress screen's months all
+ * simply stop counting a trick whose rows have gone.
+ *
+ * **The badge is not this function's to take, and it does go.**
+ * `rider_stickers` is `deleteRule: null`, so no client write can touch one;
+ * `30_stickers.pb.js` re-judges what the rider holds when the last row here is
+ * deleted. That is why this deletes row by row and does not stop early — the
+ * hook keys off the log being empty.
+ *
+ * Returns the number of rows deleted, which is what the confirm counted and
+ * what the analytics event reports.
+ */
+export async function clearTrickHistory(
+  client: Client,
+  userId: string,
+  trickId: string,
+): Promise<number> {
+  const rows = await records(client, 'trick_log').list({
+    filter: 'user = {:user} && trick = {:trick}',
+    params: { user: userId, trick: trickId },
+  });
+
+  // Serially, not `Promise.all`: the delete of the last row is what triggers
+  // the server's sticker re-judgement, and firing ten deletes at once makes
+  // "the last one" a race rather than a fact.
+  for (const row of rows) await records(client, 'trick_log').remove(row.id);
+
+  return rows.length;
+}
+
 /* ----------------------------------------------------------------- notes -- */
 
 /*

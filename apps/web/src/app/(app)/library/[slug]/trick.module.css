@@ -1032,6 +1032,20 @@
 }
 
 /*
+ * The reset, under the timeline and above nothing — a hairline rule and a ghost
+ * button, deliberately the quietest thing in the panel. It is on this screen so
+ * a rider who already stopped tracking can still tidy a mistap away, not
+ * because anybody should be invited to.
+ */
+.historyFoot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 2.5px solid var(--ink);
+}
+
+/*
  * The timeline: a 2.5px ink line down the left, behind a dot per row. The
  * line is absolute inside the list and stops 10px short of each end so it
  * runs dot to dot rather than past them.

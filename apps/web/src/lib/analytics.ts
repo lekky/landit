@@ -269,6 +269,20 @@ export const ANALYTICS_EVENTS = {
   noteSaved: 'note_saved',
   /** A note was removed from a trick's log. Same properties, never the note. */
   noteRemoved: 'note_removed',
+  /**
+   * A rider wiped their whole history with one trick — the reset behind the
+   * history panel's "Clear history", which deletes their `trick_log` rows for
+   * it and takes back any badge the trick had earned them.
+   *
+   * Worth its own event rather than a `trick_logged` with `stage: 'none'`,
+   * which is the ordinary untrack: this is the only place in the product where
+   * a rider destroys their own history, and the two should never be summed.
+   * Carries the trick's catalogue facts and how many entries went — a count of
+   * one is a mistap tidied away, and a long history deleted is worth knowing
+   * about for quite different reasons. No screen property: the reset has one
+   * door, and a constant is not a dimension. Nothing here identifies the rider.
+   */
+  trickHistoryCleared: 'trick_history_cleared',
   challengeLogged: 'challenge_logged',
   /** The coach-view toggle on the progress screen. */
   insightsSet: 'insights_set',

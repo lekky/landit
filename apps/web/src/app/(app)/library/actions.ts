@@ -4,6 +4,7 @@ import type { StageId, VideoVisibilityId } from '@landit/core';
 import {
   addTrickNote,
   addVideoLink,
+  clearTrickHistory,
   clearTrickStage,
   deleteTrickNote,
   isForbidden,
@@ -101,6 +102,67 @@ export async function setStageAction(input: {
   // it still counted there — which reads as the write not having saved.
   revalidatePath(ROUTES.progress);
   return { ok: true, earned };
+}
+
+export type ClearHistoryActionResult =
+  | { readonly ok: true; readonly cleared: number }
+  | { readonly ok: false; readonly message: string };
+
+/**
+ * Wipe the rider's whole history with one trick — the reset, not the untrack.
+ *
+ * `setStageAction(null)` above stops tracking and keeps everything: the log
+ * rows, the first-landed date, the badge. That is the right default and it did
+ * not move. This is the other answer, for a rider who tapped a stage by mistake
+ * or was messing about and wants the trick back to how it was before they
+ * touched it — offered from the history panel once they have already stopped
+ * tracking, behind a confirm that says the badge goes (Rachid, 2026-09-13, in
+ * chat).
+ *
+ * It clears the stage as well as the log, and in that order. The screen only
+ * offers this on an untracked trick, so `clearTrickStage` finds no progress row
+ * and does nothing — it is here so the *action* lands a trick in one known
+ * state rather than trusting a caller to have stopped tracking first, and so
+ * the hook below never judges a rider who is still on the ladder.
+ *
+ * **The badge is not taken here, and it is not taken by the rider's client
+ * either.** `rider_stickers` is `deleteRule: null`, so the only writer is the
+ * server: `30_stickers.pb.js` re-judges what the rider holds when the last log
+ * row goes, against stats recomputed from the database. Asking this action
+ * which stickers should go would be the mirror image of the forgery the hook
+ * exists to stop (plan §3).
+ */
+export async function clearTrickHistoryAction(input: {
+  trickId: string;
+  slug: string;
+}): Promise<ClearHistoryActionResult> {
+  const session = await currentRider();
+  if (!session) return { ok: false, message: 'Sign in to change what you are tracking.' };
+
+  let cleared = 0;
+  try {
+    // Stage first, log second: the hook keys the sticker re-judgement off the
+    // last log row going, so the progress row has to be gone by then or the
+    // pass would judge a rider who is still tracking the trick.
+    await clearTrickStage(session.client, session.rider.id, input.trickId);
+    cleared = await clearTrickHistory(session.client, session.rider.id, input.trickId);
+  } catch (error) {
+    if (isForbidden(error)) {
+      return { ok: false, message: 'That is not yours to clear.' };
+    }
+    return { ok: false, message: 'That did not clear. Try again in a moment.' };
+  }
+
+  revalidatePath(trickHref(input.slug));
+  revalidatePath(ROUTES.library);
+  // The screens built from the log rather than from `trick_progress`: the
+  // months, the latest lands and the sticker wall, which may have just lost a
+  // badge. A rider who resets a trick and still sees it counted on Progress has
+  // been told the reset worked and shown that it did not.
+  revalidatePath(ROUTES.progress);
+  revalidatePath(ROUTES.dashboard);
+  revalidatePath(ROUTES.stickers);
+  return { ok: true, cleared };
 }
 
 /* ----------------------------------------------------------- video links -- */

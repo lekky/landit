@@ -454,4 +454,185 @@ function awardSpecific(app, userId, slug) {
   return true;
 }
 
-module.exports = { RULES, KIND_RULES, awardStickers, awardSpecific, computeStats };
+/* --------------------------------------------------------------- revoke -- */
+
+/*
+ * Un-earning, and the narrow door it comes through.
+ *
+ * Issue #78 settled that **a sticker rule must be monotonic in the rider's own
+ * riding**: `catDone` awards used to un-earn themselves when staff added a
+ * trick, and the fix was to make going backwards impossible. That rule is about
+ * the rider being overtaken by somebody else's edit, and it still holds — none
+ * of this runs on a staff change, a plan change, a lapsed streak or a deleted
+ * clip.
+ *
+ * What it does run on is a rider deliberately wiping their own history with one
+ * trick, having already stopped tracking it and been told in a confirm that the
+ * badge goes (Rachid, 2026-09-13, in chat). That is the rider's own riding being
+ * withdrawn by the rider, which is the one case where standing still would be
+ * the dishonest answer: a reset that leaves the badge on the wall has not reset
+ * anything.
+ */
+
+/**
+ * The award kinds this may take back: the ones computed from `trick_progress`
+ * and `trick_log`, which is exactly what clearing a history changes.
+ *
+ * **Everything absent from here is absent on purpose**, and the omissions are
+ * the whole safety of this pass rather than an oversight:
+ *
+ * - `streak` reads the streak a rider is on *now*, not the best they ever held,
+ *   so every streak award reads false the week after it lapses.
+ * - `comeback` is transition-based and its rule is a permanent `false`
+ *   (`awardSpecific` grants it), so a blanket pass would strip it from
+ *   everybody, every time.
+ * - `supporter` follows the plan, and `profile-complete` follows a field a
+ *   rider may clear this afternoon.
+ * - `clips`, `challenges`, `crew`, `crew-owned`, `spots-approved` and
+ *   `events-going` count things this feature does not touch at all.
+ * - `account-age` and `founder` are facts about a date and cannot be lost.
+ *
+ * None of those is a fact about riding a trick, so none of them is this
+ * feature's to take.
+ */
+const REVOCABLE_KINDS = {
+  trick: true,
+  'landed-count': true,
+  'sport-landed-count': true,
+  'mastered-count': true,
+  'hard-mastered': true,
+  'sport-cat-count': true,
+  'sports-landed': true,
+  'sport-cats-landed': true,
+  'stage-drop': true,
+};
+
+/**
+ * The same line drawn through the slug-keyed bridge rules, for records the
+ * award seed has not written a `kind` onto yet. `first-clip`, `first-challenge`,
+ * `crewed-up`, `hot-streak` and `all-season` are deliberately not here, for the
+ * reasons above.
+ */
+const REVOCABLE_SLUGS = {
+  'first-land': true,
+  'rolling-deep': true,
+  'on-lock': true,
+  'five-deep': true,
+  gnarly: true,
+  'both-feet': true,
+  'street-cred': true,
+  'park-rat': true,
+  'grind-time': true,
+  'flat-out': true,
+  'flat-track': true,
+  'ledge-rat': true,
+  'bowl-rider': true,
+  tailwhip: true,
+  'bunny-hop': true,
+  'sk-kickflip': true,
+  'sk-axle-stall': true,
+  'sk-tre-flip': true,
+  'sk-ollie': true,
+};
+
+/**
+ * Take back every revocable sticker the rider no longer qualifies for.
+ *
+ * The mirror image of `awardStickers`, and deliberately the same shape: stats
+ * recomputed from the database, `kind` outranking the slug bridge, one pass,
+ * idempotent. Three things make it safe to run:
+ *
+ * 1. **An allowlist, not a denylist.** A sticker whose kind or slug is not named
+ *    above is skipped whatever its rule says, so a new award kind arrives
+ *    un-revocable and someone has to decide to add it.
+ * 2. **A retired record is never taken.** `is_live: false` means the rule is no
+ *    longer evaluated for awarding either, and a sticker that cannot be
+ *    re-earned must not be removable by a pass the rider did not aim at it.
+ * 3. **It fails towards keeping.** A missing record, an unknown rule or a rule
+ *    that throws all leave the row alone. The wrong answer here costs a rider
+ *    an achievement they earned, so every uncertain case keeps it.
+ *
+ * Returns the slugs taken back.
+ */
+function revokeStickers(app, userId) {
+  const lib = require(`${__hooks}/lib/landit.js`);
+
+  let held;
+  try {
+    held = lib.findAll(app, 'rider_stickers', 'user = {:user}', { user: userId });
+  } catch {
+    return [];
+  }
+  if (!held.length) return [];
+
+  let stats;
+  try {
+    stats = computeStats(app, userId);
+  } catch {
+    // No stats, no judgement. Better a sticker kept than one taken on a guess.
+    return [];
+  }
+
+  const revoked = [];
+
+  for (const row of held) {
+    let sticker;
+    try {
+      sticker = app.findRecordById('stickers', row.getString('sticker'));
+    } catch {
+      continue;
+    }
+
+    if (!sticker.getBool('is_live')) continue;
+
+    const slug = sticker.getString('slug');
+    const kind = sticker.getString('kind');
+    const sport = sticker.getString('sport');
+    const scope = sport ? stats[sport] : stats.all;
+    if (!scope) continue;
+
+    // Kind first, then the slug bridge — the same precedence `awardStickers`
+    // uses, because a sticker judged one way on the way in and another on the
+    // way out would be a rule with two meanings.
+    const kindRule = kind ? KIND_RULES[kind] : undefined;
+    let revocable;
+    let evaluate;
+    if (kindRule) {
+      revocable = REVOCABLE_KINDS[kind] === true;
+      evaluate = () =>
+        kindRule(scope, {
+          n: sticker.getInt('n'),
+          trick: sticker.getString('trick'),
+          cat: sticker.getString('cat'),
+        });
+    } else if (RULES[slug]) {
+      revocable = REVOCABLE_SLUGS[slug] === true;
+      evaluate = () => RULES[slug](scope, sticker.getInt('n'));
+    } else {
+      continue;
+    }
+    if (!revocable) continue;
+
+    let earned = true;
+    try {
+      earned = !!evaluate();
+    } catch {
+      earned = true;
+    }
+    if (earned) continue;
+
+    app.delete(row);
+    revoked.push(slug);
+  }
+
+  return revoked;
+}
+
+module.exports = {
+  RULES,
+  KIND_RULES,
+  awardStickers,
+  awardSpecific,
+  revokeStickers,
+  computeStats,
+};

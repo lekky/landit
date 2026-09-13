@@ -239,6 +239,13 @@ export function StagePanel({
         The confirm. It clears the stage and nothing else: the first-landed date
         and the award both survive, which is the sentence a rider needs to read
         before they answer rather than after.
+
+        **The reset is deliberately not offered here** (Rachid, 2026-09-13, in
+        chat). Wiping a trick's history is a second, heavier decision, and this
+        band is a control riders press casually — two answers is what it has
+        always had and what it keeps. A rider who wants the trick gone entirely
+        stops tracking first and finds "Clear history" in the history panel,
+        which is where the rows they want rid of are actually shown.
       */}
       {current && confirming && (
         <div className={styles.bandFoot}>

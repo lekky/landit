@@ -140,3 +140,75 @@ onRecordUpdateRequest((e) => {
   }
   e.next();
 }, 'rider_stickers');
+
+/**
+ * A rider wiped their history with one trick, so re-judge what they hold.
+ *
+ * `trick_log` rows are deletable by their owner and always have been (plan §3,
+ * "log semantics, reconciled" — "if they want the history gone they delete the
+ * log rows, which they may"); until now nothing in the product offered it. The
+ * trick page's history panel does, for a rider who has already stopped
+ * tracking, behind a confirm that tells them the badge goes with it (Rachid,
+ * 2026-09-13, in chat).
+ *
+ * Deleting the rows is the rider's write; taking the sticker back cannot be,
+ * because `rider_stickers` is `deleteRule: null` — the same lock that makes
+ * awards unforgeable makes them un-droppable from a screen. So it happens here,
+ * on the server, or not at all.
+ *
+ * **Two guards, and the pass is wrong without either.**
+ *
+ * Only on the *last* row. The action deletes a trick's log a row at a time and
+ * `revokeStickers` recomputes the rider's whole stats, so firing on each one
+ * would do that work N times and do it against a half-deleted history. Counting
+ * what is left is one indexed query (`idx_trick_log_user_trick`) and gives a
+ * single pass over the finished state.
+ *
+ * Never during erasure. `anonymiseRider` deletes `trick_log` before
+ * `rider_stickers` and counts the rows it removes as it goes, so a revoke
+ * firing mid-wipe would delete rows the erasure is about to count and make
+ * `records_removed` under-report what was destroyed. The identity is
+ * anonymised *before* any of the deleting starts, which is what makes
+ * `anonymised_at` a reliable "this is an erasure, stand down".
+ *
+ * And never on a trick that has gone. `trick_log.trick` is `cascadeDelete`, so
+ * staff removing a trick from the catalogue empties every rider's log for it —
+ * which arrives here looking exactly like a rider clearing their history, and
+ * would take awards off people who had done nothing. That is the going
+ * backwards under somebody else's edit that issue #78 settled must not happen.
+ * A rider's own reset always runs against a trick that still exists, so the
+ * check costs the real path nothing.
+ */
+function revokeOnHistoryCleared(e) {
+  const userId = e.record.getString('user');
+  const trickId = e.record.getString('trick');
+  e.next();
+  if (!userId || !trickId) return;
+
+  try {
+    const lib = require(`${__hooks}/lib/landit.js`);
+
+    const left = lib.findAll(e.app, 'trick_log', 'user = {:user} && trick = {:trick}', {
+      user: userId,
+      trick: trickId,
+    });
+    if (left.length) return;
+
+    try {
+      e.app.findRecordById('tricks', trickId);
+    } catch {
+      return;
+    }
+
+    const rider = e.app.findRecordById('users', userId);
+    if (rider.getString('anonymised_at') !== '') return;
+
+    require(`${__hooks}/lib/stickers.js`).revokeStickers(e.app, userId);
+  } catch (err) {
+    // A sticker that cannot be re-judged must never fail the rider's delete —
+    // the same bargain `award` makes, and it fails the same way: towards the
+    // rider keeping what they hold.
+    $app.logger().error('sticker revoke failed', 'user', userId, 'error', String(err));
+  }
+}
+onRecordAfterDeleteSuccess(revokeOnHistoryCleared, 'trick_log');
