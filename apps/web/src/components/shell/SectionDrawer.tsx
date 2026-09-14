@@ -2,6 +2,7 @@
 
 import { Icon } from '@landit/ui-web';
 import Link from 'next/link';
+import type { CSSProperties } from 'react';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 
@@ -32,11 +33,24 @@ export function SectionDrawer({
   label,
   pathname,
   id,
+  cell,
   onNavigate,
 }: {
   tabs: readonly SectionTab[];
-  /** The section's own name, e.g. "What's on". */
+  /**
+   * The section's own name, e.g. "What's on" — for a screen reader only now.
+   *
+   * The drawn label went when the drawer became a small floating card (Rachid,
+   * 2026-09-14, in chat, choosing "without a title"): the lit cell directly
+   * beneath, and the pointer aimed at it, already say which section this is.
+   */
   label: string;
+  /**
+   * Which of the bar's cells owns this drawer, so the pointer can sit over it.
+   * Progress is the middle cell but What's on is the fourth, so a centred
+   * pointer would aim at the wrong one half the time.
+   */
+  cell: { index: number; of: number };
   /** The screen being looked at, so the drawer can say which of the two it is. */
   pathname: string;
   /** Ties the drawer to the cell that opens it, for `aria-controls`. */
@@ -63,8 +77,13 @@ export function SectionDrawer({
      * this is inside the compact nav's landmark already, and nesting a
      * landmark inside itself makes both harder to skip past.
      */
-    <div className={styles.drawer} id={id} role="group" aria-label={label}>
-      <p className={styles.label}>{label}</p>
+    <div
+      className={styles.drawer}
+      id={id}
+      role="group"
+      aria-label={label}
+      style={{ '--cell': (cell.index + 0.5) / cell.of } as CSSProperties}
+    >
       {tabs.map((tab) => {
         // The same prefix rule the bar uses, so `/events/brighton-jam` is still
         // Events. `isNavActive` is not reused: it answers for a whole section,

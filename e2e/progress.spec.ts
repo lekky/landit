@@ -172,6 +172,29 @@ test('the Progress drawer is the way to the sticker wall, which shares its cell'
   );
   await expect(drawer.locator('[aria-current="page"]')).toHaveCount(1);
 
+  /*
+   * The floating card (2026-09-14): one row of tabs, clear of the bar, and no
+   * label that fails to fit — measured at 320px, where this section's longest
+   * row has the least room. `nowrap` turns a label too wide into an overflow
+   * rather than a taller row, so overflow is what gets measured.
+   */
+  await page.setViewportSize({ width: 320, height: 700 });
+  const bar = page.getByRole('navigation', { name: 'Main, compact', exact: true });
+  await expect
+    .poll(async () => (await drawer.boundingBox())!.y + (await drawer.boundingBox())!.height)
+    .toBeLessThan((await bar.boundingBox())!.y);
+  const overflow = await drawer
+    .getByRole('link')
+    .evaluateAll((nodes) => nodes.map((n) => n.scrollWidth - n.clientWidth));
+  expect(overflow, 'a drawer tab label is wider than its tab at 320px').toEqual(
+    overflow.map(() => 0),
+  );
+  const tops = await drawer
+    .getByRole('link')
+    .evaluateAll((nodes) => nodes.map((n) => Math.round(n.getBoundingClientRect().top)));
+  expect(new Set(tops).size, 'the drawer tabs are not on one row').toBe(1);
+  await page.setViewportSize({ width: 390, height: 844 });
+
   await drawer.getByRole('link', { name: 'Stickers', exact: true }).click();
   await page.waitForURL('**/stickers');
 
