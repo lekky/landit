@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
+import { softFill } from '../contrast';
+
 import {
   ClipPoster,
   FEEL_FACES,
@@ -102,10 +104,13 @@ describe('the drawn glyphs', () => {
     expect(titled).toContain('/session-icons/w128/weather-rain.webp 128w');
   });
 
-  it('puts a 17px sticker in a 20px swatch of the feel’s colour', () => {
+  it('puts a 17px sticker in a 20px swatch tinted with the feel’s colour', () => {
     const swatch = renderToStaticMarkup(<FeelSwatch feel="sent" color="#10a06a" />);
     expect(swatch).toContain('width:20px');
-    expect(swatch).toContain('background:#10a06a');
+    // A tint, not the colour itself: the sticker is painted in that colour, so
+    // a solid square was the same green on both sides of its cream edge.
+    expect(swatch).not.toContain('background:#10a06a');
+    expect(swatch).toContain(`background:${softFill('#10a06a')}`);
     // 85% of the square, where the stroked face took 70%.
     expect(swatch).toContain('width="17"');
   });
@@ -135,6 +140,36 @@ describe('SegmentedPicker', () => {
   it('fills the chosen cell with that option’s own colour', () => {
     expect(html).toContain('background:#9ce05b');
     expect(html).not.toContain('background:#10a06a');
+  });
+
+  it('leaves every existing picker solid, because `fill` defaults to solid', () => {
+    // The prop was added on 2026-09-14. When/How long/Who can see it draw
+    // ink-on-cream glyphs and must render exactly as they did.
+    expect(html).not.toContain('seg soft');
+    expect(html).not.toContain('--seg-accent');
+  });
+
+  it('under fill="soft", tints the cell and draws the colour as a ring', () => {
+    const soft = renderToStaticMarkup(
+      <SegmentedPicker
+        label="How it felt"
+        value="fine"
+        onChange={() => {}}
+        fill="soft"
+        options={[
+          { id: 'fine', label: 'Fine', color: '#ffc23f' },
+          { id: 'hurt', label: 'Hurt', color: '#ff3d78' },
+        ]}
+      />,
+    );
+    // The yellow face no longer sits on a yellow field …
+    expect(soft).not.toContain('background:#ffc23f');
+    expect(soft).toContain(`background:${softFill('#ffc23f')}`);
+    // … and the full colour is still in the cell, as the ring that marks it.
+    expect(soft).toContain('--seg-accent:#ffc23f');
+    expect(soft).toContain('seg soft on');
+    // Only the chosen cell: an unchosen one is plain paper, ring and all.
+    expect(soft).not.toContain('--seg-accent:#ff3d78');
   });
 
   it('puts the first cell in the tab order when nothing is chosen', () => {

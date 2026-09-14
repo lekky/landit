@@ -19,7 +19,7 @@ export const UI_WEB_PACKAGE = '@landit/ui-web' as const;
 
 export { cx } from './cx';
 
-export { contrastRatio, foregroundFor } from './contrast';
+export { contrastRatio, foregroundFor, softFill } from './contrast';
 
 export { ICONS, ICON_NAMES, Icon, type IconName, type IconProps } from './icons';
 

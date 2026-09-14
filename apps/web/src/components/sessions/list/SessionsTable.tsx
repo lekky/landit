@@ -1,6 +1,6 @@
 'use client';
 
-import { Equipment, FeelFace, Icon } from '@landit/ui-web';
+import { Equipment, FeelFace, Icon, softFill } from '@landit/ui-web';
 import Link from 'next/link';
 
 import { Pager } from './Pager';
@@ -98,8 +98,9 @@ export function SessionsTable({
                 ))}
               </div>
               <div role="cell" className={styles.tCell}>
+                {/* A tint: the face carries the feel's colour itself. */}
                 {item.feel ? (
-                  <span className={styles.tFeel} style={{ background: item.feel.color }}>
+                  <span className={styles.tFeel} style={{ background: softFill(item.feel.color) }}>
                     <FeelFace feel={item.feel.id} size={14} />
                     {item.feel.label}
                   </span>

@@ -2,7 +2,7 @@
 
 import { useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 
-import { foregroundFor } from '../contrast';
+import { foregroundFor, softFill } from '../contrast';
 import { cx } from '../cx';
 import { FEEL_ART, SessionArt, WEATHER_ART } from '../session-art';
 
@@ -194,22 +194,32 @@ export type FeelSwatchProps = {
 };
 
 /**
- * The feel swatch: a `2px` ink square in the feel's colour with its face inside.
+ * The feel swatch: a `2px` ink square in a tint of the feel's colour with its
+ * face inside.
  *
  * The face takes 85% of the square where the stroked drawing took 70%. A
  * stroked circle read fine with room around it; the painted sticker is already
  * drawn with its own die-cut margin, so insetting it again spent pixels the art
  * has none of to spare at this size (20px is the smallest it is drawn anywhere).
+ *
+ * **A tint, not the colour itself** (owner, 2026-09-14, in chat). This square
+ * exists only to hold a face, and since 2026-09-14 that face is painted in the
+ * feel's colour — so a solid square was the same colour on both sides of the
+ * sticker's cream edge. The tint keeps the square legible as this feel's while
+ * leaving the art the only saturated thing in it. `color` is still the feel's
+ * full colour and callers pass it unchanged; the softening happens here, so
+ * every call site got it at once.
  */
 export function FeelSwatch({ feel, color, size = 20, title, className }: FeelSwatchProps) {
+  const background = softFill(color) ?? color;
   return (
     <span
       className={cx('feelswatch', className)}
       style={{
         width: size,
         height: size,
-        background: color,
-        color: foregroundFor(color) ?? 'var(--on-light)',
+        background,
+        color: foregroundFor(background) ?? 'var(--on-light)',
       }}
     >
       <FeelFace feel={feel} size={Math.round(size * 0.85)} title={title} />
@@ -327,6 +337,19 @@ export type SegmentedPickerProps<T extends string | number> = {
   label: string;
   /** The selected fill when an option has none. Yellow; weather passes `#3ac0ff`. */
   selectedColor?: string;
+  /**
+   * How the chosen cell is painted. `'solid'` floods it with the colour and is
+   * the default, so every picker that existed before 2026-09-14 renders exactly
+   * as it did.
+   *
+   * `'soft'` washes the fill down to a tint and moves the full colour to a ring
+   * just inside the cell's edge. It exists for a picker whose **icons are
+   * themselves painted in the option's colour**: the session feel faces are, so
+   * flooding the `fine` cell yellow put a yellow face on a yellow field with a
+   * cream ring as the only thing between them (owner, 2026-09-14, in chat).
+   * A picker drawing ink-on-cream glyphs wants `'solid'` and always did.
+   */
+  fill?: 'solid' | 'soft';
   disabled?: boolean;
   className?: string;
 };
@@ -334,8 +357,11 @@ export type SegmentedPickerProps<T extends string | number> = {
 /**
  * A single-select row of equal cells — When, How long, the feel faces, the
  * weather, Who can see it. A `radiogroup`: arrow keys move the choice, and only
- * the chosen cell is in the tab order. The selected cell takes its colour as
- * its background, with the text colour following it.
+ * the chosen cell is in the tab order.
+ *
+ * The chosen cell takes its colour as its background, with the text colour
+ * following it — or, under `fill="soft"`, a tint of that colour with the colour
+ * itself drawn as a ring. See `fill` above for which to want.
  */
 export function SegmentedPicker<T extends string | number>({
   options,
@@ -343,6 +369,7 @@ export function SegmentedPicker<T extends string | number>({
   onChange,
   label,
   selectedColor = '#ffc23f',
+  fill = 'solid',
   disabled = false,
   className,
 }: SegmentedPickerProps<T>) {
@@ -381,7 +408,12 @@ export function SegmentedPicker<T extends string | number>({
     >
       {options.map((option, index) => {
         const on = index === selectedIndex;
-        const fill = on ? (option.color ?? selectedColor) : undefined;
+        // The option's full-strength colour. Under `fill="soft"` it becomes the
+        // ring and a tint of it becomes the background; under `solid` it is the
+        // background, as it always was.
+        const accent = on ? (option.color ?? selectedColor) : undefined;
+        const soft = fill === 'soft';
+        const background = accent && soft ? (softFill(accent) ?? accent) : accent;
         const focusable = on || (selectedIndex === -1 && index === 0);
         return (
           <button
@@ -394,10 +426,18 @@ export function SegmentedPicker<T extends string | number>({
             aria-checked={on}
             tabIndex={focusable ? 0 : -1}
             disabled={disabled || option.disabled}
-            className={cx('seg', on && 'on')}
+            className={cx('seg', soft && 'soft', on && 'on')}
             style={
-              fill
-                ? { background: fill, color: foregroundFor(fill) ?? 'var(--on-light)' }
+              background
+                ? ({
+                    background,
+                    color: foregroundFor(background) ?? 'var(--on-light)',
+                    // Read by `.seg.soft.on::after`, which draws the ring. A
+                    // pseudo-element rather than an inset shadow because the
+                    // hover and active rules rewrite `box-shadow` wholesale and
+                    // would drop the ring mid-press.
+                    ...(soft ? { '--seg-accent': accent } : null),
+                  } as CSSProperties)
                 : undefined
             }
             onClick={() => onChange(option.id)}

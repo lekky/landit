@@ -1827,17 +1827,32 @@ screenshot:
 - **`FEEL_FACES` and `WEATHER_ICONS` are still exported, unchanged, path for path.** The art
   replaced them on screen; it did not delete them. A one-colour print, an email or a canvas that
   cannot fetch still needs a drawing, and the handoff's own paths are the drawing to use.
-- **The art does not take the feel's colour — it carries its own.** A stroked face inherited
-  `currentColor`, so the selected cell flipped it to contrast against green or pink. The paint is
-  fixed. The faces supplied later on 2026-09-14 are painted **down the feel scale themselves**
-  (teal, green, yellow, orange, red), so the row now reads as a scale before anything is selected,
-  where the first cream set was five identical discs. **The coloured fill behind them stays**
-  (Rachid, 2026-09-14, in chat, asked directly). Every colour-on-colour pair was checked on the
-  real card, like on like included — yellow `fine` on `#ffc23f`, orange `rough` on `#ff5a1f`, red
-  `hurt` on `#ff3d78` — and each holds, because the die-cut **cream ring** around every sticker is
-  what separates it from the fill. That ring is load-bearing: art commissioned later without it
-  would merge into the selected cell. `strokeWidth` is still accepted by both components and
-  ignored, so the two callers that thickened the selected face still compile.
+- **The art does not take the feel's colour — it carries its own, so the fill had to give way.**
+  A stroked face inherited `currentColor`, and the chosen cell flooded with the colour flipped it
+  to contrast. The paint is fixed, and the faces supplied later on 2026-09-14 are painted **down
+  the feel scale themselves** (teal, green, yellow, orange, red) — so the row reads as a scale
+  before anything is chosen, where the first cream set was five identical discs, and a flooded
+  cell became the same colour on both sides of the sticker's cream edge. Keeping the solid fill
+  was tried first and **rejected by the owner on sight** (2026-09-14, in chat: "coloring in the
+  box the same color as the face is wrong — need another option, maybe a lighter or less opacity
+  on the background if selected"). A session reading this should note that the first answer looked
+  defensible in a screenshot and was still wrong; yellow `fine` on `#ffc23f` is the case to look at.
+  - **The chosen cell is now a tint of its colour with the colour itself as a ring** just inside
+    the ink edge — `softFill` in `packages/ui-web/src/contrast.ts` (22% of the fill, mixed towards
+    paper), behind `SegmentedPicker`'s new `fill="soft"`. The wash keeps the colour-coding, the
+    ring keeps the selection loud, and the art is the only saturated thing in the cell. The ring
+    is a pseudo-element, not an inset shadow, because the hover and active rules rewrite
+    `box-shadow` wholesale and would drop it under the pointer.
+  - **`fill` defaults to `'solid'`**, so When, How long and Who can see it — which draw ink-on-cream
+    glyphs — render exactly as they did. Soft is for a picker whose icons are painted in the
+    option's own colour, and the weather row qualifies twice over: its selected blue is the colour
+    `cold` and `rain` are painted in.
+  - **The same tint went to the four other places a feel colour sits behind a face**: `FeelSwatch`
+    (which softens its own square, so every caller got it at once), the feed card's chip, the
+    sessions table cell and the spot block's chip. A tint in the form and a flood in the lists
+    would be the same defect the owner rejected, kept alive on the quieter screens.
+  - `strokeWidth` is still accepted by both components and ignored, so the two callers that
+    thickened the selected face still compile.
 - **Scope is everywhere a feel or a weather is drawn, not only the log form** (Rachid, 2026-09-14,
   in chat, choosing between the two). **The cost was named before the choice and accepted:** the
   feed card draws a feel at 15px, the sessions table at 14, the spot block at 13, and a die-cut

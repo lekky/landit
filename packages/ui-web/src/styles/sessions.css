@@ -131,6 +131,27 @@ a.trickpill:hover .tp-name {
     transform 0.12s,
     box-shadow 0.12s;
 }
+/*
+ * `fill="soft"`: the chosen cell is a tint of its colour, and the colour itself
+ * is a ring just inside the ink edge. For a picker whose icons are painted in
+ * the option's own colour — the session feel faces — where flooding the cell
+ * put the same colour on both sides of the sticker's cream die-cut edge.
+ *
+ * A pseudo-element, not an inset `box-shadow`: the hover and active rules below
+ * rewrite `box-shadow` wholesale, so a ring drawn that way vanishes under the
+ * pointer. `inset: 0` sits it inside the border box, so nothing reflows when a
+ * cell is chosen, and `pointer-events: none` keeps the button clickable.
+ */
+.segpick .seg.soft {
+  position: relative;
+}
+.segpick .seg.soft.on::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 3px solid var(--seg-accent, var(--ink));
+  pointer-events: none;
+}
 .segpick .seg:hover:not(:disabled) {
   transform: translate(-1px, -1px);
   box-shadow: 4px 4px 0 var(--ink);

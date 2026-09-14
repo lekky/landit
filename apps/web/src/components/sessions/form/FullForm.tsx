@@ -772,6 +772,9 @@ export function FullForm(props: {
               }))}
               value={values.feel}
               onChange={(feel) => onChange({ feel })}
+              // The faces are painted in the feel's own colour, so a flooded
+              // cell is that colour twice over (owner, 2026-09-14, in chat).
+              fill="soft"
               className={`${styles.seg} ${styles.faces}`}
             />
             <FieldError message={errors.feel} />
@@ -789,6 +792,9 @@ export function FullForm(props: {
               }))}
               value={values.weather}
               selectedColor={SESSION_WEATHER_SELECTED_COLOR}
+              // Soft for the same reason, and for one of its own: the row's
+              // selected blue is the colour `cold` and `rain` are painted in.
+              fill="soft"
               onChange={(weather) =>
                 onChange({ weather: values.weather === weather ? null : weather })
               }
