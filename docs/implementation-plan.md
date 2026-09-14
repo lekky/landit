@@ -1482,11 +1482,13 @@ all four are removed rather than reworded:
   hid the label went with it — every caller was passing a switch with nothing left to switch.
 - **The social tags are the real accounts**, `@landthetrick` on Instagram, YouTube and TikTok
   (owner, 2026-08-30, in chat). They had been spans since T5, styled like links and going nowhere.
-  Three corrections since: the YouTube tag went on 2026-09-05 (the channel was never claimed); the
-  Instagram handle is **`@landthetrickapp`**, not `@landthetrick`, which was already taken there
-  (owner, 2026-09-11, in chat), while TikTok keeps `@landthetrick`; and **the Facebook page was
-  added on 2026-09-12** (owner, in chat — the page had been posting since 2026-09-11 with nothing on
-  the site linking it). The footer, the landing bar's logo tiles and the `sameAs` list in
+  Four corrections since: the YouTube tag went on 2026-09-05 (the channel was never claimed); the
+  Instagram handle became **`@landthetrickapp`**, because `@landthetrick` was taken there (owner,
+  2026-09-11, in chat); **the Facebook page was added on 2026-09-12** (owner, in chat — the page had
+  been posting since 2026-09-11 with nothing on the site linking it); and **the Instagram account
+  was renamed to `@landthetrick` on 2026-09-14** (owner, in chat), so Instagram and TikTok now share
+  the handle. `@landthetrickapp` was released by the rename, so anything still naming it points at
+  a handle a stranger could register. The footer, the landing bar's logo tiles and the `sameAs` list in
   `lib/structuredData.ts` all derive from `content/socials.ts`, and `e2e/legal.spec.ts` asserts the
   exact hrefs rather than a shared `landthetrick` pattern, which is what let the wrong handle pass.
   - **Facebook's href is the numeric page id**, `facebook.com/1324987644027132`, because the page has

@@ -8,11 +8,12 @@
  * landing hero is the third place that needs them, which is one too many to
  * keep synchronising by hand.
  *
- * **The handles are not the same on every platform.** Instagram is
- * `@landthetrickapp` — `@landthetrick` was taken there — while TikTok is
- * `@landthetrick` (owner, 2026-09-11, in chat). That asymmetry is the exact
- * thing the old duplication got wrong once already: the Instagram link pointed
- * at the TikTok handle and went nowhere.
+ * **The handles are per platform, not shared.** Instagram and TikTok are both
+ * `@landthetrick` now, but Instagram was `@landthetrickapp` from 2026-09-11
+ * until the account was renamed to `@landthetrick` on 2026-09-14 (owner, in
+ * chat). The old handle is released, so it belongs to whoever registers it
+ * next: nothing anywhere should still point at it. A matching handle is a
+ * coincidence of today, not a rule — check each platform on its own.
  *
  * **Only claimed accounts go in this list.** A YouTube row sat in the footer
  * until 2026-09-05 pointing at a `@landthetrick` channel that does not exist
@@ -44,8 +45,8 @@ export const SOCIALS: readonly Social[] = [
   {
     id: 'instagram',
     name: 'Instagram',
-    handle: '@landthetrickapp',
-    href: 'https://instagram.com/landthetrickapp',
+    handle: '@landthetrick',
+    href: 'https://instagram.com/landthetrick',
   },
   {
     id: 'tiktok',
