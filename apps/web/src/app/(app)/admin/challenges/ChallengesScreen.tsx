@@ -1,7 +1,7 @@
 'use client';
 
 import { SPORTS, SPORT_IDS, type SportId } from '@landit/core';
-import { Panel, Pill, Tag } from '@landit/ui-web';
+import { Panel, Tag } from '@landit/ui-web';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
@@ -9,6 +9,7 @@ import { useToast } from '@/providers/toast';
 import { runAction, runActionOr } from '@/lib/runAction';
 
 import { Pager, useTableNav } from '../Pager';
+import { ShowBar } from '../ShowBar';
 
 import { StaffEditor, type EditorValue } from '../StaffEditor';
 import {
@@ -200,24 +201,6 @@ export function ChallengesScreen({
   return (
     <div className={styles.stack}>
       <div className={styles.toolbar}>
-        {SPORT_IDS.map((id) => (
-          <Pill key={id} on={sport === id} onClick={() => setSport(id)}>
-            {SPORTS[id].label} · {counts[`sport:${id}`] ?? 0}
-          </Pill>
-        ))}
-        <span className={styles.toolbarSplit} />
-        {/*
-          The counts come from the server rather than from `rows`, which is now
-          one page. Counting the page would have made every pill read "25" and
-          the state pills read whatever happened to be on screen — a breakdown
-          that changes as you page is not a breakdown.
-        */}
-        {STATE_FILTERS.map(([k, label]) => (
-          <Pill key={k} on={state === k} onClick={() => setState(k)}>
-            {label}
-            {k !== 'all' ? ` · ${counts[`state:${k}`] ?? 0}` : ''}
-          </Pill>
-        ))}
         <button
           type="button"
           className={`btn sm ${styles.toolbarEnd}`}
@@ -226,6 +209,39 @@ export function ChallengesScreen({
           + Schedule a week
         </button>
       </div>
+
+      {/*
+        Two bars rather than one row split by a hairline. They narrow by
+        different things and either can be changed without the other, so they
+        are named separately — two bars both labelled "Show" would be the
+        confusion the redesign removed, in miniature.
+
+        The counts come from the server rather than from `rows`, which is now
+        one page. Counting the page would have made every sport read "25" and
+        the states read whatever happened to be on screen — a breakdown that
+        changes as you page is not a breakdown.
+      */}
+      <ShowBar
+        label="Sport"
+        options={SPORT_IDS.map((id) => ({
+          value: id,
+          label: SPORTS[id].label,
+          count: counts[`sport:${id}`] ?? 0,
+        }))}
+        value={sport}
+        onChange={(value) => setSport(value as SportId)}
+      />
+
+      <ShowBar
+        label="Weeks"
+        options={STATE_FILTERS.map(([k, label]) => ({
+          value: k,
+          label,
+          count: k === 'all' ? undefined : (counts[`state:${k}`] ?? 0),
+        }))}
+        value={state}
+        onChange={setState}
+      />
 
       {featured && (
         <Panel style={{ padding: 0, overflow: 'hidden' }}>

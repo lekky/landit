@@ -9,6 +9,7 @@ import { useToast } from '@/providers/toast';
 import { runAction } from '@/lib/runAction';
 
 import { Pager, useTableNav } from '../Pager';
+import { ShowBar } from '../ShowBar';
 import { StaffEditor, type EditorValue } from '../StaffEditor';
 import {
   createSpotAction,
@@ -328,15 +329,27 @@ export function SpotsScreen({
             aria-label="Search spots by name or town"
           />
         </div>
-        <Pill on={status === 'all'} onClick={() => onStatusFilter('all')}>
-          Everything
-        </Pill>
-        {STATUSES.map((s) => (
-          <Pill key={s} on={status === s} onClick={() => onStatusFilter(s)}>
-            {STATUS_LOOK[s].label} · {counts[s] ?? 0}
-          </Pill>
-        ))}
       </div>
+
+      {/* The search stays in the row above, because it is not a filter in the
+          sense this bar names — it narrows by text the staff member typed,
+          while these narrow by a state the record is in. */}
+      <ShowBar
+        options={[
+          {
+            value: 'all',
+            label: 'Everything',
+            count: STATUSES.reduce((n, s) => n + (counts[s] ?? 0), 0),
+          },
+          ...STATUSES.map((s) => ({
+            value: s,
+            label: STATUS_LOOK[s].label,
+            count: counts[s] ?? 0,
+          })),
+        ]}
+        value={status}
+        onChange={onStatusFilter}
+      />
 
       <div>
         {/* The heading names what is on screen, because the pills changed it.
