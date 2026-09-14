@@ -209,6 +209,7 @@ export function MobileNav({ sessionsEnabled }: { sessionsEnabled?: boolean }) {
           id={drawerId}
           tabs={open.tabs}
           label={open.label}
+          cell={{ index: items.indexOf(open), of: items.length }}
           pathname={pathname}
           onNavigate={close}
         />

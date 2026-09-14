@@ -1881,6 +1881,24 @@ No new analytics. This is art replacing art on a screen already counted end to e
 on open, `session_logged` on save — and a rider's feel and weather are session *content*, which
 §6.4's rule keeps out of session events entirely.
 
+**A sixteenth divergence, 2026-09-14 (Rachid, in chat: "I really don't like it … make it clear that
+this is a sub-navigation"): the section drawer is a small floating card, not a full-width list.**
+Chosen from three mock-ups (cards, an attached strip, a floating menu) and then a second pair, "small
+floating card without a title". It restyles the twelfth divergence's drawer and changes none of its
+behaviour — it still opens on arrival and on a tap of the lit cell, and closes on a scroll, a tap
+elsewhere, Escape, or a choice.
+
+- **One row of tabs in a paper card**, inset 10px from the screen edges and floated 12px above the
+  bar, wearing the hard 3px rule and offset shadow every card in the app does. The list's white rows
+  ran edge to edge over the page and read as page content.
+- **No drawn title.** A pointer under the card aims at the cell that owns it — the middle cell for
+  Progress, the fourth for What's on — and the lit cell names the section. The group keeps its
+  accessible name, so a screen reader still hears "Progress" or "What's on".
+- **About 60px tall where the list was about 160px.** It opens on every arrival, so what it covers
+  matters more than it would for a menu a rider asks for. Each tab is 52px, above the 44px floor, and
+  `e2e/progress.spec.ts` measures the four-tab row at 320px for overflow and for staying on one line.
+
+No new analytics: what opens it and what is chosen from it are unchanged, and both are counted.
 
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
