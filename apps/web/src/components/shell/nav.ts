@@ -26,13 +26,13 @@ import { SESSIONS_PATH } from '@/lib/sessionRoutes';
  * 75px a cell. Six does not fit a label. So the bar stops trying to be a
  * shortlist of pages and becomes a complete map of sections instead:
  *
- * - **Home** also carries the weekly challenge, which is a today thing and is
- *   already on the dashboard as a card.
  * - **What's on** is Spots and Events together. Both answer "where do I go",
  *   both are geographic, and neither is big enough to spend a fifth of the bar
  *   alone.
- * - **Progress** is progress and the sticker wall together: both are the
- *   rider's own record.
+ * - **Progress** is progress, the sticker wall and the weekly challenge
+ *   together: all three are the rider's own record. The challenge used to be
+ *   Home's, reached only through the dashboard's card, which a rider who does
+ *   not scroll never meets (Rachid, 2026-09-14, in chat).
  * - **Tricks** and **Crew** stand alone, as they did.
  *
  * A section that holds two routes carries them in `tabs`, and the bar names
@@ -67,8 +67,7 @@ export type NavItem = {
    * them cover every entry in `TOP_NAV`. Nothing is allowed to be desktop-only.
    *
    * Each claim is real navigation somewhere in the app, and `e2e/shell.spec.ts`
-   * clicks it: Home's is the dashboard's challenge card, and the two-screen
-   * sections' are the `tabs` their drawer lists.
+   * clicks it: the folded sections' claims are the `tabs` their drawer lists.
    */
   reaches?: readonly Route[];
   /**
@@ -149,11 +148,14 @@ export const WHATS_ON_TABS: readonly SectionTab[] = [
 /**
  * The screens under the bottom bar's "Progress", when sessions are not on.
  *
- * Two, as it was from the start: where the rider is at, and the sticker wall.
+ * Where the rider is at, the sticker wall, and this week's challenge — last,
+ * because it is the one screen here that is not a record of the rider alone
+ * (Rachid, 2026-09-14, in chat).
  */
 export const PROGRESS_TABS: readonly SectionTab[] = [
   { id: 'progress', label: 'Progress', icon: 'chart', href: ROUTES.progress },
   { id: 'stickers', label: 'Stickers', icon: 'star', href: ROUTES.stickers },
+  { id: 'challenge', label: 'Challenge', icon: 'bolt', href: ROUTES.challenge },
 ];
 
 /**
@@ -174,6 +176,7 @@ export const PROGRESS_TABS_WITH_SESSIONS: readonly SectionTab[] = [
   { id: 'sessions', label: 'Sessions', icon: 'clock', href: SESSIONS_PATH as Route },
   { id: 'progress', label: 'Progress', icon: 'chart', href: ROUTES.progress },
   { id: 'stickers', label: 'Stickers', icon: 'star', href: ROUTES.stickers },
+  { id: 'challenge', label: 'Challenge', icon: 'bolt', href: ROUTES.challenge },
 ];
 
 /**
@@ -181,10 +184,11 @@ export const PROGRESS_TABS_WITH_SESSIONS: readonly SectionTab[] = [
  *
  * The order is a phone's, not the top bar's. Home first because it is where a
  * rider lands; Tricks second because logging one is the thing they came to do;
- * **What's on third, in the middle**, because it is the reason to open the app
- * while standing outside a skatepark and the middle cell is the easiest reach
- * on a phone held one-handed. Progress and Crew, both of which are read rather
- * than acted on, take the outside.
+ * **Progress third, in the middle** (Rachid, 2026-09-14, in chat), because it
+ * now lands on Sessions for a rider who has them and holds the challenge, and
+ * the middle cell is the easiest reach on a phone held one-handed. What's on
+ * held the middle before that, for the skatepark-gate reason; it moves one cell
+ * right, beside Crew.
  *
  * Every label has to survive `.mobnav` at 375px: uppercase, 10.5px, 0.09em
  * tracking, in about 71px of usable cell. "What's on" is the longest and it is
@@ -198,9 +202,6 @@ export const MOBILE_NAV: readonly NavItem[] = [
     label: 'Home',
     icon: 'home',
     href: ROUTES.dashboard,
-    // The dashboard carries the weekly challenge as a card, and that card is
-    // the way in, so the bar stays on Home rather than blanking on `/challenge`.
-    reaches: [ROUTES.challenge],
   },
   {
     id: 'library',
@@ -210,20 +211,20 @@ export const MOBILE_NAV: readonly NavItem[] = [
     alsoActiveFor: [ROUTES.glossary],
   },
   {
+    id: 'progress',
+    label: 'Progress',
+    icon: 'chart',
+    href: ROUTES.progress,
+    reaches: [ROUTES.stickers, ROUTES.challenge],
+    tabs: PROGRESS_TABS,
+  },
+  {
     id: 'whats-on',
     label: 'What’s on',
     icon: 'map',
     href: ROUTES.spots,
     reaches: [ROUTES.events],
     tabs: WHATS_ON_TABS,
-  },
-  {
-    id: 'progress',
-    label: 'Progress',
-    icon: 'chart',
-    href: ROUTES.progress,
-    reaches: [ROUTES.stickers],
-    tabs: PROGRESS_TABS,
   },
   {
     id: 'crew',
@@ -262,7 +263,7 @@ export function mobileNavFor(sessionsEnabled?: boolean): readonly NavItem[] {
       ? {
           ...item,
           href: SESSIONS_PATH as Route,
-          reaches: [ROUTES.progress, ROUTES.stickers],
+          reaches: [ROUTES.progress, ROUTES.stickers, ROUTES.challenge],
           tabs: PROGRESS_TABS_WITH_SESSIONS,
         }
       : item,
