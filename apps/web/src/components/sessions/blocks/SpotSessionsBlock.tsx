@@ -6,7 +6,7 @@ import {
   spotSessionSummary,
 } from '@landit/core';
 import { listSessionsAtSpotForOwner, listTricks } from '@landit/db';
-import { FeelFace, Icon } from '@landit/ui-web';
+import { FeelFace, Icon, softFill } from '@landit/ui-web';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
@@ -97,7 +97,11 @@ async function SpotSessions({ spotId, session }: SpotSessionsBlockProps) {
             </span>
             <span className={styles.spotDur}>{sessionDurationLabel(s.durationMinutes)}</span>
             {feel ? (
-              <span className={styles.feelChip} style={{ background: sessionFeelColor(feel) }}>
+              // A tint: the face carries the feel's colour itself (2026-09-14).
+              <span
+                className={styles.feelChip}
+                style={{ background: softFill(sessionFeelColor(feel)) }}
+              >
                 <FeelFace feel={feel} size={13} />
                 {sessionFeelLabel(feel)}
               </span>

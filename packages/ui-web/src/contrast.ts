@@ -97,6 +97,36 @@ export function foregroundFor(fill: string | undefined): string | undefined {
 }
 
 /**
+ * A hex fill mixed down towards paper — the pale wash of a colour.
+ *
+ * Added 2026-09-14 for a problem solid fills did not have. A fill used to sit
+ * behind a cream-and-ink drawing, so painting it the full accent was free. The
+ * session stickers are painted in the feel's own colour, and a yellow face on
+ * the yellow `fine` cell is the same colour twice with a ring between them
+ * (owner, 2026-09-14, in chat: "coloring in the box the same color as the face
+ * is wrong"). Washing the fill out puts contrast back between the cell and the
+ * art without giving up the colour-coding: `fine` is still the yellow one.
+ *
+ * `strength` is how much of the fill survives — 0 is paper, 1 is the fill
+ * itself. Mixed in sRGB rather than a perceptual space deliberately: the values
+ * here are pale, the two agree closely at this end, and a tint a designer can
+ * reproduce in any tool beats one only this function knows how to make.
+ *
+ * Returns `undefined` for anything that is not hex, on the same terms as
+ * `foregroundFor` — a `var(--x)` fill means "leave this one alone", so dropping
+ * this into a component can never change what such a call site already renders.
+ */
+export function softFill(fill: string | undefined, strength = 0.22): string | undefined {
+  if (!fill) return undefined;
+  const rgb = parseHex(fill);
+  if (!rgb) return undefined;
+  const paper = parseHex(PAPER)!;
+  const k = Math.min(1, Math.max(0, strength));
+  const mixed = rgb.map((c, i) => Math.round(paper[i]! + (c - paper[i]!) * k));
+  return `#${mixed.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+}
+
+/**
  * The contrast ratio between two hex colours, or null if either is unparseable.
  *
  * Exported for the tests that assert the palette's pairings, so the numbers in

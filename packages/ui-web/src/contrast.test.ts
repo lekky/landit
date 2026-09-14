@@ -1,7 +1,7 @@
 import { CHALLENGES } from '@landit/core';
 import { describe, expect, it } from 'vitest';
 
-import { contrastRatio, foregroundFor } from './contrast';
+import { contrastRatio, foregroundFor, softFill } from './contrast';
 
 /**
  * The palette, straight from `styles/tokens.css`. Copied rather than imported
@@ -130,6 +130,51 @@ describe('challenge hues', () => {
         contrastRatio(TOKEN.ink, challenge.hue),
         `${challenge.id} ${challenge.hue}`,
       ).toBeGreaterThanOrEqual(AA);
+    }
+  });
+});
+
+describe('softFill', () => {
+  it('washes a fill down towards paper without moving its hue', () => {
+    // The problem it exists for: a feel face painted in the feel's colour on a
+    // cell flooded with that same colour (owner, 2026-09-14, in chat).
+    const yellow = '#ffc23f';
+    const soft = softFill(yellow)!;
+    expect(soft).not.toBe(yellow);
+    // Still recognisably the yellow one, and much closer to paper than to it.
+    expect(contrastRatio(soft, '#fffdf5')!).toBeLessThan(1.3);
+    // And the art on top of it now has somewhere to be seen.
+    expect(contrastRatio(soft, yellow)!).toBeGreaterThan(1.1);
+  });
+
+  it('reads 0 as paper and 1 as the fill itself', () => {
+    expect(softFill('#ffc23f', 0)).toBe('#fffdf5');
+    expect(softFill('#ffc23f', 1)).toBe('#ffc23f');
+    // Out-of-range strengths clamp rather than producing a broken hex.
+    expect(softFill('#ffc23f', -5)).toBe('#fffdf5');
+    expect(softFill('#ffc23f', 9)).toBe('#ffc23f');
+  });
+
+  it('always returns six-digit hex, including from shorthand', () => {
+    const soft = softFill('#f30', 0.5)!;
+    expect(soft).toMatch(/^#[0-9a-f]{6}$/);
+  });
+
+  it('leaves anything that is not hex alone', () => {
+    // Same contract as foregroundFor: "not mine to touch", never a throw. It is
+    // what makes this safe to drop into a component whose callers pass tokens.
+    expect(softFill('var(--green)')).toBeUndefined();
+    expect(softFill(undefined)).toBeUndefined();
+    expect(softFill('')).toBeUndefined();
+  });
+
+  it('keeps ink readable on every softened feel and weather colour', () => {
+    // The labels sit on this tint, so it has to clear AA — which a pale wash
+    // does comfortably, where two of the full-strength accents never did.
+    for (const fill of ['#10a06a', '#9ce05b', '#ffc23f', '#ff5a1f', '#ff3d78', '#3ac0ff']) {
+      const soft = softFill(fill)!;
+      expect(foregroundFor(soft), fill).toBe('var(--on-light)');
+      expect(contrastRatio(soft, '#12100b')!, fill).toBeGreaterThan(4.5);
     }
   });
 });

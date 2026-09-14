@@ -768,12 +768,13 @@ export function FullForm(props: {
                 id: f.id,
                 label: f.label,
                 color: f.color,
-                icon: (
-                  <FeelFace feel={f.id} size={30} strokeWidth={values.feel === f.id ? 2.6 : 2.2} />
-                ),
+                icon: <FeelFace feel={f.id} size={30} />,
               }))}
               value={values.feel}
               onChange={(feel) => onChange({ feel })}
+              // The faces are painted in the feel's own colour, so a flooded
+              // cell is that colour twice over (owner, 2026-09-14, in chat).
+              fill="soft"
               className={`${styles.seg} ${styles.faces}`}
             />
             <FieldError message={errors.feel} />
@@ -783,10 +784,17 @@ export function FullForm(props: {
               options={SESSION_WEATHER.map((w) => ({
                 id: w.id,
                 label: w.label,
-                icon: <WeatherIcon weather={w.id} size={21} />,
+                // 28, not the stroked glyph's 21: the painted art carries its
+                // own die-cut margin, so at 21 the weather row read a full
+                // weight lighter than the 30px feel row above it and the
+                // snowflake lost its arms (2026-09-14, measured on this card).
+                icon: <WeatherIcon weather={w.id} size={28} />,
               }))}
               value={values.weather}
               selectedColor={SESSION_WEATHER_SELECTED_COLOR}
+              // Soft for the same reason, and for one of its own: the row's
+              // selected blue is the colour `cold` and `rain` are painted in.
+              fill="soft"
               onChange={(weather) =>
                 onChange({ weather: values.weather === weather ? null : weather })
               }

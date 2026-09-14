@@ -19,7 +19,7 @@ export const UI_WEB_PACKAGE = '@landit/ui-web' as const;
 
 export { cx } from './cx';
 
-export { contrastRatio, foregroundFor } from './contrast';
+export { contrastRatio, foregroundFor, softFill } from './contrast';
 
 export { ICONS, ICON_NAMES, Icon, type IconName, type IconProps } from './icons';
 
@@ -33,6 +33,19 @@ export {
   type EquipmentProps,
   type SportArtName,
 } from './sport-art';
+
+export {
+  FEEL_ART,
+  SESSION_ART_BASE_PATH,
+  SESSION_ART_FILES,
+  SESSION_ART_SIZES,
+  SESSION_ART_WIDTHS,
+  SessionArt,
+  WEATHER_ART,
+  sessionArtSrc,
+  sessionArtSrcSet,
+  type SessionArtProps,
+} from './session-art';
 
 export {
   STICKER_ART_BASE_PATH,

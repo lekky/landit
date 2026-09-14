@@ -9,6 +9,7 @@ import {
   TrickPill,
   VisibilityLabel,
   WeatherIcon,
+  softFill,
 } from '@landit/ui-web';
 import Link from 'next/link';
 
@@ -85,9 +86,11 @@ export function FeedCard({ item, onDelete }: { item: SessionCardView; onDelete: 
               {item.weather.label}
             </MetaChip>
           ) : null}
+          {/* A tint, not the feel's colour: the face is painted in that colour
+              already (owner, 2026-09-14, in chat). */}
           {item.feel ? (
             <MetaChip
-              background={item.feel.color}
+              background={softFill(item.feel.color)}
               icon={<FeelFace feel={item.feel.id} size={15} />}
             >
               {item.feel.label}

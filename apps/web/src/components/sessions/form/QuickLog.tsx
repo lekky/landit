@@ -97,12 +97,12 @@ export function QuickLog(props: {
               id: f.id,
               label: f.label,
               color: f.color,
-              icon: (
-                <FeelFace feel={f.id} size={32} strokeWidth={values.feel === f.id ? 2.6 : 2.2} />
-              ),
+              icon: <FeelFace feel={f.id} size={32} />,
             }))}
             value={values.feel}
             onChange={(feel) => props.onChange({ feel })}
+            // As in the full form: the faces carry the feel's colour already.
+            fill="soft"
             className={`${styles.seg} ${styles.faces} ${styles.quickFaces}`}
           />
           {props.errors.feel ? (

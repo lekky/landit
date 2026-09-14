@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
+import { softFill } from '../contrast';
+
 import {
   ClipPoster,
   FEEL_FACES,
@@ -22,11 +24,13 @@ import {
  * Two things here are promises rather than looks, and they are the tests that
  * matter most: **the clip poster embeds and fetches nothing** (no iframe, no
  * image, a new tab with no referrer — plan §6.8), and **the feel faces and
- * weather icons render the paths they were given**. That the paths are the
- * design's own was checked by hand against `Session Tracking.dc.html` when they
- * were transcribed (T36); the design pack lives outside this repository, so a
- * test that read it would skip in CI, and a test that can skip is not a
- * guarantee (LESSONS §5).
+ * weather icons draw the sticker the id names**. The second used to check the
+ * stroked paths; since 2026-09-14 the two components render commissioned art
+ * (`../session-art`), and the paths they replaced stay exported and are checked
+ * on their own below. That the paths are the design's own was checked by hand
+ * against `Session Tracking.dc.html` when they were transcribed (T36); the
+ * design pack lives outside this repository, so a test that read it would skip
+ * in CI, and a test that can skip is not a guarantee (LESSONS §5).
  */
 
 describe('ClipPoster', () => {
@@ -68,21 +72,47 @@ describe('the drawn glyphs', () => {
     expect(Object.keys(WEATHER_ICONS)).toEqual(['sun', 'cloud', 'rain', 'wind', 'cold']);
   });
 
-  it('render a face and a weather icon in currentColor, hidden unless titled', () => {
-    const face = renderToStaticMarkup(<FeelFace feel="hurt" />);
-    expect(face).toContain(`d="${FEEL_FACES.hurt.eyes}"`);
-    expect(face).toContain('stroke="currentColor"');
-    expect(face).toContain('aria-hidden="true"');
-    const titled = renderToStaticMarkup(<WeatherIcon weather="rain" title="Rain" />);
-    expect(titled).toContain('<title>Rain</title>');
-    expect(titled).toContain('role="img"');
+  it('keeps the stroked paths exported for anywhere the art cannot go', () => {
+    // The art replaced these on screen (2026-09-14); it did not delete them.
+    // A one-colour print or a canvas that cannot fetch still needs a drawing.
+    for (const face of Object.values(FEEL_FACES)) {
+      expect(face.eyes.startsWith('M')).toBe(true);
+      expect(face.mouth.startsWith('M')).toBe(true);
+    }
+    for (const path of Object.values(WEATHER_ICONS)) {
+      expect(path.startsWith('M')).toBe(true);
+    }
   });
 
-  it('puts a 14px face in a 20px swatch of the feel’s colour', () => {
+  it('draws the sticker the id names, hidden unless titled', () => {
+    const face = renderToStaticMarkup(<FeelFace feel="hurt" />);
+    expect(face).toContain('src="/session-icons/feel-hurt.png"');
+    expect(face).toContain('aria-hidden="true"');
+    expect(face).not.toContain('alt="undefined"');
+
+    const weather = renderToStaticMarkup(<WeatherIcon weather="rain" />);
+    expect(weather).toContain('src="/session-icons/weather-rain.png"');
+  });
+
+  it('offers the resized WebP and names the weather in a title', () => {
+    const titled = renderToStaticMarkup(<WeatherIcon weather="rain" title="Rain" />);
+    expect(titled).toContain('alt="Rain"');
+    expect(titled).not.toContain('aria-hidden');
+    // The master stays the `src`, so a browser with no WebP still draws it.
+    expect(titled).toContain('src="/session-icons/weather-rain.png"');
+    expect(titled).toContain('/session-icons/w64/weather-rain.webp 64w');
+    expect(titled).toContain('/session-icons/w128/weather-rain.webp 128w');
+  });
+
+  it('puts a 17px sticker in a 20px swatch tinted with the feel’s colour', () => {
     const swatch = renderToStaticMarkup(<FeelSwatch feel="sent" color="#10a06a" />);
     expect(swatch).toContain('width:20px');
-    expect(swatch).toContain('background:#10a06a');
-    expect(swatch).toContain('width="14"');
+    // A tint, not the colour itself: the sticker is painted in that colour, so
+    // a solid square was the same green on both sides of its cream edge.
+    expect(swatch).not.toContain('background:#10a06a');
+    expect(swatch).toContain(`background:${softFill('#10a06a')}`);
+    // 85% of the square, where the stroked face took 70%.
+    expect(swatch).toContain('width="17"');
   });
 });
 
@@ -110,6 +140,36 @@ describe('SegmentedPicker', () => {
   it('fills the chosen cell with that option’s own colour', () => {
     expect(html).toContain('background:#9ce05b');
     expect(html).not.toContain('background:#10a06a');
+  });
+
+  it('leaves every existing picker solid, because `fill` defaults to solid', () => {
+    // The prop was added on 2026-09-14. When/How long/Who can see it draw
+    // ink-on-cream glyphs and must render exactly as they did.
+    expect(html).not.toContain('seg soft');
+    expect(html).not.toContain('--seg-accent');
+  });
+
+  it('under fill="soft", tints the cell and draws the colour as a ring', () => {
+    const soft = renderToStaticMarkup(
+      <SegmentedPicker
+        label="How it felt"
+        value="fine"
+        onChange={() => {}}
+        fill="soft"
+        options={[
+          { id: 'fine', label: 'Fine', color: '#ffc23f' },
+          { id: 'hurt', label: 'Hurt', color: '#ff3d78' },
+        ]}
+      />,
+    );
+    // The yellow face no longer sits on a yellow field …
+    expect(soft).not.toContain('background:#ffc23f');
+    expect(soft).toContain(`background:${softFill('#ffc23f')}`);
+    // … and the full colour is still in the cell, as the ring that marks it.
+    expect(soft).toContain('--seg-accent:#ffc23f');
+    expect(soft).toContain('seg soft on');
+    // Only the chosen cell: an unchosen one is plain paper, ring and all.
+    expect(soft).not.toContain('--seg-accent:#ff3d78');
   });
 
   it('puts the first cell in the tab order when nothing is chosen', () => {
