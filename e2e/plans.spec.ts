@@ -1,4 +1,4 @@
-import { PLANS, sessionAllowance, sessionsPerMonthPerk } from '@landit/core';
+import { PLANS } from '@landit/core';
 import { expect, test } from '@playwright/test';
 
 /**
@@ -40,34 +40,6 @@ test('the three cards are the plan’s three, and the top one is Legend not Crew
   // seat model, and the word must not come back anywhere on this page.
   await expect(page.locator('body')).not.toContainText('Crew Pass');
   await expect(page.locator('[data-plan="legend"]')).toContainText('Legend');
-});
-
-test('every card carries its session line, derived from its own record (#507)', async ({
-  page,
-}) => {
-  /*
-   * The end-to-end half of `sessionCardPerks`. Its unit tests prove the pure
-   * function; only a browser proves the wiring — that the line is read off the
-   * `plans` record the page fetched, appended to the perks that record holds,
-   * and rendered on the right card.
-   *
-   * It runs here because the e2e server sets `LANDIT_SESSIONS_OPEN=1`
-   * (`sessionsPreview.ts`), which is exactly the state the cards ship in once
-   * sessions are released. With the flag unset the lines are absent by design,
-   * and that half is asserted in the unit tests rather than by standing a
-   * second server up.
-   */
-  for (const plan of PLANS) {
-    const line = sessionsPerMonthPerk(sessionAllowance(plan));
-    if (line === null) continue;
-    await expect(page.locator(`[data-plan="${plan.id}"]`)).toContainText(line);
-  }
-
-  // Rookie's cap is the one a rider meets, so it is named rather than derived:
-  // if the free tier's four ever moves, this fails and somebody decides on
-  // purpose whether the card should follow.
-  await expect(page.locator('[data-plan="rookie"]')).toContainText('Four sessions a month');
-  await expect(page.locator('[data-plan="shredder"]')).toContainText('Unlimited sessions');
 });
 
 test('no plan card says "clip", whatever the comparison table says (plan §6.6)', async ({

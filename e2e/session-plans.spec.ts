@@ -1,4 +1,10 @@
-import { PLAN, sessionAllowance, sessionsPerMonthLabel } from '@landit/core';
+import {
+  PLAN,
+  PLANS,
+  sessionAllowance,
+  sessionsPerMonthLabel,
+  sessionsPerMonthPerk,
+} from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
 import { finishOnboarding } from './support/onboarding';
@@ -10,6 +16,9 @@ import { finishOnboarding } from './support/onboarding';
  * things a copy edit could undo without failing a build: the allowance on the
  * page is the one the plan grants (rendered from the record, never typed), and
  * a stage move is "Always" on every plan, because a stage is never for sale.
+ * Since T44 it also covers the **card** line above the comparison, which is
+ * derived from the same records; the rule that no card may say "clip" stays in
+ * `plans.spec.ts`, with the rest of the card-copy decisions.
  *
  * The settings half pins that the choice goes round the server and back.
  */
@@ -36,6 +45,36 @@ async function onboardedRider(page: Page): Promise<void> {
   await finishOnboarding(page);
   await page.waitForURL('**/home');
 }
+
+test('every card carries its session line, derived from its own record (#507)', async ({
+  page,
+}) => {
+  /*
+   * The end-to-end half of `sessionCardPerks`. Its unit tests prove the pure
+   * function; only a browser proves the wiring — that the line is read off the
+   * `plans` record the page fetched, appended to the perks that record holds,
+   * and rendered on the right card.
+   *
+   * It runs here because the e2e server sets `LANDIT_SESSIONS_OPEN=1`
+   * (`sessionsPreview.ts`), which is exactly the state the cards ship in once
+   * sessions are released. With the flag unset the lines are absent by design,
+   * and that half is asserted in the unit tests rather than by standing a
+   * second server up.
+   */
+  await page.goto('/plans');
+
+  for (const plan of PLANS) {
+    const line = sessionsPerMonthPerk(sessionAllowance(plan));
+    if (line === null) continue;
+    await expect(page.locator(`[data-plan="${plan.id}"]`)).toContainText(line);
+  }
+
+  // Rookie's cap is the one a rider meets, so it is named rather than derived:
+  // if the free tier's four ever moves, this fails and somebody decides on
+  // purpose whether the card should follow.
+  await expect(page.locator('[data-plan="rookie"]')).toContainText('Four sessions a month');
+  await expect(page.locator('[data-plan="shredder"]')).toContainText('Unlimited sessions');
+});
 
 test.describe('what each plan logs', () => {
   test('a desktop table, with the allowance the plan actually grants', async ({ page }) => {
