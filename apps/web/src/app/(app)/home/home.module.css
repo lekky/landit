@@ -189,6 +189,66 @@
   color: var(--ink-mute);
 }
 
+/*
+ * "Log a session", the card's lead action (T43, and the owner's call of
+ * 2026-09-14 — see `StreakCard.tsx`).
+ *
+ * `.btn wide sm` does the shape; this does the two things the primitive cannot
+ * know about. The **yellow** is screenshot 06's button colour, inherited
+ * by the action that took its place. The **flex row** overrides `a.btn`'s
+ * `display: inline-block` from `additions.css` so the plus icon and the label
+ * centre together — two classes beat `a.btn`'s class-and-element, whichever
+ * sheet loads first, which is why this is written as a descendant rather than
+ * as `.logSession` alone. The foreground is left alone: `--on-light` is what
+ * `.btn` already puts on a loud fill, and it is what the yellow button on this
+ * card has always used.
+ */
+.streak .logSession {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--yellow);
+}
+
+/*
+ * "I rode today" once the session link leads: an outline on the ink card, not a
+ * second filled button. It keeps `.btn.sm`'s box — including the padding that
+ * grows it to a 44px target on a coarse pointer (`additions.css`, issue #379) —
+ * and gives up its fill and its shadow, which is invisible on ink anyway.
+ *
+ * `--ink-mute` for the rule, not `--ink-rule`: this is the boundary of a
+ * control a child taps, and `--ink-rule` against `--ink` measures under 1.5:1,
+ * which is a divider's job and not a button's. WCAG wants 3:1 for the edge of
+ * something pressable, and quiet is not the same as invisible.
+ */
+.streak .rode {
+  margin-top: 9px;
+  background: transparent;
+  border-color: var(--ink-mute);
+  box-shadow: none;
+  --btn-fg: var(--ink-soft);
+}
+
+.streak .rode:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--ink-soft);
+  --btn-fg: var(--paper);
+}
+
+.streak .rode:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+/* Logged: the meaning of the old green fill, at the volume of a secondary. */
+.streak .rode[data-done],
+.streak .rode[data-done]:hover {
+  border-color: var(--lime);
+  --btn-fg: var(--lime);
+}
+
 /* ------------------------------------------------------ challenge card --- */
 
 /*

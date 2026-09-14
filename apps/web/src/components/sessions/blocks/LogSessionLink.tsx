@@ -14,6 +14,12 @@ import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
  * `source: 'spot'` already says all this needs). On the press, before the
  * navigation, because a client-side navigation is the success and there is no
  * later moment to fire from (the same shape as `TrickLink`).
+ *
+ * `'home'` joined the three block sources on 2026-09-14, when the streak card
+ * gained the same link (T43). The component is shared rather than copied so
+ * that there is one place a session link is counted from, and a new entry point
+ * is a word in this union rather than a second `capture` somebody has to
+ * remember to keep in step.
  */
 export function LogSessionLink({
   href,
@@ -22,7 +28,7 @@ export function LogSessionLink({
   children,
 }: {
   readonly href: Route;
-  readonly source: 'spot' | 'event' | 'trick';
+  readonly source: 'spot' | 'event' | 'trick' | 'home';
   readonly className?: string;
   readonly children: string;
 }) {

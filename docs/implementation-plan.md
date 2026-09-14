@@ -5023,8 +5023,9 @@ T36–T40.
 
 - **Web:** every surface asks `sessionsEnabledFor` (`apps/web/src/lib/sessionsPreview.ts`), which is
   `isOwner` — the Sessions tab on Progress, every `/progress/sessions` route (the layout answers
-  404), the spot, event and trick blocks (`riderFor` returns nobody), the "Who sees new sessions"
-  panel on `/account` and the plans comparison. Unset `LANDIT_OWNER_ID` fails closed: nobody sees
+  404), the spot, event and trick blocks (`riderFor` returns nobody), Home's "Log a session" on the
+  streak card (T43, added 2026-09-14, through `HomeView.sessionsEnabled`), the "Who sees new
+  sessions" panel on `/account` and the plans comparison. Unset `LANDIT_OWNER_ID` fails closed: nobody sees
   sessions. `LANDIT_SESSIONS_OPEN=1` opens them to everyone, signed out included, which is exactly how
   T37–T40 behaved before the gate (the `/plans` comparison shows to a visitor, a session URL sends a
   signed-out visitor to sign in, the blocks still need a rider) — the e2e server runs that way, since
@@ -5090,6 +5091,33 @@ why they are written down rather than left in a commit message.
   block in `analytics.ts`.
 - **Nothing here opens sessions**: T41's gate is untouched, so the crew changes ship dark until
   sessions are released.
+
+**T43 · Log a session from Home.** Added 2026-09-14 (Rachid, in chat, answering the opening
+brief). Depends on T36–T41.
+
+- **The gap.** The session logger was reachable from the Progress tab, a spot page, an event page
+  and a trick page — from every screen except the one every rider lands on. Home's only action was
+  "I rode today".
+- **The decision.** The streak card leads with **"Log a session"**, in screenshot 06's yellow, and
+  **"I rode today" keeps its place beneath it** as an outline. The owner chose the fuller record to
+  lead. The one-tap is kept rather than retired because saving a session banks the weekly ride
+  anyway (`SessionFormScreen` fires `ride_logged` when the ride was new), so the two are the same
+  act at two levels of effort — and a rider who will not face a form on a wet Tuesday should still
+  be able to bank the week. This is a deliberate divergence from screenshot 06, which predates
+  sessions; the card's silhouette is otherwise untouched.
+- **It opens the quick log** (`/progress/sessions/new?quick=1`), not the full form: a button on the
+  dashboard should cost about what the button beneath it costs, and "Add tricks, clip and notes →"
+  escalates for anyone who wants more.
+- **Gated exactly like every other session surface** (T41): `page.tsx` asks `sessionsEnabledFor`
+  and hands the answer to the client as `HomeView.sessionsEnabled`, because `HomeScreen` is a
+  client component and a gate evaluated in the browser is not a gate. For everybody but the owner
+  Home is unchanged, so this ships dark until sessions are released.
+- **The "I rode today" tap itself is untouched** — still a plain button that attaches no spot and
+  captures no location (§1, and §6.4 standard 10). Only its paint changed.
+- **Analytics:** no new event. `session_log_opened` gains a sixth `source`, `'home'`, and
+  `LogSessionLink` — the component the spot, event and trick blocks already use — gains the word.
+  It is what says whether the dashboard was the missing door. The sessions rule at the head of
+  that block in `analytics.ts` holds: the press carries which control, and nothing else.
 
 ### Dependency graph
 
