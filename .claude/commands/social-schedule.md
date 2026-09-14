@@ -43,8 +43,8 @@ figures are verified; hand-editing is how a wrong date reaches a live account.
 
 Call `get_account` for the organization id, then `list_channels` for that
 organization. Land The Trick has three: the Facebook page **Land The Trick**,
-Instagram **@landthetrickapp** and TikTok **@landthetrick** — the handles
-differ, so match on service, not on name. Use the exact `channelId` returned;
+Instagram **@landthetrick** and TikTok **@landthetrick** (Instagram was
+@landthetrickapp until 2026-09-14) — match on service, not on name. Use the exact `channelId` returned;
 never a remembered one.
 
 Then check `image.url` actually resolves (`curl -sI`). All three networks *pull*
