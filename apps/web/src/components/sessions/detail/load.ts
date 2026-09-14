@@ -81,7 +81,12 @@ export interface SessionDetailView {
   readonly event: { readonly name: string; readonly href: Route } | null;
   readonly sport: { readonly id: SportId; readonly label: string; readonly icon: string };
   readonly duration: string;
-  readonly feel: { readonly id: SessionFeelId; readonly label: string; readonly color: string };
+  /** `null` for a session logged without one — draw nothing rather than a face. */
+  readonly feel: {
+    readonly id: SessionFeelId;
+    readonly label: string;
+    readonly color: string;
+  } | null;
   readonly tricksStat: string;
   readonly crewStat: string;
   readonly clip: {
@@ -196,11 +201,13 @@ export async function loadSessionDetail(id: string): Promise<SessionDetailLoad> 
     event: event ? { name: event.name, href: eventHref(event.slug) } : null,
     sport: { id: session.sport, label: look.label, icon: look.icon },
     duration: durationWords(session.durationMinutes),
-    feel: {
-      id: session.feel,
-      label: sessionFeelLabel(session.feel),
-      color: sessionFeelColor(session.feel),
-    },
+    feel: session.feel
+      ? {
+          id: session.feel,
+          label: sessionFeelLabel(session.feel),
+          color: sessionFeelColor(session.feel),
+        }
+      : null,
     tricksStat: tricksStatValue(session.trickEntries),
     crewStat: crewStatValue(crew.map((c) => c.name)),
     clip: session.clip

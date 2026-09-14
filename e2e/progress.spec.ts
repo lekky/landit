@@ -70,7 +70,17 @@ async function newRider(page: Page): Promise<void> {
 test('progress is reachable from the nav and shows the four panels', async ({ page }) => {
   await newRider(page);
 
+  /*
+   * The nav's Progress cell lands on Sessions while sessions are open, which is
+   * how the e2e server runs (2026-09-13); "Where you're at" is the second tab
+   * from there. With sessions off the cell goes straight to this screen, and
+   * `nav.test.ts` holds both shapes.
+   */
   await page.getByRole('navigation').getByRole('link', { name: 'Progress' }).first().click();
+  await page
+    .getByRole('navigation', { name: 'Progress', exact: true })
+    .getByRole('link', { name: 'Where you’re at' })
+    .click();
   await page.waitForURL('**/progress');
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Where you’re at');
@@ -154,10 +164,13 @@ test('the Progress drawer is the way to the sticker wall, which shares its cell'
   await page.goto('/progress');
 
   const drawer = page.getByRole('group', { name: 'Progress', exact: true });
+  // Exactly one tab is lit, even though `/progress` is a prefix of the Sessions
+  // tab's own address (`SectionDrawer` takes the longest match).
   await expect(drawer.getByRole('link', { name: 'Progress', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   );
+  await expect(drawer.locator('[aria-current="page"]')).toHaveCount(1);
 
   await drawer.getByRole('link', { name: 'Stickers', exact: true }).click();
   await page.waitForURL('**/stickers');

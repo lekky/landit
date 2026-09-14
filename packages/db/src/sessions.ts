@@ -69,9 +69,11 @@ const SORT_NEWEST = '-started_at,-created';
 function trickEntryFrom(row: SessionTricksRecord): SessionTrickEntry {
   const from = String(row.stage_from || '') as StageId | '';
   const to = String(row.stage_to || '') as StageId | '';
+  const pick = String(row.stage_pick || '') as StageId | '';
   return {
     trickId: row.trick,
     landed: row.landed === true,
+    ...(pick ? { stagePick: pick } : {}),
     ...(to ? { stageFrom: from || null, stageTo: to } : {}),
   };
 }
@@ -107,7 +109,9 @@ export function sessionFromRecord(
     spotId: row.spot || '',
     ...(row.event ? { eventId: row.event } : {}),
     ...(row.aim ? { aim: row.aim } : {}),
-    feel: (isSessionFeel(row.feel) ? row.feel : 'fine') as SessionFeelId,
+    // `null` rather than a default: a session saved without a feel must not
+    // come back wearing one.
+    feel: isSessionFeel(row.feel) ? (row.feel as SessionFeelId) : null,
     ...(isSessionWeather(weather) ? { weather: weather as SessionWeatherId } : {}),
     ...(row.notes ? { notes: row.notes } : {}),
     crewIds: Array.isArray(row.rode_with) ? [...row.rode_with] : [],
@@ -412,7 +416,8 @@ export interface SessionInput {
   readonly spotId: string;
   readonly eventId?: string | null;
   readonly aim?: string;
-  readonly feel: SessionFeelId;
+  /** Optional since 2026-09-13. Omit it, or send `null`, to leave it unsaid. */
+  readonly feel?: SessionFeelId | null;
   readonly weather?: SessionWeatherId | null;
   readonly notes?: string;
   /** Crew-mates. Anybody else is refused by the hook. */
@@ -425,7 +430,16 @@ export interface SessionInput {
   readonly clip?: string;
   /** Defaults to `private` when omitted; pass the profile default from the form. */
   readonly visibility?: SessionVisibilityId;
-  readonly tricks?: readonly { trickId: string; landed: boolean }[];
+  /**
+   * The tricks worked on. `stagePick` is where the rider said the trick is
+   * moving to; the hook honours it only when it is above the trick's real
+   * stage, so a stale pick costs the session nothing.
+   */
+  readonly tricks?: readonly {
+    trickId: string;
+    landed: boolean;
+    stagePick?: StageId | null;
+  }[];
 }
 
 function toIso(instant: Instant): string {
@@ -464,7 +478,7 @@ export async function createSession(
     spot: input.spotId,
     ...(input.eventId ? { event: input.eventId } : {}),
     aim: input.aim ?? '',
-    feel: input.feel,
+    feel: input.feel ?? '',
     ...(input.weather ? { weather: input.weather } : {}),
     notes: input.notes ?? '',
     rode_with: [...(input.crewIds ?? [])],
@@ -482,6 +496,7 @@ export async function createSession(
         user: query.userId,
         trick: trick.trickId,
         landed: trick.landed,
+        stage_pick: trick.stagePick ?? '',
       } as Parameters<ReturnType<typeof records<'session_tricks'>>['create']>[0]),
     );
   }
@@ -641,7 +656,7 @@ export async function updateSession(
   if (patch.spotId !== undefined) body.spot = patch.spotId;
   if (patch.eventId !== undefined) body.event = patch.eventId ?? '';
   if (patch.aim !== undefined) body.aim = patch.aim;
-  if (patch.feel !== undefined) body.feel = patch.feel;
+  if (patch.feel !== undefined) body.feel = patch.feel ?? '';
   if (patch.weather !== undefined) body.weather = patch.weather ?? '';
   if (patch.notes !== undefined) body.notes = patch.notes;
   if (patch.crewIds !== undefined) body.rode_with = [...patch.crewIds];
@@ -654,24 +669,32 @@ export async function updateSession(
 
   if (patch.tricks !== undefined) {
     const existing = await entriesFor(client, [sessionId]);
-    const wanted = new Map(patch.tricks.map((t) => [t.trickId, t.landed]));
+    const wanted = new Map(patch.tricks.map((t) => [t.trickId, t]));
     for (const entry of existing) {
-      if (!wanted.has(entry.trick)) {
+      const want = wanted.get(entry.trick);
+      if (!want) {
         await records(client, 'session_tricks').remove(entry.id);
-      } else if (wanted.get(entry.trick) !== entry.landed) {
+        continue;
+      }
+      const pick = want.stagePick ?? '';
+      if (want.landed !== entry.landed || pick !== String(entry.stage_pick || '')) {
+        // `''` is how PocketBase clears a select, which the generated update
+        // type does not admit — the same cast the create above needs.
         await records(client, 'session_tricks').update(entry.id, {
-          landed: wanted.get(entry.trick),
-        });
+          landed: want.landed,
+          stage_pick: pick,
+        } as Parameters<ReturnType<typeof records<'session_tricks'>>['update']>[1]);
       }
     }
     const have = new Set(existing.map((e) => e.trick));
-    for (const [trickId, landed] of wanted) {
+    for (const [trickId, want] of wanted) {
       if (have.has(trickId)) continue;
       await records(client, 'session_tricks').create({
         session: sessionId,
         user: row.user,
         trick: trickId,
-        landed,
+        landed: want.landed,
+        stage_pick: want.stagePick ?? '',
       } as Parameters<ReturnType<typeof records<'session_tricks'>>['create']>[0]);
     }
   }

@@ -255,6 +255,40 @@ test('a trick shows its award, and landing the trick stamps it', async ({ page }
 });
 
 /*
+ * The history reads newest first (Rachid, 2026-09-13, in chat).
+ *
+ * It ran oldest-first from T31, which put the thing that just happened at the
+ * bottom of a list that only ever grows. Asserted here rather than in a unit
+ * test because this is a screen, and the order a rider actually reads is the
+ * order the rows come out of the page in (`vitest.config.ts`, LESSONS §3a).
+ */
+test('the history puts the most recent thing first', async ({ page }) => {
+  await signUpRookie(page);
+  await page.goto(`/library/${freeTrick.id}`);
+
+  /*
+   * Three stages in order, so the timeline has something to get wrong.
+   *
+   * The ladder's buttons carry the **short** label — "Want", not "Want to
+   * learn" — because five cells share a phone's width (`StagePanel`). The
+   * timeline below spells them out in full, which is what the assertion reads.
+   */
+  for (const stage of ['Want', 'Learning', 'Sometimes'] as const) {
+    await page.getByRole('button', { name: stage, exact: true }).click();
+    await expect(page.locator('.toast', { hasText: /Logged as/i }).first()).toBeVisible();
+    // Landing the trick earns a sticker, so a second toast can be on screen;
+    // waiting for *all* of them to go is what keeps the next click landing.
+    await expect(page.locator('.toast')).toHaveCount(0, { timeout: 15_000 });
+  }
+
+  await page.reload();
+  // The panel is a `Panel`, which is a div — so the timeline's own rows are the
+  // thing to read, and their order is the thing under test.
+  const stages = page.locator('[class*="timelineStage"]');
+  await expect(stages).toHaveText(['Sometimes', 'Learning', 'Want to learn']);
+});
+
+/*
  * Stopping tracking asks first, and takes only the stage with it.
  *
  * The confirm is the trick-page pack's, and it is worth a test rather than a

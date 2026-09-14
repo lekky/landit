@@ -694,6 +694,12 @@ export interface CrewBoardRider {
   readonly streak: number;
   readonly sports: SportId[];
   readonly landed: number;
+  /**
+   * Sessions this rider logged in the month the caller asked for, or `0` when
+   * no month was asked for (2026-09-13). All of them, whatever each session's
+   * visibility — the same "by name and score" exception `landed` sits under.
+   */
+  readonly sessions: number;
   readonly role: string;
   /**
    * Legend flair (plan §2.4) — resolved from the plan record on the server, so
@@ -715,8 +721,18 @@ export interface CrewBoardRider {
 export async function getCrewBoard(
   client: Client,
   crewId: string,
-): Promise<{ crew: string; riders: CrewBoardRider[] }> {
-  return client.send(`/api/landit/crew-board/${encodeURIComponent(crewId)}`, { method: 'GET' });
+  /**
+   * The rider-clock month to count sessions in, `YYYY-MM`. Computed in Node,
+   * because goja has no `Intl` (LESSONS §5), and **bounds-checked server-side**
+   * against "now, somewhere on earth" — so this is a question, not an
+   * instruction. Omitted, the board counts no sessions rather than guessing.
+   */
+  monthKey?: string,
+): Promise<{ crew: string; month?: string; riders: CrewBoardRider[] }> {
+  const query = monthKey ? `?month=${encodeURIComponent(monthKey)}` : '';
+  return client.send(`/api/landit/crew-board/${encodeURIComponent(crewId)}${query}`, {
+    method: 'GET',
+  });
 }
 
 /** The crews a rider belongs to. */
@@ -892,8 +908,11 @@ export async function listCrewInvites(
 /** One item of a crew's activity feed, as the hook route shapes it. */
 export interface CrewFeedItem {
   readonly id: string;
-  readonly kind: 'stage' | 'sticker';
-  /** ISO instant. Formatted by the client, in the rider's own zone. */
+  readonly kind: 'stage' | 'sticker' | 'session';
+  /**
+   * ISO instant. Formatted by the client, in the rider's own zone. For a
+   * session it is when they rode, not when they logged it.
+   */
   readonly at: string;
   readonly rider: {
     readonly id: string;
@@ -922,6 +941,11 @@ export interface CrewFeedItem {
  * a rider anywhere in this payload, because there is no rider-to-rider
  * messaging in Land The Trick and a feed that could carry a sentence would be one
  * (plan §6.1).
+ *
+ * A `session` item (2026-09-13) carries the rider, the hour and the sport, and
+ * **nothing else** — no spot, no aim, no notes, no tricks. It is in the feed
+ * only when its own `visibility` is `public` or `members`, or it is the
+ * reader's own; the route applies that test and `crews.test.ts` observes it.
  */
 export async function getCrewFeed(
   client: Client,

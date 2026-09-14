@@ -9,11 +9,15 @@ import {
   SESSION_WEATHER,
   SESSION_WEATHER_SELECTED_COLOR,
   SPORTS,
+  STAGE,
   clipLinkProblem,
   clipWatchUrl,
+  isLandedStage,
   parseClipLink,
+  stagesAbove,
   type SessionField,
   type SportId,
+  type StageId,
 } from '@landit/core';
 import {
   Avatar,
@@ -27,12 +31,12 @@ import {
   WeatherIcon,
 } from '@landit/ui-web';
 import Link from 'next/link';
-import { useId, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 
+import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES } from '@/lib/routes';
 import {
   eventsAtSpotToday,
-  landedPreview,
   trickStageLine,
   visibilityLine,
   type SessionFormValues,
@@ -316,7 +320,7 @@ function TricksField(props: {
   const searchId = useId();
 
   const byId = useMemo(() => new Map(data.tricks.map((t) => [t.id, t])), [data.tricks]);
-  const chosen = new Map(values.tricks.map((t) => [t.trickId, t.landed]));
+  const chosen = new Map(values.tricks.map((t) => [t.trickId, t.stagePick ?? null]));
   const promoted = new Map(data.promoted.map((p) => [p.trickId, p.label]));
 
   const rows: FormTrick[] = useMemo(() => {
@@ -326,8 +330,31 @@ function TricksField(props: {
       .slice(0, 3)
       .map((t) => t.id);
     const ids = [...new Set([...values.tricks.map((t) => t.trickId), ...added, ...suggested])];
-    return ids.map((id) => byId.get(id)).filter((t): t is FormTrick => !!t);
+    return (
+      ids
+        .map((id) => byId.get(id))
+        .filter((t): t is FormTrick => !!t)
+        // Switching What you rode switches the list with it. A trick already
+        // ticked on the old sport is dropped from view *and* from the session
+        // by the effect below, rather than being saved against a sport the
+        // rider did not ride.
+        .filter((t) => t.sport === values.sport)
+    );
   }, [data.tricks, values.sport, values.tricks, added, byId]);
+
+  /*
+   * A session holds one sport, so a trick from another one cannot ride along
+   * when the rider changes their mind about what they were on.
+   */
+  const offSport = values.tricks.filter((t) => byId.get(t.trickId)?.sport !== values.sport);
+  useEffect(() => {
+    if (!offSport.length) return;
+    const drop = new Set(offSport.map((t) => t.trickId));
+    onChange({ tricks: values.tricks.filter((t) => !drop.has(t.trickId)) });
+    // `values.tricks` and `onChange` are the caller's on every render; the
+    // guard above is what makes this run once per actual change of sport.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.sport, offSport.length]);
 
   const full = values.tricks.length >= SESSION_LIMITS.tricksMax;
 
@@ -335,18 +362,49 @@ function TricksField(props: {
     if (chosen.has(id)) onChange({ tricks: values.tricks.filter((t) => t.trickId !== id) });
     else if (!full) onChange({ tricks: [...values.tricks, { trickId: id, landed: false }] });
   };
-  const toggleLanded = (id: string) =>
+  /**
+   * Pick the stage this trick is moving to, or unpick the one already chosen.
+   *
+   * `landed` rides along with it so the two never disagree: picking a landed
+   * stage is a landing, and taking the pick away takes the landing with it.
+   * The server decides either way — a pick that is no longer above the trick's
+   * real stage moves nothing.
+   */
+  const pickStage = (id: string, stage: StageId) => {
+    const current = values.tricks.find((t) => t.trickId === id);
+    const next = current?.stagePick === stage ? null : stage;
+    if (next) {
+      // The two stage words and nothing else — never which trick (`analytics.ts`).
+      capture(ANALYTICS_EVENTS.sessionTrickStagePicked, {
+        from: byId.get(id)?.stage ?? 'none',
+        to: next,
+      });
+    }
     onChange({
-      tricks: values.tricks.map((t) => (t.trickId === id ? { ...t, landed: !t.landed } : t)),
+      tricks: values.tricks.map((t) =>
+        t.trickId === id
+          ? { ...t, stagePick: next, landed: next ? isLandedStage(next) : false }
+          : t,
+      ),
     });
+  };
 
   const listed = new Set(rows.map((r) => r.id));
   const q = query.trim().toLowerCase();
+  /*
+   * The library search, **filtered to what the rider said they rode** rather
+   * than merely sorted by it (2026-09-13). A session holds one sport, so a
+   * scooter session offering a skateboard trick was offering a trick it could
+   * not honestly record — and "Fa" on a scooter session came back Riding fakie
+   * (Skateboard) and Fakie (BMX) above the scooter trick of the same name.
+   */
   const matches =
     q.length >= 2
       ? data.tricks
-          .filter((t) => !listed.has(t.id) && t.name.toLowerCase().includes(q))
-          .sort((a, b) => Number(b.sport === values.sport) - Number(a.sport === values.sport))
+          .filter(
+            (t) =>
+              t.sport === values.sport && !listed.has(t.id) && t.name.toLowerCase().includes(q),
+          )
           .slice(0, 6)
       : [];
 
@@ -365,8 +423,9 @@ function TricksField(props: {
       <div className={styles.trickList}>
         {rows.map((trick) => {
           const on = chosen.has(trick.id);
-          const landed = chosen.get(trick.id) === true;
+          const picked = chosen.get(trick.id) ?? null;
           const moved = promoted.get(trick.id);
+          const options = stagesAbove(trick.stage);
           return (
             <div key={trick.id} className={`${styles.trickRow} ${on ? styles.trickRowOn : ''}`}>
               <button
@@ -387,21 +446,47 @@ function TricksField(props: {
               </button>
               {on ? (
                 <div className={styles.landedRow}>
-                  <button
-                    type="button"
-                    role="checkbox"
-                    aria-checked={landed}
-                    className={`${styles.landedBtn} ${landed ? styles.landedOn : ''}`}
-                    onClick={() => toggleLanded(trick.id)}
-                  >
-                    <TickBox on={landed} small />
-                    Landed it
-                  </button>
                   {moved ? (
-                    <span className={styles.landedTo}>Moved to {moved} · it stays there</span>
-                  ) : landed ? (
-                    <span className={styles.landedTo}>{landedPreview(trick.stage)}</span>
-                  ) : null}
+                    <span className={styles.stageDone}>Moved to {moved} · it stays there</span>
+                  ) : options.length ? (
+                    <>
+                      <span className={styles.stageFrom}>
+                        {trick.stage ? STAGE[trick.stage].label : 'Not tracked'}
+                        <span className={styles.stageArrow} aria-hidden="true">
+                          <Icon name="arrow-right" size={15} strokeWidth={2.6} />
+                        </span>
+                      </span>
+                      {/*
+                        A radiogroup rather than checkboxes: a trick moves to one
+                        stage, and tapping the chosen one again clears it — which
+                        is the only way back to "worked on it, moved nothing".
+                      */}
+                      <div
+                        role="radiogroup"
+                        aria-label={`Move ${trick.name} to`}
+                        className={styles.stageOptions}
+                      >
+                        {options.map((stage) => {
+                          const chosenStage = picked === stage;
+                          return (
+                            <button
+                              key={stage}
+                              type="button"
+                              role="radio"
+                              aria-checked={chosenStage}
+                              className={`${styles.stageBtn} ${chosenStage ? styles.stageBtnOn : ''}`}
+                              style={chosenStage ? { background: STAGE[stage].color } : undefined}
+                              onClick={() => pickStage(trick.id, stage)}
+                            >
+                              {STAGE[stage].label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <span className={styles.stageDone}>Already every time</span>
+                  )}
                 </div>
               ) : null}
             </div>

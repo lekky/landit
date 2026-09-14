@@ -1050,6 +1050,11 @@
  * line is absolute inside the list and stops 10px short of each end so it
  * runs dot to dot rather than past them.
  */
+/*
+ * A `div` rather than an `ol` since the timeline paged (2026-09-13): a list
+ * showing rows 7 to 12 would be numbered from one to a screen reader, which
+ * reads as a shorter history than the rider has. The dates carry the order.
+ */
 .timeline {
   position: relative;
   margin: 10px 0 0;
@@ -1057,6 +1062,12 @@
   list-style: none;
   display: flex;
   flex-direction: column;
+}
+
+/* Under the timeline, above the reset. Its own rule so the pager is not
+   mistaken for another entry. */
+.timelinePager {
+  margin-top: 12px;
 }
 
 .timeline::before {

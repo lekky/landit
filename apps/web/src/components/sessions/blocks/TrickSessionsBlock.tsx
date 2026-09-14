@@ -8,10 +8,16 @@ import { sessionDateLabels, trickBlockMeta } from '@/lib/sessionDetail';
 import { sessionHref } from '@/lib/sessionRoutes';
 import type { RiderSession } from '@/lib/session';
 
+import { PagedPanel } from '@/components/panels/PagedPanel';
+
 import { riderFor, spotNames } from './rider';
 import styles from './blocks.module.css';
 
-/** Rows before the list stops. The whole diary is one tap away on Progress. */
+/**
+ * Rows a page. It used to be where the list simply stopped, with nothing saying
+ * there was more (2026-09-13); it now pages, so a rider who has worked a trick
+ * forty times can reach all forty without leaving the trick.
+ */
 const SHOWN = 6;
 
 export interface TrickSessionsBlockProps {
@@ -75,8 +81,12 @@ async function TrickSessions({ trickId, trickName, session }: TrickSessionsBlock
           {trickBlockMeta(summary.count, summary.firstTriedOn)}
         </span>
       </div>
-      <div className={styles.list}>
-        {summary.sessions.slice(0, SHOWN).map((s) => {
+      <PagedPanel
+        panel="sessions"
+        perPage={SHOWN}
+        noun="sessions"
+        className={styles.list}
+        rows={summary.sessions.map((s) => {
           const entry = s.trickEntries.find((e) => e.trickId === trickId);
           const move = entry ? stageMoveLabel(entry) : '';
           return (
@@ -92,7 +102,7 @@ async function TrickSessions({ trickId, trickName, session }: TrickSessionsBlock
             </Link>
           );
         })}
-      </div>
+      />
     </section>
   );
 }

@@ -216,13 +216,41 @@ describe('guarantee 1 — profile privacy is enforced by the API, not the UI', (
     expect(row!.handle).toBe(privateRider.handle);
     expect(row!.landed).toBeGreaterThanOrEqual(1);
 
-    // The payload is built field by field on the server, so it cannot widen by
-    // accident. `flair` was added on purpose by T11 — the Legend cosmetic tag
-    // from plan §2.4, resolved from the plan record into a boolean *before* it
-    // crosses, which is how the board shows flair without `plan` ever joining
-    // the list. Widening this line is how a session says it meant to.
+    /*
+     * The payload is built field by field on the server, so it cannot widen by
+     * accident. `flair` was added on purpose by T11 — the Legend cosmetic tag
+     * from plan §2.4, resolved from the plan record into a boolean *before* it
+     * crosses, which is how the board shows flair without `plan` ever joining
+     * the list. Widening this line is how a session says it meant to.
+     *
+     * `sessions` was added on purpose on 2026-09-13 (Rachid, in chat), and it
+     * is the more serious of the two, so it is worth saying exactly what it is
+     * and what it is not. It is a **count**, of sessions this rider logged in
+     * the month the caller asked for, and it replaced the weeks column on the
+     * board. It is under the same clause `landed` is: guarantee 1's "a private
+     * rider still appears on the crew board by name and score". A count is a
+     * score.
+     *
+     * What it is not is a way in. It names no session, opens nothing, and
+     * carries no spot, time, aim or note — the things a session knows that a
+     * trick does not (plan §1 D1). The sessions themselves reach a crew-mate
+     * only through the feed, which applies each session's own `visibility`
+     * (`crews.test.ts`); this number does not ask, exactly as `landed` does
+     * not ask about a rider's privacy.
+     */
     expect(Object.keys(row!).sort()).toEqual(
-      ['avatar_key', 'flair', 'handle', 'id', 'landed', 'name', 'role', 'sports', 'streak'].sort(),
+      [
+        'avatar_key',
+        'flair',
+        'handle',
+        'id',
+        'landed',
+        'name',
+        'role',
+        'sessions',
+        'sports',
+        'streak',
+      ].sort(),
     );
   });
 

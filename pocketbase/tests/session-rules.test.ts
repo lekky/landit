@@ -33,6 +33,8 @@ import {
   sessionCreateDecision as coreDecision,
   sessionQuotaStatus,
   sessionStagePromotion as corePromotion,
+  stagesAbove as coreStagesAbove,
+  isStageMoveUp as coreIsStageMoveUp,
 } from '../../packages/core/src/rules/sessions';
 import type { ClipLink, StageId } from '../../packages/core/src/types';
 
@@ -98,7 +100,10 @@ interface HookSessionRules {
     landed: boolean;
     alreadyPromoted: boolean;
     current: unknown;
+    stagePick?: unknown;
   }) => { stageFrom: string | null; stageTo: string } | null;
+  stagesAbove: (current: unknown) => string[];
+  isStageMoveUp: (current: unknown, target: unknown) => boolean;
   SESSIONS_PREVIEW_REFUSAL: string;
   sessionsPreviewAllows: (userId: unknown, previewId: unknown) => boolean;
 }
@@ -214,14 +219,32 @@ describe('the rest of the enforcement copy agrees with core', () => {
       'most',
       'every',
     ];
+    // Every pick the picker can send, plus the two it cannot: none at all, and
+    // one that has gone stale because the trick moved under it.
+    const picks: (StageId | null | undefined | '')[] = [
+      undefined,
+      null,
+      '',
+      'want',
+      'trying',
+      'some',
+      'most',
+      'every',
+    ];
     for (const current of currents) {
       expect(hook.landedStageAfter(current)).toBe(coreLandedAfter(current));
+      expect(hook.stagesAbove(current)).toEqual([...coreStagesAbove(current)]);
       for (const landed of [true, false]) {
         for (const alreadyPromoted of [true, false]) {
-          const input = { landed, alreadyPromoted, current };
-          expect(hook.sessionStagePromotion(input), JSON.stringify(input)).toEqual(
-            corePromotion(input),
-          );
+          for (const stagePick of picks) {
+            const input = { landed, alreadyPromoted, current, stagePick };
+            expect(hook.isStageMoveUp(current, stagePick)).toBe(
+              coreIsStageMoveUp(current, stagePick as StageId | null | undefined),
+            );
+            expect(hook.sessionStagePromotion(input), JSON.stringify(input)).toEqual(
+              corePromotion(input as Parameters<typeof corePromotion>[0]),
+            );
+          }
         }
       }
     }

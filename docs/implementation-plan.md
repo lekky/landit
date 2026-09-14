@@ -4953,6 +4953,55 @@ T36–T40.
   screen but the owner's.
 - No analytics event: nobody but the owner can reach anything to count.
 
+**T42 · Six changes to the logger.** Added 2026-09-13 (Rachid, in chat, from six screenshots of
+the live preview). Depends on T36–T41. Each of these amends something T36–T41 shipped, which is
+why they are written down rather than left in a commit message.
+
+- **"How it felt" is optional.** It was `required` in the schema and refused by both copies of
+  `sessionProblems`, so a rider who wanted the ride on record and nothing else could not save.
+  Relaxed in all three places, and `RideSession.feel` is now `SessionFeelId | null` — every screen
+  that drew a feel draws nothing rather than defaulting to "Fine", which would be the session
+  saying something the rider did not. **This is a shared-code behaviour change and the owner
+  granted it in chat on 2026-09-13**, twice, after it was put to them in the opening brief
+  (CLAUDE.md step 5).
+- **A trick moves to the stage the rider picks**, and may jump more than one step. "Landed it" was
+  a tickbox naming no destination; the form now draws "Learning →" and the stages above it.
+  `stagesAbove` and `isStageMoveUp` are new in core and `landedStageAfter` is untouched, so the
+  old one-step landing still behaves as it did. `session_tricks.stage_pick` is additive and is a
+  **request**: the hook honours it only when it names a stage above the trick's real one, so a
+  pick that went stale while the form was open costs the session nothing. Promotion is still once
+  per entry and still never writes a lower stage. For a trick at "Want to learn" the first offer is
+  **Learning**, which the old floor-at-Sometimes rule could not express.
+- **The trick list on the form follows "What you rode".** The library search sorted by sport where
+  it should have filtered, so "Fa" on a scooter session offered *Riding fakie* (Skateboard) and
+  *Fakie* (BMX). A session holds one sport, so changing it now drops a trick belonging to another.
+- **Progress lands on Sessions.** Both bars' Progress entry goes to `/progress/sessions` and the
+  phone's section drawer carries three screens; the in-page tab row puts Sessions first and stays,
+  because above 860px there is no drawer. `topNavFor`/`mobileNavFor` decide it per rider, shaped
+  like `accountMenuFor(staff)` — sessions are still owner-only, and a bar offering a 404 would be
+  worse than no change. `/progress` is unmoved and still "Where you're at".
+- **A trick page's history reads newest first, and both own-record panels page.** The reversal is
+  in the panel, not in `trickHistory`, which stays oldest-first: "first landed" and the summary are
+  computed by walking forwards. "<Trick> in your sessions" also moved up the reading column, from
+  below the road to under the video; it renders nothing until there is a session on it, so a rider
+  meeting the trick for the first time is unaffected.
+- **The crew board counts sessions this month, and the feed carries them.** Two different gates,
+  and the difference is the point. The **feed** applies each session's own `visibility` —
+  `public` and `members` reach a crew-mate, `private` reaches nobody — and its line is fixed at
+  "logged a session" with no spot, aim, notes or tricks in the payload. The **board's count** does
+  not ask, exactly as `landed` does not ask about a rider's privacy: it is guarantee 1's "by name
+  and score", where a count is a score, and it opens nothing. The owner chose this over counting
+  only what a viewer could open. The weeks column it replaced is gone from the board; `users.streak`
+  stays on the payload because the field is the rider's own and Home reads it. The month is a
+  `YYYY-MM` computed in Node and **bounds-checked** server-side against "now, somewhere on earth",
+  because goja has no `Intl` (LESSONS §5) — one month for the whole board, the reader's, so the
+  column compares like with like. Issue #506's logged-month/ridden-month note applies here too.
+- **Analytics:** `session_trick_stage_picked` (the two stage words, never the trick) and
+  `trick_panel_paged` (which panel, which page). Both obey the rule at the head of the sessions
+  block in `analytics.ts`.
+- **Nothing here opens sessions**: T41's gate is untouched, so the crew changes ship dark until
+  sessions are released.
+
 ### Dependency graph
 
 ```

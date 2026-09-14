@@ -113,6 +113,16 @@ test('the bottom bar is five sections, in the order a phone wants them', async (
     ['Home', '/home'],
     ['Tricks', '/library'],
     ['What’s on', '/spots'],
+    /*
+     * `/progress`, still — **on this page**. The Progress cell lands on
+     * Sessions for a rider the preview covers (2026-09-13), but that is decided
+     * in `app/(app)/layout.tsx` from the rider record and handed to the bars.
+     * `/design/shell` renders `AppShell` directly with a sample rider and no
+     * gate of any kind, so what it draws is the sessions-off shape — which is
+     * the right thing for a reference sheet to draw, and the reason this line
+     * did not move with the change. `apps/web/src/lib/nav.test.ts` holds both
+     * shapes; `e2e/progress.spec.ts` walks the real one.
+     */
     ['Progress', '/progress'],
     ['Crew', '/crew'],
   ] as const) {
@@ -291,6 +301,7 @@ test('every nav item whose screen exists is a real link', async ({ page }) => {
   for (const [name, href] of [
     ['Home', '/home'],
     ['Tricks', '/library'],
+    // `/progress` on this page for the reason the compact bar's list gives.
     ['Progress', '/progress'],
     ['Stickers', '/stickers'],
     ['Crew', '/crew'],

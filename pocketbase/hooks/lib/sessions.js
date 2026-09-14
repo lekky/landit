@@ -135,7 +135,10 @@ function enforceSession(app, record, isCreate) {
     throw new BadRequestError(R.durationMinutes);
   }
   if (lib.SPORTS.indexOf(record.getString('sport')) === -1) throw new BadRequestError(R.sport);
-  if (rules.SESSION_FEEL_IDS.indexOf(record.getString('feel')) === -1) {
+  // Optional, as core has it: an empty feel passes, anything that is not one
+  // of the five does not.
+  const feel = record.getString('feel');
+  if (feel && rules.SESSION_FEEL_IDS.indexOf(feel) === -1) {
     throw new BadRequestError(R.feel);
   }
   const weather = record.getString('weather');
@@ -281,8 +284,14 @@ function enforceSession(app, record, isCreate) {
  *   trick into a session any more than into `trick_log` (guarantee 3).
  * - `stage_from` and `stage_to` are the server's. Whatever a body sends is
  *   overwritten — with nothing on create, and with the stored values on update.
- * - **Promotion happens once**: on create when `landed`, or on the update that
- *   flips `landed` on, and never when the entry has already promoted. It writes
+ * - `stage_pick` is the rider's, and is a **request**: it moves the trick only
+ *   when it names a stage above the one the trick is actually on. A pick that
+ *   is stale, equal or lower is ignored rather than refused — the rider's
+ *   picker was drawn from a stage that may have moved since, and refusing the
+ *   whole session over it would lose the ride.
+ * - **Promotion happens once**: on create when the entry lands or picks, or on
+ *   the update that first does either, and never when the entry has already
+ *   promoted. It writes
  *   `trick_progress` then `trick_log` — the order and shape of `setTrickStage`
  *   in `@landit/db` — through `app.save`, so the paywall and the sticker award
  *   hooks run on it as on any other stage change. Nothing on update or delete
@@ -337,8 +346,13 @@ function enforceSessionTrick(app, record, isCreate) {
   record.set('stage_from', before ? before.getString('stage_from') : '');
   record.set('stage_to', before ? before.getString('stage_to') : '');
 
-  const flippedOn = record.getBool('landed') && (!before || !before.getBool('landed'));
-  if (!flippedOn) return;
+  // Either signal, newly on: the tickbox an older client still sends, or the
+  // stage the picker names. An entry that already promoted is stopped below, by
+  // `alreadyPromoted`, which is the one place that rule lives.
+  const pick = record.getString('stage_pick');
+  const landedOn = record.getBool('landed') && (!before || !before.getBool('landed'));
+  const pickedOn = pick !== '' && (!before || before.getString('stage_pick') !== pick);
+  if (!landedOn && !pickedOn) return;
 
   let progress = null;
   try {
@@ -351,9 +365,10 @@ function enforceSessionTrick(app, record, isCreate) {
   }
   const current = progress ? progress.getString('stage') : null;
   const move = rules.sessionStagePromotion({
-    landed: true,
+    landed: record.getBool('landed'),
     alreadyPromoted: before ? before.getString('stage_to') !== '' : false,
     current: current || null,
+    stagePick: pick || null,
   });
   if (!move) return;
 

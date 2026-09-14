@@ -1099,6 +1099,15 @@ span.spot {
     background: var(--paper-2);
   }
 }
+/*
+ * A session logged without a feel still holds the swatch's place, so the spot
+ * names stay in one column down the month. `FeelSwatch`'s default size.
+ */
+.mNoFeel {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
 .mDay {
   flex: none;
   width: 24px;

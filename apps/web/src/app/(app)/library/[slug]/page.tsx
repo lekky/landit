@@ -587,6 +587,23 @@ export default async function TrickPage({ params }: Params) {
               </div>
             )}
 
+            {/*
+              The rider's own sessions on this trick, high in the reading column
+              rather than near the foot of it (Rachid, 2026-09-13, in chat).
+              It was below the road and above only "Where to practise", which on
+              a trick with tips, mistakes and a fun fact meant a rider scrolled
+              past everything the page could teach them to reach the one part
+              that is theirs. Under the video, because that is what a rider
+              came to the page for the first time to see.
+
+              Above the lowdown rather than below it, which reads the wrong way
+              round only until you notice who is looking: the block renders
+              nothing at all until there is a session on it, so a rider meeting
+              the trick for the first time never sees it here, and a rider who
+              has worked it forty times does not need "what it is" first.
+            */}
+            <TrickSessionsBlock trickId={record.id} trickName={trick.name} session={session} />
+
             <div className={styles.secLowdown}>
               <SectionHead color={category.color}>The lowdown</SectionHead>
               <p className={styles.prose}>
@@ -659,8 +676,6 @@ export default async function TrickPage({ params }: Params) {
                 unlockPlanName={data.unlockPlanName}
               />
             </div>
-
-            <TrickSessionsBlock trickId={record.id} trickName={trick.name} session={session} />
 
             <div className={styles.secPractise}>
               <PractiseLine slug={trick.id} cat={trick.cat} sport={trick.sport} />

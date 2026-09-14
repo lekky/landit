@@ -50,12 +50,18 @@ export function SessionDetail({ view }: { readonly view: SessionDetailView }) {
       value: view.duration,
       icon: <Icon name="clock" size={20} strokeWidth={2.2} />,
     },
-    {
-      key: 'feel',
-      label: 'How it felt',
-      value: view.feel.label,
-      icon: <FeelFace feel={view.feel.id} size={20} />,
-    },
+    // A session logged without a feel has no row here at all. An empty "How it
+    // felt" would be the screen asking a question the rider already declined.
+    ...(view.feel
+      ? [
+          {
+            key: 'feel',
+            label: 'How it felt',
+            value: view.feel.label,
+            icon: <FeelFace feel={view.feel.id} size={20} />,
+          },
+        ]
+      : []),
     {
       key: 'tricks',
       label: 'Tricks',

@@ -480,6 +480,62 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+/*
+ * "Learning → [ Sometimes ][ Most times ][ Every time ]" (2026-09-13).
+ *
+ * The stage the trick is on, then the ones it can be moved to, as cells the
+ * rider picks from. It replaced a tickbox called "Landed it", which named no
+ * destination at all. The arrow is its own element rather than a character in
+ * the label so it keeps its size when the names wrap on a narrow phone.
+ */
+.stageFrom {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #12100b;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+}
+.stageArrow {
+  display: inline-flex;
+  flex: none;
+}
+.stageOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+}
+.stageBtn {
+  border: 2.5px solid #12100b;
+  background: #fffdf5;
+  color: #12100b;
+  padding: 5px 9px;
+  min-height: 36px;
+  cursor: pointer;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* The picked stage takes that stage's own colour, as the timeline dots do. */
+.stageBtnOn {
+  box-shadow: 3px 3px 0 #12100b;
+}
+.stageDone {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #12100b;
+}
 .landedBtn {
   display: flex;
   align-items: center;

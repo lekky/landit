@@ -46,7 +46,7 @@ import {
   SESSION_WEATHER_IDS,
 } from '../data/sessions';
 import { SPORT_IDS } from '../data/sports';
-import { STAGE } from '../data/stages';
+import { STAGE, STAGE_IDS } from '../data/stages';
 import type {
   DayKey,
   Instant,
@@ -451,6 +451,39 @@ export function landedStageAfter(current: StageId | null | undefined): StageId |
 }
 
 /**
+ * Every stage a trick can be moved **up** to from where it is, in order.
+ *
+ * The session form's picker (Rachid, 2026-09-13, in chat). The old "Landed it"
+ * tickbox offered one destination and did not name it, so a rider ticking it
+ * could not tell that a trick they had been *learning* was about to become
+ * *Sometimes*. The form now draws "Learning → …" and the rider chooses, which
+ * means the list of what they may choose has to exist somewhere testable.
+ *
+ * **Up only, and never back to where it already is.** A trick at Learning
+ * offers Sometimes, Most times and Every time; one at Most times offers Every
+ * time alone; one at Every time offers nothing, because there is nothing above
+ * it. An untracked trick — `null`, never logged — offers the whole ladder from
+ * Learning, so a rider who worked on something they were not tracking can put
+ * it at Learning rather than being forced to claim they landed it.
+ *
+ * That last case is the one thing this does not share with `landedStageAfter`,
+ * which floors an untracked trick at Sometimes because ticking a box called
+ * "Landed it" says so. Naming the destination is what makes Learning offerable.
+ */
+export function stagesAbove(current: StageId | null | undefined): readonly StageId[] {
+  const from = current == null ? -1 : STAGE_IDS.indexOf(current);
+  return STAGE_IDS.slice(from + 1);
+}
+
+/** Can a trick at `current` be moved to `target`? Up the ladder only. */
+export function isStageMoveUp(
+  current: StageId | null | undefined,
+  target: StageId | null | undefined,
+): target is StageId {
+  return target != null && stagesAbove(current).includes(target);
+}
+
+/**
  * The move a trick entry causes: `{ stageFrom, stageTo }`, or `null`.
  *
  * **Once.** An entry that has already promoted (`alreadyPromoted`, i.e. it has
@@ -465,9 +498,18 @@ export function sessionStagePromotion(input: {
   landed: boolean;
   alreadyPromoted: boolean;
   current: StageId | null | undefined;
+  /**
+   * The stage the rider picked, when they picked one (2026-09-13). Honoured
+   * only if it is *above* where the trick is; anything else falls through to
+   * the one-step landing this has always done, so an old client that sends
+   * `landed` alone behaves exactly as it did.
+   */
+  stagePick?: StageId | null;
 }): { stageFrom: StageId | null; stageTo: StageId } | null {
-  if (!input.landed || input.alreadyPromoted) return null;
-  const stageTo = landedStageAfter(input.current);
+  if (input.alreadyPromoted) return null;
+  const picked = isStageMoveUp(input.current, input.stagePick) ? input.stagePick : null;
+  if (!picked && !input.landed) return null;
+  const stageTo = picked ?? landedStageAfter(input.current);
   if (!stageTo) return null;
   return { stageFrom: input.current ?? null, stageTo };
 }
@@ -585,7 +627,12 @@ export function sessionProblems(
     problems.sport = SESSION_REFUSALS.sport;
   }
   if (!draft.spotId) problems.spotId = SESSION_REFUSALS.spotId;
-  if (!isSessionFeel(draft.feel)) problems.feel = SESSION_REFUSALS.feel;
+  // Optional (Rachid, 2026-09-13, in chat): a rider logging the ride itself is
+  // not made to rate it first. Only a value that is not one of the five is
+  // refused — none at all is a session that says nothing about how it felt.
+  if (draft.feel != null && draft.feel !== '' && !isSessionFeel(draft.feel)) {
+    problems.feel = SESSION_REFUSALS.feel;
+  }
   if (draft.weather != null && draft.weather !== '' && !isSessionWeather(draft.weather)) {
     problems.weather = SESSION_REFUSALS.weather;
   }

@@ -15,7 +15,7 @@ import {
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 
-import { MOBILE_NAV, activeSection, isNavActive, type NavItem } from './nav';
+import { activeSection, isNavActive, mobileNavFor, type NavItem } from './nav';
 import { SectionDrawer } from './SectionDrawer';
 import styles from './sectionDrawer.module.css';
 
@@ -74,13 +74,16 @@ function useCompactViewport() {
 /** Which section's drawer is showing, and what put it there. */
 type OpenDrawer = { section: string; via: 'arrival' | 'tap' };
 
-export function MobileNav() {
+export function MobileNav({ sessionsEnabled }: { sessionsEnabled?: boolean }) {
+  // The five cells for this rider: with sessions on, Progress lands on them and
+  // carries a third tab. `nav.ts` says why the bar is sections and not screens.
+  const items = mobileNavFor(sessionsEnabled);
   const pathname = usePathname();
   const compact = useCompactViewport();
   const holder = useRef<HTMLElement>(null);
   const drawerId = useId();
 
-  const section = activeSection(pathname);
+  const section = activeSection(pathname, sessionsEnabled);
   const sectionId = section?.id ?? null;
 
   const [drawer, setDrawer] = useState<OpenDrawer | null>(null);
@@ -172,11 +175,11 @@ export function MobileNav() {
     capture(ANALYTICS_EVENTS.navClicked, { to: item.id, where: 'mobile' });
   };
 
-  const open = MOBILE_NAV.find((item) => item.id === drawer?.section);
+  const open = items.find((item) => item.id === drawer?.section);
 
   return (
     <nav className="mobnav" aria-label="Main, compact" ref={holder}>
-      {MOBILE_NAV.map((item) => {
+      {items.map((item) => {
         const active = isNavActive(item, pathname);
         const folded = Boolean(item.tabs);
         const showing = drawer?.section === item.id;

@@ -2,6 +2,7 @@ import {
   SPORT_IDS,
   crewActivityLine,
   isConsentLimited,
+  riderMonthKey,
   type ConsentState,
   type SportId,
 } from '@landit/core';
@@ -107,7 +108,14 @@ export default async function CrewPage({
   const view: CrewView = {
     ...base,
     crews: summaries,
-    selected: chosen ? await loadCrew(client, rider.id, chosen) : null,
+    selected: chosen
+      ? await loadCrew(
+          client,
+          rider.id,
+          chosen,
+          riderMonthKey({ timezone: rider.timezone || undefined }),
+        )
+      : null,
   };
 
   return <CrewScreen view={view} />;
@@ -119,11 +127,18 @@ async function loadCrew(
   client: Client,
   riderId: string,
   crew: CrewSummaryView,
+  /**
+   * The reader's own `YYYY-MM`, for the board's session counts. Computed here
+   * because the hook cannot: goja has no `Intl` (LESSONS §5). It is what "this
+   * month's board" means — one month for the whole board, the reader's, rather
+   * than each rider's own, so the column compares like with like.
+   */
+  monthKey: string,
 ): Promise<SelectedCrewView> {
   const now = Date.now();
 
   const [boardResult, feedResult] = await Promise.allSettled([
-    getCrewBoard(client, crew.id),
+    getCrewBoard(client, crew.id, monthKey),
     getCrewFeed(client, crew.id),
   ]);
 
@@ -146,6 +161,7 @@ async function loadCrew(
     // chip, where `sportsOf` would put a scooter beside their name for them.
     sports: (row.sports ?? []).filter((s) => SPORT_LOOKS[s]).map((s) => SPORT_LOOKS[s]),
     streak: row.streak ?? 0,
+    sessions: row.sessions ?? 0,
     landed: row.landed ?? 0,
     isMe: row.id === riderId,
     isOwner: row.role === 'owner',

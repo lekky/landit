@@ -62,6 +62,7 @@ export type SessionsSport = 'scooter' | 'skate' | 'bmx';
 export type SessionsVisibility = 'public' | 'members' | 'private';
 export type SessionsWeather = 'sun' | 'cloud' | 'rain' | 'wind' | 'cold';
 export type SessionTricksStageFrom = 'want' | 'trying' | 'some' | 'most' | 'every';
+export type SessionTricksStagePick = 'want' | 'trying' | 'some' | 'most' | 'every';
 export type SessionTricksStageTo = 'want' | 'trying' | 'some' | 'most' | 'every';
 export type SpotsOperating = 'open' | 'closed' | 'unknown';
 export type SpotsSports = 'scooter' | 'skate' | 'bmx';
@@ -604,6 +605,7 @@ export interface SessionTricksRecord {
   stage_to: SessionTricksStageTo;
   created: string;
   updated: string;
+  stage_pick: SessionTricksStagePick;
 }
 
 /** The shape accepted when creating a `session_tricks` record. */
@@ -615,6 +617,7 @@ export interface SessionTricksCreate {
   landed?: boolean;
   stage_from?: SessionTricksStageFrom;
   stage_to?: SessionTricksStageTo;
+  stage_pick?: SessionTricksStagePick;
 }
 
 /** The shape accepted when updating a `session_tricks` record. */
@@ -655,7 +658,7 @@ export interface SessionsCreate {
   spot?: string;
   event?: string;
   aim?: string;
-  feel: SessionsFeel;
+  feel?: SessionsFeel;
   weather?: SessionsWeather;
   notes?: string;
   rode_with?: string[];

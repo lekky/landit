@@ -5,6 +5,8 @@ import {
   ACCOUNT_MENU_ADMIN,
   MOBILE_NAV,
   PROGRESS_TABS,
+  mobileNavFor,
+  topNavFor,
   TOP_NAV,
   WHATS_ON_TABS,
   accountMenuFor,
@@ -101,6 +103,58 @@ describe('the phone carries every destination', () => {
       if (!item.tabs) continue;
       expect(item.tabs.at(0)?.href, `${item.id}`).toBe(item.href);
     }
+  });
+});
+
+describe('the Progress section with sessions on', () => {
+  /*
+   * The same three invariants the sessions-off bar is held to, re-checked on
+   * the shape a rider in the preview actually gets (2026-09-13). The section
+   * grew a third screen and changed which one it lands on, and both of those
+   * are exactly the kind of change the tests above exist to catch.
+   */
+  const progress = () => mobileNavFor(true).find((item) => item.id === 'progress') as NavItem;
+
+  it('lands on Sessions and folds the other two behind it', () => {
+    expect(progress().href).toBe('/progress/sessions');
+    expect(progress().tabs?.map((t) => t.href)).toEqual([
+      '/progress/sessions',
+      '/progress',
+      '/stickers',
+    ]);
+  });
+
+  it("still lists the section's own screen first, so arriving does not relabel the drawer", () => {
+    expect(progress().tabs?.at(0)?.href).toBe(progress().href);
+  });
+
+  it('claims nothing it does not honour', () => {
+    const honoured = new Set(progress().tabs?.map((t) => t.href));
+    for (const href of progress().reaches ?? []) expect(honoured.has(href)).toBe(true);
+  });
+
+  it('keeps every top-bar destination reachable below 861px', () => {
+    const reachable = new Set<string>([
+      ...mobileNavFor(true).map((item) => item.href),
+      ...mobileNavFor(true).flatMap((item) => item.reaches ?? []),
+      // Plans and the other account-shaped destinations live behind the avatar
+      // at every width, as `phoneReachable` above has it.
+      ...ACCOUNT_MENU.map((item) => item.href),
+    ]);
+    for (const item of topNavFor(true)) expect(reachable.has(item.href), item.id).toBe(true);
+  });
+
+  it('lights the cell on all three of its screens', () => {
+    for (const path of ['/progress/sessions', '/progress', '/stickers']) {
+      expect(activeSection(path, true)?.id, path).toBe('progress');
+    }
+  });
+
+  it('leaves the bar exactly as it was for a rider outside the preview', () => {
+    // The one thing that must not happen: a cell offering a screen that 404s.
+    expect(mobileNavFor(false)).toEqual(MOBILE_NAV);
+    expect(topNavFor(false)).toEqual(TOP_NAV);
+    expect(activeSection('/progress')?.id).toBe('progress');
   });
 });
 
