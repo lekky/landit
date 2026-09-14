@@ -364,6 +364,7 @@ export {
   sessionVisibleTo,
   sessionWeatherLabel,
   sessionsPerMonthLabel,
+  sessionsPerMonthPerk,
   sortSessionsNewestFirst,
   spotSessionSummary,
   stageMoveLabel,

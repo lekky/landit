@@ -66,8 +66,14 @@ export default async function PlansPage() {
   const country =
     rider?.country || regionFromAcceptLanguage((await headers()).get('accept-language'));
 
+  // One answer for the whole page: the cards' session perk line and the
+  // comparison table are the same rollout, and a page where one appeared
+  // without the other would be worse than neither.
+  const showSessions = sessionsEnabledFor(rider);
+
   const view = buildPlansView({
     plans,
+    showSessions,
     currentPlanSlug: rider?.plan ?? 'rookie',
     signedIn: Boolean(rider),
     upgradeRoute: upgradeRouteFor({
@@ -79,5 +85,5 @@ export default async function PlansPage() {
     country,
   });
 
-  return <PlansScreen view={view} showSessions={sessionsEnabledFor(rider)} />;
+  return <PlansScreen view={view} showSessions={showSessions} />;
 }

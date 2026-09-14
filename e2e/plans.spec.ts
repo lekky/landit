@@ -42,6 +42,19 @@ test('the three cards are the plan’s three, and the top one is Legend not Crew
   await expect(page.locator('[data-plan="legend"]')).toContainText('Legend');
 });
 
+test('no plan card says "clip", whatever the comparison table says (plan §6.6)', async ({
+  page,
+}) => {
+  // We hold a link; we do not hold the video. The word belongs to the "Clip
+  // links" row of the comparison below, where the header gives it context — a
+  // lone bullet reading "10 clip links" on a card does not. `data.test.ts`,
+  // `video.test.ts` and `sessionPlanRows.test.ts` hold the same line in code;
+  // this holds it on the rendered card, which is where a rider reads it.
+  for (const plan of PLANS) {
+    await expect(page.locator(`[data-plan="${plan.id}"]`)).not.toContainText(/clip|vault|upload/i);
+  }
+});
+
 test('Shredder is the raised "Most riders" card (screenshot 20)', async ({ page }) => {
   const shredder = page.locator('[data-plan="shredder"]');
   await expect(shredder).toContainText('Most riders');

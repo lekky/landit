@@ -15,7 +15,11 @@ import {
   type PlansRecord,
 } from '@landit/db';
 
-import { sessionPlanComparison, type SessionPlanComparison } from '@/lib/sessionPlanRows';
+import {
+  sessionCardPerks,
+  sessionPlanComparison,
+  type SessionPlanComparison,
+} from '@/lib/sessionPlanRows';
 
 /**
  * The plans page's data, shaped on the server (screenshot 20, plan §2.4).
@@ -116,6 +120,16 @@ export function buildPlansView(input: {
    * is stored.
    */
   readonly country: string;
+  /**
+   * Whether this reader may see sessions at all — `sessionsEnabledFor`, the same
+   * answer that gates the comparison table and every other session surface.
+   *
+   * It decides whether a card carries its session perk line. Passed in rather
+   * than read here for the reason nothing in a view module reads the
+   * environment: the page has the rider, and a view that answered this itself
+   * could not be unit-tested both ways.
+   */
+  readonly showSessions: boolean;
 }): PlansView {
   const cards = input.plans.map((record): PlanCardView => {
     const canonical = PLAN[record.slug as PlanId];
@@ -138,7 +152,17 @@ export function buildPlansView(input: {
       name: record.name,
       hue: record.hue || 'var(--ink)',
       pitch: record.pitch,
-      perks: stringList(record.perks),
+      /*
+       * The record's own perks, plus the session line derived from the record's
+       * session fields (#507). Appended rather than written into the row by a
+       * migration, and the reasoning is in `sessionCardPerks` — in short, a
+       * typed cap drifts from the hook that enforces it, and a row written at
+       * deploy would advertise sessions before `LANDIT_SESSIONS_OPEN` opens
+       * them. `showSessions` false leaves the card exactly as staff wrote it.
+       */
+      perks: input.showSessions
+        ? [...stringList(record.perks), ...sessionCardPerks(sessionAllowanceFromRecord(record))]
+        : stringList(record.perks),
       missing: stringList(record.missing),
       popular: Boolean(record.popular),
       paid,

@@ -52,6 +52,7 @@ import {
   sessionVisibleTo,
   sessionWeatherLabel,
   sessionsPerMonthLabel,
+  sessionsPerMonthPerk,
   sortSessionsNewestFirst,
   spotSessionSummary,
   stageMoveLabel,
@@ -269,6 +270,20 @@ describe('the monthly allowance (D6)', () => {
     expect(sessionsPerMonthLabel(sessionAllowance(PLAN.rookie))).toBe('Four a month');
     expect(sessionsPerMonthLabel(sessionAllowance(PLAN.legend))).toBe('Unlimited');
     expect(sessionsPerMonthLabel(NO_SESSIONS)).toBe('None');
+  });
+
+  it('spells the plan card’s line with the noun in it, and nothing for a zero', () => {
+    // The card variant (#507): a bullet on a plan card is read on its own,
+    // away from the comparison table's "Sessions logged" header, so the noun
+    // has to be in the line rather than implied by a column.
+    expect(sessionsPerMonthPerk(sessionAllowance(PLAN.rookie))).toBe('Four sessions a month');
+    expect(sessionsPerMonthPerk(sessionAllowance(PLAN.legend))).toBe('Unlimited sessions');
+    expect(sessionsPerMonthPerk({ cap: 1, unlimited: false })).toBe('One session a month');
+    expect(sessionsPerMonthPerk({ cap: 12, unlimited: false })).toBe('12 sessions a month');
+
+    // Not "None": a card lists what a plan gives, and a plan that grants no
+    // sessions advertises none. Fail closed, like every other allowance here.
+    expect(sessionsPerMonthPerk(NO_SESSIONS)).toBeNull();
   });
 });
 

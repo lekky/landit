@@ -5065,12 +5065,12 @@ Depends on T36. **The fifth-session wall with its grace and the Rookie clip lock
   that does not exist is what "Exclusive avatar drops" was removed for; the clip cells read the
   derived label ("10 clip links") rather than an unnumbered "Video links, private until you say
   otherwise"; and the closing line says "the monthly allowance" rather than typing "four".
-- **The plan-card perk lines were not added.** Two held tests stand in the way, and changing either
-  is a copy decision rather than an additive line: `pocketbase/tests/free-tier-twenty.test.ts` pins
-  every Rookie and Shredder perk to the copy in migration `1789171200`, so a new line needs a new
-  plan-copy migration (the shape issue #446 asks the owner to choose) and that test repointed at it;
-  and `data.test.ts` and `video.test.ts` forbid the word "clip" on any card (plan §6.6), which
-  `sessionClipAllowanceLabel` returns. Waiting on the owner.
+- **The plan-card perk lines were not added by T40.** Two held tests stood in the way, and changing
+  either was a copy decision rather than an additive line: `pocketbase/tests/free-tier-twenty.test.ts`
+  pinned every Rookie and Shredder perk to the copy in migration `1789171200`, so a new line needed a
+  new plan-copy migration (the shape issue #446 asks the owner to choose) and that test repointed at
+  it; and `data.test.ts` and `video.test.ts` forbid the word "clip" on any card (plan §6.6), which
+  `sessionClipAllowanceLabel` returns. Issue #507 put it to the owner. **Settled in T44 below.**
 
 **T41 · Sessions in owner-only preview.** Added 2026-09-13 (Rachid, in chat: "enable only for me
 now"), so the owner can use T36–T40 on the live site before anyone else sees them. Depends on
@@ -5173,6 +5173,41 @@ brief). Depends on T36–T41.
   `LogSessionLink` — the component the spot, event and trick blocks already use — gains the word.
   It is what says whether the dashboard was the missing door. The sessions rule at the head of
   that block in `analytics.ts` holds: the press carries which control, and nothing else.
+
+**T44 · The session line on the plan cards, and a plan-copy refresh.** Added 2026-09-14 (Rachid, in
+chat, answering issue #507 ahead of turning sessions on for everyone). Depends on T40.
+
+- **The cards carry one session line each, and it is derived rather than written.** `sessionCardPerks`
+  (`apps/web/src/lib/sessionPlanRows.ts`) turns the record's own `session_month_cap` /
+  `sessions_unlimited` into "Four sessions a month" or "Unlimited sessions" through
+  `sessionsPerMonthPerk` in `@landit/core`, and `buildPlansView` appends it to the perks the `plans`
+  row holds. **Neither held test was lifted**, because neither needed to be: nothing was written into
+  `plans.ts`'s `perks`, and no card says "clip".
+  - **Why derived and not a migration** (the owner's choice of the three offered): a literal in a
+    `plans` row is one staff retune of the cap away from advertising a number the hook does not
+    enforce — the defect this page's own comments exist to prevent, on the one screen with a live
+    Stripe checkout behind it. And copy written by a migration appears at the next deploy whether or
+    not `LANDIT_SESSIONS_OPEN` went with it, so a card could announce sessions before the screens
+    open. Derived, the line follows `sessionsEnabledFor` exactly as the comparison table does.
+  - **No clip line on a card.** The clip allowance stays in "What each plan logs", where the "Clip
+    links" header gives it the context a lone bullet cannot. `sessionPlanRows.test.ts` and
+    `e2e/plans.spec.ts` now hold plan §6.6's rule on this second source of perk lines, alongside
+    `data.test.ts` and `video.test.ts` on the first.
+- **`1789776000_plan_copy_refresh.js` rewrites all three cards' `pitch`, `perks` and `missing` from
+  `@landit/core`** — copy only, no price and no entitlement, pinned to canonical by
+  `pocketbase/tests/plan-copy-refresh.test.ts`. This closes issue #381 and is the option-2 vehicle
+  issue #446 asked the owner to choose. **Legend is the point of it:** `1789171200` writes Rookie and
+  Shredder only, so no migration has ever written Legend's row, and the 2026-09-04 rewrite that
+  removed **"Exclusive avatar drops"** — a perk that was never true, since `data/avatars.ts` gates
+  nothing on a plan — has never reached a running box. `free-tier-twenty.test.ts` stops pinning plan
+  copy as a consequence: `COPY_TWENTY` is a 2026-09-12 snapshot and is history now, exactly as
+  `COPY_TEN` beside it already was, and holding both would mean plan copy could never change again
+  without editing a migration production has already run.
+  - **`down` is a no-op, deliberately.** There is no single previous state to restore — each box
+    drifted somewhere different — and reinstating the prototype's copy would put "Exclusive avatar
+    drops" back on a live card.
+- **No new analytics event.** `/plans` is already counted (`$pageview`, `checkout_started` carrying
+  the plan slug); this adds a line to a counted screen rather than a rider action.
 
 ### Dependency graph
 
