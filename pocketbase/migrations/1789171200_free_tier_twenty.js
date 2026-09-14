@@ -31,9 +31,17 @@
  * **The two lists below are duplicated from `@landit/core` and cannot import
  * it** — migrations run in PocketBase's JSVM, which has no module resolution
  * for the workspace. `pocketbase/tests/free-tier-twenty.test.ts` reads this file
- * and fails if either list drifts from the canonical data, which is what keeps
- * the duplication honest (the same trick `1787356800_video_links.js` plays with
- * its hard-coded allowances, minus the drift risk).
+ * and fails if the **trick overrides** drift from the canonical data, which is
+ * what keeps that duplication honest (the same trick `1787356800_video_links.js`
+ * plays with its hard-coded allowances, minus the drift risk).
+ *
+ * **`COPY_TWENTY` is no longer pinned, as of 2026-09-14.**
+ * `1789776000_plan_copy_refresh.js` now writes all three cards from canonical,
+ * so the copy below is a snapshot of what the cards said on 2026-09-12 —
+ * history, exactly as `COPY_TEN` beside it already is, and it is *supposed* to
+ * stop matching `@landit/core` the next time the copy moves. Holding both to
+ * canonical would mean plan copy could never change again without editing this
+ * file, which production has already run (issues #381, #446).
  *
  * **`down` restores the ten-trick tier**, because the data is the entitlement.
  * Rolling the application back without it would leave every rider on the free

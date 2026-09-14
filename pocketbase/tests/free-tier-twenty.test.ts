@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { PLAN, TRICKS, isTrickFree, type Trick } from '@landit/core';
+import { TRICKS, isTrickFree, type Trick } from '@landit/core';
 import { describe, expect, it } from 'vitest';
 
 const migration = path.join(
@@ -27,6 +27,17 @@ const migration = path.join(
  * It pins the `up` list only. `OVERRIDES_TEN` and `COPY_TEN` are the rollback
  * path — a snapshot of the 2026-09-04 tier, which is history and is *supposed*
  * to stop matching `@landit/core` the moment the tier moved.
+ *
+ * **It no longer pins the plan copy, and that is deliberate** (2026-09-14,
+ * issue #381). `1789776000_plan_copy_refresh.js` now writes all three cards
+ * from canonical, which makes `COPY_TWENTY` below a snapshot of what the cards
+ * said on 2026-09-12 — history, exactly as `COPY_TEN` beside it already is.
+ * Holding both to canonical would mean plan copy could never change again
+ * without editing a migration production has already run, which is the silent
+ * divergence issue #446 set out. `plan-copy-refresh.test.ts` is the guard now.
+ *
+ * The trick overrides stay pinned here: nothing has superseded them, and they
+ * decide what a child can open.
  */
 describe('the free-tier-twenty migration', () => {
   // Read through `Trick`: the canonical data is `as const`, so a trick with no
@@ -108,20 +119,5 @@ describe('the free-tier-twenty migration', () => {
     expect(loop.indexOf('touched.has(slug)')).toBeLessThan(
       loop.indexOf("trick.set('free_override'"),
     );
-  });
-
-  it('writes the plan copy the cards actually ship', async () => {
-    const source = await read();
-    const block = source.slice(source.indexOf('const COPY_TWENTY = ['));
-
-    for (const plan of [PLAN.rookie, PLAN.shredder] as const) {
-      for (const line of [plan.pitch, ...plan.perks, ...plan.missing]) {
-        // Prettier may wrap a long line, so compare on collapsed whitespace and
-        // on the escaping a JS string literal uses for an apostrophe.
-        const needle = line.replace(/\s+/g, ' ').trim();
-        const haystack = block.replace(/\\'/g, "'").replace(/\s+/g, ' ');
-        expect(haystack, `${plan.id}: "${needle}"`).toContain(needle);
-      }
-    }
   });
 });

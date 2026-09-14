@@ -1,6 +1,7 @@
 import {
   sessionClipAllowanceLabel,
   sessionsPerMonthLabel,
+  sessionsPerMonthPerk,
   type SessionAllowance,
 } from '@landit/core';
 
@@ -139,4 +140,40 @@ export function sessionPlanComparison(plans: readonly SessionPlanInput[]): Sessi
       },
     ],
   };
+}
+
+/* ------------------------------------------------- the card perk line ---- */
+
+/**
+ * The session lines a **plan card** carries, appended to the perks the `plans`
+ * record holds (#507, owner's decisions of 2026-09-14, in chat).
+ *
+ * **Derived here rather than written into the record**, which is the whole of
+ * the decision and the reason this is a function and not a migration. Three
+ * things follow from it, and each one is why an alternative was rejected:
+ *
+ * - **It cannot drift from the cap the hook enforces.** A literal "Four
+ *   sessions a month" in a `plans` row is one staff retune of
+ *   `session_month_cap` away from advertising a number nobody enforces — the
+ *   defect `plans.ts` and `sessionPlanComparison` above both exist to prevent,
+ *   on the one page in the product with a live Stripe checkout behind it.
+ * - **It follows the sessions rollout automatically.** The caller passes the
+ *   same `sessionsEnabledFor` answer that gates the comparison table and every
+ *   other session surface, so while sessions are in owner-only preview the
+ *   cards say nothing about them, and `LANDIT_SESSIONS_OPEN=1` turns the lines
+ *   on with the screens. Copy written into the rows by a migration would appear
+ *   at the next deploy whether or not the flag went with it.
+ * - **No card says "clip".** The allowance of session clip links is deliberately
+ *   *not* on the cards: it stays in the comparison table below, where the "Clip
+ *   links" header gives it the context a lone bullet cannot. That keeps plan
+ *   §6.6's rule — nothing on a card may suggest we host video — intact rather
+ *   than narrowed, and `data.test.ts` and `video.test.ts` keep holding it.
+ *   `noHostingLanguage` in this file's tests holds the same line here.
+ *
+ * Returns the lines to **append**, never a replacement: the record's own perks
+ * are staff-editable and this adds to them.
+ */
+export function sessionCardPerks(sessions: SessionAllowance): readonly string[] {
+  const line = sessionsPerMonthPerk(sessions);
+  return line === null ? [] : [line];
 }

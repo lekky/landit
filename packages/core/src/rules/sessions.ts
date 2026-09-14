@@ -332,6 +332,31 @@ export function sessionsPerMonthLabel(allowance: SessionAllowance): string {
   return `${capitalise(numberWord(allowance.cap))} a month`;
 }
 
+/**
+ * The same allowance as a **plan card perk line**: "Four sessions a month",
+ * "Unlimited sessions", or `null`.
+ *
+ * A card's bullets are read one at a time, away from the comparison table's
+ * "Sessions logged" header, so the noun has to be in the line —
+ * `sessionsPerMonthLabel`'s bare "Four a month" says nothing on its own. The
+ * word-number lives here rather than in the web package for the same reason
+ * every other one does: `numberWord` is in this file, and a card that spelled
+ * "four" itself would be a second speller to keep in step.
+ *
+ * **`null` for a plan that grants no sessions**, rather than a "None" line. The
+ * comparison table has a column for every plan and must fill each cell; a card
+ * has a list of what the plan *gives*, and a perk line reading "None" is not a
+ * perk. A plan on zero simply carries no session line — which is also the
+ * fail-closed direction, because a record that grants nothing advertises
+ * nothing.
+ */
+export function sessionsPerMonthPerk(allowance: SessionAllowance): string | null {
+  if (allowance.unlimited) return 'Unlimited sessions';
+  if (allowance.cap === 0) return null;
+  const plural = allowance.cap === 1 ? '' : 's';
+  return `${capitalise(numberWord(allowance.cap))} session${plural} a month`;
+}
+
 /* ----------------------------------------------------------- the month --- */
 
 /** The rider's current month, `YYYY-MM`, on their own clock (like `riderToday`). */

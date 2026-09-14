@@ -8,7 +8,7 @@ import {
 } from '@landit/core';
 import { describe, expect, it } from 'vitest';
 
-import { sessionPlanComparison, type SessionPlanInput } from './sessionPlanRows';
+import { sessionCardPerks, sessionPlanComparison, type SessionPlanInput } from './sessionPlanRows';
 
 /** The three launch plans as the page resolves them from their records. */
 const launch: SessionPlanInput[] = PLANS.map((plan) => ({
@@ -100,6 +100,54 @@ describe('sessionPlanComparison', () => {
     for (const r of rows) {
       expect(r.label).not.toMatch(/insight/i);
       for (const cell of r.cells) expect(cell.text).not.toMatch(/best days|best length/i);
+    }
+  });
+});
+
+describe('sessionCardPerks', () => {
+  const rookie = sessionAllowance(PLANS[0]!);
+  const shredder = sessionAllowance(PLANS[1]!);
+
+  it('names the number and the noun, because a card bullet is read alone', () => {
+    // The comparison table can say "Four a month" under a "Sessions logged"
+    // header. A card bullet has no header, so the noun has to be in the line.
+    expect(sessionCardPerks(rookie)).toEqual(['Four sessions a month']);
+    expect(sessionCardPerks(shredder)).toEqual(['Unlimited sessions']);
+  });
+
+  it('renders the number from the record, so a staff retune moves the card', () => {
+    // The whole reason this is derived rather than written into the `plans`
+    // row: a literal on a row is one retune away from advertising a cap the
+    // hook does not enforce, on the page with the live checkout behind it.
+    expect(sessionCardPerks({ cap: 6, unlimited: false })).toEqual(['Six sessions a month']);
+    expect(sessionCardPerks({ cap: 1, unlimited: false })).toEqual(['One session a month']);
+  });
+
+  it('carries no line at all for a plan that grants no sessions', () => {
+    // Fail closed. A card lists what a plan *gives*; a perk reading "None" is
+    // not a perk, and a record granting nothing must advertise nothing.
+    expect(sessionCardPerks({ cap: 0, unlimited: false })).toEqual([]);
+  });
+
+  it('never says "clip", "vault", "upload" or a byte figure (plan §6.6)', () => {
+    // The rule `data.test.ts` and `video.test.ts` hold for the perks in
+    // `@landit/core`, restated here because this is now the other place a perk
+    // line can come from. We hold a link; nothing on a card may suggest we hold
+    // the video. The clip allowance stays in the comparison table, under a
+    // header that gives it the context a lone bullet cannot.
+    const lines = [
+      ...sessionCardPerks(rookie),
+      ...sessionCardPerks(shredder),
+      ...sessionCardPerks({ cap: 3, unlimited: false }),
+      ...sessionCardPerks({ cap: 0, unlimited: true }),
+    ];
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) expect(line).not.toMatch(/vault|clip|\bGB\b|upload/i);
+  });
+
+  it('sells no achievement, on any allowance (plan §1)', () => {
+    for (const line of [...sessionCardPerks(rookie), ...sessionCardPerks(shredder)]) {
+      expect(line).not.toMatch(/\bsticker(s)?\b|\bstage(s)?\b|\bachievement/i);
     }
   });
 });
