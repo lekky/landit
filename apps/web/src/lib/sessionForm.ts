@@ -11,7 +11,6 @@ import {
   isSessionDuration,
   isSessionFeel,
   isSessionWeather,
-  landedStageAfter,
   normaliseSessionVisibility,
   sessionProblems,
   sessionQuotaLine,
@@ -676,12 +675,6 @@ export function sessionQuotaWarning(status: SessionQuotaStatus | null): string |
 export function trickStageLine(stage: StageId | null, sinceDay: DayKey | null): string {
   if (!stage) return 'Not tracked yet';
   return sinceDay ? `${STAGE[stage].label} · since ${shortDayMonth(sinceDay)}` : STAGE[stage].label;
-}
-
-/** "→ Most times", or what a landing on an Every-time trick says. */
-export function landedPreview(stage: StageId | null): string {
-  const next = landedStageAfter(stage);
-  return next ? `→ ${STAGE[next].label}` : 'Already every time';
 }
 
 /** "The riders you ride with. Your default is Only me." */

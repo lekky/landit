@@ -8,7 +8,6 @@ import {
   eventsAtSpotToday,
   formIsDirty,
   inOurWords,
-  landedPreview,
   localDateTimeIn,
   newSessionValues,
   readFormValues,
@@ -315,12 +314,9 @@ describe('copy', () => {
     expect(sessionQuotaWarning(null)).toBeNull();
   });
 
-  it('says where a trick stands and where a landing takes it', () => {
+  it('says where a trick stands', () => {
     expect(trickStageLine('some', '2026-08-25')).toBe('Sometimes · since 25 Aug');
     expect(trickStageLine(null, null)).toBe('Not tracked yet');
-    expect(landedPreview('some')).toBe('→ Most times');
-    expect(landedPreview(null)).toBe('→ Sometimes');
-    expect(landedPreview('every')).toBe('Already every time');
   });
 
   it('names the choice and the profile default', () => {
