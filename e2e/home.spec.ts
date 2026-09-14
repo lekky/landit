@@ -161,6 +161,34 @@ test('"I rode today" logs a ride and turns green, and a second tap does nothing'
   ).toBeVisible();
 });
 
+test('Home leads into the quick log, with the ride tap kept under it', async ({ page }) => {
+  await arriveAtHome(page, 'Logging Rider');
+
+  const card = page.locator('.panel', { hasText: 'Riding streak' }).first();
+
+  /*
+   * T43, and the owner's call of 2026-09-14: Home was the only screen with no
+   * way into the session logger, and the session link now leads the card while
+   * "I rode today" keeps its place beneath it. Both halves are asserted,
+   * because either one going missing is the decision quietly reversed.
+   *
+   * This runs at all because the e2e server sets `LANDIT_SESSIONS_OPEN=1`
+   * (`playwright.config.ts`) — sessions are otherwise owner-only (T41), and a
+   * rider made during the run is not the owner.
+   */
+  const log = card.getByRole('link', { name: 'Log a session' });
+  await expect(log).toBeVisible();
+  await expect(card.getByRole('button', { name: 'I rode today' })).toBeVisible();
+
+  // The quick log, not the full form: three taps is what a dashboard button
+  // should cost.
+  await expect(log).toHaveAttribute('href', '/progress/sessions/new?quick=1');
+
+  await log.click();
+  await page.waitForURL('**/progress/sessions/new?quick=1');
+  await expect(page.getByText('Rode just now')).toBeVisible();
+});
+
 test('"I rode today" asks for nothing but the tap', async ({ page }) => {
   await arriveAtHome(page, 'Plain Rider');
 

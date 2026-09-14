@@ -313,14 +313,18 @@ export const ANALYTICS_EVENTS = {
   /**
    * A session form was opened. Carries `source` — where it was opened from:
    * `'progress'` (the Sessions tab), `'spot'`, `'event'` or `'trick'` (the
-   * "Log a session here" blocks), or `'quick_log_escalate'` (the quick log's
-   * "Add tricks, clip and notes →"). Five fixed strings.
+   * "Log a session here" blocks), `'home'` (the streak card's "Log a session",
+   * added 2026-09-14 by T43, and the only one that opens the quick log rather
+   * than the full form), or `'quick_log_escalate'` (the quick log's "Add
+   * tricks, clip and notes →"). Six fixed strings.
    *
    * **Never which spot, event or trick** it was opened on: the page it was
    * opened from is a place, and `source: 'spot'` already says all this needs.
    *
    * It exists to say which entry point riders actually log from, and whether
    * the three-tap quick log is enough or gets escalated most of the time.
+   * `'home'` is the one that answers whether the dashboard was the missing
+   * door: if it takes most of the presses, the others are not where riders are.
    */
   sessionLogOpened: 'session_log_opened',
   /**

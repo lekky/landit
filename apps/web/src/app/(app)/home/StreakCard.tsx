@@ -5,8 +5,10 @@ import { useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
 
+import { LogSessionLink } from '@/components/sessions/blocks/LogSessionLink';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { runActionOr } from '@/lib/runAction';
+import { newSessionHref } from '@/lib/sessionRoutes';
 
 import { rodeTodayAction } from './actions';
 import type { StreakView } from './view';
@@ -31,8 +33,36 @@ import styles from './home.module.css';
  * The card keeps its silhouette against screenshot 06: same ink panel, same
  * orange flame block, same Anton headline, same segmented row in the same slot,
  * same full-width button under it. Only the unit moved, which is the point.
+ *
+ * **"Log a session" leads the card, and "I rode today" sits under it**
+ * (Rachid, 2026-09-14, in chat, answering the opening brief). Home was the one
+ * screen with no way into the session logger — the Progress tab has one, and so
+ * do the spot, event and trick blocks — while being the screen every rider
+ * lands on. Saving a session banks the weekly ride itself
+ * (`SessionFormScreen` fires `ride_logged` when the ride was new), so the two
+ * buttons are the same act at two levels of effort, and the owner chose the
+ * fuller one to lead. The tap that asks for nothing is still here, one line
+ * below, because a rider who cannot face a form on a wet Tuesday should still
+ * be able to bank the week.
+ *
+ * **It renders only for a rider the preview is open to** (plan §7, T41): the
+ * server answers `sessionsEnabledFor` in `page.tsx` and hands the answer down
+ * as `view.sessionsEnabled`. For everybody else this card is exactly what it
+ * was — one yellow "I rode today" — and screenshot 06 still describes it.
+ *
+ * The link is `LogSessionLink`, the same component the spot, event and trick
+ * blocks use, so the press is counted the way theirs are: `session_log_opened`
+ * with `source: 'home'` and nothing else on it. It opens the **quick log**
+ * (`?quick=1`) — when, where, how it felt, three taps — because a button on the
+ * dashboard should cost about what the button beneath it costs.
  */
-export function StreakCard({ streak }: { streak: StreakView }) {
+export function StreakCard({
+  streak,
+  sessionsEnabled,
+}: {
+  streak: StreakView;
+  sessionsEnabled: boolean;
+}) {
   const [pending, startTransition] = useTransition();
   const [state, setState] = useState(streak);
   const { toast } = useToast();
@@ -100,6 +130,16 @@ export function StreakCard({ streak }: { streak: StreakView }) {
         <p className={styles.encouragement}>{state.encouragement}</p>
       </div>
 
+      {sessionsEnabled && (
+        <LogSessionLink
+          href={newSessionHref({ quick: true })}
+          source="home"
+          className={`btn wide sm ${styles.logSession}`}
+        >
+          Log a session
+        </LogSessionLink>
+      )}
+
       {/*
         `aria-disabled` once the day is logged, not `disabled`: the design's
         confirmed state is a solid green button (screenshot 06 shows the yellow
@@ -107,18 +147,30 @@ export function StreakCard({ streak }: { streak: StreakView }) {
         opacity, which reads as broken rather than done. The click is a no-op
         either way — `logRide` returns early and the server would refuse a second
         ride the same day regardless.
+
+        Demoted to an outline once there is a session link above it, because two
+        filled buttons on one small ink card are two primaries and neither reads
+        as the answer. The done state keeps its meaning and loses its shout: a
+        lime rule and a lime tick rather than a solid green fill.
       */}
       <button
         type="button"
-        className="btn wide sm"
+        className={`btn wide sm${sessionsEnabled ? ` ${styles.rode}` : ''}`}
         onClick={logRide}
         disabled={pending}
         aria-disabled={done || undefined}
-        style={{
-          background: done ? 'var(--green)' : 'var(--yellow)',
-          color: 'var(--ink)',
-          ...(done ? { cursor: 'default' } : {}),
-        }}
+        data-done={done || undefined}
+        style={
+          sessionsEnabled
+            ? done
+              ? { cursor: 'default' }
+              : undefined
+            : {
+                background: done ? 'var(--green)' : 'var(--yellow)',
+                color: 'var(--ink)',
+                ...(done ? { cursor: 'default' } : {}),
+              }
+        }
       >
         {done ? '✓ Rode today' : pending ? 'Logging…' : 'I rode today'}
       </button>

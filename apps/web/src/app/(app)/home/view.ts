@@ -122,6 +122,16 @@ export interface SportView {
 
 export interface HomeView {
   readonly firstName: string;
+  /**
+   * Whether this rider can reach the session logger (plan §7, T41 — sessions
+   * are in owner-only preview). The server answers `sessionsEnabledFor` once,
+   * here, because `HomeScreen` is a client component and `process.env` is not
+   * its to read: a gate evaluated in the browser is a gate.
+   *
+   * False is the ordinary case today, and Home renders exactly as it did before
+   * T43 — one yellow "I rode today" and nothing else.
+   */
+  readonly sessionsEnabled: boolean;
   /** "Saturday 15 August", built from a table rather than from ICU. */
   readonly dateLabel: string;
   readonly streak: StreakView;

@@ -49,8 +49,9 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import { ROUTES } from '@/lib/routes';
-import { SPORT_LOOKS } from '@/lib/sports';
 import { currentRider } from '@/lib/session';
+import { sessionsEnabledFor } from '@/lib/sessionsPreview';
+import { SPORT_LOOKS } from '@/lib/sports';
 
 import { HomeScreen } from './HomeScreen';
 import type {
@@ -210,6 +211,11 @@ export default async function HomePage() {
 
   const view: HomeView = {
     firstName: (rider.name || 'rider').split(' ')[0] || 'rider',
+    // Asked here, on the server, and handed over as a boolean: the same gate
+    // the Sessions tab, the `/progress/sessions` routes and the spot, event and
+    // trick blocks ask (plan §7, T41). Unset `LANDIT_OWNER_ID` fails closed, so
+    // a deploy nobody configured offers the logger to nobody.
+    sessionsEnabled: sessionsEnabledFor(rider),
     dateLabel: formatDayLong(today),
     streak: {
       headline: weeklyStreakLabel(weeks),

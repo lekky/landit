@@ -85,7 +85,7 @@ export function HomeScreen({ view }: { view: HomeView }) {
         </Panel>
 
         <div className={styles.side}>
-          <StreakCard streak={view.streak} />
+          <StreakCard streak={view.streak} sessionsEnabled={view.sessionsEnabled} />
 
           {current.challenge && (
             /*

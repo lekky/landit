@@ -5,8 +5,9 @@ import { isOwner } from './staff';
  * 2026-09-13, in chat: "enable only for me now").
  *
  * Every web surface of session tracking asks this one function: the Sessions
- * tab, every `/progress/sessions` route, the spot/event/trick blocks, the
- * "Who sees new sessions" setting and the plans comparison.
+ * tab, every `/progress/sessions` route, the spot/event/trick blocks, Home's
+ * "Log a session" (T43, added 2026-09-14), the "Who sees new sessions" setting
+ * and the plans comparison.
  *
  * - **`LANDIT_SESSIONS_OPEN=1` opens them to everyone**, signed out included —
  *   exactly the behaviour T37–T40 shipped with: `/plans` shows its comparison to
