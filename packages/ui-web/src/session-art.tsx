@@ -41,15 +41,19 @@ export const SESSION_ART_BASE_PATH = '/session-icons';
  * sessions table and the spot block. 64 therefore covers every size on a plain
  * screen and 128 covers the same at 2×.
  *
- * **The small end is a known cost, accepted rather than overlooked** (owner,
- * 2026-09-14, in chat). A die-cut sticker at 13px is a mark, not a drawing: the
- * grin's tongue and the rain's three drops are gone, and `fine` and `good` are
- * told apart mostly by the curve of the mouth. The stroked glyph was legible
- * there and this is not. What a rider loses is small — every one of those
- * places names the feel in text beside the icon, so nothing is only readable as
- * a picture — and what the form gains is the screen they actually use. Shrink
- * the art, or commission simplified small variants, before reaching for a
- * second size step here.
+ * **The small end is a known cost, and the colour pass softened it.** A die-cut
+ * sticker at 13px is a mark, not a drawing: the rain's three drops are gone and
+ * so is the grin's tongue. The owner accepted that trade for the feels and the
+ * weather alike (2026-09-14, in chat) — but the faces that arrived later that
+ * day are **colour-coded down the feel scale** (teal, green, yellow, orange,
+ * red), so at 13px a feel is still a distinct hue even once the expression has
+ * closed up. The five cream faces this replaced were five near-identical discs
+ * at that size. The weather row got no such rescue and is the one still
+ * trading on detail alone.
+ *
+ * Nothing is readable *only* as a picture in any case: every place that draws
+ * this small names the feel in text beside it. Shrink the art, or commission
+ * simplified small variants, before reaching for a second size step here.
  */
 export const SESSION_ART_WIDTHS = [64, 128] as const;
 

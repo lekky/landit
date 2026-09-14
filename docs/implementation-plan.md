@@ -1827,22 +1827,27 @@ screenshot:
 - **`FEEL_FACES` and `WEATHER_ICONS` are still exported, unchanged, path for path.** The art
   replaced them on screen; it did not delete them. A one-colour print, an email or a canvas that
   cannot fetch still needs a drawing, and the handoff's own paths are the drawing to use.
-- **The art does not take the feel's colour.** A stroked face inherited `currentColor`, so the
-  selected cell flipped it to contrast against green or pink. The paint is fixed. **The coloured
-  fill behind it stays** (Rachid, 2026-09-14, in chat, asked directly): the sticker's cream body and
-  white die-cut edge hold against all five feel colours and against the weather row's `#3ac0ff`, so
-  the green-to-pink scale that reads the feel row at a glance survives. `strokeWidth` is still
-  accepted by both components and ignored, so the two callers that thickened the selected face
-  still compile.
+- **The art does not take the feel's colour — it carries its own.** A stroked face inherited
+  `currentColor`, so the selected cell flipped it to contrast against green or pink. The paint is
+  fixed. The faces supplied later on 2026-09-14 are painted **down the feel scale themselves**
+  (teal, green, yellow, orange, red), so the row now reads as a scale before anything is selected,
+  where the first cream set was five identical discs. **The coloured fill behind them stays**
+  (Rachid, 2026-09-14, in chat, asked directly). Every colour-on-colour pair was checked on the
+  real card, like on like included — yellow `fine` on `#ffc23f`, orange `rough` on `#ff5a1f`, red
+  `hurt` on `#ff3d78` — and each holds, because the die-cut **cream ring** around every sticker is
+  what separates it from the fill. That ring is load-bearing: art commissioned later without it
+  would merge into the selected cell. `strokeWidth` is still accepted by both components and
+  ignored, so the two callers that thickened the selected face still compile.
 - **Scope is everywhere a feel or a weather is drawn, not only the log form** (Rachid, 2026-09-14,
   in chat, choosing between the two). **The cost was named before the choice and accepted:** the
   feed card draws a feel at 15px, the sessions table at 14, the spot block at 13, and a die-cut
-  sticker at 13px is a mark rather than a drawing — the grin's tongue and the rain's three drops are
-  gone, and `fine` and `good` are told apart mostly by the curve of a mouth. It costs a rider
-  little because every one of those places names the feel in text beside the icon, so nothing there
-  is readable only as a picture. Shrink the art or commission simplified small variants before
-  reaching for a second size step; do not quietly put the strokes back on the small screens, which
-  would leave one feel drawn two ways in one product.
+  sticker at 13px is a mark rather than a drawing. **The colour pass later that day softened it for
+  the feels** — five distinct hues survive to 13px where five cream discs did not — and left the
+  weather row trading on detail alone. It costs a rider little either way, because every one of
+  those places names the feel or the weather in text beside the icon, so nothing there is readable
+  only as a picture. Shrink the art or commission simplified small variants before reaching for a
+  second size step; do not quietly put the strokes back on the small screens, which would leave one
+  feel drawn two ways in one product.
 - **`FeelSwatch` gives the sticker 85% of its square where the stroke had 70%** (20px → 17px, not
   14px). A stroked circle read fine with room around it; the painted sticker is drawn with its own
   die-cut margin already, so insetting it again spent pixels it has none of to spare at the
