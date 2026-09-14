@@ -97,9 +97,7 @@ export function QuickLog(props: {
               id: f.id,
               label: f.label,
               color: f.color,
-              icon: (
-                <FeelFace feel={f.id} size={32} strokeWidth={values.feel === f.id ? 2.6 : 2.2} />
-              ),
+              icon: <FeelFace feel={f.id} size={32} />,
             }))}
             value={values.feel}
             onChange={(feel) => props.onChange({ feel })}
