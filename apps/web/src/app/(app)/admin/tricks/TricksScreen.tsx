@@ -12,13 +12,14 @@ import {
   type SportId,
   type TrickMistake,
 } from '@landit/core';
-import { Difficulty, Icon, Panel, Pill, Tag } from '@landit/ui-web';
+import { Difficulty, Icon, Panel, Tag } from '@landit/ui-web';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { useToast } from '@/providers/toast';
 import { runAction } from '@/lib/runAction';
 
+import { ShowBar } from '../ShowBar';
 import { StaffEditor, type EditorValue } from '../StaffEditor';
 import {
   approveTrickVideoAction,
@@ -373,11 +374,6 @@ export function TricksScreen({
   return (
     <div className={styles.stack}>
       <div className={styles.toolbar}>
-        {SPORT_IDS.map((id) => (
-          <Pill key={id} on={sport === id} onClick={() => setSport(id)}>
-            {SPORTS[id].label} · {rows.filter((r) => r.sport === id).length}
-          </Pill>
-        ))}
         <div className="search" style={{ flex: 1, minWidth: 200, padding: '9px 12px' }}>
           <Icon name="search" size={17} strokeWidth={2.6} />
           <input
@@ -393,20 +389,36 @@ export function TricksScreen({
       </div>
 
       {/*
-        The tutorial filter sits on its own line rather than in the toolbar
-        above: that row already carries three sport pills, a search box and the
-        add button, and on a phone a fourth group wraps into an unreadable
-        jumble. The counts are of the *current sport*, because that is the list
+        Two bars, each naming what it narrows. They were one toolbar of sport
+        pills plus a second row of tutorial pills, which on a phone wrapped into
+        a jumble no label explained; the search box and the add button stay in
+        the row above because neither is a filter.
+
+        The tutorial counts are of the *current sport*, because that is the list
         being filtered — a count of the whole library next to a per-sport list
         would be a number that matches nothing on screen.
       */}
-      <div className={styles.toolbar} role="group" aria-label="Filter by tutorial">
-        {VIDEO_FILTERS.map(([id, label]) => (
-          <Pill key={id} on={videoFilter === id} onClick={() => setVideoFilter(id)}>
-            {label} · {rows.filter((r) => r.sport === sport && matchesVideoFilter(r, id)).length}
-          </Pill>
-        ))}
-      </div>
+      <ShowBar
+        label="Sport"
+        options={SPORT_IDS.map((id) => ({
+          value: id,
+          label: SPORTS[id].label,
+          count: rows.filter((r) => r.sport === id).length,
+        }))}
+        value={sport}
+        onChange={(value) => setSport(value as SportId)}
+      />
+
+      <ShowBar
+        label="Tutorial"
+        options={VIDEO_FILTERS.map(([id, label]) => ({
+          value: id,
+          label,
+          count: rows.filter((r) => r.sport === sport && matchesVideoFilter(r, id)).length,
+        }))}
+        value={videoFilter}
+        onChange={(value) => setVideoFilter(value as VideoFilter)}
+      />
 
       {adding && (
         <Panel flat className={styles.addPanel}>

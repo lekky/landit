@@ -36,34 +36,302 @@
   align-items: center;
 }
 
-/* ------------------------------------------------------------------ tabs -- */
+/* ------------------------------------------------------ section nav -- */
 
-.tabs {
+/*
+ * The portal's sections: a drawer on a phone, a rail from 900px up.
+ *
+ * It replaced a flat wrapping row of twelve `.pill`s (Rachid, 2026-09-14, in
+ * chat, option A of the mockups). That row sat directly on top of the screen's
+ * filter pills — same component, same wrapping box — so the two read as one
+ * list of seventeen, and on a phone they took six rows before any work showed.
+ *
+ * **Which shape you get is decided here, not in JavaScript.** `AdminNav`
+ * renders one list and one button at every width; below 900px the list is
+ * hidden until `data-open="true"`, above it the list is permanent and the
+ * button is gone. The server-rendered markup is therefore already right at both
+ * widths, which a measured viewport could not manage without a layout shift on
+ * every admin page.
+ */
+
+.nav {
+  min-width: 0;
+}
+
+/* The closed drawer: ink, full width, naming the section you are on. */
+.navToggle {
   display: flex;
-  gap: 7px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: var(--ink);
+  color: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  padding: 9px 13px;
+}
+
+.navToggleText {
+  min-width: 0;
+  flex: 1;
+}
+
+.navToggleLab {
+  display: block;
+  color: var(--ink-soft);
+}
+
+.navToggleName {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--fd);
+  font-size: 20px;
+  text-transform: uppercase;
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+}
+
+/* The bar's own yellow, so the drawer reads as part of the navigation. */
+.navChev {
+  margin-left: auto;
+  flex: none;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--yellow);
+}
+
+.navList {
+  display: none;
+  background: var(--paper);
+  border: var(--bd);
+  /* Joined to the button above it: no top edge, pulled up over its border. */
+  border-top: 0;
+  margin-top: -3px;
+  box-shadow: var(--sh-sm);
+  padding-bottom: 5px;
+}
+
+.navList[data-open='true'] {
+  display: block;
+}
+
+.navGroupLabel {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding: 11px 13px 4px;
+  margin: 0;
+  border-top: 2px solid var(--wash);
+}
+
+.navGroup:first-child .navGroupLabel {
+  border-top: 0;
+}
+
+.navRows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 /*
- * `.pill` is written for a `button` in the design pack, and the token sheet has
- * an `a:hover` that outranks it — the trap that rendered the whole rider nav
- * unstyled and pink (LESSONS §3a). An anchor wearing `.pill` therefore has to
- * restate the two properties a link brings with it.
+ * Every property a link brings with it is restated, because `a` and `a:hover`
+ * in the token sheet are (0,0,1) and (0,1,1) — the second of which outranks a
+ * lone module class and turned the rider nav pink (LESSONS §3a, issue #297).
+ * `.navRow:hover` is (0,2,0) and wins it back; `.navRowOn` needs its own hover
+ * rule for exactly the same reason.
  */
-.tab,
-.tab:hover,
-.tabSoon {
+.navRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 13px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
   text-decoration: none;
 }
 
-.tab:not(:global(.on)) {
+.navRow:hover {
+  background: var(--paper-2);
   color: var(--ink);
+  text-decoration: none;
 }
 
-/* A tab whose screen T17 has not built. A label, not a dead link. */
-.tabSoon {
+.navRowOn,
+.navRowOn:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.navRowLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+/* A tab whose screen nobody has landed. A label, not a dead link. */
+.navRowSoon {
   opacity: 0.45;
   cursor: default;
+}
+
+/*
+ * How much is waiting, on the row where the choice is made.
+ *
+ * The counts used to live only on the filter pills — the row staff touch least
+ * — so "is there anything in Moderation" could only be answered by going to
+ * Moderation. Yellow rather than red: it is a workload, not an alarm.
+ */
+.navBadge {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 10.5px;
+  line-height: 1;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--ink);
+  background: var(--yellow);
+  /* A fixed yellow fill, so the ink on it is the fixed ink. */
+  color: var(--on-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.navRowOn .navBadge {
+  border-color: var(--paper);
+}
+
+/* Empty is still worth printing — it is the difference between "nothing is
+   waiting" and "nobody counted". It just stops shouting. */
+.navBadgeNone {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-3);
+}
+
+.navRowOn .navBadgeNone {
+  color: var(--ink-soft);
+}
+
+@media (min-width: 900px) {
+  .navToggle {
+    display: none;
+  }
+
+  .navList {
+    display: block;
+    border-top: var(--bd);
+    margin-top: 0;
+    box-shadow: var(--sh);
+  }
+}
+
+/* ------------------------------------------------------------ show bar -- */
+
+/*
+ * The section's filters, named.
+ *
+ * The second half of option A. These were `.pill`s in a wrapping row directly
+ * under the section tabs — identical furniture doing the opposite job. Three
+ * things separate them now: the word **Show**, a smaller joined control instead
+ * of free-standing pills, and the fact that the sections are no longer a row of
+ * pills at all.
+ *
+ * **It wraps rather than scrolls.** A filter a phone hides is a filter nobody
+ * uses, which is the fault option C was rejected for. The overlapping -2px
+ * margins collapse the shared edges, so a wrapped second row still reads as one
+ * control rather than as five loose boxes.
+ */
+
+.showBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.showBarLabel {
+  color: var(--ink-3);
+  flex: none;
+}
+
+.seg {
+  display: flex;
+  flex-wrap: wrap;
+  /*
+   * Shares the row with its label and wraps its own buttons inside what is
+   * left, rather than taking a whole line of its own on a phone.
+   *
+   * **The basis has to be 0, not `auto`.** A wrapping flex container decides
+   * what goes on a line from each item's *hypothetical* main size, which for
+   * `flex-basis: auto` is the content's — five nowrap buttons, far wider than a
+   * phone — so the bar wrapped before any shrinking was considered and the
+   * label sat alone on its own line. A zero basis makes it always fit, and the
+   * `1 1` then grows it into whatever the label left.
+   */
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.segBtn {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  margin: 0 -2px -2px 0;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  position: relative;
+  transition: 0.12s;
+}
+
+.segBtn:hover {
+  background: var(--paper-2);
+}
+
+/* Lifted so its own border is the one drawn on all four sides. */
+.segBtn[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+  z-index: 1;
+}
+
+.segCount {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+
+.segBtn[aria-pressed='true'] .segCount {
+  color: var(--yellow);
+}
+
+/* Read by a screen reader, drawn nowhere. `@landit/ui-web` has no such class. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 /* ---------------------------------------------------------------- shared -- */
@@ -72,6 +340,35 @@
   display: flex;
   flex-direction: column;
   gap: 22px;
+  /* The content track of `.body` is `minmax(0, 1fr)`; this is the same floor
+     one level down, so a wide table scrolls inside its own panel rather than
+     stretching the grid column it sits in. */
+  min-width: 0;
+}
+
+/*
+ * The nav and the screen it is navigating.
+ *
+ * Stacked on a phone (drawer, then content), two columns from 900px up where
+ * the drawer has become a permanent rail. `minmax(0, 1fr)` rather than `1fr` on
+ * the content track because several admin screens hold a table wider than the
+ * column: a bare `1fr` is `minmax(auto, 1fr)`, which lets that table set the
+ * track's floor and push the whole grid past the viewport.
+ */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .body {
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
 }
 
 .footnote {

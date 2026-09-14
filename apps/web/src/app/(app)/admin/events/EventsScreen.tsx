@@ -1,7 +1,7 @@
 'use client';
 
 import { SPORTS, SPORT_IDS } from '@landit/core';
-import { Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web';
+import { Icon, Panel, SportChip, Tag } from '@landit/ui-web';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
@@ -9,6 +9,7 @@ import { useToast } from '@/providers/toast';
 import { runAction } from '@/lib/runAction';
 
 import { Pager, useTableNav } from '../Pager';
+import { ShowBar } from '../ShowBar';
 import { StaffEditor, type EditorValue } from '../StaffEditor';
 import {
   createEventAction,
@@ -199,11 +200,6 @@ export function EventsScreen({
             aria-label="Search events by name, venue or town"
           />
         </div>
-        {SHOW_OPTIONS.map(([value, label]) => (
-          <Pill key={value} on={show === value} onClick={() => onShowFilter(value)}>
-            {label}
-          </Pill>
-        ))}
         <button
           type="button"
           className={`btn sm ${styles.toolbarEnd}`}
@@ -212,6 +208,12 @@ export function EventsScreen({
           + Add event
         </button>
       </div>
+
+      <ShowBar
+        options={SHOW_OPTIONS.map(([value, label]) => ({ value, label }))}
+        value={show}
+        onChange={onShowFilter}
+      />
 
       {/* On a phone this table scrolls sideways with the event column pinned,
           rather than folding each row into unlabelled lines (issue #371;

@@ -1,7 +1,7 @@
 'use client';
 
 import { SPORTS, SPORT_IDS } from '@landit/core';
-import { Empty, Panel, Pill, Tag } from '@landit/ui-web';
+import { Empty, Panel, Tag } from '@landit/ui-web';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
@@ -9,6 +9,7 @@ import { useToast } from '@/providers/toast';
 import { runAction } from '@/lib/runAction';
 
 import { Pager, useTableNav } from '../Pager';
+import { ShowBar } from '../ShowBar';
 import { postNoticeAction, setNoticeLiveAction } from '../content-actions';
 import type { AdminNoticeRow, AdminPlanOption } from '../view';
 
@@ -231,17 +232,15 @@ export function NoticesScreen({
             not this page's — counting `rows` would count one page and report
             twenty banners as the whole history.
           */}
-          <div className={styles.toolbar}>
-            <Pill on={show === 'all'} onClick={() => onShowFilter('all')}>
-              Everything · {counts.live + counts.pulled}
-            </Pill>
-            <Pill on={show === 'live'} onClick={() => onShowFilter('live')}>
-              Live now · {counts.live}
-            </Pill>
-            <Pill on={show === 'pulled'} onClick={() => onShowFilter('pulled')}>
-              Pulled · {counts.pulled}
-            </Pill>
-          </div>
+          <ShowBar
+            options={[
+              { value: 'all', label: 'Everything', count: counts.live + counts.pulled },
+              { value: 'live', label: 'Live now', count: counts.live },
+              { value: 'pulled', label: 'Pulled', count: counts.pulled },
+            ]}
+            value={show}
+            onChange={onShowFilter}
+          />
 
           {rows.length ? (
             rows.map(card)

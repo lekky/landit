@@ -1,6 +1,6 @@
 'use client';
 
-import { Empty, Panel, Pill, Tag } from '@landit/ui-web';
+import { Empty, Panel, Tag } from '@landit/ui-web';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
@@ -8,6 +8,7 @@ import { useToast } from '@/providers/toast';
 import { runAction } from '@/lib/runAction';
 
 import { Pager, useTableNav } from '../Pager';
+import { ShowBar } from '../ShowBar';
 import { setReportTriageAction } from '../content-actions';
 import type { AdminReportRow, AdminReportStatus } from '../view';
 
@@ -86,16 +87,22 @@ export function ModerationScreen({
 
   return (
     <div className={styles.stack}>
-      <div className={styles.toolbar}>
-        <Pill on={status === 'all'} onClick={() => onFilter('all')}>
-          Everything
-        </Pill>
-        {STATUSES.map((s) => (
-          <Pill key={s} on={status === s} onClick={() => onFilter(s)}>
-            {STATUS_LOOK[s].label} · {counts[s] ?? 0}
-          </Pill>
-        ))}
-      </div>
+      <ShowBar
+        options={[
+          {
+            value: 'all',
+            label: 'Everything',
+            count: STATUSES.reduce((n, s) => n + (counts[s] ?? 0), 0),
+          },
+          ...STATUSES.map((s) => ({
+            value: s,
+            label: STATUS_LOOK[s].label,
+            count: counts[s] ?? 0,
+          })),
+        ]}
+        value={status}
+        onChange={onFilter}
+      />
 
       {rows.length ? (
         <div className={styles.column}>

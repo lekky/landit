@@ -1,3 +1,4 @@
+import { reportCounts, spotCounts, suggestionCounts } from '@landit/db';
 import { Panel, Tag } from '@landit/ui-web';
 import Link from 'next/link';
 import type { CSSProperties, ReactNode } from 'react';
@@ -5,7 +6,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { ROUTES } from '@/lib/routes';
 import { requireStaff } from '@/lib/staff';
 
-import { AdminTabs } from './AdminTabs';
+import { AdminNav, type AdminQueueCounts } from './AdminNav';
 
 import { SignOutForm } from '@/components/SignOutForm';
 
@@ -37,8 +38,38 @@ import styles from './admin.module.css';
  * withhold, handed over by the browser chrome. Found by signing in as a rider
  * and looking; nothing about the rendered page was wrong.
  */
+/**
+ * How much is waiting in each of the three queues, for the nav badges.
+ *
+ * Three requests, each `perPage: 1` and read for its `totalItems` — the same
+ * shape the filter counts have always used, and they run in parallel, so the
+ * layout waits on one round trip rather than three. Only the *actionable*
+ * status of each queue is counted: open reports, spots still waiting, ideas
+ * nobody has read. A badge counting dismissed reports would be a number that
+ * never goes down, which is a number staff stop seeing.
+ *
+ * **A failure here must not take the portal down.** A count is a convenience on
+ * a nav; every screen behind it works without one. So a rejected read drops
+ * that badge rather than throwing — `AdminQueueCounts` is partial precisely so
+ * "we could not count" has somewhere to land that is not a wrong zero.
+ */
+async function queueCounts(pb: Awaited<ReturnType<typeof requireStaff>>['superuser']) {
+  const [reports, spots, suggestions] = await Promise.allSettled([
+    reportCounts(pb, ['open']),
+    spotCounts(pb, ['pending']),
+    suggestionCounts(pb, ['new']),
+  ]);
+
+  const counts: Partial<Record<keyof AdminQueueCounts, number>> = {};
+  if (reports.status === 'fulfilled') counts.reports = reports.value.open ?? 0;
+  if (spots.status === 'fulfilled') counts.spots = spots.value.pending ?? 0;
+  if (suggestions.status === 'fulfilled') counts.suggestions = suggestions.value.new ?? 0;
+  return counts;
+}
+
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const staff = await requireStaff();
+  const counts = await queueCounts(staff.superuser);
 
   return (
     <div className={styles.portal}>
@@ -82,9 +113,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         </div>
       </Panel>
 
-      <AdminTabs />
-
-      {children}
+      <div className={styles.body}>
+        <AdminNav counts={counts} />
+        {children}
+      </div>
 
       <p className={styles.footnote}>
         Every change made here is written to the audit log against your account, and takes effect

@@ -30,7 +30,7 @@ consent gates under-threshold riders; there is deliberately no stranger-contact 
 | Social | `/crew`, `/join/[code]`, `/riders/[handle]` | Up to 5 owned crews, server-minted invite codes (25 uses / 14 days), crew board + fixed-sentence activity feed, public profiles. |
 | Money | `/plans`, Stripe Checkout | Rookie free / Shredder £3.99 / Legend £6.99 monthly (yearly ≈ 2 months free). Under-16s never see a payment form — the guardian gets a checkout link by email. |
 | Account | `/account`, `/account/close`, `/coach`, `/report`, `/suggest` | Profile editor (sports, avatar, level, goal, stance) that saves as a rider changes it, with no Save button — an answer that is not yet complete is held rather than written, so the stored one survives; privacy is the deliberate exception and keeps its button. Guardian panel and data export; account closure on a page of its own, linked from the data panel rather than sitting on the account screen; read-only coach view (free, unlisted); report/appeal form that works signed out; suggestion box (`/suggest`, riders only) for tricks, features, events and bugs — a separate collection from reports, so ideas cannot spend the safeguarding rate limit. |
-| Staff | `/admin` + 10 tabs | See below. Hidden from non-staff with a 404, not a 403, and absent from their account menu. |
+| Staff | `/admin` + 12 sections in three groups | See below. Hidden from non-staff with a 404, not a 403, and absent from their account menu. |
 
 ## Data model (PocketBase)
 
@@ -146,6 +146,17 @@ entitlement flags read-only); moderation queue for reports/appeals; an Ideas que
 twice (app layer + hook layer). Under 900px wide the riders, tricks, stickers and spots tables
 show each row as a card with its column names printed in it, and events and challenges scroll
 sideways with the name column pinned; at 900px and above every table is unchanged.
+
+**The twelve sections are grouped into three, named, and shown as a drawer or a rail**
+(2026-09-14, replacing one wrapping row of pills): *Riders & money* (Overview, Riders, Plans),
+*Waiting on you* (Moderation, Spots, Ideas, Video checks) and *What the app shows* (Trick library,
+Challenges, Events, Announcements, Stickers). Below 900px the list collapses behind one button
+naming the section you are on; at 900px and above it is a permanent left rail beside the screen.
+The three queues carry how much is waiting — open reports, spots still waiting, unread ideas —
+read in the layout, with a failed count dropping its badge rather than showing a wrong zero; video
+checks is a job history rather than a queue and carries none. Each screen's filters sit under a
+label of their own (*Show*, or what they narrow where a screen has two sets), as a smaller joined
+control that cannot be mistaken for the navigation above it.
 
 Six tabs page on the server with their filters (and, where they have one, search) in the URL —
 riders (40), spots (40), events (25), moderation (25), challenges (25), notices (20). Per-row

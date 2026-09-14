@@ -494,8 +494,9 @@ challenge, events, spots + map.
 
 **Phase 5 — Money.** Plans page, Stripe, entitlement resolution.
 
-**Phase 6 — Staff.** Admin portal (ten tabs — the prototype's nine plus Moderation, which it has no
-counterpart for; see T17) and the audit log.
+**Phase 6 — Staff.** Admin portal (twelve sections in three named groups — the prototype's nine
+plus Moderation, Ideas and Video checks, none of which it has a counterpart for; see T17) and the
+audit log.
 
 **Phase 7 — Reach.** PWA and offline cache, then the Expo app on top of `core` and `db`.
 
@@ -3250,6 +3251,42 @@ the headings used to carry ride on the filter pills instead — that was the par
 a queue whose length you can only learn by clicking into it is a queue people stop working. Row
 actions come off `row.status` rather than off which list a row was in, so the mixed view offers each
 spot exactly what its own status allows.
+
+**Added 2026-09-14 (`claude/admin-menu-redesign-09rd0g`), and it replaces the portal's tab row.**
+The prototype's `A_TABS` — one wrapping row of pills across the top — is gone, and with it the
+second row of filter pills that sat directly beneath it. Rachid's call in chat, from four mocked
+alternatives; this is the one he picked ("option A"), with the group order he asked for.
+
+- **The twelve sections are grouped into three, and the groups are named**: *Riders & money*
+  (Overview, Riders, Plans), *Waiting on you* (Moderation, Spots, Ideas, Video checks), and *What
+  the app shows* (Trick library, Challenges, Events, Announcements, Stickers). Riders & money
+  leads because it holds Overview, which is `/admin` itself, so the group order and the landing
+  page agree. `apps/web/src/lib/adminNav.test.ts` asserts the twelve are covered exactly once and
+  that every admin route in `ROUTES` has a tab — a section that slips out of a group during a
+  later edit is a screen staff can no longer reach, and it would look like nothing worse than a
+  slightly shorter list.
+- **Below 900px it is a drawer, above it a rail**, and which one you get is decided in CSS from a
+  single rendered list rather than by measuring the viewport. The server-rendered markup is
+  therefore already correct at both widths; a rail that appeared a frame after hydration would be
+  a layout shift on every admin page. The drawer is inline rather than an overlay — it pushes the
+  content down — so there is no focus trap, no scroll lock and no click-outside handler to fail.
+- **The three queues carry how much is waiting** (open reports, spots still waiting, unread
+  ideas), read once in the layout as three parallel `perPage: 1` requests and `Promise.allSettled`
+  so a failed count drops its badge rather than taking the portal down. **Video checks carries no
+  badge**: it is a job's history, not a queue, and a badge that never means "do something" teaches
+  staff to ignore the ones that do. This is three round trips added to every admin page load, and
+  it is the cost the owner was asked about before it was built.
+- **Filters became a labelled `ShowBar`**, a smaller joined control introduced by the word
+  *Show* — or by what it narrows, where a screen has two (Trick library and Challenges each get
+  *Sport* and one other). This is the half of the redesign that answers the actual complaint: the
+  old filter row was the same `.pill` component as the nav, stacked in the same wrapping box, so
+  the two read as one list of seventeen. It stays **above** the panel rather than inside its
+  header, which is where the mockup drew it, because four screens keep a search box and an
+  `+ Add` button in the same region and neither is a filter; one shape on all seven screens was
+  worth more than the extra separation on three of them.
+- **What this does not change**: every section is still reachable, no screen moved, no filter was
+  removed, and no count changed meaning. The counts that were already on the filter pills are
+  still there, now in the `ShowBar`.
 
 **The scaling problem was never the tables, and this is what issue #340 was about.** Events,
 Challenges and Notices each read a whole join collection — `event_attendance`, `challenge_log`,
