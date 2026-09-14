@@ -90,9 +90,8 @@ test('the bottom bar is five sections, in the order a phone wants them', async (
    * the top bar — which is what this used to assert, and what left Challenge,
    * Events, Spots and Plans with no navigation entry at all below 861px.
    *
-   * The order is a phone's: What's on sits in the middle cell, the easiest
-   * reach one-handed, because it is the reason to open the app while standing
-   * outside a skatepark.
+   * The order is a phone's: Progress sits in the middle cell, the easiest
+   * reach one-handed (Rachid, 2026-09-14, in chat), with What's on beside Crew.
    */
   await page.setViewportSize({ width: 800, height: 800 });
   await page.goto(SHELL);
@@ -107,12 +106,11 @@ test('the bottom bar is five sections, in the order a phone wants them', async (
    */
   const items = page.getByRole('navigation', { name: 'Main, compact', exact: true }).locator('> a');
   await expect(items).toHaveCount(5);
-  await expect(items).toHaveText([/Home/, /Tricks/, /What’s on/, /Progress/, /Crew/]);
+  await expect(items).toHaveText([/Home/, /Tricks/, /Progress/, /What’s on/, /Crew/]);
 
   for (const [name, href] of [
     ['Home', '/home'],
     ['Tricks', '/library'],
-    ['What’s on', '/spots'],
     /*
      * `/progress`, still — **on this page**. The Progress cell lands on
      * Sessions for a rider the preview covers (2026-09-13), but that is decided
@@ -124,6 +122,7 @@ test('the bottom bar is five sections, in the order a phone wants them', async (
      * shapes; `e2e/progress.spec.ts` walks the real one.
      */
     ['Progress', '/progress'],
+    ['What’s on', '/spots'],
     ['Crew', '/crew'],
   ] as const) {
     await expect(

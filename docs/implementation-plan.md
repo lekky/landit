@@ -1794,6 +1794,21 @@ in `pnpm build`, `pnpm test` or `pnpm lint` can see the media query go missing.
 No new analytics. The footer has never been instrumented and this adds no destination; counting
 disclosure opens against an unmeasured baseline would answer nothing.
 
+**A fourteenth divergence, 2026-09-14 (Rachid, in chat: "challenges page should be under the progress
+menu on mobile and progress option should be option number 3 in the nav bar"): the bottom bar reads
+Home, Tricks, Progress, What's on, Crew, and Challenge is Progress's.** It amends the twelfth
+divergence's bar in two ways, phone only — the top bar above 860px is unchanged.
+
+- **Progress takes the middle cell** from What's on, which moves one right. The middle cell is the
+  easiest one-handed reach, and Progress is where Sessions now lands (T41).
+- **Challenge is the last tab in the Progress drawer**: Sessions, Progress, Stickers, Challenge for a
+  rider the sessions preview covers; Progress, Stickers, Challenge for everyone else. It used to be
+  Home's, reached only through the dashboard's card, so a rider who did not scroll to it had no
+  way in on a phone. The card stays; the bar now lights Progress on `/challenge`, not Home.
+
+No new analytics: `nav_section_opened` already counts the Progress drawer, and `nav_clicked` from
+`section-drawer` carries `to: challenge`.
+
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
 to test — that is where the three-sport switch is proved against a 375px phone before `SPORT_IDS`

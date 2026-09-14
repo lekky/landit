@@ -62,11 +62,7 @@ describe('the phone carries every destination', () => {
      * Progress drawer, which no rider can reach from `/spots`.
      */
     for (const item of MOBILE_NAV) {
-      const honoured = new Set<string>([
-        ...(item.tabs ?? []).map((tab) => tab.href),
-        // Home's is the dashboard's challenge card, not a drawer. `e2e` clicks it.
-        ...(item.id === 'home' ? ['/challenge'] : []),
-      ]);
+      const honoured = new Set<string>((item.tabs ?? []).map((tab) => tab.href));
 
       for (const href of item.reaches ?? []) {
         expect(honoured.has(href), `${item.id} claims ${href} with nothing to click`).toBe(true);
@@ -77,7 +73,17 @@ describe('the phone carries every destination', () => {
   it('puts the two-screen sections behind a drawer that includes their own landing screen', () => {
     // A rider on `/events` needs a way back to `/spots`, not only forward.
     expect(WHATS_ON_TABS.map((t) => t.href)).toEqual(['/spots', '/events']);
-    expect(PROGRESS_TABS.map((t) => t.href)).toEqual(['/progress', '/stickers']);
+    expect(PROGRESS_TABS.map((t) => t.href)).toEqual(['/progress', '/stickers', '/challenge']);
+  });
+
+  it('puts Progress in the middle cell (Rachid, 2026-09-14)', () => {
+    expect(MOBILE_NAV.map((item) => item.id)).toEqual([
+      'home',
+      'library',
+      'progress',
+      'whats-on',
+      'crew',
+    ]);
   });
 
   it('gives a drawer to exactly the sections that fold a second screen', () => {
@@ -87,11 +93,11 @@ describe('the phone carries every destination', () => {
      * whole change exists to end. And a section with tabs but nothing folded
      * would put a caret on a cell that has nothing behind it.
      */
-    const folded = MOBILE_NAV.filter((item) => item.id !== 'home' && item.reaches?.length);
-    expect(folded.map((item) => item.id)).toEqual(['whats-on', 'progress']);
+    const folded = MOBILE_NAV.filter((item) => item.reaches?.length);
+    expect(folded.map((item) => item.id)).toEqual(['progress', 'whats-on']);
 
     for (const item of MOBILE_NAV) {
-      const foldsSomething = item.id !== 'home' && Boolean(item.reaches?.length);
+      const foldsSomething = Boolean(item.reaches?.length);
       expect(Boolean(item.tabs), `${item.id}`).toBe(foldsSomething);
     }
   });
@@ -121,6 +127,7 @@ describe('the Progress section with sessions on', () => {
       '/progress/sessions',
       '/progress',
       '/stickers',
+      '/challenge',
     ]);
   });
 
@@ -144,8 +151,8 @@ describe('the Progress section with sessions on', () => {
     for (const item of topNavFor(true)) expect(reachable.has(item.href), item.id).toBe(true);
   });
 
-  it('lights the cell on all three of its screens', () => {
-    for (const path of ['/progress/sessions', '/progress', '/stickers']) {
+  it('lights the cell on all four of its screens', () => {
+    for (const path of ['/progress/sessions', '/progress', '/stickers', '/challenge']) {
       expect(activeSection(path, true)?.id, path).toBe('progress');
     }
   });
@@ -163,7 +170,7 @@ describe('activeSection', () => {
     expect(activeSection('/events')?.id).toBe('whats-on');
     expect(activeSection('/spots')?.id).toBe('whats-on');
     expect(activeSection('/stickers')?.id).toBe('progress');
-    expect(activeSection('/challenge')?.id).toBe('home');
+    expect(activeSection('/challenge')?.id).toBe('progress');
   });
 
   it('holds the section across a sub-route, so a spot page does not close the drawer', () => {
@@ -204,7 +211,8 @@ describe('isNavActive', () => {
   it('lights the section a folded screen belongs to', () => {
     expect(isNavActive(section('whats-on'), '/events')).toBe(true);
     expect(isNavActive(section('progress'), '/stickers')).toBe(true);
-    expect(isNavActive(section('home'), '/challenge')).toBe(true);
+    expect(isNavActive(section('progress'), '/challenge')).toBe(true);
+    expect(isNavActive(section('home'), '/challenge')).toBe(false);
   });
 
   it('lights Crew on a rider profile and an invite, which sit under neither', () => {
