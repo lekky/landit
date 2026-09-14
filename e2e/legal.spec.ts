@@ -276,15 +276,16 @@ test('the footer has no dead labels, and Contact lands on the addresses', async 
 
   await expect(footer).not.toContainText('Staff');
 
-  // Exact hrefs, not a `/landthetrick/` pattern: the Instagram link pointed at
-  // `instagram.com/landthetrick` until 2026-09-11, which is not the account —
-  // the handle there is `@landthetrickapp` — and a loose pattern matched it.
+  // Exact hrefs, not a `/landthetrick/` pattern: the Instagram handle has
+  // changed twice (`@landthetrickapp` from 2026-09-11, renamed to
+  // `@landthetrick` on 2026-09-14, owner in chat), and a loose pattern would
+  // have passed either one. The old handle is released and could be anyone's.
   // Facebook's is the numeric page id rather than a vanity username, because the
   // page has not claimed one — see `content/socials.ts`. Asserted exactly like
   // the other two: if a username is claimed later, this line changes with it,
   // and until then a pattern would have hidden a share-link URL slipping in.
   const socials = {
-    Instagram: 'https://instagram.com/landthetrickapp',
+    Instagram: 'https://instagram.com/landthetrick',
     TikTok: 'https://tiktok.com/@landthetrick',
     Facebook: 'https://facebook.com/1324987644027132',
   };
