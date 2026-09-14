@@ -1809,6 +1809,58 @@ divergence's bar in two ways, phone only — the top bar above 860px is unchange
 No new analytics: `nav_section_opened` already counts the Progress drawer, and `nav_clicked` from
 `section-drawer` carries `to: challenge`.
 
+**A fifteenth divergence, 2026-09-14 (Rachid, in chat, supplying the art: "Use these icons in the
+log session"): the five feel faces and the five weather glyphs are painted sticker art, not
+strokes.** They were the last drawings in the product still on the handoff's 24px stroked grid while
+everything a rider picks around them — their sport, their award badges — was die-cut illustration.
+"How it felt" is also the only question the log form asks that is about the rider rather than about
+their data, and a hand-drawn face is worth pressing where a 2.2px circle is a form control. The
+weather row comes with it because the two sit on one card and a half-painted card reads as a bug.
+
+The mechanics copy the fifth divergence exactly: ten PNGs in
+`packages/ui-web/assets/session-icons/`, rendered through `SessionArt` in `src/session-art.tsx`,
+copied into `public/session-icons/` by `apps/web/scripts/sync-session-icons.mjs` at dev and build
+time. `FeelFace` and `WeatherIcon` keep their props and their names, so no screen changed: the swap
+is inside the two components. Four things follow that a later session should not "fix" back to a
+screenshot:
+
+- **`FEEL_FACES` and `WEATHER_ICONS` are still exported, unchanged, path for path.** The art
+  replaced them on screen; it did not delete them. A one-colour print, an email or a canvas that
+  cannot fetch still needs a drawing, and the handoff's own paths are the drawing to use.
+- **The art does not take the feel's colour.** A stroked face inherited `currentColor`, so the
+  selected cell flipped it to contrast against green or pink. The paint is fixed. **The coloured
+  fill behind it stays** (Rachid, 2026-09-14, in chat, asked directly): the sticker's cream body and
+  white die-cut edge hold against all five feel colours and against the weather row's `#3ac0ff`, so
+  the green-to-pink scale that reads the feel row at a glance survives. `strokeWidth` is still
+  accepted by both components and ignored, so the two callers that thickened the selected face
+  still compile.
+- **Scope is everywhere a feel or a weather is drawn, not only the log form** (Rachid, 2026-09-14,
+  in chat, choosing between the two). **The cost was named before the choice and accepted:** the
+  feed card draws a feel at 15px, the sessions table at 14, the spot block at 13, and a die-cut
+  sticker at 13px is a mark rather than a drawing — the grin's tongue and the rain's three drops are
+  gone, and `fine` and `good` are told apart mostly by the curve of a mouth. It costs a rider
+  little because every one of those places names the feel in text beside the icon, so nothing there
+  is readable only as a picture. Shrink the art or commission simplified small variants before
+  reaching for a second size step; do not quietly put the strokes back on the small screens, which
+  would leave one feel drawn two ways in one product.
+- **`FeelSwatch` gives the sticker 85% of its square where the stroke had 70%** (20px → 17px, not
+  14px). A stroked circle read fine with room around it; the painted sticker is drawn with its own
+  die-cut margin already, so insetting it again spent pixels it has none of to spare at the
+  smallest size it is drawn anywhere.
+
+The masters are 512×512 and ~65 KB, in line with the award badges — the supplied art was 1254×1254
+and ~1.1 MB a piece, which would have put 11 MB in the repo and on a box that has no disk to spare
+(issue #452). `sync-session-icons.mjs` also writes a 64px and a 128px WebP beside each master and
+`sessionArtSrcSet` offers them, because the log form paints all ten at once. Two tests hold the
+pieces together: `packages/ui-web/src/session-art.test.ts` on the ids and the `srcset`, and
+`apps/web/src/lib/session-art.test.ts` on core's real vocabularies, the files on disk, their size,
+and the widths the script and the component each name.
+
+No new analytics. This is art replacing art on a screen already counted end to end — `session_log_opened`
+on open, `session_logged` on save — and a rider's feel and weather are session *content*, which
+§6.4's rule keeps out of session events entirely.
+
+
 T5 also adds `/design/shell`, a noindexed reference page beside T3's `/design`. The shell ships a
 wave before any screen does, so without it the deliverable has no surface to check and no surface
 to test — that is where the three-sport switch is proved against a 375px phone before `SPORT_IDS`
@@ -4671,7 +4723,9 @@ show only that rider's sessions.
 `HardCard { shadow?: 2|3|4|5|7|8, lift?, background?, as? }`,
 `MetaChip { icon?, background? }`, `TrickPill { name, move?, href? }`,
 `FeelFace { feel, size?, title? }`, `FeelSwatch { feel, color, size? }` (+ `FEEL_FACES`),
-`WeatherIcon { weather, size?, title? }` (+ `WEATHER_ICONS`),
+`WeatherIcon { weather, size?, title? }` (+ `WEATHER_ICONS`) — **both draw painted sticker art
+since 2026-09-14** (`src/session-art.tsx`, the fifteenth divergence); the two path maps stay
+exported for anywhere the art cannot go,
 `SegmentedPicker { options: {id,label,icon?,color?}[], value, onChange, label, selectedColor? }`,
 `StagePill { label, color }`, `StageMove { from | null, to }`,
 `VisibilityLabel { visibility, label }` (+ `VISIBILITY_ICONS`),

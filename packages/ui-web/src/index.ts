@@ -35,6 +35,19 @@ export {
 } from './sport-art';
 
 export {
+  FEEL_ART,
+  SESSION_ART_BASE_PATH,
+  SESSION_ART_FILES,
+  SESSION_ART_SIZES,
+  SESSION_ART_WIDTHS,
+  SessionArt,
+  WEATHER_ART,
+  sessionArtSrc,
+  sessionArtSrcSet,
+  type SessionArtProps,
+} from './session-art';
+
+export {
   STICKER_ART_BASE_PATH,
   STICKER_ART_SIZES,
   STICKER_ART_WIDTHS,

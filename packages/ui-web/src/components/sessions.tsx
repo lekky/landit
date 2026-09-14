@@ -4,6 +4,7 @@ import { useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from '
 
 import { foregroundFor } from '../contrast';
 import { cx } from '../cx';
+import { FEEL_ART, SessionArt, WEATHER_ART } from '../session-art';
 
 /**
  * The small primitives every session screen uses (T36), so T37–T40 consume one
@@ -17,9 +18,12 @@ import { cx } from '../cx';
  * radius 0, hard offset shadows, the repo's hover lift. Classes live in
  * `../styles/sessions.css`.
  *
- * **The feel faces and the weather icons are original to that design**, and the
- * handoff says to keep its paths or commission replacements — never to swap in
- * unrelated glyphs. They are transcribed verbatim below, path for path.
+ * **The feel faces and the weather icons were original to that design**, and
+ * the handoff says to keep its paths or commission replacements — never to swap
+ * in unrelated glyphs. They are still transcribed verbatim below, path for
+ * path, but `FeelFace` and `WeatherIcon` now draw **commissioned sticker art**
+ * instead (owner, 2026-09-14, in chat; see `../session-art.tsx` and the plan's
+ * sixth divergence). The paths stay exported for anywhere the art cannot go.
  *
  * As everywhere in this package, nothing here imports `@landit/core`. Screens
  * pass labels and colours from core's tables (`SESSION_FEELS`,
@@ -152,8 +156,9 @@ export const FEEL_FACE_NAMES = Object.keys(FEEL_FACES) as FeelFaceName[];
 
 export type FeelFaceProps = {
   feel: FeelFaceName;
-  /** px. 24 in the pickers, 14 inside a 20px swatch. */
+  /** px. 30–32 in the pickers, 17 inside a 20px swatch, 13–15 in the lists. */
   size?: number;
+  /** Ignored by the art, kept so a caller that thickened the stroke still compiles. */
   strokeWidth?: number;
   /** Describe it to a screen reader. Leave off where the feel is named beside it. */
   title?: string;
@@ -161,36 +166,20 @@ export type FeelFaceProps = {
   style?: CSSProperties;
 };
 
-/** One feel face, stroked in `currentColor`. */
-export function FeelFace({
-  feel,
-  size = 24,
-  strokeWidth = 2.2,
-  title,
-  className,
-  style,
-}: FeelFaceProps) {
-  const face = FEEL_FACES[feel];
+/**
+ * One feel face: the painted sticker from `../session-art` (owner, 2026-09-14,
+ * in chat). `FEEL_FACES` above is the stroked drawing it replaced, still
+ * exported for anywhere the art cannot go.
+ */
+export function FeelFace({ feel, size = 24, title, className, style }: FeelFaceProps) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      width={size}
-      height={size}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      role={title ? 'img' : undefined}
-      aria-hidden={title ? undefined : true}
+    <SessionArt
+      file={FEEL_ART[feel]}
+      size={size}
+      title={title}
       className={className}
-      style={{ flex: 'none', ...style }}
-    >
-      {title ? <title>{title}</title> : null}
-      <circle cx="12" cy="12" r="9.4" />
-      <path d={face.eyes} />
-      <path d={face.mouth} />
-    </svg>
+      style={style}
+    />
   );
 }
 
@@ -198,13 +187,20 @@ export type FeelSwatchProps = {
   feel: FeelFaceName;
   /** The feel's colour — core's `sessionFeelColor(feel)`. */
   color: string;
-  /** Box size in px; the face inside is 70% of it (20 → 14, as the design draws it). */
+  /** Box size in px; the sticker inside is 85% of it (20 → 17). */
   size?: number;
   title?: string;
   className?: string;
 };
 
-/** The feel swatch: a `2px` ink square in the feel's colour with its face inside. */
+/**
+ * The feel swatch: a `2px` ink square in the feel's colour with its face inside.
+ *
+ * The face takes 85% of the square where the stroked drawing took 70%. A
+ * stroked circle read fine with room around it; the painted sticker is already
+ * drawn with its own die-cut margin, so insetting it again spent pixels the art
+ * has none of to spare at this size (20px is the smallest it is drawn anywhere).
+ */
 export function FeelSwatch({ feel, color, size = 20, title, className }: FeelSwatchProps) {
   return (
     <span
@@ -216,7 +212,7 @@ export function FeelSwatch({ feel, color, size = 20, title, className }: FeelSwa
         color: foregroundFor(color) ?? 'var(--on-light)',
       }}
     >
-      <FeelFace feel={feel} size={Math.round(size * 0.7)} title={title} />
+      <FeelFace feel={feel} size={Math.round(size * 0.85)} title={title} />
     </span>
   );
 }
@@ -239,39 +235,27 @@ export const WEATHER_ICON_NAMES = Object.keys(WEATHER_ICONS) as WeatherIconName[
 export type WeatherIconProps = {
   weather: WeatherIconName;
   size?: number;
+  /** Ignored by the art, as on `FeelFace`. */
   strokeWidth?: number;
   title?: string;
   className?: string;
   style?: CSSProperties;
 };
 
-/** One weather icon, stroked in `currentColor`. */
-export function WeatherIcon({
-  weather,
-  size = 20,
-  strokeWidth = 2.2,
-  title,
-  className,
-  style,
-}: WeatherIconProps) {
+/**
+ * One weather icon: the painted sticker from `../session-art`. `WEATHER_ICONS`
+ * above is the stroked drawing it replaced, kept on the same terms as
+ * `FEEL_FACES`.
+ */
+export function WeatherIcon({ weather, size = 20, title, className, style }: WeatherIconProps) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      width={size}
-      height={size}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      role={title ? 'img' : undefined}
-      aria-hidden={title ? undefined : true}
+    <SessionArt
+      file={WEATHER_ART[weather]}
+      size={size}
+      title={title}
       className={className}
-      style={{ flex: 'none', ...style }}
-    >
-      {title ? <title>{title}</title> : null}
-      <path d={WEATHER_ICONS[weather]} />
-    </svg>
+      style={style}
+    />
   );
 }
 

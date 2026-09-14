@@ -44,6 +44,7 @@ Thumbs.db
 # The PNGs live once, in the design system package.
 apps/web/public/avatars/
 apps/web/public/maplibre/
+apps/web/public/session-icons/
 apps/web/public/sports/
 apps/web/public/stickers/
 

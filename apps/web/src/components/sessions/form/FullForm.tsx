@@ -783,7 +783,11 @@ export function FullForm(props: {
               options={SESSION_WEATHER.map((w) => ({
                 id: w.id,
                 label: w.label,
-                icon: <WeatherIcon weather={w.id} size={21} />,
+                // 28, not the stroked glyph's 21: the painted art carries its
+                // own die-cut margin, so at 21 the weather row read a full
+                // weight lighter than the 30px feel row above it and the
+                // snowflake lost its arms (2026-09-14, measured on this card).
+                icon: <WeatherIcon weather={w.id} size={28} />,
               }))}
               value={values.weather}
               selectedColor={SESSION_WEATHER_SELECTED_COLOR}
