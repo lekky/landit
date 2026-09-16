@@ -66,6 +66,7 @@ import { FactsStrip } from './FactsStrip';
 import { GuardianLine } from './GuardianLine';
 import { HistoryPanel } from './HistoryPanel';
 import { LockedTrick } from './LockedTrick';
+import { SectionHead } from './SectionHead';
 import { LogPanel, type NoteView } from './LogPanel';
 import { MistakesList } from './MistakesList';
 import { PractiseLine } from './PractiseLine';
@@ -756,22 +757,6 @@ export default async function TrickPage({ params }: Params) {
 
         <SimilarTricks trick={trick} tricks={similar} byId={byId} plan={plan} />
       </Panel>
-    </div>
-  );
-}
-
-/**
- * A reading-column heading as the 2026-09-07 pack draws it: a diamond in the
- * category colour, the title in Anton, and an ink rule taking the rest of the
- * row. T26's eleven-pixel "◆ The lowdown" label was fine for a column with
- * four sections; this page now has seven, and the rule is what separates them.
- */
-function SectionHead({ color, children }: { color: string; children: string }) {
-  return (
-    <div className={styles.sectionHead}>
-      <span className={styles.sectionDiamond} style={{ background: color }} aria-hidden="true" />
-      <h2 className={`d ${styles.sectionTitle}`}>{children}</h2>
-      <span className={styles.sectionRule} aria-hidden="true" />
     </div>
   );
 }

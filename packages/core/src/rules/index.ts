@@ -499,6 +499,7 @@ export {
   isTrickLanded,
   isTrickLocked,
   isTrickUnlocked,
+  lowdownTeaser,
   missingPrereqs,
   openTricks,
   planUnlocksPaidTricks,

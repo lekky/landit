@@ -5,6 +5,7 @@ import {
   TRICKS,
   crossSportEquivalents,
   isTrickLocked,
+  lowdownTeaser,
   tricksFor,
 } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
@@ -153,10 +154,21 @@ test('a rookie opening a paid trick gets the lock, not the trick', async ({ page
   // not a line (issue #286).
   await expect(page.getByText('This one is on Shredder')).toBeVisible();
 
-  // The trick is what is behind the paywall, so none of it is on the page: not
-  // the lowdown, not the tips, and not a stage picker to write with.
+  /*
+   * The lowdown **opens** rather than being withheld (2026-09-16, in chat):
+   * the top of it is on the page, and the rest is not. Both halves are
+   * asserted, because each one on its own is a different bug — the first
+   * missing is the page saying nothing about the trick it is named after, and
+   * the second missing is the paywall handing over the copy it is there to
+   * sell.
+   */
+  const teaser = lowdownTeaser(lockedTrick.about);
   const body = await page.locator('body').innerText();
-  expect(body).not.toContain(lockedTrick.about.slice(0, 40));
+  expect(body).toContain(teaser.replace(/\u2026$/, ''));
+  expect(body).not.toContain(lockedTrick.about.trim().slice(-40));
+
+  // Everything the tier is actually for is still absent: the tips, and a stage
+  // picker to write with.
   expect(body).not.toContain(lockedTrick.tips.slice(0, 40));
   await expect(page.getByRole('button', { name: 'Every time' })).toHaveCount(0);
   await expect(page.getByText('Can you do it?')).toHaveCount(0);

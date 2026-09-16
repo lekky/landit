@@ -1,4 +1,4 @@
-import { CONTACT } from '@landit/core';
+import { CONTACT, SITE_URL } from '@landit/core';
 import { expect, test } from '@playwright/test';
 
 /**
@@ -23,6 +23,25 @@ test('every document has its own URL and its own heading', async ({ page }) => {
   for (const [slug, title] of DOCS) {
     await page.goto(`/legal/${slug}`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
+  }
+});
+
+test('every document says which host it belongs to (2026-09-16)', async ({ page }) => {
+  /*
+   * These five were the only public pages without a `rel="canonical"`, while
+   * `sitemap.ts` advertised all of them — and `www.landthetrick.com` serves the
+   * whole site beside the apex (issue #291), so each document exists on two
+   * hosts with nothing saying which is the original. Search Console called that
+   * "duplicate without user-selected canonical". The assertion is the absolute
+   * URL rather than the path, because resolving the path against
+   * `metadataBase` is the half that actually decides the host.
+   */
+  for (const [slug] of DOCS) {
+    await page.goto(`/legal/${slug}`);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      'href',
+      `${SITE_URL}/legal/${slug}`,
+    );
   }
 });
 

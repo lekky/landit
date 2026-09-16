@@ -762,6 +762,15 @@
 
 /* ------------------------------------------------------------- the lock -- */
 
+/*
+ * The lowdown's opening, above the lock (2026-09-16). The same gutter as
+ * `.lockBody` so the two read as one column, and no bottom padding of its own —
+ * the lock's 34px is the gap between them.
+ */
+.lockLowdown {
+  padding: 22px 24px 0;
+}
+
 .lockBody {
   padding: 34px 24px;
   display: flex;
