@@ -54,6 +54,19 @@ export async function sportCountsAction(): Promise<Readonly<Record<string, Sport
   const sportOf = new Map(tricks.map((trick) => [trick.id, trick.sport]));
   const counts: Record<string, { landed: number; learning: number }> = {};
 
+  /*
+   * Every sport this rider tracks starts at zero.
+   *
+   * Without it a sport they have logged nothing in is missing from the answer,
+   * and the panel cannot tell "none yet" from "still loading" — so a rider with
+   * one sport going would see a count on that row and a blank on the others,
+   * which reads as the blank ones being broken. Absence now means one thing:
+   * the read has not landed.
+   */
+  for (const sport of (session.rider.sports ?? []) as readonly string[]) {
+    counts[sport] = { landed: 0, learning: 0 };
+  }
+
   for (const row of progress) {
     const sport = sportOf.get(row.trick);
     if (!sport) continue;

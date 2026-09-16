@@ -85,6 +85,24 @@
   }
 }
 
+/*
+ * The narrowest phones: the icon goes and the title tightens.
+ *
+ * With the two controls at their 44px targets, a 320px strip has about 130px
+ * for the title and "CONFIRM YOUR EMAIL" wants about 140 — measured, it was
+ * cut to "CONFIRM YOUR E". The lock is `aria-hidden` decoration and the words
+ * are the whole message, so the square is what goes.
+ */
+@media (max-width: 400px) {
+  .mark {
+    display: none;
+  }
+  .title {
+    font-size: 13.5px;
+    letter-spacing: 0.02em;
+  }
+}
+
 .actions {
   display: flex;
   align-items: center;
