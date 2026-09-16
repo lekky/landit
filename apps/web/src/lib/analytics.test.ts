@@ -268,11 +268,21 @@ describe('the event catalogue', () => {
         // reason for it: everything else here needs a rider to already exist.
         'landing_cta',
         'library_filtered',
+        // The LOG sheet (app shell rethink, D3) — which control opened it, and
+        // which of its four a rider took. The sheet is the product's one front
+        // door onto logging, so the pair is the denominator for the rest.
+        'log_action_picked',
+        'log_sheet_opened',
         'nav_clicked',
-        // The bottom bar's section drawer was shown. Carries which section and
-        // whether it announced itself on arrival or the rider opened it — the
-        // only way to tell whether the folded second screen is ever found.
-        'nav_section_opened',
+        /*
+         * `nav_section_opened` stood here and is gone with the drawer it
+         * measured (T45, 2026-09-16). The bottom bar folded nine destinations
+         * into five sections and this was the only evidence that the folded
+         * half was ever found; the bar is four groups now and nothing is
+         * folded, so there is no second screen to go dark and nothing left for
+         * the event to answer. Readings before 2026-09-16 still stand — they
+         * are about a bar that no longer exists.
+         */
         // How long nearest-first took, as one of five buckets — never a count
         // of milliseconds, which would measure one child's device precisely
         // enough to tell it from another's. `nearbyTiming.test.ts` is what
@@ -338,6 +348,10 @@ describe('the event catalogue', () => {
         // on 2026-09-12. Which screen, and the chosen sport ids joined with
         // `+` (or 'all'). Never the rider's own sports.
         'sport_filter_set',
+        // The sport scope on a list (O1): which screen, and whether the rider
+        // chose the chip's sport, every sport, or another one — never which
+        // other one.
+        'sport_scope_set',
         'sport_switched',
         'sticker_earned',
         // The wall's Earned / All switch, and a capped shelf opened (T33).
@@ -352,6 +366,10 @@ describe('the event catalogue', () => {
         // An idea sent from `/suggest` (2026-09-12): the topic, one of five ids
         // this repo wrote, and which entry point it came from. Never the idea.
         'suggestion_filed',
+        // Any boxed tab row (§3.3): a group id and a tab id, both written in
+        // this repo. Tab rows are how a rider gets about inside a group now, so
+        // a row nobody presses is a screen that has gone dark.
+        'tabs_switched',
         // An onward link from a trick page — the road, the unlocks, the
         // similar tricks, the practise line or the cross-sport panel. Slugs
         // and feature tags only.
@@ -381,6 +399,12 @@ describe('the event catalogue', () => {
         'video_link_added',
         'video_link_removed',
         'video_visibility_set',
+        // The bell, and "Mark all read" (D4). `where` and an integer count of
+        // unseen lines — lines the product wrote from the rider's own record
+        // and their crews' feeds, so the count says how much has happened, not
+        // what.
+        'whats_new_opened',
+        'whats_new_read',
         // A Server Function that threw rather than coming back refused — the
         // failure neither end of the product could see until 2026-09-12. Which
         // call, write or read, and `offline`/`error`. Never the thrown error.

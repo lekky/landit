@@ -1,6 +1,16 @@
 'use client';
 
-import { useId, useRef, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 
 import { cx } from '../cx';
 import { useModalLayer } from './modal-layer';
@@ -120,6 +130,262 @@ export function Modal({
         {children}
         {hasFooter && <div className="modal-foot">{footer}</div>}
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ sheet -- */
+
+/**
+ * The width at which a bottom sheet stops being the right shape.
+ *
+ * The same 860px the shell already breaks at (`primitives.css`): below it the
+ * bottom bar is on and a panel hanging off the bottom edge is where a thumb
+ * is, above it the page is a desktop and a centred dialog is.
+ */
+const PHONE_QUERY = '(max-width: 860px)';
+
+function subscribeToPhone(onChange: () => void): () => void {
+  const query = window.matchMedia(PHONE_QUERY);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+}
+
+/**
+ * Whether this is a phone, for `Sheet`'s `as="auto"` only.
+ *
+ * The server has no width and answers `false`, which is safe here in a way it
+ * would not be for layout: a sheet exists only after somebody has pressed
+ * something, so the first render of one is always in a browser that can be
+ * asked. Nothing in the frame depends on this — the shell still lets CSS decide
+ * what shows at what width.
+ */
+function usePhoneViewport(): boolean {
+  return useSyncExternalStore(
+    subscribeToPhone,
+    () => window.matchMedia(PHONE_QUERY).matches,
+    () => false,
+  );
+}
+
+/** How far down a sheet has to be dragged before letting go closes it. */
+const DRAG_TO_CLOSE = 80;
+
+export type SheetProps = {
+  children: ReactNode;
+  /** Close the sheet. */
+  onClose: () => void;
+  /**
+   * A heading across the top, inside the sheet. Names the dialog when there is
+   * no `label`.
+   */
+  title?: ReactNode;
+  /** Accessible name, for a sheet with no `title`. */
+  label?: string;
+  /**
+   * Which shape to take. `auto` (the default) is a sheet below 861px and the
+   * shared `Modal` above it; `sheet` and `modal` force one.
+   */
+  as?: 'auto' | 'sheet' | 'modal';
+  /** Max width in px when this renders as a `Modal`. */
+  width?: number;
+  /** An extra class on the sheet panel, for a caller that needs to size it. */
+  className?: string;
+};
+
+/**
+ * A bottom sheet on a phone, the shared `Modal` on a desktop (rethink §3.2).
+ *
+ * One component rather than two, because every caller wants the same thing at
+ * both widths — the log sheet, the sport switch — and a screen that picked for
+ * itself would be a second opinion about the shell's breakpoint. `as` is there
+ * for the caller that genuinely knows better.
+ *
+ * It borrows `Modal`'s whole layer: `useModalLayer` holds the page still, makes
+ * it inert, traps focus and answers Escape, so a sheet behaves like a dialog
+ * rather than like a div that happens to be on top. A tap on the scrim closes
+ * it, counted the way `Modal` counts one — the press has to have started on the
+ * scrim, so a drag that ends in the gutter is not a dismissal.
+ *
+ * **Dragging it down closes it**, which is the gesture a phone rider already
+ * has for this shape. The drag starts on the handle and the title bar only, not
+ * on the body: a sheet whose content scrolls must not have its scroll eaten by
+ * a close gesture. Under `prefers-reduced-motion` the snap back has no
+ * transition, which the floor at the foot of `additions.css` takes care of.
+ */
+export function Sheet({
+  children,
+  onClose,
+  title,
+  label,
+  as = 'auto',
+  width = 520,
+  className,
+}: SheetProps) {
+  const phone = usePhoneViewport();
+  const panel = useRef<HTMLDivElement>(null);
+  const pressedOnScrim = useRef(false);
+  const titleId = useId();
+  const [drag, setDrag] = useState(0);
+  const from = useRef<number | null>(null);
+
+  const asSheet = as === 'sheet' || (as === 'auto' && phone);
+
+  /*
+   * The layer, claimed only when this really is a sheet.
+   *
+   * Called unconditionally, as a hook must be — but in the `Modal` branch below
+   * `panel` is never attached to anything, so `panel.current` is null and
+   * `useModalLayer` returns without claiming a layer. `Modal` then claims its
+   * own with its own ref, and the page is held once rather than twice.
+   */
+  useModalLayer(panel, onClose);
+
+  const onPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    from.current = event.clientY;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const onPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
+    if (from.current === null) return;
+    setDrag(Math.max(0, event.clientY - from.current));
+  };
+  const onPointerUp = () => {
+    if (from.current === null) return;
+    from.current = null;
+    setDrag((moved) => {
+      if (moved > DRAG_TO_CLOSE) onClose();
+      return 0;
+    });
+  };
+
+  if (!asSheet) {
+    return (
+      <Modal onClose={onClose} width={width} label={label} title={title}>
+        {children}
+      </Modal>
+    );
+  }
+
+  const hasTitle = title !== undefined && title !== null;
+
+  return (
+    <div
+      className="scrim sheet-scrim"
+      onPointerDown={(pressed) => {
+        pressedOnScrim.current = pressed.target === pressed.currentTarget;
+      }}
+      onClick={(clicked) => {
+        if (clicked.target === clicked.currentTarget && pressedOnScrim.current) onClose();
+      }}
+    >
+      <div
+        ref={panel}
+        className={cx('sheet', className)}
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        aria-labelledby={!label && hasTitle ? titleId : undefined}
+        tabIndex={-1}
+        style={drag ? { transform: `translateY(${drag}px)`, transition: 'none' } : undefined}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="sheet-grip"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+        >
+          <span className="sheet-handle" aria-hidden="true" />
+          {hasTitle && (
+            <h2 id={titleId} className={cx('d', 'sheet-title')}>
+              {title}
+            </h2>
+          )}
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------------------------------------------- dropdown -- */
+
+export type DropdownProps = {
+  children: ReactNode;
+  /** Close the panel. */
+  onClose: () => void;
+  /** Accessible name for the panel. */
+  label?: string;
+  /** Panel width in px. */
+  width?: number;
+  /**
+   * The positioned element holding both the trigger and this panel.
+   *
+   * A pointer press outside it closes the panel; a press on the trigger inside
+   * it is left to the trigger, which is what makes a second press on the button
+   * close what the first one opened. Without it the panel closes itself and the
+   * button immediately reopens it.
+   */
+  holder?: RefObject<HTMLElement | null>;
+  className?: string;
+  id?: string;
+};
+
+/**
+ * The desktop anchor panel (rethink §3.2) — what the bell and the sport chip
+ * open above 860px, where a bottom sheet would be absurd.
+ *
+ * Paper, the 3px keyline and the hard offset shadow, hung under the right edge
+ * of the button that opened it. It closes on Escape and on an outside
+ * `pointerdown` rather than an outside `click`, for the reason `AccountMenu`
+ * gives next door: a click on a link inside would close the panel before the
+ * link's own handler ran.
+ *
+ * Deliberately **not** a modal layer. A dropdown is a menu, not a dialog: it
+ * does not hold the page still, and a rider who scrolls or clicks past it has
+ * dismissed it. That is also why it is not `Sheet`'s desktop half — `Sheet`
+ * becomes a `Modal` because its contents are a decision, and this is a glance.
+ */
+export function Dropdown({
+  children,
+  onClose,
+  label,
+  width = 420,
+  holder,
+  className,
+  id,
+}: DropdownProps) {
+  const panel = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => onClose(), [onClose]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close();
+    };
+    const onPointer = (event: PointerEvent) => {
+      const within = holder?.current ?? panel.current;
+      if (!within?.contains(event.target as Node)) close();
+    };
+
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointer);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointer);
+    };
+  }, [close, holder]);
+
+  return (
+    <div
+      ref={panel}
+      id={id}
+      className={cx('dropdown', className)}
+      role="group"
+      aria-label={label}
+      style={{ width: `min(${width}px, calc(100vw - 24px))` }}
+    >
+      {children}
     </div>
   );
 }

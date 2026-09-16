@@ -223,6 +223,17 @@ export const ICONS = {
       <path d="M14 6l6 6-6 6" />
     </g>
   ),
+  /*
+   * The top bar's "What's new" (rethink §3.1). Drawn on the same 24px grid at
+   * the same 2.2 stroke as everything above it: a bell body and the clapper
+   * under it, no ring lines — the set has no decoration anywhere else.
+   */
+  bell: (
+    <g>
+      <path d="M6 10a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6z" />
+      <path d="M10 20a2.2 2.2 0 0 0 4 0" />
+    </g>
+  ),
   placeholder: (
     <g>
       <rect x="3.5" y="3.5" width="17" height="17" />

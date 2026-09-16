@@ -52,6 +52,26 @@
   --sh-sm: 3px 3px 0 var(--ink);
 
   /*
+   * Motion, named (app shell rethink §4).
+   *
+   * The design already moved in one voice and the values were written out at
+   * every call site: `transition: .12s` on a button, `0.2s` on the scrim,
+   * `cubic-bezier(.2,1.3,.4,1)` on the modal. Naming the three durations and
+   * the two curves is what stops the shell's new surfaces — the sheet, the
+   * dropdown, the boxed tab row — each inventing a fourth. Nothing existing is
+   * repointed at them: these are additive, and a rule that already spells its
+   * own duration keeps it.
+   *
+   * The `prefers-reduced-motion` floor at the foot of `additions.css` clamps
+   * every duration in the package, these included.
+   */
+  --dur-press: 120ms; /* press and hover lift, chevrons */
+  --dur-ui: 200ms; /* tab cross-fade, accordion, dropdown, scrim, colour */
+  --dur-sheet: 260ms; /* a sheet or a modal rising toward the rider */
+  --ease-out: cubic-bezier(0.2, 0.9, 0.3, 1); /* closing and settling */
+  --ease-spring: cubic-bezier(0.2, 1.3, 0.4, 1); /* opening toward the rider */
+
+  /*
    * Text on a fixed fill — a category tag, a stage strip, a primary button.
    * These never follow the theme: an orange tag is orange in the dark too, so
    * the ink on it stays ink. `foregroundFor` answers in these.

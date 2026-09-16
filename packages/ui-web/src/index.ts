@@ -95,10 +95,14 @@ export {
   type TabsProps,
 } from './components/nav';
 export {
+  Dropdown,
   Modal,
+  Sheet,
   Toast,
   ToastStack,
+  type DropdownProps,
   type ModalProps,
+  type SheetProps,
   type ToastProps,
   type ToastStackProps,
 } from './components/overlays';

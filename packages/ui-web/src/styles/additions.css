@@ -567,6 +567,165 @@ a.pill.on:hover {
   border-top: var(--bd);
 }
 
+/* ------------------------------------------------------------------ sheet -- */
+
+/*
+ * The bottom sheet (`Sheet`, app shell rethink §3.2).
+ *
+ * The design pack has no drawing of one — the prototype was a desktop page —
+ * so it is built out of the vocabulary that is already here: paper, a 3px ink
+ * keyline, zero radius, and the modal's own scrim and spring. What makes it a
+ * sheet rather than a short modal is where it hangs from and what it clears:
+ * the bottom edge, above `.mobnav` (z-index 70) and under the toasts (200),
+ * with the home indicator paid for out of `env(safe-area-inset-bottom)`.
+ *
+ * It reuses `.scrim` for the fade and the overlay, and only re-lays the box:
+ * `place-items: end stretch` puts the panel on the bottom edge at full width
+ * where `.scrim`'s own `place-items: center` would float it in the middle.
+ */
+.sheet-scrim {
+  place-items: end stretch;
+  padding: 0;
+}
+.sheet {
+  background: var(--paper);
+  border-top: var(--bd);
+  width: 100%;
+  max-height: 86dvh;
+  overflow: auto;
+  padding: 0 16px max(28px, env(safe-area-inset-bottom));
+  /*
+   * Above the bottom bar. `.scrim` is 180 and `.mobnav` is 70, so the stacking
+   * is already right; this is here for the sheet's own children (the grip is
+   * sticky) and to say the number out loud beside the bar's.
+   */
+  z-index: 1;
+  animation: sheetup var(--dur-sheet) var(--ease-spring);
+  transition: transform var(--dur-ui) var(--ease-out);
+}
+@keyframes sheetup {
+  from {
+    transform: translateY(100%);
+  }
+}
+.sheet:focus {
+  outline: none;
+}
+/*
+ * The drag handle and the title are one grip: the region a pointer may start a
+ * close gesture in. The body below it scrolls normally, which is the whole
+ * reason the gesture is not on the panel.
+ */
+.sheet-grip {
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  padding: 10px 0 12px;
+  touch-action: none;
+  cursor: grab;
+}
+.sheet-handle {
+  display: block;
+  width: 44px;
+  height: 5px;
+  margin: 0 auto 12px;
+  background: var(--ink);
+}
+.sheet-title {
+  font-size: 24px;
+  margin: 0;
+}
+
+/* --------------------------------------------------------------- dropdown -- */
+
+/*
+ * The desktop anchor panel (`Dropdown`, §3.2) — the bell's and the sport
+ * chip's, hung under the right edge of the button that opened it.
+ *
+ * The caller owns the positioning context, exactly as `.accountmenu` does for
+ * `.accountmenu-sheet`: a `position: relative` wrapper holding the trigger and
+ * this. `right: 0` is what aligns it to the button's right edge rather than its
+ * left, which is what keeps a 420px panel on screen under a button that is
+ * itself at the right-hand end of the bar.
+ */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 80;
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh);
+  color: var(--ink);
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  animation: dropin var(--dur-ui) var(--ease-out);
+}
+@keyframes dropin {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+}
+
+/* --------------------------------------------------------------- tab row -- */
+
+/*
+ * `Tabs variant="boxed"` (§3.3, D6) — a row of separate boxes rather than a
+ * row of content-sized tabs.
+ *
+ * It is `.sporttab` underneath, so the keyline, the shadow, the press and the
+ * hover lift are the ones the design already draws and are not restated. What
+ * `.tabrow` adds is the geometry — equal shares, a 44px floor, no wrap — and
+ * the one colour rule: the active tab is the design's yellow at every width and
+ * on every screen, where a default row takes the colour from its item.
+ */
+.tabrow {
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+.tabrow .sporttab {
+  flex: 1;
+  justify-content: center;
+  min-height: 44px;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  padding: 9px 10px;
+  white-space: nowrap;
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press),
+    background var(--dur-press);
+}
+.tabrow .sporttab.on,
+.tabrow a.sporttab.on {
+  background: var(--yellow);
+  color: var(--on-light);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+/* A boxed row drawn as links, which is what a route-changing row is (Find). */
+.tabrow a.sporttab,
+.tabrow a.sporttab:hover {
+  color: var(--ink);
+  display: flex;
+  text-align: center;
+}
+
+/* ---------------------------------------------------- the top bar's rule -- */
+
+/*
+ * The bottom rule takes the current sport's colour (§3.1, D5).
+ *
+ * A custom property with the old value as its fallback, so a bar rendered by
+ * anything that does not set it — a test, a page outside the app frame — is
+ * exactly the bar it was. The cross-fade is `--dur-ui`, which is what makes
+ * switching sport read as one change rather than as a repaint.
+ */
+.topbar {
+  border-bottom-color: var(--sport-rule, var(--ink));
+  transition: border-bottom-color var(--dur-ui) var(--ease-out);
+}
+
 /* ------------------------------------------------ reduced motion (global) -- */
 
 /*

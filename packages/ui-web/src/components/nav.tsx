@@ -44,6 +44,16 @@ export type TabsProps = {
    * (`additions.css`). Rows of two or three fixed tabs generally do not need it.
    */
   compact?: boolean;
+  /**
+   * `boxed` is the app shell rethink's tab row (§3.3): each tab an equal share
+   * of the row at a 44px floor, the active one yellow with the 4px lift.
+   *
+   * A new value, not a new default. `default` is exactly the row this component
+   * has always drawn — tabs sized by their own content, the active one filled
+   * with whatever colour the item carries — which is what the sport switch and
+   * every other caller still gets without changing a line.
+   */
+  variant?: 'default' | 'boxed';
   className?: string;
   style?: CSSProperties;
 };
@@ -55,12 +65,14 @@ export function Tabs({
   onChange,
   label,
   compact = false,
+  variant = 'default',
   className,
   style,
 }: TabsProps) {
+  const boxed = variant === 'boxed';
   return (
     <div
-      className={cx('sporttabs', compact && 'sporttabs-compact', className)}
+      className={cx('sporttabs', compact && 'sporttabs-compact', boxed && 'tabrow', className)}
       style={style}
       role="tablist"
       aria-label={label}
@@ -75,8 +87,12 @@ export function Tabs({
             aria-selected={on}
             className={cx('sporttab', on && 'on')}
             onClick={() => onChange(it.id)}
+            // A boxed row's active tab is the design's yellow lift (§3.3, D6),
+            // the same one on every screen, so it takes no colour from the item
+            // — `.tabrow .sporttab.on` paints it and an inline background would
+            // outrank that.
             style={
-              on
+              on && !boxed
                 ? {
                     background: it.color,
                     borderColor: 'var(--ink)',

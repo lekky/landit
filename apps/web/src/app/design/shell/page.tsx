@@ -13,7 +13,7 @@ import { ShellPreview } from './preview';
  * drive. It is not in the navigation, nothing links to it, and it is kept out
  * of search results.
  *
- * It passes a sample rider so the top bar's streak chip and avatar can be
+ * It passes a sample rider so the top bar's sport chip, Log, bell and avatar can be
  * checked. There is no auth here — T6 supplies the real one.
  *
  * `?staff=1` draws the same shell with the sample rider marked as staff, which
@@ -37,7 +37,7 @@ export default async function ShellPreviewPage({
   const staff = (await searchParams).staff === '1';
 
   return (
-    <AppShell rider={{ name: 'Miles', avatarId: 'helmet-land', streak: 6, staff }}>
+    <AppShell rider={{ name: 'Miles', avatarId: 'helmet-land', staff }}>
       <ShellPreview />
     </AppShell>
   );

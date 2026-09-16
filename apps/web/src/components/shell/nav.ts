@@ -5,51 +5,45 @@ import { ROUTES } from '@/lib/routes';
 import { SESSIONS_PATH } from '@/lib/sessionRoutes';
 
 /**
- * The rider app's navigation — two shapes over one set of destinations.
+ * The rider app's navigation — **four groups, at every width**.
  *
- * `TOP_NAV` is the nine flat entries the design draws across the top bar
- * (`landit-app.jsx`). `MOBILE_NAV` is the five the fixed bottom bar carries
- * below 861px, and it is **not the first five of that list**: it is five
- * *sections*, each owning more than its own route.
+ * This file used to hold two different maps of the same product: nine flat
+ * entries across the top bar, and five folded sections in the bottom bar, with
+ * a drawer to reveal what the folding hid. The app shell rethink (Rachid,
+ * 2026-09-15 and 2026-09-16, in chat; `docs/app-shell-rethink.md`) replaced
+ * both with one map, and this file is now much duller than it was, which is
+ * the point.
  *
- * That difference is the whole point of this file, so it is worth writing down
- * why it exists. The bottom bar started as `TOP_NAV.slice(0, 5)`, which meant
- * that below 861px — where `.nav` is `display: none` — Challenge, Events, Spots
- * and Plans had **no navigation entry at all**. The only way to any of them was
- * the site footer at the bottom of a scrolled page. Four of nine destinations
- * went dark on the one device a rider actually carries to a skatepark, and the
- * four that went dark were the go-and-ride ones: where to skate, what is on,
- * this week's challenge.
+ * **Home · Tricks · Find · Crew**, plus LOG, which is not a destination at all.
  *
- * Five is still the number — the design specifies a five-item bar (handoff,
- * Responsive) and `.mobnav` is `repeat(5, 1fr)`, which at 375px leaves about
- * 75px a cell. Six does not fit a label. So the bar stops trying to be a
- * shortlist of pages and becomes a complete map of sections instead:
+ * - **Home** is the dashboard and the four screens that are the rider's own
+ *   record: Progress, Sessions, Stickers and the weekly Challenge. They are
+ *   reached from cards on Home (T46) and each carries a Home back link.
+ * - **Tricks** is the library, a trick page and the glossary.
+ * - **Find** is where to ride: the `/find` summary, Spots, Events, the archive
+ *   and the rider's own events (D2, T48). The route is a redirect to `/spots`
+ *   until T48 lands the summary.
+ * - **Crew** is the crew, rider profiles and an invite.
+ * - **LOG** is the middle cell of the phone's bar and the yellow button beside
+ *   the sport chip on a desktop. It opens a sheet (D3) and goes nowhere, so it
+ *   has no entry here: `MobileNav` draws it between the second and third group
+ *   and `TopBar` draws it in the right-hand group.
  *
- * - **What's on** is Spots and Events together. Both answer "where do I go",
- *   both are geographic, and neither is big enough to spend a fifth of the bar
- *   alone.
- * - **Progress** is progress, the sticker wall and the weekly challenge
- *   together: all three are the rider's own record. The challenge used to be
- *   Home's, reached only through the dashboard's card, which a rider who does
- *   not scroll never meets (Rachid, 2026-09-14, in chat).
- * - **Tricks** and **Crew** stand alone, as they did.
+ * Three things that are **not** in either bar and are reached from the top bar
+ * at every width: the avatar's menu (`ACCOUNT_MENU` — account, coach view,
+ * plans, an idea, a report, and for staff the portal), the sport chip (D5), and
+ * the bell's `/whats-new` (D4, `BELL_DESTINATION`). None of them lights a cell.
  *
- * A section that holds two routes carries them in `tabs`, and the bar names
- * them in a drawer that opens above it (`SectionDrawer`) — on arrival in the
- * section, and again whenever the lit cell is tapped. That replaced a
- * `SectionTabs` row at the top of each screen, which was the same box, size
- * and shadow as the sport switch directly below it and so read as a second
- * filter rather than as navigation (issue #379, item 5). `alsoActiveFor` is
- * what keeps the bar lit while a rider is on either screen.
- *
- * The five destinations that are not sections — Account, Coach view, Plans,
- * Tell us an idea and Report something — are account-shaped rather than places
- * to ride, and they live behind the top bar's avatar in `AccountMenu`, at every
- * width. That is also how `/report` stops being footer-only, which the OSA
- * codes' "easy to find" wording is better served by (plan §6.1). Staff accounts
- * see a sixth item there, the admin portal, and nobody else does —
- * `accountMenuFor` at the foot of this file.
+ * **`DESTINATIONS` is the promise the bars make**, and `lib/nav.test.ts` is
+ * what checks it. Folding a product into four groups is only honest if nothing
+ * is left with no way in on a phone, which is exactly what went wrong the last
+ * time this file was reshaped: the bar was `TOP_NAV.slice(0, 5)` and four
+ * screens were reachable on a phone only from the site footer at the bottom of
+ * a scrolled page. The old test asked "is every top-bar entry on the phone",
+ * which stops meaning anything now the two bars are the same list — so the list
+ * of everywhere a rider can go is written out below instead, and every entry in
+ * it has to be a group, something a group reaches, an account-menu item or the
+ * bell.
  */
 
 export type NavItem = {
@@ -58,173 +52,64 @@ export type NavItem = {
   icon: IconName;
   href: Route;
   /**
-   * Destinations this section's own screens link to.
+   * The screens this group holds, beyond its own sub-routes.
    *
-   * The guarantee the bottom bar makes, written down where a test can read it.
-   * Folding nine destinations into five sections is only honest if the folded
-   * ones are still reachable, so each section states what it reaches and
-   * `nav.test.ts` asserts that the five sections plus `ACCOUNT_MENU` between
-   * them cover every entry in `TOP_NAV`. Nothing is allowed to be desktop-only.
+   * Two jobs, as before. It is the group's claim that these have a way in —
+   * `nav.test.ts` reads it — and it lights the group's cell while a rider is on
+   * one of them (`isNavActive`), which is what §2.2 of the spec asks for: a
+   * rider on `/progress` sees Home lit, a rider on `/spots/[slug]` sees Find.
    *
-   * Each claim is real navigation somewhere in the app, and `e2e/shell.spec.ts`
-   * clicks it: the folded sections' claims are the `tabs` their drawer lists.
+   * Every claim is real navigation somewhere in the app: the Home cards (T46)
+   * and the Find tab row (T48) are what a rider actually presses.
    */
   reaches?: readonly Route[];
   /**
-   * Other path prefixes this item owns the highlight for.
+   * Other path prefixes this group owns the highlight for, without claiming to
+   * be the way in.
    *
-   * Two jobs now. A screen does not always live under the nav entry that means
-   * it — a rider profile is `/riders/{handle}` and an invite lands on
-   * `/join/{code}`, and both are Crew even though neither sits under `/crew`.
-   * And a bottom-bar *section* covers routes that are their own top-bar entries
-   * on desktop: What's on owns `/events` as well as `/spots`. Without this the
-   * bar simply blanks on those pages, which reads as "you have left the app".
+   * A rider profile is `/riders/{handle}` and an invite lands on `/join/{code}`
+   * — both are Crew, and neither is somewhere the bar sends anybody. Without
+   * this the bar simply blanks on those pages, which reads as "you have left
+   * the app".
    */
   alsoActiveFor?: readonly string[];
-  /**
-   * The screens this section holds, for the drawer that names them.
-   *
-   * Only the two folded sections carry it. A cell with `tabs` opens a drawer
-   * above the bar as well as navigating (`SectionDrawer`); a cell without one
-   * just navigates, as all five did before.
-   */
-  tabs?: readonly SectionTab[];
 };
 
 /**
- * The top bar above 860px: every destination, flat, in the design's order.
+ * The four groups, in the order both bars draw them.
  *
- * Unchanged by the bottom-bar restructure, deliberately. Nine items fit a
- * desktop row and grouping them there would hide screens behind a tap for no
- * reason — the squeeze is the phone's, so the answer is the phone's.
+ * The phone's bar puts LOG between Tricks and Find, so this order is also the
+ * order of the bar's cells with the middle one taken out: Home, Tricks, [LOG],
+ * Find, Crew (D1).
  */
-export const TOP_NAV: readonly NavItem[] = [
-  { id: 'home', label: 'Home', icon: 'home', href: ROUTES.dashboard },
-  {
-    id: 'library',
-    label: 'Tricks',
-    icon: 'grid',
-    href: ROUTES.library,
-    // The glossary is the library's own reference page, reached from a trick's
-    // copy and pointing back into it; it does not sit under `/library`.
-    alsoActiveFor: [ROUTES.glossary],
-  },
-  { id: 'progress', label: 'Progress', icon: 'chart', href: ROUTES.progress },
-  { id: 'stickers', label: 'Stickers', icon: 'star', href: ROUTES.stickers },
-  {
-    id: 'crew',
-    label: 'Crew',
-    icon: 'users',
-    href: ROUTES.crew,
-    alsoActiveFor: ['/riders', '/join'],
-  },
-  { id: 'challenge', label: 'Challenge', icon: 'bolt', href: ROUTES.challenge },
-  { id: 'events', label: 'Events', icon: 'flag', href: ROUTES.events },
-  { id: 'spots', label: 'Spots', icon: 'map', href: ROUTES.spots },
-  { id: 'plans', label: 'Plans', icon: 'crown', href: ROUTES.plans },
-];
-
-/**
- * One screen inside a section, as the drawer lists it.
- *
- * Declared above `MOBILE_NAV` because the two sections now *hold* their tabs
- * rather than merely claiming them: `tabs` is what the drawer renders and
- * `reaches` is what the bar promises, and one test checks the promise against
- * the thing that keeps it.
- */
-export type SectionTab = {
-  id: string;
-  label: string;
-  icon: IconName;
-  href: Route;
-};
-
-/** The two screens under the bottom bar's "What's on". */
-export const WHATS_ON_TABS: readonly SectionTab[] = [
-  { id: 'spots', label: 'Spots', icon: 'map', href: ROUTES.spots },
-  { id: 'events', label: 'Events', icon: 'flag', href: ROUTES.events },
-];
-
-/**
- * The screens under the bottom bar's "Progress", when sessions are not on.
- *
- * Where the rider is at, the sticker wall, and this week's challenge — last,
- * because it is the one screen here that is not a record of the rider alone
- * (Rachid, 2026-09-14, in chat).
- */
-export const PROGRESS_TABS: readonly SectionTab[] = [
-  { id: 'progress', label: 'Progress', icon: 'chart', href: ROUTES.progress },
-  { id: 'stickers', label: 'Stickers', icon: 'star', href: ROUTES.stickers },
-  { id: 'challenge', label: 'Challenge', icon: 'bolt', href: ROUTES.challenge },
-];
-
-/**
- * The same section with sessions on: **three screens, Sessions first**
- * (Rachid, 2026-09-13, in chat — "sessions should be the main page and then
- * progress and stickers are added to the slide-up panel thing").
- *
- * Sessions leads because logging one is the thing a rider opens the app to do,
- * where Progress and the sticker wall are both read rather than acted on. The
- * order is also load-bearing: the drawer announces itself on arrival at the
- * section's own screen, so the first tab has to *be* that screen or a rider
- * landing on Sessions would meet a list headed by something else.
- *
- * `/progress` is unmoved and still "Where you're at" — nothing that links to it
- * breaks, and a rider without sessions sees exactly the section they always did.
- */
-export const PROGRESS_TABS_WITH_SESSIONS: readonly SectionTab[] = [
-  { id: 'sessions', label: 'Sessions', icon: 'clock', href: SESSIONS_PATH as Route },
-  { id: 'progress', label: 'Progress', icon: 'chart', href: ROUTES.progress },
-  { id: 'stickers', label: 'Stickers', icon: 'star', href: ROUTES.stickers },
-  { id: 'challenge', label: 'Challenge', icon: 'bolt', href: ROUTES.challenge },
-];
-
-/**
- * The fixed bottom bar below 861px: five sections, in this order.
- *
- * The order is a phone's, not the top bar's. Home first because it is where a
- * rider lands; Tricks second because logging one is the thing they came to do;
- * **Progress third, in the middle** (Rachid, 2026-09-14, in chat), because it
- * now lands on Sessions for a rider who has them and holds the challenge, and
- * the middle cell is the easiest reach on a phone held one-handed. What's on
- * held the middle before that, for the skatepark-gate reason; it moves one cell
- * right, beside Crew.
- *
- * Every label has to survive `.mobnav` at 375px: uppercase, 10.5px, 0.09em
- * tracking, in about 71px of usable cell. "What's on" is the longest and it is
- * held on one line by `white-space: nowrap` plus a slightly tighter track for
- * that item (`additions.css`); `e2e/shell.spec.ts` measures it rather than
- * trusting the arithmetic.
- */
-export const MOBILE_NAV: readonly NavItem[] = [
+export const NAV_GROUPS: readonly NavItem[] = [
   {
     id: 'home',
     label: 'Home',
     icon: 'home',
     href: ROUTES.dashboard,
+    /*
+     * The four record screens, reached from Home's cards (T46). Sessions is
+     * added by `navFor` only for a rider the preview covers — a claim to a
+     * screen that would 404 is worse than no claim.
+     */
+    reaches: [ROUTES.progress, ROUTES.stickers, ROUTES.challenge],
   },
   {
     id: 'library',
     label: 'Tricks',
     icon: 'grid',
+    // The glossary is the library's own reference page, reached from a trick's
+    // copy and pointing back into it; it does not sit under `/library`.
     href: ROUTES.library,
-    alsoActiveFor: [ROUTES.glossary],
+    reaches: [ROUTES.glossary],
   },
   {
-    id: 'progress',
-    label: 'Progress',
-    icon: 'chart',
-    href: ROUTES.progress,
-    reaches: [ROUTES.stickers, ROUTES.challenge],
-    tabs: PROGRESS_TABS,
-  },
-  {
-    id: 'whats-on',
-    label: 'What’s on',
+    id: 'find',
+    label: 'Find',
     icon: 'map',
-    href: ROUTES.spots,
-    reaches: [ROUTES.events],
-    tabs: WHATS_ON_TABS,
+    href: ROUTES.find,
+    reaches: [ROUTES.spots, ROUTES.events, ROUTES.eventsPast, ROUTES.eventsMine],
   },
   {
     id: 'crew',
@@ -236,39 +121,77 @@ export const MOBILE_NAV: readonly NavItem[] = [
 ];
 
 /**
- * The two bars, for a rider who can see sessions (plan §7, T41).
+ * The top bar above 860px and the bottom bar below it — **the same four**.
  *
- * The Progress cell lands on **Sessions** and folds the other two screens
- * behind it (Rachid, 2026-09-13, in chat). Every other cell is untouched, and
- * with sessions off both functions answer with the constants above — which is
- * what a rider outside the preview gets, and what stops the bar offering a
- * screen that would 404 on them.
+ * Both names are kept because both bars read one of them and a reader looking
+ * for either should find it. That they are now the same object is the decision
+ * (D8): a desktop that grouped its nav differently from the phone would be two
+ * products to learn, and the screens that lost a top-bar entry — Progress,
+ * Sessions, Stickers, Challenge, Plans — all gained a card or a menu row that
+ * is easier to find than a ninth item in a crowded row was.
+ */
+export const TOP_NAV = NAV_GROUPS;
+export const MOBILE_NAV = NAV_GROUPS;
+
+/** Where the top bar's bell goes on a phone. It lights no cell (§2.2). */
+export const BELL_DESTINATION: Route = ROUTES.whatsNew;
+
+/**
+ * Everywhere in the rider app a rider can go, and the list the bars are held
+ * against.
+ *
+ * Not derived from the groups, deliberately — a list derived from the thing it
+ * checks cannot fail. Adding a screen to the product means adding it here, and
+ * then the test says which group has to reach it, or which menu.
+ */
+export const DESTINATIONS: readonly Route[] = [
+  ROUTES.dashboard,
+  ROUTES.progress,
+  SESSIONS_PATH as Route,
+  ROUTES.stickers,
+  ROUTES.challenge,
+  ROUTES.library,
+  ROUTES.glossary,
+  ROUTES.find,
+  ROUTES.spots,
+  ROUTES.events,
+  ROUTES.eventsPast,
+  ROUTES.eventsMine,
+  ROUTES.crew,
+  ROUTES.whatsNew,
+  ROUTES.account,
+  ROUTES.coach,
+  ROUTES.plans,
+  ROUTES.suggest,
+  ROUTES.report,
+];
+
+/**
+ * The four groups for this rider (plan §7, T41).
+ *
+ * The only thing a rider's record changes about the bars: with sessions on,
+ * Home also reaches `/progress/sessions`, so the cell stays lit there and the
+ * covers-everything test can count it. With sessions off the list is exactly
+ * the constant above, which is what a rider outside the preview gets and what
+ * stops a bar claiming a screen that would 404 on them.
  *
  * Shaped like `accountMenuFor(staff)` and for the same reason: whether a
  * destination is drawn is a display rule decided once, on the server, from the
  * rider record. The gate that matters is still `sessionsEnabledFor` on each
  * `/progress/sessions` route.
  */
-export function topNavFor(sessionsEnabled?: boolean): readonly NavItem[] {
-  if (!sessionsEnabled) return TOP_NAV;
-  return TOP_NAV.map((item) =>
-    item.id === 'progress' ? { ...item, href: SESSIONS_PATH as Route } : item,
-  );
-}
-
-export function mobileNavFor(sessionsEnabled?: boolean): readonly NavItem[] {
-  if (!sessionsEnabled) return MOBILE_NAV;
-  return MOBILE_NAV.map((item) =>
-    item.id === 'progress'
-      ? {
-          ...item,
-          href: SESSIONS_PATH as Route,
-          reaches: [ROUTES.progress, ROUTES.stickers, ROUTES.challenge],
-          tabs: PROGRESS_TABS_WITH_SESSIONS,
-        }
+export function navFor(sessionsEnabled?: boolean): readonly NavItem[] {
+  if (!sessionsEnabled) return NAV_GROUPS;
+  return NAV_GROUPS.map((item) =>
+    item.id === 'home'
+      ? { ...item, reaches: [...(item.reaches ?? []), SESSIONS_PATH as Route] }
       : item,
   );
 }
+
+/** Both bars read the same list; these two names are what each one calls it. */
+export const topNavFor = navFor;
+export const mobileNavFor = navFor;
 
 /**
  * Whether a nav item is the one being looked at.
@@ -280,7 +203,8 @@ export function mobileNavFor(sessionsEnabled?: boolean): readonly NavItem[] {
  *
  * `/coach` is deliberately not folded into Crew. It is a view of one rider's
  * own progress rather than a crew screen, and it is reached from the account
- * menu, which is not part of either bar.
+ * menu, which is not part of either bar. `/account`, `/plans`, `/suggest`,
+ * `/report` and `/whats-new` light nothing either, for the same reason.
  */
 export function isNavActive(item: NavItem, pathname: string): boolean {
   const owns = (base: string) => pathname === base || pathname.startsWith(`${base}/`);
@@ -292,24 +216,12 @@ export function isNavActive(item: NavItem, pathname: string): boolean {
 }
 
 /**
- * The bottom-bar section a path belongs to, or `undefined` for one that is not
- * in a section at all (`/account`, `/report`).
- *
- * The drawer needs this and `MobileNav` needs it, and they must not disagree:
- * a bar lit on Progress with a What's on drawer under it would be worse than
- * no drawer. One function, `isNavActive`, one answer.
- */
-export function activeSection(pathname: string, sessionsEnabled?: boolean): NavItem | undefined {
-  return mobileNavFor(sessionsEnabled).find((item) => isNavActive(item, pathname));
-}
-
-/**
  * What the top bar's avatar opens (`AccountMenu`).
  *
  * Here rather than in the component because it is navigation, and because the
  * covers-everything test above has to be able to count it: these five are the
- * reason Plans does not need a cell in a five-item bar, and the reason
- * `/report` is no longer reachable on a phone only from the site footer.
+ * reason Plans does not need a cell in a four-group bar, and the reason
+ * `/report` is not reachable on a phone only from the site footer.
  */
 export type AccountMenuItem = {
   readonly id: string;
@@ -348,12 +260,11 @@ export const ACCOUNT_MENU: readonly AccountMenuItem[] = [
  *
  * Last, and behind a heavier keyline than the five above it (`additions.css`),
  * because it is a different register: the five are about the rider reading
- * them, and this one is about everybody else's data. It is not in `TOP_NAV` or
- * `MOBILE_NAV` — a link two people use does not earn a cell in a five-item bar,
- * and the menu is already the place for destinations that are not places to
- * ride.
+ * them, and this one is about everybody else's data. It is not a nav group — a
+ * link two people use does not earn a cell in a four-cell bar, and the menu is
+ * already the place for destinations that are not places to ride.
  *
- * Until now `/admin` was reached by typing the address, which `lib/routes.ts`
+ * Until T42 `/admin` was reached by typing the address, which `lib/routes.ts`
  * recorded as a deliberate hold rather than a decision: a nav entry "would have
  * to render conditionally on `role`, on every page". It does now, and the
  * conditional is one boolean computed once in `app/(app)/layout.tsx`.

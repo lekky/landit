@@ -3,255 +3,150 @@ import { describe, expect, it } from 'vitest';
 import {
   ACCOUNT_MENU,
   ACCOUNT_MENU_ADMIN,
+  BELL_DESTINATION,
+  DESTINATIONS,
   MOBILE_NAV,
-  PROGRESS_TABS,
-  mobileNavFor,
-  topNavFor,
+  NAV_GROUPS,
   TOP_NAV,
-  WHATS_ON_TABS,
   accountMenuFor,
-  activeSection,
   isNavActive,
+  mobileNavFor,
+  navFor,
+  topNavFor,
   type NavItem,
 } from '@/components/shell/nav';
 
 /**
- * The bottom bar's promise, checked.
+ * The bars' promise, checked.
  *
  * Under `src/lib/` rather than beside `components/shell/nav.ts` because that is
  * where `vitest.config.ts` looks, and its `include` is narrow on purpose — this
- * package does not unit-test screens. Nothing here renders one: `nav.ts` is
- * three arrays and a predicate.
+ * package does not unit-test screens. Nothing here renders one: `nav.ts` is a
+ * few arrays and a predicate.
  *
- * Below 861px `.nav` is `display: none`, so whatever `MOBILE_NAV` leaves out is
- * gone on a phone unless something else carries it. The bar used to be
+ * Below 861px `.nav` is `display: none`, so whatever the bottom bar leaves out
+ * is gone on a phone unless something else carries it. The bar was once
  * `TOP_NAV.slice(0, 5)` and four destinations — Challenge, Events, Spots and
  * Plans — were reachable only from the site footer at the bottom of a scrolled
  * page. That is the defect these tests exist to stop coming back, and it came
  * back the moment somebody added a tenth destination without thinking about the
- * phone. So the assertion is not "the bar has five items"; it is "every
- * destination in the product has a way in on a phone".
+ * phone.
+ *
+ * The app shell rethink makes both bars the same four groups, which kills the
+ * old form of the check: "every top-bar entry is on the phone" is trivially
+ * true when the two lists are one object. So the question is asked of the
+ * product instead — `DESTINATIONS` is everywhere a rider can go, written out by
+ * hand, and every one of them has to be a group, something a group reaches, an
+ * account-menu row or the bell.
  */
 
-const phoneReachable = new Set<string>([
-  ...MOBILE_NAV.map((item) => item.href),
-  ...MOBILE_NAV.flatMap((item) => item.reaches ?? []),
-  ...ACCOUNT_MENU.map((item) => item.href),
-]);
+/** Everywhere the shell can take a rider, at any width. */
+const reachable = (sessionsEnabled?: boolean) =>
+  new Set<string>([
+    ...navFor(sessionsEnabled).map((item) => item.href),
+    ...navFor(sessionsEnabled).flatMap((item) => item.reaches ?? []),
+    ...ACCOUNT_MENU.map((item) => item.href),
+    BELL_DESTINATION,
+  ]);
 
-describe('the phone carries every destination', () => {
-  it.each(TOP_NAV.map((item) => [item.id, item.href] as const))(
-    '%s (%s) is reachable below 861px',
-    (_id, href) => {
-      expect(phoneReachable.has(href)).toBe(true);
-    },
-  );
-
-  it('spends exactly five cells, because .mobnav is repeat(5, 1fr)', () => {
-    expect(MOBILE_NAV).toHaveLength(5);
+describe('every destination has a way in', () => {
+  it.each(
+    DESTINATIONS.filter((href) => href !== '/progress/sessions').map((href) => [href] as const),
+  )('%s is reachable on a phone', (href) => {
+    expect(reachable().has(href)).toBe(true);
   });
 
-  it('claims nothing it does not honour: every `reaches` is a tab in its own drawer', () => {
-    /*
-     * A claim added without a way to follow it would pass the reachability test
-     * above and still leave a rider stranded — that is the failure this catches.
-     *
-     * Checked against the *section's own* tabs rather than against a pooled set
-     * of every tab in the app, which is what it used to do. Pooling them meant
-     * What's on could have claimed `/stickers` and been marked honoured by the
-     * Progress drawer, which no rider can reach from `/spots`.
-     */
-    for (const item of MOBILE_NAV) {
-      const honoured = new Set<string>((item.tabs ?? []).map((tab) => tab.href));
-
-      for (const href of item.reaches ?? []) {
-        expect(honoured.has(href), `${item.id} claims ${href} with nothing to click`).toBe(true);
-      }
-    }
+  it('reaches Sessions for a rider the preview covers, and only for them', () => {
+    // A cell that offered a screen the rider would be refused is worse than a
+    // cell that does not mention it: the gate is `sessionsEnabledFor` on every
+    // `/progress/sessions` route, and this is the bar agreeing with it.
+    expect(reachable(true).has('/progress/sessions')).toBe(true);
+    expect(reachable(false).has('/progress/sessions')).toBe(false);
   });
 
-  it('puts the two-screen sections behind a drawer that includes their own landing screen', () => {
-    // A rider on `/events` needs a way back to `/spots`, not only forward.
-    expect(WHATS_ON_TABS.map((t) => t.href)).toEqual(['/spots', '/events']);
-    expect(PROGRESS_TABS.map((t) => t.href)).toEqual(['/progress', '/stickers', '/challenge']);
+  it('spends four groups, in the order both bars draw them (D1, D8)', () => {
+    expect(NAV_GROUPS.map((item) => item.id)).toEqual(['home', 'library', 'find', 'crew']);
   });
 
-  it('puts Progress in the middle cell (Rachid, 2026-09-14)', () => {
-    expect(MOBILE_NAV.map((item) => item.id)).toEqual([
-      'home',
-      'library',
-      'progress',
-      'whats-on',
-      'crew',
-    ]);
+  it('draws the same four at both widths, which is the whole change', () => {
+    // D8: a desktop that grouped its nav differently from the phone would be
+    // two products to learn. `MobileNav` is what inserts LOG between the second
+    // and third of these; the list itself has no entry for it, because it is
+    // not a destination.
+    expect(TOP_NAV).toBe(NAV_GROUPS);
+    expect(MOBILE_NAV).toBe(NAV_GROUPS);
+    expect(topNavFor(true)).toEqual(mobileNavFor(true));
   });
 
-  it('gives a drawer to exactly the sections that fold a second screen', () => {
-    /*
-     * The caret is drawn from `tabs`, so a section that reaches a screen without
-     * carrying it would show no caret and open nothing — the invisible fold this
-     * whole change exists to end. And a section with tabs but nothing folded
-     * would put a caret on a cell that has nothing behind it.
-     */
-    const folded = MOBILE_NAV.filter((item) => item.reaches?.length);
-    expect(folded.map((item) => item.id)).toEqual(['progress', 'whats-on']);
-
-    for (const item of MOBILE_NAV) {
-      const foldsSomething = Boolean(item.reaches?.length);
-      expect(Boolean(item.tabs), `${item.id}`).toBe(foldsSomething);
-    }
-  });
-
-  it("lists the section's own screen first, so arriving does not relabel the drawer", () => {
-    // The drawer opens on arrival at `item.href`; if that screen were not the
-    // first tab, a rider landing on Spots would meet a list headed by Events.
-    for (const item of MOBILE_NAV) {
-      if (!item.tabs) continue;
-      expect(item.tabs.at(0)?.href, `${item.id}`).toBe(item.href);
-    }
-  });
-});
-
-describe('the Progress section with sessions on', () => {
-  /*
-   * The same three invariants the sessions-off bar is held to, re-checked on
-   * the shape a rider in the preview actually gets (2026-09-13). The section
-   * grew a third screen and changed which one it lands on, and both of those
-   * are exactly the kind of change the tests above exist to catch.
-   */
-  const progress = () => mobileNavFor(true).find((item) => item.id === 'progress') as NavItem;
-
-  it('lands on Sessions and folds the other two behind it', () => {
-    expect(progress().href).toBe('/progress/sessions');
-    expect(progress().tabs?.map((t) => t.href)).toEqual([
-      '/progress/sessions',
-      '/progress',
-      '/stickers',
-      '/challenge',
-    ]);
-  });
-
-  it("still lists the section's own screen first, so arriving does not relabel the drawer", () => {
-    expect(progress().tabs?.at(0)?.href).toBe(progress().href);
-  });
-
-  it('claims nothing it does not honour', () => {
-    const honoured = new Set(progress().tabs?.map((t) => t.href));
-    for (const href of progress().reaches ?? []) expect(honoured.has(href)).toBe(true);
-  });
-
-  it('keeps every top-bar destination reachable below 861px', () => {
-    const reachable = new Set<string>([
-      ...mobileNavFor(true).map((item) => item.href),
-      ...mobileNavFor(true).flatMap((item) => item.reaches ?? []),
-      // Plans and the other account-shaped destinations live behind the avatar
-      // at every width, as `phoneReachable` above has it.
-      ...ACCOUNT_MENU.map((item) => item.href),
-    ]);
-    for (const item of topNavFor(true)) expect(reachable.has(item.href), item.id).toBe(true);
-  });
-
-  it('lights the cell on all four of its screens', () => {
-    for (const path of ['/progress/sessions', '/progress', '/stickers', '/challenge']) {
-      expect(activeSection(path, true)?.id, path).toBe('progress');
-    }
+  it('claims nothing twice: no two groups reach the same screen', () => {
+    // Two groups claiming one screen would mean the bar could light either
+    // cell, and `isNavActive` would answer differently depending on order.
+    const claims = NAV_GROUPS.flatMap((item) => [item.href, ...(item.reaches ?? [])]);
+    expect(new Set(claims).size).toBe(claims.length);
   });
 
   it('leaves the bar exactly as it was for a rider outside the preview', () => {
-    // The one thing that must not happen: a cell offering a screen that 404s.
-    expect(mobileNavFor(false)).toEqual(MOBILE_NAV);
-    expect(topNavFor(false)).toEqual(TOP_NAV);
-    expect(activeSection('/progress')?.id).toBe('progress');
-  });
-});
-
-describe('activeSection', () => {
-  it('answers with the section a folded screen belongs to', () => {
-    expect(activeSection('/events')?.id).toBe('whats-on');
-    expect(activeSection('/spots')?.id).toBe('whats-on');
-    expect(activeSection('/stickers')?.id).toBe('progress');
-    expect(activeSection('/challenge')?.id).toBe('progress');
+    expect(navFor(false)).toBe(NAV_GROUPS);
+    expect(navFor(undefined)).toBe(NAV_GROUPS);
   });
 
-  it('holds the section across a sub-route, so a spot page does not close the drawer', () => {
-    expect(activeSection('/spots/bay-sixty6')?.id).toBe('whats-on');
-    expect(activeSection('/events/brighton-jam')?.id).toBe('whats-on');
-  });
-
-  it('answers with nothing on a screen that is in no section', () => {
-    expect(activeSection('/account')).toBeUndefined();
-    expect(activeSection('/report')).toBeUndefined();
-    expect(activeSection('/plans')).toBeUndefined();
-  });
-
-  it('never answers with two sections for one screen', () => {
-    // `MobileNav` takes the first match; two would mean the bar could light one
-    // cell and open the other one's drawer beneath it.
-    for (const path of [
-      '/home',
-      '/library',
-      '/spots',
-      '/events',
-      '/progress',
-      '/stickers',
-      '/crew',
-      '/challenge',
-    ]) {
-      expect(
-        MOBILE_NAV.filter((item) => isNavActive(item, path)),
-        path,
-      ).toHaveLength(1);
+  it('holds Home lit on all four record screens for a rider with sessions', () => {
+    const home = navFor(true).find((item) => item.id === 'home') as NavItem;
+    for (const path of ['/progress', '/progress/sessions', '/stickers', '/challenge']) {
+      expect(isNavActive(home, path), path).toBe(true);
     }
   });
 });
 
-describe('isNavActive', () => {
-  const section = (id: string) => MOBILE_NAV.find((item) => item.id === id) as NavItem;
+describe('which cell stays lit (§2.2)', () => {
+  const group = (id: string) => NAV_GROUPS.find((item) => item.id === id) as NavItem;
+  const lit = (pathname: string) => NAV_GROUPS.filter((item) => isNavActive(item, pathname));
 
-  it('lights the section a folded screen belongs to', () => {
-    expect(isNavActive(section('whats-on'), '/events')).toBe(true);
-    expect(isNavActive(section('progress'), '/stickers')).toBe(true);
-    expect(isNavActive(section('progress'), '/challenge')).toBe(true);
-    expect(isNavActive(section('home'), '/challenge')).toBe(false);
+  it('lights Home on the record screens it holds', () => {
+    expect(lit('/progress').map((item) => item.id)).toEqual(['home']);
+    expect(lit('/stickers').map((item) => item.id)).toEqual(['home']);
+    expect(lit('/challenge').map((item) => item.id)).toEqual(['home']);
+  });
+
+  it('lights Find on the screens it holds, and on their sub-routes', () => {
+    for (const path of [
+      '/find',
+      '/spots',
+      '/spots/bay-sixty6',
+      '/events',
+      '/events/brighton-jam',
+      '/events/past',
+      '/events/mine',
+    ]) {
+      expect(lit(path).map((item) => item.id), path).toEqual(['find']);
+    }
+  });
+
+  it('lights Tricks on a trick page and on the glossary', () => {
+    expect(isNavActive(group('library'), '/library/tailwhip')).toBe(true);
+    expect(isNavActive(group('library'), '/glossary')).toBe(true);
   });
 
   it('lights Crew on a rider profile and an invite, which sit under neither', () => {
-    expect(isNavActive(section('crew'), '/riders/miles')).toBe(true);
-    expect(isNavActive(section('crew'), '/join/ABC123')).toBe(true);
+    expect(isNavActive(group('crew'), '/riders/miles')).toBe(true);
+    expect(isNavActive(group('crew'), '/join/ABC123')).toBe(true);
   });
 
-  it('lights a section on its own sub-routes', () => {
-    expect(isNavActive(section('library'), '/library/tailwhip')).toBe(true);
+  it('never lights two cells for one screen', () => {
+    for (const path of DESTINATIONS) expect(lit(path).length, path).toBeLessThanOrEqual(1);
   });
 
-  it('does not light a section on a screen it has nothing to do with', () => {
-    expect(isNavActive(section('whats-on'), '/library')).toBe(false);
-    expect(isNavActive(section('progress'), '/crew')).toBe(false);
-    // A prefix match, not a string one: `/homework` is not `/home`.
-    expect(isNavActive(section('home'), '/homework')).toBe(false);
-  });
-
-  it('leaves the bar blank on the account screens, which are not sections', () => {
-    for (const item of MOBILE_NAV) {
-      expect(isNavActive(item, '/account')).toBe(false);
-      expect(isNavActive(item, '/report')).toBe(false);
+  it('lights nothing on the screens that belong to no group', () => {
+    // `/whats-new` included: the bell is on every screen, so a rider reading
+    // their own news is not "in" a group.
+    for (const path of ['/account', '/plans', '/coach', '/suggest', '/report', '/whats-new']) {
+      expect(lit(path).map((item) => item.id), path).toEqual([]);
     }
   });
-});
 
-describe('the top bar is untouched by the phone restructure', () => {
-  it('still carries all nine, in the design order', () => {
-    expect(TOP_NAV.map((item) => item.id)).toEqual([
-      'home',
-      'library',
-      'progress',
-      'stickers',
-      'crew',
-      'challenge',
-      'events',
-      'spots',
-      'plans',
-    ]);
+  it('matches on path segments, not on strings', () => {
+    expect(isNavActive(group('home'), '/homework')).toBe(false);
+    expect(isNavActive(group('find'), '/spotsomething')).toBe(false);
   });
 });
 
