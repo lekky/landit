@@ -2058,6 +2058,24 @@ borrows the prototype clips panel's layout and none of its behaviour. The rest o
   The first-landed date ships without it; tracked as an issue, and it is the only fidelity gap on
   screen 09.
 
+**Amended 2026-09-16: the locked trick opens the lowdown** (Rachid, in chat: "just the top bit or
+summary or something and then the rest is kind of locked out, so gradually"). Screenshot 10 and the
+handoff both draw a locked page with none of the trick's copy on it, and that is what shipped: 199
+of the library's 259 pages said nothing about the trick they are named after, to a rookie and to a
+crawler alike. They now carry **the opening of the lowdown and no more** — `lowdownTeaser` in
+`@landit/core`, whose one guarantee is that it never returns the whole of it: the first sentence
+where there is a second one behind it, and a cut on a word where the copy is a single sentence, as
+189 of 254 lowdowns are. The lock copy says "the rest of the lowdown" to match.
+
+Three things this is not. It is not a change to what the tier buys — the tips, the fun fact, the
+mistakes, the video and the tracking are all still behind it, and the paywall itself is still the
+`trick_progress` hook (§3, guarantee 3). It is not new disclosure: the page's `description` has put
+`about` in the search snippet since T31, so nothing here is published that Google was not already
+showing. And it is not a crawler-only view — a rookie sees exactly what a crawler sees, because
+serving a search engine more than a rider gets is cloaking, which is a worse problem than the one
+this was for. The prompt was Search Console reporting these pages as crawled and not indexed, which
+is what a near-identical page repeated 199 times earns.
+
 **Added 2026-09-12: the grid gives a rider back their place.** Opening a trick and coming back put
 every rider at the top of an unnarrowed library — the page unmounts, so the search box, the tier,
 the status and the sort (all React state, by T7's own decision that filtering ninety records is a

@@ -98,6 +98,51 @@ export function isTrickLocked(trick: Trick, plan: PlanId): boolean {
   return !planUnlocksPaidTricks(plan) && !isTrickFree(trick);
 }
 
+/**
+ * How much of a one-sentence lowdown a locked trick may show, as a share of its
+ * length. Only reached when the copy is a single sentence, which most of the
+ * library's is — without it the "teaser" would be the whole thing.
+ */
+const TEASER_SHARE = 0.6;
+
+/**
+ * The opening of a trick's lowdown, for a rider who cannot read the rest of it
+ * (2026-09-16, in chat: "just the top bit or summary and then the rest is kind
+ * of locked out, so gradually").
+ *
+ * **It never returns the whole lowdown**, which is the one property worth
+ * stating out loud, because the whole point is that something stays behind the
+ * lock. Two cases, and the second is the common one:
+ *
+ * - The copy is more than one sentence — the first sentence is the teaser, and
+ *   the rest is what Shredder buys.
+ * - The copy is a single sentence (189 of the library's 254 lowdowns are) — it
+ *   is cut on a word at `TEASER_SHARE` of its length and ends in an ellipsis,
+ *   because a "first sentence" there would be all of it.
+ *
+ * A sentence end only counts when something follows it, so a lowdown that ends
+ * in a full stop — every one of them — cannot be handed back whole by the first
+ * branch.
+ *
+ * This is a rule rather than a component helper because the paywall is a rule:
+ * the screen expresses it and `@landit/core` decides it, the same way
+ * `isTrickLocked` does above.
+ */
+export function lowdownTeaser(about: string): string {
+  const text = about.trim().replace(/\s+/g, ' ');
+  if (!text) return '';
+
+  // A terminator with more text behind it. `(?=\s)` is what makes "ends the
+  // string" not match, so the last sentence can never be the teaser.
+  const end = /[.!?](?=\s)/.exec(text);
+  if (end) return text.slice(0, end.index + 1);
+
+  const cut = text.slice(0, Math.max(1, Math.ceil(text.length * TEASER_SHARE)));
+  const lastSpace = cut.lastIndexOf(' ');
+  const trimmed = lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
+  return `${trimmed.replace(/[.,;:!?]+$/, '')}\u2026`;
+}
+
 /** Every trick a rider on this plan may open, track or film. */
 export function openTricks(plan: PlanId, tricks: TrickList = TRICKS): Trick[] {
   return tricks.filter((t) => !isTrickLocked(t, plan));

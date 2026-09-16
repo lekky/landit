@@ -13,6 +13,7 @@ import {
   isTrickLanded,
   isTrickLocked,
   isTrickUnlocked,
+  lowdownTeaser,
   missingPrereqs,
   openTricks,
   planUnlocksPaidTricks,
@@ -287,6 +288,62 @@ describe('the paywall', () => {
   it('respects a staff override at the paywall too', () => {
     const freed = trick({ id: 'freebie', diff: 5, free: true });
     expect(isTrickLocked(freed, 'rookie')).toBe(false);
+  });
+});
+
+describe('the locked trick\u2019s teaser', () => {
+  it('gives the first sentence when there is another one behind it', () => {
+    expect(lowdownTeaser('The foundation under every trick. Crouch and explode upward.')).toBe(
+      'The foundation under every trick.',
+    );
+  });
+
+  it('cuts a single-sentence lowdown rather than handing it over whole', () => {
+    const about =
+      'Balancing along on the back wheel with the nose held up, rolling as far as you can.';
+    const teaser = lowdownTeaser(about);
+    expect(teaser.endsWith('\u2026')).toBe(true);
+    expect(about.startsWith(teaser.slice(0, -1))).toBe(true);
+  });
+
+  it('cuts on a word, never mid-word, and never on a dangling comma', () => {
+    const teaser = lowdownTeaser(
+      'Balancing along on the back wheel with the nose held up, rolling as far as you can.',
+    );
+    expect(teaser).not.toMatch(/[ ,;:]\u2026$/);
+    expect(teaser).toBe('Balancing along on the back wheel with the nose\u2026');
+  });
+
+  it('keeps a question or an exclamation as the sentence end', () => {
+    expect(lowdownTeaser('Can you ride it switch? Most riders cannot, at first.')).toBe(
+      'Can you ride it switch?',
+    );
+  });
+
+  it('answers an empty string with an empty string', () => {
+    expect(lowdownTeaser('   ')).toBe('');
+  });
+
+  /*
+   * The property the whole thing rests on, checked against the real library
+   * rather than a fixture: a rider on Rookie must never be handed the whole
+   * lowdown by the screen that is telling them it is behind a plan. A staff
+   * edit that made one lowdown a single short sentence used to be the way that
+   * could quietly stop being true.
+   */
+  it('never returns the whole lowdown, for any trick in the library', () => {
+    for (const t of TRICKS) {
+      const teaser = lowdownTeaser(t.about);
+      expect(teaser.length).toBeGreaterThan(0);
+      expect(teaser.replace(/\u2026$/, '').length).toBeLessThan(t.about.trim().length);
+    }
+  });
+
+  it('always starts at the start, so the teaser is the lowdown\u2019s own words', () => {
+    for (const t of TRICKS) {
+      const opening = lowdownTeaser(t.about).replace(/\u2026$/, '');
+      expect(t.about.trim().replace(/\s+/g, ' ').startsWith(opening)).toBe(true);
+    }
   });
 });
 

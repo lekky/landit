@@ -1,4 +1,4 @@
-import { CATS, TIERS_LABEL, categoryLabel, type Trick } from '@landit/core';
+import { CATS, TIERS_LABEL, categoryLabel, lowdownTeaser, type Trick } from '@landit/core';
 import { Difficulty, Icon, Panel, SportChip, Tag } from '@landit/ui-web';
 import Link from 'next/link';
 
@@ -7,6 +7,7 @@ import { SPORT_LOOKS } from '@/lib/sports';
 
 import { BackToLibrary } from './BackToLibrary';
 import { PaywallSeen } from './PaywallSeen';
+import { SectionHead } from './SectionHead';
 
 import styles from './trick.module.css';
 
@@ -17,12 +18,25 @@ import styles from './trick.module.css';
  * can sit at any difficulty and a free one can sit well above Easy (`PLANS` in
  * `@landit/core`, issue #286).
  *
- * Two things this page deliberately does **not** do. It does not hide the trick
- * — the name, the category, the sport and the difficulty are all here, because
- * "locked tricks stay visible throughout, never hidden" (handoff) and a rider
- * is owed a straight answer about what they are missing. And it does not render
- * the lowdown, the tips, the fun fact or the stage picker: those are the thing
- * behind the tier, and the copy says so rather than showing them greyed out.
+ * It does not hide the trick — the name, the category, the sport and the
+ * difficulty are all here, because "locked tricks stay visible throughout,
+ * never hidden" (handoff) and a rider is owed a straight answer about what they
+ * are missing.
+ *
+ * **Since 2026-09-16 it opens the lowdown rather than withholding all of it**
+ * (Rachid, in chat: "just the top bit or summary and then the rest is kind of
+ * locked out, so gradually"). `lowdownTeaser` in `@landit/core` decides how
+ * much, and its one guarantee is that it is never the whole thing. Two reasons
+ * the giveaway is smaller than it looks: the page's own `description` has put
+ * `about` in the search snippet since T31, so this publishes nothing new; and
+ * the tips, the fun fact, the mistakes, the video and the tracking — which is
+ * what the tier is actually for — are all still absent. The copy below says
+ * "the rest of the lowdown" for that reason, and it has to keep saying so if
+ * anybody edits it.
+ *
+ * A rider and a crawler see the same page, which is not a detail: showing a
+ * search engine more than a rookie gets is cloaking, and it would be a worse
+ * problem than the one this was for.
  *
  * The page is the *expression* of the paywall, never the paywall itself. The
  * refusal lives in the `trick_progress` hook and holds on every write path
@@ -46,6 +60,7 @@ export function LockedTrick({
 }) {
   const tier = TIERS_LABEL[trick.diff - 1];
   const category = CATS[trick.cat];
+  const teaser = lowdownTeaser(trick.about);
 
   return (
     <div>
@@ -79,6 +94,18 @@ export function LockedTrick({
           </div>
         </div>
 
+        {/*
+          The teaser. Left-aligned as a reading column while the lock below it
+          is centred, because they are different kinds of thing: this is the
+          trick talking, that is the product talking.
+        */}
+        {teaser && (
+          <div className={styles.lockLowdown}>
+            <SectionHead color={category.color}>The lowdown</SectionHead>
+            <p className={styles.prose}>{teaser}</p>
+          </div>
+        )}
+
         <div className={styles.lockBody}>
           <span className={styles.lockMark}>
             <Icon name="lock" size={27} strokeWidth={2.4} />
@@ -97,8 +124,8 @@ export function LockedTrick({
           <div className={`d ${styles.lockTitle}`}>This one is on Shredder</div>
           <p className={styles.lockCopy}>
             Rookie covers twenty hand-picked tricks in every sport, and this is not one of them. The
-            lowdown, the tips and the tracking for it come with Shredder, along with every other
-            trick in the library.
+            rest of the lowdown, the tips and the tracking for it come with Shredder, along with
+            every other trick in the library.
           </p>
           <div className={styles.lockActions}>
             {/*

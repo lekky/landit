@@ -32,7 +32,24 @@ export async function generateMetadata(props: PageProps<'/legal/[doc]'>): Promis
   const { doc: id } = await props.params;
   const doc = legalDoc(id);
   if (!doc) return {};
-  return { title: `${doc.title} · Land The Trick`, description: doc.intro };
+  return {
+    title: `${doc.title} · Land The Trick`,
+    description: doc.intro,
+    /*
+     * The canonical these five pages were missing. Every other public page has
+     * carried one since `fix-seo-discovery`; these did not, while `sitemap.ts`
+     * advertised all five of them — and `www.landthetrick.com` still serves the
+     * whole site alongside the apex (issue #291), so each document exists on
+     * two hosts with nothing saying which is the original. That is precisely
+     * what Search Console reports as "duplicate without user-selected
+     * canonical".
+     *
+     * A path, not an absolute URL: Next resolves it against the `metadataBase`
+     * in `layout.tsx`, which is `SITE_URL` — the apex — so the host is decided
+     * in one place rather than five.
+     */
+    alternates: { canonical: legalHref(doc.id) },
+  };
 }
 
 export default async function LegalDocPage(props: PageProps<'/legal/[doc]'>) {
