@@ -1520,15 +1520,28 @@ die-cut sticker illustrations — PNGs in `packages/ui-web/assets/sports/`, rend
 `Equipment` in `sport-art.tsx`, copied to `public/sports/` by `sync-sports.mjs` on the same terms as
 the avatars and the award badges. Everything else in `ICONS` is untouched and stays on the 24px
 grid; the three stroked paths stay exported for anywhere the art cannot go, such as a favicon or a
-one-colour print. Three things follow that a later session should not "fix" back to a screenshot:
+one-colour print.
+
+**Repainted 2026-09-16 (Rachid, in chat), and the pipeline that made it a one-command swap.** The
+masters arrive at 1254px and 1.5–2 MB each, which is far too heavy to commit to a package every app
+installs, so they stay in the owner's art folder and only the exports ship:
+`packages/ui-web/scripts/export-sport-art.mjs --from <dir>` trims each master's transparent margin
+and writes two palettised PNGs per sport — `<name>.png` at 256px (the `src`) and `<name>@2x.png` at
+512px, which `Equipment` offers together through `srcset` density descriptors. 24–36 KB and
+70–106 KB respectively. New masters in, one command, commit; no code change. Keep it that way — the
+splashes are expected to be repainted again.
+
+Three things follow that a later session should not "fix" back to a screenshot:
 
 - **The art does not take the sport's colour.** A stroked glyph inherited `currentColor`, so a
   scooter chip drew an orange scooter. The paint is fixed — and, worth knowing, it does not match
-  the palette either: the scooter art is pink, which is BMX's `--pink` in this product, and the
-  board art is teal, which is not a token at all. The chip's keyline and label still carry the
-  sport colour, so the colour-coding survives; the object inside it does not participate.
-  **Open for the owner** if that reads wrong on the wall: repainting is an art decision, not a
-  code one.
+  the palette either: since the 2026-09-16 repaint each piece of kit is inked black over a splash
+  of its own, and none of the three splashes is that sport's colour. The scooter sits on cyan, the
+  skateboard on pink (which is BMX's `--pink` in this product) and the BMX on orange (which is the
+  scooter's). The chip's keyline and label still carry the sport colour, so the colour-coding
+  survives; the object inside it does not participate. **The owner knows** and may send recoloured
+  masters — which is why the export above is one command. Repainting is an art decision, not a code
+  one, and nobody should "fix" it here.
 - **The glyph boxes grew.** `SportChip` gives the art 16/19px where the stroke had 12/13, and the
   onboarding swatch 28px where it had 22. Below roughly 14px a painted wheel closes up and a
   skateboard is a dash. The chip is centred on its tallest child, so the badge grows and nothing
@@ -1536,13 +1549,18 @@ one-colour print. Three things follow that a later session should not "fix" back
   chip 20.6px to 26.4px**. The small one is the layout-sensitive one — it is what a trick card
   carries — and at a 375px viewport no card overflows, no chip is clipped by its parent and the
   document does not scroll sideways.
-- **Six places render it, and a grep for `sport.icon` finds only one of them.** The full set is
-  `SportChip` and `Tabs` (both in `packages/ui-web/src/components/nav.tsx`, the second covering the
-  global sport switch, the sticker wall's tabs and `/design/shell`), the onboarding sport picker,
-  the account screen's sport picker, the trick page's "what you need" kit badge, and the icon grid
-  on `/design`. Four of those reach the icon name as `SPORT_LOOKS[id].icon` rather than
-  `sport.icon`, which is how the first pass of this work shipped half-converted and had to be
-  finished in a second PR. Grep for `.icon` and read the hits, not for a spelling of it.
+- **Ten places render it, and a grep for `sport.icon` finds only one of them.** The full set,
+  re-audited 2026-09-16: `SportChip` and `Tabs` (both in `packages/ui-web/src/components/nav.tsx` —
+  the second covering the global sport switch, the glossary's filter, the sticker wall's tabs and
+  `/design/shell`; the first covering trick cards, the events list and page, and the sticker detail
+  modal), the onboarding sport picker, the account screen's sport picker, the trick page's "what you
+  need" kit badge, the icon grid on `/design`, the session detail's stat row, the session form's
+  sport picker, the sessions feed card and the sessions table. Most reach the icon name as
+  `SPORT_LOOKS[id].icon` or `SPORTS[id].icon` rather than `sport.icon`, which is how the first pass
+  of this work shipped half-converted and had to be finished in a second PR. Grep for `.icon` and
+  read the hits, not for a spelling of it. **Nothing outside that set draws a scooter**: the award
+  badges all carry `ico: 'star'`, the nav and drawer icons are sections rather than sports, and the
+  share card names the sport in text.
 - **The supplied art carried a spray-paint splat behind each object, and it was cut off.** Keeping
   it would have put a coloured blur behind a 16px chip and fought the keyline. The cut is
   reproducible rather than hand-traced: the splat and the equipment share a hue by design, so it
