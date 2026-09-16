@@ -27,20 +27,30 @@ All by Rachid, in chat, on the dates given.
 | D2 | **Find opens on a summary page** ("For you"), with Spots and Events as tabs of one row, not a drawer. | 2026-09-15 |
 | D3 | **LOG opens a sheet with four actions**: I rode today, Log a trick, Log a session, Add a clip link. | 2026-09-15 |
 | D4 | **The bell ("What's new") has two tabs**: You, and one per crew. In-app only; push notifications are out of scope. | 2026-09-15 |
-| D5 | **The sport is chosen once**, in a top-bar chip that carries the sport's icon *and name*. The top bar's bottom rule takes the sport colour. Every in-page sport tab row goes. Lists that used to carry their own sport row follow the chip and offer one "All sports" / "Every spot" toggle. | 2026-09-15 |
+| D5 | **The sport is chosen once**, in a top-bar chip that carries the sport's icon *and name*. The top bar's bottom rule takes the sport colour. Every in-page sport tab row goes. Lists that used to carry their own sport row follow the chip through one dropdown (O1 below). | 2026-09-15 |
 | D6 | Every tab row is a row of separate boxes with the 3px keyline and the hard offset shadow; the active tab lifts to a 4px offset in yellow (the `.sporttab` treatment). Pills keep their keyline-only look because they filter rather than navigate. | 2026-09-15 |
 | D7 | **Trick page: layout A** — the sticker and the video share one row directly under the name, then the stage ladder, then the sections. With no video the sticker card takes the row alone. | 2026-09-16 |
 | D8 | **Desktop follows the same four groups in its top nav** (Home · Tricks · Find · Crew) with the sport chip, Log and the bell beside them. Progress, Sessions, Stickers and Challenge are reached from the Home cards; Plans and the rest from the avatar menu. Every desktop page gets the pass, not only the five with a new shape. | 2026-09-16 |
 | D9 | The streak chip leaves the top bar at every width. It never showed below 520px; the streak is on Home and in What's new. | 2026-09-16 |
 
-**Two things the owner has not decided** (asked in the brief that opens the build):
+**O1, decided 2026-09-16 (Rachid, in chat).** The sport scope on a list is a **dropdown**, not a
+toggle: the options are "Your sport (Scooter)", "All sports" and one entry per other sport. The
+default follows the quality of the data: **Spots opens on Every spot** (spot sport tags are thin;
+about 210 of 3,463 carry BMX, and the 2026-09-12 decision to show every spot stands), **Events opens
+on your sport** (74 staff-tagged events). Sessions and the glossary open on your sport. See
+`SportScopeSelect`, §3.3.
 
-- **O1 — Spots and Events opening on the chip's sport.** On 2026-09-12 the owner chose "every
-  spot for every rider" on `/spots` and `/events`. D5 as drawn opens both lists on the chip's
-  sport with an "Every spot" toggle one tap away. Either keep the drawn default, or keep the
-  2026-09-12 default and make "Scooter spots" the toggle. The build treats the drawn default as
-  the answer unless told otherwise.
-- **O2 — Where the build runs.** See §9.
+**O2, decided 2026-09-16 (Rachid, in chat).** The build runs from a fresh orchestrator session on
+the owner's laptop, not in the cloud, so the combined branch can be run on localhost and looked at.
+See §9.
+
+**Branching, decided 2026-09-16 (Rachid, in chat).** All eight task PRs target an integration
+branch, **`shell-rethink`**, cut from `main`. The owner reviews the whole rethink on that branch
+(a draft PR `shell-rethink → main`, opened at the start, gives one place to comment and a preview
+deploy). The orchestrator has standing permission to **raise and merge each task PR into
+`shell-rethink` when its checks are green**, and merges `main` into `shell-rethink` after each wave
+so the final merge stays small. The PR from `shell-rethink` to `main` is asked for separately, as
+CLAUDE.md step 8 requires, and merging it is still not shipping.
 
 ---
 
@@ -140,7 +150,7 @@ existing component is a new prop with the old behaviour as its default.
 
 **`BackLink`** (new, `apps/web/src/components/shell/BackLink.tsx`) — arrow-left icon + label in `.lab` at 13px, `--ink-3`. A link. Used per §2.3.
 
-**`SportScopeToggle`** (new, `apps/web/src/components/shell/SportScopeToggle.tsx`) — one line under a list's header: "September · following your sport" in `.lab` `--ink-3`, and a `Pill` reading "All sports" (or "Every spot" on Spots). Toggling fires `sport_scope_toggled` `{ screen, scope: 'sport' | 'all' }`. Used on Sessions, Glossary, Spots, Events. The state is per screen and per device (`localStorage` key `landit.scope.<screen>`), not rider data.
+**`SportScopeSelect`** (new, `apps/web/src/components/shell/SportScopeSelect.tsx`) — one line under a list's header: a `.lab` label ("Show") and a **styled `<select>`** in the design's select treatment (the Country select on `/events` is the precedent: 3px keyline, `--sh-sm`, Barlow Condensed 700 uppercase). Options: **Your sport (Scooter)** — which tracks the chip, so switching the chip switches the list — then **All sports** (reads "Every spot" on Spots), then one entry per other sport the rider does not currently have selected. Default per O1: Spots → Every spot; Events, Sessions, Glossary → Your sport. Choosing fires `sport_scope_set` `{ screen, scope: 'chip' | 'all' | 'other' }` (never the sport id of an "other" choice beyond the three catalogue ids). The choice is per screen and per device (`localStorage` key `landit.scope.<screen>`), not rider data.
 
 ### 3.4 Home
 
@@ -171,7 +181,7 @@ existing component is a new prop with the old behaviour as its default.
 ### 3.7 Find
 
 **Find hub** (`/find`, new route in `apps/web/src/app/(app)/find/page.tsx`) — header "Find / Where to ride", a `TabRow` of For you · Spots · Events (links), then three sections: **You're going** (the rider's upcoming attended events, "Mine →" to `/events/mine`), **Near you** (the nearest spots once location is granted, else the rider's faves and recent session spots, plus the existing "Near me" button), **Coming up** (the next events, "All events →"). Desktop: the three sections are three columns. Signed out: the tab row and Coming up / Near you only.
-- `/spots` and `/events` gain the same `TabRow` at the top and lose their eyebrow + h1 header on the phone (they keep it on desktop). Their sport pill rows become `SportScopeToggle` (O1). Events' Upcoming / Past / Mine switch becomes pills Upcoming · Past; Mine lives on For you.
+- `/spots` and `/events` gain the same `TabRow` at the top and lose their eyebrow + h1 header on the phone (they keep it on desktop). Their sport pill rows become `SportScopeSelect` (O1: Spots opens on Every spot, Events on your sport). Events' Upcoming / Past / Mine switch becomes pills Upcoming · Past; Mine lives on For you.
 - Fires `tabs_switched` `{ group: 'find', tab }`.
 
 ### 3.8 Trick page (D7)
@@ -187,7 +197,7 @@ Phone order: BackLink → hero band (category tag, difficulty, name, one-line lo
 ### 3.10 Other screens
 
 - **Progress** — `TabRow` Record · Over time · Skill tree; the `SportSwitch` and `ProgressTabs` rows go. Record = by category + by stage (+ printable sheets on desktop's rail).
-- **Sessions** — header with the Log button; on the phone three `StatBlock`s (sessions, time, moved up) then the feed; `SportScopeToggle` replaces the sport pills; the "At an event" pill stays.
+- **Sessions** — header with the Log button; on the phone three `StatBlock`s (sessions, time, moved up) then the feed; `SportScopeSelect` replaces the sport pills; the "At an event" pill stays.
 - **Session form** — three steps on the phone via `TabRow` (When & where · What · Notes) with Next / Save; "What you rode" becomes a preset `Tag` from the chip with a Change link, not a three-button row. Desktop: the same three steps inside the modal, step one as two cards side by side.
 - **Quick log** — unchanged, shows the sport `Tag`; on desktop a 640px modal.
 - **Stickers** — Earned / Not yet as a `TabRow` in the header; the `SportSwitch` goes.
@@ -197,7 +207,7 @@ Phone order: BackLink → hero band (category tag, difficulty, name, one-line lo
 - **Spot page** — three equal actions under the hero on the phone (Faved · Directions · Log here), in the hero band on desktop; What's here as coloured `LinkCard`s.
 - **Events archive** — the Past pill; the year/town index stays.
 - **Plans** — Monthly · Yearly as a `TabRow`; otherwise unchanged (three cards on desktop, stacked on the phone).
-- **Glossary** — `SportScopeToggle` replaces its own sport tabs.
+- **Glossary** — `SportScopeSelect` replaces its own sport tabs.
 - **Coach, Suggest, Report, Close account** — radio lists become `Pill` rows; content otherwise unchanged; desktop centred at 640px.
 - **Tricks** — the `SportSwitch` goes; the phone's Filters toggle joins All · Mine in one `TabRow`; the Rookie nudge moves below the first card rows.
 
@@ -241,7 +251,7 @@ facts only, and each added to the pinned list in `analytics.test.ts`:
 | `log_sheet_opened` | `where: 'mobile' \| 'top'` | LogCell, LogButton |
 | `log_action_picked` | `action: 'rode' \| 'trick' \| 'session' \| 'clip'` | LogSheet |
 | `tabs_switched` | `group`, `tab` (ids from the screen's tab list) | TabRow |
-| `sport_scope_toggled` | `screen`, `scope: 'sport' \| 'all'` | SportScopeToggle |
+| `sport_scope_set` | `screen`, `scope: 'chip' \| 'all' \| 'other'` | SportScopeSelect |
 | `whats_new_opened` | `where: 'mobile' \| 'top'`, `unread` (integer) | BellButton |
 | `whats_new_read` | `unread` (the count cleared) | "Mark all read" |
 
@@ -288,16 +298,18 @@ content and gains the new bar and, where it belongs to a group, its back link.
 ## 8. Build split
 
 One session = one task = one branch = one PR (CLAUDE.md step 3). Eight tasks, in three waves;
-T45 first and alone because everything else uses what it adds.
+T45 first and alone because everything else uses what it adds. **Every task branch is cut from
+`shell-rethink` and its PR targets `shell-rethink`** (the branching decision in §1); the
+rebase step in CLAUDE.md step 7 rebases onto `origin/shell-rethink`, not `origin/main`.
 
 | Task | Branch | Scope | Depends on |
 | --- | --- | --- | --- |
 | **T45** | `t45-shell-groups` | `nav.ts` on four groups both bars; `LogCell` + `LogSheet` (+ `Sheet`, `OptionRow`); `SportSwitchChip` + sheet/menu; `TabRow` variant; `BackLink`; `Dropdown`; motion tokens; streak chip out; drawer out; `VerifyEmailBanner` strip; `/find` **placeholder** route that redirects to `/spots` until T48 lands; analytics events; shell e2e at 375 / 861 / 960 / 1280 | — |
 | **T46** | `t46-home-cards` | `LinkCard`s and the new Home order both widths; Home back links and lit-cell rules on Progress, Sessions, Stickers, Challenge; Progress `TabRow`; Stickers `TabRow`; `SportSwitch` rows removed from those screens | T45 |
 | **T47** | `t47-whats-new` | `whats_new_seen_at` migration + hook; derived feed in `packages/core` (pure, tested) and `packages/db`; `WhatsNewPanel`, `/whats-new`, `BellButton` count and dropdown | T45 |
-| **T48** | `t48-find` | `/find` hub; `TabRow` on Spots and Events; `SportScopeToggle` (O1); Events pills; archive; Mine folded | T45 |
+| **T48** | `t48-find` | `/find` hub; `TabRow` on Spots and Events; `SportScopeSelect` (O1); Events pills; archive; Mine folded | T45 |
 | **T49** | `t49-trick-page` | layout A; `Accordion`; the sticker + video row; desktop columns; Log a trick's trick picker lands on `#ladder` | T45 |
-| **T50** | `t50-lists-follow-chip` | Sessions header/stats/toggle; session form steps + preset sport; quick log tag; Glossary toggle | T45 |
+| **T50** | `t50-lists-follow-chip` | Sessions header/stats/dropdown; session form steps + preset sport; quick log tag; Glossary dropdown | T45 |
 | **T51** | `t51-account-settings` | `SettingsList`, the seven screens, desktop master/detail | T45 |
 | **T52** | `t52-secondary-screens` | Crew tabs, rider profile tabs, spot page actions, Plans tabs, Coach / Suggest / Report / Close pills and centring, Tricks header | T45 |
 
@@ -314,11 +326,32 @@ touched, and **no PR raised unasked**.
 
 ## 9. Where the build runs (O2)
 
-The design session (this one) holds the canvas and the reasoning but its context is mostly
-mockup mechanics. The recommendation is: **this session writes this document and the plan
-amendment and pushes the branch; a fresh orchestrator session reads this document cold and runs
-T45–T52**, spawning one worker per task in its own worktree, T45 first, then the two waves. A cold
-read is also the test of whether this document is complete: a worker that has to ask is a
-paragraph this document is missing, and the orchestrator adds it here before the worker
-continues. Nothing in this document is authority the orchestrator can widen; owner decisions still
-arrive in chat with a date.
+On the owner's laptop, in a fresh Claude Code session opened in the repository checkout, so the
+owner can run `pnpm dev` from any worktree or from `shell-rethink` and see the work on localhost.
+The orchestrator reads this document cold, which is also the test of whether it is complete: a
+worker that has to ask is a paragraph this document is missing, and the orchestrator adds it here
+(in the task's PR) before the worker continues. Workers are subagents on the Opus model, one per
+task, each in its own worktree under `.claude/worktrees/<branch>`. Nothing in this document is
+authority the orchestrator can widen; owner decisions still arrive in chat with a date.
+
+To see a task while it is being built: `cd .claude/worktrees/t45-shell-groups && pnpm dev`. To see
+the combined work: `git checkout shell-rethink && pnpm dev`. Both need a PocketBase running as the
+README describes; the e2e suite's own instance on port 8091 is the quickest.
+
+## 10. The orchestrator's opening message
+
+Paste this, unchanged, as the first message of the new session:
+
+> Read `CLAUDE.md`, then `docs/app-shell-rethink.md` in full, then `docs/implementation-plan.md`
+> §7 Wave 9 and §1's "App shell (D7)" row. You are the orchestrator for tasks T45–T52. Do not
+> build anything yourself. Open with one TPO brief for T45 (CLAUDE.md step 1); when I answer,
+> spawn one Opus worker for T45 in its own worktree cut from `origin/shell-rethink`, with the
+> spec as its contract and CLAUDE.md as its process. When T45's PR is green, merge it into
+> `shell-rethink` (this permission was granted 2026-09-16 and covers every task PR into
+> `shell-rethink`, and nothing into `main`), then brief and spawn T46, T47 and T48 together, then
+> T49, T50, T51 and T52 together, merging `main` into `shell-rethink` between waves. Each worker
+> ends with the TPO handover and screenshots at 390px and 1280px. Where a worker has to ask
+> something the spec should have answered, add the answer to the spec in that worker's PR. If a
+> decision needs me, stop and ask in a line. Keep the draft PR `shell-rethink → main` description
+> updated with a checklist of the eight tasks as they merge; do not merge it.
+
