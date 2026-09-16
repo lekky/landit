@@ -594,3 +594,49 @@
 .backLink:hover {
   color: var(--ink);
 }
+
+/* ------------------------------------------------------- sport scope row -- */
+
+/*
+ * "Show: Your sport (Scooter)" — `SportScopeSelect` (§3.3, O1).
+ *
+ * The design's select treatment, which is the Country control on `/events`:
+ * a 2.5px ink keyline, the paper fill and the small hard offset, with the
+ * condensed face the rest of the furniture uses. Restated here rather than
+ * shared out of `events.module.css`, because a module is scoped to its own
+ * file and the alternative is a global class in `additions.css` for two
+ * controls — which is the shared, additive-only stylesheet the shell's own
+ * furniture has no business growing into (see this file's opening note).
+ *
+ * **44px, where the Country select is about 32.** §4's floor is that nothing
+ * tappable is below 44px, and this control is the one that used to be a row of
+ * pills a thumb could hit. The precedent sets the *look*; the floor sets the
+ * size, and where the two disagree the floor wins. `/events`' own Country
+ * select is not touched here — it is not this task's, and it has an issue of
+ * its own rather than a drive-by change to a control T48 did not come for.
+ */
+.scopePick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+/*
+ * `:global(.lab)`, because `.lab` is `packages/ui-web`'s and this module does
+ * not define it — written bare, the build hashes it into a class the JSX never
+ * writes and the rule is dead on arrival (LESSONS §3a, the seven dead rules).
+ */
+.scopePick :global(.lab) {
+  color: var(--ink-3);
+}
+.scopePick select {
+  min-height: 44px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  box-shadow: var(--sh-sm);
+  padding: 6px 10px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  max-width: 15rem;
+  min-width: 0;
+}

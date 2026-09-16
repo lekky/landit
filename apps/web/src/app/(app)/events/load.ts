@@ -8,7 +8,7 @@ import {
 import { eventsFromRecords, listEventAttendance, listEvents } from '@landit/db';
 import { headers } from 'next/headers';
 
-import { anonymousClient, currentRider } from '@/lib/session';
+import { anonymousClient, currentRider, type RiderSession } from '@/lib/session';
 
 import { buildEventsView, type EventsScope, type EventsView } from './view';
 
@@ -36,8 +36,20 @@ export interface LoadedEvents {
 export async function loadEvents(
   scope: EventsScope = 'upcoming',
   where: { readonly year: number; readonly townSlug: string } | null = null,
+  /*
+   * A session the caller has already read, so it is not read twice.
+   *
+   * `/find` needs the same calendar *and* the rider's own faves and recent
+   * spots, and `currentRider()` is a round trip to PocketBase that re-checks
+   * the token rather than decoding it — so a hub that called this and then read
+   * the session itself would re-authenticate the rider to draw one page. The
+   * key's presence is what says "already read": `{ session: null }` is a
+   * visitor, and leaving the argument out is "read it here", which is every
+   * other caller and is unchanged.
+   */
+  known?: { readonly session: RiderSession | null },
 ): Promise<LoadedEvents> {
-  const session = await currentRider();
+  const session = known ? known.session : await currentRider();
   const client = session?.client ?? anonymousClient();
 
   /*
