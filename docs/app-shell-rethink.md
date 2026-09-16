@@ -136,9 +136,14 @@ before it is pressed, which is the honest version of the same invitation.
 **The chip's name is on at every width** *(added by the T45 worker, 2026-09-16, pending owner
 confirmation)*. The first cut hid it below 520px to buy room, which reversed D5 on the one device
 the rethink is for — a rider who has never opened the sheet was left decoding a 20px glyph.
-Measured with three sports at 320px the bar has the room. Below 520px the chip's type tightens
-instead (12px, less tracking, 7px of side padding), which buys about 14px without taking the word
-away; if a future label makes 320px genuinely impossible, the wordmark shrinks before the name does.
+Two things pay for it, and **both are in the code now** rather than held in reserve. Below 520px the
+chip's type tightens (12px, less tracking, 7px of side padding), which buys about 14px. Below 400px
+**the wordmark shrinks** — 42px of art to 32px, with the bar's gaps and side padding tightened with
+it — because measured at 320px with the name on, the bar was 30px over and the whole document
+scrolled sideways. The order is a decision rather than an arithmetic: the mark is the one thing on
+the bar that tells a rider nothing they do not already know, and the chip's word is the only thing
+that says which library they are looking at, so the mark takes the cut. It already does the same in
+the 861–1100px band for the same reason.
 
 **The bell reads "What's new" at zero unread** *(added by the T45 worker, 2026-09-16, pending owner
 confirmation)*. §3.1's `aria-label` is "What's new, 3 unread."; at zero the count is dropped rather
@@ -211,6 +216,23 @@ the whole of it; two of its four bullets cannot live in `packages/ui-web`. So th
 **Home order** (phone): greeting → streak card → four cards → Working on it (2 tricks, "All N of yours →") → crew activity (3 lines, "Crew →") → Next up (the next event the rider said yes to, "Find →") → Your spots (faves). Desktop: greeting + streak/challenge rail as today, then the 4-up card row, then Working on it 4-up, then crew activity and Next up side by side. The `SportSwitch` row goes from Home; the greeting panel's four stat blocks stay on desktop and go on the phone (the cards carry the numbers there).
 
 **`VerifyEmailBanner`** becomes a one-line strip (icon, "Confirm your email", "Send again" link, ×) rather than a panel with two buttons. Same cookie, same copy shortened.
+
+**The strip is 50px, and the lock goes at 360px and below** *(added by the T45 worker, 2026-09-16,
+pending owner confirmation)*. §3.4 asks for one line and does not give a number, so here is the one the code
+produces and why it is a floor rather than a taste. The × and "Send again" are both at §4's 44px
+target, the design's 3px keyline takes 3 on each edge, and the strip has no vertical padding at all
+— the two controls draw no box of their own, so letting them reach the keylines costs nothing.
+44 + 6 = **50px**, against the 159px panel it replaces. It passed through 66px while the controls
+were padded rather than sized, and 54px while they were still under the floor; 50 is the first
+number that is both one line and reachable by a thumb.
+
+The strip drops two things as it narrows, in this order: the explanatory sentence at 640px and
+below, and **the lock square at 360px and below**. With both controls at their 44px targets a 320px
+strip has about 130px for the title and "CONFIRM YOUR EMAIL" wants about 140 — measured, it was
+being cut to "CONFIRM YOUR E". The lock is `aria-hidden` decoration and the words are the message,
+so the square is what goes, and the title tightens with it. 360 rather than 400: measured at 361,
+375 and 390 the strip holds the lock, the full title and both controls with room to spare, and a
+threshold set where it is not yet needed is a decoration removed for nothing.
 
 ### 3.5 Log
 

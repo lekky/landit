@@ -17,11 +17,25 @@
  * reason is one tap from the account screen.
  */
 
+/*
+ * **50px**, and that is the floor rather than a choice.
+ *
+ * Two of the strip's controls are 44px targets (§4's floor, and the × and the
+ * link are both at it), so the content box cannot be shorter than 44; the 3px
+ * keyline on each edge is the design's and takes the other 6. 44 + 6 = 50, and
+ * there is no vertical padding at all — the controls draw no box of their own,
+ * so letting them reach the keylines costs nothing and padding on top of them
+ * would only be height the strip does not need. It was 159px as a panel and 66
+ * while the padding was still there.
+ *
+ * The number is stated here, next to the rules that decide it, because a
+ * measurement written anywhere else is a promise the next session cannot check.
+ */
 .banner {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
+  padding: 0 12px;
   /* Half what the panel took: it is one line now, and the gap under it should
      not read as a paragraph break before the screen's own heading. */
   margin-bottom: 16px;
@@ -93,7 +107,7 @@
  * cut to "CONFIRM YOUR E". The lock is `aria-hidden` decoration and the words
  * are the whole message, so the square is what goes.
  */
-@media (max-width: 400px) {
+@media (max-width: 360px) {
   .mark {
     display: none;
   }
@@ -116,13 +130,21 @@
  * hard-edged buttons side by side would give walking away the same weight as
  * confirming, and this gates nothing.
  */
+/*
+ * 44px, **set rather than arrived at** (review S4).
+ *
+ * Padding computed from an assumed line box was how this came out 41.9px: the
+ * comment reasoned from a 19px line and Barlow Condensed at 13px gives about
+ * 16.9. `min-height` with the label centred in it is 44 whatever the font does,
+ * which is the point — a floor that depends on which font loaded is not a floor.
+ */
 .link {
   background: none;
   border: 0;
-  /* 44px of target around a 19px line (review S4): 12.5px either side, taken
-     back as margin so the strip's own height does not grow with it. */
-  padding: 12.5px 8px;
-  margin: -12.5px 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
   font-family: var(--fc);
   font-weight: 700;
   font-size: 13px;

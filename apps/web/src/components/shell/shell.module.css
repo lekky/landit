@@ -253,31 +253,35 @@
 }
 
 /*
- * A 44px hit area on a phone, without moving the 34px paint (review S4/S7).
+ * A 44px hit area on a phone, **without moving the 34px paint** (review S7, F1).
  *
- * §3.1 specifies 34px-tall controls and §4 specifies a 44px floor for anything
- * tappable. The avatar already shows how to have both — `additions.css`'s
- * touch-hygiene block pads `.accountmenu-trigger` by 5px and takes the same 5px
- * back as a negative margin, so the target grows and the layout does not. The
- * chip and the bell take the same trick, and it is scoped to the widths where a
- * thumb is the pointer.
+ * §3.1 draws the chip and the bell at 34px and §4 puts a 44px floor under
+ * anything tappable, so the target has to grow and the paint has to not.
+ *
+ * The first attempt copied the avatar's trick from `additions.css`'s
+ * touch-hygiene block — 5px of padding, the same 5px back as a negative margin
+ * — and that works there for a reason this does not share: `.accountmenu-trigger`
+ * has **no background**, so its padding is invisible and the avatar circle
+ * inside stays 34px. These two are filled, and a background paints the padding
+ * box: measured at 390px, the chip became a 48px orange slab and the bell a
+ * 48px dark one beside a 34px avatar.
+ *
+ * So the target is a transparent overlay instead. `::after` is `inset: -5px` of
+ * nothing, which reaches 44px in both directions and paints not one pixel; the
+ * element's own box, its fill and its 2.5px paper keyline are untouched. The
+ * press still lands on the button, because a pseudo-element is part of it.
  */
 @media (max-width: 860px) {
-  .tbBtn.tbBtn,
-  .sportChip.sportChip {
-    padding-top: 5px;
-    padding-bottom: 5px;
-    margin-top: -5px;
-    margin-bottom: -5px;
-    /* `content-box`, so the 5px is added to the 34px rather than eaten out of
-       it — `* { box-sizing: border-box }` in `tokens.css` would otherwise leave
-       the paint 34px and the target 34px too. */
-    box-sizing: content-box;
-    height: 34px;
+  .tbBtn::after,
+  .sportChip::after {
+    content: '';
+    position: absolute;
+    /* 34 + 5 + 5 = 44, which is the floor, not a size anything is drawn at. */
+    inset: -5px;
   }
-  /* The badge hangs off the paint, so it moves down with the padding. */
-  .tbBadge {
-    top: -2px;
+  /* `.tbBtn` is already `position: relative` for its badge; the chip is not. */
+  .sportChip {
+    position: relative;
   }
 }
 

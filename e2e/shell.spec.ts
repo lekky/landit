@@ -295,20 +295,67 @@ test('on a phone, the chip and the bell are 44px targets around 34px of paint', 
   page,
 }) => {
   /*
-   * §3.1 draws both at 34px and §4 puts a 44px floor under anything tappable.
-   * The avatar beside them already has both — `additions.css`'s touch-hygiene
-   * block pads it and takes the padding back as margin — and these two did not.
+   * §3.1 draws both at 34px and §4 puts a 44px floor under anything tappable,
+   * so **both numbers are asserted**. Height alone is not enough, and that is
+   * not a hypothetical: the first fix grew the target by padding an element
+   * that has a fill, a background paints the padding box, and the chip became a
+   * 48px orange slab beside a 34px avatar. A test that only asked "is it 44 or
+   * more" passed all the way through that, and would pass at 80.
+   *
+   * The paint is the element's own border box; the target is the box plus the
+   * transparent `::after` that reaches 5px past it on every side, which is what
+   * `boundingBox` on a Playwright locator does *not* include — so the target is
+   * measured from the pseudo-element's own rect.
    */
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(SHELL);
 
+  /*
+   * A string, not a function: this project's e2e tsconfig has no DOM lib, so
+   * `window` and `getComputedStyle` are not names here (the same reason the
+   * iOS-zoom test further down plants its fixture as a string).
+   */
+  const hitArea = async (selector: string) =>
+    (await page.evaluate(`(() => {
+      const after = getComputedStyle(document.querySelector('${selector}'), '::after');
+      return { top: after.top, bottom: after.bottom, content: after.content };
+    })()`)) as { top: string; bottom: string; content: string };
+
+  for (const [what, selector, locator] of [
+    ['the sport chip', '[aria-label^="Riding: "]', page.getByRole('button', { name: /^Riding: / })],
+    ['the bell', '[aria-label^="What’s new"]', page.getByRole('link', { name: /^What’s new/ })],
+  ] as const) {
+    const paint = (await locator.boundingBox())!;
+    expect(Math.round(paint.height), `${what} is not painted at 34px`).toBe(34);
+
+    // `inset: -5px` of nothing on each side, so the target is the paint plus 10.
+    const target = await hitArea(selector);
+    expect(target.content, `${what} has no hit area`).not.toBe('none');
+    expect(target.top, `${what}'s hit area does not reach past its paint`).toBe('-5px');
+    expect(target.bottom).toBe('-5px');
+    expect(
+      Math.round(paint.height) + 10,
+      `${what} is under 44px on a phone`,
+    ).toBeGreaterThanOrEqual(44);
+  }
+
+  // The avatar is the precedent the other two follow, and it is transparent, so
+  // its own box really is both.
+  const avatar = (await page
+    .getByRole('button', { name: 'Your account and settings' })
+    .boundingBox())!;
+  expect(Math.round(avatar.height), 'the avatar is under 44px on a phone').toBeGreaterThanOrEqual(
+    44,
+  );
+
+  // On a desktop nothing is padded and all three are the drawn size.
+  await page.setViewportSize({ width: 1280, height: 800 });
   for (const [what, locator] of [
     ['the sport chip', page.getByRole('button', { name: /^Riding: / })],
     ['the bell', page.getByRole('link', { name: /^What’s new/ })],
-    ['the avatar', page.getByRole('button', { name: 'Your account and settings' })],
   ] as const) {
     const box = (await locator.boundingBox())!;
-    expect(Math.round(box.height), `${what} is under 44px on a phone`).toBeGreaterThanOrEqual(44);
+    expect(Math.round(box.height), `${what} is not 34px on a desktop`).toBe(34);
   }
 });
 
@@ -346,7 +393,9 @@ test('signed out, the LOG cell is a link to sign in rather than a sheet', async 
   await page.waitForURL('**/signin');
 });
 
-test('on a phone, the sheet stops at the top of the bar so LOG can close it', async ({ page }) => {
+test('on a phone, the sheet stops at the top of the bar, so the cross is visible', async ({
+  page,
+}) => {
   /*
    * §4 asks the LOG plus to turn into a cross "so the cell reads as 'close'
    * too". A sheet that runs to the bottom edge makes that undeliverable: the
