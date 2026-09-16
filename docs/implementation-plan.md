@@ -36,6 +36,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | Session clips (D4) | **One link to a YouTube, Instagram or TikTok video**, stored as `{ platform, id }` and never as the pasted string; no embeds and no fetched thumbnails (Rachid, 2026-09-13, in chat) | Pure parsers in `packages/core/src/rules/clip-links.ts`, transcribed for the hook with a side-by-side agreement test. TikTok's `vm.`/`vt.` short links are **refused**: their code is a redirect, and resolving one is a server fetch of a rider-supplied URL. The screens draw a local poster and open the clip at source (§6.8). |
 | Session clip allowance (D5) | **Its own allowance, separate from trick video links**: Rookie none, **Shredder 10**, Legend unlimited | Rookie's none and Legend's unlimited are the owner's; screenshots 1g and 2e give Shredder no number, so **Shredder's 10 is a tunable default, not a deliberated decision** (`SHREDDER_SESSION_CLIP_CAP`, the same standing as `SHREDDER_VIDEO_LINK_CAP`). Count plus boolean on `plans` (`session_clip_cap`, `session_clips_unlimited`), enforced at the model layer with no superuser bypass. |
 | Sessions a month (D6) | **Rookie logs 4 sessions a calendar month** on the rider's own clock; the UI warns at 3; the 5th is refused unless the rider uses a **one-off, once-per-account grace**. **Shredder and Legend unlimited** (both from screenshots 1g and 2e) (Rachid, 2026-09-13, in chat) | **The ride and the streak always save, even when the session is refused** — `logSession` marks the day's ride before it asks for the session, idempotent with the tap. Counted by the month a session is *logged* in, not the month it is dated, so the cap is not a field a rider can edit around. Count plus boolean on `plans` (`session_month_cap`, `sessions_unlimited`). **A stage move from a session is one-way**: a landed trick is promoted once, and editing or deleting the session never demotes it. Achievements are never for sale. |
+| App shell (D7) | **Four groups at every width — Home · Tricks · LOG / Log · Find · Crew — with the sport chosen once in a top-bar chip, a Log sheet in the middle of the phone bar, and a What's new bell** (Rachid, 2026-09-15 and 2026-09-16, in chat, on the design canvas) | Progress, Sessions, Stickers and Challenge become link cards on Home; Spots and Events sit under Find, which opens on a summary; every in-page sport tab row goes and lists follow the chip with one "All sports" toggle; the section drawer and the streak chip go. The desktop top nav takes the same four groups (2026-09-16), which also ends the 861–1100px width fight. The contract is `docs/app-shell-rethink.md`; the tasks are T45–T52 (Wave 9). This is a deliberate divergence from the design pack's nine-item nav and per-page sport tabs, recorded here per the change-control rule. |
 
 ---
 
@@ -5228,6 +5229,55 @@ chat, answering issue #507 ahead of turning sessions on for everyone). Depends o
     drops" back on a live card.
 - **No new analytics event.** `/plans` is already counted (`$pageview`, `checkout_started` carrying
   the plan slug); this adds a line to a counted screen rather than a rider action.
+
+### Wave 9 — the app shell rethink, one task then two waves (added 2026-09-16)
+
+**Why.** Most traffic is on phones, and the shell had grown into a website: nine destinations, a
+bottom bar that folded four of them behind a drawer, a sport tab row redrawn on five screens, and
+no way to log anything without first finding the screen it lived on. The owner asked for a rethink
+"to make it much more usable and less like browsing a website" (Rachid, 2026-09-15, in chat), chose
+between three shapes on a design canvas, and then extended the same grouping to desktop
+(2026-09-16). The decisions, the components, the motion, the analytics and the per-screen changes
+are in **`docs/app-shell-rethink.md`**, which is the contract for every task below; this section is
+the task list only.
+
+**T45 · Shell on four groups.** `t45-shell-groups`. Both bars on Home · Tricks · LOG · Find ·
+Crew; the raised LOG cell and the four-action Log sheet (a new `Sheet` primitive, additive in
+`ui-web`); the sport switch chip with its sheet and menu; the `TabRow` variant on `Tabs`; `BackLink`;
+`Dropdown`; motion tokens; the streak chip and the section drawer removed; the email banner as a
+one-line strip; a `/find` placeholder redirecting to `/spots` until T48; the new analytics events;
+`e2e/shell.spec.ts` at 375, 861, 960 and 1280px. Alone in its wave: everything else uses what it adds.
+
+**T46 · Home as a dashboard of link cards.** `t46-home-cards`. Depends on T45. The four record
+cards both widths, the new Home order, Home back links and lit-cell rules on Progress, Sessions,
+Stickers and Challenge, Progress and Stickers tab rows, sport tab rows removed from those screens.
+
+**T47 · What's new.** `t47-whats-new`. Depends on T45. The one additive field
+`users.whats_new_seen_at` with its hook; the feed derived in `packages/core` from the rider's own
+record and the crew feed's six sentences (nothing stored per item, nothing typed by anyone); the
+panel as a page on the phone and a dropdown on desktop; the bell count.
+
+**T48 · Find.** `t48-find`. Depends on T45. The `/find` summary, the tab row on Spots and Events,
+the sport-scope toggle (open question O1 in the spec), Upcoming · Past as pills, Mine folded into
+For you, the archive unchanged behind the Past pill.
+
+**T49 · Trick page.** `t49-trick-page`. Depends on T45. Layout A (sticker beside video), the
+`Accordion` primitive for the phone's sections, desktop columns kept, the Log sheet's trick picker
+landing on the ladder.
+
+**T50 · Lists follow the chip.** `t50-lists-follow-chip`. Depends on T45. Sessions header, stats
+and toggle; the session form as three steps on the phone with the sport preset from the chip; the
+quick log's sport tag; the glossary toggle.
+
+**T51 · Account as a settings list.** `t51-account-settings`. Depends on T45. Seven rows opening
+seven screens on the phone; list-plus-panel on desktop.
+
+**T52 · The secondary screens.** `t52-secondary-screens`. Depends on T45. Crew tabs, rider
+profile tabs, spot page actions, Plans tabs, Coach / Suggest / Report / Close as pills and
+centred at 640px, the Tricks header.
+
+Wave A is T45 alone. Wave B is T46 ∥ T47 ∥ T48 (route-disjoint). Wave C is T49 ∥ T50 ∥ T51 ∥ T52
+(route-disjoint). Each is one session, one branch, one PR, raised only when asked.
 
 ### Dependency graph
 
