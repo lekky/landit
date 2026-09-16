@@ -70,7 +70,7 @@ export function VerifyEmailBanner({ email }: { email: string }) {
 
       <div className={styles.actions}>
         {state?.done ? (
-          <span className={styles.sent}>On its way</span>
+          <span className={`tag ${styles.sent}`}>On its way</span>
         ) : (
           <form action={action} onSubmit={() => capture(ANALYTICS_EVENTS.verificationResent)}>
             <input type="hidden" name="email" value={email} />

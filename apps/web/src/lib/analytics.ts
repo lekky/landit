@@ -604,10 +604,12 @@ export const ANALYTICS_EVENTS = {
   /**
    * A nav destination was chosen. Carries the route, which is not a rider fact.
    *
-   * `to` is a group id from `components/shell/nav.ts` — now `home`, `library`,
-   * `find` or `crew`, plus `log` for the middle cell, which opens a sheet
-   * rather than going anywhere. `where` is `mobile` (the bottom bar), `top`
-   * (the desktop nav), `account-menu` or `home-card` (T46).
+   * `to` is a group id from `components/shell/nav.ts` — `home`, `library`,
+   * `find` or `crew` — or an account-menu item's id. `where` is `mobile` (the
+   * bottom bar), `top` (the desktop nav), `account-menu` or `home-card` (T46).
+   *
+   * **Not the LOG cell.** It opens a sheet rather than going anywhere, so it
+   * fires `log_sheet_opened` and nothing sends `to: 'log'`.
    */
   navClicked: 'nav_clicked',
   /**

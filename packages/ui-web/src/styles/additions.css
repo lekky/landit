@@ -586,6 +586,31 @@ a.pill.on:hover {
 .sheet-scrim {
   place-items: end stretch;
   padding: 0;
+  /*
+   * **The sheet stops at the top of the bottom bar** (review S1).
+   *
+   * §4 says the LOG plus turns into a cross "so the cell reads as 'close'
+   * too" — and it did rotate, behind a sheet that reached the bottom edge and
+   * an `inertOutside` that made the bar unreachable. An affordance nobody can
+   * see or press is worse than none. So the *panel* ends where `.mobnav`
+   * begins: 63px of bar plus whatever the home indicator takes.
+   *
+   * The scrim itself still covers the whole viewport — it is `position: fixed;
+   * inset: 0` from `.scrim` and this only moves the grid's bottom edge — so the
+   * page behind stays dimmed and a tap anywhere on it still closes the sheet.
+   * The bar is above the scrim (it is not inert: `inertOutside` steps round the
+   * chain the dialog hangs from, and on `<body>` that chain is short), which is
+   * what lets the cross be pressed.
+   */
+  padding-bottom: calc(63px + env(safe-area-inset-bottom));
+}
+/* Above 860px there is no bottom bar to clear, and the sheet is a `Modal`
+   anyway — but a caller forcing `as="sheet"` on a desktop should not get a
+   phone's gap. */
+@media (min-width: 861px) {
+  .sheet-scrim {
+    padding-bottom: 0;
+  }
 }
 .sheet {
   background: var(--paper);
@@ -593,7 +618,7 @@ a.pill.on:hover {
   width: 100%;
   max-height: 86dvh;
   overflow: auto;
-  padding: 0 16px max(28px, env(safe-area-inset-bottom));
+  padding: 0 16px 28px;
   /*
    * Above the bottom bar. `.scrim` is 180 and `.mobnav` is 70, so the stacking
    * is already right; this is here for the sheet's own children (the grip is
@@ -606,6 +631,32 @@ a.pill.on:hover {
 @keyframes sheetup {
   from {
     transform: translateY(100%);
+  }
+}
+/*
+ * Closing: 200ms ease-out with no overshoot (§3.2, review S2).
+ *
+ * "Open toward, close away" is §4's rule and the sheet only had the first half
+ * — it was unmounted the moment its flag flipped, so it vanished. `Sheet` now
+ * holds itself mounted for `--dur-ui` behind a closing state and wears these
+ * two classes while it does. The reduced-motion floor at the foot of this file
+ * clamps both, and `Sheet` reads the same token, so the wait and the animation
+ * cannot drift apart.
+ */
+.sheet-closing .sheet {
+  animation: sheetdown var(--dur-ui) var(--ease-out) forwards;
+}
+.sheet-closing {
+  animation: fadeout var(--dur-ui) var(--ease-out) forwards;
+}
+@keyframes sheetdown {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes fadeout {
+  to {
+    opacity: 0;
   }
 }
 .sheet:focus {
@@ -634,6 +685,20 @@ a.pill.on:hover {
 .sheet-title {
   font-size: 24px;
   margin: 0;
+}
+/*
+ * The title and whatever sits at the right of its line (§3.5's sport `Tag`).
+ *
+ * `baseline` rather than `center`: the title is Anton and the aside is usually
+ * a `Tag` in Barlow Condensed, and two type sizes centred against each other
+ * read as one of them floating.
+ */
+.sheet-titlerow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
 }
 /*
  * The gutters a `Sheet` gives its children when it renders as a `Modal`.
@@ -713,6 +778,21 @@ a.pill.on:hover {
   background: var(--yellow);
   color: var(--on-light);
   box-shadow: 4px 4px 0 var(--ink);
+}
+/*
+ * The press, at every width and every pointer (§3.3, §4, review N7).
+ *
+ * `.sporttab:active` exists only inside `@media (hover: none)` further down
+ * this file — it arrived with the touch-hygiene block, where the question was
+ * what a *finger* gets — so a boxed tab clicked with a mouse lifted on hover
+ * and then did nothing on the click. The press is the design's one gesture and
+ * §4 names `TabRow` tabs as taking it.
+ */
+.tabrow .sporttab:active,
+.tabrow a.sporttab:active,
+.tabrow .sporttab.on:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
 }
 /* A boxed row drawn as links, which is what a route-changing row is (Find). */
 .tabrow a.sporttab,

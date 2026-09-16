@@ -57,8 +57,14 @@
   flex: 1 1 auto;
   gap: 8px;
   min-width: 0;
-  /* One line, and a line that does not fit is cut rather than wrapped: the
-     strip's whole point is that it is exactly 44px tall on every screen. */
+  /*
+   * One line, and a line that does not fit is cut rather than wrapped.
+   *
+   * The height is stated where it is set, on `.banner`, and not here — the
+   * comment that stood here claimed "exactly 44px" and the strip measured 54px
+   * (review S6). A comment carrying a measurement is a promise the next session
+   * reads as fact, so it belongs beside the rule that decides the number.
+   */
   overflow: hidden;
   white-space: nowrap;
 }
@@ -95,8 +101,10 @@
 .link {
   background: none;
   border: 0;
-  padding: 11px 8px;
-  margin: -11px 0;
+  /* 44px of target around a 19px line (review S4): 12.5px either side, taken
+     back as margin so the strip's own height does not grow with it. */
+  padding: 12.5px 8px;
+  margin: -12.5px 0;
   font-family: var(--fc);
   font-weight: 700;
   font-size: 13px;
@@ -115,14 +123,14 @@
   cursor: default;
 }
 
-/* The ×. 32px of hit area around a 15px glyph, so it clears a thumb without
-   drawing a box beside the link. */
+/* The ×. 44px of hit area around a 19px glyph (review S4) — it draws no box, so
+   growing the target moves nothing beside it. */
 .close {
   background: none;
   border: 0;
   padding: 0;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   flex: none;
   display: grid;
   place-items: center;
@@ -135,11 +143,20 @@
   color: var(--ink);
 }
 
+/*
+ * "On its way" — ink on a green fill, not green on paper (review S5).
+ *
+ * It was `color: var(--green)` on `--paper` for one revision, which measures
+ * about 3.28:1 where AA wants 4.5 — on the confirmation a child sees after
+ * asking for their email again. The design's own rule for a loud colour is ink
+ * on the fill (`primitives.css`'s note on `--btn-fg` argues it), and this is a
+ * `Tag`, which is where that rule already lives.
+ */
 .sent {
-  color: var(--green);
-  font-family: var(--fc);
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.06em;
+  background: var(--green);
+  /* `.tag`'s own default is `--on-dark`, which on this green is about 3.0:1 —
+     the same miss the other way round. Ink on a loud fill is the design's rule
+     and `foregroundFor` answers in these two. */
+  color: var(--on-light);
   white-space: nowrap;
 }

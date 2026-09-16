@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { ROUTES } from '@/lib/routes';
 
 import { LogSheet } from './LogSheet';
 import { isNavActive, mobileNavFor, type NavItem } from './nav';
@@ -36,6 +37,18 @@ import styles from './shell.module.css';
  * that needed a width in JavaScript here, and it has taken that with it.
  */
 
+/** The raised yellow square and its label, which both forms of the cell wear. */
+function LogFace() {
+  return (
+    <>
+      <span className={styles.logSquare} aria-hidden="true">
+        <Icon name="plus" size={30} strokeWidth={2.8} className={styles.logGlyph} />
+      </span>
+      LOG
+    </>
+  );
+}
+
 function LogCell({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   return (
     <button
@@ -46,15 +59,41 @@ function LogCell({ open, onToggle }: { open: boolean; onToggle: () => void }) {
       aria-label={open ? 'Close the log sheet' : 'Log something'}
       onClick={onToggle}
     >
-      <span className={styles.logSquare} aria-hidden="true">
-        <Icon name="plus" size={30} strokeWidth={2.8} className={styles.logGlyph} />
-      </span>
-      LOG
+      <LogFace />
     </button>
   );
 }
 
-export function MobileNav({ sessionsEnabled }: { sessionsEnabled?: boolean }) {
+/**
+ * The same cell for a visitor with no account: a link to sign in.
+ *
+ * The bar stays five cells — `.mobnav` is `repeat(5, 1fr)` and a four-cell bar
+ * on the signed-out screens beside a five-cell one on the signed-in ones would
+ * be two bars to learn. What changes is what the cell does.
+ *
+ * Drawn as a button it was the loudest control on `/spots`, `/events` and
+ * `/library` for somebody it could do nothing for: "I rode today" bounced them
+ * to `/signin` with no explanation, and both trick pickers came back empty
+ * because `trickPickerAction` answers a session-less call with nothing (review
+ * B2). A link says where it goes before it is pressed, which is the honest
+ * version of the same invitation.
+ */
+function LogSignInCell() {
+  return (
+    <Link href={ROUTES.signIn} className={styles.logCell} aria-label="Sign in to log something">
+      <LogFace />
+    </Link>
+  );
+}
+
+export function MobileNav({
+  sessionsEnabled,
+  signedIn,
+}: {
+  sessionsEnabled?: boolean;
+  /** Whether there is a rider to log for. `AppShell` decides it from `rider`. */
+  signedIn?: boolean;
+}) {
   const items = mobileNavFor(sessionsEnabled);
   const pathname = usePathname();
   const [logging, setLogging] = useState(false);
@@ -81,13 +120,17 @@ export function MobileNav({ sessionsEnabled }: { sessionsEnabled?: boolean }) {
     <>
       <nav className="mobnav" aria-label="Main, compact">
         {items.slice(0, 2).map(cell)}
-        <LogCell
-          open={logging}
-          onToggle={() => {
-            if (!logging) capture(ANALYTICS_EVENTS.logSheetOpened, { where: 'mobile' });
-            setLogging(!logging);
-          }}
-        />
+        {signedIn ? (
+          <LogCell
+            open={logging}
+            onToggle={() => {
+              if (!logging) capture(ANALYTICS_EVENTS.logSheetOpened, { where: 'mobile' });
+              setLogging(!logging);
+            }}
+          />
+        ) : (
+          <LogSignInCell />
+        )}
         {items.slice(2).map(cell)}
       </nav>
       {/*
@@ -98,7 +141,9 @@ export function MobileNav({ sessionsEnabled }: { sessionsEnabled?: boolean }) {
         documented and LESSONS §3a names). It also keeps the sheet out of the
         bar's stacking context, where `z-index: 70` would have capped it.
       */}
-      {logging && <LogSheet sessionsEnabled={sessionsEnabled} onClose={() => setLogging(false)} />}
+      {signedIn && logging && (
+        <LogSheet sessionsEnabled={sessionsEnabled} onClose={() => setLogging(false)} />
+      )}
     </>
   );
 }

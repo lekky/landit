@@ -173,6 +173,18 @@ function usePhoneViewport(): boolean {
 const DRAG_TO_CLOSE = 80;
 
 /**
+ * How long a closing sheet stays mounted, in step with `--dur-ui`.
+ *
+ * The token is the authority and this number has to match it — a wait shorter
+ * than the animation cuts it off, and a longer one leaves an invisible dialog
+ * holding the page. Under `prefers-reduced-motion` the CSS floor takes the
+ * animation to 0.01ms and this wait becomes a 200ms pause with nothing to see;
+ * that is the right way round, because a rider who asked for less motion has
+ * still asked for the sheet to go away, and it does.
+ */
+const CLOSE_MS = 200;
+
+/**
  * Put a sheet on `<body>`, out of whatever stacking context opened it.
  *
  * **This is the one thing `Sheet` does that `Modal` does not**, and it is not
@@ -206,6 +218,17 @@ export type SheetProps = {
   title?: ReactNode;
   /** Accessible name, for a sheet with no `title`. */
   label?: string;
+  /**
+   * Something small on the right-hand end of the title's line — the sport `Tag`
+   * on the log sheet (§3.5), a count, a Back.
+   *
+   * Beside the title rather than under it, at both widths, because that is what
+   * the spec draws and because a line of its own is a row of chrome above the
+   * thing a rider came to press. Give a `label` alongside it: it renders inside
+   * the heading, and a dialog should be announced by its words rather than by
+   * its words plus a tag.
+   */
+  titleAside?: ReactNode;
   /**
    * Which shape to take. `auto` (the default) is a sheet below 861px and the
    * shared `Modal` above it; `sheet` and `modal` force one.
@@ -242,6 +265,7 @@ export function Sheet({
   onClose,
   title,
   label,
+  titleAside,
   as = 'auto',
   width = 520,
   className,
@@ -252,8 +276,45 @@ export function Sheet({
   const titleId = useId();
   const [drag, setDrag] = useState(0);
   const from = useRef<number | null>(null);
+  /** How far the finger has travelled, for the pointer-up decision (N8). */
+  const dragged = useRef(0);
+  const [closing, setClosing] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const asSheet = as === 'sheet' || (as === 'auto' && phone);
+
+  /** The title and whatever sits at the right of its line, as one row. */
+  const titleRow =
+    titleAside === undefined || titleAside === null ? (
+      title
+    ) : (
+      <span className="sheet-titlerow">
+        <span>{title}</span>
+        {titleAside}
+      </span>
+    );
+
+  /*
+   * Close on a delay, so the sheet can animate away (§3.2, review S2).
+   *
+   * Every way out goes through this — Escape and the scrim tap through
+   * `useModalLayer` and the scrim handler, the drag through `onPointerUp`, and
+   * a caller's own button through the `onClose` it was handed. The caller's
+   * `onClose` is what unmounts us, and it is called once: the timer is cleared
+   * on unmount and `closing` guards a second request.
+   */
+  const startClose = useCallback(() => {
+    if (closing) return;
+    setClosing(true);
+    closeTimer.current = setTimeout(onClose, CLOSE_MS);
+  }, [closing, onClose]);
+
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    },
+    [],
+  );
 
   /*
    * The layer, claimed only when this really is a sheet.
@@ -263,7 +324,7 @@ export function Sheet({
    * `useModalLayer` returns without claiming a layer. `Modal` then claims its
    * own with its own ref, and the page is held once rather than twice.
    */
-  useModalLayer(panel, onClose);
+  useModalLayer(panel, startClose);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
     from.current = event.clientY;
@@ -271,15 +332,22 @@ export function Sheet({
   };
   const onPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
     if (from.current === null) return;
-    setDrag(Math.max(0, event.clientY - from.current));
+    const moved = Math.max(0, event.clientY - from.current);
+    dragged.current = moved;
+    setDrag(moved);
   };
+  /*
+   * The decision is read from a ref, not from inside a state updater (review
+   * N8). An updater must be pure — React double-invokes them in StrictMode — so
+   * closing from inside one was a trap even while it was idempotent.
+   */
   const onPointerUp = () => {
     if (from.current === null) return;
     from.current = null;
-    setDrag((moved) => {
-      if (moved > DRAG_TO_CLOSE) onClose();
-      return 0;
-    });
+    const moved = dragged.current;
+    dragged.current = 0;
+    setDrag(0);
+    if (moved > DRAG_TO_CLOSE) startClose();
   };
 
   if (!asSheet) {
@@ -291,10 +359,18 @@ export function Sheet({
      * gets the same 16px from `.sheet`'s own padding, so a caller's children
      * are laid out identically at both widths.
      */
+    /*
+     * The desktop half closes through the same delay, so a `Sheet` behaves the
+     * same way at both widths (review S2). `Modal`'s own markup is untouched:
+     * the fade-out is drawn by `.sheet-closing` on the wrapper around it, which
+     * is the scrim's own child and animates the panel with it.
+     */
     return portal(
-      <Modal onClose={onClose} width={width} label={label} title={title}>
-        <div className="sheet-body">{children}</div>
-      </Modal>,
+      <div className={closing ? 'sheet-closing' : undefined}>
+        <Modal onClose={startClose} width={width} label={label} title={titleRow}>
+          <div className="sheet-body">{children}</div>
+        </Modal>
+      </div>,
     );
   }
 
@@ -302,12 +378,12 @@ export function Sheet({
 
   return portal(
     <div
-      className="scrim sheet-scrim"
+      className={cx('scrim', 'sheet-scrim', closing && 'sheet-closing')}
       onPointerDown={(pressed) => {
         pressedOnScrim.current = pressed.target === pressed.currentTarget;
       }}
       onClick={(clicked) => {
-        if (clicked.target === clicked.currentTarget && pressedOnScrim.current) onClose();
+        if (clicked.target === clicked.currentTarget && pressedOnScrim.current) startClose();
       }}
     >
       <div
@@ -331,7 +407,7 @@ export function Sheet({
           <span className="sheet-handle" aria-hidden="true" />
           {hasTitle && (
             <h2 id={titleId} className={cx('d', 'sheet-title')}>
-              {title}
+              {titleRow}
             </h2>
           )}
         </div>
@@ -400,11 +476,32 @@ export function Dropdown({
       if (!within?.contains(event.target as Node)) close();
     };
 
+    /*
+     * Tabbing out closes it too (review S12).
+     *
+     * §3.2 makes this a menu rather than a dialog on purpose, so there is no
+     * focus trap — which left one case with no way out: a keyboard rider who
+     * opened the bell with Enter and pressed Tab landed on the avatar with the
+     * panel still hanging over the page, dismissible only by knowing about
+     * Escape. `focusout` fires before the new element takes focus, so the
+     * incoming target is read from `relatedTarget`; a null one (focus leaving
+     * the document entirely, as when the window is switched) is left alone,
+     * because coming back should find the panel where it was.
+     */
+    const onFocusOut = (event: FocusEvent) => {
+      const next = event.relatedTarget;
+      if (!(next instanceof Node)) return;
+      const within = holder?.current ?? panel.current;
+      if (!within?.contains(next)) close();
+    };
+
     document.addEventListener('keydown', onKey);
     document.addEventListener('pointerdown', onPointer);
+    document.addEventListener('focusout', onFocusOut);
     return () => {
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('focusout', onFocusOut);
     };
   }, [close, holder]);
 

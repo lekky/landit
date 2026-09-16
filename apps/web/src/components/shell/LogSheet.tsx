@@ -4,7 +4,7 @@ import { SPORTS } from '@landit/core';
 import { Icon, Sheet, Tag, type IconName } from '@landit/ui-web';
 import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition, type ReactNode } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { trickHref } from '@/lib/routes';
@@ -249,19 +249,29 @@ export function LogSheet({
     router.push(`${trickHref(trick.slug)}${hash}` as Route);
   };
 
-  const title: ReactNode =
+  // A string, not a `ReactNode`: it is the dialog's accessible name as well as
+  // its heading, and `label` takes words.
+  const title =
     view === 'menu' ? 'Log something' : view === 'trick' ? 'Which trick?' : 'Clip on which trick?';
 
   return (
-    <Sheet onClose={onClose} title={title} width={560}>
-      <div className={styles.sheetHead}>
-        <Tag color={SPORTS[sport].color}>{SPORTS[sport].short}</Tag>
-        {view !== 'menu' && (
+    <Sheet
+      onClose={onClose}
+      title={title}
+      // The sport sits at the right of the title's line (§3.5), and `label`
+      // keeps the dialog announced by its words rather than by its words plus
+      // a tag.
+      label={title}
+      titleAside={<Tag color={SPORTS[sport].color}>{SPORTS[sport].short}</Tag>}
+      width={560}
+    >
+      {view !== 'menu' && (
+        <div className={styles.sheetHead}>
           <button type="button" className="btn ghost sm" onClick={() => setView('menu')}>
             Back
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {view === 'menu' && (
         <>

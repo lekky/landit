@@ -21,6 +21,50 @@ import { currentRider } from '@/lib/session';
  * Nothing here is a superuser read and nothing here writes.
  */
 
+/**
+ * What the sport sheet and menu put beside each sport (§3.1, review S9).
+ *
+ * Two counts, and neither is anything a rider typed: how many of that sport's
+ * tricks they have landed, and how many they are in the middle of. It is the
+ * one thing that makes the switch a decision rather than a list — a rider with
+ * 34 scooter tricks and 2 skate ones can see which library they are actually
+ * in.
+ *
+ * Fetched **on open, once**, the way the trick picker below already does it,
+ * for the reason that function's own comment gives: the chip is in the top bar
+ * of every screen, so a count computed on every page render would put a read on
+ * the dashboard, the library and every trick page to pay for a panel most page
+ * views never open.
+ */
+export interface SportCount {
+  readonly landed: number;
+  readonly learning: number;
+}
+
+/** Landed and learning per sport, for the sports this rider tracks. */
+export async function sportCountsAction(): Promise<Readonly<Record<string, SportCount>>> {
+  const session = await currentRider();
+  if (!session) return {};
+
+  const [tricks, progress] = await Promise.all([
+    listTricks(session.client),
+    listTrickProgress(session.client, session.rider.id),
+  ]);
+
+  const sportOf = new Map(tricks.map((trick) => [trick.id, trick.sport]));
+  const counts: Record<string, { landed: number; learning: number }> = {};
+
+  for (const row of progress) {
+    const sport = sportOf.get(row.trick);
+    if (!sport) continue;
+    const tally = (counts[sport] ??= { landed: 0, learning: 0 });
+    if (isLandedStage(row.stage)) tally.landed += 1;
+    else if (row.stage === 'trying') tally.learning += 1;
+  }
+
+  return counts;
+}
+
 /** One row of the picker. Catalogue facts only — a slug, a name, a stage. */
 export interface PickerTrick {
   readonly slug: string;

@@ -58,7 +58,9 @@ export function BellButton({ unread = 0 }: { unread?: number }) {
 
   // `unread` is a count of lines the product wrote, never a description of the
   // rider: catalogue facts only, as the catalogue entry says.
-  const label = unread > 0 ? `What's new, ${unread} unread.` : "What's new";
+  // The curly apostrophe the rest of the product uses — `/whats-new`'s own
+  // `<h1>` and `<title>`, and `NOTHING_YET` above (review N4).
+  const label = unread > 0 ? `What’s new, ${unread} unread.` : 'What’s new';
 
   const glyph = (
     <>
@@ -71,38 +73,45 @@ export function BellButton({ unread = 0 }: { unread?: number }) {
     </>
   );
 
-  if (phone) {
-    return (
+  /*
+   * **A link at both widths** (review S3), and the desktop takes the press back.
+   *
+   * `usePhone()` answers `false` on the server, so a bell rendered as a button
+   * on the phone branch was served as a button to *every* request and only
+   * became a link once hydration ran — a control that does nothing, on the one
+   * width where a real page exists behind it, for anybody reading before the
+   * JavaScript lands or after it fails. The sport chip's version of the same
+   * choice is safe because only its *panel* depends on width; here it was the
+   * element itself.
+   *
+   * So the markup is a `Link` always. Above 860px the click is prevented and
+   * the dropdown opens instead, which leaves the no-JS and pre-hydration path
+   * navigating to the page that the dropdown is a shortcut for.
+   */
+  return (
+    <div className={styles.anchor} ref={holder}>
       <Link
         href={BELL_DESTINATION}
         className={styles.tbBtn}
         aria-label={label}
-        onClick={() => capture(ANALYTICS_EVENTS.whatsNewOpened, { where: 'mobile', unread })}
-      >
-        {glyph}
-      </Link>
-    );
-  }
-
-  return (
-    <div className={styles.anchor} ref={holder}>
-      <button
-        type="button"
-        className={styles.tbBtn}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-label={label}
-        onClick={() => {
+        aria-haspopup={phone ? undefined : 'dialog'}
+        aria-expanded={phone ? undefined : open}
+        onClick={(event) => {
+          if (phone) {
+            capture(ANALYTICS_EVENTS.whatsNewOpened, { where: 'mobile', unread });
+            return;
+          }
+          event.preventDefault();
           if (!open) capture(ANALYTICS_EVENTS.whatsNewOpened, { where: 'top', unread });
           setOpen(!open);
         }}
       >
         {glyph}
-      </button>
+      </Link>
 
-      {open && (
+      {!phone && open && (
         <Dropdown
-          label="What's new"
+          label="What’s new"
           width={420}
           holder={holder}
           onClose={() => setOpen(false)}

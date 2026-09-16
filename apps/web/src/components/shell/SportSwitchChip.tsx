@@ -3,13 +3,14 @@
 import { SPORTS, SPORT_IDS, type SportId } from '@landit/core';
 import { Dropdown, Equipment, Icon, Sheet } from '@landit/ui-web';
 import Link from 'next/link';
-import { useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { useSport } from '@/providers/sport';
 
+import { sportCountsAction, type SportCount } from './actions';
 import styles from './shell.module.css';
 
 /**
@@ -65,6 +66,24 @@ export function SportSwitchChip() {
   const phone = usePhone();
   const holder = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [counts, setCounts] = useState<Readonly<Record<string, SportCount>>>({});
+
+  /*
+   * The counts, fetched on open and held while the panel is up (§3.1, review
+   * S9) — the same shape `trickPickerAction` uses next door, and for the same
+   * reason: the chip is on every screen, so this may not be a read that every
+   * page render pays for.
+   */
+  useEffect(() => {
+    if (!open) return;
+    let live = true;
+    void sportCountsAction().then((answer) => {
+      if (live) setCounts(answer);
+    });
+    return () => {
+      live = false;
+    };
+  }, [open]);
 
   if (sports.length < 2) return null;
 
@@ -83,6 +102,7 @@ export function SportSwitchChip() {
     <>
       {sports.map((id) => {
         const on = id === sport;
+        const count = counts[id];
         return (
           <button
             key={id}
@@ -96,7 +116,19 @@ export function SportSwitchChip() {
               style={{ background: SPORTS[id].color }}
               aria-hidden="true"
             />
-            {SPORTS[id].label}
+            <span className={styles.sportRowText}>
+              {SPORTS[id].label}
+              {/*
+                Absent until the read lands, rather than "0 landed" flashing
+                into the real number — a zero a rider reads for a frame is a
+                wrong number, not an old one.
+              */}
+              {count && (
+                <span className={styles.sportRowCount}>
+                  {count.landed} landed · {count.learning} learning
+                </span>
+              )}
+            </span>
             {on && <Icon name="check" size={18} strokeWidth={2.8} className={styles.sportTick} />}
           </button>
         );
@@ -114,7 +146,12 @@ export function SportSwitchChip() {
             style={{ background: 'var(--wash)' }}
             aria-hidden="true"
           />
-          {SPORTS[id].label} — add it in your account
+          {/* §3.1's copy exactly: the sport's name, then "Add it in your
+              account" as its own line rather than an em-dashed clause (N6). */}
+          <span className={styles.sportRowText}>
+            {SPORTS[id].label}
+            <span className={styles.sportRowCount}>Add it in your account</span>
+          </span>
         </Link>
       ))}
     </>

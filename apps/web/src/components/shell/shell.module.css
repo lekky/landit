@@ -221,15 +221,27 @@
 .sportChip:active {
   transform: translate(1px, 1px);
 }
-/* Below 520px the name goes and the icon stays: a 375px bar has no room for
-   four controls and a word, and the fill already says which sport it is. */
+/*
+ * **The name is on at every width**, and the rule that hid it below 520px is
+ * gone (review B1).
+ *
+ * It was hidden to buy room, which reversed the decision the chip exists for:
+ * D5 is "the sport is chosen once, in a chip that carries the sport's icon
+ * *and* name", and a rider who has never opened the sheet was left decoding a
+ * 20px glyph on exactly the device the rethink is for. Measured with three
+ * sports at 320px, the bar has the room — the wordmark shrinks in its own
+ * 860px block and the four right-hand controls come to about 190px.
+ *
+ * Below 520px the type tightens instead: 12px and a little less tracking and
+ * padding, which buys ~14px without taking the word away.
+ */
 @media (max-width: 519px) {
-  .sportChipName {
-    display: none;
-  }
   .sportChip,
   .sportChip:hover {
-    padding: 0 6px;
+    padding: 0 7px;
+    gap: 5px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
   }
 }
 
@@ -238,6 +250,35 @@
   position: relative;
   display: flex;
   align-items: center;
+}
+
+/*
+ * A 44px hit area on a phone, without moving the 34px paint (review S4/S7).
+ *
+ * §3.1 specifies 34px-tall controls and §4 specifies a 44px floor for anything
+ * tappable. The avatar already shows how to have both — `additions.css`'s
+ * touch-hygiene block pads `.accountmenu-trigger` by 5px and takes the same 5px
+ * back as a negative margin, so the target grows and the layout does not. The
+ * chip and the bell take the same trick, and it is scoped to the widths where a
+ * thumb is the pointer.
+ */
+@media (max-width: 860px) {
+  .tbBtn.tbBtn,
+  .sportChip.sportChip {
+    padding-top: 5px;
+    padding-bottom: 5px;
+    margin-top: -5px;
+    margin-bottom: -5px;
+    /* `content-box`, so the 5px is added to the 34px rather than eaten out of
+       it — `* { box-sizing: border-box }` in `tokens.css` would otherwise leave
+       the paint 34px and the target 34px too. */
+    box-sizing: content-box;
+    height: 34px;
+  }
+  /* The badge hangs off the paint, so it moves down with the padding. */
+  .tbBadge {
+    top: -2px;
+  }
 }
 
 /* ------------------------------------------------------------ option row -- */
@@ -408,6 +449,21 @@
   flex: none;
   border: 2px solid var(--ink);
 }
+/* The sport's name with its counts under it (§3.1). */
+.sportRowText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.sportRowCount {
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  text-transform: none;
+}
 .sportTick {
   flex: none;
   margin-left: auto;
@@ -416,6 +472,28 @@
 /* The dropdown's inner padding, so the panel itself stays a plain surface. */
 .menuPad {
   padding: 12px 12px 4px;
+}
+
+/* ---------------------------------------------------------------- tab row -- */
+
+/*
+ * The 120ms cross-fade a `TabRow` switches a panel with (§4, review S10).
+ *
+ * The class is handed to the caller as `TAB_PANEL` rather than applied here,
+ * because the panel belongs to the screen and not to the row: `TabRow` draws
+ * four boxes and has no idea what is underneath them. Keyed on the tab id, so
+ * React remounts the panel and the animation runs on every switch.
+ *
+ * `--dur-press`, which is §4's number for a tab switch — the shortest of the
+ * three, because this is feedback for a press rather than something arriving.
+ */
+.tabPanel {
+  animation: tabfade var(--dur-press) var(--ease-out);
+}
+@keyframes tabfade {
+  from {
+    opacity: 0;
+  }
 }
 
 /* -------------------------------------------------------------- back link -- */
