@@ -118,7 +118,10 @@ describe('which cell stays lit (§2.2)', () => {
       '/events/past',
       '/events/mine',
     ]) {
-      expect(lit(path).map((item) => item.id), path).toEqual(['find']);
+      expect(
+        lit(path).map((item) => item.id),
+        path,
+      ).toEqual(['find']);
     }
   });
 
@@ -140,7 +143,10 @@ describe('which cell stays lit (§2.2)', () => {
     // `/whats-new` included: the bell is on every screen, so a rider reading
     // their own news is not "in" a group.
     for (const path of ['/account', '/plans', '/coach', '/suggest', '/report', '/whats-new']) {
-      expect(lit(path).map((item) => item.id), path).toEqual([]);
+      expect(
+        lit(path).map((item) => item.id),
+        path,
+      ).toEqual([]);
     }
   });
 

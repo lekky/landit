@@ -74,10 +74,7 @@ export function TopBar({
 
   return (
     <>
-      <header
-        className="topbar"
-        style={{ '--sport-rule': SPORTS[sport].color } as CSSProperties}
-      >
+      <header className="topbar" style={{ '--sport-rule': SPORTS[sport].color } as CSSProperties}>
         <div className="topbar-in">
           <Wordmark href={rider ? ROUTES.dashboard : ROUTES.home} />
 

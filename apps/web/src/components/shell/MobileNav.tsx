@@ -36,13 +36,7 @@ import styles from './shell.module.css';
  * that needed a width in JavaScript here, and it has taken that with it.
  */
 
-function LogCell({
-  open,
-  onToggle,
-}: {
-  open: boolean;
-  onToggle: () => void;
-}) {
+function LogCell({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   return (
     <button
       type="button"

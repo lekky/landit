@@ -372,7 +372,9 @@ test('an unverified rider is reminded, once, and can put it away', async ({ page
   // onboarding is reachable and the rider is on it.
   await expect(banner).toContainText('the reset goes to this address');
 
-  await banner.getByRole('button', { name: 'Not now' }).click();
+  // A bare × since the reminder became a one-line strip (rethink §3.4); the
+  // cookie behind it is unchanged, which is what the navigation below checks.
+  await banner.getByRole('button', { name: 'Hide this reminder' }).click();
   await expect(banner).toBeHidden();
 
   // Dismissal is a cookie the server reads, so it survives a navigation rather

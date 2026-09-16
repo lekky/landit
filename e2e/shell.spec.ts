@@ -41,6 +41,14 @@ test('the top bar never widens the page, at any width the nav is on show', async
    * still untouched. The assertion is the document's own scroll width, which is
    * the thing a rider would actually see go wrong, rather than any of the
    * numbers the fix happens to be made of.
+   *
+   * **375 and 960 and 1280 were added by the app shell rethink (T45).** The bar
+   * changed shape at both ends: the nav went from nine items to four, and the
+   * right-hand end went from a streak chip and an avatar to a sport chip, a Log
+   * button, a bell and an avatar. Four items is far more room than nine, but
+   * the right-hand group is wider than it was, and 960 is the width the spec
+   * measured the four-item nav against on the canvas. 375 is the phone, where
+   * `.nav` is hidden and the right-hand group is the whole test.
    */
   await page.goto(SHELL);
 
@@ -50,7 +58,7 @@ test('the top bar never widens the page, at any width the nav is on show', async
   // `scrollWidth` / `clientWidth` come with it.
   const root = page.locator('html');
 
-  for (const width of [861, 900, 934, 1040, 1041, 1440]) {
+  for (const width of [375, 861, 900, 934, 960, 1040, 1041, 1280, 1440]) {
     await page.setViewportSize({ width, height: 800 });
 
     await expect
@@ -58,6 +66,10 @@ test('the top bar never widens the page, at any width the nav is on show', async
         message: `the document scrolls sideways at ${width}px`,
       })
       .toBe(0);
+
+    // Below 861px `.nav` is `display: none` and `MobileNav` has the job, so the
+    // three checks below are about the widths where the nav is actually drawn.
+    if (width < 861) continue;
 
     const nav = page.getByRole('navigation', { name: 'Main', exact: true });
 
@@ -67,9 +79,9 @@ test('the top bar never widens the page, at any width the nav is on show', async
      * `.nav` carries `min-width: 0` and its own `overflow-x` as a safety net, so
      * the check above passes on that alone — it did, with the tightening
      * removed, which is exactly what a net is for and exactly why it cannot be
-     * the whole assertion. This is the half that proves all nine items really
-     * fit: a nav that scrolls has items nobody can see, and Playwright counts
-     * one scrolled out of view as visible.
+     * the whole assertion. This is the half that proves the items really fit: a
+     * nav that scrolls has items nobody can see, and Playwright counts one
+     * scrolled out of view as visible.
      */
     await expect
       .poll(() => nav.evaluate((el) => el.scrollWidth - el.clientWidth), {
@@ -78,60 +90,143 @@ test('the top bar never widens the page, at any width the nav is on show', async
       .toBe(0);
 
     // Fitting by dropping items would pass both checks and fail the point of
-    // them: all nine stay on show, only closer together.
-    await expect(nav.locator('> *'), `nine nav items at ${width}px`).toHaveCount(9);
+    // them: all four groups stay on show, only closer together.
+    await expect(nav.locator('> *'), `four nav groups at ${width}px`).toHaveCount(4);
   }
 });
 
-test('the bottom bar is five sections, in the order a phone wants them', async ({ page }) => {
+test('the bottom bar is four groups and a LOG cell, in the order D1 sets', async ({ page }) => {
   /*
-   * Five, because `.mobnav` is `repeat(5, 1fr)` and the design specifies five
-   * (handoff, Responsive). But five *sections*, not the first five entries of
-   * the top bar — which is what this used to assert, and what left Challenge,
-   * Events, Spots and Plans with no navigation entry at all below 861px.
+   * Five cells, because `.mobnav` is `repeat(5, 1fr)` and the design specifies
+   * five (handoff, Responsive) — but the middle one is not a destination.
    *
-   * The order is a phone's: Progress sits in the middle cell, the easiest
-   * reach one-handed (Rachid, 2026-09-14, in chat), with What's on beside Crew.
+   * **Home · Tricks · LOG · Find · Crew** (D1, Rachid, 2026-09-15, in chat,
+   * choosing shape A from three). The bar used to be five *sections*, two of
+   * which folded a second screen behind a drawer; before that it was the first
+   * five entries of a nine-item top bar, which left Challenge, Events, Spots
+   * and Plans with no navigation entry at all below 861px. That is the defect
+   * this test exists to stop coming back, and the four groups plus the account
+   * menu are what answers it now — `apps/web/src/lib/nav.test.ts` is where the
+   * whole promise is checked, destination by destination.
    */
   await page.setViewportSize({ width: 800, height: 800 });
   await page.goto(SHELL);
 
-  /*
-   * `> a`, not `> *`: the bar's own children are the five cells, but the
-   * section drawer is a sixth child of the same element — absolutely positioned
-   * against `.mobnav`, which is what sits it exactly on the bar's top edge
-   * without measuring a height that moves with the safe-area inset. It is not a
-   * cell, and counting it as one would make this test read as a regression. A
-   * sixth *link* still fails, which is what this test is actually guarding.
-   */
-  const items = page.getByRole('navigation', { name: 'Main, compact', exact: true }).locator('> a');
-  await expect(items).toHaveCount(5);
-  await expect(items).toHaveText([/Home/, /Tricks/, /Progress/, /What’s on/, /Crew/]);
+  const bar = page.getByRole('navigation', { name: 'Main, compact', exact: true });
+
+  // Five cells: four links and the LOG button, which goes nowhere.
+  await expect(bar.locator('> *')).toHaveCount(5);
+
+  const links = bar.locator('> a');
+  await expect(links).toHaveCount(4);
+  await expect(links).toHaveText([/Home/, /Tricks/, /Find/, /Crew/]);
 
   for (const [name, href] of [
     ['Home', '/home'],
     ['Tricks', '/library'],
-    /*
-     * `/progress`, still — **on this page**. The Progress cell lands on
-     * Sessions for a rider the preview covers (2026-09-13), but that is decided
-     * in `app/(app)/layout.tsx` from the rider record and handed to the bars.
-     * `/design/shell` renders `AppShell` directly with a sample rider and no
-     * gate of any kind, so what it draws is the sessions-off shape — which is
-     * the right thing for a reference sheet to draw, and the reason this line
-     * did not move with the change. `apps/web/src/lib/nav.test.ts` holds both
-     * shapes; `e2e/progress.spec.ts` walks the real one.
-     */
-    ['Progress', '/progress'],
-    ['What’s on', '/spots'],
+    // `/find` redirects to `/spots` until T48 builds the summary. The cell
+    // points at the group's own address either way, so nothing has to change
+    // in the bar when the page arrives.
+    ['Find', '/find'],
     ['Crew', '/crew'],
   ] as const) {
-    await expect(
-      page.getByRole('navigation', { name: 'Main, compact', exact: true }).getByRole('link', {
-        name,
-        exact: true,
-      }),
-    ).toHaveAttribute('href', href);
+    await expect(bar.getByRole('link', { name, exact: true })).toHaveAttribute('href', href);
   }
+
+  // LOG is the third cell, and it is a button: it opens a sheet rather than
+  // going anywhere, which is why it has no `href` to check.
+  const log = bar.getByRole('button', { name: 'Log something' });
+  await expect(log).toBeVisible();
+  await expect(log).toHaveAttribute('aria-expanded', 'false');
+
+  const order = await bar
+    .locator('> *')
+    .evaluateAll((nodes) => nodes.map((n) => n.tagName.toLowerCase()));
+  expect(order, 'LOG is not the middle cell').toEqual(['a', 'a', 'button', 'a', 'a']);
+});
+
+test('the LOG cell opens the sheet, and Escape closes it', async ({ page }) => {
+  /*
+   * The one front door onto logging (D3). Four ways of recording a ride were in
+   * four different places — the streak card, a trick page's stage picker, the
+   * session form behind Progress, and the clip field further down a trick page
+   * — and a rider had to know which screen held which.
+   *
+   * "Log a session" is drawn only for a rider the preview covers (T41), and
+   * `/design/shell` renders `AppShell` with no gate at all, so what it shows is
+   * the sessions-off shape: three rows, not four.
+   */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(SHELL);
+
+  const log = page
+    .getByRole('navigation', { name: 'Main, compact', exact: true })
+    .getByRole('button', { name: 'Log something' });
+  await log.click();
+
+  const sheet = page.getByRole('dialog', { name: 'Log something' });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole('button', { name: /I rode today/ })).toBeVisible();
+  await expect(sheet.getByRole('button', { name: /Log a trick/ })).toBeVisible();
+  await expect(sheet.getByRole('button', { name: /Add a clip link/ })).toBeVisible();
+  // The plus reads as a cross while the sheet is up, which is the cell saying
+  // it will close what it opened.
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Main, compact', exact: true })
+      .getByRole('button', { name: 'Close the log sheet' }),
+  ).toHaveAttribute('aria-expanded', 'true');
+
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+});
+
+test('the sport chip is the switcher, and the bar takes the sport colour', async ({ page }) => {
+  /*
+   * D5: the sport is chosen once, in the top bar, and the bar's bottom rule
+   * carries the answer. Six screens used to ask the same question with their
+   * own tab row, all writing to the same global state and none of them saying
+   * so. The rows go screen by screen through T46 and T50; the chip is here.
+   */
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(SHELL);
+
+  const chip = page.getByRole('button', { name: /^Riding: .+\. Switch sport\.$/ });
+  await expect(chip).toBeVisible();
+
+  const ruleBefore = await page.locator('.topbar').evaluate((el) => el.style.borderBottomColor);
+
+  await chip.click();
+  const menu = page.getByRole('group', { name: 'Switch sport' });
+  await expect(menu).toBeVisible();
+  // One row per sport the rider tracks. `/design/shell` passes no `sports`, so
+  // the provider offers every sport there is.
+  await expect(menu.getByRole('button')).toHaveCount(SPORT_IDS.length);
+
+  await menu.getByRole('button').nth(1).click();
+  await expect(menu).toBeHidden();
+
+  // The chip renamed itself, and the rule under the bar changed with it.
+  await expect
+    .poll(() => page.locator('.topbar').evaluate((el) => el.style.borderBottomColor))
+    .not.toBe(ruleBefore);
+});
+
+test('the bell is a link on a phone and a panel on a desktop', async ({ page }) => {
+  // D4. T45 builds the button and the slot its count sits in; T47 builds what
+  // is behind it, so there is no badge yet and the panel says so in a line.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(SHELL);
+  await expect(page.getByRole('link', { name: "What's new" })).toHaveAttribute(
+    'href',
+    '/whats-new',
+  );
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.getByRole('button', { name: "What's new" }).click();
+  await expect(page.getByRole('group', { name: "What's new" })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('group', { name: "What's new" })).toBeHidden();
 });
 
 test('no bottom-bar label wraps, down to the narrowest phone anyone still uses', async ({
@@ -139,22 +234,22 @@ test('no bottom-bar label wraps, down to the narrowest phone anyone still uses',
 }) => {
   /*
    * A wrapped label takes the row's height with it and pushes the icons out of
-   * line. "What's on" is the longest of the five and the one that made this
-   * worth measuring rather than eyeballing: about 58px of Barlow Condensed
-   * against a 71px cell at 375px, and about 60px of cell at 320px.
-   *
-   * Measured as the label's own line count rather than as a width, because the
-   * width the arithmetic predicts is the width in the font that loaded, and a
-   * fallback font is exactly the case this is a net for.
+   * line. "What's on" was the longest of the old five and the one that made
+   * this worth measuring rather than eyeballing: about 58px of Barlow Condensed
+   * against a 71px cell at 375px, and about 60px of cell at 320px. The four
+   * labels the rethink leaves — Home, Tricks, Find, Crew — are all shorter, so
+   * this has gone from a squeeze to a net. It stays a net: the numbers the
+   * arithmetic predicts are the numbers in the font that loaded, and a fallback
+   * font is exactly the case it is here for.
    */
   for (const width of [430, 375, 320]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto(SHELL);
 
-    // `> a` for the reason the five-cell test above gives: the drawer is a
-    // sibling of the cells, not one of them. This test is also what proves the
-    // caret on a folded cell costs no height — it is absolutely positioned
-    // precisely so that two cells of five cannot make the whole bar taller.
+    // `> a`, so the four link cells are compared with each other. The LOG cell
+    // is deliberately not one of them: its 58px square is raised 30px above the
+    // bar, so its box is taller by design and averaging it in would turn the
+    // design into a failure.
     const items = page
       .getByRole('navigation', { name: 'Main, compact', exact: true })
       .locator('> a');
@@ -287,31 +382,25 @@ test('sign out is the last row of the menu, for staff and riders alike', async (
   }
 });
 
-test('every nav item whose screen exists is a real link', async ({ page }) => {
+test('every nav group is a real link, at both widths', async ({ page }) => {
   await page.goto(SHELL);
 
   // The nav's half of `landing.spec.ts`'s "a built screen is a real link".
   // Wave 5's four sessions each shipped a screen reachable by URL and left
   // `components/shell/nav.ts` alone, so that four concurrent rebases could not
   // drop a sibling's line from the one file that decides whether a screen has a
-  // way in. `chore-wire-wave5-links` wired all five afterwards; this is what
-  // stops one going missing.
+  // way in. That is still what this guards; the list is four now rather than
+  // nine, and the five screens that lost a cell are reached from Home, the
+  // library and the avatar instead (`apps/web/src/lib/nav.test.ts`).
   const nav = page.getByRole('navigation', { name: 'Main', exact: true });
   for (const [name, href] of [
     ['Home', '/home'],
     ['Tricks', '/library'],
-    // `/progress` on this page for the reason the compact bar's list gives.
-    ['Progress', '/progress'],
-    ['Stickers', '/stickers'],
+    // A redirect to `/spots` until T48, which is a screen existing rather than
+    // a label standing in for one: the cell points at the group and stays put
+    // when the summary lands.
+    ['Find', '/find'],
     ['Crew', '/crew'],
-    ['Challenge', '/challenge'],
-    ['Events', '/events'],
-    ['Spots', '/spots'],
-    // T15's, and the last one. Every item in `components/shell/nav.ts` is now a
-    // real link, so the "a screen that is not built yet is a label" half of this
-    // rule no longer has an exemplar in the nav — it still has one in
-    // `landing.spec.ts` while any footer entry is unbuilt.
-    ['Plans', '/plans'],
   ] as const) {
     await expect(nav.getByRole('link', { name, exact: true })).toHaveAttribute('href', href);
   }
