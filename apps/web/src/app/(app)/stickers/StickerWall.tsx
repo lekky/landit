@@ -13,7 +13,8 @@ import {
 } from '@landit/ui-web';
 import { useEffect, useRef, useState } from 'react';
 
-import { SportSwitch } from '@/components/shell/SportSwitch';
+import { BackLink } from '@/components/shell/BackLink';
+import { TAB_PANEL, TabRow } from '@/components/shell/TabRow';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/providers/toast';
@@ -76,8 +77,6 @@ export function StickerWall({ view }: { view: StickerWallView }) {
         ? (view.defaultViewBySport[current] ?? 'unearned')
         : 'unearned';
 
-  const notes = new Map(view.tabs.map((t) => [t.sport, t.earnedLabel]));
-
   /*
    * Acknowledge on arrival, once.
    *
@@ -113,7 +112,11 @@ export function StickerWall({ view }: { view: StickerWallView }) {
 
   return (
     <div className={styles.page}>
-      <SportSwitch note={(id) => notes.get(id) ?? ''} label="Sport" />
+      {/*
+        The Home back link (§2.3). The wall is one of the four screens reached
+        from a Home card now, and Home's cell stays lit while a rider is on it.
+      */}
+      <BackLink href={ROUTES.dashboard} label="Home" />
 
       <div className={styles.head}>
         <div>
@@ -126,6 +129,33 @@ export function StickerWall({ view }: { view: StickerWallView }) {
           <Bar pct={wall.length ? (earned / wall.length) * 100 : 0} color="var(--pink)" />
         </div>
       </div>
+
+      {/*
+        Earned · Not yet, as a `TabRow` in the header (§3.10).
+
+        It was an underline bar **inside** the ink panel, put there because
+        issue #379 item 5 logged two rows of identically shaped tabs on this
+        screen — one navigating by sport, one filtering the wall. The sport row
+        is gone (D5: the sport is the top bar's chip), so the collision it was
+        hiding from is gone with it, and the switch can be the boxed row every
+        other screen uses. One tab shape in the product beats two.
+
+        `TabRow` fires `tabs_switched` `{ group: 'stickers', tab }` itself,
+        which is what `sticker_view_switched` used to say — the catalogue entry
+        records that the tab rows are taking those per-screen events over
+        (`analytics.ts`), so this fires one event rather than two names for one
+        tap.
+      */}
+      <TabRow
+        items={[
+          { id: 'earned', label: WALL_VIEW_LABELS.earned, note: half.earned.length },
+          { id: 'unearned', label: WALL_VIEW_LABELS.unearned, note: half.unearned.length },
+        ]}
+        value={active}
+        group="stickers"
+        label="Which badges to show"
+        onChange={(id) => setChoice({ sport: current, view: id as WallView })}
+      />
 
       {/*
         Shelved, not heaped (#245): awards by what they are for — see
@@ -143,26 +173,7 @@ export function StickerWall({ view }: { view: StickerWallView }) {
         logged exactly that collision on Progress — two rows of identically
         shaped tabs, one navigation and one filter.
       */}
-      <Panel className={styles.wall}>
-        <div className={styles.views} role="group" aria-label="Which badges to show">
-          {(['earned', 'unearned'] as const).map((id) => (
-            <button
-              key={id}
-              type="button"
-              className={styles.viewBtn}
-              aria-pressed={active === id}
-              onClick={() => {
-                // 'earned' or 'unearned' — two fixed strings, the same for everybody.
-                capture(ANALYTICS_EVENTS.stickerViewSwitched, { view: id });
-                setChoice({ sport: current, view: id });
-              }}
-            >
-              {WALL_VIEW_LABELS[id]}
-              <span className={styles.viewCount}>{half[id].length}</span>
-            </button>
-          ))}
-        </div>
-
+      <Panel key={active} className={`${TAB_PANEL} ${styles.wall}`}>
         {!half[active].length && (
           <p className={styles.empty}>
             {active === 'earned'

@@ -3,12 +3,13 @@
 import { Bar, Button, Empty, Panel, SectionHead, Tag } from '@landit/ui-web';
 import { useTransition } from 'react';
 
-import { SportSwitch } from '@/components/shell/SportSwitch';
+import { BackLink } from '@/components/shell/BackLink';
 import { useSport } from '@/providers/sport';
 import { useToast } from '@/providers/toast';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { runActionOr } from '@/lib/runAction';
+import { ROUTES } from '@/lib/routes';
 
 import { logChallengeAction } from './actions';
 import styles from './challenge.module.css';
@@ -47,6 +48,7 @@ export function ChallengeScreen({ views }: { readonly views: readonly ChallengeS
   if (!view) {
     return (
       <div className={styles.page}>
+        <BackLink href={ROUTES.dashboard} label="Home" />
         <span className="eyebrow">Challenge</span>
         <h1 className={`d ${styles.head}`}>Nothing scheduled</h1>
       </div>
@@ -81,10 +83,17 @@ export function ChallengeScreen({ views }: { readonly views: readonly ChallengeS
 
   return (
     <div className={styles.page}>
-      <SportSwitch
-        note={(id) => views.find((v) => v.sport === id)?.current?.title ?? '—'}
-        label="Challenge by sport"
-      />
+      {/*
+        The Home back link (§2.3), where the sport row used to be.
+
+        The sport is the top bar's chip now (D5) — this screen's `useSport` is
+        unchanged, so switching sport still switches the challenge, from one
+        switcher in the product rather than a row redrawn on five screens. What
+        the row's slot holds instead is the thing this screen was missing: a
+        rider on `/challenge` is under Home, and the back link is how that is
+        true on screen and not only in the routing table.
+      */}
+      <BackLink href={ROUTES.dashboard} label="Home" />
 
       <div>
         <span className="eyebrow">Challenge · {view.sportLabel}</span>

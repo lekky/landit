@@ -103,61 +103,16 @@
   letter-spacing: 0.08em;
 }
 
-/* ------------------------------------------------------------ the two tabs -- */
-
 /*
- * Earned / All, inside the ink panel (T33).
+ * `.views` / `.viewBtn` / `.viewCount` stood here and are gone (T46).
  *
- * An underline bar, not the bordered pills of `SportSwitch` above it. #379
- * item 5 logged that exact collision on Progress — a navigation row and a
- * filter row rendered as the same control, "same box, same size, same shadow"
- * — and its fix names the underline bar as the way out. So this reads as part
- * of the wall it filters rather than as a second place to go.
+ * Earned / Not yet was an underline bar inside the ink panel because #379 item
+ * 5 logged two rows of identically shaped tabs on this screen — the sport row
+ * above it and the filter row below. The sport row went with D5, so the switch
+ * is the boxed `TabRow` in the header now, the same control every other screen
+ * uses, and the reason to draw it differently went with the thing it was
+ * avoiding.
  */
-.views {
-  display: flex;
-  gap: 22px;
-  margin: -4px 0 20px;
-  border-bottom: 2px solid color-mix(in srgb, var(--paper) 22%, transparent);
-}
-
-.viewBtn {
-  appearance: none;
-  background: none;
-  border: 0;
-  border-bottom: 4px solid transparent;
-  margin-bottom: -2px;
-  padding: 4px 2px 9px;
-  font: inherit;
-  font-family: var(--fc);
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--paper) 62%, transparent);
-  cursor: pointer;
-  /* 44px of target from the 4px rule up through the padding and the text. */
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.viewBtn[aria-pressed='true'] {
-  color: var(--paper);
-  border-bottom-color: var(--pink);
-}
-
-.viewCount {
-  font-size: 13px;
-  letter-spacing: 0.06em;
-  color: color-mix(in srgb, var(--paper) 55%, transparent);
-  font-variant-numeric: tabular-nums;
-}
-
-.viewBtn[aria-pressed='true'] .viewCount {
-  color: color-mix(in srgb, var(--paper) 75%, transparent);
-}
 
 /* --------------------------------------------------------------- show all -- */
 

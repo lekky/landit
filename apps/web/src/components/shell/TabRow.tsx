@@ -41,6 +41,16 @@ export type TabRowItem = {
   id: string;
   label: string;
   icon?: IconName;
+  /**
+   * A count after the label, in `.sporttab`'s faded `.n` (T46).
+   *
+   * The sticker wall's Earned / Not yet row carried one before the rethink and
+   * it is the reason to press either tab — "Not yet 109" is a wall worth
+   * opening, "Not yet" is a word. A count of the rider's own badges is a fact
+   * on screen, never a property on an event: `tabs_switched` carries the tab id
+   * and nothing else.
+   */
+  note?: string | number;
   /** Present on a row that navigates. All items in a row agree. */
   href?: Route;
 };
@@ -78,6 +88,7 @@ export function TabRow({ items, value, group, label, onChange, className }: TabR
             >
               {item.icon && <Icon name={item.icon} size={16} strokeWidth={2.3} />}
               {item.label}
+              {item.note !== undefined && <span className="n">{item.note}</span>}
             </Link>
           );
         })}
@@ -88,7 +99,12 @@ export function TabRow({ items, value, group, label, onChange, className }: TabR
   return (
     <Tabs
       variant="boxed"
-      items={items.map((item): TabItem => ({ id: item.id, label: item.label, icon: item.icon }))}
+      items={items.map((item): TabItem => ({
+        id: item.id,
+        label: item.label,
+        icon: item.icon,
+        ...(item.note !== undefined ? { note: item.note } : {}),
+      }))}
       value={value}
       label={label}
       className={className}

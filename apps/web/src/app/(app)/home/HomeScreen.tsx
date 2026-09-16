@@ -1,17 +1,16 @@
 'use client';
 
-import type { SportId } from '@landit/core';
-import { Avatar, Bar, Empty, Panel, SectionHead, StickerBadge, TrickCard } from '@landit/ui-web';
+import { Avatar, Bar, Empty, Panel, SectionHead, TrickCard } from '@landit/ui-web';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback } from 'react';
 
-import { SportSwitch } from '@/components/shell/SportSwitch';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
-import { ROUTES, libraryHref, trickHref } from '@/lib/routes';
+import { ROUTES, eventHref, libraryHref, spotHref, trickHref } from '@/lib/routes';
+import { sessionsHref } from '@/lib/sessionRoutes';
 import { useSport } from '@/providers/sport';
 
 import { AnnouncementBanner } from './AnnouncementBanner';
+import { LinkCard } from './LinkCard';
 import { StreakCard } from './StreakCard';
 import { WorkingTrick } from './WorkingTrick';
 import type { HomeView, TrickCardView } from './view';
@@ -19,43 +18,98 @@ import type { HomeView, TrickCardView } from './view';
 import styles from './home.module.css';
 
 /**
- * The dashboard, as the rider sees it (screenshot 06).
+ * The dashboard, as a rider meets it after the app shell rethink (§3.4).
  *
- * A client component only because the sport tabs are: everything it renders was
- * computed on the server and handed over as plain data (`view.ts`), so switching
- * tab is a re-render rather than a fetch, and nothing on the page is produced by
- * ICU on one side of hydration and not the other (LESSONS §3a).
+ * **What changed, and why it is not a reshuffle.** Folding nine destinations
+ * into four groups (D8) took Progress, Sessions, Stickers and the Challenge off
+ * both bars. They are under Home now, and the four **record cards** are the
+ * whole of how a rider gets to them — which makes this screen navigation as
+ * much as a summary, and is why the cards sit directly under the streak rather
+ * than below two grids of trick art. The order the owner agreed on the canvas
+ * is: greeting → streak → the four cards → Working on it → crew activity →
+ * Next up → Your spots.
  *
- * **Some cross-route links are still absent, and that is the guard working.**
- * The library is wired — T7 merged while this was building, so the trick cards
- * open `/library/[trick]` and the section head goes to `/library`. `/progress`,
- * `/stickers`, `/crew` and `/challenge` are T9, T10, T11 and T12 and do not
- * exist yet; `typedRoutes` makes a link to one a compile error, and casting a
- * route to make a dead link compile deletes the guard instead of solving the
- * problem (LESSONS §3a). So those section heads simply drop their "more" link,
- * and the task that lands each screen adds it back in one line. Each is listed
- * in this PR.
+ * **The sport tab row is gone** (D5). The sport is chosen once, in the top
+ * bar's chip, and every number on this screen follows it through `useSport`
+ * exactly as it followed the row — one switcher in the product rather than one
+ * per screen. The greeting's four stat blocks go on the phone, because the four
+ * cards carry those numbers there and saying them twice costs a screen; they
+ * stay on desktop, where the rail has the room.
+ *
+ * Still a client component only because the sport is client state: everything
+ * it renders was computed on the server and handed over as plain data
+ * (`view.ts`), so switching sport is a re-render rather than a fetch and
+ * nothing on the page is produced by ICU on one side of hydration and not the
+ * other (LESSONS §3a).
  */
 export function HomeScreen({ view }: { view: HomeView }) {
   const { sport } = useSport();
   const router = useRouter();
   const current = view.bySport[sport] ?? view.bySport[view.sports[0] as string];
 
-  const note = useCallback(
-    (id: SportId) => `${view.bySport[id]?.landed ?? 0} landed`,
-    [view.bySport],
-  );
-
   if (!current) return null;
 
   const working = current.workingTricks.length > 0;
   const primary = working ? current.workingTricks : current.startHere;
 
+  /*
+   * The four record cards (§3.4), in the order the canvas draws them.
+   *
+   * Sessions is dropped rather than disabled when the preview is not open to
+   * this rider (T41): a card that leads to a screen they would be refused is
+   * worse than no card, and `.cards` is an auto-fitting grid, so three sit in
+   * the row the same way four do.
+   */
+  const cards = (
+    <div className={styles.cards}>
+      <LinkCard
+        href={ROUTES.progress}
+        to="progress"
+        title="Progress"
+        icon="chart"
+        hue="var(--lime)"
+        value={String(current.landed)}
+        sub={`${current.working} learning · ${current.wanted} want to`}
+      />
+      {view.sessionsCard && (
+        <LinkCard
+          href={sessionsHref()}
+          to="sessions"
+          title="Sessions"
+          icon="clock"
+          hue="var(--sky)"
+          value={view.sessionsCard.value}
+          sub={view.sessionsCard.sub}
+        />
+      )}
+      <LinkCard
+        href={ROUTES.stickers}
+        to="stickers"
+        title="Stickers"
+        icon="star"
+        hue="#FFB3C9"
+        value={String(current.stickerCount)}
+        sub={view.newestSticker ? `Newest: ${view.newestSticker}` : 'None yet — the first is close'}
+      />
+      <LinkCard
+        href={ROUTES.challenge}
+        to="challenge"
+        title="Challenge"
+        icon="flag"
+        hue="var(--yellow)"
+        value={current.challenge ? `${current.challenge.logged}/${current.challenge.goal}` : '—'}
+        sub={
+          current.challenge
+            ? `${current.challenge.title} · ${current.challenge.endsLabel}`
+            : 'Nothing running this week'
+        }
+      />
+    </div>
+  );
+
   return (
     <div className={styles.page}>
       {current.announcement && <AnnouncementBanner notice={current.announcement} />}
-
-      <SportSwitch note={note} label="Sport" />
 
       <div className={styles.top}>
         <Panel className={styles.greeting}>
@@ -66,6 +120,12 @@ export function HomeScreen({ view }: { view: HomeView }) {
             {current.acrossSports && <span className={styles.across}>{current.acrossSports}</span>}
           </p>
 
+          {/*
+            Desktop only (§3.4). The four cards below carry Landed, Learning,
+            Want to and Stickers on a phone, and a dashboard that says each
+            number twice in the first screenful is a dashboard a thumb has to
+            scroll past to reach anything it can act on.
+          */}
           <div className={styles.stats}>
             <StatBlock n={current.landed} label="Landed" hue="var(--lime)" />
             <StatBlock n={current.working} label="Learning" hue="var(--yellow)" />
@@ -89,13 +149,15 @@ export function HomeScreen({ view }: { view: HomeView }) {
 
           {current.challenge && (
             /*
-              The whole card is the way into `/challenge`, and on a phone it is
-              the *only* way: the bottom bar folds Challenge into Home rather
-              than spending one of five cells on it (`components/shell/nav.ts`),
-              so a card that only reported the week would leave the screen
-              behind it unreachable below 861px. A card rather than a button
-              because the target is the thing being described — a rider who
-              wants this week's challenge taps this week's challenge.
+              The week's challenge in full, and **desktop only** (§3.4: "greeting
+              + streak/challenge rail as today").
+
+              On a phone the Challenge record card below carries it — "1/3 ·
+              Switch week · Ends Sunday" is the same three facts in a card a
+              thumb reaches without scrolling, and drawing both would spend a
+              quarter of the first screenful saying one thing twice. On desktop
+              the rail is beside the greeting rather than under it, so the fuller
+              card costs nothing and the blurb is worth reading.
             */
             <Link
               href={ROUTES.challenge}
@@ -122,6 +184,8 @@ export function HomeScreen({ view }: { view: HomeView }) {
         </div>
       </div>
 
+      {cards}
+
       <section>
         {/*
           The way into "My tricks" (T22). When there is something in progress
@@ -138,7 +202,13 @@ export function HomeScreen({ view }: { view: HomeView }) {
           {working ? 'Working on it' : 'Start here'}
         </SectionHead>
         {primary.length ? (
-          <div className="grid-tricks">
+          /*
+            Four on desktop, the first two on a phone — the cut is
+            `.gridWorking`'s, not a slice, because a width measured in the
+            browser is a width the server guessed differently and the grid would
+            be thrown away on hydration (LESSONS §3a).
+          */
+          <div className={`grid-tricks ${styles.gridWorking}`}>
             {primary.map((t) =>
               working ? (
                 <WorkingTrick
@@ -166,77 +236,33 @@ export function HomeScreen({ view }: { view: HomeView }) {
         )}
       </section>
 
-      {current.wishList.length > 0 && (
-        <section>
-          <SectionHead>On the wish list</SectionHead>
-          <div className="grid-tricks">
-            {current.wishList.map((t) => (
-              <HomeTrickCard key={t.slug} trick={t} onOpen={() => router.push(trickHref(t.slug))} />
-            ))}
-          </div>
-        </section>
-      )}
-
       <div className={styles.bottom}>
         <section>
-          <SectionHead>Stickers</SectionHead>
-          {view.stickers.length ? (
-            <div className={styles.stickerRow}>
-              {view.stickers.map((s) => (
-                <StickerBadge
-                  key={s.id}
-                  sticker={{
-                    name: s.name,
-                    hue: s.hue,
-                    ...(s.icon ? { icon: s.icon as never } : {}),
-                    ...(s.img ? { img: s.img } : {}),
-                  }}
-                  earned
-                />
-              ))}
-            </div>
-          ) : (
-            <Empty
-              icon="star"
-              title="No stickers yet"
-              sub="Log your first trick and the first one drops straight away."
-              cta="Find a trick"
-              onCta={() => {
-                capture(ANALYTICS_EVENTS.emptyStateAction, { screen: 'home', action: 'library' });
-                router.push(ROUTES.library);
-              }}
-            />
-          )}
-        </section>
+          {/*
+            The crew's activity, not its board (§3.4).
 
-        <section>
-          <SectionHead>Your crew</SectionHead>
-          {view.crew.length ? (
-            <Panel flat className={styles.crew}>
-              {view.crew.map((rider, i) => (
+            Three sentences, each one written by `crewActivityLine` in
+            `@landit/core` from catalogue facts — a kind, a trick name, a
+            sticker name. Nothing a rider typed is here and nothing can be,
+            which is what keeps "no rider-to-rider messaging" (plan §6.1) true
+            of the shape and not merely of the intent. The board it replaces is
+            what `/crew` is for.
+          */}
+          <SectionHead more="Crew →" onMore={() => router.push(ROUTES.crew)}>
+            Your crew
+          </SectionHead>
+          {view.crewActivity.length ? (
+            <Panel flat className={styles.feed}>
+              {view.crewActivity.map((item, i) => (
                 <div
-                  key={rider.id}
-                  className={styles.crewRow}
-                  data-me={rider.isMe || undefined}
-                  data-last={i === view.crew.length - 1 || undefined}
+                  key={item.id}
+                  className={styles.feedRow}
+                  data-last={i === view.crewActivity.length - 1 || undefined}
                 >
-                  <span className={`d ${styles.crewRank}`}>{i + 1}</span>
-                  <Avatar avatarId={rider.avatarKey || null} name={rider.name} size={32} />
-                  <div className={styles.crewName}>
-                    <div className="cond" style={{ fontSize: 15 }}>
-                      {rider.name}
-                    </div>
-                    <div className={`lab ${styles.crewHandle}`}>
-                      {rider.handle ? `@${rider.handle}` : ''}
-                    </div>
-                  </div>
-                  <div className={styles.crewScore}>
-                    <div className="d" style={{ fontSize: 19 }}>
-                      {rider.landed}
-                    </div>
-                    <div className="lab" style={{ fontSize: 9.5, color: 'var(--ink-3)' }}>
-                      landed
-                    </div>
+                  <Avatar avatarId={item.avatarKey || null} name={item.name} size={32} />
+                  <div className={styles.feedBody}>
+                    <div className={`cond ${styles.feedLine}`}>{item.line}</div>
+                    <div className={`lab ${styles.feedWhen}`}>{item.when}</div>
                   </div>
                 </div>
               ))}
@@ -254,7 +280,66 @@ export function HomeScreen({ view }: { view: HomeView }) {
             />
           )}
         </section>
+
+        <section>
+          {/*
+            "Next up" — the next event this rider said yes to, and nobody
+            else's. `event_attendance` is `OWN`, so the read behind this cannot
+            return another rider's plans however it is asked.
+          */}
+          <SectionHead more="Find →" onMore={() => router.push(ROUTES.find)}>
+            Next up
+          </SectionHead>
+          {view.nextEvent ? (
+            <Link href={eventHref(view.nextEvent.slug)} className={`panel ${styles.next}`}>
+              <span className={styles.nextStripe} style={{ background: view.nextEvent.hue }} />
+              <span className={styles.nextBody}>
+                <span className="lab">{view.nextEvent.dateLabel}</span>
+                <span className={`cond ${styles.nextName}`}>{view.nextEvent.name}</span>
+                <span className={`lab ${styles.nextTown}`}>{view.nextEvent.town}</span>
+              </span>
+            </Link>
+          ) : (
+            <Empty
+              icon="flag"
+              title="Nothing in the diary"
+              sub="Jams, comps and clinics near you are on the events calendar."
+              cta="Find something on"
+              onCta={() => {
+                capture(ANALYTICS_EVENTS.emptyStateAction, { screen: 'home', action: 'events' });
+                router.push(ROUTES.events);
+              }}
+            />
+          )}
+        </section>
       </div>
+
+      <section>
+        <SectionHead more="Spots →" onMore={() => router.push(ROUTES.spots)}>
+          Your spots
+        </SectionHead>
+        {view.faveSpots.length ? (
+          <div className={styles.spots}>
+            {view.faveSpots.map((spot) => (
+              <Link key={spot.slug} href={spotHref(spot.slug)} className={`panel ${styles.spot}`}>
+                <span className={`cond ${styles.spotName}`}>{spot.name}</span>
+                <span className={`lab ${styles.spotTown}`}>{spot.town}</span>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <Empty
+            icon="map"
+            title="No faves yet"
+            sub="Tap the heart on a spot and it lands here, ready for next time."
+            cta="Find a spot"
+            onCta={() => {
+              capture(ANALYTICS_EVENTS.emptyStateAction, { screen: 'home', action: 'spots' });
+              router.push(ROUTES.spots);
+            }}
+          />
+        )}
+      </section>
     </div>
   );
 }

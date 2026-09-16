@@ -25,13 +25,58 @@
   margin: 6px 0 0;
 }
 
+/* --------------------------------------------------------- the tab panel -- */
+
+/*
+ * What sits under the `TabRow` (rethink §3.10).
+ *
+ * The screen's own `gap: 30px` used to separate five stacked sections; three of
+ * them are now behind tabs, so the gap moves in here and the panel stacks
+ * whatever that tab holds. One rule rather than a wrapper per tab, because
+ * every tab wants the same thing: its blocks 22px apart.
+ */
+.panelStack {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
 /* ------------------------------------------------ by category / by stage -- */
 
-.topGrid {
+/*
+ * The Record tab: the two panels, with the printable sheets on the rail.
+ *
+ * "(+ printable sheets on desktop's rail)" is §3.10's phrasing, and the rail is
+ * 340px — the same width the dashboard's is, so the two screens agree about
+ * what a rail is. Below 1100px it stacks under the panels rather than
+ * disappearing: the sheets are what a paid rider is paying for, and a feature
+ * that only exists above a width is a feature half the riders never meet.
+ */
+.recordGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  gap: 18px;
+  align-items: start;
+}
+
+.recordMain {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 18px;
+  align-items: start;
 }
+
+@media (max-width: 1100px) {
+  .recordGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*
+ * `.topGrid` stood here and is gone with the long scroll: the two panels it
+ * held are `.recordMain`'s now, which is the same two columns inside a tab
+ * rather than at the top of a page.
+ */
 
 .pad {
   padding: 20px;
@@ -449,7 +494,7 @@
 }
 
 @media (max-width: 800px) {
-  .topGrid,
+  .recordMain,
   .timeGrid,
   .insightsGrid {
     grid-template-columns: 1fr;
