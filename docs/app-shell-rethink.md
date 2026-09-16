@@ -251,14 +251,28 @@ sits above `.mobnav`. It cannot, from inside `.topbar`: that element is `positio
 390px phone, the sport sheet's last row was cut in half by the bottom bar at `z-index: 70`. `Sheet`
 therefore portals; `Modal` is untouched.
 
-**"Above `.mobnav`" means the panel stops at the bar's top edge** *(added by the T45 worker,
-2026-09-16, pending owner confirmation)*. §3.2 says the sheet "sits above `.mobnav`" and §4 says the
-LOG plus "turns into a cross … so the cell reads as 'close' too". The first cut read "above" as a
-z-index and let the panel run to the bottom edge, which made the second sentence undeliverable: the
-cross rotated behind the sheet, and `inertOutside` put the bar out of reach. So the panel's box ends
-where the bar begins — `63px` plus `env(safe-area-inset-bottom)` — while the **scrim still covers
-the whole viewport**, so the page behind stays dimmed and a tap anywhere on it closes the sheet. The
-bar is the one thing left live under it, which is what lets the cross close what it opened.
+**"Above `.mobnav`" means the sheet stops at the bar's top edge, and the cross is a state**
+*(added by the T45 worker, 2026-09-16, pending owner confirmation)*. §3.2 says the sheet "sits above
+`.mobnav`" and §4 says the LOG plus "turns into a cross … so the cell reads as 'close' too". Two
+things follow, and only the first was deliverable:
+
+- **The sheet and its scrim both stop where the bar begins** (`63px` plus
+  `env(safe-area-inset-bottom)`). The first cut read "above" as a z-index and ran to the bottom
+  edge, so the cross rotated *behind* the sheet and nobody ever saw it. The scrim covers everything
+  on screen except the bar, so the page behind is still dimmed and a tap anywhere on it is still a
+  dismissal.
+- **The cross does not close the sheet, and does not claim to.** A sheet is `aria-modal`, and
+  `useModalLayer`'s `inertOutside` makes everything outside the dialog `inert` — which is exactly
+  what `aria-modal` promises and what stops a rider tabbing into the page behind. An inert subtree
+  takes no pointer events, so the cell cannot be pressed while the sheet is up; measured, the click
+  lands on `<body>`. The cell therefore keeps `aria-expanded` and its rotation as **state**, and its
+  label stays "Log something" rather than offering a close it cannot perform. Escape, the scrim and
+  a drag down are the ways out.
+
+Making the cell genuinely pressable would mean teaching `inertOutside` to keep one named element
+live. That is shared code another task owns (CLAUDE.md step 5) and it is the same function
+[issue #540](https://github.com/lekky/landit/issues/540) is about, so it is flagged rather than
+done. If the owner wants the cross to close, that issue is where it lands.
 
 **The scrim's opacity is `.scrim`'s, not a second number** *(added by the T45 worker, 2026-09-16,
 pending owner confirmation)*. §3.2 asks for `rgba(18,16,11,.55)`; the sheet reuses the existing

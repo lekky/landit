@@ -49,6 +49,26 @@ function LogFace() {
   );
 }
 
+/**
+ * The middle cell, and what the cross on it does and does not mean.
+ *
+ * §4 asks the plus to turn into a cross while the sheet is open "so the cell
+ * reads as 'close' too". It does turn, and since the sheet and its scrim now
+ * stop at the top of the bar it is visible while they are up — which the first
+ * cut of this was not (review S1).
+ *
+ * **It is a state, not a second way out.** A sheet is `aria-modal`, and
+ * `inertOutside` makes everything outside the dialog `inert` — which is what
+ * `aria-modal` promises and what stops a rider tabbing into the page behind. An
+ * inert subtree takes no pointer events, so the cell cannot be pressed while
+ * the sheet is up, and the label therefore does not offer a close it cannot
+ * perform. Escape, a tap on the scrim and a drag down are the ways out, and the
+ * scrim is now everything on screen except the bar.
+ *
+ * Making the cell genuinely pressable would mean teaching `inertOutside` to
+ * keep one element live — shared code another task owns, and the same function
+ * issue #540 is about.
+ */
 function LogCell({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   return (
     <button
@@ -56,7 +76,7 @@ function LogCell({ open, onToggle }: { open: boolean; onToggle: () => void }) {
       className={styles.logCell}
       aria-haspopup="dialog"
       aria-expanded={open}
-      aria-label={open ? 'Close the log sheet' : 'Log something'}
+      aria-label="Log something"
       onClick={onToggle}
     >
       <LogFace />

@@ -595,21 +595,21 @@ a.pill.on:hover {
    * see or press is worse than none. So the *panel* ends where `.mobnav`
    * begins: 63px of bar plus whatever the home indicator takes.
    *
-   * The scrim itself still covers the whole viewport — it is `position: fixed;
-   * inset: 0` from `.scrim` and this only moves the grid's bottom edge — so the
-   * page behind stays dimmed and a tap anywhere on it still closes the sheet.
-   * The bar is above the scrim (it is not inert: `inertOutside` steps round the
-   * chain the dialog hangs from, and on `<body>` that chain is short), which is
-   * what lets the cross be pressed.
+   * The **scrim** stops there too, rather than the panel alone. The page it
+   * covers is everything a rider can see except the bar, which is the whole
+   * screen above it — so the page behind is still dimmed and a tap anywhere on
+   * it is still a dismissal. Leaving the scrim over the bar would have put a
+   * transparent sheet of glass over the cross, which is the same defect one
+   * layer further out.
    */
-  padding-bottom: calc(63px + env(safe-area-inset-bottom));
+  bottom: calc(63px + env(safe-area-inset-bottom));
 }
 /* Above 860px there is no bottom bar to clear, and the sheet is a `Modal`
    anyway — but a caller forcing `as="sheet"` on a desktop should not get a
    phone's gap. */
 @media (min-width: 861px) {
   .sheet-scrim {
-    padding-bottom: 0;
+    bottom: 0;
   }
 }
 .sheet {
@@ -800,6 +800,38 @@ a.pill.on:hover {
   color: var(--ink);
   display: flex;
   text-align: center;
+}
+
+/* ------------------------------------------------ the top bar at 400px -- */
+
+/*
+ * The narrowest phones: **the wordmark gives way, never the sport's name**.
+ *
+ * The right-hand end of the bar gained a sport chip and a bell in the app shell
+ * rethink, and D5 is explicit that the chip carries the sport's icon *and*
+ * name. Measured on the running branch at 320px, the wordmark at 42px plus the
+ * chip with its word plus the bell and the avatar came to 30px more than the
+ * viewport and the whole document scrolled sideways.
+ *
+ * Something had to shrink and the order is a decision, not an arithmetic: the
+ * mark is the one thing on the bar that tells a rider nothing they do not
+ * already know — they are in the app — while the chip's word is the only thing
+ * that says which library they are looking at. So the mark takes the cut, as it
+ * already does in the 861–1100px band further up this file, and the gaps
+ * tighten with it. `e2e/shell.spec.ts` measures 430, 390, 375 and 320.
+ */
+@media (max-width: 400px) {
+  .topbar-in {
+    gap: 8px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .topbar-in .logo img {
+    height: 32px;
+  }
+  .topbar-in .logo .wm {
+    font-size: 16px;
+  }
 }
 
 /* ---------------------------------------------------- the top bar's rule -- */

@@ -32,12 +32,24 @@ export const metadata: Metadata = {
 export default async function ShellPreviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ staff?: string }>;
+  searchParams: Promise<{ staff?: string; rider?: string }>;
 }) {
-  const staff = (await searchParams).staff === '1';
+  const params = await searchParams;
+  const staff = params.staff === '1';
+  /*
+   * `?rider=0` draws the shell with nobody signed in.
+   *
+   * The signed-out frame is real — `/spots`, `/events`, `/library`, `/plans`
+   * and `/report` all read without an account — and it is a different bar: the
+   * top bar's right-hand end is a Sign in button, and the bottom bar's middle
+   * cell is a link to sign in rather than the LOG sheet. There was no way to
+   * see or drive it on this sheet, which is how a signed-out visitor came to be
+   * offered a sheet whose every option dead-ended.
+   */
+  const signedOut = params.rider === '0';
 
   return (
-    <AppShell rider={{ name: 'Miles', avatarId: 'helmet-land', staff }}>
+    <AppShell rider={signedOut ? undefined : { name: 'Miles', avatarId: 'helmet-land', staff }}>
       <ShellPreview />
     </AppShell>
   );

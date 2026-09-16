@@ -176,13 +176,9 @@ test('the LOG cell opens the sheet, and Escape closes it', async ({ page }) => {
   await expect(sheet.getByRole('button', { name: /I rode today/ })).toBeVisible();
   await expect(sheet.getByRole('button', { name: /Log a trick/ })).toBeVisible();
   await expect(sheet.getByRole('button', { name: /Add a clip link/ })).toBeVisible();
-  // The plus reads as a cross while the sheet is up, which is the cell saying
-  // it will close what it opened.
-  await expect(
-    page
-      .getByRole('navigation', { name: 'Main, compact', exact: true })
-      .getByRole('button', { name: 'Close the log sheet' }),
-  ).toHaveAttribute('aria-expanded', 'true');
+  // The cell says it is holding something open. What the cross means, and why
+  // it is not a second way out, is the test further down.
+  await expect(log).toHaveAttribute('aria-expanded', 'true');
 
   await page.keyboard.press('Escape');
   await expect(sheet).toBeHidden();
@@ -230,21 +226,186 @@ test('the sport chip is the switcher, and the bar takes the sport colour', async
   await expect(page.locator('.topbar')).toHaveCSS('border-bottom-color', hexToRgb(await rule()));
 });
 
-test('the bell is a link on a phone and a panel on a desktop', async ({ page }) => {
-  // D4. T45 builds the button and the slot its count sits in; T47 builds what
-  // is behind it, so there is no badge yet and the panel says so in a line.
+test('the bell is a link at both widths, and opens a panel on a desktop', async ({ page }) => {
+  /*
+   * D4. T45 builds the control and the slot its count sits in; T47 builds what
+   * is behind it, so there is no badge yet and the panel says so in a line.
+   *
+   * **A link at both widths**, which is the half worth a test. It was a `<a>`
+   * on the phone branch and a `<button>` on the desktop one — and the width is
+   * only known in the browser, so every request was served the button and the
+   * phone swapped it after hydration. Before that, or if hydration failed, the
+   * phone's only way into a real page was a control that did nothing.
+   */
+  const bell = page.getByRole('link', { name: 'What’s new' });
+
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(SHELL);
-  await expect(page.getByRole('link', { name: "What's new" })).toHaveAttribute(
-    'href',
-    '/whats-new',
-  );
+  await expect(bell).toHaveAttribute('href', '/whats-new');
 
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.getByRole('button', { name: "What's new" }).click();
-  await expect(page.getByRole('group', { name: "What's new" })).toBeVisible();
+  await expect(bell).toHaveAttribute('href', '/whats-new');
+
+  // On a desktop the press is taken back and the dropdown opens instead.
+  await bell.click();
+  await expect(page).toHaveURL(new RegExp(`${SHELL}$`));
+  await expect(page.getByRole('group', { name: 'What’s new' })).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('group', { name: "What's new" })).toBeHidden();
+  await expect(page.getByRole('group', { name: 'What’s new' })).toBeHidden();
+
+  // And tabbing out of it closes it, which is the one dismissal a keyboard
+  // rider had no way to reach.
+  await bell.click();
+  await expect(page.getByRole('group', { name: 'What’s new' })).toBeVisible();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('group', { name: 'What’s new' })).toBeHidden();
+});
+
+test('the sport chip keeps its name at every width, down to 320px', async ({ page }) => {
+  /*
+   * D5 is "a chip that carries the sport's icon *and* name", and the first cut
+   * of this hid the name below 520px to buy room — on the one device the whole
+   * rethink is for. A rider who has never opened the sheet was left decoding a
+   * 20px glyph, which is the thing the decision was taken to end.
+   *
+   * 320 is the narrowest phone anyone still uses and the width where the bar
+   * has least to give: the wordmark, the chip with its word, the bell and the
+   * avatar. Three sports, because `/design/shell` passes no `sports` and the
+   * provider therefore offers every one there is — the widest the short names
+   * get.
+   */
+  for (const width of [430, 390, 375, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto(SHELL);
+
+    const chip = page.getByRole('button', { name: /^Riding: .+\. Switch sport\.$/ });
+    const text = (await chip.innerText()).trim();
+    expect(text, `the chip has no name at ${width}px`).not.toBe('');
+
+    // And the bar it sits in does not push the document sideways to hold it.
+    await expect
+      .poll(() => page.locator('html').evaluate((el) => el.scrollWidth - el.clientWidth), {
+        message: `the document scrolls sideways at ${width}px`,
+      })
+      .toBe(0);
+  }
+});
+
+test('on a phone, the chip and the bell are 44px targets around 34px of paint', async ({
+  page,
+}) => {
+  /*
+   * §3.1 draws both at 34px and §4 puts a 44px floor under anything tappable.
+   * The avatar beside them already has both — `additions.css`'s touch-hygiene
+   * block pads it and takes the padding back as margin — and these two did not.
+   */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(SHELL);
+
+  for (const [what, locator] of [
+    ['the sport chip', page.getByRole('button', { name: /^Riding: / })],
+    ['the bell', page.getByRole('link', { name: /^What’s new/ })],
+    ['the avatar', page.getByRole('button', { name: 'Your account and settings' })],
+  ] as const) {
+    const box = (await locator.boundingBox())!;
+    expect(Math.round(box.height), `${what} is under 44px on a phone`).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test('signed out, the LOG cell is a link to sign in rather than a sheet', async ({ page }) => {
+  /*
+   * The bar is drawn for a visitor too — `/spots`, `/events` and `/library` all
+   * read signed out — and the raised yellow square is the loudest control on
+   * the page. As a button it opened a sheet whose every option dead-ended: "I
+   * rode today" bounced to `/signin` with no explanation, and both trick
+   * pickers came back empty because the action answers a session-less call with
+   * nothing.
+   *
+   * `/design/shell?rider=0` draws the same shell with nobody signed in, which
+   * is the only way to see it without signing out of a seeded rider.
+   */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${SHELL}?rider=0`);
+
+  const bar = page.getByRole('navigation', { name: 'Main, compact', exact: true });
+
+  // Still five cells: the bar does not change shape with the rider.
+  await expect(bar.locator('> *')).toHaveCount(5);
+  await expect(bar.getByRole('button', { name: 'Log something' })).toHaveCount(0);
+
+  const log = bar.getByRole('link', { name: 'Sign in to log something' });
+  await expect(log).toHaveAttribute('href', '/signin');
+
+  // And it is the middle cell, wearing the same square.
+  const order = await bar
+    .locator('> *')
+    .evaluateAll((nodes) => nodes.map((n) => n.tagName.toLowerCase()));
+  expect(order).toEqual(['a', 'a', 'a', 'a', 'a']);
+
+  await log.click();
+  await page.waitForURL('**/signin');
+});
+
+test('on a phone, the sheet stops at the top of the bar so LOG can close it', async ({ page }) => {
+  /*
+   * §4 asks the LOG plus to turn into a cross "so the cell reads as 'close'
+   * too". A sheet that runs to the bottom edge makes that undeliverable: the
+   * rotation happens behind the sheet and `inertOutside` puts the bar out of
+   * reach. So the panel ends where `.mobnav` begins — while the scrim still
+   * covers the page, which is what keeps a tap anywhere else a dismissal.
+   */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(SHELL);
+
+  const bar = page.getByRole('navigation', { name: 'Main, compact', exact: true });
+  const log = bar.getByRole('button', { name: 'Log something' });
+  await log.click();
+
+  const sheet = page.getByRole('dialog', { name: 'Log something' });
+  await expect(sheet).toBeVisible();
+
+  const barTop = (await bar.boundingBox())!.y;
+  await expect
+    .poll(
+      async () => {
+        const box = await sheet.boundingBox();
+        return box ? Math.round(box.y + box.height) : Infinity;
+      },
+      { message: 'the sheet covers the bottom bar' },
+    )
+    .toBeLessThanOrEqual(Math.round(barTop) + 1);
+
+  /*
+   * The scrim covers the page and stops where the bar starts.
+   *
+   * Everything a rider can see except the bar is under it, so the page behind
+   * is dimmed and a tap anywhere on it is still a dismissal — and the cross is
+   * not behind a transparent sheet of glass, which is the same defect one layer
+   * further out.
+   */
+  const scrim = (await page.locator('.sheet-scrim').boundingBox())!;
+  expect(Math.round(scrim.y)).toBe(0);
+  expect(Math.round(scrim.y + scrim.height)).toBe(Math.round(barTop));
+
+  /*
+   * The cross is visible, and it is a state rather than a second way out.
+   *
+   * A sheet is `aria-modal`, so `inertOutside` makes everything outside the
+   * dialog inert — which is the promise `aria-modal` makes — and an inert
+   * subtree takes no pointer events. So the cell shows that the sheet is open
+   * and the dialog owns the dismissals: Escape, the scrim, a drag down.
+   */
+  const cell = bar.getByRole('button', { name: 'Log something' });
+  await expect(cell).toBeVisible();
+  await expect(cell).toHaveAttribute('aria-expanded', 'true');
+  await expect(cell.locator('svg')).toHaveCSS(
+    'transform',
+    'matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)',
+  );
+
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+  await expect(cell).toHaveAttribute('aria-expanded', 'false');
 });
 
 test('no bottom-bar label wraps, down to the narrowest phone anyone still uses', async ({
