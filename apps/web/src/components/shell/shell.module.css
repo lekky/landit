@@ -1,0 +1,529 @@
+/*
+ * The app shell's own furniture (app shell rethink, T45).
+ *
+ * A module rather than `packages/ui-web`, for the reason the section drawer's
+ * module gave before it: the design pack has no drawing of any of this, and
+ * `additions.css` is shared, additive-only code that the app's own bar
+ * furniture has no business growing into. What *is* shared went there — the
+ * sheet, the dropdown, the boxed tab row and the top bar's sport-coloured rule
+ * are design-system pieces other screens will use; the LOG cell, the sport
+ * chip, the bell and the option row are this shell's.
+ *
+ * ## Why so many rules are written twice
+ *
+ * Two of these surfaces live *inside* elements the shared stylesheet already
+ * claims. `.mobnav a` and `.nav a` are descendant selectors at specificity
+ * (0,1,1), and a lone module class is (0,1,0), so the LOG cell drawn the
+ * obvious way came out as a bar cell. Two classes is what wins it back —
+ * the same trap `sectionDrawer.module.css` documented and LESSONS §3a names.
+ */
+
+/* ------------------------------------------------------------- log cell -- */
+
+/*
+ * The middle cell of the phone's bar (D1): a yellow square raised above the
+ * bar with a plus in it, and LOG beneath in the bar's own label type.
+ *
+ * A `button`, not a link — it opens a sheet and goes nowhere — so it needs
+ * every property `.mobnav a` gives its siblings and a `<button>` does not
+ * inherit. The 58px square and the -30px lift are §3.1's; the label sits under
+ * it so the five cells still read as one row of labels.
+ */
+/*
+ * `.logCell.logCell`, doubled, and not by accident. `.mobnav button` in
+ * `primitives.css` is a descendant selector at (0,1,1) and a lone module class
+ * is (0,1,0), so written once this came out stacked, 10.5px and muted like a
+ * bar cell. Repeating the class is the smallest thing that outranks it without
+ * `!important` and without editing the shared transcription.
+ */
+.logCell.logCell,
+.logCell.logCell:hover {
+  background: none;
+  border: none;
+  padding: 10px 2px 13px;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  color: var(--yellow);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  position: relative;
+}
+/*
+ * **Absolutely positioned, and that is the whole point of it.**
+ *
+ * The square is raised above the bar's top edge, so it must not make the bar
+ * taller: `.mobnav`'s height is what the toast stack clears, what the site
+ * footer pads for and what the spots map sheet measures itself against, and a
+ * `margin-top: -30px` on an in-flow 58px square grew the bar from 52px to about
+ * 67px — enough for the spots sheet to overhang it by 6px, which
+ * `e2e/spots.spec.ts` caught. Out of flow, the cell is exactly the 52px its
+ * four siblings are and the square hangs over the page above it.
+ */
+.logSquare {
+  position: absolute;
+  left: 50%;
+  top: -30px;
+  transform: translateX(-50%);
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  background: var(--yellow);
+  color: var(--on-light);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press);
+}
+/*
+ * The plus turns into a cross while the sheet is open (§4), so the cell reads
+ * as "close" as well as "open". A rotation, not a second glyph: one element
+ * cannot be mid-way between two icons, and it can be mid-way through a turn.
+ */
+.logGlyph {
+  display: block;
+  transition: transform var(--dur-ui) var(--ease-out);
+}
+.logCell.logCell[aria-expanded='true'] .logGlyph {
+  transform: rotate(45deg);
+}
+/* The press keeps the centring the positioning depends on. */
+.logCell.logCell:active .logSquare {
+  transform: translateX(-50%) translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+/* ------------------------------------------------------ top bar buttons -- */
+
+/*
+ * The right-hand group: the sport chip, Log, the bell and the avatar. All
+ * 34px tall, so they line up with `.avatarbtn`, which sets the height of that
+ * end of the bar and is not being changed.
+ */
+.tbBtn {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: var(--ink-raise);
+  color: var(--paper);
+  border: 2px solid var(--ink-rule);
+  padding: 0;
+  flex: none;
+  position: relative;
+  transition:
+    transform var(--dur-press),
+    background var(--dur-press);
+}
+.tbBtn:hover {
+  background: var(--ink-rule);
+  color: var(--paper);
+}
+.tbBtn:active {
+  transform: translate(1px, 1px);
+}
+/*
+ * The unseen count. Pink on a 2px ink keyline at the top-right corner, and
+ * drawn only above zero — a badge reading 0 is a badge that has stopped
+ * meaning anything. T47 is what makes the number move; until then the bell has
+ * no badge at all.
+ */
+.tbBadge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  background: var(--pink);
+  color: var(--on-dark);
+  border: 2px solid var(--ink);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+/*
+ * Desktop only, at the same 860px `.nav` uses. A phone has the middle cell of
+ * the bottom bar, and two LOG controls on one screen would be two answers to
+ * the same question.
+ */
+@media (max-width: 860px) {
+  /* Doubled, so it outranks `.logBtn`'s own `display: flex` whatever order the
+     module's rules end up in. */
+  .desktopOnly.desktopOnly {
+    display: none;
+  }
+}
+
+/* The desktop's yellow Log button, beside the chip. */
+.logBtn,
+.logBtn:hover {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 11px;
+  background: var(--yellow);
+  color: var(--on-light);
+  border: 2.5px solid var(--paper);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  flex: none;
+  transition: transform var(--dur-press);
+}
+.logBtn:active {
+  transform: translate(1px, 1px);
+}
+
+/* ------------------------------------------------------------ sport chip -- */
+
+/*
+ * The sport, chosen once, in the top bar (D5) — icon and the sport's short
+ * name, filled with the sport's own colour behind a paper keyline like the
+ * avatar's. The fill cross-fades when the sport changes, with the bar's rule.
+ */
+.sportChip,
+.sportChip:hover {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 2.5px solid var(--paper);
+  color: var(--on-light);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  flex: none;
+  white-space: nowrap;
+  transition:
+    background var(--dur-ui) var(--ease-out),
+    transform var(--dur-press);
+}
+.sportChip:active {
+  transform: translate(1px, 1px);
+}
+/*
+ * **The name is on at every width**, and the rule that hid it below 520px is
+ * gone (review B1).
+ *
+ * It was hidden to buy room, which reversed the decision the chip exists for:
+ * D5 is "the sport is chosen once, in a chip that carries the sport's icon
+ * *and* name", and a rider who has never opened the sheet was left decoding a
+ * 20px glyph on exactly the device the rethink is for. Measured with three
+ * sports at 320px, the bar has the room — the wordmark shrinks in its own
+ * 860px block and the four right-hand controls come to about 190px.
+ *
+ * Below 520px the type tightens instead: 12px and a little less tracking and
+ * padding, which buys ~14px without taking the word away.
+ */
+@media (max-width: 519px) {
+  .sportChip,
+  .sportChip:hover {
+    padding: 0 7px;
+    gap: 5px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+}
+
+/* The holder both dropdowns hang from: the panel is absolute against it. */
+.anchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/*
+ * A 44px hit area on a phone, **without moving the 34px paint** (review S7, F1).
+ *
+ * §3.1 draws the chip and the bell at 34px and §4 puts a 44px floor under
+ * anything tappable, so the target has to grow and the paint has to not.
+ *
+ * The first attempt copied the avatar's trick from `additions.css`'s
+ * touch-hygiene block — 5px of padding, the same 5px back as a negative margin
+ * — and that works there for a reason this does not share: `.accountmenu-trigger`
+ * has **no background**, so its padding is invisible and the avatar circle
+ * inside stays 34px. These two are filled, and a background paints the padding
+ * box: measured at 390px, the chip became a 48px orange slab and the bell a
+ * 48px dark one beside a 34px avatar.
+ *
+ * So the target is a transparent overlay instead. `::after` is `inset: -5px` of
+ * nothing, which reaches 44px in both directions and paints not one pixel; the
+ * element's own box, its fill and its 2.5px paper keyline are untouched. The
+ * press still lands on the button, because a pseudo-element is part of it.
+ */
+@media (max-width: 860px) {
+  .tbBtn::after,
+  .sportChip::after {
+    content: '';
+    position: absolute;
+    /* 34 + 5 + 5 = 44, which is the floor, not a size anything is drawn at. */
+    inset: -5px;
+  }
+  /* `.tbBtn` is already `position: relative` for its badge; the chip is not. */
+  .sportChip {
+    position: relative;
+  }
+}
+
+/* ------------------------------------------------------------ option row -- */
+
+/*
+ * One of the LOG sheet's four (§3.5), and the shape the settings list and the
+ * Home cards take later: an icon square with a fixed fill, a title, a line of
+ * explanation and an arrow.
+ */
+.optionRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  min-height: 64px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  color: var(--ink);
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press);
+}
+.optionRow:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+  color: var(--ink);
+}
+.optionRow:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+/* "Add a clip link" is the quiet one of the four: a dashed keyline, no shadow. */
+.optionRowQuiet {
+  border-style: dashed;
+  box-shadow: none;
+}
+.optionRowQuiet:hover {
+  box-shadow: none;
+  transform: translate(-1px, -1px);
+}
+.optionMark {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--ink);
+  color: var(--on-light);
+}
+.optionText {
+  flex: 1;
+  min-width: 0;
+}
+.optionTitle {
+  display: block;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+}
+.optionLine {
+  display: block;
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.35;
+}
+.optionArrow {
+  flex: none;
+  color: var(--ink-3);
+}
+
+/* -------------------------------------------------------------- sheet bits -- */
+
+.sheetHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.sheetNote {
+  font-size: 13px;
+  color: var(--ink-3);
+  margin: 0 0 12px;
+}
+.pickerSearch {
+  margin-bottom: 12px;
+}
+.pickerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 46dvh;
+  overflow: auto;
+}
+.pickerRow,
+.pickerRow:hover {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  min-height: 48px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  margin-bottom: 8px;
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 15.5px;
+  letter-spacing: 0.02em;
+}
+.pickerRow:hover {
+  background: var(--paper-2);
+}
+.pickerStage {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.sportRow,
+.sportRow:hover {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  min-height: 52px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  color: var(--ink);
+  margin-bottom: 10px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.sportRowOn {
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.sportRowOff,
+.sportRowOff:hover {
+  background: var(--wash);
+  color: var(--ink-3);
+  box-shadow: none;
+  border-style: dashed;
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  font-size: 13.5px;
+}
+.sportSwatch {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border: 2px solid var(--ink);
+}
+/* The sport's name with its counts under it (§3.1). */
+.sportRowText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.sportRowCount {
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  text-transform: none;
+}
+.sportTick {
+  flex: none;
+  margin-left: auto;
+  color: var(--ink);
+}
+/* The dropdown's inner padding, so the panel itself stays a plain surface. */
+.menuPad {
+  padding: 12px 12px 4px;
+}
+
+/* ---------------------------------------------------------------- tab row -- */
+
+/*
+ * The 120ms cross-fade a `TabRow` switches a panel with (§4, review S10).
+ *
+ * The class is handed to the caller as `TAB_PANEL` rather than applied here,
+ * because the panel belongs to the screen and not to the row: `TabRow` draws
+ * four boxes and has no idea what is underneath them. Keyed on the tab id, so
+ * React remounts the panel and the animation runs on every switch.
+ *
+ * `--dur-press`, which is §4's number for a tab switch — the shortest of the
+ * three, because this is feedback for a press rather than something arriving.
+ */
+.tabPanel {
+  animation: tabfade var(--dur-press) var(--ease-out);
+}
+@keyframes tabfade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* -------------------------------------------------------------- back link -- */
+
+/*
+ * "← Home" at the top of a screen reached from a Home card (§2.3).
+ *
+ * A link to the parent route, never `history.back()`: a rider who arrived from
+ * a shared link, a search result or a notification still has somewhere to go.
+ * The hit area is padded out and the margin pulled back, so it is 44px to a
+ * thumb without moving anything around it.
+ */
+.backLink,
+.backLink:hover {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding: 12px 10px 12px 0;
+  margin: -12px 0 2px 0;
+}
+.backLink:hover {
+  color: var(--ink);
+}

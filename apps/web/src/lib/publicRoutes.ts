@@ -70,6 +70,16 @@ export const GATED_ROUTES: readonly Route[] = [
   ROUTES.account,
   ROUTES.onboarding,
   /*
+   * What's new (rethink §3.6). A rider's own stickers, their crews' joins and
+   * the events they said yes to — one rider's record, so it answers a
+   * signed-out visitor the way `/crew` does.
+   *
+   * `/find` is deliberately in neither list while it is a redirect to `/spots`
+   * (T48 gives it a page): a sitemap should advertise the screen, not the
+   * signpost, and it is not gated either.
+   */
+  ROUTES.whatsNew,
+  /*
    * The suggestion box, which is the one route here that a reader might expect
    * to find in the list above: its sibling `/report` is public. It is not, and
    * the difference is a decision rather than an oversight — the reporting route

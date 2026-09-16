@@ -67,21 +67,20 @@ async function newRider(page: Page): Promise<void> {
   await page.waitForURL('**/home');
 }
 
-test('progress is reachable from the nav and shows the four panels', async ({ page }) => {
+test('progress shows the four panels', async ({ page }) => {
   await newRider(page);
 
   /*
-   * The nav's Progress cell lands on Sessions while sessions are open, which is
-   * how the e2e server runs (2026-09-13); "Where you're at" is the second tab
-   * from there. With sessions off the cell goes straight to this screen, and
-   * `nav.test.ts` holds both shapes.
+   * By URL, not through the bar.
+   *
+   * Progress lost its own cell in the app shell rethink (D8, T45): it is one of
+   * the four screens under **Home**, reached from a record card on the
+   * dashboard, and T46 is what builds those cards. Until that lands there is no
+   * control on `shell-rethink` to click, and a test that clicked one anyway
+   * would be testing T46's work from T45's branch. `nav.test.ts` is what holds
+   * the promise that Home reaches this screen and lights its cell here.
    */
-  await page.getByRole('navigation').getByRole('link', { name: 'Progress' }).first().click();
-  await page
-    .getByRole('navigation', { name: 'Progress', exact: true })
-    .getByRole('link', { name: 'Where you’re at' })
-    .click();
-  await page.waitForURL('**/progress');
+  await page.goto('/progress');
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Where you’re at');
   await expect(page.getByText('By stage', { exact: true })).toBeVisible();
@@ -149,75 +148,13 @@ test('the sport switch offers every sport Land The Trick ships', async ({ page }
   expect(SPORT_IDS.length).toBe(3);
 });
 
-test('the Progress drawer is the way to the sticker wall, which shares its cell', async ({
-  page,
-}) => {
-  /*
-   * Progress and the sticker wall are one section in the bottom bar
-   * (`components/shell/nav.ts`): both are the rider's own record, and neither
-   * is worth a fifth of a five-cell bar on its own. The wall keeps a first-class
-   * entry on a phone through this row and through the dashboard's sticker count
-   * — what it lost is a cell, not a way in.
-   */
-  await newRider(page);
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/progress');
-
-  const drawer = page.getByRole('group', { name: 'Progress', exact: true });
-  // Exactly one tab is lit, even though `/progress` is a prefix of the Sessions
-  // tab's own address (`SectionDrawer` takes the longest match).
-  await expect(drawer.getByRole('link', { name: 'Progress', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
-  );
-  await expect(drawer.locator('[aria-current="page"]')).toHaveCount(1);
-
-  /*
-   * The floating card (2026-09-14): one row of tabs, clear of the bar, and no
-   * label that fails to fit — measured at 320px, where this section's longest
-   * row has the least room. `nowrap` turns a label too wide into an overflow
-   * rather than a taller row, so overflow is what gets measured.
-   */
-  await page.setViewportSize({ width: 320, height: 700 });
-  const bar = page.getByRole('navigation', { name: 'Main, compact', exact: true });
-  await expect
-    .poll(async () => (await drawer.boundingBox())!.y + (await drawer.boundingBox())!.height)
-    .toBeLessThan((await bar.boundingBox())!.y);
-  const overflow = await drawer
-    .getByRole('link')
-    .evaluateAll((nodes) => nodes.map((n) => n.scrollWidth - n.clientWidth));
-  expect(overflow, 'a drawer tab label is wider than its tab at 320px').toEqual(
-    overflow.map(() => 0),
-  );
-  const tops = await drawer
-    .getByRole('link')
-    .evaluateAll((nodes) => nodes.map((n) => Math.round(n.getBoundingClientRect().top)));
-  expect(new Set(tops).size, 'the drawer tabs are not on one row').toBe(1);
-  await page.setViewportSize({ width: 390, height: 844 });
-
-  await drawer.getByRole('link', { name: 'Stickers', exact: true }).click();
-  await page.waitForURL('**/stickers');
-
-  /*
-   * And back again, so the fold is not a one-way door.
-   *
-   * The drawer closed when the rider chose Stickers, and arriving there does
-   * not reopen it — Progress and Stickers are one section, so nothing was
-   * arrived *at*. The way back is the lit cell, which on a section a rider is
-   * already inside opens the drawer rather than navigating.
-   */
-  const cell = page
-    .getByRole('navigation', { name: 'Main, compact', exact: true })
-    .getByRole('link', { name: 'Progress', exact: true });
-  await expect(drawer).toBeHidden();
-  await cell.click();
-  expect(new URL(page.url()).pathname).toBe('/stickers');
-
-  await expect(drawer.getByRole('link', { name: 'Stickers', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
-  );
-  await drawer.getByRole('link', { name: 'Progress', exact: true }).click();
-  await page.waitForURL('**/progress');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Where you’re at');
-});
+/*
+ * "The Progress drawer is the way to the sticker wall" stood here and went
+ * with the drawer (T45, 2026-09-16).
+ *
+ * Progress, Sessions, Stickers and the Challenge no longer share a folded cell
+ * with a drawer to name them: all four are under **Home**, reached from record
+ * cards on the dashboard (T46), and each carries a Home back link. What the
+ * drawer was a bet on — that a rider would find the second screen behind a
+ * caret — is not a bet the product is making any more.
+ */

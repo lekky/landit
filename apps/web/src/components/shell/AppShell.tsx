@@ -83,7 +83,14 @@ export function AppShell({
               {children}
             </main>
             <SiteFooter />
-            <MobileNav sessionsEnabled={sessionsEnabled} />
+            {/*
+              `signedIn`, because the bottom bar's middle cell logs something
+              and there is nothing to log without a rider. `TopBar` already
+              decides this for the chip, the Log button and the bell from
+              `rider`; the bar is handed the same fact rather than a second
+              opinion about it.
+            */}
+            <MobileNav sessionsEnabled={sessionsEnabled} signedIn={Boolean(rider)} />
           </div>
         </ModalProvider>
       </ToastProvider>

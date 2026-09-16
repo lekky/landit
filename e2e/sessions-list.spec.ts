@@ -50,25 +50,34 @@ async function newRider(page: Page): Promise<void> {
   await page.waitForURL('**/home');
 }
 
-test('the Sessions tab is reachable from Progress, and back', async ({ page }) => {
+test('sessions and progress are both under Home, and both open by address', async ({ page }) => {
+  /*
+   * This checked the section drawer's Progress / Sessions tabs, which went with
+   * the drawer in the app shell rethink (T45). Both screens are now under
+   * **Home** and are reached from record cards on the dashboard, which T46
+   * builds — so there is nothing on `shell-rethink` to click yet, and what is
+   * worth holding here is the half that never depended on the control: both
+   * addresses answer, and the bar lights Home on each of them.
+   *
+   * `nav.test.ts` is what holds the promise that Home reaches them.
+   */
   await newRider(page);
-  await page.goto('/progress');
 
-  const tabs = page.getByRole('navigation', { name: 'Progress', exact: true });
-  await expect(tabs.getByRole('link', { name: 'Where you’re at' })).toHaveAttribute(
+  const bar = page.getByRole('navigation', { name: 'Main', exact: true });
+
+  await page.goto('/progress');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Where you’re at');
+  await expect(bar.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   );
-  await tabs.getByRole('link', { name: 'Sessions' }).click();
-  await page.waitForURL('**/progress/sessions');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Progress');
 
-  await page
-    .getByRole('navigation', { name: 'Progress', exact: true })
-    .getByRole('link', { name: 'Where you’re at' })
-    .click();
-  await page.waitForURL('**/progress');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Where you’re at');
+  await page.goto('/progress/sessions');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Progress');
+  await expect(bar.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
 });
 
 test('a rider with no sessions is offered a way to log one', async ({ page }) => {

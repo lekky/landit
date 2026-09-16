@@ -101,6 +101,27 @@ export const ROUTES = {
   /** T13's spots and map, on the same terms. */
   spots: '/spots',
   /**
+   * Where to ride — the **Find** group's landing screen (app shell rethink §2.1,
+   * D2, 2026-09-15).
+   *
+   * One of the four groups both bars carry, holding Spots, Events, the archive
+   * and the rider's own events. **It is a redirect to `/spots` until T48** — the
+   * route exists now because T45 builds the bars that point at it, and a cell
+   * pointing at nothing is worse than a cell that lands one screen early.
+   */
+  find: '/find',
+  /**
+   * What's new — the bell's page on a phone (rethink §3.6, D4).
+   *
+   * In the app group and not in either bar: the bell in the top bar is its only
+   * way in, at every width, and it lights no nav cell (§2.2). Like `/find` it is
+   * a placeholder here and the real panel is T47's. In-app only — push
+   * notifications are out of scope, and there is no rider-to-rider anything on
+   * it: every line is written by the product from the rider's own record and
+   * their crews' feeds.
+   */
+  whatsNew: '/whats-new',
+  /**
    * Telling us something is wrong (T18).
    *
    * **Reachable signed out, deliberately.** The OSA's Protection of Children

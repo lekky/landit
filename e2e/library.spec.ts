@@ -636,7 +636,9 @@ test('arriving at the library any other way starts at the top, as it always did'
   // in the library before a detour is not "coming back", and gets the plain
   // top-of-grid arrival they always got.
   const nav = page.getByRole('navigation', { name: 'Main' });
-  await nav.getByRole('link', { name: 'Spots' }).click();
+  // **Find**, not Spots: the bar carries four groups since the app shell
+  // rethink (T45) and `/find` lands on `/spots` until T48 builds the summary.
+  await nav.getByRole('link', { name: 'Find' }).click();
   await expect(page).toHaveURL(/\/spots$/);
   await nav.getByRole('link', { name: 'Tricks' }).click();
   await expect(page).toHaveURL(/\/library$/);

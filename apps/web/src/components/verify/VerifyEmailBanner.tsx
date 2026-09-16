@@ -56,7 +56,7 @@ export function VerifyEmailBanner({ email }: { email: string }) {
   return (
     <div className={styles.banner} role="status">
       <span className={styles.mark} aria-hidden="true">
-        <Icon name="lock" size={18} strokeWidth={2.6} />
+        <Icon name="lock" size={15} strokeWidth={2.6} />
       </span>
 
       <span className={styles.text}>
@@ -74,13 +74,20 @@ export function VerifyEmailBanner({ email }: { email: string }) {
         ) : (
           <form action={action} onSubmit={() => capture(ANALYTICS_EVENTS.verificationResent)}>
             <input type="hidden" name="email" value={email} />
-            <button type="submit" className="btn sm ghost" disabled={pending}>
-              {pending ? 'Sending…' : 'Send it again'}
+            <button type="submit" className={styles.link} disabled={pending}>
+              {pending ? 'Sending…' : 'Send again'}
             </button>
           </form>
         )}
-        <button type="button" className={styles.link} onClick={dismiss}>
-          Not now
+        {/* A bare × rather than "Not now": the strip is one line, and the words
+            were half of it. The cookie and the number of days are unchanged. */}
+        <button
+          type="button"
+          className={styles.close}
+          onClick={dismiss}
+          aria-label="Hide this reminder"
+        >
+          <span aria-hidden="true">×</span>
         </button>
       </div>
     </div>

@@ -769,36 +769,10 @@ test.describe('where to ride', () => {
     await expect(page.getByText(/Sign in and you can put one forward/i)).toBeVisible();
   });
 
-  test('the What’s on drawer names events, which the bottom bar folds in here', async ({
-    page,
-  }) => {
-    /*
-     * Below 861px `.nav` is hidden and the bottom bar carries five sections
-     * rather than nine pages, so Spots and Events share one cell. That is only
-     * honest if each screen offers the other: highlighting a nav item is not
-     * navigation. Before this, Events had no entry on a phone at all.
-     */
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/spots');
-
-    /*
-     * The drawer opens on arrival, without a tap. That is the whole design: a
-     * cell that only opened a drawer would have cost a tap on the way to Spots,
-     * so instead arriving in the section announces what else is in it.
-     */
-    const drawer = page.getByRole('group', { name: 'What’s on', exact: true });
-    await expect(drawer.getByRole('link', { name: 'Spots', exact: true })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-
-    await drawer.getByRole('link', { name: 'Events', exact: true }).click();
-    await page.waitForURL('**/events');
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('What’s coming up');
-
-    // And it takes itself down once the rider has chosen: both screens are the
-    // same section, so nothing else would close it and it would sit over the
-    // screen it just opened.
-    await expect(drawer).toBeHidden();
-  });
+  /*
+   * "The What’s on drawer names events" stood here and went with the drawer
+   * (T45, 2026-09-16). The bottom bar no longer folds Spots and Events into one
+   * cell, so neither screen has to offer the other to keep the fold honest:
+   * both are under **Find**, and the row that moves between them is T48’s.
+   */
 });

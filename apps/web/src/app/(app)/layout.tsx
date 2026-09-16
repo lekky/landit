@@ -1,4 +1,4 @@
-import { DEFAULT_TIMEZONE, currentWeeklyStreak, type SportId } from '@landit/core';
+import type { SportId } from '@landit/core';
 import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 
@@ -19,16 +19,17 @@ import { VERIFY_DISMISSED_COOKIE } from '@/lib/verify';
  * the bottom bar, the footer, the sport switch and the toast and modal hosts
  * already around it.
  *
- * T6 wired up the rider. Every screen in this group gets the top bar's streak
- * chip and avatar filled in without asking for them, and a signed-out visitor
- * gets the Sign in button instead — the page itself decides whether being
- * signed out is allowed, which for `/account` means a redirect.
+ * T6 wired up the rider. Every screen in this group gets the top bar's sport
+ * chip, Log button, bell and avatar filled in without asking for them, and a
+ * signed-out visitor gets the Sign in button instead — the page itself decides
+ * whether being signed out is allowed, which for `/account` means a redirect.
  *
- * The streak chip shows the **reconciled** number, not the stored one. A stored
- * streak is only as fresh as the last write and nothing writes to a rider who
- * has stopped riding, so a run that ended a month ago would sit in the top bar
- * looking alive — `currentWeeklyStreak` decides that from the rider's own week
- * (T8, plan §1).
+ * **The streak chip is gone** (D9, Rachid, 2026-09-16, in chat), and with it
+ * the reconciliation this layout used to do for it: the bar showed a
+ * `currentWeeklyStreak` computed here rather than the stored number, because a
+ * stored streak is only as fresh as the last write. That reconciliation still
+ * happens — on Home, where the streak card owns it (`home/page.tsx`) — and the
+ * chip it fed never showed below 520px anyway.
  */
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await currentRider();
@@ -48,19 +49,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     rider && !rider.verified && rider.email && !dismissedVerifyBanner,
   );
 
-  const streak = rider
-    ? currentWeeklyStreak(
-        {
-          streak: rider.streak ?? 0,
-          lastQualifyingWeek: rider.last_qualifying_week || null,
-          weekStart: rider.week_start || null,
-          ridesThisWeek: rider.rides_this_week ?? 0,
-          lastRide: rider.last_ride || null,
-        },
-        { timezone: rider.timezone || DEFAULT_TIMEZONE },
-      )
-    : 0;
-
   return (
     <AppShell
       rider={
@@ -68,7 +56,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           ? {
               name: rider.name || 'Rider',
               avatarId: rider.avatar_key || undefined,
-              streak,
               /*
                * The account menu's admin entry, decided here because this is
                * the last place that holds the rider record — the menu itself is
