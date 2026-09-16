@@ -153,6 +153,10 @@ function anonymiseAccount(app, rider, by) {
   rider.set('rides_this_week', 0);
   rider.set('last_qualifying_week', '');
   rider.set('last_seen', '');
+  // The rider's own bookmark in their own news. A closed account has no news
+  // and nobody to read it, so the date it was last read is one more fact about
+  // when a closed account was used.
+  rider.set('whats_new_seen_at', '');
 
   // Private, suspended and stamped. `privacy` matters even on a wiped row: it is
   // what the view rules read, and a `public` shell is still a record another
@@ -364,6 +368,9 @@ function exportFor(app, rider) {
       // service, held about them and shown to staff; a download that left it
       // out would not be everything we hold.
       last_seen: on(rider, 'last_seen'),
+      // Held from T47 and disclosed from the same day, rather than added to this
+      // list a release later the way the streak fields had to be.
+      whats_new_seen_at: on(rider, 'whats_new_seen_at'),
       created: on(rider, 'created'),
     },
     trick_progress: rows('trick_progress', (row) => ({

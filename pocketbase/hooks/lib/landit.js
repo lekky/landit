@@ -158,6 +158,24 @@ const USER_SESSION_DEFAULTS = {
   last_seen: '',
 };
 
+/*
+ * `whats_new_seen_at` is **deliberately absent from every list above**, and
+ * this comment is here so its absence reads as a decision rather than an
+ * oversight (T47, rethink §6).
+ *
+ * It is the rider's own bookmark in their own news: the What's new panel stamps
+ * it when it opens and when "Mark all read" is pressed, and the unseen count is
+ * the number of derived lines newer than it. Freezing it would break the
+ * feature — the client is the only thing that knows the panel was read — and
+ * there is nothing to gain by forging it. A rider who pushed it forward would
+ * hide their own badge; a rider who pushed it back would show themselves one.
+ * Neither reaches another account, because `users.updateRule` is
+ * `id = @request.auth.id` and every other rider's record 404s before a guard
+ * runs. That is the door `pocketbase/tests/whats-new-seen.test.ts` stands in,
+ * and the file says so, because a test that is green through a different door
+ * proves nothing about this one (LESSONS §5).
+ */
+
 /**
  * How stale a stamp has to be before authenticating rewrites it.
  *
