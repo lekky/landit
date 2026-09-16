@@ -122,6 +122,29 @@ existing component is a new prop with the old behaviour as its default.
 - The `SectionDrawer`, its CSS module, `tabs` on `NavItem`, `useCompactViewport` and the `nav_section_opened` event go. The `MobileNav` tests that exercised the drawer go with them; the covers-everything test stays.
 - Fires `nav_clicked` `{ to, where: 'mobile' }` as today; the LOG cell fires `log_sheet_opened` `{ where: 'mobile' }`.
 
+**Signed out, the LOG cell is a link to `/signin`** *(added by the T45 worker, 2026-09-16, pending
+owner confirmation)*. `AppShell` hands `MobileNav` a `signedIn` flag, decided from the same `rider`
+the top bar already uses to hide the chip, the Log button and the bell. With no rider the middle
+cell keeps its square and its label and becomes a link ("Sign in to log something"); the bar stays
+five cells, because `.mobnav` is `repeat(5, 1fr)` and a four-cell bar on the signed-out screens
+beside a five-cell one on the signed-in ones would be two bars to learn. Drawn as a button it was
+the loudest control on `/spots`, `/events` and `/library` for somebody it could do nothing for: "I
+rode today" bounced them to `/signin` with no explanation, and both trick pickers came back empty,
+because `trickPickerAction` answers a session-less call with nothing. A link says where it goes
+before it is pressed, which is the honest version of the same invitation.
+
+**The chip's name is on at every width** *(added by the T45 worker, 2026-09-16, pending owner
+confirmation)*. The first cut hid it below 520px to buy room, which reversed D5 on the one device
+the rethink is for — a rider who has never opened the sheet was left decoding a 20px glyph.
+Measured with three sports at 320px the bar has the room. Below 520px the chip's type tightens
+instead (12px, less tracking, 7px of side padding), which buys about 14px without taking the word
+away; if a future label makes 320px genuinely impossible, the wordmark shrinks before the name does.
+
+**The bell reads "What's new" at zero unread** *(added by the T45 worker, 2026-09-16, pending owner
+confirmation)*. §3.1's `aria-label` is "What's new, 3 unread."; at zero the count is dropped rather
+than read as "0 unread", which is a sentence about nothing. The count comes back the moment there is
+one (T47).
+
 **`SportChip`** (new switcher, `apps/web/src/components/shell/SportChip.tsx`; the existing display-only `SportChip` in `packages/ui-web/src/components/nav.tsx` is **not** touched — the new one is named `SportSwitchChip` to avoid the collision)
 - A 34px-tall button in the top bar: sport icon (20px) + the sport's short name (`SPORTS[id].short`: Scooter / Skate / BMX), Barlow Condensed 700 13px 0.09em uppercase, filled with the sport colour, 2.5px paper keyline like `.avatarbtn`. Ink text on the fill (`--on-light`).
 - Hidden when the rider tracks one sport, as the tab row is today ("nothing below two").
@@ -157,6 +180,26 @@ existing component is a new prop with the old behaviour as its default.
 - Fires `tabs_switched` `{ group, tab }` where both are catalogue ids (e.g. `find` / `spots`, `progress` / `over-time`, `whats-new` / `crew`).
 - Used by: Find (For you · Spots · Events), Progress (Record · Over time · Skill tree), Stickers (Earned · Not yet), Crew (Board · Activity · Members), Rider profile (Landed · Stickers · Videos), Plans (Monthly · Yearly), Tricks (All · Mine · Filters on the phone; All · Mine on desktop), What's new (You · crews), the session form's three steps.
 
+**`TabRow` is a component in `apps/web`, and it is what fires the event** *(added by the T45 worker,
+2026-09-16, pending owner confirmation)*. The paragraph above reads as though `variant="boxed"` is
+the whole of it; two of its four bullets cannot live in `packages/ui-web`. So the work is split:
+
+- **`packages/ui-web`** keeps `Tabs variant="boxed"` — the paint. Separate boxes, the 44px floor, the
+  yellow 4px lift, the hover and the press.
+- **`apps/web/src/components/shell/TabRow.tsx`** is what screens import. It takes a `group` prop and
+  **fires `tabs_switched` `{ group, tab }` itself**, so a screen cannot forget one — an event four
+  later sessions each have to remember is one that ships half-wired, and there is no autocapture to
+  fall back on. It has two forms: items without an `href` render the package's `role="tablist"` of
+  buttons, and items **with** an `href` render a plain `nav` of `next/link`s (Find's form). A tab
+  that is a page may not be a `role="tab"`: a screen reader told it is a tab expects the panel under
+  it to change, not the document.
+- **The 120ms cross-fade is the caller's to apply**, because the panel is the caller's — `TabRow`
+  draws the row and knows nothing about what is under it. It exports `TAB_PANEL`, a class in the
+  shell's module; a screen puts it on the panel and keys the panel on the tab id so React remounts
+  it and the fade runs on every switch.
+
+§5's "Fired by: TabRow" therefore means `apps/web/src/components/shell/TabRow.tsx`, not `Tabs`.
+
 **`BackLink`** (new, `apps/web/src/components/shell/BackLink.tsx`) — arrow-left icon + label in `.lab` at 13px, `--ink-3`. A link. Used per §2.3.
 
 **`SportScopeSelect`** (new, `apps/web/src/components/shell/SportScopeSelect.tsx`) — one line under a list's header: a `.lab` label ("Show") and a **styled `<select>`** in the design's select treatment (the Country select on `/events` is the precedent: 3px keyline, `--sh-sm`, Barlow Condensed 700 uppercase). Options: **Your sport (Scooter)** — which tracks the chip, so switching the chip switches the list — then **All sports** (reads "Every spot" on Spots), then one entry per other sport the rider does not currently have selected. Default per O1: Spots → Every spot; Events, Sessions, Glossary → Your sport. Choosing fires `sport_scope_set` `{ screen, scope: 'chip' | 'all' | 'other' }` (never the sport id of an "other" choice beyond the three catalogue ids). The choice is per screen and per device (`localStorage` key `landit.scope.<screen>`), not rider data.
@@ -190,15 +233,16 @@ to reconcile. The behaviour a rider meets is the same quick log, opened from the
 changes is that it arrives as a route rather than as a panel inside the sheet. If the owner wants
 it truly in-sheet, that is a T50 addition once the form is stepped.
 
-**The sport sheet and menu do not carry landed / learning counts** *(added by the T45 worker,
-2026-09-16, pending owner confirmation)*. §3.1 asks for them beside each sport. A count per sport
-is a rider fact that has to be computed from `trick_progress` against the whole library, and the
-chip is in the top bar of every screen — so it would be either a read on every page render for a
-panel most views never open, or a second server round trip on every press. The rows show the sport's
-colour swatch, its name and a tick on the current one, which is what the control is for. The counts
-belong with T46's Home cards, which compute them for the dashboard anyway; if they are wanted here,
-the cheapest version is to let the same server component that builds those cards hand them to the
-shell.
+**The counts are fetched on open** *(added by the T45 worker, 2026-09-16, pending owner
+confirmation)*. §3.1's landed / learning counts are read by `sportCountsAction`, called when the
+sheet or the menu opens and held while it is up — one read of the live tricks and one of the rider's
+own `trick_progress`, with their own client, so PocketBase's rules are the gate. Not on every page
+render: the chip is in the top bar of every screen, so a count computed there would put two reads on
+the dashboard, the library and every trick page to pay for a panel most page views never open. The
+rows show nothing where the count has not arrived rather than a zero that then changes — a zero a
+rider reads for a frame is a wrong number, not an old one. *(A paragraph here argued for shipping
+without the counts; the independent review of 2026-09-16 pointed out that `trickPickerAction` next
+door already solves exactly this, and it was right, so the paragraph is gone and the counts are in.)*
 
 **`Sheet` renders into `document.body`** *(added by the T45 worker, 2026-09-16, pending owner
 confirmation)*. `Modal` deliberately renders where its caller renders it, and §3.2 said the sheet
@@ -206,6 +250,27 @@ sits above `.mobnav`. It cannot, from inside `.topbar`: that element is `positio
 `z-index: 60` and so makes its own stacking context, which caps everything inside it — measured on a
 390px phone, the sport sheet's last row was cut in half by the bottom bar at `z-index: 70`. `Sheet`
 therefore portals; `Modal` is untouched.
+
+**"Above `.mobnav`" means the panel stops at the bar's top edge** *(added by the T45 worker,
+2026-09-16, pending owner confirmation)*. §3.2 says the sheet "sits above `.mobnav`" and §4 says the
+LOG plus "turns into a cross … so the cell reads as 'close' too". The first cut read "above" as a
+z-index and let the panel run to the bottom edge, which made the second sentence undeliverable: the
+cross rotated behind the sheet, and `inertOutside` put the bar out of reach. So the panel's box ends
+where the bar begins — `63px` plus `env(safe-area-inset-bottom)` — while the **scrim still covers
+the whole viewport**, so the page behind stays dimmed and a tap anywhere on it closes the sheet. The
+bar is the one thing left live under it, which is what lets the cross close what it opened.
+
+**The scrim's opacity is `.scrim`'s, not a second number** *(added by the T45 worker, 2026-09-16,
+pending owner confirmation)*. §3.2 asks for `rgba(18,16,11,.55)`; the sheet reuses the existing
+`.scrim` class and therefore its `rgba(18,16,11,.72)`. One scrim in the product beats two that
+differ by 17% — a rider who opens a modal and then a sheet should not meet two depths of the same
+grey — and the design pack has one. Read §3.2's number as describing the scrim rather than setting a
+second one.
+
+**Dropdowns open over `--dur-ui`** *(added by the T45 worker, 2026-09-16, pending owner
+confirmation)*. §3.2's prose says 160ms and §4's motion table gives dropdowns `--dur-ui`, which is
+200ms. The table wins, because it is the thing the tokens are named from and the point of naming
+them is that a surface does not invent a fourth duration. §3.2's 160ms is the stale number.
 
 ### 3.6 What's new
 
@@ -288,7 +353,7 @@ facts only, and each added to the pinned list in `analytics.test.ts`:
 | --- | --- | --- |
 | `log_sheet_opened` | `where: 'mobile' \| 'top'` | LogCell, LogButton |
 | `log_action_picked` | `action: 'rode' \| 'trick' \| 'session' \| 'clip'` | LogSheet |
-| `tabs_switched` | `group`, `tab` (ids from the screen's tab list) | TabRow |
+| `tabs_switched` | `group`, `tab` (ids from the screen's tab list) | `TabRow` — `apps/web/src/components/shell/TabRow.tsx`, which fires it itself so no screen has to remember (§3.3) |
 | `sport_scope_set` | `screen`, `scope: 'chip' \| 'all' \| 'other'` | SportScopeSelect |
 | `whats_new_opened` | `where: 'mobile' \| 'top'`, `unread` (integer) | BellButton |
 | `whats_new_read` | `unread` (the count cleared) | "Mark all read" |

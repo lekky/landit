@@ -170,10 +170,12 @@ export const DESTINATIONS: readonly Route[] = [
  * The four groups for this rider (plan §7, T41).
  *
  * The only thing a rider's record changes about the bars: with sessions on,
- * Home also reaches `/progress/sessions`, so the cell stays lit there and the
- * covers-everything test can count it. With sessions off the list is exactly
- * the constant above, which is what a rider outside the preview gets and what
- * stops a bar claiming a screen that would 404 on them.
+ * Home **claims** `/progress/sessions`, so the covers-everything test can count
+ * it. It does not change what is lit — `/progress/sessions` sits under
+ * `/progress`, which Home already reaches, so `isNavActive` answers Home on
+ * that path either way. The claim is a promise about reachability, and it is
+ * withheld from a rider outside the preview because a bar that claims a screen
+ * which would 404 on them is a bar telling them something untrue.
  *
  * Shaped like `accountMenuFor(staff)` and for the same reason: whether a
  * destination is drawn is a display rule decided once, on the server, from the
