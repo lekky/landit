@@ -71,6 +71,15 @@ Nine destinations become four groups plus the things that are yours, at every wi
 | **Sport chip** | a sheet (phone) / dropdown (desktop) | the sports the rider tracks; a sport they do not track is shown greyed and points at Account | top bar |
 | **Bell** | `/whats-new` page (phone) / dropdown (desktop) | tabs: You · one per crew | top bar |
 
+**The covers-everything test is asked of a written-out list, not of `TOP_NAV`** *(added by the T45
+worker, 2026-09-16, pending owner confirmation)*. The old test asserted that every `TOP_NAV` entry
+was reachable from `MOBILE_NAV` plus the account menu. With both bars the same four groups that
+check passes trivially and proves nothing. So `nav.ts` exports `DESTINATIONS` — everywhere in the
+rider app a rider can go, written out by hand — and the test asserts each one is a group, something a
+group `reaches`, an account-menu row, or `BELL_DESTINATION`. `/whats-new` is the bell's and is
+therefore *not* in any group's `reaches`: putting it there would light a cell on a screen §2.2 says
+lights nothing.
+
 `nav.ts` keeps its shape (`TOP_NAV`, `MOBILE_NAV`, `ACCOUNT_MENU`, `reaches`, `alsoActiveFor`,
 `isNavActive`) and the test that every destination is still reachable. What changes: `TOP_NAV`
 becomes the same four groups as `MOBILE_NAV`; the `tabs` / `SectionDrawer` mechanism is removed;
@@ -168,6 +177,35 @@ existing component is a new prop with the old behaviour as its default.
 3. **Log a session** (sky clock) — "A ride: where, how long, how it felt, the tricks you worked on." Opens the existing quick log (`QuickLog`) in the same sheet; "Add tricks, clip and notes" escalates to the full form as today. Shown only when `sessionsEnabled`.
 4. **Add a clip link** (dashed keyline, no shadow) — "YouTube or TikTok, onto a trick you have logged." Opens the trick picker limited to landed tricks, then the existing video-link field on the trick page.
 - Fires `log_action_picked` `{ action: 'rode' | 'trick' | 'session' | 'clip' }`.
+
+**"Log a session" navigates rather than embedding the quick log** *(added by the T45 worker,
+2026-09-16, pending owner confirmation)*. The row goes to `newSessionHref({ quick: true })` — the
+existing quick log at its own address, which the sessions layout already intercepts into a modal
+from `/progress/sessions`. Rendering `QuickLog` inside the sheet would mean loading its
+`SessionFormData` (known spots, the recent-spot list, the stamp) in the shell, on a client, and
+re-implementing `SessionFormScreen`'s state machine beside it — a second session form, in the one
+component that wraps every screen. It is also T50's territory: that task owns the session form's
+three steps and the preset sport tag, and a copy of the form built here would be a copy it then has
+to reconcile. The behaviour a rider meets is the same quick log, opened from the same tap; what
+changes is that it arrives as a route rather than as a panel inside the sheet. If the owner wants
+it truly in-sheet, that is a T50 addition once the form is stepped.
+
+**The sport sheet and menu do not carry landed / learning counts** *(added by the T45 worker,
+2026-09-16, pending owner confirmation)*. §3.1 asks for them beside each sport. A count per sport
+is a rider fact that has to be computed from `trick_progress` against the whole library, and the
+chip is in the top bar of every screen — so it would be either a read on every page render for a
+panel most views never open, or a second server round trip on every press. The rows show the sport's
+colour swatch, its name and a tick on the current one, which is what the control is for. The counts
+belong with T46's Home cards, which compute them for the dashboard anyway; if they are wanted here,
+the cheapest version is to let the same server component that builds those cards hand them to the
+shell.
+
+**`Sheet` renders into `document.body`** *(added by the T45 worker, 2026-09-16, pending owner
+confirmation)*. `Modal` deliberately renders where its caller renders it, and §3.2 said the sheet
+sits above `.mobnav`. It cannot, from inside `.topbar`: that element is `position: sticky` with
+`z-index: 60` and so makes its own stacking context, which caps everything inside it — measured on a
+390px phone, the sport sheet's last row was cut in half by the bottom bar at `z-index: 70`. `Sheet`
+therefore portals; `Modal` is untouched.
 
 ### 3.6 What's new
 

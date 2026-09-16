@@ -635,6 +635,17 @@ a.pill.on:hover {
   font-size: 24px;
   margin: 0;
 }
+/*
+ * The gutters a `Sheet` gives its children when it renders as a `Modal`.
+ *
+ * `.sheet` pads itself; `.modal` does not, by design — every caller brings its
+ * own. This is the sheet's, so the same children are laid out the same way at
+ * both widths. 4px more at the top than the sheet has, because the modal's own
+ * title bar has a keyline under it where the sheet's grip does not.
+ */
+.sheet-body {
+  padding: 16px 16px 20px;
+}
 
 /* --------------------------------------------------------------- dropdown -- */
 

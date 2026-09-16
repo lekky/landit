@@ -54,11 +54,26 @@
   letter-spacing: 0.09em;
   text-transform: uppercase;
   white-space: nowrap;
+  position: relative;
 }
+/*
+ * **Absolutely positioned, and that is the whole point of it.**
+ *
+ * The square is raised above the bar's top edge, so it must not make the bar
+ * taller: `.mobnav`'s height is what the toast stack clears, what the site
+ * footer pads for and what the spots map sheet measures itself against, and a
+ * `margin-top: -30px` on an in-flow 58px square grew the bar from 52px to about
+ * 67px — enough for the spots sheet to overhang it by 6px, which
+ * `e2e/spots.spec.ts` caught. Out of flow, the cell is exactly the 52px its
+ * four siblings are and the square hangs over the page above it.
+ */
 .logSquare {
+  position: absolute;
+  left: 50%;
+  top: -30px;
+  transform: translateX(-50%);
   width: 58px;
   height: 58px;
-  margin-top: -30px;
   display: grid;
   place-items: center;
   background: var(--yellow);
@@ -81,8 +96,9 @@
 .logCell.logCell[aria-expanded='true'] .logGlyph {
   transform: rotate(45deg);
 }
+/* The press keeps the centring the positioning depends on. */
 .logCell.logCell:active .logSquare {
-  transform: translate(2px, 2px);
+  transform: translateX(-50%) translate(2px, 2px);
   box-shadow: 1px 1px 0 var(--ink);
 }
 

@@ -11,6 +11,7 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
+import { createPortal } from 'react-dom';
 
 import { cx } from '../cx';
 import { useModalLayer } from './modal-layer';
@@ -171,6 +172,29 @@ function usePhoneViewport(): boolean {
 /** How far down a sheet has to be dragged before letting go closes it. */
 const DRAG_TO_CLOSE = 80;
 
+/**
+ * Put a sheet on `<body>`, out of whatever stacking context opened it.
+ *
+ * **This is the one thing `Sheet` does that `Modal` does not**, and it is not
+ * tidiness. A sheet is opened from the shell's chrome: the sport chip and the
+ * bell are inside `.topbar`, which is `position: sticky` with `z-index: 60` and
+ * therefore a stacking context of its own. A sheet rendered in there is capped
+ * at 60 whatever its own `z-index` says, so the bottom bar (70) painted over
+ * it — measured on a 390px phone, where the sport sheet's last row was cut in
+ * half by the bar. On `<body>` the numbers in the stylesheet mean what they
+ * say: the scrim at 180 is over the bar at 70 and under the toasts at 200.
+ *
+ * `Modal` is deliberately left alone. It renders where its caller renders it
+ * and `inertOutside` walks up from the dialog precisely because of that
+ * (`modal-layer.ts`); changing it would be a behaviour change to a shared
+ * component every screen already uses. The walk works from `<body>` too — it
+ * simply has one level to climb — so portaling here costs nothing.
+ */
+function portal(node: ReactNode) {
+  if (typeof document === 'undefined') return null;
+  return createPortal(node, document.body);
+}
+
 export type SheetProps = {
   children: ReactNode;
   /** Close the sheet. */
@@ -259,16 +283,24 @@ export function Sheet({
   };
 
   if (!asSheet) {
-    return (
+    /*
+     * `Modal` draws no gutters — every caller that needs them brings its own —
+     * so the body is padded here. Without it the sheet's rows, which are
+     * `width: 100%` with their own 3px keyline, sat flush against the dialog's
+     * 4px border and the two keylines read as one thick smear. The sheet branch
+     * gets the same 16px from `.sheet`'s own padding, so a caller's children
+     * are laid out identically at both widths.
+     */
+    return portal(
       <Modal onClose={onClose} width={width} label={label} title={title}>
-        {children}
-      </Modal>
+        <div className="sheet-body">{children}</div>
+      </Modal>,
     );
   }
 
   const hasTitle = title !== undefined && title !== null;
 
-  return (
+  return portal(
     <div
       className="scrim sheet-scrim"
       onPointerDown={(pressed) => {
@@ -305,7 +337,7 @@ export function Sheet({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
   );
 }
 

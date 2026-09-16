@@ -11,6 +11,13 @@ import { expect, test } from '@playwright/test';
 
 const SHELL = '/design/shell';
 
+/** `#ff5a1f` as `rgb(255, 90, 31)`, which is how a browser reports a colour. */
+function hexToRgb(hex: string): string {
+  const value = hex.trim().replace('#', '');
+  const n = parseInt(value, 16);
+  return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+}
+
 test('the top bar carries the nav above 860px and hands over to the bottom bar below it', async ({
   page,
 }) => {
@@ -194,7 +201,19 @@ test('the sport chip is the switcher, and the bar takes the sport colour', async
   const chip = page.getByRole('button', { name: /^Riding: .+\. Switch sport\.$/ });
   await expect(chip).toBeVisible();
 
-  const ruleBefore = await page.locator('.topbar').evaluate((el) => el.style.borderBottomColor);
+  /*
+   * The rule is a custom property set on `.topbar` from `useSport()`, which
+   * `additions.css` reads with the old ink as its fallback. So the inline
+   * property is what says the component decided, and `toHaveCSS` below is what
+   * says the stylesheet acted on it — the first alone would pass on a variable
+   * nothing read, and the second alone cannot tell a colour change from a
+   * repaint.
+   */
+  const rule = () =>
+    page.locator('.topbar').evaluate((el) => el.style.getPropertyValue('--sport-rule'));
+  const ruleBefore = await rule();
+  expect(ruleBefore, 'the top bar sets no sport colour at all').not.toBe('');
+  await expect(page.locator('.topbar')).toHaveCSS('border-bottom-color', hexToRgb(ruleBefore));
 
   await chip.click();
   const menu = page.getByRole('group', { name: 'Switch sport' });
@@ -206,10 +225,9 @@ test('the sport chip is the switcher, and the bar takes the sport colour', async
   await menu.getByRole('button').nth(1).click();
   await expect(menu).toBeHidden();
 
-  // The chip renamed itself, and the rule under the bar changed with it.
-  await expect
-    .poll(() => page.locator('.topbar').evaluate((el) => el.style.borderBottomColor))
-    .not.toBe(ruleBefore);
+  // The rule under the bar changed with the chip, in both places.
+  await expect.poll(rule).not.toBe(ruleBefore);
+  await expect(page.locator('.topbar')).toHaveCSS('border-bottom-color', hexToRgb(await rule()));
 });
 
 test('the bell is a link on a phone and a panel on a desktop', async ({ page }) => {
