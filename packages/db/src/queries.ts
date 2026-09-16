@@ -13,7 +13,7 @@ import {
 } from '@landit/core';
 
 import type { Client } from './clients';
-import { records } from './collections';
+import { records, type FilterParams } from './collections';
 import type {
   AnnouncementDismissalsRecord,
   AnnouncementsRecord,
@@ -1055,5 +1055,78 @@ export async function emailGuardianUpgrade(
   return client.send('/api/landit/plans/guardian-upgrade', {
     method: 'POST',
     body: { url: input.checkoutUrl, plan: input.planName },
+  });
+}
+
+/* ------------------------------------------------------------- what's new -- */
+
+/**
+ * The live events in a date window, for What's new (rethink §3.6).
+ *
+ * `listEvents` reads every live event there is, which is the right shape for a
+ * screen that lists them and the wrong one for a read that happens on **every**
+ * page render to decide whether the bell shows a badge. The window is a filter
+ * the database applies, so what crosses is the handful of events inside the
+ * next week rather than the catalogue.
+ *
+ * Both ends are **day keys** and both are inclusive, because `events.date` is a
+ * calendar day and the question ("is it within seven days?") is a day question.
+ * They are widened to the whole of each day here rather than by the caller:
+ * PocketBase stores a `date` field as a datetime, so a bare `YYYY-MM-DD` upper
+ * bound would drop everything on the last day of the window.
+ *
+ * It is a *read*, not a rule: what counts as news is decided by
+ * `whatsNewLines` in `@landit/core`, and this only narrows what it has to look
+ * at.
+ */
+export async function listEventsBetween(
+  client: Client,
+  from: string,
+  to: string,
+): Promise<EventsRecord[]> {
+  return records(client, 'events').list({
+    filter: 'is_live = true && date >= {:from} && date <= {:to}',
+    params: { from: `${from} 00:00:00.000Z`, to: `${to} 23:59:59.999Z` },
+    sort: 'date',
+  });
+}
+
+/**
+ * Riders who joined these crews since a date.
+ *
+ * `crew_members` is readable only by members of the crew in question — that is
+ * the rule, not a filter here — so a caller passing a crew they are not in gets
+ * nothing back rather than an error. The crew ids come from `listCrews`, which
+ * answers with exactly the caller's crews and takes no search parameter, so
+ * there is no shape in which this becomes a way to look at a crew you are not
+ * in (plan §6.1).
+ *
+ * **It carries no names.** A membership row is a crew, a rider id and a date;
+ * turning the id into a name is `getCrewBoard`'s job, because a member whose
+ * profile is private still appears on their crew's board by name and is not
+ * readable through `users` (plan §3 guarantee 1). Expanding `user` here would
+ * quietly produce a feed that names the public riders and not the private ones.
+ *
+ * An empty `crewIds` skips the request entirely: a filter of `""` would be a
+ * read of every membership row the rules allow, to answer a question nobody
+ * asked.
+ */
+export async function listCrewJoins(
+  client: Client,
+  crewIds: readonly string[],
+  since: string,
+): Promise<CrewMembersRecord[]> {
+  if (crewIds.length === 0) return [];
+
+  const params: FilterParams = { since };
+  const clauses = crewIds.map((id, index) => {
+    params[`crew${index}`] = id;
+    return `crew = {:crew${index}}`;
+  });
+
+  return records(client, 'crew_members').list({
+    filter: `(${clauses.join(' || ')}) && joined >= {:since}`,
+    params,
+    sort: '-joined',
   });
 }

@@ -78,12 +78,12 @@ describe('an event the rider said yes to', () => {
   });
 
   it('says "today" and "tomorrow" rather than naming the weekday', () => {
-    expect(
-      linesOf(whatsNewLines({ events: [{ ...event, date: '2026-09-16' }] }, CLOCK)),
-    ).toEqual(['Corby Jam is today. You said you’re going.']);
-    expect(
-      linesOf(whatsNewLines({ events: [{ ...event, date: '2026-09-17' }] }, CLOCK)),
-    ).toEqual(['Corby Jam is tomorrow. You said you’re going.']);
+    expect(linesOf(whatsNewLines({ events: [{ ...event, date: '2026-09-16' }] }, CLOCK))).toEqual([
+      'Corby Jam is today. You said you’re going.',
+    ]);
+    expect(linesOf(whatsNewLines({ events: [{ ...event, date: '2026-09-17' }] }, CLOCK))).toEqual([
+      'Corby Jam is tomorrow. You said you’re going.',
+    ]);
   });
 
   it('is silent outside the seven days, on both sides', () => {

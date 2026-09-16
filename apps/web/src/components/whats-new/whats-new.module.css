@@ -1,0 +1,199 @@
+/*
+ * What's new (rethink §3.6).
+ *
+ * The rows are the crew feed's rows — 32px disc, one sentence, `.lab` meta —
+ * because §3.6 says so and because a rider meets the same shape on the crew
+ * screen. They are redrawn here rather than imported from
+ * `app/(app)/crew/crew.module.css`: that module belongs to that screen, and
+ * reaching into another route's stylesheet would make a change to the crew
+ * board a change to the bell. Nothing below is a new colour, a new shadow or a
+ * new radius — the only round thing is the disc, which stands in the avatar's
+ * slot and takes the avatar's ring.
+ */
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.title {
+  margin: 0;
+}
+
+/*
+ * "Mark all read" — a text button at the 44px target without a 44px box.
+ *
+ * The same trick `.backLink` uses in the shell's module: padding out, margin
+ * pulled back, so a thumb has its target and the header keeps its baseline.
+ */
+.markRead,
+.markRead:hover {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 12px 6px;
+  margin: -12px -6px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.markRead:hover {
+  color: var(--ink);
+}
+
+.markRead[disabled] {
+  cursor: default;
+  text-decoration: none;
+  opacity: 0.6;
+}
+
+.tabs {
+  margin-bottom: 12px;
+}
+
+.feed {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.row {
+  display: flex;
+  gap: 11px;
+}
+
+.disc {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  border: 2.5px solid var(--ink);
+  display: grid;
+  place-items: center;
+  color: var(--on-light);
+}
+
+.body {
+  min-width: 0;
+}
+
+.line {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.35;
+}
+
+.who,
+.who:hover {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.when {
+  color: var(--ink-3);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+/* The desktop dropdown's "All →", under the eight lines it shows. */
+.all {
+  display: block;
+  padding: 12px 14px;
+  border-top: 3px solid var(--ink);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.all:hover {
+  background: var(--paper-2);
+}
+
+/*
+ * Inside the dropdown the panel is the whole surface, so it drops the keyline
+ * and the shadow it would otherwise draw *inside* the dropdown's own.
+ */
+.inDropdown {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.inDropdown .feed {
+  padding: 0 0 12px;
+  max-height: 52dvh;
+  overflow: auto;
+}
+
+/* ------------------------------------------------------------ the bell badge -- */
+
+/*
+ * The count badge pops when it goes **up while the page is open** (§3.6, §4).
+ *
+ * It lives here rather than in `shell.module.css` because it belongs to What's
+ * new: the bell's paint is T45's and unchanged, and this is the one thing the
+ * count added. `BellButton` imports it.
+ *
+ * `scale(.6) → 1.1 → 1` over **300ms**, which is §3.6's own number rather than
+ * a token. That is the opposite call to the one T45 made about the dropdown's
+ * duration, and for the stated reason: there the motion table gave dropdowns
+ * `--dur-ui` and the prose disagreed, so the table won. Nothing in the table
+ * covers a pop — `.pop` in `primitives.css` is already 0.5s of its own — and
+ * §4's row for this simply points back at §3.6. So this is the pop family's
+ * third member, not a fourth UI duration.
+ *
+ * A sticker arriving is a celebration and pops from nothing with a rotation; a
+ * number going from 2 to 3 is a nudge, so it starts from something and stays
+ * square.
+ *
+ * **Never on first paint.** The class is applied only when the previous count
+ * was lower, which a freshly mounted bell has no opinion about — a badge that
+ * pops every time a rider opens a page is decoration, and §4 is explicit that
+ * motion here is feedback for something that happened.
+ */
+.badgePop {
+  animation: badgepop 300ms var(--ease-spring);
+}
+
+@keyframes badgepop {
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

@@ -672,3 +672,32 @@ export async function upsertSubscription(
   if (existing) return records(client, 'subscriptions').update(existing.id, body);
   return records(client, 'subscriptions').create(body);
 }
+
+/* ------------------------------------------------------------- what's new -- */
+
+/**
+ * Stamp when this rider last read What's new (rethink §3.6, §6).
+ *
+ * The only write the whole screen makes, and the only thing it stores: nothing
+ * is recorded per line, because every line is derived at read time from rows
+ * the rider can already read. The unseen count is the number of those lines
+ * newer than this date.
+ *
+ * **The rider's own client, and only ever their own id.** The field is
+ * own-write — it is absent from the guard's frozen lists on purpose — and
+ * `users.updateRule` is `id = @request.auth.id`, so a call naming anybody else
+ * 404s rather than being politely refused here. There is nothing to check in
+ * this function, which is the point (plan §3).
+ *
+ * `at` defaults to now. It is a parameter so a caller that has already decided
+ * what "now" was — a panel stamping the moment it rendered, rather than the
+ * moment the request reached the database — can say so, and so the tests can
+ * pass a fixed instant.
+ */
+export async function markWhatsNewSeen(
+  client: Client,
+  userId: string,
+  at: Date = new Date(),
+): Promise<UsersRecord> {
+  return records(client, 'users').update(userId, { whats_new_seen_at: at.toISOString() });
+}

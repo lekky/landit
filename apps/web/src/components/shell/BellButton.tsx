@@ -2,8 +2,12 @@
 
 import { Dropdown, Icon } from '@landit/ui-web';
 import Link from 'next/link';
-import { useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
+import { whatsNewViewAction } from '@/components/whats-new/actions';
+import type { WhatsNewView } from '@/components/whats-new/view';
+import { WhatsNewPanel } from '@/components/whats-new/WhatsNewPanel';
+import whatsNew from '@/components/whats-new/whats-new.module.css';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 
 import { BELL_DESTINATION } from './nav';
@@ -12,21 +16,24 @@ import styles from './shell.module.css';
 /**
  * "What's new" (D4, rethink §3.1 and §3.6).
  *
- * T45 builds the button and the slot its count sits in; **T47 builds what is
- * behind it** — the derived feed, the `whats_new_seen_at` field that decides
- * what counts as unseen, and the panel with its You / crew tabs. Until then
- * `unread` is 0, the badge is therefore not drawn, and both the page and the
- * dropdown say so in a line.
- *
- * Splitting it this way is deliberate rather than tidy-minded. The bell is part
- * of the bar's shape: the right-hand group is the sport chip, Log, the bell and
- * the avatar, and a bar built without the bell would have to be rebuilt to take
- * it. What is *behind* it needs a migration, a hook and a set of rules in
- * `packages/core`, which is a task's worth of work and not a bar's.
+ * T45 built the button and the slot its count sits in; **T47 filled it** — the
+ * derived feed, `whats_new_seen_at`, the unseen count and the panel with its
+ * You / crew tabs. `unread` now arrives from the app layout's server render.
  *
  * **Phone: a link to `/whats-new`. Desktop: a dropdown.** The same split the
  * account menu and the sport chip make, for the same reason — a 420px panel
- * hanging off the right edge of a 375px screen is not a panel.
+ * hanging off the right edge of a 375px screen is not a panel. The markup is a
+ * `Link` at both widths and the desktop *takes the press back*, because
+ * `usePhone()` answers `false` on the server: a bell rendered as a button on the
+ * phone branch would be served as a button to every request and only become a
+ * link once hydration ran (review S3, T45).
+ *
+ * **The panel's contents are fetched when it opens**, never with the page. The
+ * bell is in the top bar of every screen and a crew feed per crew on every page
+ * render would be several reads to fill a panel most page views never open —
+ * the trade T45's sport menu already made. What *is* on every render is the
+ * count, which is one derived computation, memoised for the request
+ * (`components/whats-new/load.ts`).
  *
  * It lights no nav cell (§2.2): the bell is on every screen, so a rider reading
  * their own news is not "in" a group.
@@ -48,46 +55,61 @@ function usePhone() {
   );
 }
 
-/** What the panel says until T47 fills it. One line, in the product's voice. */
-const NOTHING_YET = 'Nothing here yet. Stickers, crew joins and what’s coming up will land here.';
+/**
+ * Does the badge pop this render (§3.6, §4)?
+ *
+ * **On increment only, and never on first paint.** The count comes from the
+ * server, so it changes when a navigation brings a fresh layout render — a
+ * rider who earns a sticker and moves to another screen sees the number arrive
+ * with a pop. A bell that has only just mounted has no previous count to
+ * compare with and therefore does not animate, which is the whole of "never on
+ * first paint": a badge that popped on every page load would be decoration, and
+ * §4 says motion here is feedback for something the rider did.
+ */
+function usePopOnIncrement(unread: number): boolean {
+  const previous = useRef<number | null>(null);
+  const [pop, setPop] = useState(false);
+
+  useEffect(() => {
+    const before = previous.current;
+    previous.current = unread;
+    if (before === null || unread <= before) return;
+
+    setPop(true);
+    const timer = setTimeout(() => setPop(false), 400);
+    return () => clearTimeout(timer);
+  }, [unread]);
+
+  return pop;
+}
 
 export function BellButton({ unread = 0 }: { unread?: number }) {
   const phone = usePhone();
   const holder = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState<WhatsNewView | null>(null);
+  const pop = usePopOnIncrement(unread);
 
   // `unread` is a count of lines the product wrote, never a description of the
   // rider: catalogue facts only, as the catalogue entry says.
   // The curly apostrophe the rest of the product uses — `/whats-new`'s own
-  // `<h1>` and `<title>`, and `NOTHING_YET` above (review N4).
+  // `<h1>` and `<title>` (review N4).
   const label = unread > 0 ? `What’s new, ${unread} unread.` : 'What’s new';
 
   const glyph = (
     <>
       <Icon name="bell" size={19} strokeWidth={2.2} />
       {unread > 0 && (
-        <span className={styles.tbBadge} aria-hidden="true">
+        <span
+          className={`${styles.tbBadge} ${pop ? whatsNew.badgePop : ''}`.trim()}
+          aria-hidden="true"
+        >
           {unread > 99 ? '99+' : unread}
         </span>
       )}
     </>
   );
 
-  /*
-   * **A link at both widths** (review S3), and the desktop takes the press back.
-   *
-   * `usePhone()` answers `false` on the server, so a bell rendered as a button
-   * on the phone branch was served as a button to *every* request and only
-   * became a link once hydration ran — a control that does nothing, on the one
-   * width where a real page exists behind it, for anybody reading before the
-   * JavaScript lands or after it fails. The sport chip's version of the same
-   * choice is safe because only its *panel* depends on width; here it was the
-   * element itself.
-   *
-   * So the markup is a `Link` always. Above 860px the click is prevented and
-   * the dropdown opens instead, which leaves the no-JS and pre-hydration path
-   * navigating to the page that the dropdown is a shortcut for.
-   */
   return (
     <div className={styles.anchor} ref={holder}>
       <Link
@@ -102,7 +124,13 @@ export function BellButton({ unread = 0 }: { unread?: number }) {
             return;
           }
           event.preventDefault();
-          if (!open) capture(ANALYTICS_EVENTS.whatsNewOpened, { where: 'top', unread });
+          if (!open) {
+            capture(ANALYTICS_EVENTS.whatsNewOpened, { where: 'top', unread });
+            // Re-read every time it opens rather than once: the panel is a
+            // shortcut to a live page, and a list cached from the first press
+            // of the session would be a stale one by the second.
+            void whatsNewViewAction().then(setView);
+          }
           setOpen(!open);
         }}
       >
@@ -117,7 +145,11 @@ export function BellButton({ unread = 0 }: { unread?: number }) {
           onClose={() => setOpen(false)}
           className={styles.menuPad}
         >
-          <p className={styles.sheetNote}>{NOTHING_YET}</p>
+          {view ? (
+            <WhatsNewPanel view={view} place="dropdown" />
+          ) : (
+            <p className={styles.sheetNote}>Loading…</p>
+          )}
         </Dropdown>
       )}
     </div>
