@@ -115,7 +115,10 @@ test('who sees new sessions starts on Only me, and a change survives a reload', 
   page,
 }) => {
   await onboardedRider(page);
-  await page.goto('/account');
+  // Its own screen since T51 made `/account` a list of rows (rethink §3.9). The
+  // row is drawn, and this screen renders, only where `sessionsEnabledFor` is
+  // true — which on the e2e server is `LANDIT_SESSIONS_OPEN=1`.
+  await page.goto('/account/sessions');
 
   const group = page.getByRole('radiogroup', { name: 'Who sees new sessions' });
   await expect(group.getByRole('radio', { name: /^Only me/ })).toBeChecked();

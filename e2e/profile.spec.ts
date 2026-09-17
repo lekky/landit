@@ -4,7 +4,14 @@ import { expect, test, type Page } from '@playwright/test';
 import { finishOnboarding } from './support/onboarding';
 
 /**
- * The profile editor on `/account` (T23).
+ * The profile editor (T23), on the two screens it is now (T51).
+ *
+ * It was one panel on `/account` until the app shell rethink made that screen a
+ * list of rows (§3.9): the picture, the goal, the stance and the level are
+ * `/account/profile`, and the sports picker is `/account/sports`. One component
+ * still draws both — `saveProfileAction` writes the whole profile every time, so
+ * whichever half a rider is looking at has to hold all of it — which is why the
+ * assertions below are unchanged apart from the address each one opens.
  *
  * The assertion this file exists for is the first one: **a rider can change
  * what they ride after signing up, and it survives a reload**. Onboarding asked
@@ -35,14 +42,17 @@ function birthDate(years: number): string {
 }
 
 /**
- * An onboarded rider on the scooter library, at the account screen.
+ * An onboarded rider on the scooter library, at one of the profile screens.
  *
  * Deliberately the long way round rather than a seeded fixture: the profile
  * these tests edit is the one onboarding actually wrote, so a change to what
  * onboarding stores shows up here rather than being papered over by a fixture
  * that agrees with the test.
  */
-async function onboardedRider(page: Page): Promise<void> {
+async function onboardedRider(
+  page: Page,
+  screen: '/account/profile' | '/account/sports' = '/account/profile',
+): Promise<void> {
   await page.goto('/signup');
   await page.getByLabel('Your name').fill('Nadia Ellis');
   await page.getByLabel('Email').fill(`e2e-${unique()}@landit.invalid`);
@@ -55,11 +65,11 @@ async function onboardedRider(page: Page): Promise<void> {
   await finishOnboarding(page);
 
   await page.waitForURL('**/home');
-  await page.goto('/account');
+  await page.goto(screen);
 }
 
 test('a rider can take up a second sport after signing up, and it sticks', async ({ page }) => {
-  await onboardedRider(page);
+  await onboardedRider(page, '/account/sports');
 
   const skate = page.getByRole('button', { name: new RegExp(SPORTS.skate.label, 'i') });
   await expect(skate).toHaveAttribute('aria-pressed', 'false');
@@ -80,7 +90,7 @@ test('a rider can take up a second sport after signing up, and it sticks', async
 });
 
 test('the last sport a rider has cannot be turned off', async ({ page }) => {
-  await onboardedRider(page);
+  await onboardedRider(page, '/account/sports');
 
   // Onboarding starts a rider on one sport, so this is that one.
   await expect(

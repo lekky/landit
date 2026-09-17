@@ -89,7 +89,8 @@ function profileValue(level: string, stance: string): string {
  *   it has nothing to say to a rider whose account was never gated or whose
  *   guardian has already said yes. This is the eighth row, and it is the
  *   owner's addition to §3.9's seven (Rachid, 2026-09-16, in chat): without it
- *   the gate's one control would have had no way in from the list.
+ *   the gate's one control would have had no way in from the list. It goes
+ *   **first**, for the reason given where it is pushed.
  */
 export function settingsRowsFor(
   rider: UsersRecord,
@@ -99,7 +100,32 @@ export function settingsRowsFor(
   const consent = rider.consent_state as ConsentState;
   const plan = PLAN[(rider.plan || 'rookie') as PlanId];
 
-  const rows: SettingsRowSpec[] = [
+  const rows: SettingsRowSpec[] = [];
+
+  /*
+   * First, while it applies.
+   *
+   * §3.9 gives an order for its seven rows and does not place the eighth. The
+   * old screen did: the guardian panel was above everything, before the profile
+   * editor and before the privacy control, because a rider held behind the gate
+   * has one thing to do on this screen and every other row is a setting they
+   * can come back to. Fifth in the list — measured on a 390px phone — put it
+   * below the fold behind the bottom bar. It is the only row whose position
+   * depends on the rider, and it disappears entirely the moment a grown-up
+   * says yes.
+   */
+  if (isConsentLimited(consent)) {
+    rows.push({
+      id: 'guardian',
+      title: 'Your guardian',
+      value: consent === 'revoked' ? 'Approval withdrawn' : 'Waiting on a grown-up',
+      href: ROUTES.accountGuardian,
+      icon: 'lock',
+      fill: 'var(--orange)',
+    });
+  }
+
+  rows.push(
     {
       id: 'profile',
       title: 'Your profile',
@@ -126,7 +152,7 @@ export function settingsRowsFor(
       icon: 'eye',
       fill: 'var(--sky)',
     },
-  ];
+  );
 
   if (options.sessionsEnabled) {
     const visibility = sessionVisibilityDefault(rider.session_visibility_default);
@@ -137,17 +163,6 @@ export function settingsRowsFor(
       href: ROUTES.accountSessions,
       icon: 'clock',
       fill: 'var(--pink-soft)',
-    });
-  }
-
-  if (isConsentLimited(consent)) {
-    rows.push({
-      id: 'guardian',
-      title: 'Your guardian',
-      value: consent === 'revoked' ? 'Approval withdrawn' : 'Waiting on a grown-up',
-      href: ROUTES.accountGuardian,
-      icon: 'lock',
-      fill: 'var(--orange)',
     });
   }
 
@@ -163,7 +178,13 @@ export function settingsRowsFor(
     {
       id: 'coach',
       title: 'Coach / parent view',
-      value: 'A read-only week, for showing a grown-up',
+      /*
+       * Short enough to finish inside a 340px rail. `.settingsValue` clips with
+       * an ellipsis rather than widening the column — the rule `TabRow`'s
+       * `.rowFit` follows (§3.3) — and a sub-line a rider only ever sees half of
+       * is a sentence that was written for a wider screen than it lives on.
+       */
+      value: 'A read-only week for a grown-up',
       href: ROUTES.coach,
       icon: 'users',
       fill: 'var(--sky)',
@@ -171,7 +192,7 @@ export function settingsRowsFor(
     {
       id: 'data',
       title: 'Your data',
-      value: 'Download everything, or close your account',
+      value: 'Download it, or close your account',
       href: ROUTES.accountData,
       icon: 'print',
       fill: 'var(--wash)',

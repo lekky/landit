@@ -700,6 +700,79 @@ Phone order: BackLink → hero band (category tag, difficulty, name, one-line lo
 
 **`SettingsList` / `SettingsRow`** (new, `apps/web/src/app/(app)/account/`) — rows of 60px: a 40px icon square with a fixed fill, a 16px title, a 13px sub-line showing the current value, a right-pointing chevron. Seven rows: Your profile · What you ride · Who can see your profile · Who sees new sessions (when enabled) · Plans and billing · Coach / parent view · Your data. Phone: each row is a link to its own screen (`/account/profile`, `/account/sports`, `/account/privacy`, `/account/sessions`, `/plans`, `/coach`, `/account/data`), which is the existing panel on its own page with a "Your account" back link. Desktop: the list is a 340px left column and the chosen panel renders on the right; the URL still changes so a link lands on the right panel.
 
+**The eighth row is "Your guardian", and it goes first while it applies** *(added by the T51
+worker, 2026-09-17; the row itself is Rachid's, 2026-09-16, in chat)*. §3.9 lists seven rows and
+the guardian panel is not one of them — which would have left the consent gate's only control with
+no way in from a screen that is now a list, on the one account most likely to need it. The owner
+added it. Where it goes was left open, and it goes **first**, above Your profile, because the
+screen it replaces put the panel above everything for the same reason: a rider held behind the gate
+has one thing to do here and every other row is a setting they can come back to. Measured fifth in
+the list on a 390px phone it sat below the fold behind the bottom bar.
+
+It is drawn for `pending` and `revoked` — `isConsentLimited` — and for nobody else, because the
+panel behind it is written to a rider waiting on a grown-up or told no and has nothing to say to a
+rider whose account was never gated or whose guardian has already said yes. `/account/guardian`
+asks the same question rather than trusting that nobody typed the address, and answers a rider it
+is not about with a **redirect back to the list**: not a 404, because the screen exists, and not an
+error, because they have done nothing wrong. `/account/sessions` gives a rider outside the sessions
+preview the same answer, for the same reasons.
+
+**The sub-line is the current value, and it is a catalogue fact every time** *(added by the T51
+worker, 2026-09-17, pending owner confirmation)*. §3.9 says "the current value" and does not say
+what may be one. The rule the list is built to is the analytics catalogue's: a privacy setting's
+label, the sports' names, the plan's name, the word for a consent state — all rows in
+`@landit/core`, written by this repository. **The written goal is deliberately not on any row**,
+which is the one value on the old screen a rider could have typed; "Your profile" reads its level
+and stance instead. A settings list is read over a child's shoulder more often than any other
+screen in the product. Two rows carry a fixed sentence rather than a value, because what is behind
+them is not a setting with a state: Coach / parent view and Your data. Every sub-line is short
+enough to finish inside the 340px rail rather than be clipped, which `accountRows.test.ts` pins.
+
+**The panels moved and did not change, which cost each of them one display prop** *(added by the
+T51 worker, 2026-09-17, pending owner confirmation)*. §8's T51 row says the panels move; two things
+follow that the section does not mention.
+
+- **`ProfilePanel` is two of the eight rows** — "Your profile" and "What you ride" are its two
+  halves — and it is still **one component**, drawn with a new `section` prop. Not split in two,
+  because `saveProfileAction` writes the *whole* profile on every change: a component owning only
+  the sports would post a profile with the other five answers missing, and the first tap on
+  `/account/sports` would wipe a rider's goal, stance, level and picture. Both screens therefore
+  hold the whole draft and show part of it. One consequence is visible: turning a sport off can
+  orphan the goal that belonged to it, the panel holds the write until there is a complete answer
+  again (T23's rule, unchanged), and the message now carries a link to `/account/profile` — a
+  message naming an answer a rider cannot see from where they are standing is a dead end.
+- **The other panels take `headed`**, which drops the label they draw for themselves. The screen's
+  own `h1` is already those words, and the alternative is the same four words twice, 20px apart, in
+  two sizes. It defaults to drawing the label, so nothing that has not asked has changed.
+  `SessionVisibilityPanel`'s label is *clipped* rather than removed, because it also names the
+  radio group (`aria-labelledby`) and `display: none` would take the group's name with it.
+
+**Two things the sub-screens do not wear, and what is left on the list's own column** *(added by
+the T51 worker, 2026-09-17, pending owner confirmation)*.
+
+- **No eyebrow.** Every other screen in the product has one; here it would read "YOUR ACCOUNT"
+  directly under a back link reading "← YOUR ACCOUNT", two identical lines of the same small caps
+  6px apart on a 390px phone. On a desktop the list is on the left with the row lit, which says it
+  better. The parent is named once, by whichever of the two the width has drawn — and the back link
+  is therefore hidden above 861px, the call T48 made on `/events/mine` for the same reason.
+- **Sign out, the staff portal's door and "Still on its way" are at the foot of the list column**,
+  not rows and not on the summary. None of them is a setting about this rider, and on a phone the
+  column is the `/account` screen — so they end up exactly where they were, under everything, while
+  a rider on `/account/privacy` is not offered a sign-out button beside a radio group.
+- **The route group is `account/(settings)/`**, so `/account/close` keeps its own page and its own
+  shape untouched. Closing an account is a page a rider goes to on purpose (2026-09-12, owner in
+  chat) and a settings list beside it would be this task redesigning the one screen it was told to
+  leave alone. The group contributes nothing to the URL. `/account/close`'s "Download your data"
+  link follows the panel to `/account/data`, because a rider sent to a list of eight rows to find
+  the download is a tap worse off than before.
+
+**On a desktop `/account` itself shows who you are, rather than "pick something on the left"**
+*(added by the T51 worker, 2026-09-17, pending owner confirmation)*. §3.9 says the chosen panel
+renders on the right and does not say what is there when none is chosen. The summary is: the
+rider's picture, name, handle, country, sports and plan tag — the header the old screen opened
+with, and nothing on it is a control. On a phone it is the top of the same screen, above the rows,
+which is the order a rider wants: who you are, then what you can change.
+
 ### 3.10 Other screens
 
 - **Progress** — `TabRow` Record · Over time · Skill tree; the `SportSwitch` and `ProgressTabs` rows go. Record = by category + by stage (+ printable sheets on desktop's rail).

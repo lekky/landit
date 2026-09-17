@@ -385,7 +385,11 @@ test('a private crew-mate’s join is not named in the You feed', async ({ brows
      * and failed. Exactly the shape LESSONS §5 warns about, in a file whose own
      * comments argue against it twice.
      */
-    await joinerPage.goto('/account');
+    // `/account/privacy` rather than `/account` since T51 (rethink §3.9), which
+    // also closes the door the comment above is about: the sessions radios are
+    // on a screen of their own now, so there is no second group here for this
+    // assertion to find by accident.
+    await joinerPage.goto('/account/privacy');
     await expect(joinerPage.getByRole('radio', { name: /^Private/ })).toBeChecked();
 
     const crewName = `Ramp Rats ${unique()}`;

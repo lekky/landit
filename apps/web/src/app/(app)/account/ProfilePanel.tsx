@@ -360,7 +360,7 @@ export function ProfilePanel({
       <p className={styles.profileLede}>
         {showProfile
           ? 'What you told us when you signed up. Change any of it whenever you like — it saves as you go, and nothing you have already tracked is affected.'
-          : 'Turn a sport on or off whenever you like. It saves as you go, and nothing you have already tracked is affected.'}
+          : 'It saves as you go, and nothing you have already tracked is affected.'}
       </p>
 
       <div className={styles.profileForm}>
@@ -386,8 +386,16 @@ export function ProfilePanel({
             <div className={styles.groupHead}>
               {section === 'sports' ? null : <span className="lab">What you ride</span>}
               <span className={`lab ${styles.groupAside}`}>
+                {/*
+                  "every page tabbed" until T51, which is the session that took
+                  ownership of the screen this line is on. The per-page sport tab
+                  rows went with D5 — the sport is chosen once, in the top bar's
+                  chip — so the old words described a control the product no
+                  longer has, on the one screen where a rider is deciding how
+                  many sports to turn on.
+                */}
                 {draft.sports.length > 1
-                  ? `${countWord(draft.sports.length)} libraries on, every page tabbed`
+                  ? `${countWord(draft.sports.length)} libraries on, switched from the top bar`
                   : 'One library'}
               </span>
             </div>

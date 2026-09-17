@@ -21,6 +21,13 @@ import styles from './account.module.css';
  * underneath is therefore drawn without its own label — `headed={false}` on
  * each of them — because the alternative is the same four words twice, 20px
  * apart, in two different sizes.
+ *
+ * **And there is no eyebrow.** Every other screen in the product wears one, and
+ * here it would read "YOUR ACCOUNT" directly under a back link reading "←
+ * YOUR ACCOUNT" — measured on a 390px phone, two identical lines of the same
+ * small caps, 6px apart. On a desktop the list is on the left with the row lit,
+ * which says the same thing better. So the parent is named once, by whichever
+ * of the two the width has drawn.
  */
 export function AccountDetail({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -28,7 +35,6 @@ export function AccountDetail({ title, children }: { title: string; children: Re
       <div className={styles.detailBack}>
         <BackLink href={ROUTES.account} label="Your account" />
       </div>
-      <span className="eyebrow">Your account</span>
       <h1 className={`d ${styles.detailHead}`}>{title}</h1>
       {children}
     </div>
