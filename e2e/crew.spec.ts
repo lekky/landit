@@ -294,6 +294,16 @@ test('a rider profile is the card and Landed · Stickers, with no empty Videos t
   await expect(
     page.locator('#main').getByRole('link', { name: 'Crew', exact: true }),
   ).toBeVisible();
+
+  /*
+   * "Change it" goes to the privacy screen (issue #558).
+   *
+   * It said "your account" and meant one of the seven screens `/account` became
+   * a list of, so a rider reading "Who sees this" about their own profile was
+   * sent to a list of eight rows to find the one they had just been told about.
+   */
+  await page.getByRole('link', { name: 'Change it' }).click();
+  await page.waitForURL('**/account/privacy');
 });
 
 test('the Videos tab appears once there is a clip, and plays nothing until pressed', async ({
