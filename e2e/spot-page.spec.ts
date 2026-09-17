@@ -141,13 +141,21 @@ test.describe('a spot page', () => {
     await expect(page.getByText('Know this spot?')).toBeVisible();
   });
 
-  test('gives a signed-in rider three equal actions under the hero at 390', async ({ page }) => {
+  test('gives a signed-in rider three equal actions under the hero, 390 and 320', async ({
+    page,
+  }) => {
     /*
      * §3.10: Faved · Directions · Log here, three equal actions under the hero
      * on a phone and in the hero band on a desktop. One row in the DOM, laid
      * out twice — so what is worth asserting is the phone, where the row has to
-     * fit three controls across 390px without either overflowing the page or
-     * dropping any of them below §4's 44px.
+     * fit three controls across without either overflowing the page or dropping
+     * any of them below §4's 44px.
+     *
+     * **Both phone widths**, because the review measured the defect at both:
+     * 104 / 104 / 104 wide and 44 / 47 / 47 tall at 390, 80.7 × 3 wide and the
+     * same three heights at 320. Equal thirds held at both and the heights at
+     * neither, so a test that only looked at one axis at one width would have
+     * passed the thing that shipped.
      *
      * Signed in, because two of the three are only there for a rider:
      * `SpotFave` renders nothing at all without an account, and "Log here" is
@@ -167,29 +175,37 @@ test.describe('a spot page', () => {
     await expect(directions).toBeVisible();
     await expect(logHere).toBeVisible();
 
-    const boxes = await Promise.all([fave, directions, logHere].map((c) => c.boundingBox()));
-    const widths = boxes.map((box) => box?.width ?? 0);
-    const tops = boxes.map((box) => box?.y ?? 0);
+    let boxes: Awaited<ReturnType<typeof fave.boundingBox>>[] = [];
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      boxes = await Promise.all([fave, directions, logHere].map((c) => c.boundingBox()));
+      const widths = boxes.map((box) => box?.width ?? 0);
+      const tops = boxes.map((box) => box?.y ?? 0);
+      const heights = boxes.map((box) => box?.height ?? 0);
 
-    // One row: all three start within a couple of pixels of the same line.
-    expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(2);
-    // Equal thirds, give or take the gaps between them.
-    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(4);
-    for (const box of boxes) expect(box?.height).toBeGreaterThanOrEqual(44);
+      // One row: all three start within a couple of pixels of the same line.
+      expect(Math.max(...tops) - Math.min(...tops), `at ${width}`).toBeLessThanOrEqual(2);
+      // Equal thirds, give or take the gaps between them.
+      expect(
+        Math.max(...widths) - Math.min(...widths),
+        `the actions are ${widths.join(' / ')} wide at ${width}`,
+      ).toBeLessThanOrEqual(4);
+      for (const box of boxes) expect(box?.height, `at ${width}`).toBeGreaterThanOrEqual(44);
 
-    /*
-     * **And equal in height**, which is the half that shipped wrong: the rule
-     * making the two anchors flex boxes was one specificity point short of
-     * `.btn.sm`, so they were laid out as blocks and the row measured
-     * 44 / 47 / 47 tall while it was 104 / 104 / 104 wide. Three hard-keyline
-     * boxes in a row show a 3px step, and "equal actions" is a claim about what
-     * a rider sees rather than about one axis of it.
-     */
-    const heights = boxes.map((box) => box?.height ?? 0);
-    expect(
-      Math.max(...heights) - Math.min(...heights),
-      `the actions are ${heights.join(' / ')} tall`,
-    ).toBeLessThanOrEqual(1);
+      /*
+       * **And equal in height**, which is the half that shipped wrong: the rule
+       * making the two anchors flex boxes was one specificity point short of
+       * `.btn.sm`, so they were laid out as blocks. Three hard-keyline boxes in
+       * a row show a 3px step, and "equal actions" is a claim about what a
+       * rider sees rather than about one axis of it.
+       */
+      expect(
+        Math.max(...heights) - Math.min(...heights),
+        `the actions are ${heights.join(' / ')} tall at ${width}`,
+      ).toBeLessThanOrEqual(1);
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 });
 
     // The layout rules really apply, which is what the doubled class buys: a
     // block box computes `gap` and ignores it, so the plus sat flush against
