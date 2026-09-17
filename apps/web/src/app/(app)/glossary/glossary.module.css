@@ -328,16 +328,14 @@ a.seenLink:active {
     flex: none;
   }
 
+  /*
+   * The four-tab sport row used to become a 2 × 2 grid here. It is one
+   * `<select>` now (T50), which fits a 320px line on its own — so the phone
+   * rule is that it takes the width rather than sitting against the right edge
+   * under a 40px heading.
+   */
   .filter {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 12px;
+    margin: 0;
     width: 100%;
-  }
-
-  .filter :global(.sporttab) {
-    justify-content: center;
-    padding: 11px 10px;
-    font-size: 14px;
   }
 }

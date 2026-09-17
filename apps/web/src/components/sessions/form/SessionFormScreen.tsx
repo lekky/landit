@@ -18,10 +18,18 @@ import {
   type SessionFormValues,
 } from '@/lib/sessionForm';
 import { sessionHref, sessionsHref } from '@/lib/sessionRoutes';
+import { useSport } from '@/providers/sport';
 
 import { editSessionAction, logSessionAction } from './actions';
 import styles from './form.module.css';
-import { FormHeader, FullForm } from './FullForm';
+import {
+  FormHeader,
+  FullForm,
+  SESSION_STEPS,
+  stepForField,
+  stepForSection,
+  type SessionStepId,
+} from './FullForm';
 import { QuickLog } from './QuickLog';
 import { SavedState, type FreshSection } from './SavedState';
 import { SessionWall } from './SessionWall';
@@ -59,9 +67,14 @@ export interface SessionFormScreenProps {
 
 export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
   const router = useRouter();
+  const { sport: chipSport } = useSport();
   const [stage, setStage] = useState<Stage>(data.mode === 'new' && data.quick ? 'quick' : 'full');
-  const [values, setValues] = useState<SessionFormValues>(data.initial);
-  const [baseline, setBaseline] = useState<SessionFormValues>(data.initial);
+  /** Which of the full form's three steps is open (rethink §3.10, T50). */
+  const [step, setStep] = useState<SessionStepId>('when');
+  const [rawValues, setValues] = useState<SessionFormValues>(data.initial);
+  const [rawBaseline, setBaseline] = useState<SessionFormValues>(data.initial);
+  /** The rider answered "What you rode" themselves, so the chip stops leading. */
+  const [sportPicked, setSportPicked] = useState(false);
   /** The session a save writes to: the edited one, or the one the quick log just saved. */
   const [editingId, setEditingId] = useState<string | null>(data.sessionId);
   const [errors, setErrors] = useState<Partial<Record<SessionField, string>>>({});
@@ -83,17 +96,56 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
     capture(ANALYTICS_EVENTS.sessionLogOpened, { source: data.source });
   }, [data.mode, data.source]);
 
+  /**
+   * A new session's sport follows the top bar's chip (D5, §3.10, T50).
+   *
+   * The server cannot decide this: the chip is a `localStorage` display
+   * preference (`providers/sport.tsx`), so `newSessionValues` can only reach
+   * for the rider's *first* sport — and a rider who switched the chip to BMX
+   * last week then met a form pre-set to scooter, with their BMX tricks not
+   * even offered, because `TricksField` filters by `values.sport`. "The sport
+   * is chosen once" is what D5 promises, and this is the form keeping it.
+   *
+   * **Derived, not an effect.** Reading the chip in an effect and calling
+   * `setState` is a cascading render and the shape LESSONS §3a warns about;
+   * `useSport` is a `useSyncExternalStore`, so the answer is available during
+   * render and this is a `?:` rather than a round trip through the reconciler.
+   * `baseline` gets the same treatment, so an untouched form is not "dirty"
+   * and closing it does not ask about changes nobody made.
+   *
+   * Four conditions, each one a case where the chip is the wrong answer: edit
+   * mode, where the saved sport is the rider's own; a link that named a sport
+   * (`sportFromLink`), because arriving from a skateboard trick means
+   * skateboard whatever the chip says; a chip on a sport this rider does not
+   * track; and the rider having answered "What you rode" here, which is the
+   * Change link's whole point and the one answer that outranks the chip.
+   */
+  const followChip =
+    data.mode === 'new' && !data.sportFromLink && !sportPicked && data.sports.includes(chipSport);
+  const values = followChip ? { ...rawValues, sport: chipSport } : rawValues;
+  const baseline = followChip ? { ...rawBaseline, sport: chipSport } : rawBaseline;
+
   // The rider has been shown the wall: the denominator for whether it converts.
   useEffect(() => {
     if (stage === 'wall') capture(ANALYTICS_EVENTS.sessionQuotaWallSeen, { plan: data.plan });
   }, [stage, data.plan]);
 
-  // A "while it's fresh" prompt lands the rider on the section it named.
+  /*
+   * A "while it's fresh" prompt lands the rider on the section it named.
+   *
+   * **Depends on `step` as well as `stage`** (review B1). With one long form
+   * every anchor was always in the document; with three steps only the open
+   * step's cards are rendered, so this ran before `openFresh`'s step had been
+   * drawn, `getElementById` answered `null`, and `?.scrollIntoView()` did
+   * nothing at all — no scroll, no message, and a rider who pressed "A clip"
+   * looking at When, How long and Where.
+   */
   useEffect(() => {
     if (stage !== 'full' || !focusSection.current) return;
+    if (stepForSection(focusSection.current) !== step) return;
     document.getElementById(`session-${focusSection.current}`)?.scrollIntoView({ block: 'start' });
     focusSection.current = null;
-  }, [stage]);
+  }, [stage, step]);
 
   const isEdit = editingId !== null;
   const dirty = formIsDirty(values, baseline);
@@ -122,6 +174,10 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
   };
 
   const update = (patch: Partial<SessionFormValues>) => {
+    // Answering "What you rode" here stops the chip leading: a rider who
+    // pressed Change means it, and a control that reverted on the next render
+    // would be one that cannot be used.
+    if (patch.sport !== undefined) setSportPicked(true);
     setValues((current) => ({ ...current, ...patch }));
     setConfirming(false);
     setErrors((current) => {
@@ -139,6 +195,13 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
     setValues((current) => escalateQuickLog(current));
     setErrors({});
     setErrorLine(null);
+    /*
+     * Onto "What", not back to the beginning. The control that got here reads
+     * "Add tricks, clip and notes →", and the quick log has already asked for
+     * the whole of step one — where, when and how it felt — so opening on it
+     * would answer a press for more with a screenful the rider just filled in.
+     */
+    setStep('what');
     setStage('full');
   };
 
@@ -147,9 +210,60 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
       setErrors({ [field]: message });
       // The quick log has three fields; a problem with any other opens the full form.
       if (from === 'quick' && !['spotId', 'feel', 'startedAt'].includes(field)) setStage('full');
+      // …and the full form is three steps, so the refusal lands on the one
+      // that can fix it rather than on whichever the rider happens to be on.
+      setStep(stepForField(field));
     } else {
       setErrorLine(message);
     }
+  };
+
+  const stepIndex = SESSION_STEPS.findIndex((s) => s.id === step);
+  const lastStep = stepIndex === SESSION_STEPS.length - 1;
+
+  /**
+   * Whether the primary button saves rather than moving on.
+   *
+   * **Next is for a new session only** (review S1). Stepping answers "twelve
+   * fields in one scroll", which is a problem a *blank* form has: an edit
+   * arrives with every field filled and already valid, and the rider is there
+   * to change one word. Making them walk to the third step to find Save — with
+   * every button on the way pointing the other way — is a worse screen than the
+   * one they had, and it was a change to a shipped form that nothing asked for.
+   *
+   * `isEdit` rather than `data.mode === 'edit'`, so it also covers the session a
+   * quick log just saved and a "while it's fresh" prompt reopened: that is a
+   * correction to an existing session too, and it is the path B1 is about.
+   */
+  const saves = isEdit || lastStep;
+
+  /**
+   * Next: the current step's own problems, then forward.
+   *
+   * Validating here as well as on Save is what stops a rider filling three
+   * steps and being thrown back to the first one for a spot they never picked.
+   * `formProblems` runs over the whole values object either way — it is the one
+   * place that knows the rules — and this only keeps the answers that belong to
+   * the step the rider is looking at.
+   */
+  const next = () => {
+    if (pending) return;
+    const problems = formProblems(
+      values,
+      { now: Date.now(), timezone: data.timezone },
+      { clipAllowed: data.clip.allowed || values.clip === baseline.clip },
+    );
+    const here = Object.entries(problems).filter(
+      ([field]) => stepForField(field as SessionField) === step,
+    );
+    if (here.length) {
+      setErrors(Object.fromEntries(here) as Partial<Record<SessionField, string>>);
+      return;
+    }
+    setErrors({});
+    setErrorLine(null);
+    const ahead = SESSION_STEPS[stepIndex + 1];
+    if (ahead) setStep(ahead.id);
   };
 
   const submit = (useGrace = false) => {
@@ -170,6 +284,9 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
       if (from === 'quick' && !['spotId', 'feel', 'startedAt'].includes(first[0])) {
         setStage('full');
       }
+      // The step holding the first problem, so the message is beside the
+      // control that answers it (T50).
+      setStep(stepForField(first[0] as SessionField));
       return;
     }
 
@@ -243,10 +360,20 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
     });
   };
 
+  /**
+   * A "while it's fresh" prompt reopens the saved session at the part it names.
+   *
+   * **It sets the step first** (review B1). Before the form was stepped every
+   * anchor was in the document and this only had to scroll; now the section has
+   * to be on screen before it can be scrolled to, and a prompt that landed a
+   * rider on "When & where" — with no clip field, no message and a button
+   * reading Next — was the worst outcome in the change.
+   */
   const openFresh = (section: FreshSection) => {
     if (!saved) return;
     setEditingId(saved.sessionId);
     focusSection.current = section;
+    setStep(stepForSection(section));
     setStage('full');
   };
 
@@ -271,7 +398,10 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
   let wide = true;
 
   if (stage === 'quick') {
-    width = 560;
+    // 640, not 560 (§3.10, T50): the quick log's five feel faces and its spot
+    // row had the narrowest modal in the product to sit in, and the faces were
+    // the thing that gave. Same number the wall already uses.
+    width = 640;
     wide = false;
     body = (
       <QuickLog
@@ -317,7 +447,15 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
     );
   } else {
     body = (
-      <FullForm data={data} values={values} errors={errors} isEdit={isEdit} onChange={update} />
+      <FullForm
+        data={data}
+        values={values}
+        errors={errors}
+        isEdit={isEdit}
+        onChange={update}
+        step={step}
+        onStep={setStep}
+      />
     );
   }
 
@@ -326,9 +464,12 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
       <FormHeader
         title={isEdit ? 'Edit session' : 'Log a session'}
         sub={data.mode === 'edit' ? data.dateTitle : data.stamp}
-        saveLabel={isEdit ? 'Save' : 'Save'}
+        // The header's button follows the footer's: Next until the last step,
+        // where it saves. Two primaries that said different things would be a
+        // form arguing with itself.
+        saveLabel={saves ? 'Save' : 'Next'}
         pending={pending}
-        onSave={() => submit(false)}
+        onSave={() => (saves ? submit(false) : next())}
         onClose={requestClose}
       />
     ) : null;
@@ -368,13 +509,19 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
             >
               Cancel
             </button>
+            {/*
+              Next / Save (§3.10). On a new session the last step saves and the
+              two before it move on, taking their own problems with them rather
+              than storing them up for the end. On an edit every step saves
+              (`saves`, above).
+            */}
             <button
               type="button"
               className={`btn ${styles.saveBtn}`}
-              onClick={() => submit(false)}
+              onClick={() => (saves ? submit(false) : next())}
               disabled={pending}
             >
-              {pending ? 'Saving…' : isEdit ? 'Save changes' : 'Save session'}
+              {pending ? 'Saving…' : saves ? (isEdit ? 'Save changes' : 'Save session') : 'Next'}
             </button>
           </div>
         ) : null}

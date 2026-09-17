@@ -37,6 +37,23 @@ export type TabItem = {
    * with a pointer.
    */
   title?: string;
+  /**
+   * DOM `id` for the tab's button, so a panel can be `aria-labelledby` it (T50).
+   *
+   * ARIA's tabs pattern names a `tabpanel` after the tab that controls it, and
+   * a panel cannot point at an element that has no id — so this is what makes
+   * the reference possible. Without it a caller falls back to `aria-label` and
+   * a copy of the tab's words, which is the same name by a route that can drift
+   * from its source.
+   *
+   * It does not make the name unique: a tab and a control inside its panel may
+   * legitimately be called the same thing, and on the session form they are
+   * (the Notes step, and the notes textarea). Disambiguate by role.
+   *
+   * Optional, and absent by default: a row that does not pass one renders
+   * exactly the markup it rendered before.
+   */
+  elementId?: string;
 };
 
 export type TabsProps = {
@@ -92,6 +109,7 @@ export function Tabs({
           <button
             type="button"
             key={it.id}
+            id={it.elementId}
             role="tab"
             aria-selected={on}
             className={cx('sporttab', on && 'on')}

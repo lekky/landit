@@ -27,12 +27,22 @@ import {
   Icon,
   PlatformBadge,
   SegmentedPicker,
+  Tag,
   VISIBILITY_ICONS,
   WeatherIcon,
 } from '@landit/ui-web';
 import Link from 'next/link';
-import { useEffect, useId, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 
+import { TAB_PANEL, TabRow, type TabRowItem } from '@/components/shell/TabRow';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES } from '@/lib/routes';
 import {
@@ -43,6 +53,9 @@ import {
 } from '@/lib/sessionForm';
 
 import styles from './form.module.css';
+// Type only, so the cycle with `SavedState` (which imports `ChevronRight` from
+// here) is erased rather than real.
+import type { FreshSection } from './SavedState';
 import { SpotSearchSheet } from './SpotSearchSheet';
 import type { FormSpot, FormTrick, SessionFormData } from './types';
 
@@ -50,7 +63,94 @@ import type { FormSpot, FormTrick, SessionFormData } from './types';
  * The full form's twelve fields, in the handoff's order (1c phone, 2g desktop).
  * One component tree for both: two columns above 700px, one below, with each
  * card's `order` putting the phone sequence back together.
+ *
+ * **Since T50 it is three steps, at every width** (rethink §3.10). Twelve
+ * fields in one scroll is the longest thing in the product on a 390px phone,
+ * and "Log a session" competing with a form a rider has to scroll twice to see
+ * the end of is why the quick log exists at all. The row is `TabRow`
+ * (`group: 'session-form'`), the same boxed row the rest of the rethink
+ * navigates with, and the footer's primary button reads **Next** until the last
+ * step, where it reads Save.
+ *
+ * Nothing about what is *saved* moved: the same values object, the same server
+ * action, the same month cap, grace and one-way stage promotion. A step is
+ * where a field is drawn, not what it means.
  */
+
+/**
+ * The three steps, in order (§3.10). `id` is also `tabs_switched`'s `tab`.
+ *
+ * `elementId` is what the panel is `aria-labelledby` (review S3): ARIA names a
+ * `tabpanel` after the tab that controls it, and a panel cannot point at an
+ * element with no id. It buys the reference, not a unique name — the Notes step
+ * and the notes textarea inside it are both honestly called Notes.
+ */
+export const SESSION_STEPS = [
+  { id: 'when', label: 'When & where', elementId: 'session-step-when' },
+  { id: 'what', label: 'What', elementId: 'session-step-what' },
+  { id: 'notes', label: 'Notes', elementId: 'session-step-notes' },
+] as const satisfies readonly TabRowItem[];
+
+export type SessionStepId = (typeof SESSION_STEPS)[number]['id'];
+
+/**
+ * Which step holds a field, so a refusal lands on the step that can fix it.
+ *
+ * Without this a rider on Notes who presses Save with no spot picked gets an
+ * error message about a control two steps behind them — the stepped form's one
+ * new way to be wrong, and the reason `formProblems` is still run over the
+ * whole values object rather than per step. Validating only the visible step
+ * would let a rider walk past a missing spot and meet it from the server
+ * instead, which is a round trip to say something the browser already knew.
+ *
+ * **A map rather than a chain of `if`s** (review N5). The chain fell through to
+ * `'notes'`, so a `SessionField` added later would have landed there silently
+ * and sent a rider to the wrong step to fix it. `satisfies` makes the next
+ * field a compile error instead.
+ */
+const FIELD_STEPS = {
+  startedAt: 'when',
+  durationMinutes: 'when',
+  spotId: 'when',
+  sport: 'what',
+  aim: 'what',
+  tricks: 'what',
+  feel: 'notes',
+  weather: 'notes',
+  notes: 'notes',
+  crewIds: 'notes',
+  clip: 'notes',
+} as const satisfies Record<SessionField, SessionStepId>;
+
+export function stepForField(field: SessionField): SessionStepId {
+  return FIELD_STEPS[field];
+}
+
+/**
+ * Which step holds a "while it's fresh" prompt's anchor (review B1).
+ *
+ * After a quick log the saved card offers three prompts — Tricks you worked on,
+ * A clip, Notes and the aim — and each reopens the form scrolled to the section
+ * it names. On one long form every anchor was always in the document; with
+ * three steps only the open step's cards are rendered, so `getElementById`
+ * answered `null` and `?.scrollIntoView()` did nothing. A rider who pressed
+ * "A clip" got When, How long and Where, with no clip field anywhere and no
+ * message saying why.
+ *
+ * The map is not `stepForField`'s: the anchors are card ids rather than field
+ * names, and `session-notes` is on the **aim** card (`order: 4`), which is on
+ * What. That is where `main` scrolled to as well, so the prompt lands exactly
+ * where it always did.
+ */
+const SECTION_STEPS = {
+  tricks: 'what',
+  notes: 'what',
+  clip: 'notes',
+} as const satisfies Record<FreshSection, SessionStepId>;
+
+export function stepForSection(section: FreshSection): SessionStepId {
+  return SECTION_STEPS[section];
+}
 
 type Change = (patch: Partial<SessionFormValues>) => void;
 type Errors = Partial<Record<SessionField, string>>;
@@ -290,6 +390,91 @@ export function WhereField(props: {
           onClose={() => setSearching(false)}
         />
       ) : null}
+    </>
+  );
+}
+
+/* --------------------------------------------------------- what you rode -- */
+
+/**
+ * "What you rode" — a preset `Tag` with a Change link, not a row of buttons
+ * (rethink §3.10, T50).
+ *
+ * The sport is **chosen once, in the top bar** (D5), and this form now opens on
+ * whatever the chip says (`SessionFormScreen` applies it). Asking again with a
+ * two- or three-button segmented control was the form disagreeing with the
+ * chip about a question the rider had already answered, and it was the widest
+ * control on the phone for the field least often changed.
+ *
+ * So the ordinary case is a statement — a `Tag` in the sport's own colour, the
+ * sport art beside it — and changing it is a press away. The picker is the
+ * control that was always here, revealed rather than replaced, so the one rider
+ * who logs a skate session on a scooter day loses nothing.
+ *
+ * A rider who tracks one sport gets the tag alone and no Change link: there is
+ * nothing to change to, and a control that can only reselect what is already
+ * selected is a control that teaches nothing.
+ */
+export function SportField(props: {
+  data: SessionFormData;
+  values: SessionFormValues;
+  onChange: Change;
+}) {
+  const { data, values, onChange } = props;
+  const [picking, setPicking] = useState(false);
+  const multiSport = data.sports.length > 1;
+  const sport = SPORTS[values.sport];
+
+  return (
+    <>
+      <Label
+        aside={
+          multiSport && !picking ? (
+            <button type="button" className={styles.miniBtn} onClick={() => setPicking(true)}>
+              Change
+            </button>
+          ) : undefined
+        }
+      >
+        What you rode
+      </Label>
+      {picking ? (
+        <>
+          <SegmentedPicker<SportId>
+            label="What you rode"
+            options={data.sports.map((id) => ({
+              id,
+              label: (
+                <span className={styles.sportLabel}>
+                  <Equipment name={SPORTS[id].icon} size={19} />
+                  {SPORTS[id].label}
+                </span>
+              ),
+            }))}
+            value={values.sport}
+            onChange={(next) => {
+              onChange({ sport: next });
+              setPicking(false);
+            }}
+            className={styles.seg}
+          />
+          {/*
+            A way back that is not a choice (review N4). Without it the only
+            exit from the picker is to pick something — and picking the sport
+            already selected is what tells the form the rider answered this
+            themselves, which stops the top bar's chip leading it. "Never mind"
+            should not quietly change what the form does.
+          */}
+          <button type="button" className={styles.keepSport} onClick={() => setPicking(false)}>
+            Keep {sport.label}
+          </button>
+        </>
+      ) : (
+        <div className={styles.sportPreset}>
+          <Equipment name={sport.icon} size={26} />
+          <Tag color={sport.color}>{sport.label}</Tag>
+        </div>
+      )}
     </>
   );
 }
@@ -641,14 +826,33 @@ export function FullForm(props: {
   errors: Errors;
   isEdit: boolean;
   onChange: Change;
+  /** The step being shown (§3.10). */
+  step: SessionStepId;
+  onStep: (step: SessionStepId) => void;
 }) {
-  const { data, values, errors, onChange } = props;
+  const { data, values, errors, onChange, step } = props;
   const { spots, remember } = useKnownSpots(data);
+
+  /*
+   * Move focus to the panel when the step changes, and only then (review S3).
+   *
+   * `shown` holds the step the panel last rendered with, so the first render
+   * does not steal focus from wherever the rider arrived — a form that grabs
+   * focus on load is a form that has taken the browser's Find away before
+   * anybody asked it to.
+   */
+  const panel = useRef<HTMLDivElement | null>(null);
+  const shown = useRef<SessionStepId>(step);
+  useEffect(() => {
+    if (shown.current === step) return;
+    shown.current = step;
+    panel.current?.focus();
+  }, [step]);
+
   const aimId = useId();
   const notesId = useId();
   const dateId = useId();
   const timeId = useId();
-  const multiSport = data.sports.length > 1;
 
   const mates = new Set(data.mates.map((m) => m.id));
   const unseenMates = values.crewIds.filter((id) => !mates.has(id)).length;
@@ -661,249 +865,307 @@ export function FullForm(props: {
           : values.crewIds,
     });
 
+  /*
+   * The nine cards, named rather than nested, so the three steps can be
+   * written as lists of them (§3.10). Each keeps the `order` it had before
+   * T50, which is what `--card-order` reads on a phone — so within a step the
+   * phone sequence is still the handoff's 1c order, and the steps cut it into
+   * 1–2, 3–5 and 6–9 rather than resequencing anything.
+   */
+  const whenCard = (
+    <Card key="when" order={1}>
+      <Label>When</Label>
+      <SegmentedPicker
+        label="When"
+        options={[
+          { id: 'now', label: 'Right now' },
+          { id: 'pick', label: 'Pick a time' },
+        ]}
+        value={values.when}
+        onChange={(when) => onChange({ when })}
+        className={styles.seg}
+      />
+      {values.when === 'pick' ? (
+        <div className={styles.pickRow}>
+          <label htmlFor={dateId} className={styles.srOnly}>
+            Day
+          </label>
+          <input
+            id={dateId}
+            type="date"
+            className={styles.input}
+            value={values.pickedAt.slice(0, 10)}
+            max={data.initial.pickedAt.slice(0, 10) > data.today ? undefined : data.today}
+            onChange={(e) =>
+              onChange({
+                pickedAt: `${e.target.value}T${values.pickedAt.slice(11, 16) || '12:00'}`,
+              })
+            }
+          />
+          <label htmlFor={timeId} className={styles.srOnly}>
+            Time
+          </label>
+          <input
+            id={timeId}
+            type="time"
+            className={`${styles.input} ${styles.timeInput}`}
+            value={values.pickedAt.slice(11, 16)}
+            onChange={(e) =>
+              onChange({
+                pickedAt: `${values.pickedAt.slice(0, 10) || data.today}T${e.target.value}`,
+              })
+            }
+          />
+        </div>
+      ) : null}
+      <FieldError message={errors.startedAt} />
+      <Label spaced>How long</Label>
+      <SegmentedPicker
+        label="How long"
+        options={SESSION_DURATIONS.map((d) => ({ id: d.minutes, label: d.label }))}
+        value={values.durationMinutes}
+        onChange={(durationMinutes) => onChange({ durationMinutes })}
+        className={styles.seg}
+      />
+    </Card>
+  );
+
+  const whereCard = (
+    <Card key="where" order={2}>
+      <Label>Where</Label>
+      <WhereField
+        data={data}
+        values={values}
+        errors={errors}
+        onChange={onChange}
+        spots={spots}
+        remember={remember}
+      />
+    </Card>
+  );
+
+  const sportCard = (
+    <Card key="sport" order={3}>
+      <SportField data={data} values={values} onChange={onChange} />
+    </Card>
+  );
+
+  const tricksCard = (
+    <Card key="tricks" order={5} id="session-tricks">
+      <TricksField data={data} values={values} errors={errors} onChange={onChange} />
+    </Card>
+  );
+
+  const feelCard = (
+    <Card key="feel" order={6}>
+      <Label>How it felt</Label>
+      <SegmentedPicker
+        label="How it felt"
+        options={SESSION_FEELS.map((f) => ({
+          id: f.id,
+          label: f.label,
+          color: f.color,
+          icon: <FeelFace feel={f.id} size={30} />,
+        }))}
+        value={values.feel}
+        onChange={(feel) => onChange({ feel })}
+        // The faces are painted in the feel's own colour, so a flooded
+        // cell is that colour twice over (owner, 2026-09-14, in chat).
+        fill="soft"
+        className={`${styles.seg} ${styles.faces}`}
+      />
+      <FieldError message={errors.feel} />
+      <Label spaced>Weather</Label>
+      <SegmentedPicker
+        label="Weather"
+        options={SESSION_WEATHER.map((w) => ({
+          id: w.id,
+          label: w.label,
+          // 28, not the stroked glyph's 21: the painted art carries its
+          // own die-cut margin, so at 21 the weather row read a full
+          // weight lighter than the 30px feel row above it and the
+          // snowflake lost its arms (2026-09-14, measured on this card).
+          icon: <WeatherIcon weather={w.id} size={28} />,
+        }))}
+        value={values.weather}
+        selectedColor={SESSION_WEATHER_SELECTED_COLOR}
+        // Soft for the same reason, and for one of its own: the row's
+        // selected blue is the colour `cold` and `rain` are painted in.
+        fill="soft"
+        onChange={(weather) => onChange({ weather: values.weather === weather ? null : weather })}
+        className={`${styles.seg} ${styles.faces}`}
+      />
+    </Card>
+  );
+
+  const aimCard = (
+    <Card key="aim" order={4} id="session-notes">
+      <Label>
+        <label htmlFor={aimId}>Aim of the session</label>
+      </Label>
+      <input
+        id={aimId}
+        className={styles.input}
+        value={values.aim}
+        maxLength={SESSION_LIMITS.aimMax}
+        placeholder="What are you here to do?"
+        onChange={(e) => onChange({ aim: e.target.value })}
+      />
+      <FieldError message={errors.aim} />
+    </Card>
+  );
+
+  const notesCard = (
+    <Card key="notes" order={7}>
+      <Label>
+        <label htmlFor={notesId}>Notes</label>
+      </Label>
+      <textarea
+        id={notesId}
+        className={`${styles.input} ${styles.notes}`}
+        rows={3}
+        maxLength={SESSION_LIMITS.notesMax}
+        value={values.notes}
+        placeholder="What worked, what did not, what to try next time."
+        onChange={(e) => onChange({ notes: e.target.value })}
+      />
+      <FieldError message={errors.notes} />
+      <Label spaced>Who you rode with</Label>
+      {data.mates.length || unseenMates ? (
+        <div className={styles.mateRow}>
+          {data.mates.map((m) => {
+            const on = values.crewIds.includes(m.id);
+            return (
+              <button
+                key={m.id}
+                type="button"
+                aria-pressed={on}
+                className={`${styles.mate} ${on ? styles.mateOn : ''}`}
+                onClick={() => toggleMate(m.id)}
+              >
+                <Avatar avatarId={m.avatarKey} name={m.name} size={22} ringWidth={2} decorative />
+                {m.name}
+              </button>
+            );
+          })}
+          {unseenMates ? (
+            <span className={styles.mateMore}>+ {unseenMates} more tagged</span>
+          ) : null}
+        </div>
+      ) : (
+        <p className={styles.hint}>Riders in a crew with you show up here.</p>
+      )}
+      <FieldError message={errors.crewIds} />
+    </Card>
+  );
+
+  const clipCard = (
+    <Card key="clip" order={8} id="session-clip">
+      <ClipField data={data} values={values} errors={errors} onChange={onChange} />
+    </Card>
+  );
+
+  const visibilityCard = (
+    <Card key="visibility" order={9}>
+      <Label>Who can see it</Label>
+      <SegmentedPicker
+        label="Who can see it"
+        options={SESSION_VISIBILITIES.map((v) => ({
+          id: v.id,
+          label: v.label,
+          icon: (
+            <svg
+              viewBox="0 0 24 24"
+              width="19"
+              height="19"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d={VISIBILITY_ICONS[v.id]} />
+            </svg>
+          ),
+        }))}
+        value={values.visibility}
+        onChange={(visibility) => onChange({ visibility })}
+        className={`${styles.seg} ${styles.faces}`}
+      />
+      <p className={styles.hint}>
+        {visibilityLine(values.visibility, data.visibilityDefault)}{' '}
+        <Link href={ROUTES.account} className={styles.inlineLink}>
+          Change the default
+        </Link>
+      </p>
+    </Card>
+  );
+
+  /**
+   * The three steps, as two columns each.
+   *
+   * §3.10 asks for step one as "two cards side by side" on desktop, and the
+   * other two follow the same shape: the left column is what the step is
+   * mainly about, the right the rest of it. On a phone `.col` is
+   * `display: contents` and `--card-order` puts the cards back in the
+   * handoff's order, exactly as it did when all nine were on one screen.
+   */
+  const columns: Record<SessionStepId, readonly [ReactNode[], ReactNode[]]> = {
+    when: [[whenCard], [whereCard]],
+    what: [[sportCard, aimCard], [tricksCard]],
+    notes: [
+      [feelCard, clipCard],
+      [notesCard, visibilityCard],
+    ],
+  };
+  const [left, right] = columns[step];
+
   return (
     <div className={styles.body}>
-      <div className={styles.cols}>
-        <div className={styles.col}>
-          <Card order={1}>
-            <Label>When</Label>
-            <SegmentedPicker
-              label="When"
-              options={[
-                { id: 'now', label: 'Right now' },
-                { id: 'pick', label: 'Pick a time' },
-              ]}
-              value={values.when}
-              onChange={(when) => onChange({ when })}
-              className={styles.seg}
-            />
-            {values.when === 'pick' ? (
-              <div className={styles.pickRow}>
-                <label htmlFor={dateId} className={styles.srOnly}>
-                  Day
-                </label>
-                <input
-                  id={dateId}
-                  type="date"
-                  className={styles.input}
-                  value={values.pickedAt.slice(0, 10)}
-                  max={data.initial.pickedAt.slice(0, 10) > data.today ? undefined : data.today}
-                  onChange={(e) =>
-                    onChange({
-                      pickedAt: `${e.target.value}T${values.pickedAt.slice(11, 16) || '12:00'}`,
-                    })
-                  }
-                />
-                <label htmlFor={timeId} className={styles.srOnly}>
-                  Time
-                </label>
-                <input
-                  id={timeId}
-                  type="time"
-                  className={`${styles.input} ${styles.timeInput}`}
-                  value={values.pickedAt.slice(11, 16)}
-                  onChange={(e) =>
-                    onChange({
-                      pickedAt: `${values.pickedAt.slice(0, 10) || data.today}T${e.target.value}`,
-                    })
-                  }
-                />
-              </div>
-            ) : null}
-            <FieldError message={errors.startedAt} />
-            <Label spaced>How long</Label>
-            <SegmentedPicker
-              label="How long"
-              options={SESSION_DURATIONS.map((d) => ({ id: d.minutes, label: d.label }))}
-              value={values.durationMinutes}
-              onChange={(durationMinutes) => onChange({ durationMinutes })}
-              className={styles.seg}
-            />
-          </Card>
+      {/*
+        The step row. `TabRow` fires `tabs_switched { group: 'session-form' }`
+        itself and never on the active tab (§3.3, §5), so there is nothing for
+        this screen to remember.
 
-          <Card order={2}>
-            <Label>Where</Label>
-            <WhereField
-              data={data}
-              values={values}
-              errors={errors}
-              onChange={onChange}
-              spots={spots}
-              remember={remember}
-            />
-          </Card>
+        A `role="tablist"` rather than links: the steps change the panel under
+        the row, not the document — the form is one address whichever step is
+        open, which is also what keeps a half-filled form from acquiring three
+        history entries a rider has to press Back through.
+      */}
+      <TabRow
+        items={SESSION_STEPS}
+        value={step}
+        group="session-form"
+        label="Session form steps"
+        onChange={(id) => props.onStep(id as SessionStepId)}
+        className={styles.steps}
+      />
+      {/*
+        Keyed on the step so React remounts it and §4's 120ms cross-fade runs.
 
-          {multiSport ? (
-            <Card order={3}>
-              <Label>What you rode</Label>
-              <SegmentedPicker<SportId>
-                label="What you rode"
-                options={data.sports.map((id) => ({
-                  id,
-                  label: (
-                    <span className={styles.sportLabel}>
-                      <Equipment name={SPORTS[id].icon} size={19} />
-                      {SPORTS[id].label}
-                    </span>
-                  ),
-                }))}
-                value={values.sport}
-                onChange={(sport) => onChange({ sport })}
-                className={styles.seg}
-              />
-            </Card>
-          ) : null}
-
-          <Card order={5} id="session-tricks">
-            <TricksField data={data} values={values} errors={errors} onChange={onChange} />
-          </Card>
-        </div>
-
-        <div className={styles.col}>
-          <Card order={6}>
-            <Label>How it felt</Label>
-            <SegmentedPicker
-              label="How it felt"
-              options={SESSION_FEELS.map((f) => ({
-                id: f.id,
-                label: f.label,
-                color: f.color,
-                icon: <FeelFace feel={f.id} size={30} />,
-              }))}
-              value={values.feel}
-              onChange={(feel) => onChange({ feel })}
-              // The faces are painted in the feel's own colour, so a flooded
-              // cell is that colour twice over (owner, 2026-09-14, in chat).
-              fill="soft"
-              className={`${styles.seg} ${styles.faces}`}
-            />
-            <FieldError message={errors.feel} />
-            <Label spaced>Weather</Label>
-            <SegmentedPicker
-              label="Weather"
-              options={SESSION_WEATHER.map((w) => ({
-                id: w.id,
-                label: w.label,
-                // 28, not the stroked glyph's 21: the painted art carries its
-                // own die-cut margin, so at 21 the weather row read a full
-                // weight lighter than the 30px feel row above it and the
-                // snowflake lost its arms (2026-09-14, measured on this card).
-                icon: <WeatherIcon weather={w.id} size={28} />,
-              }))}
-              value={values.weather}
-              selectedColor={SESSION_WEATHER_SELECTED_COLOR}
-              // Soft for the same reason, and for one of its own: the row's
-              // selected blue is the colour `cold` and `rain` are painted in.
-              fill="soft"
-              onChange={(weather) =>
-                onChange({ weather: values.weather === weather ? null : weather })
-              }
-              className={`${styles.seg} ${styles.faces}`}
-            />
-          </Card>
-
-          <Card order={4} id="session-notes">
-            <Label>
-              <label htmlFor={aimId}>Aim of the session</label>
-            </Label>
-            <input
-              id={aimId}
-              className={styles.input}
-              value={values.aim}
-              maxLength={SESSION_LIMITS.aimMax}
-              placeholder="What are you here to do?"
-              onChange={(e) => onChange({ aim: e.target.value })}
-            />
-            <FieldError message={errors.aim} />
-          </Card>
-
-          <Card order={7}>
-            <Label>
-              <label htmlFor={notesId}>Notes</label>
-            </Label>
-            <textarea
-              id={notesId}
-              className={`${styles.input} ${styles.notes}`}
-              rows={3}
-              maxLength={SESSION_LIMITS.notesMax}
-              value={values.notes}
-              placeholder="What worked, what did not, what to try next time."
-              onChange={(e) => onChange({ notes: e.target.value })}
-            />
-            <FieldError message={errors.notes} />
-            <Label spaced>Who you rode with</Label>
-            {data.mates.length || unseenMates ? (
-              <div className={styles.mateRow}>
-                {data.mates.map((m) => {
-                  const on = values.crewIds.includes(m.id);
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      aria-pressed={on}
-                      className={`${styles.mate} ${on ? styles.mateOn : ''}`}
-                      onClick={() => toggleMate(m.id)}
-                    >
-                      <Avatar
-                        avatarId={m.avatarKey}
-                        name={m.name}
-                        size={22}
-                        ringWidth={2}
-                        decorative
-                      />
-                      {m.name}
-                    </button>
-                  );
-                })}
-                {unseenMates ? (
-                  <span className={styles.mateMore}>+ {unseenMates} more tagged</span>
-                ) : null}
-              </div>
-            ) : (
-              <p className={styles.hint}>Riders in a crew with you show up here.</p>
-            )}
-            <FieldError message={errors.crewIds} />
-          </Card>
-
-          <Card order={8} id="session-clip">
-            <ClipField data={data} values={values} errors={errors} onChange={onChange} />
-          </Card>
-
-          <Card order={9}>
-            <Label>Who can see it</Label>
-            <SegmentedPicker
-              label="Who can see it"
-              options={SESSION_VISIBILITIES.map((v) => ({
-                id: v.id,
-                label: v.label,
-                icon: (
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="19"
-                    height="19"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d={VISIBILITY_ICONS[v.id]} />
-                  </svg>
-                ),
-              }))}
-              value={values.visibility}
-              onChange={(visibility) => onChange({ visibility })}
-              className={`${styles.seg} ${styles.faces}`}
-            />
-            <p className={styles.hint}>
-              {visibilityLine(values.visibility, data.visibilityDefault)}{' '}
-              <Link href={ROUTES.account} className={styles.inlineLink}>
-                Change the default
-              </Link>
-            </p>
-          </Card>
-        </div>
+        **Named by its tab, and focused when the step changes** (review S3).
+        `aria-labelledby` rather than `aria-label`: ARIA's tabs pattern names a
+        panel after the tab that controls it, and a name that references its
+        source cannot drift from it the way a copy can. It does not make the
+        name unique — "Notes" still resolves to this panel *and* the textarea
+        inside it, both honestly called that, so a query picks by role. And a
+        panel the whole of which was just replaced is where a
+        rider who pressed Next now is: without moving focus, a screen reader
+        says nothing at all and the rider has to walk backwards through the
+        document to find out whether anything happened. `tabIndex={-1}` makes it
+        focusable by script without putting it in the tab order.
+      */}
+      <div
+        key={step}
+        ref={panel}
+        tabIndex={-1}
+        className={`${styles.cols} ${TAB_PANEL}`}
+        role="tabpanel"
+        aria-labelledby={SESSION_STEPS.find((s) => s.id === step)?.elementId}
+      >
+        <div className={styles.col}>{left}</div>
+        <div className={styles.col}>{right}</div>
       </div>
     </div>
   );

@@ -8,35 +8,24 @@ import {
   pageWindow,
   previousMonthKey,
   sessionCountLabel,
-  sessionFilterFor,
-  sessionFilterSports,
+  sessionListFilter,
   sparkHeight,
   topSpotBarWidth,
   trickCountLabel,
 } from './sessionList';
 
-describe('sessionFilterFor', () => {
-  it('maps each chip onto the core filter', () => {
-    expect(sessionFilterFor('all')).toEqual({});
-    expect(sessionFilterFor('event')).toEqual({ atEvent: true });
-    expect(sessionFilterFor('bmx')).toEqual({ sport: 'bmx' });
-  });
-});
-
-describe('sessionFilterSports', () => {
-  it('offers no sport chips to a one-sport rider, because they would repeat All', () => {
-    expect(sessionFilterSports(['scooter'], ['scooter'])).toEqual([]);
-    expect(sessionFilterSports(['scooter'], [])).toEqual([]);
+describe('sessionListFilter', () => {
+  it('adds no sport clause for a scope that is every sport', () => {
+    expect(sessionListFilter([], false)).toEqual({});
+    expect(sessionListFilter([], true)).toEqual({ atEvent: true });
   });
 
-  it('offers every sport on the profile or in a session, in the product order', () => {
-    expect(sessionFilterSports(['bmx', 'scooter'], [])).toEqual(['scooter', 'bmx']);
-    // A sport dropped from the profile still has sessions worth finding.
-    expect(sessionFilterSports(['scooter'], ['bmx', 'scooter'])).toEqual(['scooter', 'bmx']);
+  it('narrows to the one sport a scope resolves to', () => {
+    expect(sessionListFilter(['bmx'], false)).toEqual({ sport: 'bmx' });
   });
 
-  it('ignores a value that is not a sport', () => {
-    expect(sessionFilterSports(['scooter', 'rollerblade'], [])).toEqual([]);
+  it('lets the scope and the event pill hold at once, which the old chip row could not', () => {
+    expect(sessionListFilter(['scooter'], true)).toEqual({ sport: 'scooter', atEvent: true });
   });
 });
 

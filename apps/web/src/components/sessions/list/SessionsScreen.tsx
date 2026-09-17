@@ -14,23 +14,23 @@ import { useMemo, useState } from 'react';
 
 import { DeleteSessionDialog } from '@/components/sessions/DeleteSessionDialog';
 import { BackLink } from '@/components/shell/BackLink';
+import { SportScopeSelect, useSportScope } from '@/components/shell/SportScopeSelect';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES } from '@/lib/routes';
+import type { SportScope } from '@/lib/sportScope';
 import {
   clampPage,
   defaultOpenMonths,
   pageCount,
   pageRangeLabel,
   sessionCountLabel,
-  sessionFilterFor,
-  type SessionListFilterId,
+  sessionListFilter,
 } from '@/lib/sessionList';
 import { newSessionHref } from '@/lib/sessionRoutes';
 
 import { FeedCard } from './FeedCard';
 import { MonthAccordions } from './MonthAccordions';
 import { Pager } from './Pager';
-import { ProgressTabs } from './ProgressTabs';
 import { SessionsSidebar } from './SessionsSidebar';
 import { SessionsTable } from './SessionsTable';
 import type { SessionCardView, SessionsView } from './types';
@@ -50,11 +50,32 @@ type ViewMode = 'feed' | 'list';
  * sent. Every count on screen is recomputed from `@landit/core` over the
  * filtered sessions (`filterSessions`, `groupSessionsByMonth`), never kept as a
  * second number that could disagree.
+ *
+ * **The header is the screen's own since T50** (rethink §3.10). It said
+ * *Progress* under a Home back link, with the Sessions / Where-you're-at row
+ * beneath it — so a rider who pressed the blue **Sessions** card on Home landed
+ * on a page called *Progress*, one tap from where the green **Progress** card
+ * goes. T46 left that deliberately (its note says so) because the header was
+ * this task's; it now reads **Sessions**, and `ProgressTabs` is gone with the
+ * rest of the in-page tab rows the rethink retired. Progress is reached from
+ * its own card on Home.
  */
 export function SessionsScreen({ view }: { view: SessionsView }) {
   const router = useRouter();
   const [mode, setMode] = useState<ViewMode>('feed');
-  const [filter, setFilter] = useState<SessionListFilterId>('all');
+  /**
+   * The two filters, where there was one row of chips (T50).
+   *
+   * The sport is the `SportScopeSelect`'s — "Your sport (Scooter)", every
+   * sport, or one named sport — and it **tracks the top-bar chip** by default
+   * (O1: the diary opens on the rider's own sport), which is what "lists follow
+   * the chip" means on this screen. "At an event" is a pill of its own rather
+   * than a fourth chip in the same row, because it answers a different
+   * question: the old row made "BMX" and "At an event" alternatives, so a rider
+   * could not ask for their BMX jam sessions at all.
+   */
+  const scope = useSportScope('sessions', 'chip');
+  const [atEvent, setAtEvent] = useState(false);
   const [page, setPage] = useState(1);
   const [tablePage, setTablePage] = useState(1);
   const [openMonths, setOpenMonths] = useState<ReadonlySet<string>>(
@@ -69,13 +90,14 @@ export function SessionsScreen({ view }: { view: SessionsView }) {
   );
   const byId = useMemo(() => new Map(all.map((s) => [s.id, s])), [all]);
 
+  const scopeSports = scope.sports;
   const filtered = useMemo(() => {
     const kept = filterSessions(
       all.map((s) => s.session),
-      sessionFilterFor(filter),
+      sessionListFilter(scopeSports, atEvent),
     );
     return kept.map((s) => byId.get(s.id)).filter((s): s is SessionCardView => Boolean(s));
-  }, [all, byId, filter]);
+  }, [all, byId, scopeSports, atEvent]);
 
   const months = useMemo(
     () =>
@@ -106,10 +128,26 @@ export function SessionsScreen({ view }: { view: SessionsView }) {
   const tableAt = clampPage(tablePage, tablePages);
   const tableItems = filtered.slice((tableAt - 1) * TABLE_PER_PAGE, tableAt * TABLE_PER_PAGE);
 
-  const chooseFilter = (id: SessionListFilterId) => {
-    setFilter(id);
+  const toFirstPage = () => {
     setPage(1);
     setTablePage(1);
+  };
+
+  /**
+   * The scope select, with both pagers reset behind it (review S2).
+   *
+   * The chip row it replaced did this on every press, in `chooseFilter`. Left
+   * out, a rider on page 2 of the feed who widened the scope to "All sports"
+   * stayed on page *2* of a now longer list — so the newest sessions in the
+   * sport they had just added were on the page above, and they were never shown
+   * them. The pill already resets; this puts the select back in step with it.
+   */
+  const scopeControl = {
+    ...scope,
+    setScope: (next: SportScope) => {
+      scope.setScope(next);
+      toFirstPage();
+    },
   };
 
   const chooseMode = (next: ViewMode) => {
@@ -130,12 +168,6 @@ export function SessionsScreen({ view }: { view: SessionsView }) {
 
   const quota = view.sidebar.quota;
   const empty = view.sessions.length === 0 || all.length === 0;
-
-  const filters: { id: SessionListFilterId; label: string }[] = [
-    { id: 'all', label: 'All' },
-    ...view.filterSports.map((s) => ({ id: s.id, label: s.label })),
-    { id: 'event', label: 'At an event' },
-  ];
 
   const toggle = (
     <div className={styles.toggle} role="group" aria-label="Show sessions as">
@@ -204,6 +236,36 @@ export function SessionsScreen({ view }: { view: SessionsView }) {
     </div>
   );
 
+  /**
+   * The month's three numbers, on the phone (rethink §3.10).
+   *
+   * The desktop has had them since T37, in the ink month card at the top of the
+   * sidebar — and `.sidebar` is `display: none` below 700px, so a phone saw
+   * none of them. Three blocks in the design's stat treatment put the answer to
+   * "how is this month going" above the feed on the one device the rethink is
+   * for, and the sidebar is left exactly as it was rather than being unhidden:
+   * four cards including a plans teaser is not what belongs above a diary on a
+   * 390px screen.
+   *
+   * They are `view.sidebar`'s numbers, so the two can never disagree — this
+   * month on the rider's own clock, counted on the server, not the filtered
+   * list the feed below is showing.
+   */
+  const monthStats = (
+    <section className={`${styles.phoneMonth} ${styles.hideDesktop}`} aria-label="This month">
+      <span className={`lab ${styles.phoneMonthHead}`}>{view.sidebar.monthName} so far</span>
+      <div className={styles.monthStats}>
+        <StatBlock
+          n={view.sidebar.sessions}
+          label={view.sidebar.sessions === 1 ? 'session' : 'sessions'}
+          hue="var(--yellow)"
+        />
+        <StatBlock n={view.sidebar.time} label="on the board" hue="var(--lime)" />
+        <StatBlock n={view.sidebar.stageMoves} label="moved up" hue="var(--pink-soft)" />
+      </div>
+    </section>
+  );
+
   return (
     <div className={styles.screen}>
       {/*
@@ -213,13 +275,12 @@ export function SessionsScreen({ view }: { view: SessionsView }) {
         when the shell folded nine destinations into four groups (D8): it is
         reached from a record card on Home, and Home's cell stays lit while a
         rider is here. A screen that is under something has to say what, or
-        being under it is only true in the routing table. The rest of this
-        header — the title, the stats and the sport scope — is T50's.
+        being under it is only true in the routing table.
       */}
       <BackLink href={ROUTES.dashboard} label="Home" />
 
       <div className={styles.top}>
-        <h1 className={styles.title}>Progress</h1>
+        <h1 className={styles.title}>Sessions</h1>
         <Link
           href={newSessionHref()}
           className={`${styles.logBtn} ${styles.hidePhone}`}
@@ -229,8 +290,6 @@ export function SessionsScreen({ view }: { view: SessionsView }) {
           Log a session
         </Link>
       </div>
-
-      <ProgressTabs current="sessions" />
 
       <Link
         href={newSessionHref()}
@@ -275,23 +334,38 @@ export function SessionsScreen({ view }: { view: SessionsView }) {
       ) : (
         <div className={`${styles.layout} ${mode === 'list' ? styles.layoutWide : ''}`}>
           <div className={styles.main}>
+            {monthStats}
             {countHead}
 
             <div className={styles.filters}>
-              <span className={`${styles.filterLabel} ${styles.hidePhone}`}>Filter</span>
-              <div className={styles.chips} role="group" aria-label="Filter sessions">
-                {filters.map((f) => (
-                  <button
-                    key={f.id}
-                    type="button"
-                    className={`${styles.chip} ${styles.tap} ${filter === f.id ? styles.chipOn : ''}`}
-                    aria-pressed={filter === f.id}
-                    onClick={() => chooseFilter(f.id)}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
+              {/*
+                "Show: Your sport (Scooter)" (§3.3, O1) — the same control the
+                two Find lists carry, on its fourth screen. It fires
+                `sport_scope_set` from inside `useSportScope`, so no screen has
+                to remember to count the press.
+              */}
+              <SportScopeSelect
+                state={scopeControl}
+                everyLabel="All sports"
+                label="Show sessions for"
+                className={styles.scope}
+              />
+              {/*
+                "At an event" stays a pill (§3.10). It is a filter rather than a
+                way of getting about, which is the line D6 draws between a pill
+                and a boxed tab, and it is now independent of the sport.
+              */}
+              <button
+                type="button"
+                className={`${styles.chip} ${styles.tap} ${atEvent ? styles.chipOn : ''}`}
+                aria-pressed={atEvent}
+                onClick={() => {
+                  setAtEvent((on) => !on);
+                  toFirstPage();
+                }}
+              >
+                At an event
+              </button>
               {mode === 'feed' ? (
                 <div className={`${styles.filtersEnd} ${styles.hidePhone}`}>
                   <span className={styles.rangeCount}>{sessionCountLabel(filtered.length)}</span>
@@ -359,6 +433,16 @@ export function SessionsScreen({ view }: { view: SessionsView }) {
           }}
         />
       ) : null}
+    </div>
+  );
+}
+
+/** One of the month's three numbers, in Home's stat-block treatment (§3.10). */
+function StatBlock({ n, label, hue }: { n: number | string; label: string; hue: string }) {
+  return (
+    <div className={styles.monthStat} style={{ background: hue }}>
+      <div className={`d ${styles.monthStatN}`}>{n}</div>
+      <div className={`lab ${styles.monthStatL}`}>{label}</div>
     </div>
   );
 }

@@ -7,7 +7,9 @@ import { ROUTES } from '@/lib/routes';
 import { currentRider } from '@/lib/session';
 
 export const metadata: Metadata = {
-  title: 'Sessions · Progress · Land The Trick',
+  // Not "Sessions · Progress ·" any more: Sessions is its own screen under
+  // Home since the rethink, not a tab of Progress (§3.10, T46 and T50).
+  title: 'Sessions · Land The Trick',
   description:
     'Every session you have logged: where, how long, what you worked on and how it felt.',
 };

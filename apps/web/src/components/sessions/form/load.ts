@@ -245,6 +245,9 @@ export async function loadNewSessionForm(
       visibilityDefault,
       nowLocal: localDateTimeIn(now, timezone),
     }),
+    // Whether the link chose the sport, which is the one case the top bar's
+    // chip must not overrule in the browser (T50, `types.ts`).
+    sportFromLink: Boolean(impliedSport && sports.includes(impliedSport)),
     sports: sports.length ? sports : [],
     spots: spots.map(toFormSpot),
     recentSpotIds,
@@ -317,6 +320,8 @@ export async function loadEditSessionForm(
       clipText: saved.clip ? clipWatchUrl(saved.clip) : '',
       timezone,
     }),
+    // Nothing overrides a saved sport; the flag is only read in `new` mode.
+    sportFromLink: false,
     // A session ridden on a sport the rider has since dropped still edits.
     sports: sports.includes(saved.sport) ? sports : [...sports, saved.sport],
     spots: spots.map(toFormSpot),

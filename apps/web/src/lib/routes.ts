@@ -1,4 +1,4 @@
-import type { CategoryId, SportId } from '@landit/core';
+import type { CategoryId } from '@landit/core';
 import type { Route } from 'next';
 
 import type { LegalDocId } from '@/content/legal';
@@ -300,18 +300,14 @@ export const glossaryHref = (slug?: string, from?: string): Route => {
   return `${ROUTES.glossary}${search}${hash}` as Route;
 };
 
-/**
- * The glossary narrowed to one sport, or all of it — the filter row's address,
- * so `/glossary?sport=skate` can be linked and bookmarked like `/library?mine=1`.
- * `from` rides along so the way back survives a filter press.
+/*
+ * `glossarySportHref` was here, and went with the glossary's sport tab row in
+ * T50 (rethink §3.10). The row wrote `?sport=skate` on every press; the
+ * `SportScopeSelect` that replaced it keeps its answer per device, and a
+ * `'chip'` scope has no address to write because it tracks the top bar. The
+ * page still *reads* `?sport=` as the screen's default, so an old link or
+ * bookmark opens on that sport — nothing here built one but the row itself.
  */
-export const glossarySportHref = (sport: SportId | null, from?: string | null): Route => {
-  const params = new URLSearchParams();
-  if (sport) params.set('sport', sport);
-  if (from) params.set('from', from);
-  const search = params.toString();
-  return search ? (`${ROUTES.glossary}?${search}` as Route) : ROUTES.glossary;
-};
 
 /**
  * The spots list, optionally narrowed to one feature (T31).
