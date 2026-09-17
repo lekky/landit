@@ -1,4 +1,4 @@
-import { listFavouriteSpots, listOwnSessions, getSpotsByIds } from '@landit/db';
+import { listFavouriteSpotIds, listOwnSessions, getSpotsByIds } from '@landit/db';
 
 import { sessionsEnabledFor } from '@/lib/sessionsPreview';
 import { currentRider, type RiderSession } from '@/lib/session';
@@ -86,14 +86,28 @@ export async function loadFind(): Promise<FindData> {
  * the preview in front of riders who are not in it.
  */
 async function knownSpots(session: RiderSession): Promise<readonly SpotView[]> {
-  const [faves, sessions] = await Promise.all([
-    listFavouriteSpots(session.client),
+  /*
+   * The ids first, then the cards for the four the hub shows (review N3).
+   *
+   * `listFavouriteSpots` would fetch every fave as a full card — up to the
+   * 200-fave flood limit — for a section that renders four of them, and `/find`
+   * is the bottom bar's fourth cell, so that is paid on one of the most common
+   * navigations in the product. The ids are fifteen-character strings and the
+   * read is capped by the same limit; slicing before `getSpotsByIds` is the
+   * whole of the fix, and it needs nothing from `packages/db` that is not
+   * already exported.
+   */
+  const [faveIds, sessions] = await Promise.all([
+    listFavouriteSpotIds(session.client),
     sessionsEnabledFor(session.rider)
       ? listOwnSessions(session.client, { userId: session.rider.id, perPage: RECENT_SESSIONS })
       : Promise.resolve(null),
   ]);
 
-  const spots = faves.slice(0, HUB_SPOTS).map(toSpotView);
+  const wantedFaves = faveIds.slice(0, HUB_SPOTS);
+  const spots = wantedFaves.length
+    ? await getSpotsByIds(session.client, wantedFaves).then((records) => records.map(toSpotView))
+    : [];
   if (spots.length >= HUB_SPOTS || !sessions) return spots;
 
   const held = new Set(spots.map((spot) => spot.id));

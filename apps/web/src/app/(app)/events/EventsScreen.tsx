@@ -1,6 +1,12 @@
 'use client';
 
-import { distanceKm, distanceLabelIn, type DistanceUnits, type EventKind } from '@landit/core';
+import {
+  distanceKm,
+  distanceLabelIn,
+  type DistanceUnits,
+  type EventKind,
+  type SportId,
+} from '@landit/core';
 import {
   Button,
   Empty,
@@ -18,7 +24,6 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
 import { FindTabs } from '@/components/find/FindTabs';
-import { BackLink } from '@/components/shell/BackLink';
 import { SportScopeSelect, useSportScope } from '@/components/shell/SportScopeSelect';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { runActionOr } from '@/lib/runAction';
@@ -130,6 +135,15 @@ import type { EventsView, EventView } from './view';
  */
 const PER_PAGE = 20;
 
+/**
+ * "Every sport", as the one list the sport filter reads as unfiltered.
+ *
+ * A module constant rather than a `[]` written at the call site, because it
+ * goes into the list memo's dependencies: a fresh array every render would
+ * re-filter the calendar on every render for a value that never changes.
+ */
+const SCOPE_EVERY: readonly SportId[] = [];
+
 export function EventsScreen({
   view,
   units,
@@ -212,9 +226,28 @@ export function EventsScreen({
    *
    * The first option tracks the top bar's chip rather than copying it, so the
    * calendar follows a sport switch made anywhere (D5).
+   *
+   * **Two screens out of the four this component draws open on every sport
+   * instead**, and neither is O1 saying so — O1 decided a default for *a
+   * calendar of what is on*, for a rider whose sport the product knows.
+   *
+   * - **A rider's own events** (`mine`, review B1). That screen is a record of
+   *   decisions the rider already made, not a calendar to browse: measured, a
+   *   rider down for two events across two sports opened `/events/mine` and saw
+   *   one. A screen headed "The ones you're down for" that silently omits some
+   *   of them is the product being wrong about the rider. `SCOPE_EVERY` rather
+   *   than a different fallback, because a *stored* choice would otherwise win
+   *   over it — the point is that this screen has no sport scope at all, and
+   *   the control is not rendered on it either.
+   * - **A visitor** (review S1). Signed out there is no sport chip in the top
+   *   bar, so "your sport" is a claim about somebody we have never met, and
+   *   `/events` and `/events/past` are public, crawlable pages — the archive's
+   *   whole justification is a stranger arriving from a search result, and they
+   *   must not land on one sport's cut of it. `useSportScope` is told there is
+   *   no chip, which also takes the first option off the list.
    */
-  const scope = useSportScope('events', 'chip');
-  const sports = scope.sports;
+  const scope = useSportScope('events', signedIn ? 'chip' : 'all', signedIn);
+  const sports = mine ? SCOPE_EVERY : scope.sports;
   /*
    * Opens on the reader's own country where the calendar has events in it, and
    * on Everywhere where it does not (`eventCountryForRegion`). The value comes
@@ -459,13 +492,13 @@ export function EventsScreen({
       <FindTabs current="events" className={styles.tabs} />
 
       {/*
-        A rider's own events are reached from the hub's "You're going" now that
-        the Mine tab has gone (§3.7), so the screen carries the back link §2.3
-        asks of every screen reached from somewhere else — a plain link to the
-        parent route, never `history.back()`, so a rider who arrived from a
-        sign-in redirect still has somewhere to go.
+        **No `BackLink` on a rider's own events** (review S3). §2.3 asks a
+        screen reached from somewhere else for a back link, and the first cut
+        gave this one "← For you" — which put two controls with the same words,
+        going to the same address, 40px apart on a phone, under a tab row whose
+        first tab is already "For you" and lit. §2.3's examples are screens with
+        no such row above them; here the row is the back link.
       */}
-      {mine && <BackLink href={ROUTES.find} label="For you" />}
 
       {/*
         The eyebrow, the title and the lede — **seen on desktop only** (§3.7).
@@ -668,23 +701,38 @@ export function EventsScreen({
             {k.id}
           </Pill>
         ))}
-        <span className={styles.spacer} />
-        {/*
-          "Show: Your sport (Scooter)" (§3.3, O1).
-
-          **The calendar opens on the rider's own sport**, where `/spots` opens
-          on every spot. The difference is the data and nothing else: staff tag
-          all 74 events, so "your sport" is a real narrowing here, and spot
-          sport tags are thin enough that the same default would hide most of
-          the map. O1 says so in as many words.
-
-          The per-sport counts went with the pills — a `<select>` has no room
-          for a number beside each option — so `view.countBySport` is no longer
-          read here. It stays on the view for `/events/past` and anything else
-          that wants it later.
-        */}
-        <SportScopeSelect state={scope} everyLabel="All sports" label="Show events for" />
       </div>
+
+      {/*
+        "Show: Your sport (Scooter)" (§3.3, O1).
+
+        **On its own line under the header, as §3.3 describes and `/spots`
+        already does** (review N7). The first cut left it at the right-hand end
+        of the kind pills, which is where `SportFilter` used to sit — it read
+        well enough, but it put the same control in two different places on two
+        screens a rider moves between with one tap.
+
+        **The calendar opens on the rider's own sport**, where `/spots` opens on
+        every spot. The difference is the data and nothing else: staff tag all
+        74 events, so "your sport" is a real narrowing here, and spot sport tags
+        are thin enough that the same default would hide most of the map. O1
+        says so in as many words.
+
+        **Not rendered on a rider's own events** (review B1). Their own list is
+        a handful of decisions they already made, not a calendar to browse, and
+        a sport filter over it could only ever hide one of them. The screen is
+        every sport, and there is no control offering to change that.
+
+        The per-sport counts went with the pills — a `<select>` has no room for
+        a number beside each option — so `view.countBySport` is no longer read
+        here. It stays on the view for `/events/past` and anything else that
+        wants it later.
+      */}
+      {!mine && (
+        <div className={styles.filters}>
+          <SportScopeSelect state={scope} everyLabel="All sports" label="Show events for" />
+        </div>
+      )}
 
       {archive && <ArchiveIndex archive={archive} />}
 

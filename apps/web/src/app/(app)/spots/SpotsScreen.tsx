@@ -268,8 +268,15 @@ export function SpotsScreen({
    * top bar's sport chip* rather than being a second place the same choice is
    * made. `scope.sports` is a one-sport list or an empty one, which is the same
    * shape `filterSpots` and `spotListFilter` already took.
+   *
+   * **A visitor is never offered "your sport"** (review S1, found on `/events`
+   * and fixed on both). Signed out there is no sport chip in the top bar, so
+   * the words would be a claim about somebody the product has never met, and a
+   * stored `'chip'` from a previous session would quietly narrow a public page
+   * under a control that cannot explain itself. `useSportScope` is told there
+   * is no chip; the default here is "every spot" either way.
    */
-  const scope = useSportScope('spots', 'all');
+  const scope = useSportScope('spots', 'all', signedIn);
   const sports = scope.sports;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /*

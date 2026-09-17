@@ -94,3 +94,37 @@ describe('the options a rider is offered', () => {
     }
   });
 });
+
+describe('a visitor, who has no sport chip', () => {
+  /*
+   * Review S1. Signed out there is no chip in the top bar — T45 hides the whole
+   * right-hand group with the rider — and `/events` and `/events/past` are
+   * public, crawlable pages. A scope that followed a chip nobody can see would
+   * narrow them to whichever sport `useSport()` falls back to, under a control
+   * reading "Your sport (Scooter)" at somebody the product has never met.
+   */
+  it('is offered every sport and no "your sport"', () => {
+    const options = scopeOptions(null, 'All sports');
+    expect(options.map((option) => option.value)).toEqual(['all', ...SPORT_IDS]);
+    expect(options.some((option) => option.label.startsWith('Your sport'))).toBe(false);
+  });
+
+  it('falls back to the screen default rather than honouring a stored "chip"', () => {
+    expect(readScope('chip', 'all', null)).toBe('all');
+    // A sport they chose by name is still theirs to keep.
+    expect(readScope('bmx', 'all', null)).toBe('bmx');
+    expect(readScope('all', 'all', null)).toBe('all');
+  });
+
+  it('narrows to nothing at all if a chip scope reaches the query anyway', () => {
+    // Belt and braces: `readScope` should have taken this branch away, and if
+    // it ever does not, every sport is the safe answer on a public page.
+    expect(scopeSports('chip', null)).toEqual([]);
+  });
+
+  it('leaves a signed-in rider exactly as they were', () => {
+    expect(readScope('chip', 'all', 'scooter')).toBe('chip');
+    expect(scopeSports('chip', 'scooter')).toEqual(['scooter']);
+    expect(scopeOptions('scooter', 'Every spot')[0]?.value).toBe('chip');
+  });
+});

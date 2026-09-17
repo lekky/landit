@@ -513,6 +513,78 @@ test('a rider’s own events are reached from the Find hub, in both tenses', asy
   await expect(page.getByText(/riders going/i)).toHaveCount(0);
 });
 
+test('a rider’s own events are every sport, whatever the chip says', async ({ page }) => {
+  /*
+   * The defect the independent review of 2026-09-17 found (B1), pinned.
+   *
+   * O1 opens the *calendar* on the rider's own sport, and the first cut read
+   * that one scope for every screen this component draws — including
+   * `/events/mine`. Measured then: a rider down for two events across two
+   * sports opened their own list and saw one. That screen is a record of
+   * decisions they already made, not a calendar to browse, and a sport filter
+   * over it can only ever hide one of them.
+   *
+   * The two events are chosen for exactly that: the jam is good for every
+   * sport, the comp is BMX only, and a new rider's chip is scooter. Under the
+   * old behaviour the comp was missing from a list the rider had put it on.
+   */
+  const email = await newRider(page);
+  await markAttending(email, 'e2e-jam');
+  await markAttending(email, 'e2e-bmx-only');
+
+  await page.goto('/events/mine');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Your events');
+  await expect(page.getByRole('link', { name: 'E2E Northern Jam' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'E2E BMX Only Comp' })).toBeVisible();
+
+  // And there is no control offering to narrow it, which is the other half:
+  // a widened list behind a filter a rider can re-narrow is the same bug one
+  // press away.
+  await expect(page.getByLabel('Show events for')).toHaveCount(0);
+
+  // The calendar it is cut from still opens on their sport, so this is the
+  // screen being different rather than the default being abandoned.
+  await page.goto('/events');
+  await expect(page.getByLabel('Show events for')).toHaveValue('chip');
+});
+
+test('a visitor’s calendar is every sport, and the pill count matches what they see', async ({
+  page,
+}) => {
+  /*
+   * The independent review's S1. Signed out there is no sport chip in the top
+   * bar — T45 hides the whole right-hand group with the rider — and
+   * `useSport()` still answers with its first sport, so the first cut opened a
+   * visitor's calendar narrowed to scooter under a control reading "Your sport
+   * (Scooter)".
+   *
+   * Two things are asserted and they are different failures. The words: a
+   * visitor is never told a sport is theirs. And the arithmetic: the Upcoming
+   * pill counts the whole half, so a narrowed list under it made the screen
+   * disagree with itself.
+   */
+  await page.goto('/events');
+
+  const scope = page.getByLabel('Show events for');
+  await expect(scope).toHaveValue('all');
+  await expect(scope.locator('option[value="chip"]')).toHaveCount(0);
+  await expect(scope.locator('option').first()).toHaveText('All sports');
+
+  // The BMX-only comp is on a visitor's calendar, because the calendar is what
+  // is on and they have told us nothing about what they ride.
+  await expect(page.getByText('E2E BMX Only Comp')).toBeVisible();
+
+  // The pill's number and the list agree. Read off the pill rather than
+  // hard-coded, so a seeded event added later moves both together.
+  const pill = page.getByRole('link', { name: /^Upcoming/ });
+  const counted = Number((await pill.innerText()).replace(/D+/g, ''));
+  expect(counted).toBeGreaterThan(0);
+  // Capped at the page size, because a long calendar pages — the seeded one is
+  // two events, and the cap is what stops this becoming a flake on a fuller
+  // database rather than an assertion about the filter.
+  await expect(page.locator('[class*="rowBody"]')).toHaveCount(Math.min(counted, 20));
+});
+
 test('a rider who has marked nothing is told what the button does', async ({ page }) => {
   await newRider(page);
   await page.goto('/events/mine');

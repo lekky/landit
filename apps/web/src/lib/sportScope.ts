@@ -45,9 +45,21 @@ export function scopeStorageKey(screen: string): string {
  * an empty list. A list that silently matches nothing is the failure mode worth
  * designing out: the rider sees a screen with no spots on it and no way to tell
  * that a stale preference is why.
+ *
+ * **`'chip'` is one of those values when there is no chip** (`chip: null`). A
+ * signed-out visitor has no sport chip in the top bar — T45 hides the whole
+ * right-hand group — so "your sport" is a sentence about somebody the product
+ * has never met, and honouring a stored `'chip'` from a previous session would
+ * narrow a public, crawlable page to whichever sport `useSport()` happens to
+ * fall back to. It reads as the screen's default instead.
  */
-export function readScope(raw: string | null, fallback: SportScope): SportScope {
-  if (raw === 'chip' || raw === 'all') return raw;
+export function readScope(
+  raw: string | null,
+  fallback: SportScope,
+  chip: SportId | null = SPORT_IDS[0],
+): SportScope {
+  if (raw === 'all') return 'all';
+  if (raw === 'chip') return chip ? 'chip' : fallback;
   const sport = SPORT_IDS.find((id) => id === raw);
   return sport ?? fallback;
 }
@@ -60,10 +72,14 @@ export function readScope(raw: string | null, fallback: SportScope): SportScope 
  * builders treat as unfiltered — `spotListFilter` adds no clause at all, and
  * `filterSpots` skips the sport rule — so "every sport" costs no `:each` scan
  * of a JSON column to arrive back where it started.
+ *
+ * A `'chip'` scope with no chip is every sport, for `readScope`'s reason: there
+ * is no "your sport" to narrow to.
  */
-export function scopeSports(scope: SportScope, chip: SportId): readonly SportId[] {
+export function scopeSports(scope: SportScope, chip: SportId | null): readonly SportId[] {
   if (scope === 'all') return [];
-  return [scope === 'chip' ? chip : scope];
+  if (scope === 'chip') return chip ? [chip] : [];
+  return [scope];
 }
 
 /**
@@ -96,14 +112,22 @@ export interface ScopeOption {
  * than left as a bare "Your sport": the row is one line under a header, so the
  * rider should not have to look at the top bar to find out what the list is
  * showing them.
+ *
+ * **With no chip (`null`) there is no first option**, and the list is "all"
+ * followed by every sport. A visitor is not offered "your sport", because we
+ * have not been told one and the top bar has no chip they could change: the
+ * words would be a claim about somebody the product has never met, and the
+ * option would follow a fallback they cannot see.
  */
-export function scopeOptions(chip: SportId, everyLabel: string): readonly ScopeOption[] {
+export function scopeOptions(chip: SportId | null, everyLabel: string): readonly ScopeOption[] {
+  const others = SPORT_IDS.filter((id) => id !== chip).map((id) => ({
+    value: id as SportScope,
+    label: SPORTS[id].short,
+  }));
+  if (!chip) return [{ value: 'all', label: everyLabel }, ...others];
   return [
     { value: 'chip', label: `Your sport (${SPORTS[chip].short})` },
     { value: 'all', label: everyLabel },
-    ...SPORT_IDS.filter((id) => id !== chip).map((id) => ({
-      value: id as SportScope,
-      label: SPORTS[id].short,
-    })),
+    ...others,
   ];
 }

@@ -111,8 +111,8 @@ export interface SportScopeState {
   readonly scope: SportScope;
   /** What to filter by: a one-sport list, or empty for every sport. */
   readonly sports: readonly SportId[];
-  /** The sport the chip is on, for the first option's words. */
-  readonly chip: SportId;
+  /** The sport the chip is on, for the first option's words. `null` for a visitor. */
+  readonly chip: SportId | null;
   readonly setScope: (next: SportScope) => void;
 }
 
@@ -123,9 +123,24 @@ export interface SportScopeState {
  * query — several hundred lines before it draws the control, and threading it
  * back up through a callback would make the list's query depend on where the
  * row happened to be rendered.
+ *
+ * **`signedIn` is not decoration** (review S1). Signed out there is no sport
+ * chip in the top bar — T45 hides the whole right-hand group with the rider —
+ * and `useSport()` still answers with its first sport, so a visitor's `/events`
+ * and `/events/past` opened narrowed to scooter under a control reading "Your
+ * sport (Scooter)". Those are public, crawlable pages, and the archive's whole
+ * justification is somebody arriving from a search result: they must not land on
+ * one sport's cut of it. With no rider the chip is `null`, the first option is
+ * not offered, a stored `'chip'` falls back to the screen's default, and the
+ * screens pass `'all'` as that default.
  */
-export function useSportScope(screen: ScopeScreen, fallback: SportScope): SportScopeState {
-  const { sport: chip } = useSport();
+export function useSportScope(
+  screen: ScopeScreen,
+  fallback: SportScope,
+  signedIn = true,
+): SportScopeState {
+  const { sport } = useSport();
+  const chip = signedIn ? sport : null;
   const key = scopeStorageKey(screen);
 
   const stored = useSyncExternalStore(
@@ -133,7 +148,7 @@ export function useSportScope(screen: ScopeScreen, fallback: SportScope): SportS
     useCallback(() => snapshot(key), [key]),
     () => null,
   );
-  const scope = readScope(stored, fallback);
+  const scope = readScope(stored, fallback, chip);
 
   const setScope = useCallback(
     (next: SportScope) => {

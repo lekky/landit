@@ -375,7 +375,22 @@
   gap: 8px;
 }
 
+/*
+ * The Country control, brought up to the two rules the scope select beside it
+ * already meets (issue #552, review S2).
+ *
+ * **44px**, where the padding alone came out at about 37: §4 of the app shell
+ * rethink sets the floor at 44 for anything tappable, and this is a control a
+ * thumb uses on `/events` and `/events/past`.
+ *
+ * **No native menulist.** Left alone, WebKit paints a grey rounded box inside
+ * the ink keyline — the only radius and the only grey fill on the page — which
+ * `additions.css` already patches for `.field select` and explains there. Two
+ * selects one line apart, one of them a system widget, is the version of this
+ * that reads as a bug.
+ */
 .countryPick select {
+  min-height: 44px;
   border: 2.5px solid var(--ink);
   background: var(--paper);
   box-shadow: var(--sh-sm);
@@ -383,6 +398,14 @@
   font-size: 13px;
   letter-spacing: 0.04em;
   max-width: 15rem;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2312100b' stroke-width='2.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 12px 8px;
+  padding-right: 38px;
 }
 
 .locating {
