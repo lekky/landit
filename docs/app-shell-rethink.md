@@ -759,6 +759,19 @@ columns rather than a badge-sized track and the rest, because a 16:9 player give
 1180px page is 440px tall and pushes the band — the only control on this page — off the first
 screenful.
 
+**What the row costs on a laptop, measured** *(added by the T49 worker, 2026-09-17, pending owner
+confirmation)*. D7 puts a card-height row between the name and the ladder, and on a 1280 × 720
+window that is enough to take the yellow band below the fold: the top bar, the back link, the hero
+and the row come to about 770px before it starts, where before T49 the band began at about 310. On a
+390 × 844 phone — the screen the rethink is for — the band is still on the first screenful, at about
+490. Nothing is hidden and one short scroll reaches it, and the row is the owner's decision rather
+than the worker's, so it ships as drawn; this is here because it is the one thing the reorder made
+further away rather than nearer, and because a shorter row (a capped player, or a sticker card that
+is a strip rather than a card) is a small change if the owner wants the band back above the fold.
+One side effect is already paid for: the toast stack is fixed at the bottom centre and now overlaps
+the band on that window, which is why `e2e/library.spec.ts` waits for a toast to clear before
+pressing anything in it.
+
 **Desktop is the same markup, held open** *(added by the T49 worker, 2026-09-17, pending owner
 confirmation)*. §3.8 says "Desktop does not use it", and one server render cannot know the width, so
 "does not use it" is built as `Accordion`'s `plainAbove={820}`: above that width every row is held

@@ -967,6 +967,23 @@ of a navigation. And when an assertion after a navigation says an element has va
 page the test is actually on before reading it as a regression: `console.log(page.url())` answered
 this in one run, after two spent on the wrong half of it.
 
+**Two `page.goto`s to the same path with different fragments is a coin toss** *(T49, 2026-09-17)*.
+The trick page's `#clips` test drove `goto('/library/x#ladder')` and then `goto('/library/x#clips')`.
+That second call is a same-document hop, and Chromium applied it about two times in three: measured
+with a console probe, the hash was still `#ladder` a second later, and the failure came back as "the
+row did not open" — a bug report about the component rather than about the driving. **Navigate away
+and back**, which is also the rider's own path, and the fragment is read on a real load.
+
+**A control that moves below the fold starts losing clicks to the toast** *(T49, 2026-09-17)*. The
+same task put a card-height row between the trick's name and its stage band, which pushed the band
+past a 1280 × 720 fold. The toast stack is `position: fixed` at the bottom centre; Playwright
+scrolls a button into view and then clicks where it is, so a press in the band while a toast was up
+landed on the toast — `locator.click: Test timeout of 30000ms exceeded`, a third of the time, in a
+test that had nothing to do with the change. **After asserting a toast, assert it has gone**
+(`expect(page.locator('.toast')).toHaveCount(0)`) before pressing anything else, and when a layout
+change makes an unrelated test flaky, measure where the control now is before calling the test
+flaky.
+
 ## 5a. The shell is not a text box
 
 **Backticks inside a double-quoted shell argument execute.** Filing issue #48 — whose subject

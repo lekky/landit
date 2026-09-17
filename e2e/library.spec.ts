@@ -375,12 +375,44 @@ test('a stop-tracking that never reaches the server says so, and does not lie ab
 }) => {
   await signUpRookie(page);
   await page.goto(`/library/${freeTrick.id}`);
+  /*
+   * Everything here is a press on a hydrated page, and the test then takes the
+   * network away. A press that lands before hydration is swallowed, and with
+   * the network already gone the chunks that would have finished the job never
+   * arrive — so the failure comes back as "no toast" or "no confirm", three
+   * steps from the cause. Waiting for the page to go quiet once, here, is what
+   * makes the rest of it mean what it says.
+   */
+  await page.waitForLoadState('networkidle');
 
   await page.getByRole('button', { name: 'Sometimes' }).click();
   await expect(page.locator('.toast', { hasText: /Logged as/i })).toBeVisible();
+  /*
+   * And then let it go before pressing anything else.
+   *
+   * The toast stack is fixed at the bottom centre, and since T49 put the
+   * sticker-and-video row between the hero and the band, the band is below the
+   * fold on a 1280 × 720 window — which is the window this suite runs in. So
+   * the two overlap, Playwright scrolls the button into view, and the click
+   * lands on the toast instead: "locator.click: Test timeout exceeded", about
+   * a third of the time. Waiting the 3.2s out is what makes the press a press.
+   */
+  await expect(page.locator('.toast')).toHaveCount(0);
 
   await page.context().setOffline(true);
   await page.getByRole('button', { name: 'Stop tracking' }).click();
+  /*
+   * Wait for the confirm's own sentence before pressing again.
+   *
+   * Asking for the confirm rather than for a second button is what makes this
+   * stable: pressing the first one moves the actions out of the ladder's row
+   * and into the foot, so the old pair is detached and a new pair is mounted,
+   * and `.last()` on its own resolved to the button on its way out about a
+   * third of the time — "element was detached from the DOM, retrying", then the
+   * test's whole clock. Measured on this branch and on `shell-rethink` before
+   * it, so the flake predates T49; it is fixed here because the file was open.
+   */
+  await expect(page.getByText(/Stop tracking this trick\?/)).toBeVisible();
   await page.getByRole('button', { name: 'Stop tracking' }).last().click();
 
   /*
@@ -839,7 +871,15 @@ test('the Log sheet lands on the ladder and on the videos, clear of the top bar'
   /*
    * `#clips` — where "Add a clip link" arrives. A fragment that scrolled a shut
    * box into view would be a link that did not work, so the row opens itself.
+   *
+   * Away first, so this is a real navigation. Two `goto`s to the same path
+   * differing only in the fragment are a same-document hop, and Chromium
+   * applied the second one about two times in three — measured: the hash was
+   * still `#ladder` a second later. That is a race in the test's own driving,
+   * not in the page, and the rider's path is the one this now walks: from
+   * another screen, through the Log sheet, onto the trick.
    */
+  await page.goto('/library');
   await page.goto(`/library/${freeTrick.id}#clips`);
   const mine = page.locator('details#clips');
   await expect(mine).toHaveAttribute('open', '');
