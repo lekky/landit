@@ -108,9 +108,12 @@ function LogSignInCell() {
 
 export function MobileNav({
   sessionsEnabled,
+  rodeToday,
   signedIn,
 }: {
   sessionsEnabled?: boolean;
+  /** Today's ride is already counted (owner, 2026-09-17). */
+  rodeToday?: boolean;
   /** Whether there is a rider to log for. `AppShell` decides it from `rider`. */
   signedIn?: boolean;
 }) {
@@ -162,7 +165,11 @@ export function MobileNav({
         bar's stacking context, where `z-index: 70` would have capped it.
       */}
       {signedIn && logging && (
-        <LogSheet sessionsEnabled={sessionsEnabled} onClose={() => setLogging(false)} />
+        <LogSheet
+          sessionsEnabled={sessionsEnabled}
+          rodeToday={rodeToday}
+          onClose={() => setLogging(false)}
+        />
       )}
     </>
   );

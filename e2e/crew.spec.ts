@@ -128,27 +128,39 @@ test('a deep link opens the tab it names, without a press', async ({ page }) => 
   await expect(page.getByText('This month’s board')).toBeVisible();
 });
 
-test('"Start another" and "Join with a code" open one form each', async ({ page }) => {
+test('at the plan’s crew cap, "Start another" gives way and joining still works', async ({
+  page,
+}) => {
+  /*
+   * How many crews a rider may create is their plan's since 2026-09-17 (owner,
+   * in chat: "1 for free, 3 for 3.99 and 10 for the top tier"), so a **free**
+   * rider with one crew is at their cap and "Start another" is not drawn at
+   * all — the sentence that replaces it names the plan and the number, because
+   * a disabled button teaches nothing and the way past it is a plan rather than
+   * a retry.
+   *
+   * **"Join with a code" is still there, and that is the point of this test.**
+   * Joining is uncapped at every tier — the cap is on minting invite codes, not
+   * on having mates — and the first cut of the cap hid both controls behind one
+   * test, which would have shut a rider out of a crew somebody had already
+   * invited them to.
+   */
   await arrive(page, 'Second Crew');
   await startCrew(page, `Ramp Rats ${unique()}`);
 
   const another = page.getByRole('button', { name: 'Start another' });
   const join = page.getByRole('button', { name: 'Join with a code' });
 
-  // Closed to begin with: neither form is on the screen until it is asked for.
-  await expect(another).toHaveAttribute('aria-expanded', 'false');
-  await expect(page.getByLabel('What is it called?')).toBeHidden();
-  await expect(page.getByLabel('The code a mate sent you')).toBeHidden();
+  await expect(another).toHaveCount(0);
+  await expect(page.getByText(/runs 1 crew at once\./)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'See plans' })).toHaveAttribute('href', '/plans');
 
-  await another.click();
-  await expect(page.getByLabel('What is it called?')).toBeVisible();
-  // One at a time. They are alternatives, not a pair.
+  // Closed to begin with, and it opens: the form is not on the screen until it
+  // is asked for.
+  await expect(join).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByLabel('The code a mate sent you')).toBeHidden();
-
   await join.click();
   await expect(page.getByLabel('The code a mate sent you')).toBeVisible();
-  await expect(page.getByLabel('What is it called?')).toBeHidden();
-  await expect(another).toHaveAttribute('aria-expanded', 'false');
 
   /*
    * §4's floor has no width on it (review finding 4). These measured 36px at
@@ -158,20 +170,49 @@ test('"Start another" and "Join with a code" open one form each', async ({ page 
    */
   for (const width of [1280, 390, 320]) {
     await page.setViewportSize({ width, height: 844 });
-    for (const button of [another, join]) {
-      const box = await button.boundingBox();
-      const label = await button.innerText();
-      /*
-       * Rounded: a `min-height: 44px` box measures 43.99993896484375 at 320,
-       * which is the browser's sub-pixel layout and not a control under the
-       * floor. The defect this guards is 36 against 44, eight whole pixels.
-       */
-      expect(
-        Math.round(box?.height ?? 0),
-        `"${label}" is ${box?.height}px tall at ${width}`,
-      ).toBeGreaterThanOrEqual(44);
-    }
+    const box = await join.boundingBox();
+    const label = await join.innerText();
+    /*
+     * Rounded: a `min-height: 44px` box measures 43.99993896484375 at 320,
+     * which is the browser's sub-pixel layout and not a control under the
+     * floor. The defect this guards is 36 against 44, eight whole pixels.
+     */
+    expect(
+      Math.round(box?.height ?? 0),
+      `"${label}" is ${box?.height}px tall at ${width}`,
+    ).toBeGreaterThanOrEqual(44);
   }
+});
+
+test('leaving a crew asks first, and staying in changes nothing', async ({ page }) => {
+  /*
+   * Owner, 2026-09-17, in chat: "leave crew needs a confirmation".
+   *
+   * Heavier than a confirm usually deserves, and deliberately: crews are
+   * invite-only with no discovery (plan §6.1), so a rider who leaves by
+   * mis-tapping cannot walk back in — somebody has to send them a fresh code.
+   * The dialog names the crew and says that, which is the part a rider decides
+   * with.
+   */
+  await arrive(page, 'Careful Leaver');
+  const crewName = `Ramp Rats ${unique()}`;
+  await startCrew(page, crewName);
+
+  await page.getByRole('button', { name: 'Leave crew' }).click();
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: `Leave ${crewName}?` })).toBeVisible();
+  await expect(dialog.getByText(/new invite code to come back/)).toBeVisible();
+
+  // Staying in leaves the rider exactly where they were.
+  await dialog.getByRole('button', { name: 'Stay in' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: crewName })).toBeVisible();
+
+  // And the second press goes through.
+  await page.getByRole('button', { name: 'Leave crew' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Leave crew' }).click();
+  await expect(page.getByRole('heading', { name: crewName })).toHaveCount(0);
 });
 
 test('a private crew-mate is on the board and in Members, and never in Activity', async ({

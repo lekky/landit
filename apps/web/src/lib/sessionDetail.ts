@@ -216,15 +216,25 @@ export function trickChipLabel(name: string, entry: SessionTrickEntry): string {
  *
  * - **`live`** on the day: "Riding it? Put it in your log." A session cannot
  *   start in the future, so there is nothing to offer before the day.
- * - **`past`** once it is over, and only if the rider logged something there —
- *   "You logged 0 sessions here" is a sentence about nothing.
- * - Nothing for an upcoming event with no sessions.
+ * - **`past`** once it is over — the sessions the rider logged there, or, when
+ *   they logged none, the offer to log one now.
+ * - Nothing for an upcoming event.
  *
  * A rider who logged a session earlier on the day still gets the live block:
  * a second session at the same jam is the normal case.
+ *
+ * **`past` no longer needs a session to exist** (owner, 2026-09-17, in chat:
+ * "no log a session at event"). It used to require one, on the argument that
+ * "You logged 0 sessions here" is a sentence about nothing — true of that
+ * heading, but it left the rider who rode a jam and opened the app on the way
+ * home with no way to attach it: the session form offers an event only when one
+ * is at the chosen spot *today* (`eventsAtSpotToday`), and this block was the
+ * only other door. The empty case is now an invitation rather than a count, so
+ * the sentence about nothing never gets written.
  */
 export function eventBlockState(state: EventDateState, count: number): 'live' | 'past' | null {
   if (state === 'today') return 'live';
+  if (state === 'over') return 'past';
   if (count > 0) return 'past';
   return null;
 }

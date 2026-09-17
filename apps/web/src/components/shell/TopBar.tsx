@@ -62,11 +62,14 @@ export type TopBarRider = {
 export function TopBar({
   rider,
   sessionsEnabled,
+  rodeToday,
   unread,
 }: {
   rider?: TopBarRider;
   /** Sessions are open to this rider, so the LOG sheet offers one (T41). */
   sessionsEnabled?: boolean;
+  /** Today's ride is already counted (owner, 2026-09-17). */
+  rodeToday?: boolean;
   /**
    * How much news the rider has not read yet (T47), for the bell badge.
    *
@@ -144,7 +147,13 @@ export function TopBar({
 
       {/* Outside the bar, so the sheet is not inside `.topbar`'s stacking
           context and `.nav a` cannot reach the links inside it. */}
-      {logging && <LogSheet sessionsEnabled={sessionsEnabled} onClose={() => setLogging(false)} />}
+      {logging && (
+        <LogSheet
+          sessionsEnabled={sessionsEnabled}
+          rodeToday={rodeToday}
+          onClose={() => setLogging(false)}
+        />
+      )}
     </>
   );
 }

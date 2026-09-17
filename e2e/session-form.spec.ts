@@ -183,13 +183,18 @@ test('Save on an unfinished step lands on the step that can fix it', async ({ pa
   await page.goto('/progress/sessions/new');
 
   const row = steps(page);
-  // Nothing picked: Next cannot leave step one, and says why.
+  /*
+    Nothing picked: Next cannot leave step one, and says why. Matched on the
+    opening words rather than the whole sentence, because since 2026-09-17 it
+    ends "…, or type where it was" — the map is no longer the only answer
+    (`sessions.spot_name`, owner in chat) and the refusal offers both routes.
+  */
   await page.getByRole('button', { name: 'Next', exact: true }).first().click();
   await expect(row.getByRole('tab', { name: 'When & where' })).toHaveAttribute(
     'aria-selected',
     'true',
   );
-  await expect(page.getByRole('alert').filter({ hasText: 'Pick where you rode.' })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: /Pick where you rode/ })).toBeVisible();
 
   // And the same refusal reaches a rider who skipped ahead and pressed Save:
   // the message lands on the step that answers it, not on the one they are on.
@@ -199,7 +204,7 @@ test('Save on an unfinished step lands on the step that can fix it', async ({ pa
     'aria-selected',
     'true',
   );
-  await expect(page.getByRole('alert').filter({ hasText: 'Pick where you rode.' })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: /Pick where you rode/ })).toBeVisible();
 });
 
 test('“What you rode” is the chip’s sport, stated rather than asked', async ({ page }) => {

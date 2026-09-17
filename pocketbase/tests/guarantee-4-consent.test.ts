@@ -49,7 +49,17 @@ describe('guarantee 4 — the guardian-consent gate is enforced by the API', () 
       { privacy: 'public' },
       { consent_state: 'granted', age_band: 'under_13', country: 'GB' },
     );
-    onlooker = await makeRider({ privacy: 'public' }, { consent_state: 'not_required' });
+    /*
+     * On a paid plan because this rider founds a crew in more than one test,
+     * and since 2026-09-17 the free plan creates **one** (the owner's per-plan
+     * cap, `85_crews.pb.js`). The gate under test is the guardian one, which
+     * does not care what plan anybody is on; giving the founder room to found
+     * keeps the two rules from being confused for each other.
+     */
+    onlooker = await makeRider(
+      { privacy: 'public' },
+      { consent_state: 'not_required', plan: 'shredder' },
+    );
   });
 
   // --------------------------------------------------- what they still can --

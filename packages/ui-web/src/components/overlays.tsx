@@ -405,11 +405,34 @@ export function Sheet({
           onPointerCancel={onPointerUp}
         >
           <span className="sheet-handle" aria-hidden="true" />
-          {hasTitle && (
-            <h2 id={titleId} className={cx('d', 'sheet-title')}>
-              {titleRow}
-            </h2>
-          )}
+          <div className="sheet-headrow">
+            {hasTitle && (
+              <h2 id={titleId} className={cx('d', 'sheet-title')}>
+                {titleRow}
+              </h2>
+            )}
+            {/*
+              A visible way out, in the top right (owner, 2026-09-17: "panel
+              should have an x in top right, and if on a circle or square it
+              should be shadowed"). The same square as `Modal`'s Close, which
+              the spot picker already shows on this screen — a sheet that could
+              only be dismissed by a scrim tap, Escape or a drag asked a rider
+              to know three gestures and showed them none.
+
+              `stopPropagation` on the press, because the header is also the
+              drag handle: without it the grip captures the pointer and the
+              button never sees its own click.
+            */}
+            <button
+              type="button"
+              className="modal-close sheet-close"
+              aria-label="Close"
+              onPointerDown={(press) => press.stopPropagation()}
+              onClick={startClose}
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
         </div>
         {children}
       </div>
@@ -436,6 +459,17 @@ export type DropdownProps = {
    * button immediately reopens it.
    */
   holder?: RefObject<HTMLElement | null>;
+  /**
+   * Drop the panel across the whole width, under the top bar, instead of
+   * hanging it off its button's right edge.
+   *
+   * What the bell asks for on a phone (owner, 2026-09-17: "/whats-new feels
+   * better as a slide down panel"): a 420px panel anchored to a 34px button is
+   * a desktop shape, and on a 375px screen the same content wants the width it
+   * can have. Additive and off by default, so every existing caller is
+   * unchanged.
+   */
+  fullWidth?: boolean;
   className?: string;
   id?: string;
 };
@@ -461,6 +495,7 @@ export function Dropdown({
   label,
   width = 420,
   holder,
+  fullWidth = false,
   className,
   id,
 }: DropdownProps) {
@@ -509,10 +544,15 @@ export function Dropdown({
     <div
       ref={panel}
       id={id}
-      className={cx('dropdown', className)}
+      className={cx('dropdown', fullWidth && 'dropdown-full', className)}
       role="group"
       aria-label={label}
-      style={{ width: `min(${width}px, calc(100vw - 24px))` }}
+      /*
+       * A full-width panel measures itself against the screen, not against a
+       * caller's number: `.dropdown-full` pins its own left and right edges, so
+       * an inline width here would fight it.
+       */
+      style={fullWidth ? undefined : { width: `min(${width}px, calc(100vw - 24px))` }}
     >
       {children}
     </div>

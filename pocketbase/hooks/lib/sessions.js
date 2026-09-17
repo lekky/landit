@@ -155,10 +155,37 @@ function enforceSession(app, record, isCreate) {
   // 3. Visibility.
   record.set('visibility', rules.normaliseSessionVisibility(record.getString('visibility')));
 
-  // 4. Where.
-  if (changed('spot')) {
-    const spotId = record.getString('spot');
-    if (!spotId) throw new BadRequestError(R.spotId);
+  /*
+   * 4. Where — a spot on the map, **or** a place the rider typed (owner,
+   * Rachid, 2026-09-17, in chat: "need a 'custom' or can't find it and let them
+   * type free text, and free text ones obviously don't link to a page after").
+   *
+   * One of the two, never neither. The typed name is trimmed here, so a name of
+   * spaces is no name, and it is **cleared whenever a real spot is chosen** —
+   * two answers to "where" is how a session ends up saying one thing on the
+   * card and another on the page.
+   *
+   * It is rider-typed text, so it is held to what crew names are held to: a
+   * length, and no control characters (a newline can pretend to be two rows in
+   * a list). Nothing anywhere renders it as a link or looks it up against the
+   * spots collection — that is what "doesn't link to a page after" means in
+   * practice, and it is enforced by there being no such code rather than by
+   * intent.
+   */
+  const spotId = record.getString('spot');
+  let typedSpot = record.getString('spot_name').trim();
+  if (spotId) typedSpot = '';
+  if (typedSpot.length > rules.SESSION_LIMITS.spotNameMax) {
+    throw new BadRequestError(R.spotNameLong);
+  }
+  for (let i = 0; i < typedSpot.length; i += 1) {
+    const code = typedSpot.charCodeAt(i);
+    if (code < 0x20 || code === 0x7f) throw new BadRequestError(R.spotNameBadCharacters);
+  }
+  record.set('spot_name', typedSpot);
+
+  if (!spotId && !typedSpot) throw new BadRequestError(R.spotId);
+  if (spotId && changed('spot')) {
     let spot;
     try {
       spot = app.findRecordById('spots', spotId);

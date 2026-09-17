@@ -20,13 +20,20 @@ import styles from './shell.module.css';
  * derived feed, `whats_new_seen_at`, the unseen count and the panel with its
  * You / crew tabs. `unread` now arrives from the app layout's server render.
  *
- * **Phone: a link to `/whats-new`. Desktop: a dropdown.** The same split the
- * account menu and the sport chip make, for the same reason — a 420px panel
- * hanging off the right edge of a 375px screen is not a panel. The markup is a
- * `Link` at both widths and the desktop *takes the press back*, because
- * `usePhone()` answers `false` on the server: a bell rendered as a button on the
- * phone branch would be served as a button to every request and only become a
- * link once hydration ran (review S3, T45).
+ * **A panel at both widths** (owner, 2026-09-17, in chat: "/whats-new feels
+ * better as a slide down panel"). The phone used to navigate to `/whats-new`
+ * and the desktop opened a dropdown; reading the news is a glance and a glance
+ * should not cost a page, so the bell now drops a panel from under the top bar
+ * on a phone — full width (`Dropdown fullWidth`) rather than the desktop's
+ * 420px column — and the rider keeps their place on the screen behind it.
+ *
+ * **`/whats-new` is still a real route**, and still what the markup points at:
+ * the panel's "All →" goes there, a deep link lands there, and a rider with no
+ * JavaScript follows the link rather than pressing a button that does nothing.
+ * The press is taken back in the handler at both widths now, which is also why
+ * this stays a `Link`: `usePhone()` answers `false` on the server, so a bell
+ * rendered as a button on the phone branch would be served as a button to
+ * every request and only become a link once hydration ran (review S3, T45).
  *
  * **The panel's contents are fetched when it opens**, never with the page. The
  * bell is in the top bar of every screen and a crew feed per crew on every page
@@ -116,22 +123,23 @@ export function BellButton({ unread = 0 }: { unread?: number }) {
         href={BELL_DESTINATION}
         className={styles.tbBtn}
         aria-label={label}
-        aria-haspopup={phone ? undefined : 'dialog'}
-        aria-expanded={phone ? undefined : open}
+        aria-haspopup="dialog"
+        aria-expanded={open}
         onClick={(event) => {
           /*
-           * **The phone fires nothing here** (review N1). The bell is a `Link`,
-           * so a `capture` on its click raced the navigation and PostHog could
-           * drop it — and a rider who reached `/whats-new` by "All →", by a deep
-           * link or by the back button fired nothing at all, so the mobile
-           * number undercounted. The page counts its own opening on mount,
-           * which is the thing that actually happened.
+           * **Both widths open the panel now** (owner, 2026-09-17). The phone
+           * used to let the click through and navigate, and `/whats-new` counted
+           * its own opening on mount — which it still does, for the rider who
+           * arrives there by "All →", by a deep link or by the back button. What
+           * changed is that the bell no longer navigates, so the press counts
+           * here, with `where` saying which bell it was.
            */
-          if (phone) return;
-
           event.preventDefault();
           if (!open) {
-            capture(ANALYTICS_EVENTS.whatsNewOpened, { where: 'top', unread });
+            capture(ANALYTICS_EVENTS.whatsNewOpened, {
+              where: phone ? 'mobile' : 'top',
+              unread,
+            });
             /*
              * Re-read every time it opens rather than once: the panel is a
              * shortcut to a live page, and a list cached from the first press
@@ -150,10 +158,12 @@ export function BellButton({ unread = 0 }: { unread?: number }) {
         {glyph}
       </Link>
 
-      {!phone && open && (
+      {open && (
         <Dropdown
           label="What’s new"
           width={420}
+          /* Full width under the bar on a phone, the 420px column above it. */
+          fullWidth={phone}
           holder={holder}
           onClose={() => setOpen(false)}
           className={styles.menuPad}

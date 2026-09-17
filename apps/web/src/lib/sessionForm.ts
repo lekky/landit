@@ -71,6 +71,11 @@ export interface SessionFormValues {
   readonly pickedAt: string;
   readonly durationMinutes: SessionDurationMinutes;
   readonly spotId: string;
+  /**
+   * Where it was, typed, when the map does not have it (owner, 2026-09-17).
+   * `''` whenever `spotId` is set — the two are alternatives, not a pair.
+   */
+  readonly spotName: string;
   /** `''` for no event. */
   readonly eventId: string;
   readonly sport: SportId;
@@ -129,6 +134,7 @@ export function newSessionValues(input: {
     pickedAt: input.nowLocal,
     durationMinutes: QUICK_LOG_DURATION_MINUTES,
     spotId: input.prefill.spot ?? input.recentSpotId ?? '',
+    spotName: '',
     eventId: input.prefill.event ?? '',
     sport,
     aim: '',
@@ -149,6 +155,7 @@ export function editSessionValues(input: {
     readonly durationMinutes: SessionDurationMinutes;
     readonly sport: SportId;
     readonly spotId: string;
+    readonly spotName?: string;
     readonly eventId?: string;
     readonly aim?: string;
     readonly feel: SessionFeelId | null;
@@ -172,6 +179,7 @@ export function editSessionValues(input: {
     pickedAt: localDateTimeIn(session.startedAt, input.timezone),
     durationMinutes: session.durationMinutes,
     spotId: session.spotId,
+    spotName: session.spotName ?? '',
     eventId: session.eventId ?? '',
     sport: session.sport,
     aim: session.aim ?? '',
@@ -299,6 +307,7 @@ export function formDraft(values: SessionFormValues, clock: RiderFormClock): Ses
     durationMinutes: values.durationMinutes,
     sport: values.sport,
     spotId: values.spotId,
+    spotName: values.spotName,
     feel: values.feel,
     weather: values.weather,
     aim: values.aim,
@@ -349,6 +358,9 @@ export function sessionInputFrom(
     durationMinutes: values.durationMinutes,
     sport: values.sport,
     spotId: values.spotId,
+    // Only one of the two ever travels: a chosen spot wins, and the hook clears
+    // the other either way.
+    ...(values.spotId ? {} : { spotName: values.spotName.trim() }),
     ...(values.eventId ? { eventId: values.eventId } : {}),
     aim: values.aim.trim(),
     // Optional since 2026-09-13: omitted rather than sent empty.
@@ -407,6 +419,9 @@ export function sessionPatchFrom(
   }
   if (values.sport !== initial.sport) patch.sport = values.sport;
   if (values.spotId !== initial.spotId) patch.spotId = values.spotId;
+  if (values.spotName.trim() !== initial.spotName.trim()) {
+    patch.spotName = values.spotId ? '' : values.spotName.trim();
+  }
   if (values.eventId !== initial.eventId) patch.eventId = values.eventId || null;
   if (values.aim.trim() !== initial.aim.trim()) patch.aim = values.aim.trim();
   // `null` is a real edit now — it clears a feel the rider no longer wants on it.
@@ -469,6 +484,7 @@ export function readFormValues(raw: unknown): SessionFormValues | null {
   const when = v.when === 'now' || v.when === 'pick' ? v.when : null;
   const pickedAt = str('pickedAt', 16);
   const spotId = str('spotId', 15);
+  const spotName = str('spotName', SESSION_LIMITS.spotNameMax * 4);
   const eventId = str('eventId', 15);
   const aim = str('aim', SESSION_LIMITS.aimMax * 4);
   const notes = str('notes', SESSION_LIMITS.notesMax * 4);
@@ -495,6 +511,7 @@ export function readFormValues(raw: unknown): SessionFormValues | null {
     !LOCAL_OR_EMPTY.test(pickedAt) ||
     spotId === null ||
     (spotId !== '' && !RECORD_ID.test(spotId)) ||
+    spotName === null ||
     eventId === null ||
     (eventId !== '' && !RECORD_ID.test(eventId)) ||
     aim === null ||
@@ -517,6 +534,7 @@ export function readFormValues(raw: unknown): SessionFormValues | null {
     pickedAt,
     durationMinutes: v.durationMinutes as SessionDurationMinutes,
     spotId,
+    spotName,
     eventId,
     sport: v.sport as SportId,
     aim,
@@ -555,6 +573,10 @@ const FIELD_OF_REFUSAL: Readonly<Record<keyof typeof SESSION_REFUSALS, SessionFi
   durationMinutes: 'durationMinutes',
   sport: 'sport',
   spotId: 'spotId',
+  // The typed place is the same field on the form — one row that is either a
+  // chosen spot or words — so its two refusals land on it too.
+  spotNameLong: 'spotId',
+  spotNameBadCharacters: 'spotId',
   spotHidden: 'spotId',
   eventHidden: 'spotId',
   feel: 'feel',

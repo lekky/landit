@@ -147,6 +147,37 @@
   gap: 10px;
   min-height: 34px;
 }
+/*
+ * The resting state of "What you rode", on one line (owner, 2026-09-17): the
+ * label, the sport, and Change hard right. `flex-wrap` so a long sport name on
+ * a 320px phone drops the tag under the label rather than squeezing Change off
+ * the edge.
+ */
+.sportLine {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-height: 44px;
+}
+.changeLink {
+  margin-left: auto;
+  background: none;
+  border: none;
+  padding: 10px 0;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.changeLink:hover {
+  color: var(--ink);
+}
 
 /*
  * "Keep Scooter" — the way out of the revealed picker that is not a choice
@@ -263,6 +294,13 @@
 .notes {
   resize: vertical;
   min-height: calc(4 * 1.45em + 22px);
+  line-height: 1.45;
+}
+/* The aim, on the same shape as the notes but a line shorter: it is a sentence
+   about today, not the write-up (owner, 2026-09-17). */
+.aim {
+  resize: vertical;
+  min-height: calc(3 * 1.45em + 22px);
   line-height: 1.45;
 }
 .pickRow {
@@ -842,20 +880,33 @@
 .grab {
   display: none;
 }
+/*
+ * Two columns: everything that is words, then the Close (owner, 2026-09-17:
+ * "the black header is malformed").
+ *
+ * T50 put the sport tag in here and made the row wrap, because four things —
+ * title, tag, stamp, close — do not fit a 320px phone and a row that refuses to
+ * wrap takes the document sideways with it (issue #550). But wrapping treated
+ * the Close as a fourth word, so at 375px it dropped to a line of its own and
+ * left a tall black band with an X adrift in it. The wrap is kept where it is
+ * useful — inside the text column — and the Close is pinned to its own column,
+ * top right, whatever the width.
+ */
 .quickHead {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  /*
-   * Wrapping, since T50 put the sport tag in here. Four things on one dark bar
-   * — title, tag, stamp, close — do not fit a 320px phone, and a row that
-   * refuses to wrap takes the whole document sideways with it (issue #550, the
-   * same failure one control along). Two lines at 320 is the cheaper answer.
-   */
-  flex-wrap: wrap;
-  gap: 12px;
+  column-gap: 12px;
   background: #12100b;
   color: #fffdf5;
   padding: 8px 8px 8px 18px;
+}
+.quickHeadText {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  min-width: 0;
 }
 .quickSport {
   flex: none;
@@ -1329,4 +1380,56 @@
     text-align: center;
     justify-content: center;
   }
+}
+
+/*
+ * "Can't find it? Type where it was" — the spot picker's way out (owner,
+ * Rachid, 2026-09-17, in chat).
+ *
+ * Quiet by design: it sits under the results because it is the answer to "none
+ * of these", and it is a text link rather than a button so it never competes
+ * with the spots above it. The box it opens carries the design's own field
+ * treatment, and says in one line that what it saves is a name rather than a
+ * place with a page.
+ */
+.customOpen {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.customOpen:hover {
+  color: var(--ink);
+}
+
+.customBox {
+  margin-top: 6px;
+  padding: 12px;
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.customActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.customActions > :last-child {
+  margin-left: auto;
 }

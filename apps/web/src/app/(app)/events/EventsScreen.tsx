@@ -286,6 +286,24 @@ export function EventsScreen({
    */
   const [sortPref, setSortPref] = useState<'date' | 'nearest' | null>(null);
   /*
+   * **The filters fold away on a phone** (owner, Rachid, 2026-09-17, in chat:
+   * "events page, this is all messy it needs to be cleaner and simpler proper
+   * sectioned").
+   *
+   * Eight controls stood between a rider and the first event — the two halves,
+   * search, the location strip, sport, country, sort, five kind pills, and a
+   * line repeating the country. Each was right on its own; together they were a
+   * form to fill in before the screen would show its list.
+   *
+   * So on a phone they live behind one **Filters & sort** disclosure, which is
+   * the vocabulary the trick library already uses for exactly this (its own
+   * `filterwrap`, `primitives.css`) — Find stops being the odd screen out. The
+   * desktop bar is unchanged: it has the width, and hiding a bar that fits
+   * would be a fold for its own sake. What is applied is said above the list
+   * either way, so a folded panel never hides a narrowing.
+   */
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  /*
    * The order the list is **actually** in, which is not always the one asked
    * for: distance order needs a position, and a rider can refuse one, be
    * refused one by their browser, or turn one off after choosing Nearest. In
@@ -295,6 +313,27 @@ export function EventsScreen({
    */
   const sort: 'date' | 'nearest' =
     here.point && (sortPref ?? 'nearest') === 'nearest' ? 'nearest' : 'date';
+
+  /*
+   * How many narrowings are on, for the disclosure's count and for the line
+   * above the list.
+   *
+   * The **sport scope is not counted**, and that is deliberate: it follows the
+   * top bar's chip (O1), so it is not something the rider set on this screen
+   * and a badge saying "1" on a fresh calendar would be a filter nobody applied.
+   * Country counts only when it is not the one the screen opened on, for the
+   * same reason.
+   *
+   * **The sort is not in here either**, and for a different one: the list says
+   * its own order directly above the first row ("Nearest first"), so naming it
+   * here would be the same fact twice on one screen — and the pair read as two
+   * different claims when only one of them can change the list.
+   */
+  const applied = [
+    country && country !== view.defaultCountry ? country : null,
+    kind ? (view.kinds.find((k) => k.id === kind)?.id ?? null) : null,
+  ].filter((entry): entry is string => Boolean(entry));
+  const activeFilters = applied.length;
 
   const chooseSort = (next: 'date' | 'nearest') => {
     setSortPref(next);
@@ -643,8 +682,32 @@ export function EventsScreen({
         phone gets the stack and a desktop gets the bar out of one set of
         markup.
       */}
-      <div className={styles.filterBar}>
-        {/*
+      {/*
+        The disclosure, phone only (`.filtersTab` is `display: none` above
+        860px). The count is what makes a folded panel honest: a rider can see
+        that something is narrowing the list without opening it, which is the
+        same job `fcount` does in the library's row.
+      */}
+      <button
+        type="button"
+        className={`sporttab ${styles.filtersTab}`}
+        onClick={() => setFiltersOpen((open) => !open)}
+        aria-expanded={filtersOpen}
+      >
+        <Icon name="grid" size={16} strokeWidth={2.4} />
+        <span className="tab-label">Filters &amp; sort</span>
+        {activeFilters > 0 && <span className="fcount">{activeFilters}</span>}
+      </button>
+
+      {/*
+        The fold is its own element, wrapping the bar rather than sharing a
+        class with it: `.filterwrap`'s `display: none` and `.filterBar`'s
+        `display: flex` are both one class deep, so on one element the later
+        stylesheet would simply win and the panel would never fold.
+      */}
+      <div className={`filterwrap${filtersOpen ? ' open' : ''}`}>
+        <div className={styles.filterBar}>
+          {/*
           "Show: Your sport (Scooter)" (§3.3, O1).
 
           **The calendar opens on the rider's own sport**, where `/spots` opens
@@ -663,40 +726,40 @@ export function EventsScreen({
           here. It stays on the view for `/events/past` and anything else that
           wants it later.
         */}
-        {!mine && (
-          <SportScopeSelect
-            state={scope}
-            everyLabel="All sports"
-            label="Show events for"
-            className={styles.scopeFilter}
-          />
-        )}
-        {/*
+          {!mine && (
+            <SportScopeSelect
+              state={scope}
+              everyLabel="All sports"
+              label="Show events for"
+              className={styles.scopeFilter}
+            />
+          )}
+          {/*
           A `<select>`, not a row of pills. The calendar is worldwide, so a pill
           per country is a wall of pills that pushes the list off the screen —
           and the options come from the events actually present, so no country
           here can find nothing.
         */}
-        <label className={styles.countryPick}>
-          <span className="lab" style={{ color: 'var(--ink-3)' }}>
-            Country
-          </span>
-          <select
-            className="cond"
-            value={country}
-            onChange={(event) => setCountry(event.target.value)}
-            aria-label="Filter events by country"
-          >
-            <option value="">Everywhere</option>
-            {view.countries.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label className={styles.countryPick}>
+            <span className="lab" style={{ color: 'var(--ink-3)' }}>
+              Country
+            </span>
+            <select
+              className="cond"
+              value={country}
+              onChange={(event) => setCountry(event.target.value)}
+              aria-label="Filter events by country"
+            >
+              <option value="">Everywhere</option>
+              {view.countries.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        {/*
+          {/*
           What kind of thing it is. **In the bar now, between the two selects
           and Sort**, where it was a third row of its own: the pills are the
           narrowing a rider reaches for most and burying them under two rows of
@@ -704,27 +767,27 @@ export function EventsScreen({
           liveliest. They are one group, so they wrap together — never one
           orphan pill on a line of its own.
         */}
-        <div className={styles.kinds} role="group" aria-label="Filter events by kind">
-          <Pill on={kind === null} onClick={() => setKind(null)}>
-            Everything
-          </Pill>
-          {view.kinds.map((k) => (
-            <Pill
-              key={k.id}
-              on={kind === k.id}
-              onClick={() => setKind(k.id)}
-              style={
-                kind === k.id
-                  ? { background: k.color, color: foregroundFor(k.color) ?? 'var(--on-dark)' }
-                  : undefined
-              }
-            >
-              {k.id}
+          <div className={styles.kinds} role="group" aria-label="Filter events by kind">
+            <Pill on={kind === null} onClick={() => setKind(null)}>
+              Everything
             </Pill>
-          ))}
-        </div>
+            {view.kinds.map((k) => (
+              <Pill
+                key={k.id}
+                on={kind === k.id}
+                onClick={() => setKind(k.id)}
+                style={
+                  kind === k.id
+                    ? { background: k.color, color: foregroundFor(k.color) ?? 'var(--on-dark)' }
+                    : undefined
+                }
+              >
+                {k.id}
+              </Pill>
+            ))}
+          </div>
 
-        {/*
+          {/*
           The order, as two options rather than one switch (Rachid, 2026-09-13,
           in chat).
 
@@ -745,39 +808,40 @@ export function EventsScreen({
           browser is asked again on every visit, nothing is stored, and the way
           to turn it off travels with the indicator below.
         */}
-        <span className={styles.sort} role="group" aria-label="Sort events">
-          <span className="lab" style={{ color: 'var(--ink-3)' }}>
-            Sort
+          <span className={styles.sort} role="group" aria-label="Sort events">
+            <span className="lab" style={{ color: 'var(--ink-3)' }}>
+              Sort
+            </span>
+            <Pill on={sort === 'date'} onClick={() => chooseSort('date')}>
+              {past ? 'Most recent' : 'Soonest'}
+            </Pill>
+            <Pill on={sort === 'nearest'} onClick={() => chooseSort('nearest')}>
+              Nearest
+            </Pill>
           </span>
-          <Pill on={sort === 'date'} onClick={() => chooseSort('date')}>
-            {past ? 'Most recent' : 'Soonest'}
-          </Pill>
-          <Pill on={sort === 'nearest'} onClick={() => chooseSort('nearest')}>
-            Nearest
-          </Pill>
-        </span>
 
-        {here.state === 'asking' && (
-          <span className={`cond ${styles.locating}`}>Asking your browser…</span>
-        )}
-        {here.state === 'on' && (
-          <span className={styles.locationOn}>
-            <span className={styles.locationDot} aria-hidden="true" />
-            <span className="lab">Using your location</span>
-            <button type="button" className={`cond ${styles.locationOff}`} onClick={here.forget}>
-              Turn off
-            </button>
-          </span>
-        )}
-        {/*
+          {here.state === 'asking' && (
+            <span className={`cond ${styles.locating}`}>Asking your browser…</span>
+          )}
+          {here.state === 'on' && (
+            <span className={styles.locationOn}>
+              <span className={styles.locationDot} aria-hidden="true" />
+              <span className="lab">Using your location</span>
+              <button type="button" className={`cond ${styles.locationOff}`} onClick={here.forget}>
+                Turn off
+              </button>
+            </span>
+          )}
+          {/*
           A refusal is said next to the control that caused it, and the list
           stays in date order underneath — `sort` may read `'nearest'` while
           `here.point` is missing, and the memo answers that with the calendar's
           own order rather than pretending to know a distance.
         */}
-        {here.state === 'refused' && (
-          <span className={`cond ${styles.locating}`}>{here.message}</span>
-        )}
+          {here.state === 'refused' && (
+            <span className={`cond ${styles.locating}`}>{here.message}</span>
+          )}
+        </div>
       </div>
 
       {archive && <ArchiveIndex archive={archive} />}
@@ -798,15 +862,39 @@ export function EventsScreen({
         nothing is exactly when a rider most needs telling which filter it was.
         And the way out travels with it, as it does on the location badge.
       */}
-      {country && (
+      {(country || applied.length > 0) && (
         <p className={styles.showing}>
-          <span className="lab">Showing {country}</span>
+          {/*
+            What the list is narrowed by, said out loud above the results
+            (Rachid, 2026-09-12, in chat; widened 2026-09-17 when the controls
+            folded away on a phone).
+
+            It started as the country alone, because the screen opens narrowed
+            and the country control was off the bottom of a phone's first
+            screen. Now that every filter can be folded behind one button the
+            same argument covers all of them: a rider who cannot see the
+            controls must still be able to see what they are doing. Outside the
+            list rather than inside it, so a narrowing that finds nothing still
+            explains itself.
+          */}
+          <span className="lab">
+            Showing {[country || 'everywhere', ...applied.filter((a) => a !== country)].join(' · ')}
+          </span>
           <button
             type="button"
             className={`cond ${styles.showingAll}`}
-            onClick={() => setCountry('')}
+            /*
+              Clears what this line names, and nothing it does not: the country
+              and the kind. The order is left alone — it is stated by the list
+              itself and a rider who asked for nearest did not ask for that to
+              be undone by a button about filters.
+            */
+            onClick={() => {
+              setCountry('');
+              setKind(null);
+            }}
           >
-            See everywhere
+            {applied.length > 1 || (applied.length === 1 && !country) ? 'Clear' : 'See everywhere'}
           </button>
         </p>
       )}

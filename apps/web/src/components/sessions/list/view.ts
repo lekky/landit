@@ -176,9 +176,16 @@ function cardView(
     sinceShort: `${Number(day)} ${mon}`,
     time: clockTime(session.startedAt, timezone),
     isToday: dayKey === today,
+    /*
+      Where it was: the spot's name and a link to its page, **or** the place the
+      rider typed because the map does not have it (owner, 2026-09-17: "free
+      text ones obviously don't link to a page after").
+      `href: null` is what carries that — the row renders as words, and there is
+      no lookup anywhere that could turn a typed name back into a spot.
+    */
     spot: spot
       ? { name: spot.name, href: spot.status === 'live' && spot.slug ? spotHref(spot.slug) : null }
-      : { name: UNKNOWN_SPOT, href: null },
+      : { name: session.spotName?.trim() || UNKNOWN_SPOT, href: null },
     event: event ? { name: event.name, href: event.slug ? eventHref(event.slug) : null } : null,
     sport: { id: session.sport, label: sport?.short ?? session.sport, art: sport?.icon ?? 'scoot' },
     duration: sessionDurationLabel(session.durationMinutes),

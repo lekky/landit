@@ -186,6 +186,12 @@ export function buildSeed(): SeedPlan {
           sessions_unlimited: plan.sessionsUnlimited === true,
           session_clip_cap: plan.sessionClipCap ?? 0,
           session_clips_unlimited: plan.sessionClipsUnlimited === true,
+          // How many crews this plan may create (owner, 2026-09-17). Absent
+          // reads as one, not zero: the fail-closed direction for a cap on
+          // creating is the smallest plan's allowance, never "no crews at all"
+          // (`crewCapFor` in `@landit/core` says the same in one place).
+          // `1789862400_crew_caps.js` writes the same values onto existing rows.
+          crew_cap: plan.crewCap ?? 1,
           is_live: true,
         })),
       },

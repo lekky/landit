@@ -131,6 +131,26 @@
   .filtersTab {
     display: flex;
   }
+  /*
+   * **The search is its own row on a phone, whatever the sport is called**
+   * (owner, 2026-09-17: "the search should be full width for all equipment
+   * like skate; it isn't for your sport, and scooter").
+   *
+   * `.head` wraps, and whether it wrapped depended on the length of the
+   * heading beside it: "Skateboard library" pushed the field onto its own line
+   * and "BMX library" did not, so the same screen gave the same control two
+   * different widths and clipped its placeholder on the narrower one. A column
+   * decides it once, for every sport and every count.
+   */
+  .head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .search {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 /*

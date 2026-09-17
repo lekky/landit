@@ -26,7 +26,7 @@ import styles from './home.module.css';
  * whole of how a rider gets to them — which makes this screen navigation as
  * much as a summary, and is why the cards sit directly under the streak rather
  * than below two grids of trick art. The order the owner agreed on the canvas
- * is: greeting → streak → the four cards → Working on it → crew activity →
+ * is: greeting → streak → the four cards → Your tricks → crew activity →
  * Next up → Your spots.
  *
  * **The sport tab row is gone** (D5). The sport is chosen once, in the top
@@ -56,8 +56,8 @@ export function HomeScreen({ view }: { view: HomeView }) {
    * Where the section's "more" link goes, and it is **not** the same question
    * as which cards are under it (review, regression inventory).
    *
-   * The heading follows what is shown: "Working on it" when something is in
-   * progress, "Start here" when nothing is. The link follows what the rider
+   * The heading is "Your tricks" either way since 2026-09-17; what still
+   * follows the state is the list under it. The link follows what the rider
    * *has*: any trick with a stage on it at all — landed, learning or want-to —
    * means `/library?mine=1` has something in it, so that is where the link
    * goes. Tying both to `working` sent the one rider most likely to have a
@@ -67,7 +67,9 @@ export function HomeScreen({ view }: { view: HomeView }) {
   const mine = current.tracked > 0;
 
   /*
-   * The four record cards (§3.4), in the order the canvas draws them.
+   * The four record cards (§3.4), in the owner's order: Stickers, Sessions,
+   * Challenge, Progress (Rachid, 2026-09-17, in chat, replacing the canvas
+   * order the spec was written from — §3.4 records it).
    *
    * Sessions is dropped rather than disabled when the preview is not open to
    * this rider (T41): a card that leads to a screen they would be refused is
@@ -76,33 +78,6 @@ export function HomeScreen({ view }: { view: HomeView }) {
    */
   const cards = (
     <div className={styles.cards}>
-      <LinkCard
-        href={ROUTES.progress}
-        to="progress"
-        title="Progress"
-        icon="chart"
-        hue="var(--lime)"
-        value={String(current.landed)}
-        /*
-          "landed" first, because this is the one card whose number is not
-          self-evident from its title: Sessions counts sessions, Stickers counts
-          stickers, Challenge shows a fraction, and Progress shows — a rider had
-          to infer it. §3.4 calls it "landed count · learning · want to", and
-          this is that, said.
-        */
-        sub={`landed · ${current.working} learning · ${current.wanted} want to`}
-      />
-      {view.sessionsCard && (
-        <LinkCard
-          href={sessionsHref()}
-          to="sessions"
-          title="Sessions"
-          icon="clock"
-          hue="var(--sky)"
-          value={view.sessionsCard.value}
-          sub={view.sessionsCard.sub}
-        />
-      )}
       <LinkCard
         href={ROUTES.stickers}
         to="stickers"
@@ -122,6 +97,17 @@ export function HomeScreen({ view }: { view: HomeView }) {
             : 'None yet — the first is close'
         }
       />
+      {view.sessionsCard && (
+        <LinkCard
+          href={sessionsHref()}
+          to="sessions"
+          title="Sessions"
+          icon="clock"
+          hue="var(--sky)"
+          value={view.sessionsCard.value}
+          sub={view.sessionsCard.sub}
+        />
+      )}
       <LinkCard
         href={ROUTES.challenge}
         to="challenge"
@@ -134,6 +120,22 @@ export function HomeScreen({ view }: { view: HomeView }) {
             ? `${current.challenge.title} · ${current.challenge.endsLabel}`
             : 'Nothing running this week'
         }
+      />
+      <LinkCard
+        href={ROUTES.progress}
+        to="progress"
+        title="Progress"
+        icon="chart"
+        hue="var(--lime)"
+        value={String(current.landed)}
+        /*
+          "landed" first, because this is the one card whose number is not
+          self-evident from its title: Sessions counts sessions, Stickers counts
+          stickers, Challenge shows a fraction, and Progress shows — a rider had
+          to infer it. §3.4 calls it "landed count · learning · want to", and
+          this is that, said.
+        */
+        sub={`landed · ${current.working} learning · ${current.wanted} want to`}
       />
     </div>
   );
@@ -223,14 +225,19 @@ export function HomeScreen({ view }: { view: HomeView }) {
           this section is a slice of the rider's own list, so the link out goes
           to the whole of it rather than to the library at large — and it says
           how many are there, which is the reason to follow it. With nothing in
-          progress the section is "Start here", suggestions from the library,
-          and the library is where it should still point.
+          progress it is suggestions from the library, and the library is where
+          it should still point.
+
+          **One heading either way: "Your tricks"** (Rachid, 2026-09-17, in
+          chat, replacing "Working on it" / "Start here"). The section moved
+          under the rider either way, and a heading that renamed itself on a
+          state the rider cannot see made the same place look like two.
         */}
         <SectionHead
           more={mine ? `All ${current.tracked} of yours →` : 'Library →'}
           onMore={() => router.push(mine ? libraryHref({ mine: true }) : ROUTES.library)}
         >
-          {working ? 'Working on it' : 'Start here'}
+          Your tricks
         </SectionHead>
         {primary.length ? (
           /*

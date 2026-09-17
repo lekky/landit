@@ -111,6 +111,73 @@
 }
 
 /*
+ * The phone's "Filters & sort" disclosure (owner, 2026-09-17: "events page,
+ * this is all messy it needs to be cleaner and simpler proper sectioned").
+ *
+ * The same control the trick library uses, borrowed rather than reinvented so
+ * the two screens a rider moves between with one tap fold their filters the
+ * same way — the global `.filterwrap` in `primitives.css` does the hiding, and
+ * it is already scoped to phones, so the desktop bar is untouched.
+ */
+.filtersTab {
+  display: none;
+  min-width: 0;
+  /* `visible`, so the count badge hanging off the corner is not clipped. */
+  overflow: visible;
+  position: relative;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 860px) {
+  .filtersTab {
+    display: flex;
+    align-self: flex-start;
+  }
+  /*
+   * Stacked inside the fold: the bar's flex row is a desktop shape, and a
+   * folded panel is read top to bottom rather than skimmed left to right.
+   */
+  .filterBar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  /*
+   * In the fold the bar is a column, so the `margin-left: auto` that pushes
+   * Sort to the far right of the desktop bar would push it to the right-hand
+   * edge of its own row and leave the label stranded mid-panel. Rows in a
+   * folded panel start at the left, like every other label on the screen.
+   */
+  .sort {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+}
+
+.filtersTab :global(.tab-label) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filtersTab :global(.fcount) {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  background: var(--pink);
+  color: var(--on-dark);
+  border: 2px solid var(--ink);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+/*
  * The kind pills, as one group.
  *
  * Wrapping them together is what stops the thing §7 asks not to happen between

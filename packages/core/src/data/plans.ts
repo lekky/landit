@@ -1,3 +1,4 @@
+import { CREW_CAPS } from '../rules/crew';
 import { ROOKIE_SESSIONS_PER_MONTH, SHREDDER_SESSION_CLIP_CAP } from '../rules/sessions';
 import { SHREDDER_VIDEO_LINK_CAP, videoLinkAllowanceLabel } from '../rules/video';
 import type { Plan, PlanId, SessionAllowance, VideoLinkAllowance } from '../types';
@@ -201,6 +202,7 @@ export const PLANS = [
     sessionsUnlimited: SESSIONS.rookie.unlimited,
     sessionClipCap: SESSION_CLIPS.rookie.cap,
     sessionClipsUnlimited: SESSION_CLIPS.rookie.unlimited,
+    crewCap: CREW_CAPS.rookie,
   },
   {
     id: 'shredder',
@@ -229,6 +231,7 @@ export const PLANS = [
     sessionsUnlimited: SESSIONS.shredder.unlimited,
     sessionClipCap: SESSION_CLIPS.shredder.cap,
     sessionClipsUnlimited: SESSION_CLIPS.shredder.unlimited,
+    crewCap: CREW_CAPS.shredder,
   },
   {
     id: 'legend',
@@ -265,6 +268,7 @@ export const PLANS = [
     sessionsUnlimited: SESSIONS.legend.unlimited,
     sessionClipCap: SESSION_CLIPS.legend.cap,
     sessionClipsUnlimited: SESSION_CLIPS.legend.unlimited,
+    crewCap: CREW_CAPS.legend,
   },
 ] as const satisfies readonly Plan[];
 

@@ -427,6 +427,21 @@ a.pill.on:hover {
   max-height: min(88vh, calc(100vh - 40px));
   overscroll-behavior: contain;
   touch-action: pan-y pinch-zoom;
+  /*
+   * **It hugs its content, in every engine** (owner, 2026-09-17: "delete
+   * session modal is huge" — the confirm drawn full-height on their phone with
+   * about 1,000px of empty paper under two buttons).
+   *
+   * `.scrim` is a grid and a grid item stretches by default; the rules here
+   * align it with `place-items` / `align-items`, which Chromium honours — the
+   * stretch does not reproduce here at any width from 375 to 860. Rather than
+   * leave a phone drawing it the other way, the height is pinned to the
+   * content and the item is aligned itself, which no engine can override from
+   * the parent. `max-height` above still caps a genuinely long one, and
+   * `overflow: auto` still scrolls it.
+   */
+  height: fit-content;
+  align-self: start;
 }
 @supports (height: 1dvh) {
   .modal {
@@ -611,6 +626,10 @@ a.pill.on:hover {
   .sheet-scrim {
     bottom: 0;
   }
+  /* No bottom bar up here, so no LOG square to stand clear of. */
+  .sheet {
+    margin-bottom: 0;
+  }
 }
 .sheet {
   background: var(--paper);
@@ -619,6 +638,18 @@ a.pill.on:hover {
   max-height: 86dvh;
   overflow: auto;
   padding: 0 16px 28px;
+  /*
+   * **It clears the LOG square, not just the bar** (owner, 2026-09-17: "panel
+   * covers half the log button in nav").
+   *
+   * The scrim stops at the top of `.mobnav`, which is what keeps the bar and
+   * its cross visible — but the LOG cell is not in the bar: `.logSquare` is
+   * 58px hung 30px above its top edge (`shell.module.css`), so a panel that
+   * reached the scrim's own bottom edge sliced it in half. 30px is that lift,
+   * and it leaves the whole square standing in the dimmed band where a rider
+   * can see the plus turn into a cross (§4).
+   */
+  margin-bottom: 30px;
   /*
    * Above the bottom bar. `.scrim` is 180 and `.mobnav` is 70, so the stacking
    * is already right; this is here for the sheet's own children (the grip is
@@ -682,9 +713,28 @@ a.pill.on:hover {
   margin: 0 auto 12px;
   background: var(--ink);
 }
+/*
+ * The title and the Close on one line (owner, 2026-09-17).
+ *
+ * The Close borrows `.modal-close` whole — the same 44px paper square, the same
+ * keyline and offset shadow, the same press — so the two dialogs a rider meets
+ * on a phone close the same way. A sheet with no title still draws it, because
+ * the control is what makes the sheet dismissable without knowing a gesture.
+ */
+.sheet-headrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
 .sheet-title {
   font-size: 24px;
   margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+/* With no title the square still sits hard right. */
+.sheet-headrow > .sheet-close {
+  margin-left: auto;
 }
 /*
  * The title and whatever sits at the right of its line (§3.5's sport `Tag`).
@@ -748,6 +798,46 @@ a.pill.on:hover {
 @keyframes dropin {
   from {
     transform: translateY(-8px);
+    opacity: 0;
+  }
+}
+
+/*
+ * The phone's drop-down panel (owner, 2026-09-17: "/whats-new feels better as a
+ * slide down panel").
+ *
+ * The bell used to navigate to `/whats-new` on a phone and open a `Dropdown`
+ * on a desktop. Reading the news is a glance, and a glance should not cost a
+ * page: the panel now drops from under the top bar at both widths, and the page
+ * keeps its place underneath.
+ *
+ * It is the full width of the screen rather than the desktop's 420px column,
+ * hangs from the bar rather than from the 34px button (a panel anchored to a
+ * button that small reads as a tooltip), and rises out from under the bar —
+ * `translateY(-100%)` inside `overflow: hidden` would need a wrapper, so the
+ * same 8px rise and fade the desktop uses is kept and the distance is what
+ * changes. §4's floor clamps it under `prefers-reduced-motion` like everything
+ * else.
+ *
+ * `position: fixed` takes it out of the anchor's box, which is what lets it span
+ * the screen; the top is the bar's own height. It stays a menu, not a dialog:
+ * the page behind is not held still and a tap outside dismisses it, which is
+ * `Dropdown`'s standing decision (§3.2) and the reason it is not a `Sheet`.
+ */
+@media (max-width: 860px) {
+  .dropdown-full {
+    position: fixed;
+    top: 55px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: min(72dvh, calc(100dvh - 55px - 16px));
+    animation: dropin-full var(--dur-ui) var(--ease-spring);
+  }
+}
+@keyframes dropin-full {
+  from {
+    transform: translateY(-14px);
     opacity: 0;
   }
 }

@@ -132,62 +132,6 @@
   scroll-margin-top: 76px;
 }
 
-/*
- * The three short ways down the page (§3.8): Sticker · Watch · Clip.
- *
- * Phone only. Above the breakpoint every section is a plain panel in one of two
- * columns and the whole page is on screen in two scrolls, so a row of jumps
- * would be three buttons pointing at things a rider can already see.
- */
-.jump {
-  display: flex;
-  gap: 8px;
-  padding: 14px 14px 0;
-}
-
-@media (min-width: 821px) {
-  .jump {
-    display: none;
-  }
-}
-
-/*
- * The design's small button, said here rather than borrowed from `.btn sm`:
- * these are quiet — paper, an ink keyline, the small shadow — because they move
- * the page rather than change anything, and §4's 44px floor applies to them
- * like everything else.
- */
-.jumpBtn,
-a.jumpBtn:hover {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 8px 10px;
-  background: var(--paper);
-  border: 2.5px solid var(--ink);
-  box-shadow: var(--sh-sm);
-  color: var(--ink);
-  font-size: 13px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  transition:
-    transform var(--dur-press),
-    box-shadow var(--dur-press);
-}
-
-a.jumpBtn:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 var(--ink);
-}
-
-.jumpBtn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 var(--ink);
-}
-
 /* "Worth a grown-up knowing", full width under the band at both widths. */
 .guardianRow {
   padding: 14px 22px 0;
@@ -585,7 +529,8 @@ a.jumpBtn:hover {
   box-shadow: var(--sh-sm);
   padding: 14px;
   min-width: 0;
-  /* The jump row's "Sticker" and "Watch" land here, under the sticky bar. */
+  /* `#sticker` and `#watch` land here, under the sticky bar, for a link from
+     off the page — the jump row that used to point at them went 2026-09-17. */
   scroll-margin-top: 76px;
 }
 
@@ -1063,6 +1008,17 @@ a.jumpBtn:hover {
   padding: 22px 24px 0;
 }
 
+/*
+ * The locked block carries the hatch too (owner, 2026-09-17: "the 'this one is
+ * on shredder' should have the diagonal line background").
+ *
+ * The same 45° hatch as the header above it, the locked trick card and the
+ * skill tree — one pattern for one meaning, "you cannot have this yet". The
+ * lowdown teaser between them stays on plain paper: that is the trick talking,
+ * where this is the product talking, and the existing comment in
+ * `LockedTrick.tsx` draws the same line. A 3px ink rule separates the teaser
+ * from the hatch so the two do not bleed into each other.
+ */
 .lockBody {
   padding: 34px 24px;
   display: flex;
@@ -1070,6 +1026,8 @@ a.jumpBtn:hover {
   align-items: center;
   gap: 14px;
   text-align: center;
+  background: repeating-linear-gradient(45deg, var(--hatch-a) 0 11px, var(--hatch-b) 11px 22px);
+  border-top: 3px solid var(--ink);
 }
 
 .lockMark {

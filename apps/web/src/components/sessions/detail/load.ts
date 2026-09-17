@@ -193,7 +193,14 @@ export async function loadSessionDetail(id: string): Promise<SessionDetailLoad> 
     editHref: isOwner ? editSessionHref(session.id) : null,
     dates: sessionDateLabels(session.startedAt, timezone),
     spot: {
-      name: spot?.name || 'A spot not on the map',
+      /*
+        The spot's name, or the place the rider typed because the map does not
+        have it (owner, 2026-09-17). A typed one keeps `href: null` below, so it
+        renders as words with no page behind it — there is no lookup that could
+        match it back to a spot, which is what makes that true rather than
+        merely intended.
+      */
+      name: spot?.name || session.spotName?.trim() || 'A spot not on the map',
       place: [spot?.town, spot?.country].filter(Boolean).join(', '),
       // Only a live spot has a page; a rider's own pending submission does not.
       href: spot && spot.status === 'live' && spot.slug ? spotHref(spot.slug) : null,

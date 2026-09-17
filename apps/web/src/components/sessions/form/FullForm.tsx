@@ -316,9 +316,22 @@ export function WhereField(props: {
   const pick = (next: FormSpot) => {
     props.remember(next);
     // An event belongs to a place; moving the session somewhere else takes it off.
-    onChange({ spotId: next.id, eventId: next.id === values.spotId ? values.eventId : '' });
+    // A chosen spot also clears anything typed: one answer to "where", not two.
+    onChange({
+      spotId: next.id,
+      spotName: '',
+      eventId: next.id === values.spotId ? values.eventId : '',
+    });
     setSearching(false);
   };
+
+  /** A place the map does not have, typed in the sheet (owner, 2026-09-17). */
+  const nameIt = (name: string) => {
+    onChange({ spotId: '', spotName: name, eventId: '' });
+    setSearching(false);
+  };
+
+  const typed = values.spotName.trim();
 
   return (
     <>
@@ -328,6 +341,23 @@ export function WhereField(props: {
           <div className={styles.spotText}>
             <div className={styles.spotName}>{spot.name}</div>
             {spot.town ? <div className={styles.spotSub}>{spot.town}</div> : null}
+          </div>
+          <button type="button" className={styles.miniBtn} onClick={() => setSearching(true)}>
+            Change
+          </button>
+        </div>
+      ) : typed ? (
+        /*
+          A place the rider typed because the map does not have it (owner,
+          2026-09-17). Deliberately **not** a link and deliberately not dressed
+          as a spot: no pin icon, no town line, no chevron — it is words, and
+          the row says as much so a rider is not left wondering why this one has
+          no page behind it.
+        */
+        <div className={styles.spotRow}>
+          <div className={styles.spotText}>
+            <div className={styles.spotName}>{typed}</div>
+            <div className={styles.spotSub}>Not on the map — just a name</div>
           </div>
           <button type="button" className={styles.miniBtn} onClick={() => setSearching(true)}>
             Change
@@ -387,6 +417,8 @@ export function WhereField(props: {
         <SpotSearchSheet
           recent={data.recentSpotIds.map((id) => spots.get(id)).filter((s): s is FormSpot => !!s)}
           onPick={pick}
+          onName={nameIt}
+          named={typed}
           onClose={() => setSearching(false)}
         />
       ) : null}
@@ -425,19 +457,34 @@ export function SportField(props: {
   const multiSport = data.sports.length > 1;
   const sport = SPORTS[values.sport];
 
+  /*
+    **One row, not a panel** (owner, 2026-09-17: "what you rode panel is a bit
+    messy"). The label, the sport and the way to change it were three stacked
+    lines with a boxed button floated off to the right — a lot of furniture for
+    one fact the rider did not choose here. Settled: label, then the sport, then
+    Change as a quiet link on the right of the same line. The picker below is
+    unchanged; only the resting state moved.
+  */
+  if (!picking) {
+    return (
+      <div className={styles.sportLine}>
+        <span className={styles.label}>What you rode</span>
+        <span className={styles.sportPreset}>
+          <Equipment name={sport.icon} size={26} />
+          <Tag color={sport.color}>{sport.label}</Tag>
+        </span>
+        {multiSport && (
+          <button type="button" className={styles.changeLink} onClick={() => setPicking(true)}>
+            Change
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <>
-      <Label
-        aside={
-          multiSport && !picking ? (
-            <button type="button" className={styles.miniBtn} onClick={() => setPicking(true)}>
-              Change
-            </button>
-          ) : undefined
-        }
-      >
-        What you rode
-      </Label>
+      <Label>What you rode</Label>
       {picking ? (
         <>
           <SegmentedPicker<SportId>
@@ -469,12 +516,7 @@ export function SportField(props: {
             Keep {sport.label}
           </button>
         </>
-      ) : (
-        <div className={styles.sportPreset}>
-          <Equipment name={sport.icon} size={26} />
-          <Tag color={sport.color}>{sport.label}</Tag>
-        </div>
-      )}
+      ) : null}
     </>
   );
 }
@@ -1003,9 +1045,19 @@ export function FullForm(props: {
       <Label>
         <label htmlFor={aimId}>Aim of the session</label>
       </Label>
-      <input
+      {/*
+        A textarea, not a single line (owner, 2026-09-17: "aim of the session
+        should be a multiline box"). A rider writing more than a few words into
+        an `input` types into a sliding window and cannot see what they wrote.
+        `.aim` is shorter than `.notes` — three lines rather than four — because
+        an aim is a sentence and the notes are the place for the rest. The
+        length cap is unchanged (`SESSION_LIMITS.aimMax`), and Enter now adds a
+        line instead of submitting the step, which is what a multi-line field
+        should do.
+      */}
+      <textarea
         id={aimId}
-        className={styles.input}
+        className={`${styles.input} ${styles.aim}`}
         value={values.aim}
         maxLength={SESSION_LIMITS.aimMax}
         placeholder="What are you here to do?"

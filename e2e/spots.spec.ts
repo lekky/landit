@@ -594,9 +594,17 @@ test.describe('where to ride', () => {
     const chosen = await findSpot(page, scooterSpot.name);
     await chosen.getByRole('button', { name: 'Show on map' }).click();
 
-    // The map panel's header is ours, not Mapbox's, so it names the selection
-    // whether or not a map could be drawn.
-    await expect(page.getByRole('link', { name: 'Open in Maps' })).toBeVisible();
+    /*
+     * The map panel's header is ours, not the map's, so it names the selection
+     * whether or not a map could be drawn — which is what this asserts, by the
+     * name rather than by the "Open in Maps" link that used to sit beside it.
+     * The link went on 2026-09-17 (owner, in chat: "remove open in maps because
+     * there is a directions cta"): the panel below the map already carries
+     * Directions, and two controls for one destination is one too many on a
+     * phone.
+     */
+    await expect(page.locator('[class*="mapName"]')).toHaveText(scooterSpot.name);
+    await expect(page.getByRole('link', { name: 'Open in Maps' })).toHaveCount(0);
     await expect(chosen.getByRole('button', { name: 'On the map' })).toBeVisible();
   });
 

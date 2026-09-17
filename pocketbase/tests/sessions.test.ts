@@ -52,6 +52,8 @@ interface SessionRow {
   id: string;
   user: string;
   spot: string;
+  /** Where it was, in the rider's own words, when `spot` is empty (2026-09-17). */
+  spot_name: string;
   event: string;
   visibility: string;
   rode_with: string[];
@@ -227,6 +229,45 @@ describe('a session write', () => {
     });
     expect(attempt.status).not.toBe(200);
     expect(await ownSessionCount(victim.id)).toBe(0);
+  });
+
+  it('takes a place the rider typed when the map has no such spot', async () => {
+    /*
+     * Owner, Rachid, 2026-09-17, in chat: "need a 'custom' or can't find it and
+     * let them type free text, and free text ones obviously don't link to a
+     * page after".
+     *
+     * The server is where that is decided, not the form: `spot` and `spot_name`
+     * are alternatives, one of the two is required, and a chosen spot clears
+     * the typed name so a session never carries two answers to "where". The
+     * typed one is rider text, so it is trimmed and held to the same line crew
+     * names are — no line breaks, and a length.
+     */
+    const rider = await makeRider();
+
+    const named = await log(rider, { spot: '', spot_name: '  The bank behind Aldi  ' });
+    expect(named.status).toBe(200);
+    expect(named.body.spot).toBe('');
+    expect(named.body.spot_name).toBe('The bank behind Aldi');
+
+    // Neither is still refused, and the sentence offers both ways out.
+    const neither = await log(rider, { spot: '', spot_name: '   ' });
+    expect(neither.status).toBe(400);
+    expect(neither.body.message).toBe(SESSION_REFUSALS.spotId);
+
+    // A real spot wins, and the typed name is dropped rather than kept beside it.
+    const both = await log(rider, { spot_name: 'Ignore me' });
+    expect(both.status).toBe(200);
+    expect(both.body.spot_name).toBe('');
+
+    // Rider text, held to the same line crew names are.
+    const newline = String.fromCharCode(10);
+    const broken = await log(rider, { spot: '', spot_name: `Two${newline}Rows` });
+    expect(broken.status).toBe(400);
+    expect(broken.body.message).toBe(SESSION_REFUSALS.spotNameBadCharacters);
+
+    const long = await log(rider, { spot: '', spot_name: 'x'.repeat(81) });
+    expect(long.status).toBe(400);
   });
 
   it('normalises an unrecognised visibility to private rather than trusting it', async () => {

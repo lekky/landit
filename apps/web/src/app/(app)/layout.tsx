@@ -1,4 +1,4 @@
-import type { SportId } from '@landit/core';
+import { type SportId, rodeToday } from '@landit/core';
 import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 
@@ -93,6 +93,18 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
        * each `/progress/sessions` route still asks the gate itself.
        */
       sessionsEnabled={rider ? sessionsEnabledFor(rider) : false}
+      /*
+       * Whether today's ride is already counted, for the Log sheet's first row
+       * (owner, 2026-09-17: "i rode today should be disabled somehow if they
+       * already logged today?").
+       *
+       * Decided here with the other two, and for the same reason: the bars are
+       * client components and never see a rider record. `rodeToday` is the
+       * rule `packages/core` already owns — the same one Home's streak card
+       * asks — in the rider's own timezone, so a ride at 11pm is today's and a
+       * rider who travels does not lose a day.
+       */
+      rodeToday={rider ? rodeToday(rider.last_ride || null, { timezone: rider.timezone }) : false}
       unread={unread}
     >
       {showVerifyBanner ? <VerifyEmailBanner email={rider!.email} /> : null}

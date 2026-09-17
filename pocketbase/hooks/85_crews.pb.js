@@ -48,7 +48,6 @@ onRecordCreateRequest((e) => {
     return;
   }
 
-  const MAX_OWNED_CREWS = 5;
   const lib = require(`${__hooks}/lib/landit.js`);
 
   const name = String(e.record.getString('name') || '').trim();
@@ -67,9 +66,24 @@ onRecordCreateRequest((e) => {
   }
   e.record.set('name', name);
 
+  /*
+   * The cap is the rider's **plan's**, not a constant (owner, Rachid,
+   * 2026-09-17, in chat: "1 for free, 3 for 3.99 and 10 for the top tier").
+   *
+   * Counted on crews *owned*: joining with a code is uncapped at every tier, and
+   * a rider may sit on more boards than they run. What this limits is minting,
+   * which is what made a flat five an anti-spam number in the first place.
+   *
+   * A rider who drops to a smaller plan keeps the crews they have — this
+   * refuses the next one and takes nothing away. Deleting somebody else's board
+   * because their subscription lapsed would punish the members for it.
+   */
+  const cap = lib.planCrewCap(e.app, e.auth);
   const owned = lib.findAll(e.app, 'crews', 'owner = {:owner}', { owner: e.auth.id });
-  if (owned.length >= MAX_OWNED_CREWS) {
-    throw new BadRequestError(`You can only run ${MAX_OWNED_CREWS} crews at once.`);
+  if (owned.length >= cap) {
+    throw new BadRequestError(
+      `Your plan runs ${cap} ${cap === 1 ? 'crew' : 'crews'} at once. Leave one, or see plans.`,
+    );
   }
 
   // The slug is the server's, not the body's: it is uniquely indexed, so a
@@ -320,10 +334,19 @@ routerAdd(
  *
  * The answer is the least destructive one: the longest-standing remaining
  * member becomes the owner, on both the membership row and `crews.owner`,
- * which is what every crew rule reads. A crew with nobody left in it is left
- * as it is — deleting it outright is the other option the issue names, and
- * that one is the owner's to decide because the members would lose a board
- * they did not close.
+ * which is what every crew rule reads.
+ *
+ * **And a crew with nobody left in it is deleted** (owner, Rachid, 2026-09-17,
+ * in chat: "need to delete a crew if the last person leaves too"). This is the
+ * decision the paragraph here used to be waiting for — it said deleting was
+ * "the owner's to decide because the members would lose a board they did not
+ * close", and with nobody left there are no members to lose it. What the old
+ * behaviour left instead was a crew nothing could reach: no screen lists a crew
+ * you are not a member of, so it could not be opened, renamed or left, and it
+ * went on counting against its owner's cap. That is what the owner ran into on
+ * 2026-09-17 — five crews, four memberships, and a refusal to create a sixth
+ * while only four were on screen ("but i only have 4"). The already-stranded
+ * ones are cleared by `1790035200_crew_caps.js`.
  *
  * A model-level hook rather than a request one, so it fires for the erasure
  * path's `app.delete` as well as for a rider's own DELETE. Registered on
@@ -335,7 +358,6 @@ onRecordAfterDeleteSuccess((e) => {
   const gone = e.record;
   e.next();
 
-  if (gone.getString('role') !== 'owner') return;
   const crewId = gone.getString('crew');
 
   // Oldest membership first. `created` is server-set on every row, so this is
@@ -343,7 +365,39 @@ onRecordAfterDeleteSuccess((e) => {
   const remaining = e.app.findRecordsByFilter('crew_members', 'crew = {:crew}', 'created', 0, 0, {
     crew: crewId,
   });
-  if (!remaining.length) return;
+
+  /*
+   * Nobody left: the crew goes, whoever the leaver was.
+   *
+   * Checked before the owner test, because the last rider out is not
+   * necessarily the owner — an owner who left earlier already handed the crew
+   * to somebody else, and a one-member crew whose only member is a plain member
+   * is reachable by the same path. What hangs off the crew (invites, the board's
+   * rows) goes with it through the relations' own cascade rules.
+   */
+  if (!remaining.length) {
+    try {
+      const crew = e.app.findRecordById('crews', crewId);
+      const name = crew.getString('name');
+      e.app.delete(crew);
+      lib.writeAudit(e.app, {
+        actorKind: 'system',
+        action: 'crew_emptied',
+        entity: 'crews',
+        entityId: crewId,
+        before: { name: name, last_member: gone.getString('user') },
+        after: null,
+      });
+    } catch (err) {
+      // A crew that will not delete is logged and left: the membership row has
+      // already gone, and throwing here would say the leave failed when it did
+      // not.
+      $app.logger().error('empty crew not removed', 'crew', crewId, 'error', String(err));
+    }
+    return;
+  }
+
+  if (gone.getString('role') !== 'owner') return;
   if (remaining.some((row) => row.getString('role') === 'owner')) return;
 
   const heir = remaining[0];

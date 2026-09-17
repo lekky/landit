@@ -21,7 +21,7 @@
  * id, or a refusal.
  */
 
-const SESSION_LIMITS = { aimMax: 120, notesMax: 2000, crewMax: 10, tricksMax: 20 };
+const SESSION_LIMITS = { aimMax: 120, notesMax: 2000, crewMax: 10, tricksMax: 20, spotNameMax: 80 };
 const SESSION_DURATION_MINUTES = [30, 60, 120, 180];
 const SESSION_FEEL_IDS = ['sent', 'good', 'fine', 'rough', 'hurt'];
 const SESSION_WEATHER_IDS = ['sun', 'cloud', 'rain', 'wind', 'cold'];
@@ -36,7 +36,9 @@ const SESSION_REFUSALS = {
   future: 'That time has not happened yet.',
   durationMinutes: 'Pick how long you rode for.',
   sport: 'Pick what you rode.',
-  spotId: 'Pick where you rode.',
+  spotId: 'Pick where you rode, or type where it was.',
+  spotNameLong: 'A place name can be up to 80 characters.',
+  spotNameBadCharacters: 'Place names cannot contain line breaks.',
   spotHidden: 'That spot is not on the map.',
   eventHidden: 'That event is not on the calendar.',
   feel: 'Pick how it felt.',

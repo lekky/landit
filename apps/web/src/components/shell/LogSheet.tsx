@@ -196,10 +196,18 @@ type View = 'menu' | 'trick' | 'clip';
 export function LogSheet({
   onClose,
   sessionsEnabled,
+  rodeToday: alreadyRode = false,
 }: {
   onClose: () => void;
   /** The session rows are drawn only for a rider the preview covers (T41). */
   sessionsEnabled?: boolean;
+  /**
+   * Today's ride is already counted, so the first row says so and does nothing
+   * (owner, 2026-09-17: "i rode today should be disabled somehow if they
+   * already logged today?"). Computed on the server in the rider's own
+   * timezone (`(app)/layout.tsx`), because the bars never see a rider record.
+   */
+  rodeToday?: boolean;
 }) {
   const { sport } = useSport();
   const router = useRouter();
@@ -217,7 +225,7 @@ export function LogSheet({
    * from here and a ride logged from the card say the same thing.
    */
   const rodeToday = () => {
-    if (pending) return;
+    if (pending || alreadyRode) return;
     picked('rode');
     startTransition(async () => {
       const result = await runActionOr('ride_logged', rodeTodayAction, (error) => ({ error }));
@@ -281,13 +289,25 @@ export function LogSheet({
 
       {view === 'menu' && (
         <>
+          {/*
+            **The row stays, and says it is done.** Hiding it would take the
+            control away on the one day a rider has actually used it, and leave
+            them wondering where it went; disabled and restated, they can see
+            the streak is safe without tapping anything. `log_action_picked`
+            does not fire for a tap that cannot do anything — `rodeToday`
+            returns before `picked`.
+          */}
           <OptionRow
             icon="check"
-            fill="var(--lime)"
+            fill={alreadyRode ? 'var(--wash)' : 'var(--lime)'}
             title="I rode today"
-            line="One tap. Counts a ride for the streak, nothing else."
+            line={
+              alreadyRode
+                ? 'Counted today. One a day is all it takes.'
+                : 'One tap. Counts a ride for the streak, nothing else.'
+            }
             onClick={rodeToday}
-            disabled={pending}
+            disabled={pending || alreadyRode}
           />
           <OptionRow
             icon="grid"

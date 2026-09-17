@@ -257,6 +257,27 @@ function planIncludesFlair(app, userRecord) {
   return !!plan && plan.getBool('includes_flair');
 }
 
+/**
+ * How many crews this rider's plan may create (owner, Rachid, 2026-09-17, in
+ * chat: "1 for free, 3 for 3.99 and 10 for the top tier").
+ *
+ * Read off the plan record like every entitlement before it (plan §2.4), so
+ * **nothing compares the plan slug to `shredder` or `legend`** and staff can
+ * move a number without a deploy.
+ *
+ * **Fails closed at one, not at zero.** A cap on *creating* is not a paywall: a
+ * rider whose plan record cannot be read should still be able to run the crew
+ * they already have, and refusing everybody their first crew because a `plans`
+ * row is missing would be an outage wearing a rule's clothes. `crewCapFor` in
+ * `@landit/core` says the same thing in the same words on the client.
+ */
+function planCrewCap(app, userRecord) {
+  const plan = planFor(app, userRecord);
+  if (!plan) return 1;
+  const cap = plan.getInt('crew_cap');
+  return cap > 0 ? cap : 1;
+}
+
 function findAll(app, collection, filter, params) {
   return app.findRecordsByFilter(collection, filter, '', 0, 0, params || {});
 }
@@ -1225,6 +1246,7 @@ module.exports = {
   isTrickFree,
   normaliseHandle,
   planFor,
+  planCrewCap,
   planIncludesFlair,
   planIncludesInsights,
   planUnlocksPaidTricks,

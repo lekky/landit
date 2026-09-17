@@ -951,7 +951,19 @@
     right: 0;
     z-index: 70;
     background: var(--ink);
-    border-top: 3px solid var(--ink);
+    /*
+     * A paper keyline, not an ink one (owner, 2026-09-17: "on pages with a
+     * dark bg, the nav bar blends in so it needs some sort of thing to
+     * separate it").
+     *
+     * The bar is ink, so an ink rule on top of it drew nothing: against a
+     * paper page the bar's own edge did the separating, and against a dark
+     * page — the sessions diary, the spot and event heroes — the two merged
+     * into one black field with only the yellow LOG square breaking it. Paper
+     * is the one keyline that reads on both, and it is the design's own
+     * vocabulary rather than a shadow.
+     */
+    border-top: 3px solid var(--paper);
     padding-bottom: env(safe-area-inset-bottom);
   }
   .mobnav button {

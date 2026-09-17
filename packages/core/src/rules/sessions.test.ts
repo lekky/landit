@@ -522,6 +522,40 @@ describe('sessionProblems', () => {
     expect(sessionProblems({ ...good, feel: 'meh' }, now).feel).toBe(SESSION_REFUSALS.feel);
   });
 
+  it('takes a place the rider typed when the map does not have the spot', () => {
+    // A literal line break, built rather than typed, so the test file itself
+    // stays one line per line.
+    const newline = String.fromCharCode(10);
+    /*
+     * Owner, 2026-09-17, in chat: "need a 'custom' or can't find it and let them
+     * type free text, and free text ones obviously don't link to a page after".
+     *
+     * One of the two, never neither, and the typed one is held to what crew
+     * names are held to — trimmed, capped, and no control characters, because a
+     * name carrying a newline can pretend to be two rows of a list.
+     */
+    expect(sessionProblems({ ...good, spotId: '', spotName: 'The bank behind Aldi' }, now)).toEqual(
+      {},
+    );
+
+    // Neither is still a refusal, and the words now offer both ways out.
+    expect(sessionProblems({ ...good, spotId: '', spotName: '   ' }, now).spotId).toBe(
+      SESSION_REFUSALS.spotId,
+    );
+    expect(SESSION_REFUSALS.spotId).toContain('type where it was');
+
+    expect(sessionProblems({ ...good, spotId: '', spotName: 'x'.repeat(81) }, now).spotId).toBe(
+      SESSION_REFUSALS.spotNameLong,
+    );
+    expect(
+      sessionProblems({ ...good, spotId: '', spotName: 'Two' + newline + 'Lines' }, now).spotId,
+    ).toBe(SESSION_REFUSALS.spotNameBadCharacters);
+
+    // A chosen spot wins, and nothing about the typed name can spoil it: the
+    // server clears the other field either way.
+    expect(sessionProblems({ ...good, spotName: 'x'.repeat(200) }, now)).toEqual({});
+  });
+
   it('names each missing or malformed field in the shared words', () => {
     const problems = sessionProblems(
       {
