@@ -51,15 +51,21 @@
  * what a rail is. Below 1100px it stacks under the panels rather than
  * disappearing: the sheets are what a paid rider is paying for, and a feature
  * that only exists above a width is a feature half the riders never meet.
+ *
+ * `recordLayout` / `recordPanels`, not `recordGrid`: `.recordGrid` is already
+ * taken further down this file by the insights panel's record cards, and a CSS
+ * module hashes a name once per file — so the second declaration simply won and
+ * the rail came out half the screen wide. Caught on the T46 screenshots, which
+ * is what they are for.
  */
-.recordGrid {
+.recordLayout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
   gap: 18px;
   align-items: start;
 }
 
-.recordMain {
+.recordPanels {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 18px;
@@ -67,14 +73,14 @@
 }
 
 @media (max-width: 1100px) {
-  .recordGrid {
+  .recordLayout {
     grid-template-columns: 1fr;
   }
 }
 
 /*
  * `.topGrid` stood here and is gone with the long scroll: the two panels it
- * held are `.recordMain`'s now, which is the same two columns inside a tab
+ * held are `.recordPanels`'s now, which is the same two columns inside a tab
  * rather than at the top of a page.
  */
 
@@ -494,7 +500,7 @@
 }
 
 @media (max-width: 800px) {
-  .recordMain,
+  .recordPanels,
   .timeGrid,
   .insightsGrid {
     grid-template-columns: 1fr;

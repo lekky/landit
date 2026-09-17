@@ -57,8 +57,8 @@ export function HomeScreen({ view }: { view: HomeView }) {
    *
    * Sessions is dropped rather than disabled when the preview is not open to
    * this rider (T41): a card that leads to a screen they would be refused is
-   * worse than no card, and `.cards` is an auto-fitting grid, so three sit in
-   * the row the same way four do.
+   * worse than no card. Three is the ordinary case today, and `.cards` fills
+   * the row either way — see `home.module.css`.
    */
   const cards = (
     <div className={styles.cards}>
@@ -204,11 +204,11 @@ export function HomeScreen({ view }: { view: HomeView }) {
         {primary.length ? (
           /*
             Four on desktop, the first two on a phone — the cut is
-            `.gridWorking`'s, not a slice, because a width measured in the
+            `.gridPrimary`'s, not a slice, because a width measured in the
             browser is a width the server guessed differently and the grid would
             be thrown away on hydration (LESSONS §3a).
           */
-          <div className={`grid-tricks ${styles.gridWorking}`}>
+          <div className={`grid-tricks ${styles.gridPrimary}`}>
             {primary.map((t) =>
               working ? (
                 <WorkingTrick

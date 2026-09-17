@@ -304,17 +304,20 @@
 /*
  * The four `LinkCard`s (rethink §3.4): Progress, Sessions, Stickers, Challenge.
  *
- * `2 × 2` below 860px and a `4-up` row above it, which the spec names as a pair
- * of numbers rather than as an auto-fit — so that is what this is, with the
- * 860px line the whole rethink is drawn on rather than this file's own 900px.
- * `auto-fit` would do something close and something different: with the
- * Sessions card dropped for a rider the preview is not open to (T41), three
- * cards would stretch to fill a four-column track and the row would change
- * shape depending on who is looking at it.
+ * `2 × 2` below 860px and a `4-up` row above it — 860 being the line the whole
+ * rethink is drawn on (`.mobnav` arrives there and `.nav` leaves), rather than
+ * this file's own 900.
+ *
+ * **Three is the ordinary case, not the exception.** Sessions are in owner-only
+ * preview (T41), so most riders see three cards, and a fixed four-column track
+ * would leave a hole where the fourth would have been. So the wide row is
+ * `auto-fit`, which collapses the empty track and stretches what is left, and
+ * the narrow one spans a lone third card across both columns. Either way the
+ * row is full, and neither width has to know how many cards it was given.
  */
 .cards {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 12px;
 }
 
@@ -322,6 +325,10 @@
   .cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+  }
+
+  .cards > *:nth-child(3):last-child {
+    grid-column: span 2;
   }
 }
 
@@ -403,15 +410,20 @@
 }
 
 /*
- * "Working on it" is 4-up on desktop and the **first two** on a phone (§3.4).
+ * "Working on it" — and "Start here", which takes its place when nothing is in
+ * progress — is 4-up on desktop and the **first two** on a phone (§3.4).
  *
  * A CSS cut rather than a slice, because the count differs by width and a width
  * measured in the browser is a width the server guessed differently — the grid
  * would be built one way on the server and another on hydration, which React
  * answers by throwing the tree away (LESSONS §3a).
+ *
+ * Both sections take it because both are a slice with a link out beside them:
+ * "All 3 of yours →" on one, "Library →" on the other. Four trick cards stacked
+ * one-up is three phone screens of scrolling before a rider reaches the crew.
  */
 @media (max-width: 860px) {
-  .gridWorking > *:nth-child(n + 3) {
+  .gridPrimary > *:nth-child(n + 3) {
     display: none;
   }
 }

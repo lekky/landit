@@ -137,8 +137,8 @@ export function ProgressScreen({
             vanishing: a paid feature that only exists on a wide screen is a
             paid feature half the riders cannot find.
           */
-          <div className={styles.recordGrid}>
-            <div className={styles.recordMain}>
+          <div className={styles.recordLayout}>
+            <div className={styles.recordPanels}>
               <Panel className={styles.pad}>
                 <div className="lab" style={{ marginBottom: 12 }}>
                   {view.sportLabel} by category

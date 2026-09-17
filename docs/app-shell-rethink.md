@@ -215,6 +215,44 @@ the whole of it; two of its four bullets cannot live in `packages/ui-web`. So th
 
 **Home order** (phone): greeting → streak card → four cards → Working on it (2 tricks, "All N of yours →") → crew activity (3 lines, "Crew →") → Next up (the next event the rider said yes to, "Find →") → Your spots (faves). Desktop: greeting + streak/challenge rail as today, then the 4-up card row, then Working on it 4-up, then crew activity and Next up side by side. The `SportSwitch` row goes from Home; the greeting panel's four stat blocks stay on desktop and go on the phone (the cards carry the numbers there).
 
+**What Home drops to make room, and what the record cards inherit** *(added by the T46 worker,
+2026-09-17, pending owner confirmation)*. §3.4's order is a list of what Home holds, and three
+things it used to hold are not on it. Each is recorded here rather than left as a silent deletion:
+
+- **The four badge row** (the newest stickers, drawn as art). The Stickers card carries the count
+  and the newest one's name, and the wall is one tap behind it. A row of four badges on the
+  dashboard was the collection shown twice.
+- **"On the wish list"** (a second grid of trick cards). "Want to" is the Progress card's third
+  number, and the list itself is `/library?mine=1`. On a phone it was the largest thing on the
+  dashboard and the least often acted on.
+- **The crew board** (a ranked table of names and landed counts), which §3.4 replaces with the
+  crew's activity. The board is what `/crew` is for; a dashboard wants "what happened".
+
+Two more calls the section is silent on. **"Working on it" and "Start here" both show four cards
+on desktop and the first two on a phone**, cut in CSS at 860px rather than sliced — a count
+decided in the browser is a count the server guessed differently, and the grid would be rebuilt on
+hydration (LESSONS §3a). And **"Your spots" links to `/spots`**, not to `/find`: the faves are
+spots, and `/find` is the group's summary rather than the list. "Next up" links to `/find` as §3.4
+says.
+
+**Three record cards is the ordinary case** *(added by the T46 worker, 2026-09-17, pending owner
+confirmation)*. §3.4 says the Sessions card is hidden unless `sessionsEnabledFor(rider)`, and
+sessions are still in owner-only preview (T41) — so nearly every rider sees **three** cards, not
+four. The row therefore fills itself rather than holding a four-column track with a hole in it:
+above 860px it is `auto-fit`, which collapses the empty track and stretches what is left, and below
+it a lone third card spans both columns of the 2 × 2. The Sessions card's two extra reads (the
+diary, and the last ride's spot) are made behind the same gate, so a rider who is not shown the
+card does not pay for it.
+
+**The desktop keeps both the challenge panel and the Challenge card** *(added by the T46 worker,
+2026-09-17, pending owner confirmation)*. §3.4 asks for the "streak/challenge rail as today" on
+desktop *and* for a Challenge card in the 4-up row, which means the week appears twice on a wide
+screen — once as the coloured panel with its blurb and bar, once as "0/3 · Live scooter week · Ends
+Saturday". Built as written, because "as today" is explicit. On a phone only the card is drawn: the
+panel is hidden below 860px, where a quarter of the first screenful saying one thing twice is a
+real cost. **If the owner would rather the desktop panel went too, that is a one-line change** and
+this paragraph is the place it was noticed.
+
 **`VerifyEmailBanner`** becomes a one-line strip (icon, "Confirm your email", "Send again" link, ×) rather than a panel with two buttons. Same cookie, same copy shortened.
 
 **The strip is 50px, and the lock goes at 360px and below** *(added by the T45 worker, 2026-09-16,
@@ -336,10 +374,42 @@ Phone order: BackLink → hero band (category tag, difficulty, name, one-line lo
 ### 3.10 Other screens
 
 - **Progress** — `TabRow` Record · Over time · Skill tree; the `SportSwitch` and `ProgressTabs` rows go. Record = by category + by stage (+ printable sheets on desktop's rail).
+
+**Where Insights and the printable sheets land** *(added by the T46 worker, 2026-09-17, pending
+owner confirmation)*. §3.10 names three tabs and places two of the screen's five blocks; these are
+the other two.
+
+- **Insights are on Over time.** They are what six months of logging *mean* — the day a rider lands
+  most, the gap between trying and landing — so they belong with the six months. A fourth tab
+  holding one panel would spend a quarter of the row saying one thing.
+- **The printable sheets are on Record**, on a 340px rail beside the two panels above 1100px and
+  stacked under them below it. What they print *is* the record: the rider's list of tricks with a
+  box beside each. They are not hidden on narrow screens, because they are what a Shredder rider is
+  paying for and a paid feature that only exists on a wide screen is one half the riders never
+  find.
+- **The tab panel is `role="tabpanel"`, named after its tab**, and keyed on the tab id so §4's
+  120ms cross-fade runs on every switch.
+- **`ProgressTabs` is removed from `/progress` only.** It still draws on `/progress/sessions`,
+  whose header is T50's (§8). Issue #522 closed on option 1, so `/progress` stays "Where you're at"
+  and does not redirect; the two screens have separate Home cards now.
 - **Sessions** — header with the Log button; on the phone three `StatBlock`s (sessions, time, moved up) then the feed; `SportScopeSelect` replaces the sport pills; the "At an event" pill stays.
 - **Session form** — three steps on the phone via `TabRow` (When & where · What · Notes) with Next / Save; "What you rode" becomes a preset `Tag` from the chip with a Change link, not a three-button row. Desktop: the same three steps inside the modal, step one as two cards side by side.
 - **Quick log** — unchanged, shows the sport `Tag`; on desktop a 640px modal.
 - **Stickers** — Earned / Not yet as a `TabRow` in the header; the `SportSwitch` goes.
+
+**The wall's tabs keep their counts, and `sticker_view_switched` stops firing** *(added by the T46
+worker, 2026-09-17, pending owner confirmation)*. Two things follow from moving the switch out of
+the ink panel and into a boxed `TabRow`.
+
+- **`TabRowItem` gains an optional `note`**, additively, rendered in `.sporttab`'s faded `.n`. The
+  underline bar carried "Earned 3 / Not yet 118", and the count is the reason to press either one:
+  "Not yet 118" is a wall worth opening, "Not yet" is a word. The count is a fact on screen, never
+  a property on an event — `tabs_switched` carries the tab id and nothing else.
+- **The screen stops firing `sticker_view_switched`.** §5's `tabs_switched` entry says it "replaces
+  the several per-screen switch events the tab rows are taking over from", and firing both would be
+  one tap counted under two names. The catalogue entry stays in `analytics.ts` (nothing is removed
+  from it here), and `tabs_switched { group: 'stickers', tab: 'earned' | 'unearned' }` is the
+  measurement from now on.
 - **Challenge** — the `SportSwitch` goes; layout unchanged (desktop: card left, Coming up and history right).
 - **Crew** — `TabRow` Board · Activity · Members; Invite in the header; Start another / Join with a code as two small ghost buttons that reveal the existing forms.
 - **Rider profile** — profile card with the three numbers; `TabRow` Landed · Stickers · Videos.
