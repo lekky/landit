@@ -579,9 +579,11 @@ export default async function TrickPage({ params }: Params) {
               <section
                 id="watch"
                 className={`${styles.videoCard}${data.award ? '' : ` ${styles.cardWide}`}`}
-                aria-label="Watch it"
+                aria-labelledby="watch-it"
               >
-                <div className={`lab ${styles.cardLabel}`}>Watch it</div>
+                <h2 id="watch-it" className={`lab ${styles.cardLabel}`}>
+                  Watch it
+                </h2>
                 <WatchPanel trick={trick} video={video} />
               </section>
             )}
@@ -621,11 +623,20 @@ export default async function TrickPage({ params }: Params) {
 
         {/*
           The three short ways down the page (§3.8), phone only — the sections
-          below are closed rows there, and a rider who came for their own clips
+          below are closed rows there, and a rider who came for their own videos
           should not have to read the list of names to find them. Ordinary
           fragment links: the browser scrolls, and the row that is named opens
           itself off the hash (`Accordion`). Each one is drawn only when there
           is something at the other end of it.
+
+          **"Video", where §3.8 writes "Clip".** The fragment is still `#clips`
+          — that is T45's, and it is an address rather than a word anybody
+          reads — but the word on the page is the page's own. Plan §6.6
+          withdrew the clip vocabulary from this screen when hosting was
+          reversed, T15b's panel came back as "Your videos" rather than "Your
+          clips", and `library.spec.ts` has guarded the absence of the word
+          here ever since. Reintroducing it for a 44px button would mean
+          loosening that guard to gain nothing a rider would notice.
         */}
         {(data.award || video || session) && (
           <nav className={styles.jump} aria-label="Jump to a section">
@@ -641,7 +652,7 @@ export default async function TrickPage({ params }: Params) {
             )}
             {session && (
               <a className={`cond ${styles.jumpBtn}`} href="#clips">
-                Clip
+                Video
               </a>
             )}
           </nav>
@@ -756,7 +767,7 @@ export default async function TrickPage({ params }: Params) {
             */}
             <Accordion
               plainAbove={PLAIN_ABOVE}
-              className={`${styles.section} ${styles.secRoad}`}
+              className={`${styles.section} ${styles.ownTitle} ${styles.secRoad}`}
               title="The road to it"
               sub={road.length === 1 ? '1 step' : `${road.length} steps`}
             >
@@ -775,7 +786,7 @@ export default async function TrickPage({ params }: Params) {
             {practiseAdvice(trick.cat) && (
               <Accordion
                 plainAbove={PLAIN_ABOVE}
-                className={`${styles.section} ${styles.secPractise}`}
+                className={`${styles.section} ${styles.ownTitle} ${styles.secPractise}`}
                 title="Where to practise"
               >
                 <PractiseLine slug={trick.id} cat={trick.cat} sport={trick.sport} />
@@ -805,7 +816,7 @@ export default async function TrickPage({ params }: Params) {
             {equivalents.length > 0 && (
               <Accordion
                 plainAbove={PLAIN_ABOVE}
-                className={`${styles.section} ${styles.secCrossSport}`}
+                className={`${styles.section} ${styles.ownTitle} ${styles.secCrossSport}`}
                 title="Same trick, other sports"
                 sub={
                   equivalents.length === 1 ? '1 other sport' : `${equivalents.length} other sports`
@@ -835,7 +846,7 @@ export default async function TrickPage({ params }: Params) {
                 id="clips"
                 plainAbove={PLAIN_ABOVE}
                 className={`${styles.section} ${styles.secMine}`}
-                title="Your history, notes and clips"
+                title="Your history, notes and videos"
                 sub="Only you can see these"
               >
                 <div className={styles.mine}>

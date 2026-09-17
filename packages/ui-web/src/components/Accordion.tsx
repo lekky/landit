@@ -3,7 +3,6 @@
 import {
   useCallback,
   useEffect,
-  useId,
   useRef,
   useState,
   useSyncExternalStore,
@@ -79,6 +78,17 @@ export type AccordionProps = {
    * in it at all. Left out, the row is a disclosure at every width.
    */
   plainAbove?: number;
+  /**
+   * What level the title is a heading at. `2` by default, which is right under
+   * a screen's one `h1`.
+   *
+   * It **is** a heading, and that is not decoration: a page whose sections are
+   * all disclosure rows has no outline at all without one, so a screen-reader
+   * rider loses the ability to jump between sections that a page of `SectionHead`s
+   * gave them for free. `<summary>`'s content model allows heading content, so
+   * this is the native element's own provision rather than ARIA over the top.
+   */
+  headingLevel?: 2 | 3 | 4;
   className?: string;
   style?: CSSProperties;
 };
@@ -123,9 +133,11 @@ export function Accordion({
   defaultOpen = false,
   id,
   plainAbove,
+  headingLevel = 2,
   className,
   style,
 }: AccordionProps) {
+  const Heading = `h${headingLevel}` as const;
   const plain = usePlain(plainAbove);
   const [open, setOpen] = useState(defaultOpen);
   /** The class that drives the transition — a frame behind `open`, and ahead of
@@ -133,7 +145,6 @@ export function Accordion({
   const [grown, setGrown] = useState(defaultOpen);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const frame = useRef<number | null>(null);
-  const bodyId = `${useId().replace(/[^a-zA-Z0-9]/g, '')}-body`;
 
   const clearPending = useCallback(() => {
     if (closeTimer.current !== null) clearTimeout(closeTimer.current);
@@ -195,7 +206,6 @@ export function Accordion({
     >
       <summary
         className="accordion-head"
-        aria-controls={bodyId}
         onClick={(event) => {
           event.preventDefault();
           if (plain) return;
@@ -203,14 +213,18 @@ export function Accordion({
           else show();
         }}
       >
-        <span className="accordion-text">
-          <span className="accordion-title">{title}</span>
+        {/* The sub-line lives inside the heading rather than beside it: a
+            `<summary>` may hold phrasing content and headings and nothing else,
+            and a row called "The road to it, 3 steps" is a better thing to hear
+            than a row called "The road to it" with a number loose beside it. */}
+        <Heading className="accordion-title">
+          {title}
           {sub && <span className="accordion-sub">{sub}</span>}
-        </span>
+        </Heading>
         <Icon name="chevron" size={18} strokeWidth={2.6} className="accordion-chev" />
       </summary>
 
-      <div id={bodyId} className={cx('accordion-body', grown && 'is-grown')}>
+      <div className={cx('accordion-body', grown && 'is-grown')}>
         <div className="accordion-inner">{children}</div>
       </div>
     </details>

@@ -55,6 +55,41 @@
   display: grid;
   place-items: center;
   overflow: hidden;
+  /* Measured against itself, not the viewport — see the rule below. */
+  container-type: inline-size;
+}
+
+/*
+ * **Under about 260px the poster drops its caption** (T49).
+ *
+ * The frame is 16/10, so a 170px-wide one is 106px tall, and 46px of play
+ * square plus a 9px gap and a 13px label centred in it ends about where the
+ * absolutely-positioned "Open on YouTube" begins: measured in the trick page's
+ * new sticker-and-video row at 390px, the two sat on top of each other. The
+ * caption is the one that goes, because the play square already says what
+ * pressing it does and "Open on YouTube" is the same sentence with somewhere to
+ * go.
+ *
+ * A container query rather than a phone media query: what is too small here is
+ * the *frame*, and the same 170px box on a desktop would collide in exactly the
+ * same way. Every caller of `VideoEmbed` gets the rule and none of them has to
+ * know about it.
+ */
+@container (max-width: 260px) {
+  .posterLabel {
+    display: none;
+  }
+
+  /* And the square comes down with it, so the link below has its own air. */
+  .playMark {
+    width: 34px;
+    height: 34px;
+    box-shadow: 3px 3px 0 var(--paper);
+  }
+
+  .posterOut {
+    font-size: 10px;
+  }
 }
 
 .iframe {

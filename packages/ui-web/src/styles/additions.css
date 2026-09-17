@@ -850,21 +850,26 @@ a.pill.on:hover {
 .accordion-head:active {
   transform: translate(2px, 2px);
 }
-.accordion-text {
+/* The heading is the row's whole left-hand side. `margin: 0` because the
+   shared stylesheet gives every heading one and a row is not a paragraph. */
+.accordion-title {
   flex: 1;
   min-width: 0;
-}
-.accordion-title {
-  display: block;
+  margin: 0;
   font-family: var(--fc);
   font-weight: 700;
   font-size: 16px;
+  line-height: 1.25;
   letter-spacing: 0.02em;
+  text-transform: none;
 }
 .accordion-sub {
   display: block;
+  font-family: var(--fb);
+  font-weight: 400;
   font-size: 13px;
   line-height: 1.35;
+  letter-spacing: 0;
   color: var(--ink-3);
 }
 .accordion-chev {

@@ -707,6 +707,77 @@ Phone order: BackLink → hero band (category tag, difficulty, name, one-line lo
 
 **`Accordion`** (new, `packages/ui-web`, additive) — a row (3px keyline, `--sh-sm`, paper, `min-height: 56px`) with a Barlow Condensed 16px title, an optional 13px sub-line and a chevron that rotates 180° over 120ms; the body opens with `grid-template-rows: 0fr → 1fr` over 200ms ease-out. `<details>`/`<summary>` underneath for no-JS and accessibility. Open state is not persisted. Desktop does not use it: the page keeps its two columns and plain panels, with the sticker + video row above the ladder in the left column.
 
+
+**What "the sections" turned out to be, and where the three the list does not name went**
+*(added by the T49 worker, 2026-09-17, pending owner confirmation)*. §3.8 names six rows — The
+lowdown, Tips, What you need, The road to it, Where to practise, Your history / notes / clips — and
+the page has twelve sections. The rest are rows too, keeping the titles they already had, because a
+page that is eight rows and four loose panels is neither a list nor a page. So the phone order is:
+The lowdown, Tips, Why it isn't working, What you need, The road to it, Where to practise, Where it
+sits, Same trick other sports, and the rider's own. Three exceptions, each for its own reason:
+
+- **The fun fact is inside The lowdown** rather than a row of its own. It is two lines about the
+  trick, which is what the lowdown is, and a chevron guarding a sentence is a chevron that costs
+  more than it saves.
+- **The guardian line is outside the rows altogether**, full width under the band at both widths. It
+  is the one thing on this page written for a grown-up, and a safety note behind a chevron is a
+  safety note nobody opened. It was in the reading column beside the kit; it is now on screen at
+  both widths without anybody pressing anything.
+- **"Your history / notes / clips" is one row, not three**, holding the rider's sessions on the
+  trick, the history timeline and the notes-and-videos panel in that order. It is the row `#clips`
+  names, and the slashes in §3.8's own title are what say it is one thing.
+
+**Everything is shut when the page opens** *(added by the T49 worker, 2026-09-17, pending owner
+confirmation)*. §3.8 says the open state is not persisted and does not say what the first paint
+looks like. Nothing is open: a phone page that is a hero, a row, a band and then nine names is the
+short scroll the rethink is for, and the hero's one-line lowdown is what stops "everything shut"
+meaning "a page that says nothing about the trick".
+
+**§3.8's "Clip" is drawn as "Video", and the fragment stays `#clips`** *(added by the T49 worker,
+2026-09-17, pending owner confirmation)*. The third jump button and the row it points at use the
+word this page already uses. Plan §6.6 withdrew the clip vocabulary from the trick page when clip
+hosting was reversed; T15b's rider-video panel came back as **"Your videos"**, and
+`e2e/library.spec.ts` has asserted the absence of the word on this page ever since — deliberately,
+as the tripwire that notices a vault reappearing. Putting "Clip" on a 44px button would have meant
+loosening that assertion to gain a word no rider is waiting for. The **address** is untouched:
+`#clips` is what T45's Log sheet pushes, and it is an address rather than something anybody reads.
+
+**The ladder is the band's own, not `StagePicker`** *(added by the T49 worker, 2026-09-17, pending
+owner confirmation)*. §3.8 says the yellow band carries "the `StagePicker` and Share". The band has
+never used that component and `trick.module.css` says why: the ladder needs a third state for the
+stages a rider has already passed, which `StagePicker` does not have, and widening the shared
+component for one band would change how the dashboard and the design gallery draw (CLAUDE.md step
+5). T49 reorders the page; it does not rewrite the one control on it. Read §3.8's `StagePicker` as
+naming the stage ladder rather than the export.
+
+**The row is above the band at both widths** *(added by the T49 worker, 2026-09-17, pending owner
+confirmation)*. §3.8's desktop sentence says the sticker + video row is "above the ladder in the
+left column", and the ladder is a full-width band with no column to be in. D7 settles it — "the
+sticker and the video share one row directly under the name, then the stage ladder" — so the row is
+full width under the hero at every width, two equal columns of it, and the band follows. Equal
+columns rather than a badge-sized track and the rest, because a 16:9 player given two thirds of a
+1180px page is 440px tall and pushes the band — the only control on this page — off the first
+screenful.
+
+**Desktop is the same markup, held open** *(added by the T49 worker, 2026-09-17, pending owner
+confirmation)*. §3.8 says "Desktop does not use it", and one server render cannot know the width, so
+"does not use it" is built as `Accordion`'s `plainAbove={820}`: above that width every row is held
+open, the chevron goes, the summary stops being a control and the trick page's own stylesheet
+repaints the head as the 2026-09-07 pack's diamond-and-rule heading. 820 because that is where the
+page's two columns already begin, so there is one number for "is this the wide page" rather than two
+that could disagree by a pixel. The width is read after hydration, so the desktop half of that
+repaint is written into the page's media query as well — otherwise a wide screen meets a page of
+headings with nothing under them for one frame.
+
+**The title is a heading, and `<summary>` is where it goes** *(added by the T49 worker, 2026-09-17,
+pending owner confirmation)*. §3.8 gives the row "a Barlow Condensed 16px title" and does not say
+what element it is. It is an `h2`: the page's twelve `SectionHead`s were twelve `h2`s, and turning
+them into spans would take the document outline away from exactly the rider who most needs it — a
+screen reader moves between sections by heading, and there would have been none. `<summary>`'s
+content model allows heading content, so this is the native element's own provision rather than ARIA
+laid over it; the sub-line sits inside the heading, so a row is announced as "The road to it, 3
+steps".
+
 ### 3.9 Account
 
 **`SettingsList` / `SettingsRow`** (new, `apps/web/src/app/(app)/account/`) — rows of 60px: a 40px icon square with a fixed fill, a 16px title, a 13px sub-line showing the current value, a right-pointing chevron. Seven rows: Your profile · What you ride · Who can see your profile · Who sees new sessions (when enabled) · Plans and billing · Coach / parent view · Your data. Phone: each row is a link to its own screen (`/account/profile`, `/account/sports`, `/account/privacy`, `/account/sessions`, `/plans`, `/coach`, `/account/data`), which is the existing panel on its own page with a "Your account" back link. Desktop: the list is a 340px left column and the chosen panel renders on the right; the URL still changes so a link lands on the right panel.

@@ -303,11 +303,8 @@ a.jumpBtn:hover {
     background: var(--ink);
   }
 
-  .section :global(.accordion-text) {
-    flex: none;
-  }
-
   .section :global(.accordion-title) {
+    flex: none;
     font-family: var(--fd);
     font-weight: 400;
     font-size: 24px;
@@ -345,6 +342,21 @@ a.jumpBtn:hover {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/*
+ * Three of the panels came with a title of their own, from the days when they
+ * sat in the right-hand column with nothing above them saying what they were.
+ * The row's own name is that now, at both widths, so the panel's copy of it is
+ * the same words twice, a line apart.
+ *
+ * Hidden rather than deleted: `CrossSportPanel`'s list is `aria-labelledby` its
+ * title, and a reference to a hidden element still names it — removing the
+ * element would leave a list of other sports called nothing.
+ */
+.ownTitle .panelTitle,
+.ownTitle .practiseLabel {
+  display: none;
 }
 
 /* ------------------------------------------------------- the award hero -- */
@@ -555,7 +567,6 @@ a.jumpBtn:hover {
   padding: 18px 22px;
   border-bottom: 3px solid var(--ink);
   background: var(--paper-2);
-  align-items: start;
 }
 
 .cardWide {
@@ -1183,6 +1194,36 @@ a.jumpBtn:hover {
 
   .stickerCond {
     font-size: 15px;
+  }
+
+  /*
+   * The video's title, channel and "Something wrong?" stack in the card rather
+   * than sharing a row with it.
+   *
+   * Measured at 390: the row is two 169px cards, "Something wrong?" is
+   * `white-space: nowrap` and about 110px of it, and `min-width: 0` on the
+   * title box meant the title shrank to fit what was left instead of the row
+   * wrapping — one word per line, eleven lines deep. The link is not dropped on
+   * a phone: it is the way to report somebody else's video on a page built for
+   * children, and a phone is where most of them are.
+   */
+  .videoCard .watchFoot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .videoCard .watchTitleBox {
+    flex: none;
+    width: 100%;
+  }
+
+  .videoCard .watchTitle {
+    font-size: 13px;
+  }
+
+  .videoCard .watchReport {
+    white-space: normal;
   }
 
   .band {

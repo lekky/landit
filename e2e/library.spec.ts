@@ -230,12 +230,19 @@ test('a trick shows its award, and landing the trick stamps it', async ({ page }
   // The design pack's placeholder, gone for good.
   await expect(page.getByText(/trick photo/i)).toHaveCount(0);
 
-  // Every trick award is named after its trick, so the badge's name is the
-  // trick's — asserted from the catalogue rather than typed in.
-  await expect(page.getByText('The award')).toBeVisible();
+  /*
+   * Every trick award is named after its trick, so the badge's name is the
+   * trick's — asserted from the catalogue rather than typed in.
+   *
+   * Since T49 the badge is in a card of its own in the row under the name (D7)
+   * rather than overhanging the hero, and the card says what it takes: "Land it
+   * at Sometimes" until it is held, the earned date after. "The award ·" was
+   * the hero subline that card replaced.
+   */
   await expect(
     page.getByRole('img', { name: `${freeTrick.name} award, not earned yet` }),
   ).toBeVisible();
+  await expect(page.getByText('Land it at Sometimes')).toBeVisible();
   await expect(page.getByText('First landed')).toHaveCount(0);
 
   // `some` is the lowest stage that counts as landed (`LANDED_STAGES`), so
@@ -264,6 +271,9 @@ test('a trick shows its award, and landing the trick stamps it', async ({ page }
   // And the rider's history with the trick now has a row for it (T31).
   await expect(page.getByText('★ first landed')).toBeVisible();
   await expect(page.getByText('Your history with this trick')).toBeVisible();
+  // The card now dates the badge rather than telling the rider how to get it.
+  await expect(page.getByText(/^Earned /)).toBeVisible();
+  await expect(page.getByText('Land it at Sometimes')).toHaveCount(0);
 });
 
 /*
@@ -728,4 +738,127 @@ test('a rider who stopped tracking can clear the history, and it takes the badge
   await expect(page.getByText('★ first landed')).toHaveCount(0);
   await expect(page.getByRole('img', { name: `${freeTrick.name} award, earned` })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Clear history', exact: true })).toHaveCount(0);
+});
+
+/*
+ * ------------------------------------------------- the trick page on layout A
+ *
+ * T49 (app shell rethink §3.8, D7). The page reorders: the sticker and the
+ * video share one row under the name, the yellow band carries `#ladder`, and
+ * every section below is an `Accordion` on a phone and a plain panel above
+ * 820px. These are the assertions that notice if any of that comes apart —
+ * the order is decided in CSS and in a client-side media query, and neither
+ * fails loudly on its own.
+ *
+ * The two tricks with a tutorial are reserved by `seed-trick-video.ts` and are
+ * not touched here; the row's "with a video" state is asserted in
+ * `trick-video.spec.ts`, which already owns that fixture.
+ */
+
+const PHONE = { width: 390, height: 844 };
+
+test('the sticker and the video share the row, and the sticker takes it alone without one', async ({
+  page,
+}) => {
+  // With no video: one card, spanning both columns of the row.
+  await page.goto(`/library/${freeTrick.id}`);
+  const sticker = page.locator('#sticker');
+  await expect(sticker).toBeVisible();
+  await expect(page.locator('#watch')).toHaveCount(0);
+  const row = page.locator('#sticker').locator('xpath=..');
+  const rowBox = (await row.boundingBox())!;
+  const aloneBox = (await sticker.boundingBox())!;
+  // Within the row's own padding — the card is the row, not half of it.
+  expect(aloneBox.width).toBeGreaterThan(rowBox.width - 60);
+
+  // With one: two cards side by side, tops level, neither the full width.
+  await page.goto('/library/bmx-wheelie');
+  const withVideo = (await page.locator('#sticker').boundingBox())!;
+  const watch = (await page.locator('#watch').boundingBox())!;
+  expect(withVideo.width).toBeLessThan(rowBox.width * 0.6);
+  expect(watch.x).toBeGreaterThan(withVideo.x + withVideo.width - 1);
+  expect(Math.abs(watch.y - withVideo.y)).toBeLessThan(2);
+
+  // And the row is above the band at both widths, which is what D7 decided.
+  const band = (await page.locator('#ladder').boundingBox())!;
+  expect(watch.y + watch.height).toBeLessThanOrEqual(band.y + 1);
+});
+
+test('a section on a phone is a details that opens, and a plain panel on a desktop', async ({
+  page,
+}) => {
+  await page.setViewportSize(PHONE);
+  await page.goto(`/library/${freeTrick.id}`);
+
+  // The row is the native element, not a div wearing ARIA.
+  const lowdown = page.locator('details').filter({ hasText: 'The lowdown' }).first();
+  await expect(lowdown).toHaveJSProperty('tagName', 'DETAILS');
+  await expect(lowdown).not.toHaveAttribute('open', '');
+
+  const body = page.getByText(freeTrick.about.slice(0, 40));
+  await expect(body).toBeHidden();
+
+  await page.getByRole('heading', { name: 'The lowdown' }).click();
+  await expect(lowdown).toHaveAttribute('open', '');
+  await expect(body).toBeVisible();
+
+  // Shutting it again is the same press, and the copy goes back behind it.
+  await page.getByRole('heading', { name: 'The lowdown' }).click();
+  await expect(body).toBeHidden();
+
+  /*
+   * Above 820px there is no disclosure at all (§3.8): every section is open,
+   * the chevron is gone, and pressing the heading changes nothing. The width
+   * is read in the browser, so this asserts the state after hydration rather
+   * than the markup the server sent.
+   */
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.reload();
+  await expect(body).toBeVisible();
+  await page.getByRole('heading', { name: 'The lowdown' }).click();
+  await expect(body).toBeVisible();
+});
+
+test('the Log sheet lands on the ladder and on the videos, clear of the top bar', async ({
+  page,
+}) => {
+  await signUpRookie(page);
+  await page.setViewportSize(PHONE);
+
+  // `#ladder` — where "Log a trick" arrives. The band has to be below the
+  // sticky top bar once the browser has scrolled to it, not under it.
+  await page.goto(`/library/${freeTrick.id}#ladder`);
+  const band = page.locator('#ladder');
+  await expect(band).toBeVisible();
+  const bar = (await page.locator('header.topbar').boundingBox())!;
+  const bandBox = (await band.boundingBox())!;
+  expect(bandBox.y).toBeGreaterThanOrEqual(bar.y + bar.height);
+  // And the thing a rider came to press is in it.
+  await expect(band.getByRole('button', { name: 'Sometimes' })).toBeVisible();
+
+  /*
+   * `#clips` — where "Add a clip link" arrives. A fragment that scrolled a shut
+   * box into view would be a link that did not work, so the row opens itself.
+   */
+  await page.goto(`/library/${freeTrick.id}#clips`);
+  const mine = page.locator('details#clips');
+  await expect(mine).toHaveAttribute('open', '');
+  await expect(page.getByRole('tab', { name: /Your videos/i })).toBeVisible();
+});
+
+test('the desktop page keeps its two columns', async ({ page }) => {
+  await signUpRookie(page);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(`/library/${freeTrick.id}`);
+
+  const lowdown = (await page.getByRole('heading', { name: 'The lowdown' }).boundingBox())!;
+  const facts = (await page.getByRole('heading', { name: 'Where it sits' }).boundingBox())!;
+
+  // Side by side, not stacked: the second column starts to the right of the
+  // first and their headings sit on the same line.
+  expect(facts.x).toBeGreaterThan(lowdown.x + 200);
+  expect(Math.abs(facts.y - lowdown.y)).toBeLessThan(4);
+
+  // The jump row is the phone's, and is not drawn here.
+  await expect(page.getByRole('navigation', { name: 'Jump to a section' })).toBeHidden();
 });
