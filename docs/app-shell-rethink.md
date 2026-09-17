@@ -101,6 +101,18 @@ trick page carries "All tricks"; a spot page "Spots"; a rider profile "Crew"; th
 sub-screens (phone) "Your account". Back links are ordinary links to the parent route, not
 `history.back()`, so a deep link still has somewhere to go.
 
+**An event page carries "Events", and the last breadcrumb in the product goes with it** *(added by
+the owner-pass-1 worker, 2026-09-17, after the independent review of the combined branch)*. §2.3
+names the spot page and not the calendar's own detail page, and T52 converted the one it named — so
+the Find group shipped with its two detail pages disagreeing: `/spots/[slug]` on a 44px `BackLink`
+and `/events/[slug]` still on `EVENTS / UNITED KINGDOM / MANCHESTER`. The trail's two tail segments
+were plain text repeating the sub-line under the title, which already reads "Projekts MCR ·
+Manchester", and its one link was 12.5px of unpadded type — the smallest target on the page.
+**Nothing a crawler reads is lost**: the page's JSON-LD is `eventLd`, an `Event` with a `Place` and
+a `PostalAddress`, never a `BreadcrumbList`, so the town and country still reach a search engine
+through `addressLocality` and `addressCountry` as well as through the `<h1>`, the sub-line and the
+metadata description. The `.crumb` rules go with the markup that wrote them.
+
 ---
 
 ## 3. Components
@@ -1536,6 +1548,26 @@ getting two months free, which is the assertion `e2e/plans.spec.ts` keeps either
 The row is capped at **460px** and centred, because two tabs each taking half of a 1180px page would
 put "Monthly" alone in the middle of 570px of paper. The cap moved onto the wrapper, which is also
 the tag's positioning context.
+
+**Plans' tabs get a panel, and the period gets an address** *(added by the owner-pass-1 worker,
+2026-09-17, after the independent review of the combined branch)*. Two things the row was missing
+that every other `TabRow` on a screen already had.
+
+**A `role="tabpanel"`.** A tablist with no panel under it announces a relationship the document does
+not have: a screen reader is told "Yearly, tab, 2 of 2" and then told about no panel at all. The
+cards are the panel — they are the only thing the period changes, every price on both sides having
+been computed on the server — and they are `aria-labelledby` the tab that changed them, through a
+shared `periodTabId()` so the tab's `elementId` and the panel's reference cannot drift. The
+guardian notices, the currency footnote, the sessions comparison and the FAQ are deliberately
+*outside* it: a panel claiming them would be telling a screen reader that the FAQ answers change
+with the billing period. Keyed on the period, so §4's 120ms cross-fade runs on every switch.
+
+**And `?tab=`, the Progress pattern** (`useTabParam`). The period was `useState`, so a link to
+yearly pricing did not exist and Back after a checkout landed a rider on Monthly. `/plans?tab=yearly`
+now opens on the yearly prices, the default is spelled by *absence* so the screen as it opens has
+one address rather than two that render the same thing, `replace` rather than `push` keeps pressing
+both tabs out of the history, and the value is validated against `BILLING_PERIODS` so a hand-typed
+`?tab=nonsense` opens Monthly rather than an empty screen.
 
 **The pill rows are the native radios, clipped** *(added by the T52 worker, 2026-09-17, pending
 owner confirmation)*. §3.10 says the radio lists on Coach, Suggest, Report and Close account become
