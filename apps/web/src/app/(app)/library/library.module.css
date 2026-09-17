@@ -64,6 +64,18 @@
   align-items: stretch;
 }
 
+/*
+ * The row with nothing in it but the Filters box — a signed-out visitor, who
+ * has no tracked tricks and therefore no All · Mine. Above 860px the Filters
+ * box is not drawn either, so what is left is an empty flex line carrying
+ * `.sporttabs`' 18px of bottom margin.
+ */
+@media (min-width: 861px) {
+  .tricksRowAlone {
+    display: none;
+  }
+}
+
 /* Two tabs, so two shares of the row against the Filters box's one. */
 .tricksTabs {
   flex: 2;

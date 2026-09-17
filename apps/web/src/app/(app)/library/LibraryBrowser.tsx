@@ -465,7 +465,17 @@ export function LibraryBrowser({
         same `.tabrow .sporttab` rules. It reads as one row and says two true
         things.
       */}
-      <div className={`sporttabs tabrow ${styles.tricksRow}`}>
+      {/*
+        Signed out the row holds only the Filters box, which is not drawn above
+        860px — so on a desktop it would be an empty flex line carrying
+        `.sporttabs`' own 18px of bottom margin, above a screen a visitor came to
+        read. `.tricksRowAlone` takes the whole row away at that width instead.
+      */}
+      <div
+        className={`sporttabs tabrow ${styles.tricksRow} ${
+          signedIn ? '' : styles.tricksRowAlone
+        }`.trim()}
+      >
         {signedIn && (
           /*
             "My tricks" (T22). Signed in only — a visitor with no account has no
