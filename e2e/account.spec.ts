@@ -159,9 +159,81 @@ test('the desktop keeps the list beside the panel, and a link lands on the right
   await expect(page.getByRole('link', { name: 'Your account', exact: true })).toBeHidden();
 });
 
+/*
+ * Pressing a row on a desktop swaps the panel; it does not fetch the page again.
+ *
+ * The test above deep-links, which is the other half. This one is the half a
+ * rider actually does, and the thing worth pinning is that the URL moves and the
+ * lit row moves **without a document load** — a master/detail that reloads the
+ * whole screen to change the right-hand pane is a list of links wearing a
+ * layout. `page.on('load')` is how that is asked without a DOM lib: it fires on
+ * a real navigation and not on a client-side one.
+ */
+test('a desktop row press swaps the panel without reloading the page', async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await onboardedRider(page);
+
+  let loads = 0;
+  page.on('load', () => {
+    loads += 1;
+  });
+
+  await page.goto('/account');
+  await expect(listOf(page)).toBeVisible();
+  const documentLoads = loads;
+
+  await listOf(page)
+    .getByRole('link', { name: /^Who can see your profile/ })
+    .click();
+  await page.waitForURL('**/account/privacy');
+
+  await expect(page.getByRole('radio', { name: /^Private/ })).toBeChecked();
+  await expect(
+    listOf(page).getByRole('link', { name: /^Who can see your profile/ }),
+  ).toHaveAttribute('aria-current', 'page');
+  // And the row it moved off no longer claims it.
+  await expect(listOf(page).getByRole('link', { name: /^Your profile/ })).not.toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  expect(loads).toBe(documentLoads);
+
+  // Back is the list again, still without a reload.
+  await page.goBack();
+  await page.waitForURL((url) => url.pathname === '/account');
+  expect(loads).toBe(documentLoads);
+});
+
+/*
+ * `/account/close` is outside the settings list on purpose, and the one link it
+ * has into it is the download — which moved with the panel (T51). A rider told
+ * to take a copy of their data before closing their account should land on the
+ * download, not on a list of eight rows with the download behind one of them.
+ */
+test('closing an account points at the data screen, not at the list', async ({ page }) => {
+  await onboardedRider(page);
+  await page.goto('/account/close');
+
+  await page.getByRole('link', { name: 'Download your data' }).click();
+  await page.waitForURL('**/account/data');
+
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Your data');
+  // And the thing they came for is on it: the export route itself, which is
+  // untouched by any of this.
+  await expect(page.getByRole('link', { name: 'Download your data' })).toHaveAttribute(
+    'href',
+    '/api/account/export',
+  );
+});
+
 test('the guardian row is the gate’s way in, and nobody else is offered it', async ({ page }) => {
   await onboardedRider(page, 11);
   await page.goto('/account');
+
+  // The panel itself is under the lede, where it was before the list: a child
+  // waiting on a grown-up meets the thing that asks one, not a chevron.
+  await expect(page.getByText(/a grown-up needs to say yes/i)).toBeVisible();
+  await expect(page.getByLabel(/parent or carer/i)).toBeVisible();
 
   await expect(listOf(page).getByRole('link', { name: /^Your guardian/ })).toContainText(
     'Waiting on a grown-up',
@@ -180,6 +252,31 @@ test('a rider the gate does not apply to is sent back to the list', async ({ pag
 
   // Not a 404 and not an error: the screen exists, it is simply not about them.
   await page.goto('/account/guardian');
+  await page.waitForURL((url) => url.pathname === '/account');
+});
+
+/*
+ * The same answer for the sessions preview — and the one assertion in this file
+ * that the suite's own server usually cannot make.
+ *
+ * `playwright.config.ts` runs the app with `LANDIT_SESSIONS_OPEN=1`, so every
+ * rider here is inside the preview and there is nobody to be redirected. The
+ * test asks the screen which world it is in rather than guessing, and skips
+ * loudly where the flag is on: a skip that names its reason is a gap somebody
+ * can see, where a test quietly asserting the other branch would be a gap
+ * nobody can.
+ */
+test('a rider outside the sessions preview is sent back to the list', async ({ page }) => {
+  await onboardedRider(page);
+  await page.goto('/account');
+
+  const row = listOf(page).getByRole('link', { name: /^Who sees new sessions/ });
+  test.skip(
+    (await row.count()) > 0,
+    'this server has LANDIT_SESSIONS_OPEN=1, so the preview covers every rider',
+  );
+
+  await page.goto('/account/sessions');
   await page.waitForURL((url) => url.pathname === '/account');
 });
 

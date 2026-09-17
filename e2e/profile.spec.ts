@@ -179,6 +179,53 @@ test('an unfinished goal is held rather than saved, and the old one survives', a
 });
 
 /*
+ * The half of that rule the split screens nearly lost (T51, review B1).
+ *
+ * Turning a sport off takes any goal that belonged to it, which leaves the
+ * draft incomplete — so the *sport change* is held too, and both are written in
+ * one post once there is a goal again. That worked when the two controls shared
+ * a screen. Split across `/account/sports` and `/account/profile` it stopped:
+ * the held draft lives on the panel, a route change unmounts it, and the sport
+ * went with it — silently, after a "Saved". So the goal picker appears on the
+ * sports screen for exactly as long as it is needed, and this is the test that
+ * both halves land.
+ */
+test('a sport toggle that takes the goal is finished on the same screen, and both save', async ({
+  page,
+}) => {
+  await onboardedRider(page, '/account/sports');
+
+  // Two sports, and a goal that belongs to the second one.
+  await page.getByRole('button', { name: new RegExp(SPORTS.skate.label, 'i') }).click();
+  await expect(page.getByText('Saved')).toBeVisible();
+
+  await page.goto('/account/profile');
+  await page.getByRole('button', { name: 'Land a kickflip' }).click();
+  await expect(page.getByText('Saved')).toBeVisible();
+
+  // Now take that sport away. The skate goal goes with it, so nothing is
+  // written yet — and the picker that finishes the answer is on this screen.
+  await page.goto('/account/sports');
+  await page.getByRole('button', { name: new RegExp(SPORTS.skate.label, 'i') }).click();
+  await expect(page.getByText('Pick a goal, or write your own.')).toBeVisible();
+  await expect(page.getByText(/That sport carried your goal/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Ride street properly' }).click();
+  await expect(page.getByText('Saved')).toBeVisible();
+
+  // The point of the test: gone round the server and back, **both halves**.
+  await page.reload();
+  await expect(
+    page.getByRole('button', { name: new RegExp(SPORTS.skate.label, 'i') }),
+  ).toHaveAttribute('aria-pressed', 'false');
+  await page.goto('/account/profile');
+  await expect(page.getByRole('button', { name: 'Ride street properly' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+});
+
+/*
  * The last avatar in the first group — the one a phone could not reach.
  *
  * Named from the data rather than typed in, so adding an avatar to Lids moves

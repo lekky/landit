@@ -717,6 +717,18 @@ is not about with a **redirect back to the list**: not a 404, because the screen
 error, because they have done nothing wrong. `/account/sessions` gives a rider outside the sessions
 preview the same answer, for the same reasons.
 
+**And the panel itself is still on `/account`, under the lede, while the gate applies.** A row
+first in a list is a signpost, and putting the gate behind one is only an improvement if the child
+is standing where the list starts — measured on the first cut at 390px, the row's top was **450px
+down**, behind the eyebrow, the heading, the lede and the whole identity card, with the email field
+a tap beyond that. On `main` a gated child's first screen carried the field. It carries it again:
+`GuardianPanel` renders directly under the lede for `pending` and `revoked`, exactly where it was,
+and the row stays as well. Two places, one panel, and it is not a value shown twice — the panel is
+the ask, and the row is the way back to it once the screen has been scrolled past. Both disappear
+the moment a grown-up says yes. *(Whether a gated rider should see the identity summary underneath
+it at all is a smaller question and the owner's, and it belongs on the rethink's own tracking issue,
+[#541](https://github.com/lekky/landit/issues/541), rather than in this paragraph.)*
+
 **The sub-line is the current value, and it is a catalogue fact every time** *(added by the T51
 worker, 2026-09-17, pending owner confirmation)*. §3.9 says "the current value" and does not say
 what may be one. The rule the list is built to is the analytics catalogue's: a privacy setting's
@@ -737,10 +749,19 @@ follow that the section does not mention.
   because `saveProfileAction` writes the *whole* profile on every change: a component owning only
   the sports would post a profile with the other five answers missing, and the first tap on
   `/account/sports` would wipe a rider's goal, stance, level and picture. Both screens therefore
-  hold the whole draft and show part of it. One consequence is visible: turning a sport off can
-  orphan the goal that belonged to it, the panel holds the write until there is a complete answer
-  again (T23's rule, unchanged), and the message now carries a link to `/account/profile` — a
-  message naming an answer a rider cannot see from where they are standing is a dead end.
+  hold the whole draft and show part of it.
+- **And the goal picker goes to the sports screen when a toggle takes the goal, rather than the
+  rider going to it.** Turning a sport off can orphan the goal that belonged to it; T23's rule is
+  that the panel then holds the *whole* change — the sport and the goal it forced — until there is
+  a complete answer, and writes both in one post. That rule needed the two controls on one screen,
+  and the first cut of this task did not notice: it sent the rider to `/account/profile` with a
+  "Pick a new one →" link, the route change unmounted the panel holding the pending draft, and the
+  sport change was **discarded without a word**. Measured: a rider turned Skateboard off, picked a
+  new goal, saw "Saved", came back, and Skateboard was still on. So the picker is drawn inline
+  under the sport cards for exactly as long as the rider is without a goal, over the same draft, and
+  the single post happens as it always did. The link is gone — it was also being drawn for *every*
+  incomplete answer, so an unset level read "Tell us roughly where you are at. Pick a new one →".
+  `e2e/profile.spec.ts` covers the whole flow, including that both halves survive a reload.
 - **The other panels take `headed`**, which drops the label they draw for themselves. The screen's
   own `h1` is already those words, and the alternative is the same four words twice, 20px apart, in
   two sizes. It defaults to drawing the label, so nothing that has not asked has changed.
@@ -755,10 +776,13 @@ the T51 worker, 2026-09-17, pending owner confirmation)*.
   6px apart on a 390px phone. On a desktop the list is on the left with the row lit, which says it
   better. The parent is named once, by whichever of the two the width has drawn — and the back link
   is therefore hidden above 861px, the call T48 made on `/events/mine` for the same reason.
-- **Sign out, the staff portal's door and "Still on its way" are at the foot of the list column**,
-  not rows and not on the summary. None of them is a setting about this rider, and on a phone the
-  column is the `/account` screen — so they end up exactly where they were, under everything, while
-  a rider on `/account/privacy` is not offered a sign-out button beside a radio group.
+- **Sign out, the staff portal's door and "Still on its way" are at the foot of the list column,
+  and only at `/account`.** None of them is a setting about this rider, and on a phone the column
+  *is* the `/account` screen — so they end up exactly where they were, under everything. The last
+  clause of this bullet used to read "while a rider on `/account/privacy` is not offered a sign-out
+  button beside a radio group", and above 861px that was **false**: the list column is drawn at
+  every address, so every sub-screen had a SIGN OUT button 360px from its control. `AccountShell`
+  draws them only at the root now, at both widths, which is what the sentence always described.
 - **The route group is `account/(settings)/`**, so `/account/close` keeps its own page and its own
   shape untouched. Closing an account is a page a rider goes to on purpose (2026-09-12, owner in
   chat) and a settings list beside it would be this task redesigning the one screen it was told to
@@ -769,9 +793,21 @@ the T51 worker, 2026-09-17, pending owner confirmation)*.
 **On a desktop `/account` itself shows who you are, rather than "pick something on the left"**
 *(added by the T51 worker, 2026-09-17, pending owner confirmation)*. §3.9 says the chosen panel
 renders on the right and does not say what is there when none is chosen. The summary is: the
-rider's picture, name, handle, country, sports and plan tag — the header the old screen opened
-with, and nothing on it is a control. On a phone it is the top of the same screen, above the rows,
-which is the order a rider wants: who you are, then what you can change.
+rider's picture, handle, country, sports, plan tag and a link to their crew — the header the old
+screen opened with, and nothing on it is a control. On a phone it is the top of the same screen,
+above the rows, which is the order a rider wants: who you are, then what you can change.
+
+Three corrections to it, from the independent review. The card does **not** print the rider's name,
+because the `h1` 60px above it already is their name — the same duplication the sub-screens dropped
+their eyebrow to avoid. Its plan tag reads `PLAN[id].name` rather than the stored id, so a paid
+rider is not told "shredder" beside a row saying "Shredder". And **"Your crew" is back**: `main`'s
+"Your profile, and who it is for" panel carried three links, the public profile moved to
+`/account/privacy` and the coach view became a row, and this one was removed with nothing said
+about it. The cost was small — Crew is a cell in the bar at every width — but a link deleted in
+silence is a link nobody decided to delete. *(The coach view's reassurance that "it is not shared
+with anyone and there is no separate login for it" went with that panel and has not come back:
+`/coach`'s own lede says the same thing on the screen it is about. That one is a deletion this
+paragraph is naming rather than reversing.)*
 
 ### 3.10 Other screens
 

@@ -5287,7 +5287,11 @@ each gated as `/account` is, each `noindex`, all six in `GATED_ROUTES` and `DEST
 claimed by the account menu's own row. The panels moved and did not change: `ProfilePanel` draws
 two of the rows from one component because `saveProfileAction` writes the whole profile every time,
 and the rest take a `headed` prop so the screen's `h1` is not their label repeated.
-`/account/close` is untouched behind a `(settings)` route group. The T51 paragraphs in
+`/account/close` is untouched behind a `(settings)` route group. The independent review found one
+functional regression and it is fixed: splitting the profile editor across two screens broke T23's
+"hold the whole change and write it in one post" rule, because the held draft does not survive a
+route change — so the goal picker is drawn on `/account/sports` when a toggle orphans the goal,
+rather than the rider being sent to the other screen. The T51 paragraphs in
 `docs/app-shell-rethink.md` §3.9 record what the spec was silent on.
 
 **T52 · The secondary screens.** `t52-secondary-screens`. Depends on T45. Crew tabs, rider
