@@ -22,16 +22,22 @@ import styles from './shell.module.css';
  * "Log something" — the sheet behind the LOG cell and the desktop Log button
  * (D3, rethink §3.5).
  *
- * The product's four ways of recording a ride were in four different places: "I
- * rode today" on Home's streak card, the stage picker on a trick page, the
- * session form behind Progress, and the clip field further down a trick page.
- * A rider who opened the app to log something had to know which screen held
- * which. This is the one front door, and it is the middle cell of the bar on a
- * phone because logging is what a rider opens this product to do.
+ * The product's ways of recording a ride were in different places: "I rode
+ * today" on Home's streak card, the stage picker on a trick page, and the
+ * session form behind Progress. A rider who opened the app to log something had
+ * to know which screen held which. This is the one front door, and it is the
+ * middle cell of the bar on a phone because logging is what a rider opens this
+ * product to do.
  *
- * It does not log anything itself beyond the one-tap ride: the other three hand
+ * **Three rows, not four** (owner, 2026-09-17, reversing D3's fourth). "Add a
+ * clip link" was a signpost to a signpost: it opened the trick picker only to
+ * land on the video field the trick page already carries. Clips are unchanged
+ * and still added there — this sheet simply stopped being a second door to
+ * them.
+ *
+ * It does not log anything itself beyond the one-tap ride: the other two hand
  * over to the screens that already own those writes, which is what keeps this a
- * signpost rather than a fifth way to write a session.
+ * signpost rather than a fourth way to write a session.
  *
  * `Sheet` is a sheet on a phone and the shared `Modal` on a desktop, so this
  * file says nothing about widths.
@@ -102,13 +108,7 @@ export function OptionRow({
  * browser: the list is a few hundred names and it arrived with the rows above
  * it, so a keystroke costs nothing and nothing a rider types leaves the device.
  */
-function TrickPicker({
-  landedOnly,
-  onPick,
-}: {
-  landedOnly: boolean;
-  onPick: (trick: PickerTrick) => void;
-}) {
+function TrickPicker({ onPick }: { onPick: (trick: PickerTrick) => void }) {
   const { sport } = useSport();
   const [data, setData] = useState<TrickPicker>({ recent: [], all: [], startHere: [] });
   const [loaded, setLoaded] = useState(false);
@@ -116,7 +116,9 @@ function TrickPicker({
 
   useEffect(() => {
     let live = true;
-    void trickPickerAction(sport, landedOnly).then((answer) => {
+    // `false`: the landed-only picker went with the sheet's clip row (owner,
+    // 2026-09-17). The action still takes the flag for whoever wants it next.
+    void trickPickerAction(sport, false).then((answer) => {
       if (!live) return;
       setData(answer);
       setLoaded(true);
@@ -124,7 +126,7 @@ function TrickPicker({
     return () => {
       live = false;
     };
-  }, [sport, landedOnly]);
+  }, [sport]);
 
   const needle = query.trim().toLowerCase();
   /*
@@ -178,11 +180,7 @@ function TrickPicker({
 
       {loaded && rows.length === 0 && (
         <p className={styles.sheetNote}>
-          {needle
-            ? 'Nothing by that name.'
-            : landedOnly
-              ? 'Land a trick first, then a clip has somewhere to go.'
-              : 'Search for the one you rode.'}
+          {needle ? 'Nothing by that name.' : 'Search for the one you rode.'}
         </p>
       )}
     </>
@@ -191,7 +189,7 @@ function TrickPicker({
 
 /* ----------------------------------------------------------------- sheet -- */
 
-type View = 'menu' | 'trick' | 'clip';
+type View = 'menu' | 'trick';
 
 export function LogSheet({
   onClose,
@@ -215,7 +213,7 @@ export function LogSheet({
   const [view, setView] = useState<View>('menu');
   const [pending, startTransition] = useTransition();
 
-  const picked = (action: 'rode' | 'trick' | 'session' | 'clip') =>
+  const picked = (action: 'rode' | 'trick' | 'session') =>
     capture(ANALYTICS_EVENTS.logActionPicked, { action });
 
   /*
@@ -257,9 +255,9 @@ export function LogSheet({
 
   const goToTrick = (trick: PickerTrick, hash: string) => {
     onClose();
-    // `#ladder` and `#clips` are the trick page's own anchors (T49): the yellow
-    // stage band, and the row holding the rider's history, notes and videos —
-    // which `LogPanel` opens on Your videos when it is reached this way.
+    // `#ladder` is the trick page's own anchor (T49): the yellow stage band.
+    // `#clips` still works and still opens `LogPanel` on Your videos, but
+    // nothing here sends a rider to it any more (owner, 2026-09-17).
     router.push(`${trickHref(trick.slug)}${hash}` as Route);
   };
 
@@ -332,24 +330,10 @@ export function LogSheet({
               }}
             />
           )}
-          <OptionRow
-            icon="play"
-            fill="var(--paper)"
-            title="Add a clip link"
-            line="YouTube or TikTok, onto a trick you have logged."
-            quiet
-            onClick={() => {
-              picked('clip');
-              setView('clip');
-            }}
-          />
         </>
       )}
 
-      {view === 'trick' && (
-        <TrickPicker landedOnly={false} onPick={(trick) => goToTrick(trick, '#ladder')} />
-      )}
-      {view === 'clip' && <TrickPicker landedOnly onPick={(trick) => goToTrick(trick, '#clips')} />}
+      {view === 'trick' && <TrickPicker onPick={(trick) => goToTrick(trick, '#ladder')} />}
     </Sheet>
   );
 }

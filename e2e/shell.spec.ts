@@ -161,14 +161,20 @@ test('the bottom bar is four groups and a LOG cell, in the order D1 sets', async
 
 test('the LOG cell opens the sheet, and Escape closes it', async ({ page }) => {
   /*
-   * The one front door onto logging (D3). Four ways of recording a ride were in
-   * four different places — the streak card, a trick page's stage picker, the
-   * session form behind Progress, and the clip field further down a trick page
-   * — and a rider had to know which screen held which.
+   * The one front door onto logging (D3). The ways of recording a ride were in
+   * different places — the streak card, a trick page's stage picker, and the
+   * session form behind Progress — and a rider had to know which screen held
+   * which.
    *
    * "Log a session" is drawn only for a rider the preview covers (T41), and
    * `/design/shell` renders `AppShell` with no gate at all, so what it shows is
-   * the sessions-off shape: three rows, not four.
+   * the sessions-off shape: two rows.
+   *
+   * **"Add a clip link" is asserted absent, not merely dropped from the list**
+   * (owner, 2026-09-17, amending D3). It opened the trick picker only to land
+   * on the video field the trick page already carries, and a row that comes
+   * back by accident is exactly what this line is here to catch. Clips are
+   * unchanged and still added on the trick page.
    */
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(SHELL);
@@ -182,7 +188,7 @@ test('the LOG cell opens the sheet, and Escape closes it', async ({ page }) => {
   await expect(sheet).toBeVisible();
   await expect(sheet.getByRole('button', { name: /I rode today/ })).toBeVisible();
   await expect(sheet.getByRole('button', { name: /Log a trick/ })).toBeVisible();
-  await expect(sheet.getByRole('button', { name: /Add a clip link/ })).toBeVisible();
+  await expect(sheet.getByRole('button', { name: /Add a clip link/ })).toHaveCount(0);
   // The cell says it is holding something open. What the cross means, and why
   // it is not a second way out, is the test further down.
   await expect(log).toHaveAttribute('aria-expanded', 'true');

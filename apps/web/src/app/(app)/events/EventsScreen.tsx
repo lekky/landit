@@ -1471,13 +1471,25 @@ function EventDetailModal({
         onClick={(clicked) => clicked.stopPropagation()}
       >
         <div className={styles.modalHead} style={{ background: event.kindColor }}>
-          <div className={styles.chips}>
-            <Tag color="var(--ink)">{event.kind}</Tag>
-            {event.sports.map((s) => (
-              <Tag key={s.id} color="var(--paper)" className={styles.tagInk}>
-                {s.label}
-              </Tag>
-            ))}
+          {/*
+            The Close, top right (owner, 2026-09-17). It borrows `.modal-close`
+            whole, exactly as the bottom sheet does, so every dialog a rider
+            meets closes the same way and in the same corner. It sits *on* the
+            chips' row rather than over it, so a four-sport event pushes the
+            title down instead of running under the square.
+          */}
+          <div className={styles.modalHeadTop}>
+            <div className={styles.chips}>
+              <Tag color="var(--ink)">{event.kind}</Tag>
+              {event.sports.map((s) => (
+                <Tag key={s.id} color="var(--paper)" className={styles.tagInk}>
+                  {s.label}
+                </Tag>
+              ))}
+            </div>
+            <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
+              <span aria-hidden="true">&times;</span>
+            </button>
           </div>
           {/*
             The title is the link to the full page as well as the dialog's
@@ -1574,20 +1586,18 @@ function EventDetailModal({
             listing before you set off — dates, prices and age limits move, and a session can be
             cancelled without us knowing.
           </p>
+          {/*
+            "I'm going" first, the full-page CTA after (owner, 2026-09-17).
+            Stacked on a phone that puts the thing a rider came to do nearest
+            the thumb; side by side above 560px it reads left to right the same
+            way. The Close that used to sit here is the square in the head now.
+
+            `?from=` is still the only way `event_page_opened` can tell this
+            door from the row's link — the two answer opposite questions about
+            whether the modal is enough on its own.
+          */}
           <div className={styles.modalActions}>
-            <Button variant="ghost" onClick={onClose}>
-              Close
-            </Button>
             <span className={`${styles.push} ${styles.modalRight}`}>
-              {/*
-                The full-page CTA the design puts beside "I'm going". `?from=`
-                is the only way `event_page_opened` can tell this door from the
-                row's link — the two answer opposite questions about whether the
-                modal is enough on its own.
-              */}
-              <Link className={styles.fullCta} href={eventHrefFrom(event.id, 'modal_cta')}>
-                View full page →
-              </Link>
               {event.past ? null : signedIn ? (
                 <Button
                   onClick={onToggle}
@@ -1601,11 +1611,10 @@ function EventDetailModal({
                   Sign in to save
                 </Link>
               )}
+              <Link className={styles.fullCta} href={eventHrefFrom(event.id, 'modal_cta')}>
+                View full page →
+              </Link>
             </span>
-            <p className={styles.ctaHint}>
-              The full page adds the map, what else is on nearby, other events at this venue, and a
-              link you can share.
-            </p>
           </div>
         </div>
       </div>

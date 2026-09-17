@@ -389,8 +389,15 @@
   margin-bottom: 6px;
 }
 
+/*
+ * The same two-line squash `.cardName` hit on /spots: `.d` sets
+ * `line-height: 0.92` for a headline that is one line, and an event's name
+ * runs to two on a phone, where the cap heights and the descenders meet.
+ * 1.06 is the value /spots settled on — tight block, lines apart.
+ */
 .name {
   font-size: 21px;
+  line-height: 1.06;
 }
 
 .meta {
@@ -456,12 +463,39 @@
   border-bottom: 3px solid var(--ink);
 }
 
+/*
+ * The chips and the Close on one line, the way `.sheet-headrow` carries a
+ * title and its Close (owner, 2026-09-17). Flow layout, not an absolute
+ * square: an event with four sports wraps its chips and pushes the title
+ * down, and nothing ever runs underneath the Close.
+ */
+.modalHeadTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  /* The gap the chips' own `margin-bottom` used to give the title. */
+  margin-bottom: 6px;
+}
+
+.modalHeadTop .chips {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
 .tagInk {
   color: var(--ink);
 }
 
+/*
+ * The row title's squash again, and worse here: 30px over three lines at
+ * `.d`'s `line-height: 0.92`, with a 2.5px shadow dropped behind each one, so
+ * the shadow of one line lands on the caps of the next. 1.06 is the same
+ * value the row and /spots use; the shadow clears inside it.
+ */
 .modalTitle {
   font-size: 30px;
+  line-height: 1.06;
   color: var(--on-dark);
   text-shadow: 2.5px 2.5px 0 var(--ink);
 }
@@ -947,14 +981,6 @@
 .fullCta:active {
   transform: translate(2px, 2px);
   box-shadow: 1px 1px 0 var(--ink);
-}
-
-.ctaHint {
-  flex: 1 0 100%;
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--ink-3);
 }
 
 @media (max-width: 560px) {

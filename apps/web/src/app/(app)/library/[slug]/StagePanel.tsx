@@ -1,7 +1,7 @@
 'use client';
 
 import { SITE_URL, STAGE, STAGES, isLandedStage, type StageId } from '@landit/core';
-import { Button, Icon, ShareCard } from '@landit/ui-web';
+import { Button, Icon, Modal, ShareCard } from '@landit/ui-web';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
@@ -13,6 +13,17 @@ import { trickHref } from '@/lib/routes';
 
 import { acknowledgeStickersAction } from '../../stickers/actions';
 import { setStageAction } from '../actions';
+/*
+ * The confirm's furniture, borrowed the way `ClearHistory` borrows it: the
+ * padded stack, the display title, the plain sentence, the actions on the
+ * right. "One idiom, two uses" is three now.
+ *
+ * What it does *not* borrow is the red mark and the danger button. Those say
+ * "there is no bin to get it back from", and stopping tracking keeps the
+ * first-landed date and the badge — a rider can start again tomorrow. Same
+ * shape, honest weight.
+ */
+import confirmStyles from './log.module.css';
 import styles from './trick.module.css';
 
 /**
@@ -189,7 +200,7 @@ export function StagePanel({
           and the buttons land on one line together, as the phone mock-up has
           them. Both are drawn from `landedLabel`; only one is ever on screen.
         */}
-        {landedLabel && !confirming && (
+        {landedLabel && (
           <div className={styles.bandLanded}>
             <div className={`lab ${styles.bandLabel}`}>First landed</div>
             <div className={`cond ${styles.bandDate}`}>{landedLabel}</div>
@@ -200,8 +211,14 @@ export function StagePanel({
           Beside the ladder rather than under it. Share first, because stopping
           is the rarer and heavier of the two and should not be the one a thumb
           lands on.
+
+          These used to be hidden while `confirming`, because the confirm was a
+          strip that took their place in the band. It is a dialog now, so the
+          band stays exactly as it was underneath it — a page that rearranges
+          itself behind a modal is the jump this pass is removing, not a
+          smaller version of it.
         */}
-        {current && !confirming && (
+        {current && (
           <div className={styles.bandActions}>
             {landedLabel && share && (
               <Button
@@ -236,7 +253,15 @@ export function StagePanel({
         from the same `landedLabel`; only one is ever on screen.
       */}
       {/*
-        The confirm. It clears the stage and nothing else: the first-landed date
+        The confirm, as a dialog rather than a strip inside the band (owner,
+        2026-09-17). Opened inline it pushed the ladder taller under the
+        rider's own thumb, on the one control this page exists for; every
+        other "are you sure" here — "Remove this note?", "Clear history",
+        "Leave this crew?" — is already a `Modal`, and this was the odd one
+        out. It also buys the destructive answer Escape, a tap on the scrim, a
+        focus trap, and focus handed back to the button that opened it.
+
+        It clears the stage and nothing else: the first-landed date
         and the award both survive, which is the sentence a rider needs to read
         before they answer rather than after.
 
@@ -248,19 +273,22 @@ export function StagePanel({
         which is where the rows they want rid of are actually shown.
       */}
       {current && confirming && (
-        <div className={styles.bandFoot}>
-          <p className={`cond ${styles.bandNoteInline}`}>
-            Stop tracking this trick? Your first-landed date and your badge are kept.
-          </p>
-          <div className={styles.bandActions}>
-            <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
-              Keep tracking
-            </Button>
-            <Button size="sm" onClick={() => pick(null)}>
-              Stop tracking
-            </Button>
+        <Modal onClose={() => setConfirming(false)} width={420} label="Stop tracking this trick?">
+          <div className={confirmStyles.confirm}>
+            <h3 className={`d ${confirmStyles.confirmTitle}`}>Stop tracking this trick?</h3>
+            <p className={confirmStyles.confirmCopy}>
+              Your first-landed date and your badge are kept.
+            </p>
+            <div className={confirmStyles.confirmActions}>
+              <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
+                Keep tracking
+              </Button>
+              <Button size="sm" onClick={() => pick(null)}>
+                Stop tracking
+              </Button>
+            </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {sharing && share && (

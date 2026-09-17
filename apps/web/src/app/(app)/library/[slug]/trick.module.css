@@ -871,24 +871,6 @@
   font-weight: 700;
 }
 
-/* The same line where it shares the foot row with the buttons, so it does not
-   carry the paragraph's top margin into a flex row. */
-.bandNoteInline {
-  margin: 0;
-  font-size: 13.5px;
-  color: var(--ink-2);
-  max-width: 44ch;
-}
-
-.bandFoot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 14px;
-}
-
 .bandLabel {
   color: var(--ink-3);
 }
