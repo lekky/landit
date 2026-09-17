@@ -144,6 +144,15 @@ export const WALL_VIEW_LABELS: Readonly<Record<WallView, string>> = {
 };
 
 /**
+ * The two halves as a list — what `?tab=` is allowed to be (T46).
+ *
+ * Derived from the labels rather than written out a third time, so a wall that
+ * ever gains a third half cannot have two of these disagree about how many
+ * there are.
+ */
+export const WALL_VIEW_IDS = Object.keys(WALL_VIEW_LABELS) as readonly WallView[];
+
+/**
  * How many badges a shelf draws before the rest go behind its button (Rachid,
  * 2026-09-12, in chat).
  *

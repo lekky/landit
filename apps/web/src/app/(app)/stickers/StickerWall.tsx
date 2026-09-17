@@ -14,6 +14,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 
 import { BackLink } from '@/components/shell/BackLink';
+import { useTabParam } from '@/components/shell/useTabParam';
 import { TAB_PANEL, TabRow } from '@/components/shell/TabRow';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES } from '@/lib/routes';
@@ -21,7 +22,7 @@ import { useToast } from '@/providers/toast';
 import { useSport } from '@/providers/sport';
 
 import { acknowledgeStickersAction } from './actions';
-import { WALL_VIEW_LABELS, capShelf, shelveWall, type WallView } from './groups';
+import { WALL_VIEW_IDS, WALL_VIEW_LABELS, capShelf, shelveWall, type WallView } from './groups';
 import type { StickerView, StickerWallView } from './view';
 
 import styles from './stickers.module.css';
@@ -61,21 +62,29 @@ export function StickerWall({ view }: { view: StickerWallView }) {
   /*
    * Which half is showing, and which shelves the rider has opened.
    *
-   * The choice carries its sport so that switching sport falls back to that
-   * wall's own default rather than stranding a rider on an Earned tab holding
-   * nothing — no effect and no reset, the stale choice simply stops matching.
-   * Expanded shelves are keyed the same way, so opening "Trick awards" on
-   * scooter does not open skate's.
+   * **The half is in `?tab=` now** (T46, review S3), the same as Progress's
+   * three: a rider who opens a badge's detail and comes back, or reloads, or
+   * shares the address, gets the wall they were looking at. `useTabParam`
+   * `replace`s rather than pushes, so pressing the two tabs does not fill the
+   * history with them.
+   *
+   * The **default is still per sport** — `defaultViewBySport` opens the wall on
+   * whichever half has something in it — and the URL only overrides it when a
+   * rider has actually chosen. A chosen tab does survive a sport switch, where
+   * the old per-sport state quietly reset; if that lands them on an Earned wall
+   * with nothing on it, the panel says so kindly and the other tab is one tap
+   * away, which is a better trade than an address bar that lies about what is
+   * on screen.
+   *
+   * Expanded shelves stay component state, keyed by sport and half, so opening
+   * "Trick awards" on scooter does not open skate's.
    */
-  const [choice, setChoice] = useState<{ sport: string; view: WallView } | null>(null);
+  const fallback: WallView = current
+    ? (view.defaultViewBySport[current] ?? 'unearned')
+    : 'unearned';
+  const [chosen, setChosen] = useTabParam(WALL_VIEW_IDS, fallback);
+  const active = chosen as WallView;
   const [expanded, setExpanded] = useState<readonly string[]>([]);
-
-  const active: WallView =
-    current && choice?.sport === current
-      ? choice.view
-      : current
-        ? (view.defaultViewBySport[current] ?? 'unearned')
-        : 'unearned';
 
   /*
    * Acknowledge on arrival, once.
@@ -154,7 +163,7 @@ export function StickerWall({ view }: { view: StickerWallView }) {
         value={active}
         group="stickers"
         label="Which badges to show"
-        onChange={(id) => setChoice({ sport: current, view: id as WallView })}
+        onChange={setChosen}
       />
 
       {/*
@@ -173,72 +182,85 @@ export function StickerWall({ view }: { view: StickerWallView }) {
         logged exactly that collision on Progress — two rows of identically
         shaped tabs, one navigation and one filter.
       */}
-      <Panel key={active} className={`${TAB_PANEL} ${styles.wall}`}>
-        {!half[active].length && (
-          <p className={styles.empty}>
-            {active === 'earned'
-              ? 'Nothing yet. Every badge you earn lands here.'
-              : 'Every badge on this wall is yours. Nothing left to go and get.'}
-          </p>
-        )}
+      {/*
+        `role="tabpanel"`, named after its tab — the other half of the tab row
+        above it. Without it a screen reader is told "Earned, tab, 1 of 2" and
+        then told about no panel at all.
 
-        {shelveWall(half[active]).map((group) => {
-          // Both tabs cap, and only until the rider opens that shelf. An opened
-          // shelf stays open for the visit; nothing is remembered past it, so
-          // the wall opens the same way every time. The key carries the tab as
-          // well as the sport — "Trick awards" exists on both sides, and
-          // opening one should not open the other.
-          const key = `${current}:${active}:${group.id}`;
-          const { shown, hidden } = expanded.includes(key)
-            ? { shown: group.stickers, hidden: 0 }
-            : capShelf(group.stickers);
+        On a wrapper rather than on the `Panel`, because `Panel` takes no ARIA
+        props and widening a `packages/ui-web` signature for two attributes is
+        not what additive-only is for. The wrapper carries the role, the name
+        and the key — so §4's 120ms cross-fade still runs on every switch —
+        and the `Panel` keeps the ink surface it always had.
+      */}
+      <div key={active} role="tabpanel" aria-label={WALL_VIEW_LABELS[active]} className={TAB_PANEL}>
+        <Panel className={styles.wall}>
+          {!half[active].length && (
+            <p className={styles.empty}>
+              {active === 'earned'
+                ? 'Nothing yet. Every badge you earn lands here.'
+                : 'Every badge on this wall is yours. Nothing left to go and get.'}
+            </p>
+          )}
 
-          return (
-            <section
-              key={group.id}
-              className={styles.group}
-              aria-labelledby={`wall-shelf-${group.id}`}
-            >
-              <h2 id={`wall-shelf-${group.id}`} className={`lab ${styles.groupHead}`}>
-                {group.label}
-                <span className={styles.groupCount}>{group.stickers.length}</span>
-              </h2>
-              <div className={styles.grid}>
-                {shown.map((s) => (
-                  <StickerBadge
-                    key={s.slug}
-                    sticker={{
-                      name: s.name,
-                      hue: s.hue,
-                      ...(s.icon ? { icon: s.icon as IconName } : {}),
-                      ...(s.img ? { img: s.img } : {}),
+          {shelveWall(half[active]).map((group) => {
+            // Both tabs cap, and only until the rider opens that shelf. An opened
+            // shelf stays open for the visit; nothing is remembered past it, so
+            // the wall opens the same way every time. The key carries the tab as
+            // well as the sport — "Trick awards" exists on both sides, and
+            // opening one should not open the other.
+            const key = `${current}:${active}:${group.id}`;
+            const { shown, hidden } = expanded.includes(key)
+              ? { shown: group.stickers, hidden: 0 }
+              : capShelf(group.stickers);
+
+            return (
+              <section
+                key={group.id}
+                className={styles.group}
+                aria-labelledby={`wall-shelf-${group.id}`}
+              >
+                <h2 id={`wall-shelf-${group.id}`} className={`lab ${styles.groupHead}`}>
+                  {group.label}
+                  <span className={styles.groupCount}>{group.stickers.length}</span>
+                </h2>
+                <div className={styles.grid}>
+                  {shown.map((s) => (
+                    <StickerBadge
+                      key={s.slug}
+                      sticker={{
+                        name: s.name,
+                        hue: s.hue,
+                        ...(s.icon ? { icon: s.icon as IconName } : {}),
+                        ...(s.img ? { img: s.img } : {}),
+                      }}
+                      earned={s.earned}
+                      just={s.unannounced}
+                      onClick={() => setOpen(s)}
+                    />
+                  ))}
+                </div>
+                {hidden > 0 && (
+                  <button
+                    type="button"
+                    className={styles.showAll}
+                    // The visible text repeats on every shelf, so the name a
+                    // screen reader reads carries the shelf it belongs to.
+                    aria-label={`Show all ${group.stickers.length} ${group.label}`}
+                    onClick={() => {
+                      // A shelf id is one of nine fixed strings from `groups.ts`.
+                      capture(ANALYTICS_EVENTS.stickerShelfExpanded, { shelf: group.id });
+                      setExpanded((open) => [...open, key]);
                     }}
-                    earned={s.earned}
-                    just={s.unannounced}
-                    onClick={() => setOpen(s)}
-                  />
-                ))}
-              </div>
-              {hidden > 0 && (
-                <button
-                  type="button"
-                  className={styles.showAll}
-                  // The visible text repeats on every shelf, so the name a
-                  // screen reader reads carries the shelf it belongs to.
-                  aria-label={`Show all ${group.stickers.length} ${group.label}`}
-                  onClick={() => {
-                    // A shelf id is one of nine fixed strings from `groups.ts`.
-                    capture(ANALYTICS_EVENTS.stickerShelfExpanded, { shelf: group.id });
-                    setExpanded((open) => [...open, key]);
-                  }}
-                >
-                  Show all {group.stickers.length}
-                </button>
-              )}
-            </section>
-          );
-        })}
-      </Panel>
+                  >
+                    Show all {group.stickers.length}
+                  </button>
+                )}
+              </section>
+            );
+          })}
+        </Panel>
+      </div>
 
       {open && (
         <Modal onClose={() => setOpen(null)} width={400} label={open.name}>

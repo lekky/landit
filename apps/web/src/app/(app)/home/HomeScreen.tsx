@@ -53,6 +53,20 @@ export function HomeScreen({ view }: { view: HomeView }) {
   const primary = working ? current.workingTricks : current.startHere;
 
   /*
+   * Where the section's "more" link goes, and it is **not** the same question
+   * as which cards are under it (review, regression inventory).
+   *
+   * The heading follows what is shown: "Working on it" when something is in
+   * progress, "Start here" when nothing is. The link follows what the rider
+   * *has*: any trick with a stage on it at all — landed, learning or want-to —
+   * means `/library?mine=1` has something in it, so that is where the link
+   * goes. Tying both to `working` sent the one rider most likely to have a
+   * want-to list, the one with nothing in progress, to the unfiltered library
+   * instead; "On the wish list" used to carry them and does not any more.
+   */
+  const mine = current.tracked > 0;
+
+  /*
    * The four record cards (§3.4), in the order the canvas draws them.
    *
    * Sessions is dropped rather than disabled when the preview is not open to
@@ -69,7 +83,14 @@ export function HomeScreen({ view }: { view: HomeView }) {
         icon="chart"
         hue="var(--lime)"
         value={String(current.landed)}
-        sub={`${current.working} learning · ${current.wanted} want to`}
+        /*
+          "landed" first, because this is the one card whose number is not
+          self-evident from its title: Sessions counts sessions, Stickers counts
+          stickers, Challenge shows a fraction, and Progress shows — a rider had
+          to infer it. §3.4 calls it "landed count · learning · want to", and
+          this is that, said.
+        */
+        sub={`landed · ${current.working} learning · ${current.wanted} want to`}
       />
       {view.sessionsCard && (
         <LinkCard
@@ -87,7 +108,7 @@ export function HomeScreen({ view }: { view: HomeView }) {
         to="stickers"
         title="Stickers"
         icon="star"
-        hue="#FFB3C9"
+        hue="var(--pink-soft)"
         value={String(current.stickerCount)}
         sub={view.newestSticker ? `Newest: ${view.newestSticker}` : 'None yet — the first is close'}
       />
@@ -130,7 +151,7 @@ export function HomeScreen({ view }: { view: HomeView }) {
             <StatBlock n={current.landed} label="Landed" hue="var(--lime)" />
             <StatBlock n={current.working} label="Learning" hue="var(--yellow)" />
             <StatBlock n={current.wanted} label="Want to" hue="#C9B8FF" />
-            <StatBlock n={current.stickerCount} label="Stickers" hue="#FFB3C9" />
+            <StatBlock n={current.stickerCount} label="Stickers" hue="var(--pink-soft)" />
           </div>
 
           <div className={styles.library}>
@@ -196,8 +217,8 @@ export function HomeScreen({ view }: { view: HomeView }) {
           and the library is where it should still point.
         */}
         <SectionHead
-          more={working ? `All ${current.tracked} of yours →` : 'Library →'}
-          onMore={() => router.push(working ? libraryHref({ mine: true }) : ROUTES.library)}
+          more={mine ? `All ${current.tracked} of yours →` : 'Library →'}
+          onMore={() => router.push(mine ? libraryHref({ mine: true }) : ROUTES.library)}
         >
           {working ? 'Working on it' : 'Start here'}
         </SectionHead>
@@ -231,7 +252,18 @@ export function HomeScreen({ view }: { view: HomeView }) {
             title="Nothing to show yet"
             sub="Find a trick in the library and mark it as one you are learning."
             cta="Find a trick"
-            onCta={() => router.push(ROUTES.library)}
+            onCta={() => {
+              /*
+                The one Home empty state that was never counted, and the one a
+                first-day account is most likely to press. `empty_state_action`
+                fired from the Stickers panel before the rethink; that panel is
+                a card now, so the value would have gone quiet altogether —
+                which is the shape of a screen going invisible rather than a
+                screen going away.
+              */
+              capture(ANALYTICS_EVENTS.emptyStateAction, { screen: 'home', action: 'library' });
+              router.push(ROUTES.library);
+            }}
           />
         )}
       </section>
@@ -261,7 +293,22 @@ export function HomeScreen({ view }: { view: HomeView }) {
                 >
                   <Avatar avatarId={item.avatarKey || null} name={item.name} size={32} />
                   <div className={styles.feedBody}>
-                    <div className={`cond ${styles.feedLine}`}>{item.line}</div>
+                    {/*
+                      **The name, then the line.** `crewActivityLine` returns a
+                      *predicate* — "earned the Crewed Up sticker", "landed
+                      Bunny Hop" — and the screen supplies the subject, exactly
+                      as `/crew` does (`CrewScreen.tsx`). Without it the panel
+                      read as three headless fragments under a heading saying
+                      "Your crew", with a 32px avatar the only clue to whose.
+
+                      And in **sentence case**: `.cond` uppercases, and these
+                      are sentences the product wrote to be read as sentences.
+                      `/crew` renders the same six in body type, so drawing them
+                      in caps here would be one feed in two voices.
+                    */}
+                    <p className={styles.feedLine}>
+                      <span className={styles.feedWho}>{item.name}</span> {item.line}
+                    </p>
                     <div className={`lab ${styles.feedWhen}`}>{item.when}</div>
                   </div>
                 </div>
@@ -331,7 +378,9 @@ export function HomeScreen({ view }: { view: HomeView }) {
           <Empty
             icon="map"
             title="No faves yet"
-            sub="Tap the heart on a spot and it lands here, ready for next time."
+            // The control is a **star** (`spots/FaveButton.tsx`), and a child
+            // following this sentence goes looking for the heart it names.
+            sub="Tap the star on a spot and it lands here, ready for next time."
             cta="Find a spot"
             onCta={() => {
               capture(ANALYTICS_EVENTS.emptyStateAction, { screen: 'home', action: 'spots' });

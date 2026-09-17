@@ -46,9 +46,9 @@ import {
   listAnnouncements,
   listChallenges,
   listCrewMemberships,
+  getEventsByIds,
   listEventAttendance,
-  listEvents,
-  listFavouriteSpots,
+  listFavouriteSpotIds,
   listRiderStickers,
   listStickers,
   listTrickPrereqs,
@@ -60,7 +60,7 @@ import {
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
-import { relativeTime, shortDate } from '@/lib/dates';
+import { dayMonth, relativeTime } from '@/lib/dates';
 import { ROUTES } from '@/lib/routes';
 import { currentRider } from '@/lib/session';
 import { sessionsEnabledFor } from '@/lib/sessionsPreview';
@@ -121,6 +121,14 @@ export default async function HomePage() {
    * stranger-contact surface is not being leaned on by this file, it is
    * enforced under it.
    *
+   * **Both are the rider's own small collections, and neither pulls a
+   * catalogue with it** (review S6). The first cut read every live event and
+   * every favourited spot: 74 events to draw one row, and up to 200 spot
+   * records to draw four cards — a whole calendar charged to every first-day
+   * account with no attendance at all. What is read here now is the attendance
+   * rows and the fave *ids*; the records they name are fetched below, keyed,
+   * and only if there are any.
+   *
    * The **sessions** reads are not here, and that is deliberate: the Sessions
    * card is drawn only for a rider the preview covers (T41), so its reads are
    * made below, behind that gate. A dashboard should not pay for a card nobody
@@ -138,9 +146,8 @@ export default async function HomePage() {
     notices,
     dismissals,
     crews,
-    eventRecords,
     attendance,
-    faveSpotRecords,
+    faveSpotIds,
   ] = await Promise.all([
     listTricks(client),
     listTrickPrereqs(client),
@@ -151,9 +158,8 @@ export default async function HomePage() {
     listAnnouncements(client),
     listAnnouncementDismissals(client, rider.id),
     listCrewMemberships(client, rider.id),
-    listEvents(client),
     listEventAttendance(client, rider.id),
-    listFavouriteSpots(client),
+    listFavouriteSpotIds(client),
   ]);
 
   const tricks = tricksFromRecords(trickRecords, prereqRecords);
@@ -210,41 +216,25 @@ export default async function HomePage() {
   const firstCrew = crews[0];
   const crewActivity = firstCrew ? await buildCrewActivity(client, firstCrew.crew, timezone) : [];
 
-  /* -------------------------------------------------------------- next up -- */
+  /* ------------------------------------------------- next up, your spots -- */
 
   /*
-   * The next event this rider said yes to.
-   *
-   * `event_attendance` relates to the event **record** while everything about
-   * an event on screen is keyed by slug, so the join happens once, here, in the
-   * one place holding both — the same shape `app/(app)/events/load.ts` uses,
-   * and for the same reason. `upcomingEvents` is `@landit/core`'s single
-   * definition of what is still ahead, so Home cannot call an event upcoming
-   * while the calendar calls it over.
+   * Both keyed reads, and both skipped entirely when there is nothing to key
+   * them with (review S6). In parallel with each other, so a rider with both
+   * pays one round trip rather than two.
    */
-  const goingTo = new Set(attendance.map((row) => row.event));
-  const goingSlugs = new Set(
-    eventRecords.filter((row) => goingTo.has(row.id)).map((row) => row.slug),
-  );
-  const nextEventItem = upcomingEvents(eventsFromRecords(eventRecords), clock).find((event) =>
-    goingSlugs.has(event.id),
-  );
-  const nextEvent: NextEventView | null = nextEventItem
-    ? {
-        slug: nextEventItem.id,
-        name: nextEventItem.name,
-        dateLabel: formatDayLong(nextEventItem.date),
-        town: nextEventItem.town,
-        hue: eventKindColor(nextEventItem.kind),
-      }
-    : null;
+  const [nextEvent, faveSpotRecords] = await Promise.all([
+    buildNextEvent(client, attendance, clock),
+    // Four, newest favourite first — cut **before** the read, not after it.
+    // The flood cap is 200 faves, and the section draws four.
+    faveSpotIds.length
+      ? getSpotsByIds(client, faveSpotIds.slice(0, FAVE_SPOTS))
+      : Promise.resolve([]),
+  ]);
 
-  /* ----------------------------------------------------------- your spots -- */
-
-  // Four, newest favourite first. `listFavouriteSpots` already drops a spot the
-  // rider may no longer read, so a stale fave shortens the row rather than
-  // drawing a card it cannot fill in.
-  const faveSpots: FaveSpotView[] = faveSpotRecords.slice(0, 4).map((spot) => ({
+  // `getSpotsByIds` already drops a spot the rider may no longer read, so a
+  // stale fave shortens the row rather than drawing a card it cannot fill in.
+  const faveSpots: FaveSpotView[] = faveSpotRecords.map((spot) => ({
     slug: spot.slug,
     name: spot.name,
     town: spot.town,
@@ -312,6 +302,49 @@ export default async function HomePage() {
 }
 
 /* -------------------------------------------------------------- builders -- */
+
+/** How many faved spots "Your spots" draws — and therefore how many it reads. */
+const FAVE_SPOTS = 4;
+
+/**
+ * The next event this rider said yes to, or `null`.
+ *
+ * **Keyed on their own attendance, never on the calendar** (review S6). The
+ * first cut read every live event and picked one out of it, which charged the
+ * whole calendar — 74 events today and meant to grow — to every render of every
+ * rider's dashboard, including the majority who have said yes to nothing. Now a
+ * rider with no attendance costs **no events read at all**, and a rider with
+ * some reads exactly those.
+ *
+ * `event_attendance` relates to the event **record** while everything about an
+ * event on screen is keyed by slug, so the join happens once, here, in the one
+ * place holding both — the same shape `app/(app)/events/load.ts` uses, and for
+ * the same reason. `upcomingEvents` is `@landit/core`'s single definition of
+ * what is still ahead, so Home cannot call an event upcoming while the calendar
+ * calls it over.
+ */
+async function buildNextEvent(
+  client: Parameters<typeof getEventsByIds>[0],
+  attendance: readonly { readonly event: string }[],
+  clock: { timezone: string },
+): Promise<NextEventView | null> {
+  if (!attendance.length) return null;
+
+  const rows = await getEventsByIds(
+    client,
+    attendance.map((row) => row.event),
+  );
+  const next = upcomingEvents(eventsFromRecords(rows), clock)[0];
+  if (!next) return null;
+
+  return {
+    slug: next.id,
+    name: next.name,
+    dateLabel: formatDayLong(next.date),
+    town: next.town,
+    hue: eventKindColor(next.kind),
+  };
+}
 
 /**
  * Three lines of a crew's activity, where Home used to draw the board (§3.4).
@@ -388,7 +421,7 @@ async function buildSessionsCard(
 
   // `listAllOwnSessions` sorts newest first, so the last ride is the first row.
   const last = sessions[0];
-  const day = last ? shortDate(last.startedAt, timezone).replace(/ \d{4}$/, '') : '';
+  const day = last ? dayMonth(last.startedAt, timezone) : '';
   let place = '';
   if (last?.spotId) {
     try {

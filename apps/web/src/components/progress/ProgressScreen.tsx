@@ -2,11 +2,11 @@
 
 import type { PlanId } from '@landit/core';
 import { Bar, Panel, SectionHead, SkillNode, Tag } from '@landit/ui-web';
-import { useState } from 'react';
 
 import type { SportProgressView } from '@/app/(app)/progress/view';
 import { BackLink } from '@/components/shell/BackLink';
 import { TAB_PANEL, TabRow, type TabRowItem } from '@/components/shell/TabRow';
+import { useTabParam } from '@/components/shell/useTabParam';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES, trickHref } from '@/lib/routes';
 import { useSport } from '@/providers/sport';
@@ -74,6 +74,9 @@ const TABS: readonly TabRowItem[] = [
   { id: 'skill-tree', label: 'Skill tree', icon: 'grid' },
 ];
 
+/** What `?tab=` is allowed to be. Anything else opens Record. */
+const TAB_IDS = TABS.map((tab) => tab.id);
+
 export function ProgressScreen({
   views,
   plan,
@@ -82,7 +85,7 @@ export function ProgressScreen({
 }: ProgressScreenProps) {
   const { sport } = useSport();
   const router = useRouter();
-  const [tab, setTab] = useState<string>('record');
+  const [tab, setTab] = useTabParam(TAB_IDS, 'record');
   const view = views.find((v) => v.sport === sport) ?? views[0];
 
   const head = (

@@ -338,6 +338,15 @@
  * `tokens.css`, which is the trap `.challenge` below is patched for and
  * `a.btn` is patched for in `additions.css`).
  */
+/*
+ * The transition is on the **base** rule, not on `:active`.
+ *
+ * Declared inside `:active` it only exists while the finger is down, so the
+ * hover lift snapped on the way in and the press snapped on the way out —
+ * measured `transition-duration: 0s` on the live card. §4 puts `--dur-press` on
+ * "button / card / tab press **and hover lift**", and `.btn` in
+ * `primitives.css` declares it on the base rule for exactly this reason.
+ */
 .card,
 .card:hover {
   display: flex;
@@ -346,9 +355,12 @@
   min-height: 112px;
   padding: 13px 14px 12px;
   border: 3px solid var(--ink);
-  box-shadow: 3px 3px 0 var(--ink);
+  box-shadow: var(--sh-sm);
   color: var(--ink);
   text-decoration: none;
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press);
 }
 
 .card:hover {
@@ -360,9 +372,6 @@
 .card:active {
   transform: translate(2px, 2px);
   box-shadow: 1px 1px 0 var(--ink);
-  transition:
-    transform var(--dur-press),
-    box-shadow var(--dur-press);
 }
 
 .cardHead {
@@ -390,6 +399,7 @@
    */
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -449,9 +459,22 @@
   min-width: 0;
 }
 
+/*
+ * Body type, not `.cond` — the same treatment `/crew` gives the same six
+ * sentences (`crew.module.css`'s `.feedLine`). `.cond` uppercases, and
+ * `crewActivityLine` writes sentences to be read as sentences; one feed drawn
+ * in two voices is one feed a rider has to learn twice.
+ */
 .feedLine {
+  margin: 0;
   font-size: 14.5px;
-  line-height: 1.3;
+  line-height: 1.35;
+}
+
+/* The subject the line has no room for. Bold rather than a link: `/crew` is
+   where a rider profile is opened from, and the section's "Crew →" is the way. */
+.feedWho {
+  font-weight: 700;
 }
 
 .feedWhen {
@@ -462,6 +485,7 @@
 
 /* ---------------------------------------------------------------- next up -- */
 
+/* Transition on the base rule, for the reason `.card` gives above. */
 .next,
 .next:hover {
   display: flex;
@@ -471,6 +495,9 @@
   color: var(--ink);
   text-decoration: none;
   overflow: hidden;
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press);
 }
 
 .next:hover {
@@ -516,6 +543,7 @@
   gap: 12px;
 }
 
+/* Transition on the base rule, for the reason `.card` gives above. */
 .spot,
 .spot:hover {
   display: flex;
@@ -526,6 +554,9 @@
   color: var(--ink);
   text-decoration: none;
   background: var(--paper);
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press);
 }
 
 .spot:hover {
