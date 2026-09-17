@@ -150,6 +150,23 @@ test('the wall is under Home, and has one tab row rather than two (T46)', async 
   // word.
   await expect(tabs.getByRole('tab', { name: /^Earned \d+$/ })).toBeVisible();
   await expect(tabs.getByRole('tab', { name: /^Not yet \d+$/ })).toBeVisible();
+
+  /*
+   * And the two of them fit, down to 320px. `.tabrow .sporttab` is `flex: 1`
+   * and `white-space: nowrap` (§3.3), so a row that does not fit grows past its
+   * share and pushes the whole document sideways rather than wrapping — which
+   * is what the three-tab row on Progress did before it was tightened. Two
+   * tabs carrying three-digit counts is the case worth measuring here.
+   */
+  for (const width of [430, 375, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto('/stickers');
+    await expect
+      .poll(() => page.locator('html').evaluate((el) => el.scrollWidth - el.clientWidth), {
+        message: `the wall scrolls sideways at ${width}px`,
+      })
+      .toBe(0);
+  }
 });
 
 test('a fresh wall shows the award set, locked — bar the founder badge', async ({ page }) => {

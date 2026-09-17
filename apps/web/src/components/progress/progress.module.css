@@ -25,6 +25,36 @@
   margin: 6px 0 0;
 }
 
+/* ----------------------------------------------------------- the tab row -- */
+
+/*
+ * Record · Over time · Skill tree, on the narrowest phones.
+ *
+ * `.tabrow .sporttab` is `flex: 1` and `white-space: nowrap` (§3.3), so a row
+ * whose labels do not fit does not wrap and does not clip — the boxes grow past
+ * their share and **the whole document scrolls sideways**. Measured at 320px:
+ * 30px over, which is a page a thumb can push off-centre on every screen the
+ * bar is on.
+ *
+ * What gives is the padding and then the tracking, never the words: "Skill
+ * tree" is the only thing telling a rider what the third tab holds, and the
+ * same argument the sport chip's name won on (§3.1). 380px rather than 400: at
+ * 430, 390 and 375 the row fits at full size, measured, and a threshold set
+ * where it is not yet needed is type tightened for nothing.
+ *
+ * Local to this screen rather than added to `.tabrow` in `packages/ui-web`,
+ * which is T45's and which T48's Find row shares — the general fix is
+ * [issue #550](https://github.com/lekky/landit/issues/550).
+ */
+@media (max-width: 380px) {
+  .tabs :global(.sporttab) {
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+}
+
 /* --------------------------------------------------------- the tab panel -- */
 
 /*

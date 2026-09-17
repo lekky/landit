@@ -103,6 +103,50 @@ test('progress opens on Record, and the tab row is how the rest is reached', asy
   await expect(page.getByText(/Tricks unlock tricks/i)).toBeVisible();
 });
 
+test('the three tabs fit on one line, down to the narrowest phone anyone still uses', async ({
+  page,
+}) => {
+  /*
+   * `.tabrow .sporttab` is `white-space: nowrap` (§3.3), which means a label
+   * that does not fit **overflows its box** rather than wrapping it — so a tab
+   * row that is too tight does not look broken, it looks like a word with its
+   * end cut off, which is exactly the failure the sport chip's own width test
+   * was written for (`shell.spec.ts`, D5).
+   *
+   * "Skill tree" is the longest of the three and this row is the product's
+   * tightest: three equal boxes, each with a 16px icon, on a screen that is
+   * mostly bar. The same net `shell.spec.ts` casts over the bottom bar, cast
+   * over these three.
+   */
+  await newRider(page);
+
+  for (const width of [430, 390, 375, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto('/progress');
+
+    const tabs = page.getByRole('tablist', { name: 'Progress' }).getByRole('tab');
+    const overflow = await tabs.evaluateAll((nodes) =>
+      nodes.map((n) => n.scrollWidth - n.clientWidth),
+    );
+    expect(overflow, `a Progress tab is wider than its box at ${width}px`).toEqual(
+      overflow.map(() => 0),
+    );
+
+    // All three on one line: same height, and the row no taller than one tab.
+    const heights = await tabs.evaluateAll((nodes) =>
+      nodes.map((n) => Math.round(n.getBoundingClientRect().height)),
+    );
+    expect(new Set(heights).size, `the Progress tabs disagree on height at ${width}px`).toBe(1);
+
+    // And the row does not push the document sideways.
+    await expect
+      .poll(() => page.locator('html').evaluate((el) => el.scrollWidth - el.clientWidth), {
+        message: `the document scrolls sideways at ${width}px`,
+      })
+      .toBe(0);
+  }
+});
+
 test('progress says what it is under, and the link goes there', async ({ page }) => {
   await newRider(page);
   await page.goto('/progress');

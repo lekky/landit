@@ -116,6 +116,34 @@ test('a record card lands on its screen, and the screen says it is under Home', 
   await expect(back).toHaveAttribute('href', '/home');
 });
 
+test('the record cards hold their 2 × 2 without pushing the page sideways', async ({ page }) => {
+  await arriveAtHome(page, 'Narrow Rider');
+
+  /*
+   * The cards are the first thing a thumb reaches, and they carry the longest
+   * strings on the dashboard: a challenge title plus "Ends Saturday", a spot
+   * name plus a date. A grid that grows past its share takes the whole document
+   * with it, which is a page that can be pushed off-centre on every screen the
+   * bottom bar is on — the same net `shell.spec.ts` casts over the bar.
+   */
+  for (const width of [430, 390, 375, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto('/home');
+
+    const cards = page.getByRole('main').getByRole('link', { name: /^(Progress|Stickers)/ });
+    const heights = await cards.evaluateAll((nodes) =>
+      nodes.map((n) => Math.round(n.getBoundingClientRect().height)),
+    );
+    expect(heights.length, `the cards are missing at ${width}px`).toBeGreaterThan(0);
+
+    await expect
+      .poll(() => page.locator('html').evaluate((el) => el.scrollWidth - el.clientWidth), {
+        message: `the dashboard scrolls sideways at ${width}px`,
+      })
+      .toBe(0);
+  }
+});
+
 test('the sport tab row is gone from the dashboard (D5)', async ({ page }) => {
   await arriveAtHome(page, 'Chip Rider');
 

@@ -114,7 +114,14 @@ export function ProgressScreen({
     <div className={styles.screen}>
       {head}
 
-      <TabRow items={TABS} value={tab} group="progress" label="Progress" onChange={setTab} />
+      <TabRow
+        items={TABS}
+        value={tab}
+        group="progress"
+        label="Progress"
+        onChange={setTab}
+        className={styles.tabs}
+      />
 
       {/*
         Keyed on the tab so React remounts the panel and §4's 120ms cross-fade
