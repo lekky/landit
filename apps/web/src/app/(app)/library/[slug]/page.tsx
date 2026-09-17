@@ -680,41 +680,15 @@ export default async function TrickPage({ params }: Params) {
         </div>
 
         {/*
-          The three short ways down the page (§3.8), phone only — the sections
-          below are closed rows there, and a rider who came for their own videos
-          should not have to read the list of names to find them. Ordinary
-          fragment links: the browser scrolls, and the row that is named opens
-          itself off the hash (`Accordion`). Each one is drawn only when there
-          is something at the other end of it.
-
-          **"Video", where §3.8 writes "Clip".** The fragment is still `#clips`
-          — that is T45's, and it is an address rather than a word anybody
-          reads — but the word on the page is the page's own. Plan §6.6
-          withdrew the clip vocabulary from this screen when hosting was
-          reversed, T15b's panel came back as "Your videos" rather than "Your
-          clips", and `library.spec.ts` has guarded the absence of the word
-          here ever since. Reintroducing it for a 44px button would mean
-          loosening that guard to gain nothing a rider would notice.
+          The three short jump buttons (§3.8's "Sticker · Watch · Clip") were
+          dropped at both widths on 2026-09-17 (Rachid, in chat: "drop them",
+          then "yeah drop them both"). On a phone the sticker card and the
+          video sit directly above them and the sections below are rows a rider
+          can already see, so the row scrolled to things that were on screen;
+          on a desktop the two columns put the same sections in view. Their
+          `#sticker` / `#watch` / `#clips` anchors stay on the sections
+          themselves, so a link from elsewhere still lands.
         */}
-        {(data.award || video || session) && (
-          <nav className={styles.jump} aria-label="Jump to a section">
-            {data.award && (
-              <a className={`cond ${styles.jumpBtn}`} href="#sticker">
-                Sticker
-              </a>
-            )}
-            {video && (
-              <a className={`cond ${styles.jumpBtn}`} href="#watch">
-                Watch
-              </a>
-            )}
-            {session && (
-              <a className={`cond ${styles.jumpBtn}`} href="#clips">
-                Video
-              </a>
-            )}
-          </nav>
-        )}
 
         {/*
           Only on a trick staff have flagged; never inferred from `diff`.

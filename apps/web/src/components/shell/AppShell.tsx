@@ -36,6 +36,7 @@ export function AppShell({
   riderId,
   sports,
   sessionsEnabled,
+  rodeToday,
   unread,
 }: {
   children: ReactNode;
@@ -57,6 +58,8 @@ export function AppShell({
    * must not, for a rider the preview does not cover.
    */
   sessionsEnabled?: boolean;
+  /** Today's ride is already counted, so the Log sheet's first row says so. */
+  rodeToday?: boolean;
   /**
    * Unread What’s new lines, for the bell’s badge (T47). Passed through
    * rather than read here: nothing in this frame reaches for rider data.
@@ -83,7 +86,12 @@ export function AppShell({
             <a className="skiplink" href="#main">
               Skip to content
             </a>
-            <TopBar rider={rider} sessionsEnabled={sessionsEnabled} unread={unread} />
+            <TopBar
+              rider={rider}
+              sessionsEnabled={sessionsEnabled}
+              rodeToday={rodeToday}
+              unread={unread}
+            />
             <OfflineBanner />
             <main id="main" className="page">
               {children}
@@ -96,7 +104,11 @@ export function AppShell({
               `rider`; the bar is handed the same fact rather than a second
               opinion about it.
             */}
-            <MobileNav sessionsEnabled={sessionsEnabled} signedIn={Boolean(rider)} />
+            <MobileNav
+              sessionsEnabled={sessionsEnabled}
+              rodeToday={rodeToday}
+              signedIn={Boolean(rider)}
+            />
           </div>
         </ModalProvider>
       </ToastProvider>

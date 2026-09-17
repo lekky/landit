@@ -405,6 +405,16 @@
   flex: 1;
 }
 
+/*
+ * A spot name that wraps (owner, 2026-09-17: "spot names overlap"). `.d` runs
+ * at `line-height: 0.92` for a headline that is one line; over two lines the
+ * cap heights and the descenders meet. 1.06 keeps the block tight and keeps the
+ * lines apart. The size stays where it was, inline, at 19px.
+ */
+.cardName {
+  font-size: 19px;
+  line-height: 1.06;
+}
 .cardMeta {
   color: var(--ink-3);
   margin: 4px 0 8px;
@@ -685,12 +695,6 @@
 
 .mapName {
   font-size: 14px;
-}
-
-.mapLink {
-  margin-left: auto;
-  font-size: 13px;
-  letter-spacing: 0.05em;
 }
 
 /*
@@ -1382,15 +1386,6 @@
   .mapCanvas,
   .mapPlaceholder {
     min-height: 0;
-  }
-
-  /*
-   * Close takes the header's right-hand end, and "Open in Maps" gives up the
-   * `margin-left: auto` it holds on desktop — two auto margins in one flex row
-   * split the space between them and would leave the link stranded mid-header.
-   */
-  .mapLink {
-    margin-left: 0;
   }
 
   .mapClose {

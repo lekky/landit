@@ -140,6 +140,21 @@
   background: var(--paper-2);
 }
 
+/*
+ * "I'm going", in the strip with the countdown (owner, 2026-09-17: "im going to
+ * this should be right at the top in the 2 days away block").
+ *
+ * Its own line rather than a third thing in the strip's flex row: the toggle is
+ * the widest control here and a rider should not have to hunt for it between a
+ * date and a price. `width: 100%` makes the wrap deliberate instead of
+ * whatever the row has room for.
+ */
+.attendRow {
+  width: 100%;
+  display: flex;
+  margin-top: 2px;
+}
+
 /* The only lime band on the site, and it means exactly one thing. */
 .statusToday {
   background: var(--lime);

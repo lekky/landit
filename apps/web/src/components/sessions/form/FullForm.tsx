@@ -425,19 +425,34 @@ export function SportField(props: {
   const multiSport = data.sports.length > 1;
   const sport = SPORTS[values.sport];
 
+  /*
+    **One row, not a panel** (owner, 2026-09-17: "what you rode panel is a bit
+    messy"). The label, the sport and the way to change it were three stacked
+    lines with a boxed button floated off to the right — a lot of furniture for
+    one fact the rider did not choose here. Settled: label, then the sport, then
+    Change as a quiet link on the right of the same line. The picker below is
+    unchanged; only the resting state moved.
+  */
+  if (!picking) {
+    return (
+      <div className={styles.sportLine}>
+        <span className={styles.label}>What you rode</span>
+        <span className={styles.sportPreset}>
+          <Equipment name={sport.icon} size={26} />
+          <Tag color={sport.color}>{sport.label}</Tag>
+        </span>
+        {multiSport && (
+          <button type="button" className={styles.changeLink} onClick={() => setPicking(true)}>
+            Change
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <>
-      <Label
-        aside={
-          multiSport && !picking ? (
-            <button type="button" className={styles.miniBtn} onClick={() => setPicking(true)}>
-              Change
-            </button>
-          ) : undefined
-        }
-      >
-        What you rode
-      </Label>
+      <Label>What you rode</Label>
       {picking ? (
         <>
           <SegmentedPicker<SportId>
@@ -469,12 +484,7 @@ export function SportField(props: {
             Keep {sport.label}
           </button>
         </>
-      ) : (
-        <div className={styles.sportPreset}>
-          <Equipment name={sport.icon} size={26} />
-          <Tag color={sport.color}>{sport.label}</Tag>
-        </div>
-      )}
+      ) : null}
     </>
   );
 }
@@ -1003,9 +1013,19 @@ export function FullForm(props: {
       <Label>
         <label htmlFor={aimId}>Aim of the session</label>
       </Label>
-      <input
+      {/*
+        A textarea, not a single line (owner, 2026-09-17: "aim of the session
+        should be a multiline box"). A rider writing more than a few words into
+        an `input` types into a sliding window and cannot see what they wrote.
+        `.aim` is shorter than `.notes` — three lines rather than four — because
+        an aim is a sentence and the notes are the place for the rest. The
+        length cap is unchanged (`SESSION_LIMITS.aimMax`), and Enter now adds a
+        line instead of submitting the step, which is what a multi-line field
+        should do.
+      */}
+      <textarea
         id={aimId}
-        className={styles.input}
+        className={`${styles.input} ${styles.aim}`}
         value={values.aim}
         maxLength={SESSION_LIMITS.aimMax}
         placeholder="What are you here to do?"

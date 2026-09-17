@@ -271,7 +271,13 @@ export default async function EventPage({ params, searchParams }: Params) {
           <div className={styles.sub}>{view.subLine}</div>
         </div>
 
-        <StatusBand view={view} hasNear={Boolean(near)} hasVenue={Boolean(venueBlock)} />
+        <StatusBand
+          view={view}
+          hasNear={Boolean(near)}
+          hasVenue={Boolean(venueBlock)}
+          going={going}
+          signedIn={signedIn}
+        />
       </Panel>
 
       <div className={styles.cols}>
@@ -440,12 +446,11 @@ export default async function EventPage({ params, searchParams }: Params) {
                   </>
                 ) : signedIn ? (
                   <>
-                    <GoingToggle
-                      slug={view.slug}
-                      name={view.name}
-                      kindColor={view.kindColor}
-                      initial={going}
-                    />
+                    {/* The toggle itself is in the countdown strip at the top of
+                        the page (owner, 2026-09-17); what stays here is the
+                        sentence explaining what saying yes does and does not
+                        do, which is an explanation rather than a second
+                        control. */}
                     <p className={styles.privateNote}>
                       <span className={styles.privateDot} aria-hidden="true" />
                       <span>
@@ -497,9 +502,6 @@ export default async function EventPage({ params, searchParams }: Params) {
                 >
                   Open in maps &rarr;
                 </a>
-                <p className={styles.note}>
-                  We hold the town, not a pin. The circle is the area, not the gate.
-                </p>
               </div>
             </Panel>
           )}
@@ -571,16 +573,38 @@ function StatusBand({
   view,
   hasNear,
   hasVenue,
+  going,
+  signedIn,
 }: {
   readonly view: EventPageView;
   readonly hasNear: boolean;
   readonly hasVenue: boolean;
+  /** The rider has said they are going. */
+  readonly going: boolean;
+  readonly signedIn: boolean;
 }) {
+  /*
+    **"I'm going" lives in this strip** (owner, 2026-09-17: "im going to this
+    should be right at the top in the 2 days away block").
+
+    It was in the rail, under the fold on a phone and below the whole listing on
+    a desktop — the one thing a rider does on this page, last. Here it sits with
+    the countdown that makes them want to press it. The rail keeps the privacy
+    sentence, which is an explanation rather than a control, and a signed-out
+    visitor still gets the sign-in route there.
+  */
+  const attend =
+    signedIn && view.state !== 'over' ? (
+      <div className={styles.attendRow}>
+        <GoingToggle slug={view.slug} name={view.name} kindColor={view.kindColor} initial={going} />
+      </div>
+    ) : null;
   if (view.state === 'today') {
     return (
       <div className={`${styles.status} ${styles.statusToday}`}>
         <div className={`d ${styles.big}`}>Happening today</div>
         <div className={styles.when}>{view.longDate} · All day</div>
+        {attend}
         {view.mapsUrl && (
           <div className={styles.push}>
             <a className="btn sm ink" href={view.mapsUrl} target="_blank" rel="noreferrer">
@@ -636,6 +660,7 @@ function StatusBand({
           {[view.price, view.places].filter(Boolean).join(' · ')}
         </span>
       </div>
+      {attend}
     </div>
   );
 }

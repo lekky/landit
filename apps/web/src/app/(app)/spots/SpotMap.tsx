@@ -636,9 +636,8 @@ export function SpotMap({
         Plain or Detail, over the canvas rather than in the panel's header bar.
 
         **It sits on the map because it is about the map**, and because the
-        header already carries the selected spot's name and its "Open in Maps"
-        link — a third control there wraps onto its own line at the panel's real
-        width. Top-left is the one corner MapLibre leaves alone: its zoom
+        header already carries the selected spot's name and the way out — a
+        third control there wraps onto its own line at the panel's real width. Top-left is the one corner MapLibre leaves alone: its zoom
         buttons are top-right and the attribution is bottom-right, and neither
         may be moved to make room (the credit is a condition of use).
 

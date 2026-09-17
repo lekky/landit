@@ -160,12 +160,17 @@ describe('the blocks', () => {
     expect(trickChipLabel('Tailwhip', { trickId: 'a', landed: false })).toBe('Tailwhip');
   });
 
-  it('offers the live block on the day, the past one only with sessions', () => {
+  it('offers the live block on the day and the past one once it is over', () => {
     expect(eventBlockState('today', 0)).toBe('live');
     expect(eventBlockState('today', 2)).toBe('live');
     expect(eventBlockState('over', 2)).toBe('past');
-    expect(eventBlockState('over', 0)).toBeNull();
+    // Over with nothing logged is the offer to log one, not a count of none
+    // (owner, 2026-09-17): the form only volunteers an event at the spot on the
+    // day, so this block is how a jam written up the next morning is attached.
+    expect(eventBlockState('over', 0)).toBe('past');
+    // Nothing before the day: a session cannot start in the future.
     expect(eventBlockState('upcoming', 0)).toBeNull();
+    expect(eventBlockState('upcoming', 2)).toBe('past');
   });
 
   it('counts in words that agree with the number', () => {

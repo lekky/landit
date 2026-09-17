@@ -141,7 +141,15 @@ export function SportSwitchChip() {
           // `/account` a list of rows, and "Add it in your account" means that
           // one screen rather than the list it is on.
           href={ROUTES.accountSports}
-          className={styles.sportRowOff}
+          /*
+            **Both classes.** `.sportRowOff` only overrides the look — the
+            wash, the dashed keyline, the quieter type. Everything that makes
+            it a row at all (the flex, the 52px, the padding, the full width)
+            is `.sportRow`, so on its own the row collapsed to a broken dashed
+            fragment against the left edge with its swatch squashed to nothing
+            (owner, 2026-09-17: "skateboard is malformed").
+          */
+          className={`${styles.sportRow} ${styles.sportRowOff}`}
           onClick={() => setOpen(false)}
         >
           <span

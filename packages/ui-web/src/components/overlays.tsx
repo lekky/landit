@@ -405,11 +405,34 @@ export function Sheet({
           onPointerCancel={onPointerUp}
         >
           <span className="sheet-handle" aria-hidden="true" />
-          {hasTitle && (
-            <h2 id={titleId} className={cx('d', 'sheet-title')}>
-              {titleRow}
-            </h2>
-          )}
+          <div className="sheet-headrow">
+            {hasTitle && (
+              <h2 id={titleId} className={cx('d', 'sheet-title')}>
+                {titleRow}
+              </h2>
+            )}
+            {/*
+              A visible way out, in the top right (owner, 2026-09-17: "panel
+              should have an x in top right, and if on a circle or square it
+              should be shadowed"). The same square as `Modal`'s Close, which
+              the spot picker already shows on this screen — a sheet that could
+              only be dismissed by a scrim tap, Escape or a drag asked a rider
+              to know three gestures and showed them none.
+
+              `stopPropagation` on the press, because the header is also the
+              drag handle: without it the grip captures the pointer and the
+              button never sees its own click.
+            */}
+            <button
+              type="button"
+              className="modal-close sheet-close"
+              aria-label="Close"
+              onPointerDown={(press) => press.stopPropagation()}
+              onClick={startClose}
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
         </div>
         {children}
       </div>

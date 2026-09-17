@@ -1197,7 +1197,8 @@ test('the desktop page keeps its two columns', async ({ page }) => {
   expect(facts.x).toBeGreaterThan(lowdown.x + 200);
   expect(Math.abs(facts.y - lowdown.y)).toBeLessThan(4);
 
-  // The jump row is the phone's, and is not drawn here.
+  // The jump row was dropped at both widths on 2026-09-17 (Rachid, in chat).
+  // Kept as a guard so it cannot come back by accident.
   await expect(page.getByRole('navigation', { name: 'Jump to a section' })).toBeHidden();
 });
 

@@ -54,8 +54,17 @@ export function QuickLog(props: {
     <div className={styles.quick}>
       <span className={styles.grab} aria-hidden="true" />
       <div className={styles.quickHead}>
-        <span className={styles.quickTitle}>Rode just now</span>
         {/*
+          The words in one column, the Close in the other (owner, 2026-09-17:
+          "log a session from homepage breaks a bit … the black header is
+          malformed"). All four used to be siblings of one wrapping flex row, so
+          at 375px the Close wrapped onto a line of its own and the bar became a
+          tall black band with an X adrift in it. Two columns keep the X where a
+          thumb expects it, and the words still wrap inside their own.
+        */}
+        <div className={styles.quickHeadText}>
+          <span className={styles.quickTitle}>Rode just now</span>
+          {/*
           The sport, as a `Tag` (rethink §3.10, T50).
 
           The quick log asks three questions and the sport is not one of them —
@@ -65,10 +74,11 @@ export function QuickLog(props: {
           adding a fourth control: changing it is what "Add tricks, clip and
           notes →" is for.
         */}
-        <Tag color={SPORTS[values.sport].color} className={styles.quickSport}>
-          {SPORTS[values.sport].short}
-        </Tag>
-        <span className={styles.quickStamp}>{data.stamp}</span>
+          <Tag color={SPORTS[values.sport].color} className={styles.quickSport}>
+            {SPORTS[values.sport].short}
+          </Tag>
+          <span className={styles.quickStamp}>{data.stamp}</span>
+        </div>
         <button
           type="button"
           className={styles.quickClose}

@@ -325,6 +325,25 @@
   box-shadow: 1px 1px 0 var(--ink);
 }
 /* "Add a clip link" is the quiet one of the four: a dashed keyline, no shadow. */
+/*
+ * A row that has already done its job — "I rode today" once today's ride is
+ * counted (owner, 2026-09-17). Still a row, still readable, plainly inert: the
+ * shadow goes, the type quietens and the press does nothing, which is the same
+ * register the untracked sport row uses in the switcher.
+ */
+.optionRow:disabled {
+  box-shadow: none;
+  color: var(--ink-3);
+  cursor: default;
+}
+.optionRow:disabled .optionTitle {
+  color: var(--ink-3);
+}
+.optionRow:disabled:active {
+  transform: none;
+  box-shadow: none;
+}
+
 .optionRowQuiet {
   border-style: dashed;
   box-shadow: none;

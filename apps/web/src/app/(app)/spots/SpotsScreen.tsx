@@ -1329,9 +1329,16 @@ export function SpotsScreen({
                 <div className={styles.cardBody}>
                   <div className={styles.cardTop}>
                     <div className={styles.cardHeading}>
-                      <div className="d" style={{ fontSize: 19 }}>
-                        {spot.name}
-                      </div>
+                      {/*
+                        `.cardName` rather than `.d` alone: the display face is
+                        set at `line-height: 0.92`, which is right for one line
+                        and collides with itself on two — and a spot called
+                        "Cadishead Pumptrack" is two lines on a phone (owner,
+                        2026-09-17: "spot names overlap"). The class only
+                        re-spaces the lines; the face, the size and the caps are
+                        the design's.
+                      */}
+                      <div className={`d ${styles.cardName}`}>{spot.name}</div>
                       <div className={`lab ${styles.cardMeta}`}>
                         {[[spot.town, spot.country].filter(Boolean).join(', '), spot.type, distance]
                           .filter(Boolean)
@@ -1618,27 +1625,20 @@ export function SpotsScreen({
             <div className={styles.mapHead}>
               <span className="lab">Map</span>
               {selected && <span className={`cond ${styles.mapName}`}>{selected.name}</span>}
-              {selected && (
-                <a
-                  className={`cond ${styles.mapLink}`}
-                  href={mapsLink(selected)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Open in Maps
-                </a>
-              )}
               {/*
                 The way out of the sheet, and nothing at all on a wide screen —
                 `display: none` there, so it is out of the tab order and out of
                 the accessibility tree rather than merely invisible. A column
                 that is always on the page has nothing to close.
 
-                It is last in the source so it is last in the tab order. In
-                the sheet it takes the header's `margin-left: auto` and "Open in
-                Maps" gives it up, so Close is hard right whether or not a spot
-                is selected; on a wide screen the link keeps the auto and is the
-                rightmost thing, exactly as before.
+                It is last in the source so it is last in the tab order, and it
+                takes the header's `margin-left: auto`, so Close is hard right
+                whether or not a spot is selected.
+
+                The header's own "Open in Maps" link went on 2026-09-17
+                (Rachid, in chat): the panel below it already carries
+                Directions, and two controls for one destination is one too
+                many on a phone.
               */}
               <button
                 type="button"
