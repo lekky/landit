@@ -14,12 +14,10 @@ import {
   type StanceId,
 } from '@landit/core';
 import { Avatar, Button, Equipment, Panel, avatarById } from '@landit/ui-web';
-import Link from 'next/link';
 import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
 
 import { AvatarPicker } from '@/components/AvatarPicker';
-import { ROUTES } from '@/lib/routes';
-import { SPORT_LOOKS, countWord } from '@/lib/sports';
+import { SPORT_LOOKS, countWord, sentenceCase } from '@/lib/sports';
 
 import { saveProfileAction } from './actions';
 
@@ -171,6 +169,24 @@ export function ProfilePanel({
   }));
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [picking, setPicking] = useState(false);
+  /**
+   * Has a sport toggle taken the goal that belonged to it? (T51, review B1.)
+   *
+   * On one screen this needed no state: the goal picker was always on the page,
+   * so "the draft is incomplete" and "the rider can finish it" were the same
+   * fact. Split across two screens they are not, and the first cut sent the
+   * rider to `/account/profile` to finish — which **discarded the sport
+   * change**, because the pending draft lives in `pending.current` on this
+   * component and a route change unmounts it. A rider turned a sport off, was
+   * told to pick a goal, picked one, saw "Saved", and the sport was still on.
+   *
+   * So the goal picker comes to the sports screen instead of the rider going to
+   * it, and the single post this panel was built around still happens. It is
+   * `true` from the toggle that orphaned the goal until a write actually lands,
+   * rather than derived from `status`, so the block does not flicker away
+   * between the tap on a goal and the answer coming back.
+   */
+  const [goalOrphaned, setGoalOrphaned] = useState(false);
 
   /**
    * The newest draft not yet safely stored, and which controls produced it.
@@ -249,6 +265,9 @@ export function ProfilePanel({
       // Clear only what this write actually stored. Anything the rider changed
       // while it was in flight is a newer job, with a timer of its own.
       if (pending.current === job) pending.current = null;
+      // The answer is complete and stored, so the sports screen's borrowed goal
+      // picker has done its job and goes.
+      setGoalOrphaned(false);
       setStatus({ kind: 'saved' });
     });
   }, []);
@@ -284,6 +303,10 @@ export function ProfilePanel({
    * they pick a new goal and both are written together. The server keeps
    * whatever is already stored in the meantime, so merely opening this screen
    * and changing your mind loses nobody their goal.
+   *
+   * On `/account/sports` the goal picker is not on the screen, so this is also
+   * what calls it in (`goalOrphaned`). The pair have to finish in one post and
+   * the pending draft does not survive a route change — see that state's note.
    */
   function toggleSport(id: SportId) {
     const next = draft.sports.includes(id)
@@ -298,6 +321,7 @@ export function ProfilePanel({
       draft.goal !== CUSTOM_GOAL_ID &&
       !goalsFor(next).some((g) => g.id === draft.goal),
     );
+    if (orphaned) setGoalOrphaned(true);
     change({ ...draft, sports: next, goal: orphaned ? null : draft.goal }, 'sports');
   }
 
@@ -308,14 +332,109 @@ export function ProfilePanel({
   const showProfile = section !== 'sports';
   const showSports = section !== 'profile';
 
+  /** How many libraries the current draft turns on, in words. */
+  const libraryCount =
+    draft.sports.length > 1
+      ? `${countWord(draft.sports.length)} libraries on, switched from the top bar`
+      : 'One library';
+
+  /**
+   * The goal picker, which two screens now need.
+   *
+   * `/account/profile` draws it as one of the trio, where it has always been.
+   * `/account/sports` borrows it for as long as a sport toggle has left the
+   * rider without a goal, so that the sport change and the goal it forced are
+   * still written in **one** post — the thing this panel is built around, and
+   * the thing a link to the other screen quietly broke (review B1).
+   *
+   * A function rather than a second copy of sixty lines of pills: the two
+   * differ only in the sentence under the label, because on the sports screen
+   * the picker has to say why it has appeared.
+   */
+  function goalPanel(lede: string) {
+    return (
+      <div className={`panel flat ${styles.trioPanel}`}>
+        <div className="lab">The goal</div>
+        <p className={styles.subtle}>{lede}</p>
+        <div className={styles.pills}>
+          {goals.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className="pill"
+              aria-pressed={draft.goal === option.id}
+              onClick={() => change({ ...draft, goal: option.id }, 'goal')}
+              style={
+                draft.goal === option.id
+                  ? {
+                      background: option.hue,
+                      color: '#fff',
+                      boxShadow: '3px 3px 0 var(--ink)',
+                    }
+                  : undefined
+              }
+            >
+              {option.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="pill"
+            aria-pressed={draft.goal === CUSTOM_GOAL_ID}
+            onClick={() => change({ ...draft, goal: CUSTOM_GOAL_ID }, 'goal')}
+            style={
+              draft.goal === CUSTOM_GOAL_ID
+                ? { background: 'var(--ink)', color: 'var(--paper)' }
+                : undefined
+            }
+          >
+            + Something else
+          </button>
+        </div>
+        {draft.goal === CUSTOM_GOAL_ID ? (
+          <div className={styles.goalOwn}>
+            <label className="lab" htmlFor="account-goal-custom">
+              Your goal
+            </label>
+            <input
+              id="account-goal-custom"
+              className={styles.goalInput}
+              value={draft.custom}
+              maxLength={CUSTOM_GOAL_MAX_LENGTH}
+              onChange={(event) =>
+                change({ ...draft, custom: event.target.value }, 'goal_text', TYPING_DELAY)
+              }
+              // Leaving the field is a rider saying they are done with it,
+              // and it beats the debounce — so clicking away writes, rather
+              // than racing a timer the page may not be around to fire.
+              onBlur={() => flush()}
+              placeholder="Land a bri flip before the summer holidays"
+            />
+            <p className={styles.subtle}>
+              {CUSTOM_GOAL_MAX_LENGTH} characters. It goes on your dashboard, so keep it blunt.
+            </p>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <Panel flat className={styles.profile}>
-      <div className={styles.profileHead}>
-        {/*
-          The panel names itself only where nothing else does. On
-          `/account/profile` and `/account/sports` the screen's own `h1` is
-          already these words, and the status line still needs the row.
-        */}
+      {/*
+        The panel names itself only where nothing else does. On
+        `/account/profile` and `/account/sports` the screen's own `h1` is
+        already these words — and with no label and nothing saved yet, the row
+        was 24px of empty paper at the top of both screens. It collapses to
+        nothing instead of reserving its height, and the live region below stays
+        in the DOM either way: a region added at the same moment as its content
+        is a region some screen readers never announce.
+      */}
+      <div
+        className={`${styles.profileHead} ${
+          section !== 'all' && status.kind === 'idle' ? styles.profileHeadQuiet : ''
+        }`.trim()}
+      >
         {section === 'all' ? <div className="lab">Your profile</div> : <span />}
         {/*
           The one place the panel reports itself. It is announced as well as
@@ -328,24 +447,16 @@ export function ProfilePanel({
           {status.kind === 'saved' ? (
             <span className={`lab ${styles.privacySaved}`}>Saved</span>
           ) : null}
+          {/*
+            No link to anywhere. A first cut sent a rider whose sport toggle had
+            taken their goal to `/account/profile` to pick a new one, and the
+            sport change was thrown away on the way (review B1) — and the link
+            was drawn for *every* blocked answer, so an unset level rendered as
+            "Tell us roughly where you are at. Pick a new one →", which is not a
+            sentence. The picker comes to the rider instead, below.
+          */}
           {status.kind === 'blocked' ? (
-            <span className={styles.profileBlocked}>
-              {status.message}
-              {/*
-                On `/account/sports` the answer that is missing is nearly always
-                the goal, because turning a sport off takes the goal that
-                belonged to it — and the goal picker is on the next screen. A
-                message naming something a rider cannot see is a dead end, so it
-                carries the way to it. Nothing is written until they get there,
-                which is the rule this panel has always worked to.
-              */}
-              {section === 'sports' ? (
-                <>
-                  {' '}
-                  <Link href={ROUTES.accountProfile}>Pick a new one →</Link>
-                </>
-              ) : null}
-            </span>
+            <span className={styles.profileBlocked}>{status.message}</span>
           ) : null}
           {status.kind === 'error' ? (
             <>
@@ -383,25 +494,28 @@ export function ProfilePanel({
         {/* -------------------------------------------------- what you ride -- */}
         {showSports ? (
           <div>
-            <div className={styles.groupHead}>
-              {section === 'sports' ? null : <span className="lab">What you ride</span>}
-              <span className={`lab ${styles.groupAside}`}>
-                {/*
-                  "every page tabbed" until T51, which is the session that took
-                  ownership of the screen this line is on. The per-page sport tab
-                  rows went with D5 — the sport is chosen once, in the top bar's
-                  chip — so the old words described a control the product no
-                  longer has, on the one screen where a rider is deciding how
-                  many sports to turn on.
-                */}
-                {draft.sports.length > 1
-                  ? `${countWord(draft.sports.length)} libraries on, switched from the top bar`
-                  : 'One library'}
-              </span>
-            </div>
+            {/*
+              The count is an aside beside a label, and with the label gone on
+              `/account/sports` it was a line of small caps being the aside of
+              nothing — a heading that is really a count. There it is an ordinary
+              line under the blurb instead.
+
+              The words: "every page tabbed" until T51, which is the session that
+              took ownership of this screen. The per-page sport tab rows went
+              with D5 — the sport is chosen once, in the top bar's chip — so the
+              old copy described a control the product no longer has, on the one
+              screen where a rider is deciding how many sports to turn on.
+            */}
+            {section === 'sports' ? null : (
+              <div className={styles.groupHead}>
+                <span className="lab">What you ride</span>
+                <span className={`lab ${styles.groupAside}`}>{libraryCount}</span>
+              </div>
+            )}
             <p className={styles.subtle}>
               Turning a sport off hides its library, its stickers and its challenge. Nothing you
               have tracked is deleted, and turning it back on brings all of it back.
+              {section === 'sports' ? ` ${sentenceCase(libraryCount)}.` : null}
             </p>
             <div className={styles.sportPicks}>
               {SPORT_IDS.map((id) => {
@@ -438,6 +552,22 @@ export function ProfilePanel({
                 );
               })}
             </div>
+
+            {/*
+              The goal picker, on the sports screen, only while a toggle has
+              taken the rider's goal (review B1). It is the same picker over the
+              same draft, so choosing here writes the sport change and the new
+              goal together — which is what the panel has always done, and what
+              a link to `/account/profile` could not do, because the pending
+              draft does not survive a route change.
+            */}
+            {section === 'sports' && goalOrphaned ? (
+              <div className={styles.orphanGoal}>
+                {goalPanel(
+                  'That sport carried your goal, so it needs a new one. Pick one and both changes save together.',
+                )}
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -449,70 +579,7 @@ export function ProfilePanel({
         */}
         {showProfile ? (
           <div className={styles.trio}>
-            <div className={`panel flat ${styles.trioPanel}`}>
-              <div className="lab">The goal</div>
-              <p className={styles.subtle}>It goes on your dashboard.</p>
-              <div className={styles.pills}>
-                {goals.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    className="pill"
-                    aria-pressed={draft.goal === option.id}
-                    onClick={() => change({ ...draft, goal: option.id }, 'goal')}
-                    style={
-                      draft.goal === option.id
-                        ? {
-                            background: option.hue,
-                            color: '#fff',
-                            boxShadow: '3px 3px 0 var(--ink)',
-                          }
-                        : undefined
-                    }
-                  >
-                    {option.label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  className="pill"
-                  aria-pressed={draft.goal === CUSTOM_GOAL_ID}
-                  onClick={() => change({ ...draft, goal: CUSTOM_GOAL_ID }, 'goal')}
-                  style={
-                    draft.goal === CUSTOM_GOAL_ID
-                      ? { background: 'var(--ink)', color: 'var(--paper)' }
-                      : undefined
-                  }
-                >
-                  + Something else
-                </button>
-              </div>
-              {draft.goal === CUSTOM_GOAL_ID ? (
-                <div className={styles.goalOwn}>
-                  <label className="lab" htmlFor="account-goal-custom">
-                    Your goal
-                  </label>
-                  <input
-                    id="account-goal-custom"
-                    className={styles.goalInput}
-                    value={draft.custom}
-                    maxLength={CUSTOM_GOAL_MAX_LENGTH}
-                    onChange={(event) =>
-                      change({ ...draft, custom: event.target.value }, 'goal_text', TYPING_DELAY)
-                    }
-                    // Leaving the field is a rider saying they are done with it,
-                    // and it beats the debounce — so clicking away writes, rather
-                    // than racing a timer the page may not be around to fire.
-                    onBlur={() => flush()}
-                    placeholder="Land a bri flip before the summer holidays"
-                  />
-                  <p className={styles.subtle}>
-                    {CUSTOM_GOAL_MAX_LENGTH} characters. It goes on your dashboard, so keep it
-                    blunt.
-                  </p>
-                </div>
-              ) : null}
-            </div>
+            {goalPanel('It goes on your dashboard.')}
 
             <div className={`panel flat ${styles.trioPanel}`}>
               <div className="lab">Which foot forward</div>

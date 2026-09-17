@@ -50,10 +50,23 @@ export interface SettingsRowSpec {
   readonly href: Route;
   readonly icon: IconName;
   /**
-   * The icon square's fixed fill, as `OptionRow`'s is. Light fills only: ink
-   * sits on them (`--on-light`), which is what the shared mark class sets.
+   * The icon square's fixed fill, as `OptionRow`'s is.
+   *
+   * Every one is a `tokens.css` name, and all eight are different — six light
+   * fills and two dark ones — so no row repeats another's mark in any
+   * combination of the two conditional rows.
+   *
+   * **Never `--wash`.** That is the page's own ground, so a square filled with
+   * it reads as no square at all: at a glance the row simply had no mark.
    */
   readonly fill: string;
+  /**
+   * The icon's colour on that fill. Defaults to `--on-light`, which is what
+   * every light fill wants and what `.optionMark` sets. A dark fill — `--violet`
+   * for the coach view, `--ink` for the data row — says `--on-dark` here, the
+   * same pair `tokens.css` documents and the plan `Tag` on this screen uses.
+   */
+  readonly ink?: string;
 }
 
 /** The sport names a rider tracks, in the catalogue's words. */
@@ -187,7 +200,8 @@ export function settingsRowsFor(
       value: 'A read-only week for a grown-up',
       href: ROUTES.coach,
       icon: 'users',
-      fill: 'var(--sky)',
+      fill: 'var(--violet)',
+      ink: 'var(--on-dark)',
     },
     {
       id: 'data',
@@ -195,7 +209,8 @@ export function settingsRowsFor(
       value: 'Download it, or close your account',
       href: ROUTES.accountData,
       icon: 'print',
-      fill: 'var(--wash)',
+      fill: 'var(--ink)',
+      ink: 'var(--on-dark)',
     },
   );
 

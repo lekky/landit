@@ -58,7 +58,13 @@ export const ROUTES = {
    */
   accountClose: '/account/close',
   /**
-   * The seven screens `/account` is a list of (app shell rethink §3.9, T51).
+   * The six routes below are the screens `/account` opens that did not already
+   * have an address (app shell rethink §3.9, T51).
+   *
+   * The list itself has **eight** rows: these six, plus `plans` and `coach`,
+   * which are screens of the product's own and are linked rather than owned.
+   * §3.9 asked for seven; the eighth, "Your guardian", is the owner's addition
+   * of 2026-09-16 and is drawn only while the consent gate applies.
    *
    * `/account` used to be one scroll holding every control the product has
    * about a rider: the profile editor, the sports picker, two privacy
@@ -69,8 +75,7 @@ export const ROUTES = {
    * They are routes rather than client state for the reason `eventsMine` gives:
    * a setting a rider can link to, bookmark and come back to after signing in
    * is worth an address, and on a desktop the address is what decides which
-   * panel renders beside the list. `/plans` and `/coach` are two of the eight
-   * rows and already had addresses of their own; these six are the rest.
+   * panel renders beside the list.
    *
    * All six are gated exactly as `/account` is — they redirect a signed-out
    * visitor to sign in — and all six carry `noindex`. `/account/close` is

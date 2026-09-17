@@ -621,8 +621,13 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  /*
+   * 60px on the nose (§3.9), and the padding is what gets it there rather than
+   * `min-height`, which never binds: the 40px mark plus the 3px `--bd` on each
+   * edge is 46, so 7px top and bottom is 60. At 8px the rows measured 62.
+   */
   min-height: 60px;
-  padding: 8px 12px;
+  padding: 7px 12px;
   background: var(--paper);
   border: var(--bd);
   box-shadow: var(--sh-sm);
@@ -728,4 +733,34 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/*
+ * The profile panel's head row on a screen whose `h1` already names it, with
+ * nothing saved yet: no label, no status, so no height. The live region itself
+ * stays in the DOM — a region added at the same moment as its content is one
+ * some screen readers never announce — it simply stops reserving 24px of empty
+ * paper at the top of `/account/profile` and `/account/sports`.
+ */
+.profileHeadQuiet {
+  min-height: 0;
+}
+.profileHeadQuiet .profileStatus {
+  min-height: 0;
+}
+
+/*
+ * The goal picker, borrowed by `/account/sports` while a sport toggle has left
+ * the rider without a goal.
+ *
+ * It is one panel rather than the trio's three, so it takes the width it is
+ * given rather than a third of it, and it sits under the sport cards with the
+ * `.profileForm` gap above it. Nothing here is new paint: `.trioPanel` is the
+ * same box the goal picker draws in on `/account/profile`.
+ */
+.orphanGoal {
+  margin-top: 4px;
+}
+.orphanGoal > * {
+  max-width: 560px;
 }

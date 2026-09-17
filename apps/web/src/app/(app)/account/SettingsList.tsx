@@ -34,7 +34,14 @@ function SettingsRow({ row, current }: { row: SettingsRowSpec; current: boolean 
       className={`${styles.settingsRow} ${current ? styles.settingsRowOn : ''}`.trim()}
       aria-current={current ? 'page' : undefined}
     >
-      <span className={styles.settingsMark} style={{ background: row.fill }} aria-hidden="true">
+      <span
+        className={styles.settingsMark}
+        // A dark fill carries `--on-dark`; everything else takes the class's
+        // `--on-light`, which is what `.optionMark` sets for the same squares in
+        // the Log sheet.
+        style={{ background: row.fill, ...(row.ink ? { color: row.ink } : null) }}
+        aria-hidden="true"
+      >
         <Icon name={row.icon} size={20} strokeWidth={2.4} />
       </span>
       <span className={styles.settingsText}>

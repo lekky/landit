@@ -31,15 +31,38 @@ import styles from './account.module.css';
  * reaches the others, which is the order a screen reader wants; on a phone at
  * the root it puts "Your account / Nia Okafor" above the rows, which is the
  * order a rider wants.
+ *
+ * **`tail` belongs to `/account`, and is drawn here rather than by the page**
+ * (review S2). Sign out, the staff portal's door and "Still on its way" are not
+ * settings and have no business beside a radio group. A first cut put them at
+ * the foot of the list column, which on a phone meant `/account` and nowhere
+ * else — but above 861px the column is drawn at every address, so a rider on
+ * `/account/privacy` got three privacy radios and a SIGN OUT button 360px
+ * apart. They appear at `/account` now, at **both** widths.
+ *
+ * They cannot simply move into the page, because on a phone the page is the top
+ * of the screen and the rows come after it: a sign-out button above the settings
+ * it belongs under is the same mistake the other way round.
  */
-export function AccountShell({ list, children }: { list: ReactNode; children: ReactNode }) {
+export function AccountShell({
+  list,
+  tail,
+  children,
+}: {
+  list: ReactNode;
+  tail: ReactNode;
+  children: ReactNode;
+}) {
   const pathname = usePathname();
   const atRoot = pathname === ROUTES.account;
 
   return (
     <div className={`${styles.shell} ${atRoot ? styles.shellRoot : ''}`.trim()}>
       <div className={styles.detail}>{children}</div>
-      <div className={styles.listCol}>{list}</div>
+      <div className={styles.listCol}>
+        {list}
+        {atRoot ? tail : null}
+      </div>
     </div>
   );
 }

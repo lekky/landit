@@ -39,10 +39,14 @@ export default async function AccountSettingsLayout({ children }: { children: Re
 
   return (
     <AccountShell
-      list={
+      list={<SettingsList rows={rows} />}
+      /*
+        Not settings, and drawn at `/account` only — `AccountShell` decides,
+        because on a phone they have to come after the rows and on a desktop
+        they must not come at all on a sub-screen (review S2).
+      */
+      tail={
         <>
-          <SettingsList rows={rows} />
-
           {/*
             The staff portal's one door (issue #118), unchanged in what it does
             and moved to the foot of the list rather than into a row of its own.

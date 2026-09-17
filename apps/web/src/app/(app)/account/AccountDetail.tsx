@@ -6,7 +6,7 @@ import { ROUTES } from '@/lib/routes';
 import styles from './account.module.css';
 
 /**
- * One of the account's screens: a back link, the eyebrow, the title, the panel.
+ * One of the account's screens: a back link, the title, the panel.
  *
  * **The back link is the phone's** (§2.3). On a desktop the list is 340px to
  * the left of this heading with the current row lit, so a second control
