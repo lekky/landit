@@ -34,23 +34,47 @@ const unique = () => Math.random().toString(36).slice(2, 10);
 const scooterTricks = tricksFor('scooter', TRICKS);
 
 /**
- * A trick whose name is not a substring of another trick's, so "is it on the
- * page" is never ambiguous. Picked from the data rather than typed in, so an
- * edit to the library moves the test instead of breaking it.
+ * A trick whose name is not a substring of another *scooter* trick's, so "is it
+ * on the page" is never ambiguous. Picked from the data rather than typed in, so
+ * an edit to the library moves the test instead of breaking it.
  *
- * **Across every sport, not only scooter** (T52). A signed-out visitor's
- * library opens on *all* sports now — `SportScopeSelect`'s default with no
- * rider — so a name that is unique among the scooter tricks is not enough: six
- * cards matched "Bunny Hop" the moment the grid stopped being one sport's.
+ * **Scooter, and the list tests narrow the grid to match** (T52). A signed-out
+ * visitor's library opens on *every* sport now — `SportScopeSelect`'s default
+ * with no rider — and six cards matched "Bunny Hop" the moment the grid stopped
+ * being one sport's. Widening this to every sport fixed those four and quietly
+ * moved which trick the **trick page's** twenty-odd tests run against, which is
+ * a fixture T49 chose for its own reasons. So the fixture stays as it was and
+ * the tests that browse a grid say which grid they mean, with `narrowToScooter`
+ * below.
  */
 const distinct = (candidate: (typeof scooterTricks)[number]): boolean =>
-  TRICKS.filter((t) => t.name.toLowerCase().includes(candidate.name.toLowerCase())).length === 1;
+  scooterTricks.filter((t) => t.name.toLowerCase().includes(candidate.name.toLowerCase()))
+    .length === 1;
 
 const freeTrick = scooterTricks.find((t) => !isTrickLocked(t, 'rookie') && distinct(t))!;
 const lockedTrick = scooterTricks.find((t) => isTrickLocked(t, 'rookie') && distinct(t))!;
 
 /** One trick card in the grid, found by the name it shows. */
 const card = (page: Page, name: string) => page.locator('.tcard').filter({ hasText: name });
+
+/**
+ * Put the grid on scooter, which is the grid the fixtures above are unique in.
+ *
+ * Signed out the library opens on **every sport** since T52 — the blocker the
+ * review found was that a visitor had no way to widen it, and the answer was
+ * `SportScopeSelect` with "All sports" as a visitor's default. A test that then
+ * asks "is Bunny Hop on the page" is asking about three sports' worth of cards.
+ *
+ * The scope is per device in `localStorage`, so one call holds for the rest of
+ * the test including navigations away and back — which is what the
+ * place-keeping tests need.
+ */
+async function narrowToScooter(page: Page): Promise<void> {
+  await page.getByLabel('Show tricks for').selectOption('scooter');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(
+    `${scooterTricks.filter((t) => t.isLive).length} tricks`,
+  );
+}
 
 /*
  * Tests in this file run in order in a single worker rather than one per core.
@@ -92,6 +116,7 @@ test('the library lists the tricks signed out, and the sport row is gone (D5)', 
   page,
 }) => {
   await page.goto('/library');
+  await narrowToScooter(page);
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText('tricks');
   await expect(card(page, freeTrick.name)).toBeVisible();
@@ -313,6 +338,7 @@ test('the Rookie nudge sits below the first cards rather than above the grid', a
 
 test('a paid trick is listed, not hidden, and says which tier it is', async ({ page }) => {
   await page.goto('/library');
+  await narrowToScooter(page);
 
   const locked = card(page, lockedTrick.name);
   await expect(locked).toBeVisible();
@@ -322,6 +348,7 @@ test('a paid trick is listed, not hidden, and says which tier it is', async ({ p
 
 test('search and the filters narrow the grid', async ({ page }) => {
   await page.goto('/library');
+  await narrowToScooter(page);
 
   await page.getByLabel('Search tricks').fill(freeTrick.name);
   await expect(card(page, freeTrick.name)).toBeVisible();
@@ -802,6 +829,7 @@ const offset = (page: Page) => page.locator('html').evaluate((el) => el.scrollTo
 
 test('the arrow out of a trick page lands back where the rider left the grid', async ({ page }) => {
   await page.goto('/library');
+  await narrowToScooter(page);
   await expect(card(page, freeTrick.name)).toBeVisible();
 
   const left = await toTheBottom(page);
@@ -860,6 +888,7 @@ test('a browser Back brings the sort and the offset back together', async ({ pag
 
 test('a search survives the trick page too, and the grid stays narrowed', async ({ page }) => {
   await page.goto('/library');
+  await narrowToScooter(page);
 
   await page.getByLabel('Search tricks').fill('grind');
   const narrowed = page.locator('.tcard');
@@ -880,6 +909,10 @@ test('arriving at the library any other way starts at the top, as it always did'
   page,
 }) => {
   await page.goto('/library');
+  // Signed out, so the grid opens on every sport (T52) and this test browses it
+  // by name — see `narrowToScooter`. The scope survives the detour through
+  // Find, which is the point of it living in `localStorage`.
+  await narrowToScooter(page);
   const left = await toTheBottom(page);
   expect(left).toBeGreaterThan(400);
 

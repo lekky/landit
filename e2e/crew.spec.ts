@@ -161,9 +161,15 @@ test('"Start another" and "Join with a code" open one form each', async ({ page 
     for (const button of [another, join]) {
       const box = await button.boundingBox();
       const label = await button.innerText();
-      expect(box?.height, `"${label}" is ${box?.height}px tall at ${width}`).toBeGreaterThanOrEqual(
-        44,
-      );
+      /*
+       * Rounded: a `min-height: 44px` box measures 43.99993896484375 at 320,
+       * which is the browser's sub-pixel layout and not a control under the
+       * floor. The defect this guards is 36 against 44, eight whole pixels.
+       */
+      expect(
+        Math.round(box?.height ?? 0),
+        `"${label}" is ${box?.height}px tall at ${width}`,
+      ).toBeGreaterThanOrEqual(44);
     }
   }
 });
