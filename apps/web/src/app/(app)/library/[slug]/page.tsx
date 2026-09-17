@@ -1,6 +1,7 @@
 import {
   CATS,
   DEFAULT_TIMEZONE,
+  trickSessionSummary,
   NO_VIDEO_LINKS,
   SITE_URL,
   SPORTS,
@@ -55,8 +56,10 @@ import { notFound } from 'next/navigation';
 import type { CSSProperties } from 'react';
 
 import { GlossaryText } from '@/components/glossary/GlossaryText';
+import { riderFor, trickSessionsForOwner } from '@/components/sessions/blocks/rider';
 import { TrickSessionsBlock } from '@/components/sessions/blocks/TrickSessionsBlock';
 import { shortDate } from '@/lib/dates';
+import { trickBlockMeta } from '@/lib/sessionDetail';
 import { jsonLdText, trickHowToLd } from '@/lib/structuredData';
 import { practiseAdvice } from '@/lib/practise';
 import { ROUTES, trickHref } from '@/lib/routes';
@@ -189,6 +192,10 @@ async function load(slug: string) {
       videos: [],
       heldTotal: 0,
       allowance: NO_VIDEO_LINKS,
+      // No rider, no diary, no read: `riderFor` returns before any request when
+      // there is no cookie, and this branch never gets that far.
+      sessionsCount: 0,
+      sessionsMeta: null as string | null,
     };
   }
 
@@ -213,6 +220,27 @@ async function load(slug: string) {
   const entries = trickLogEntries(log, trickRecords);
   const landed = firstLanded(entries)[slug];
   const timezone = session.rider.timezone || DEFAULT_TIMEZONE;
+
+  /*
+   * How many sessions the rider has worked this trick in, and the line that
+   * says so — the disclosure row's sub-line, and the answer to whether the row
+   * is drawn at all (T49, after the independent review's B3).
+   *
+   * **It costs nothing for anyone the block would not draw for.** `riderFor`
+   * gates on `sessionsEnabledFor`, sessions are still owner-only preview (T41),
+   * and this asks the same question behind the same gate. For the one rider it
+   * does read for, `trickSessionsForOwner` is `cache`d and `TrickSessionsBlock`
+   * calls it with the same client, so the rows are fetched once and counted
+   * twice rather than fetched twice.
+   */
+  const sessionViewer = await riderFor(session);
+  const sessionsOnTrick = sessionViewer
+    ? trickSessionSummary(
+        await trickSessionsForOwner(sessionViewer.client, sessionViewer.rider.id, record.id),
+        record.id,
+        timezone,
+      )
+    : null;
 
   return {
     session,
@@ -250,6 +278,13 @@ async function load(slug: string) {
      */
     awardEarnedLabel:
       held && held.earned_at ? `Earned ${shortDate(held.earned_at, timezone)}` : null,
+    // "6 sessions · first tried 2 Sep", the same sentence the block's own head
+    // carried before it moved into a row (`trickBlockMeta`), formatted on the
+    // server like every other date on this page (LESSONS §3a).
+    sessionsCount: sessionsOnTrick?.count ?? 0,
+    sessionsMeta: sessionsOnTrick?.count
+      ? trickBlockMeta(sessionsOnTrick.count, sessionsOnTrick.firstTriedOn)
+      : null,
     // Every date and the summary line formatted here, in the rider's zone,
     // from the same log rows `landedLabel` is read from (LESSONS §3a).
     history: trickHistory(entries, slug, { timezone }) as TrickHistory | null,
@@ -574,6 +609,21 @@ export default async function TrickPage({ params }: Params) {
               for, and still never another sport's video. What moved is where it
               sits — out of the top of the reading column and into the row the
               owner's layout A puts it in.
+
+              **The instruction that put it at the top of the column, kept.**
+              T35's comment here read: "'Watch it' (T35), first in the column
+              and therefore the first thing under the stage ladder on a phone —
+              *the owner asked for prominence where there is a video
+              (2026-09-12, in chat)*, and this is the most prominent slot that
+              leaves T26's award-led hero alone." D7 (2026-09-16) moved it
+              higher still, above the ladder rather than under it, so the
+              instruction is honoured by the new position — but the *size* is
+              the part that has to be watched, and the first cut of this row
+              halved it twice over on a phone: 132 × 83 against main's 328 ×
+              205. The phone row now gives the player the larger share and the
+              poster drops its caption under 260px (`video.module.css`), and
+              whether a phone should stack the two cards outright is in §3.8
+              for the owner (independent review of 2026-09-17, B2).
             */}
             {video && (
               <section
@@ -693,6 +743,41 @@ export default async function TrickPage({ params }: Params) {
         */}
         <div className={styles.grid} style={{ '--acc-accent': category.color } as CSSProperties}>
           <div className={styles.column}>
+            {/*
+              **The rider's own sessions on this trick, first** — high in the
+              reading column rather than near the foot of it (Rachid,
+              2026-09-13, in chat). "It was below the road and above only
+              'Where to practise', which on a trick with tips, mistakes and a
+              fun fact meant a rider scrolled past everything the page could
+              teach them to reach the one part that is theirs."
+
+              T49's first cut folded it into the `#clips` row at the bottom of
+              the second column, which put it back past everything *and* behind
+              a chevron — the same defect that instruction was given about. It
+              is the first row here instead, at both widths, so the instruction
+              holds inside layout A (independent review of 2026-09-17, B3).
+
+              Drawn only when there is something in it: the count decides, and
+              on a rider the sessions preview does not cover there is no count,
+              no row and no read at all. The block's own head is off, because
+              this row's heading and sub-line already say what it said.
+            */}
+            {session && data.sessionsCount > 0 && (
+              <Accordion
+                plainAbove={PLAIN_ABOVE}
+                className={`${styles.section} ${styles.secSessions}`}
+                title="Your sessions on this trick"
+                sub={data.sessionsMeta}
+              >
+                <TrickSessionsBlock
+                  trickId={record.id}
+                  trickName={trick.name}
+                  session={session}
+                  heading={false}
+                />
+              </Accordion>
+            )}
+
             {/*
               The fun fact rides in the lowdown's body rather than taking a row
               of its own. It is two lines about the trick, which is what the
@@ -827,7 +912,7 @@ export default async function TrickPage({ params }: Params) {
             )}
 
             {/*
-              Everything on this page that is the rider's own, in one row
+              The history, the notes and the video links, in one row
               (§3.8: "Your history / notes / clips"). Signed in only, with no
               tease for a visitor: the band above already carries the one
               sign-in line this page needs, and "sign in to see your history"
@@ -837,9 +922,11 @@ export default async function TrickPage({ params }: Params) {
 
               `#clips` is where the Log sheet's "Add a clip link" lands (§3.5),
               and `Accordion` opens the row the fragment names rather than
-              scrolling a shut box into view. The three panels inside are
-              unchanged: the rider's sessions on the trick, the timeline, and
-              the notes-and-videos panel with its own two tabs.
+              scrolling a shut box into view — on the **videos** tab, which is
+              what the sheet said it would do.
+
+              The rider's sessions on the trick were briefly in here too, and
+              are not: see the first row of the left column.
             */}
             {session && (
               <Accordion
@@ -850,12 +937,6 @@ export default async function TrickPage({ params }: Params) {
                 sub="Only you can see these"
               >
                 <div className={styles.mine}>
-                  <TrickSessionsBlock
-                    trickId={record.id}
-                    trickName={trick.name}
-                    session={session}
-                  />
-
                   {data.history && (
                     <HistoryPanel
                       history={data.history}

@@ -145,6 +145,17 @@ export function Accordion({
   const [grown, setGrown] = useState(defaultOpen);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const frame = useRef<number | null>(null);
+  /**
+   * Whether the row is on its way shut — which is not the same question as
+   * whether it is open.
+   *
+   * For the `--dur-ui` the close takes, `open` is still `true` while the row is
+   * plainly shutting, so a second press branched on `open` alone called `hide()`
+   * again: it cancelled the pending timer, re-armed it, and the row finished
+   * closing instead of coming back. Measured at +60ms, which is well inside a
+   * child's tap cadence (independent review of 2026-09-17, S2).
+   */
+  const closing = useRef(false);
 
   const clearPending = useCallback(() => {
     if (closeTimer.current !== null) clearTimeout(closeTimer.current);
@@ -155,6 +166,7 @@ export function Accordion({
 
   const show = useCallback(() => {
     clearPending();
+    closing.current = false;
     setOpen(true);
     // Two frames: the first paints the body at `0fr` now that the UA has
     // stopped hiding it, the second is the one the transition starts from.
@@ -165,9 +177,19 @@ export function Accordion({
 
   const hide = useCallback(() => {
     clearPending();
+    closing.current = true;
     setGrown(false);
-    closeTimer.current = setTimeout(() => setOpen(false), CLOSE_MS);
+    closeTimer.current = setTimeout(() => {
+      closing.current = false;
+      setOpen(false);
+    }, CLOSE_MS);
   }, [clearPending]);
+
+  /** The press. Intent, not the attribute — see `closing`. */
+  const toggle = useCallback(() => {
+    if (open && !closing.current) hide();
+    else show();
+  }, [open, hide, show]);
 
   useEffect(() => clearPending, [clearPending]);
 
@@ -177,6 +199,7 @@ export function Accordion({
     const match = () => {
       if (window.location.hash !== `#${id}`) return;
       clearPending();
+      closing.current = false;
       setOpen(true);
       setGrown(true);
     };
@@ -206,11 +229,21 @@ export function Accordion({
     >
       <summary
         className="accordion-head"
+        /*
+         * **Out of the tab order where there is nothing to disclose** (§3.8;
+         * independent review of 2026-09-17, S3). `plain` used to short-circuit
+         * the handlers and leave the element exactly as it was, so a keyboard
+         * rider on the desktop trick page tabbed through seven stops drawn as
+         * plain headings that did nothing when pressed, each announced as a
+         * collapsed-or-expanded disclosure. It stops being a control here
+         * rather than stopping responding: no focus, no pointer (the
+         * stylesheet), no press.
+         */
+        tabIndex={plain ? -1 : undefined}
         onClick={(event) => {
           event.preventDefault();
           if (plain) return;
-          if (open) hide();
-          else show();
+          toggle();
         }}
       >
         {/* The sub-line lives inside the heading rather than beside it: a

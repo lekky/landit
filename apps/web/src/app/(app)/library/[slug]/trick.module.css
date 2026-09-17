@@ -560,9 +560,22 @@ a.jumpBtn:hover {
  * given two thirds of a 1180px page is 440px tall and pushes the band — the one
  * control on this page — off the first screenful.
  */
+/*
+ * **The player is capped, and the cap is what keeps the band on screen.**
+ *
+ * Measured by the independent review of 2026-09-17 (S5) on a 1280 × 720 window:
+ * the yellow band's top sat at 785 on a trick with a curated video and at 527 on
+ * one without, against 291 on `main` — so the row put the page's only control
+ * below the fold, but only on the tricks that have a tutorial, and the curation
+ * set is meant to grow. A 420px track makes the 16:10 frame about 231px tall
+ * rather than 316, which is the 100-odd pixels that bring the band back up.
+ *
+ * A track rather than a `max-width` on a `1fr` column, so the sticker card takes
+ * the room the player gives up instead of leaving it as empty cream.
+ */
 .stickerVideo {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
   gap: 18px;
   padding: 18px 22px;
   border-bottom: 3px solid var(--ink);
@@ -582,6 +595,14 @@ a.jumpBtn:hover {
   min-width: 0;
   /* The jump row's "Sticker" and "Watch" land here, under the sticky bar. */
   scroll-margin-top: 76px;
+}
+
+/* The same cap again, for the one arrangement the track cannot reach: a trick
+   with a video and no award would take `.cardWide` and span the row. No trick
+   in the catalogue is in that state today — all 259 carry a live sticker — but
+   the branch exists, and a 1136px player is not what it should draw. */
+.videoCard {
+  max-width: 420px;
 }
 
 /*
@@ -1112,10 +1133,6 @@ a.jumpBtn:hover {
  * The band is the one thing on this page a rider taps, so it gets the width.
  */
 @media (max-width: 720px) {
-  .panel {
-    --badge-w: 112px;
-  }
-
   .header {
     padding: 14px 14px 16px;
     gap: 10px;
@@ -1176,9 +1193,31 @@ a.jumpBtn:hover {
    * — with the badge over its words rather than beside them, and the page's
    * own 14px gutters.
    */
+  /*
+   * **On a phone the video takes the larger share of the row** (independent
+   * review, B2). Equal columns gave a 390px screen two 158px cards and a
+   * 132 × 83 frame — 16% of the area the same player had on `main`, on the one
+   * screen this rethink is for, and not "a 16:9 thumbnail with a play square"
+   * in any useful sense. 0.8 / 1.2 makes it about 166 × 104, and the badge
+   * comes down to 96px so the sticker card is comfortable in what is left
+   * rather than filled edge to edge.
+   *
+   * D7 says the two share one row and that is the owner's newer decision, so
+   * the row is not stacked here. Whether a phone should stack them is recorded
+   * in §3.8 with both measurements, for the owner.
+   */
+  .panel {
+    --badge-w: 96px;
+  }
+
   .stickerVideo {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
     padding: 14px;
     gap: 12px;
+  }
+
+  .videoCard {
+    max-width: none;
   }
 
   .stickerCard,
@@ -1901,6 +1940,11 @@ a.practiseLink:hover {
    * "Watch it" is not on this list any more: it is in the row under the hero
    * (D7), which is further up the page than the order ever put it.
    */
+  /* First, and the desktop column order says so too (review B3). */
+  .secSessions {
+    order: -10;
+  }
+
   .secLowdown {
     order: -9;
   }

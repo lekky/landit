@@ -850,6 +850,15 @@ a.pill.on:hover {
 .accordion-head:active {
   transform: translate(2px, 2px);
 }
+/*
+ * The design's focus ring, not the browser's (independent review, N2). This
+ * sheet already gives one to `.segpick .seg`, `.clipposter` and `a.trickpill`;
+ * the row is the control a phone page is made of and had the UA's 1px outline.
+ */
+.accordion-head:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--yellow);
+}
 /* The heading is the row's whole left-hand side. `margin: 0` because the
    shared stylesheet gives every heading one and a row is not a paragraph. */
 .accordion-title {
@@ -912,9 +921,16 @@ a.pill.on:hover {
  */
 .accordion-plain .accordion-head {
   cursor: default;
+  /* With the chevron gone and the press gone, this is a heading drawn in a
+     row's clothes; nothing should be able to press it, which is the other half
+     of `tabIndex={-1}` in the component (review S3). */
+  pointer-events: none;
 }
 .accordion-plain .accordion-head:active {
   transform: none;
+}
+.accordion-plain .accordion-head:focus-visible {
+  box-shadow: none;
 }
 .accordion-plain .accordion-chev {
   display: none;
@@ -924,6 +940,29 @@ a.pill.on:hover {
 }
 .accordion-plain::details-content {
   content-visibility: visible;
+}
+/*
+ * **On paper every row is open** (independent review of 2026-09-17, S1).
+ *
+ * A printed page's media queries evaluate against the *paper*, about 816 CSS px
+ * for A4 at 96dpi, which is below any `plainAbove` a caller is likely to set —
+ * so a trick page printed from a desktop came out as nine headings and 595
+ * characters where `main` gave 2083. A coach printing a trick, or a parent
+ * putting one on a fridge, is exactly who this is for.
+ *
+ * Two declarations, because a shut `details` hides its contents two ways: the
+ * grid row is at `0fr` and the UA has skipped rendering the subtree.
+ */
+@media print {
+  .accordion-body {
+    grid-template-rows: 1fr;
+  }
+  .accordion::details-content {
+    content-visibility: visible;
+  }
+  .accordion-chev {
+    display: none;
+  }
 }
 
 /* ------------------------------------------------ the top bar at 400px -- */
