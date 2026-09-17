@@ -2,7 +2,7 @@
 
 A trick tracker for scooter and skateboard riders. Riders log every trick they can do through five honesty-based stages, earn stickers, follow a weekly challenge, find spots and events, and compare with a crew. Staff run the whole thing from an in-app admin portal.
 
-> **The pack predates BMX.** The product ships with **three** sports — scooter, skateboard and BMX — decided 2026-08-16 and built by T21. Everything in `design/` and every screenshot shows two, because they were drawn before that decision. Per plan §7, a sport tab strip, filter row or onboarding grid showing three where a capture shows two is a **known and intended** divergence, not a fidelity failure — do not "fix" it back. BMX's own visuals (icon, avatars, `--pink` sport colour) have no capture to compare against at all; judge them against the design language in this document.
+> **The pack predates BMX.** The product ships with **three** sports — scooter, skateboard and BMX — decided 2026-08-16 and built by T21. Everything in `design/` and every screenshot shows two, because they were drawn before that decision. Per plan §7, a sport tab strip, filter row or onboarding grid showing three where a capture shows two is a **known and intended** divergence, not a fidelity failure — do not "fix" it back. BMX's own visuals (icon, avatars, sport colour) have no capture to compare against at all; judge them against the design language in this document. Since 2026-09-17 no sport's colour is a token — see the sport-colour table below the palette.
 
 Built for riders of all ages, so the safeguarding defaults and the parent/coach view matter as much as the tracking.
 
@@ -163,15 +163,36 @@ Pick these now so instrumentation goes in as screens are built, not after. Given
 | `--paper-2` | `#FFF7E4` | Secondary card surface, table headers |
 | `--wash` | `#F2ECDC` | Page background (with dot pattern) |
 | `--pink` | `#FF3D78` | Accent |
-| `--orange` | `#FF5A1F` | Primary button, scooter sport colour, Street category |
+| `--orange` | `#FF5A1F` | Primary button, Street category |
 | `--yellow` | `#FFC23F` | Brand accent, streak, highlight rows |
 | `--lime` | `#9CE05B` | Progress fill, landed state |
 | `--green` | `#10A06A` | Success, "Every time" stage, Flat category |
 | `--mint` | `#2EC4B6` | "Most times" stage |
 | `--sky` | `#3AC0FF` | "Sometimes" stage, info toasts |
-| `--blue` | `#246BFF` | Skate sport colour, Park category |
+| `--blue` | `#246BFF` | Park category |
 | `--violet` | `#8A3BE0` | Paywall, staff/admin, Hybrid category |
 | `--red` | `#E0392B` | Destructive actions, errors, Air category |
+
+**The sport colours are not in this table, and that is deliberate** (Rachid,
+2026-09-17, in chat: "the colours defined for each type should match the main
+colour in the image now"). Until then a sport borrowed a token — scooter
+`--orange`, skate `--blue`, BMX `--pink` — which is what this table and the
+pack's screenshots show. Each sport now takes the main colour of its own painted
+equipment instead, so that the chip's keyline and the art inside it agree:
+
+| Sport | Colour | Sampled from |
+| --- | --- | --- |
+| Scooter | `#00E0ED` | the cyan splash behind the scooter |
+| Skateboard | `#FF007B` | the pink splash behind the skateboard |
+| BMX | `#FF7700` | the orange splash behind the BMX |
+
+They live in `packages/core/src/data/sports.ts` and nowhere else, they are
+**not** tokens, and they are expected to move when the art is repainted — so
+read them from `SPORTS[id].color` rather than copying a hex. The tokens above
+are untouched and keep every other job they had. Two near-misses worth knowing
+before anyone "corrects" one: BMX orange `#FF7700` is not `--orange` `#FF5A1F`
+(Street), and skate pink `#FF007B` is not `--pink` `#FF3D78` (accent, link
+hover). A sport chip and a category tag are never the same control.
 
 Page background pattern: `radial-gradient(rgba(18,16,11,.07) 1.1px, transparent 1.1px)` at `14px 14px`.
 

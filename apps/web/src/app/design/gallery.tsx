@@ -274,10 +274,18 @@ export function Gallery() {
             ))}
           </div>
           <div style={{ ...row, marginTop: 14 }}>
+            {/*
+             * All three, at both sizes. The chip is where a sport's colour and
+             * its painted art meet, and since 2026-09-17 the first is sampled
+             * from the second — so this row is the page a designer opens to
+             * check they still agree.
+             */}
             <SportChip sport={SPORTS.scooter} />
             <SportChip sport={SPORTS.skate} />
+            <SportChip sport={SPORTS.bmx} />
             <SportChip sport={SPORTS.scooter} small />
             <SportChip sport={SPORTS.skate} small />
+            <SportChip sport={SPORTS.bmx} small />
           </div>
         </Section>
 
@@ -414,6 +422,13 @@ export function Gallery() {
                 icon: 'board',
                 color: SPORTS.skate.color,
                 note: 31,
+              },
+              {
+                id: 'bmx',
+                label: 'BMX',
+                icon: 'bmx',
+                color: SPORTS.bmx.color,
+                note: 29,
               },
             ]}
           />

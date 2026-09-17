@@ -1,4 +1,4 @@
-import { CHALLENGES } from '@landit/core';
+import { CHALLENGES, SPORTS, SPORT_IDS } from '@landit/core';
 import { describe, expect, it } from 'vitest';
 
 import { contrastRatio, foregroundFor, softFill } from './contrast';
@@ -114,6 +114,35 @@ describe('foregroundFor', () => {
     expect(contrastRatio(TOKEN.paper, TOKEN.green)).toBeLessThan(AA);
     expect(contrastRatio(TOKEN.ink, TOKEN.orange)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(TOKEN.ink, TOKEN.green)).toBeGreaterThanOrEqual(AA);
+  });
+});
+
+/*
+ * Sport colours are not palette tokens. Since 2026-09-17 each is sampled from
+ * that sport's own painted equipment (`packages/core/src/data/sports.ts`), so
+ * they move when the art is repainted — which is exactly why they need a guard
+ * here rather than a number in a comment.
+ *
+ * A chip, a tab and a picker card all paint a label straight onto the sport
+ * fill and take `foregroundFor`'s answer, so every sport fill has to carry one
+ * of the two foregrounds at AA. The repaint improved this: skate's old `--blue`
+ * cleared neither (4.18 on ink, 4.46 on paper) and its chip label was the
+ * palette's longest-standing AA failure.
+ */
+describe('sport colours', () => {
+  it('carries ink at AA on every sport fill', () => {
+    for (const id of SPORT_IDS) {
+      const fill = SPORTS[id].color;
+      expect(foregroundFor(fill), id).toBe('var(--on-light)');
+      expect(contrastRatio(TOKEN.ink, fill), id).toBeGreaterThanOrEqual(AA);
+    }
+  });
+
+  it('keeps each sport off the shared palette tokens', () => {
+    const shared = [TOKEN.orange, TOKEN.blue, TOKEN.pink, TOKEN.sky];
+    for (const id of SPORT_IDS) {
+      expect(shared, id).not.toContain(SPORTS[id].color.toLowerCase());
+    }
   });
 });
 
