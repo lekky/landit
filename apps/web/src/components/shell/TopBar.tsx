@@ -62,10 +62,20 @@ export type TopBarRider = {
 export function TopBar({
   rider,
   sessionsEnabled,
+  unread,
 }: {
   rider?: TopBarRider;
   /** Sessions are open to this rider, so the LOG sheet offers one (T41). */
   sessionsEnabled?: boolean;
+  /**
+   * How much news the rider has not read yet (T47), for the bell badge.
+   *
+   * Decided on the server in `app/(app)/layout.tsx`, like `staff` and
+   * `sessionsEnabled` above and for the same reason: this bar is a client
+   * component and is never handed a rider record. It is a count of lines the
+   * product wrote, not a fact about the rider.
+   */
+  unread?: number;
 }) {
   const items = topNavFor(sessionsEnabled);
   const pathname = usePathname();
@@ -117,7 +127,7 @@ export function TopBar({
                   <Icon name="plus" size={17} strokeWidth={2.8} />
                   Log
                 </button>
-                <BellButton />
+                <BellButton unread={unread} />
                 {/* The avatar opens the destinations that are not places to
                     ride — account, coach view, plans, an idea, a report — for
                     staff the admin portal, and Sign out at the foot. */}

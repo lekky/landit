@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 
 import { AppShell } from '@/components/shell/AppShell';
+import { loadWhatsNewLines } from '@/components/whats-new/load';
 import { VerifyEmailBanner } from '@/components/verify/VerifyEmailBanner';
 import { currentRider } from '@/lib/session';
 import { sessionsEnabledFor } from '@/lib/sessionsPreview';
@@ -49,6 +50,22 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     rider && !rider.verified && rider.email && !dismissedVerifyBanner,
   );
 
+  /**
+   * The bell's unread count (T47, rethink §3.1 and §3.6).
+   *
+   * Here because the bar is on every screen and the count has to be right on
+   * every screen — a badge computed on `/whats-new` alone would be a badge
+   * nobody ever sees. The read is windowed and fired in one batch, it is
+   * memoised for the request so a `/whats-new` render does not pay for it
+   * twice, and it fails soft: a feed that will not load answers zero rather
+   * than taking down the library.
+   *
+   * It is *not* the panel. The panel's crew tabs are a read per crew and are
+   * fetched when the panel opens, which is the trade T45's sport menu already
+   * made for the same reason (`components/whats-new/load.ts`).
+   */
+  const { unread } = rider ? await loadWhatsNewLines() : { unread: 0 };
+
   return (
     <AppShell
       rider={
@@ -76,6 +93,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
        * each `/progress/sessions` route still asks the gate itself.
        */
       sessionsEnabled={rider ? sessionsEnabledFor(rider) : false}
+      unread={unread}
     >
       {showVerifyBanner ? <VerifyEmailBanner email={rider!.email} /> : null}
       {children}

@@ -1046,6 +1046,7 @@ export interface UsersRecord {
   heard_about: UsersHeardAbout;
   last_seen: string;
   session_visibility_default: UsersSessionVisibilityDefault;
+  whats_new_seen_at: string;
 }
 
 /** The shape accepted when creating a `users` record. */
@@ -1082,6 +1083,7 @@ export interface UsersCreate {
   heard_about?: UsersHeardAbout;
   last_seen?: string;
   session_visibility_default?: UsersSessionVisibilityDefault;
+  whats_new_seen_at?: string;
 }
 
 /** The shape accepted when updating a `users` record. */

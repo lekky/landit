@@ -159,6 +159,39 @@ const USER_SESSION_DEFAULTS = {
 };
 
 /**
+ * `whats_new_seen_at`, pinned empty on create and **writable ever after**.
+ *
+ * Its own list because it is the only field with this shape. The streak and
+ * `last_seen` are pinned on create *and* frozen on update, because they are the
+ * server's to state. This one is pinned on create and then the rider's: a
+ * sign-up posting `whats_new_seen_at: '2099-01-01'` was accepted before this
+ * existed (T47 review N7), which only ever hid a rider's own badge from
+ * themselves — but a field an account can arrive holding is one nobody can read
+ * as a record of anything, and every other date on this row is pinned.
+ */
+const USER_WHATS_NEW_DEFAULTS = {
+  whats_new_seen_at: '',
+};
+
+/*
+ * It is **deliberately absent from the frozen lists above**, and this comment is
+ * here so that absence reads as a decision rather than an oversight (T47,
+ * rethink §6).
+ *
+ * It is the rider's own bookmark in their own news: the What's new panel stamps
+ * it when it opens and when "Mark all read" is pressed, and the unseen count is
+ * the number of derived lines newer than it. Freezing it would break the
+ * feature — the client is the only thing that knows the panel was read — and
+ * there is nothing to gain by forging it. A rider who pushed it forward would
+ * hide their own badge; a rider who pushed it back would show themselves one.
+ * Neither reaches another account, because `users.updateRule` is
+ * `id = @request.auth.id` and every other rider's record 404s before a guard
+ * runs. That is the door `pocketbase/tests/whats-new-seen.test.ts` stands in,
+ * and the file says so, because a test that is green through a different door
+ * proves nothing about this one (LESSONS §5).
+ */
+
+/**
  * How stale a stamp has to be before authenticating rewrites it.
  *
  * Fifteen minutes, agreed with the owner (2026-09-07). `users` is the hottest
@@ -288,6 +321,11 @@ function guardUserWrite(e, isCreate) {
       }
       for (const field of Object.keys(USER_SESSION_DEFAULTS)) {
         record.set(field, USER_SESSION_DEFAULTS[field]);
+      }
+      // Pinned on create, and the rider's own from the next request onward —
+      // the one field here with that shape. See `USER_WHATS_NEW_DEFAULTS`.
+      for (const field of Object.keys(USER_WHATS_NEW_DEFAULTS)) {
+        record.set(field, USER_WHATS_NEW_DEFAULTS[field]);
       }
     }
     return;
