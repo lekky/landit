@@ -807,13 +807,26 @@ test('the sticker and the video share the row, and the sticker takes it alone wi
   await page.goto('/library/bmx-wheelie');
   const withVideo = (await page.locator('#sticker').boundingBox())!;
   const watch = (await page.locator('#watch').boundingBox())!;
-  expect(withVideo.width).toBeLessThan(rowBox.width * 0.6);
+  expect(withVideo.width).toBeLessThan(rowBox.width - watch.width);
   expect(watch.x).toBeGreaterThan(withVideo.x + withVideo.width - 1);
   expect(Math.abs(watch.y - withVideo.y)).toBeLessThan(2);
+
+  /*
+   * And the player is capped (independent review, S5). The row sits between the
+   * name and the band, so an uncapped 16:10 player on a wide screen pushed the
+   * only control on this page a long way below a laptop's fold: measured, the
+   * band's top went from 291 on `main` to 785. A 360px track brings it to 665.
+   */
+  expect(watch.width).toBeLessThanOrEqual(366);
 
   // And the row is above the band at both widths, which is what D7 decided.
   const band = (await page.locator('#ladder').boundingBox())!;
   expect(watch.y + watch.height).toBeLessThanOrEqual(band.y + 1);
+  // On a 1280 × 720 laptop the band's top is still on screen with a video on
+  // the page, which is what the cap is for.
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/library/bmx-wheelie');
+  expect((await page.locator('#ladder').boundingBox())!.y).toBeLessThan(720);
 });
 
 test('a section on a phone is a details that opens, and a plain panel on a desktop', async ({
@@ -839,16 +852,18 @@ test('a section on a phone is a details that opens, and a plain panel on a deskt
   await expect(body).toBeHidden();
 
   /*
-   * Above 820px there is no disclosure at all (§3.8): every section is open,
-   * the chevron is gone, and pressing the heading changes nothing. The width
-   * is read in the browser, so this asserts the state after hydration rather
-   * than the markup the server sent.
+   * Above 820px there is no disclosure at all (§3.8): every section is open and
+   * the row is not a control — it takes no pointer, which is why this asserts
+   * the state rather than clicking to prove nothing happens. The width is read
+   * in the browser, so this is the state after hydration rather than the markup
+   * the server sent. "Not focusable, no chevron" is its own test below.
    */
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.reload();
   await expect(body).toBeVisible();
-  await page.getByRole('heading', { name: 'The lowdown' }).click();
-  await expect(body).toBeVisible();
+  await expect(lowdown).toHaveAttribute('open', '');
+  await expect(lowdown).toHaveClass(/accordion-plain/);
+  await expect(lowdown.locator('summary')).toHaveCSS('pointer-events', 'none');
 });
 
 test('the Log sheet lands on the ladder and on the videos, clear of the top bar', async ({
@@ -901,4 +916,101 @@ test('the desktop page keeps its two columns', async ({ page }) => {
 
   // The jump row is the phone's, and is not drawn here.
   await expect(page.getByRole('navigation', { name: 'Jump to a section' })).toBeHidden();
+});
+
+/*
+ * The five the independent review of 2026-09-17 said were missing, each against
+ * the finding it would have caught: S3 (the desktop summary was still a
+ * control), S4 (the clip link landed on the notes tab), S2 (a fast second tap
+ * finished the close instead of re-opening), S1 (a printed page was headings and
+ * nothing else), and the locked page, which short-circuits before any of this
+ * and should keep doing so.
+ */
+
+test('the desktop headings are headings, not controls', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(`/library/${freeTrick.id}`);
+
+  const head = page.locator('details.accordion').first().locator('summary');
+  await expect(head).toBeVisible();
+
+  // No chevron, and not a tab stop: §3.8 says the desktop has no disclosure in
+  // it, and a keyboard rider should not meet seven stops that do nothing.
+  await expect(page.locator('.accordion-chev').first()).toBeHidden();
+  await expect(head).toHaveAttribute('tabindex', '-1');
+  await expect(page.locator('details.accordion').first()).toHaveClass(/accordion-plain/);
+});
+
+test('"Add a clip link" lands on the videos tab, not on the notes', async ({ page }) => {
+  await signUpRookie(page);
+  await page.setViewportSize(PHONE);
+  await page.goto('/library');
+  await page.goto(`/library/${freeTrick.id}#clips`);
+
+  await expect(page.locator('details#clips')).toHaveAttribute('open', '');
+  // §3.5 item 4: the sheet promised the video-link field, so that is the tab
+  // the rider arrives on.
+  await expect(page.getByRole('tab', { name: /Your videos/i })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByRole('tab', { name: /Session notes/i })).toHaveAttribute(
+    'aria-selected',
+    'false',
+  );
+});
+
+test('a row shut and opened again in the same second comes back', async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  await page.goto(`/library/${freeTrick.id}`);
+
+  const row = page.locator('details').filter({ hasText: 'The lowdown' }).first();
+  const head = page.getByRole('heading', { name: 'The lowdown' });
+
+  await head.click();
+  await expect(row).toHaveAttribute('open', '');
+
+  /*
+   * Shut, then open again inside the 200ms the close takes. Children tap fast,
+   * and the first cut branched on the `open` attribute — which is still `true`
+   * while the row is visibly shutting — so the second tap re-armed the close
+   * and the row stayed down.
+   */
+  await head.click();
+  await page.waitForTimeout(60);
+  await head.click();
+  await page.waitForTimeout(600);
+  await expect(row).toHaveAttribute('open', '');
+});
+
+test('a printed trick page has its content, not just its headings', async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  await page.goto(`/library/${freeTrick.id}`);
+  await page.emulateMedia({ media: 'print' });
+
+  /*
+   * A printed page's media queries evaluate against the paper — about 816 CSS
+   * px — which is below `PLAIN_ABOVE`, so the desktop rules do not save it
+   * either. Without the `@media print` block in `additions.css` this comes back
+   * as nine names and nothing under them.
+   */
+  const body = await page.locator('main').innerText();
+  expect(body).toContain(freeTrick.about.slice(0, 40));
+  expect(body).toContain(freeTrick.tips.slice(0, 40));
+  await page.emulateMedia({ media: null });
+});
+
+test('the locked page carries none of the new markup', async ({ page }) => {
+  await signUpRookie(page);
+  await page.goto(`/library/${lockedTrick.id}`);
+
+  // It short-circuits before the whole of layout A, and nothing about the
+  // reorder may leak onto a page the rider has not paid for.
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(lockedTrick.name);
+  await expect(page.locator('details.accordion')).toHaveCount(0);
+  await expect(page.locator('#ladder')).toHaveCount(0);
+  await expect(page.locator('#sticker')).toHaveCount(0);
+  await expect(page.locator('#watch')).toHaveCount(0);
+  await expect(page.locator('#clips')).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: 'Jump to a section' })).toHaveCount(0);
 });

@@ -567,17 +567,24 @@ a.jumpBtn:hover {
  * the yellow band's top sat at 785 on a trick with a curated video and at 527 on
  * one without, against 291 on `main` — so the row put the page's only control
  * below the fold, but only on the tricks that have a tutorial, and the curation
- * set is meant to grow. A 420px track makes the 16:10 frame about 231px tall
- * rather than 316, which is the 100-odd pixels that bring the band back up.
+ * set is meant to grow.
+ *
+ * A 360px track takes the frame from 506 × 316 to **328 × 205** and the band
+ * from 785 to **665**, which is 55px of yellow on screen at 720 rather than
+ * none. 328 × 205 is not a small player: it is exactly the size `main` gave the
+ * same tutorial on a phone. The arithmetic does not allow better — a 16:10
+ * frame under this hero cannot leave the whole 79px band above a 720px fold
+ * without shrinking to about 224px wide, which would be a worse trade than the
+ * one it fixes.
  *
  * A track rather than a `max-width` on a `1fr` column, so the sticker card takes
  * the room the player gives up instead of leaving it as empty cream.
  */
 .stickerVideo {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
   gap: 18px;
-  padding: 18px 22px;
+  padding: 14px 22px;
   border-bottom: 3px solid var(--ink);
   background: var(--paper-2);
 }
@@ -599,10 +606,11 @@ a.jumpBtn:hover {
 
 /* The same cap again, for the one arrangement the track cannot reach: a trick
    with a video and no award would take `.cardWide` and span the row. No trick
-   in the catalogue is in that state today — all 259 carry a live sticker — but
-   the branch exists, and a 1136px player is not what it should draw. */
+   in the catalogue is in that state today — all 259 carry a live sticker (the
+   independent review counted them) — but the branch exists, and a 1136px player
+   is not what it should draw. */
 .videoCard {
-  max-width: 420px;
+  max-width: 360px;
 }
 
 /*
