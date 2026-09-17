@@ -318,14 +318,18 @@ export function LibraryBrowser({
           Not "Rookie and Easy tricks are yours. The Spicy, Gnarly and Pro
           tiers open up on Shredder", which is what this said until 2026-09-04
           and was false in both directions — the free tier is a hand-picked
-          twenty per sport that reaches past Easy, and it has never covered all
+          spread per sport that reaches past Easy, and it has never covered all
           of Easy (`PLANS` in `@landit/core`, issue #286). The grid around this
           banner shows every lock, so the banner does not need to enumerate
           tiers it would get wrong.
+
+          And it does not count them either (Rachid, 2026-09-17: "dont mention
+          counts of tricks in free text as its always subject to change").
+          The allowance is a pricing lever that has already moved once; the grid
+          below shows what is actually unlocked, which cannot go stale.
         */}
         <p className={styles.bannerBody}>
-          Twenty hand-picked tricks in every sport are yours. The rest of the library opens up on
-          Shredder.
+          Hand-picked tricks in every sport are yours. The rest of the library opens up on Shredder.
         </p>
       </div>
       {/*

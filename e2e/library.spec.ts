@@ -379,12 +379,20 @@ test('a rookie is told what their plan covers, without being leant on', async ({
   await page.goto('/library');
 
   await expect(page.getByText('You’re on Rookie')).toBeVisible();
-  // Not a tier list any more: the free tier is a hand-picked twenty per sport,
+  // Not a tier list any more: the free tier is a hand-picked spread per sport,
   // not everything below a line (issue #286, `PLANS` in `@landit/core`). What
   // the banner owes a rider is the shape of what they have and where the rest
   // is, and this asserts both halves of that sentence.
-  await expect(page.getByText('Twenty hand-picked tricks in every sport are yours')).toBeVisible();
+  //
+  // **And no count** since 2026-09-17 (Rachid, in chat): the allowance is a
+  // pricing lever that has already moved once, and the grid under this banner
+  // shows what is actually unlocked, which cannot go stale.
+  await expect(page.getByText('Hand-picked tricks in every sport are yours')).toBeVisible();
   await expect(page.getByText('The rest of the library opens up on Shredder')).toBeVisible();
+  // The sentence it replaced, named so a paste from an old seed cannot bring it
+  // back. The library's own headers still count tricks ("84 tricks") and are
+  // meant to: those are rendered from the data and cannot go stale.
+  await expect(page.locator('body')).not.toContainText(/twenty hand-picked tricks/i);
 
   // Plan §6.4, standard 13: no loss framing, no countdown, nothing that reads
   // as a squeeze. A copy edit that adds one has to fail here.

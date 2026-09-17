@@ -68,28 +68,44 @@ const GB = 1024 * 1024 * 1024;
  * A parent comparing the cards against the library would have found the cards
  * wrong.
  *
- * The free tier is instead a **deliberate hand-picked spread: twenty tricks in
- * each sport, weighted towards the easy end but reaching past it** (owner's
- * decision, 2026-09-12, doubling the ten of 2026-09-04 — the shape is every
- * Rookie trick, an Easy fill, 4 Spicy and 2 Gnarly per sport, nothing free at
- * Pro, implemented in `./tricks.ts`). The reason is a product one: an
- * experienced rider on the free plan who only ever sees tricks they landed
- * years ago is shown nothing, and they are the person most able to pay.
+ * The free tier is instead a **deliberate hand-picked spread across each
+ * sport, weighted towards the easy end but reaching past it** (owner's
+ * decision, 2026-09-12 — the shape is every Rookie trick, an Easy fill, 4 Spicy
+ * and 2 Gnarly per sport, nothing free at Pro, implemented in `./tricks.ts`).
+ * The reason is a product one: an experienced rider on the free plan who only
+ * ever sees tricks they landed years ago is shown nothing, and they are the
+ * person most able to pay.
  *
- * So the copy names **twenty**, and it names **three sports**, and it names no
- * tier at all. Three rules govern it:
+ * **The number is no longer written down anywhere a rider can read it**
+ * (Rachid, 2026-09-17, in chat, on PR #572: "dont mention counts of tricks in
+ * free text as its always subject to change, so remove it everywhere"). This
+ * reverses the rule that stood here from 2026-09-04 — "'Twenty' is safe to
+ * write down" — and the reasoning it rested on. That reasoning was about
+ * *accuracy*: the number is per-sport, deliberated and pinned by
+ * `data.test.ts`, so a sentence quoting it could not go quietly wrong. What it
+ * did not weigh is that the allowance is a **pricing lever**, not a fact about
+ * the library, and it has already moved once — ten on 2026-09-04, twenty on
+ * 2026-09-12. Every move drags a copy edit across seven files, two migrations
+ * and the specs behind them, and the day one of those is missed the product
+ * lies to a parent comparing the card against the app. A test that pins a
+ * number cannot catch a sentence nobody remembered to change.
  *
- * - **"Twenty" is safe to write down; a library count is not.** It is a
- *   deliberated, per-sport, tested number — `data.test.ts` fails if any sport
- *   drifts off it — which is exactly the condition `./stickers.ts` sets for a
- *   name that quotes a value (issue #10). A line saying "87 paid tricks" would
- *   go stale the next time staff add one, so nothing here counts the library.
+ * So the copy says **what the free tier is** — hand-picked, in every sport,
+ * reaching past the beginner end — and the app shows what a rider actually
+ * gets. Three rules govern it now:
+ *
+ * - **No plan copy states a count of tricks.** Not the free allowance, not the
+ *   library. `plans.test.ts` fails on a digit or a number word before "trick"
+ *   in any plan string, so this cannot come back by accident.
+ * - **Computed counts are not copy.** "84 tricks", "3 of 121" and the library's
+ *   own headers are rendered from the data and stay: they cannot go stale,
+ *   which was always the real test (issue #10, `./stickers.ts`).
  * - **No line names a tier as the boundary**, because the boundary is not a
  *   tier and cannot become one again without this comment and those tests
  *   changing on purpose.
- * - **Shredder quotes the same number as Rookie**, because its pitch sells the
- *   gap between them. It said "the ten we picked for you" for the whole life of
- *   the ten-trick tier, so a test now fails if either card says "ten" at all.
+ *
+ * `FREE_TRICKS_PER_SPORT` and the hook that enforces it are **unchanged**. Only
+ * the words went.
  */
 /**
  * The allowance each plan grants, and the one place the numbers live.
@@ -146,10 +162,10 @@ export const PLANS = [
     name: 'Rookie',
     hue: '#10A06A',
     pitch:
-      'Twenty hand-picked tricks in every sport, easy ones and hard ones, tracked properly. No trial, no card.',
+      'Loads of hand-picked tricks in every sport, easy ones and hard ones, tracked properly. No trial, no card.',
     perks: [
       'Scooter, skateboard and BMX libraries',
-      'Twenty free tricks in each sport, not just the beginner ones',
+      'Free tricks in each sport, not just the beginner ones',
       'Track every trick through 5 stages',
       'Digital sticker wall',
       "This week's challenge",
@@ -192,7 +208,7 @@ export const PLANS = [
     hue: '#FF5A1F',
     popular: true,
     pitch:
-      'The whole library, not just the twenty we picked for you. The whips, flips and tre flips.',
+      'The whole library, not just the ones we picked for you. The whips, flips and tre flips.',
     perks: [
       'Everything in Rookie',
       'Every trick in all three sports, nothing locked',

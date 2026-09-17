@@ -624,13 +624,53 @@ export function EventsScreen({
         here. It stays on the view for `/events/past` and anything else that
         wants it later.
       */}
-      {!mine && (
-        <div className={styles.filters}>
-          <SportScopeSelect state={scope} everyLabel="All sports" label="Show events for" />
-        </div>
-      )}
+      {/*
+        **One filter bar on a desktop, T48's stack on a phone** (Rachid,
+        2026-09-17, in chat: "bad layout on screenshot", looking at `/events` at
+        1740px).
 
-      <div className={styles.filters}>
+        It was three `.filters` rows — the scope select alone on one, Country
+        with Sort stranded at the far right of the next, the kind pills on a
+        third — which at 1740px is four sparse full-width bands of furniture
+        before the first event. Each row was right on its own and the set read as
+        a form to fill in rather than a bar to skim.
+
+        They are one row now, in the order a rider narrows: which sport, which
+        country, what kind, and then — pushed to the right, because it is a
+        question about the *list* rather than about what is in it — which order.
+        Below 861px `.filterBar` breaks back into the same three lines T48
+        shipped, by giving the scope select and the pills a full-width basis; a
+        phone gets the stack and a desktop gets the bar out of one set of
+        markup.
+      */}
+      <div className={styles.filterBar}>
+        {/*
+          "Show: Your sport (Scooter)" (§3.3, O1).
+
+          **The calendar opens on the rider's own sport**, where `/spots` opens
+          on every spot. The difference is the data and nothing else: staff tag
+          all 74 events, so "your sport" is a real narrowing here, and spot sport
+          tags are thin enough that the same default would hide most of the map.
+          O1 says so in as many words.
+
+          **Not rendered on a rider's own events** (review B1). Their own list is
+          a handful of decisions they already made, not a calendar to browse, and
+          a sport filter over it could only ever hide one of them. The screen is
+          every sport, and there is no control offering to change that.
+
+          The per-sport counts went with the pills — a `<select>` has no room for
+          a number beside each option — so `view.countBySport` is no longer read
+          here. It stays on the view for `/events/past` and anything else that
+          wants it later.
+        */}
+        {!mine && (
+          <SportScopeSelect
+            state={scope}
+            everyLabel="All sports"
+            label="Show events for"
+            className={styles.scopeFilter}
+          />
+        )}
         {/*
           A `<select>`, not a row of pills. The calendar is worldwide, so a pill
           per country is a wall of pills that pushes the list off the screen —
@@ -656,7 +696,33 @@ export function EventsScreen({
           </select>
         </label>
 
-        <span className={styles.spacer} />
+        {/*
+          What kind of thing it is. **In the bar now, between the two selects
+          and Sort**, where it was a third row of its own: the pills are the
+          narrowing a rider reaches for most and burying them under two rows of
+          `<select>` made them the last thing on the bar rather than the
+          liveliest. They are one group, so they wrap together — never one
+          orphan pill on a line of its own.
+        */}
+        <div className={styles.kinds} role="group" aria-label="Filter events by kind">
+          <Pill on={kind === null} onClick={() => setKind(null)}>
+            Everything
+          </Pill>
+          {view.kinds.map((k) => (
+            <Pill
+              key={k.id}
+              on={kind === k.id}
+              onClick={() => setKind(k.id)}
+              style={
+                kind === k.id
+                  ? { background: k.color, color: foregroundFor(k.color) ?? 'var(--on-dark)' }
+                  : undefined
+              }
+            >
+              {k.id}
+            </Pill>
+          ))}
+        </div>
 
         {/*
           The order, as two options rather than one switch (Rachid, 2026-09-13,
@@ -712,26 +778,6 @@ export function EventsScreen({
         {here.state === 'refused' && (
           <span className={`cond ${styles.locating}`}>{here.message}</span>
         )}
-      </div>
-
-      <div className={styles.filters}>
-        <Pill on={kind === null} onClick={() => setKind(null)}>
-          Everything
-        </Pill>
-        {view.kinds.map((k) => (
-          <Pill
-            key={k.id}
-            on={kind === k.id}
-            onClick={() => setKind(k.id)}
-            style={
-              kind === k.id
-                ? { background: k.color, color: foregroundFor(k.color) ?? 'var(--on-dark)' }
-                : undefined
-            }
-          >
-            {k.id}
-          </Pill>
-        ))}
       </div>
 
       {archive && <ArchiveIndex archive={archive} />}

@@ -591,28 +591,57 @@ describe('plans (implementation plan §2.4)', () => {
     }
   });
 
-  it('promises exactly the number of free tricks the library actually holds', () => {
-    // The one number the cards are allowed to quote, and this is what makes it
-    // allowed (issue #10): it is per-sport, deliberate and asserted, so it
-    // cannot drift the way a library count would. If `tricks.ts` moves off
-    // twenty in any sport, the copy is what needs rewriting — not this test.
+  it('keeps the free allowance at twenty a sport, and says so nowhere', () => {
+    /*
+     * **Two halves that used to be one.** The allowance is still exactly what it
+     * was — per-sport, deliberate and asserted here, so `tricks.ts` cannot drift
+     * off it quietly. What changed on 2026-09-17 is that **no card quotes it**
+     * (Rachid, in chat: "dont mention counts of tricks in free text as its
+     * always subject to change, so remove it everywhere").
+     *
+     * This test used to assert the opposite — that Rookie's pitch and one perk
+     * and Shredder's pitch each said "twenty" — on the reasoning that a tested
+     * number is safe to write down (issue #10). The owner's point is a different
+     * one and it beats it: the allowance is a **pricing lever**, not a fact
+     * about the library, and it has already moved once (ten → twenty). Every
+     * move drags a copy edit across seven files, two migrations and the specs
+     * behind them, and a test that pins a number cannot catch the sentence
+     * nobody remembered to change. `plans.ts` carries the full reasoning.
+     */
     const FREE_PER_SPORT = 20;
     for (const id of SPORT_IDS) {
       const free = TRICKS.filter((t) => t.sport === id && isTrickFree(t));
       expect(free, `free tricks in ${id}`).toHaveLength(FREE_PER_SPORT);
     }
+  });
 
-    const claim = PLAN.rookie.perks.filter((p) => /\btwenty\b/i.test(p));
-    expect(claim).toHaveLength(1);
-    expect(PLAN.rookie.pitch).toMatch(/\btwenty\b/i);
+  it('states no count of tricks in any plan card, in digits or in words', () => {
+    /*
+     * The rule that replaced "'Twenty' is safe to write down", asserted over
+     * *every* line of *every* card rather than the three that happened to carry
+     * it — so a count cannot come back somewhere new.
+     *
+     * The pattern is anchored on "trick", deliberately. Cards legitimately
+     * quote other numbers: "Track every trick through 5 stages" is the stage
+     * ladder, "10 video links" is a video allowance rendered from
+     * `videoLinkCap`, and both are owner decisions of their own. What is
+     * forbidden is a number counting *tricks*.
+     */
+    const counted =
+      /\b(a|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|hundred|\d+)\s+(free\s+|hand-picked\s+|other\s+|more\s+)*tricks?\b/i;
 
-    // And Shredder's pitch sells the gap, so it quotes the same number. It said
-    // "the ten we picked for you" for the whole life of the ten-trick tier and
-    // would have gone stale silently here.
-    expect(PLAN.shredder.pitch).toMatch(/\btwenty\b/i);
-    for (const plan of [PLAN.rookie, PLAN.shredder]) {
-      for (const line of [plan.pitch, ...plan.perks, ...plan.missing]) {
-        expect(line, `${plan.id}: "${line}"`).not.toMatch(/\bten\b/i);
+    for (const plan of allPlans) {
+      for (const line of everyLine(plan)) {
+        expect(line, `${plan.id}: "${line}"`).not.toMatch(counted);
+      }
+    }
+
+    // And the two shapes that count without a noun after the number — "the
+    // twenty we picked for you", "the ten we picked for you" — which is how
+    // Shredder's pitch said it for the whole life of both tiers.
+    for (const plan of allPlans) {
+      for (const line of everyLine(plan)) {
+        expect(line, `${plan.id}: "${line}"`).not.toMatch(/\bthe (ten|twenty|thirty|\d+)\b/i);
       }
     }
   });

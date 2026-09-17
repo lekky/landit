@@ -113,18 +113,19 @@ export function LockedTrick({
           {/*
             Not "{tier} tier is on Shredder" / "Rookie covers the Rookie and
             Easy tiers", which is what this said until 2026-09-04. Both were
-            false: the free tier is a hand-picked spread of twenty tricks per sport
-            reaching well past Easy, so a Spicy trick may be free and an Easy
-            one may be locked (`PLANS` in `@landit/core`, issue #286). This is
-            the screen where a rider decides whether to ask a parent for £3.99,
-            which makes it the worst place in the product for a claim about what
-            is free to be wrong. It now says what is true of *this* trick and
-            makes no promise about its neighbours.
+            false: the free tier is a hand-picked spread per sport reaching well
+            past Easy, so a Spicy trick may be free and an Easy one may be
+            locked (`PLANS` in `@landit/core`, issue #286). This is the screen
+            where a rider decides whether to ask a parent for £3.99, which makes
+            it the worst place in the product for a claim about what is free to
+            be wrong. It says what is true of *this* trick and makes no promise
+            about its neighbours — and since 2026-09-17 it makes no count
+            either, for the reason `plans.ts` records.
           */}
           <div className={`d ${styles.lockTitle}`}>This one is on Shredder</div>
           <p className={styles.lockCopy}>
-            Rookie covers twenty hand-picked tricks in every sport, and this is not one of them. The
-            rest of the lowdown, the tips and the tracking for it come with Shredder, along with
+            Rookie covers a hand-picked set of tricks in every sport, and this is not one of them.
+            The rest of the lowdown, the tips and the tracking for it come with Shredder, along with
             every other trick in the library.
           </p>
           <div className={styles.lockActions}>

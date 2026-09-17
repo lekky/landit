@@ -577,7 +577,15 @@ test.describe('where to ride', () => {
     // Nothing to close, and gone from the accessibility tree rather than merely
     // invisible: a column that is always on the page has no dismiss.
     await expect(page.getByRole('button', { name: 'Close' })).toHaveCount(0);
-    await expect(page.locator('[class*="mapNote"]')).toBeVisible();
+    /*
+     * The footer goes with the sheet (Rachid, 2026-09-17). It used to hold two
+     * paragraphs and show one at each width — `.mapNote` on the column,
+     * `.mapWarn` in the sheet — and the note is deleted, so above the line the
+     * whole strip is hidden rather than emptied. The full travel warning is
+     * still on the page here, under the map in `.notice`; asserting the strip
+     * is what proves the two layouts still change together at this one pixel.
+     */
+    await expect(page.locator('[class*="mapFoot"]')).toBeHidden();
     await expect(page.locator('[class*="mapWarn"]')).toBeHidden();
   });
 
@@ -605,7 +613,8 @@ test.describe('where to ride', () => {
     const chosen = await findSpot(page, scooterSpot.name);
 
     // The stretched link's accessible name is the card's, not an arrow: the
-    // visible "Spot page →" is decorative and hidden from assistive tech.
+    // visible "Spot page" button is decorative and hidden from assistive tech,
+    // so a screen reader hears one link to the spot rather than two.
     const link = chosen.getByRole('link', { name: /open spot page$/i });
     await expect(link).toHaveAttribute('href', /^\/spots\/[a-z0-9-]+$/);
 
@@ -671,6 +680,171 @@ test.describe('where to ride', () => {
     // A "directions from here" link would carry an origin. Plan §6.4, standard
     // 10: we store — and send — the spot's location, never the rider's.
     expect(href).not.toMatch(/saddr|origin=/);
+  });
+
+  test('Directions says it opens Google Maps, in a new tab', async ({ page }) => {
+    /*
+     * Rachid, 2026-09-17, in chat: "the directions should make more clear it
+     * opens google maps". `mapsLink` is a google.com URL on every platform, so
+     * the claim is a fact rather than a guess — and the href is asserted here
+     * beside the words, which is what stops the label outliving the link.
+     *
+     * `target="_blank"` announces nothing on its own, so the accessible name
+     * carries the new tab as well.
+     */
+    await page.goto('/spots');
+    const directions = (await findSpot(page, scooterSpot.name)).getByRole('link', {
+      name: /Directions/,
+    });
+
+    await expect(directions).toHaveAttribute(
+      'aria-label',
+      `Directions to ${scooterSpot.name} in Google Maps, opens in a new tab`,
+    );
+    await expect(directions).toHaveAttribute('target', '_blank');
+    await expect(directions).toHaveAttribute('rel', /noopener/);
+    expect(await directions.getAttribute('href')).toContain('google.com/maps');
+    // Visibly a button now, not a caption (the owner's "should be ctas?").
+    await expect(directions).toHaveClass(/\bbtn\b/);
+  });
+
+  test('the three things a card offers are controls, and Report is one of them', async ({
+    page,
+  }) => {
+    /*
+     * Rachid, 2026-09-17: "the report/spot page/directions should be ctas? not
+     * just strings?". All three wear the design's small ghost button at §4's
+     * 44px floor. Report keeps its corner rather than joining the footer row,
+     * because that row is only drawn for a spot with coordinates and reporting
+     * has to be on every card (plan §6.1) — its destination is unchanged and is
+     * asserted in `e2e/report.spec.ts`.
+     */
+    await page.goto('/spots');
+    const chosen = await findSpot(page, scooterSpot.name);
+
+    const report = chosen.getByRole('link', { name: `Report ${scooterSpot.name}` });
+    await expect(report).toHaveClass(/\bbtn\b/);
+    expect((await report.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+    const directions = chosen.getByRole('link', { name: /Directions/ });
+    expect((await directions.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+    /*
+     * **Report is the quietest of the three, and that took a doubled selector**
+     * (orchestrator review, 2026-09-17: "Report is now the loudest control on
+     * the card").
+     *
+     * Written as a single module class it lost `box-shadow: none` to `.btn.sm`'s
+     * two classes, so the control a rider should reach for least shipped wearing
+     * the boldest offset on the card. The shadow is what this measures, because
+     * the shadow is what went wrong — a class-name assertion would have passed
+     * the whole time it was broken.
+     */
+    // `el.ownerDocument.defaultView!.getComputedStyle`, not the bare global:
+    // `getComputedStyle` is not a name in this file's types (the same note
+    // `library.spec.ts` and `profile.spec.ts` carry).
+    const shadow = await report.evaluate(
+      (el) => el.ownerDocument.defaultView!.getComputedStyle(el).boxShadow,
+    );
+    expect(shadow === 'none' || shadow === '').toBe(true);
+  });
+
+  test('the card’s three actions are one left-aligned row, and the glyph has room', async ({
+    page,
+  }) => {
+    /*
+     * Same review. Three controls of equal weight came out on three different
+     * lines — "Show on map" hard left, "Spot page" hard right, "Directions"
+     * alone on a row under them — because the row kept the `justify-content:
+     * flex-end` and the `flex: 1` spacer it had while they were captions.
+     *
+     * Measured rather than asserted by class: at a width where all three fit
+     * they share a row, and the leftmost of them starts at the row's own left
+     * edge. Wrapping is allowed and happens at 390 — what is not allowed is an
+     * orphan pinned to the right, which is what `flex-end` guaranteed.
+     */
+    // 1740 is the width the owner reviewed at, and the width where the list
+    // column is wide enough to hold all three on one line.
+    await page.setViewportSize({ width: 1740, height: 900 });
+    await page.goto('/spots');
+    const chosen = await findSpot(page, scooterSpot.name);
+
+    // "Show on map" while nothing is selected; it becomes "On the map" once it
+    // is, which is a different control state and not what this measures.
+    const map = chosen.getByRole('button', { name: 'Show on map' });
+    const directions = chosen.getByRole('link', { name: /Directions/ });
+
+    const mapBox = (await map.boundingBox())!;
+    const dirBox = (await directions.boundingBox())!;
+    // One row, and reading order: Directions is to the right of "Show on map"
+    // and level with it.
+    expect(Math.round(dirBox.y)).toBe(Math.round(mapBox.y));
+    expect(dirBox.x).toBeGreaterThan(mapBox.x);
+
+    /*
+     * Left-aligned: the row's first control starts where the row starts, rather
+     * than being pushed across by a spacer. This is the assertion that fails if
+     * `justify-content: flex-end` ever comes back — under it the three sat hard
+     * right, hard left and alone on a third line.
+     */
+    const rowLeft = await map.evaluate(
+      (el) => el.parentElement!.getBoundingClientRect().left + 0.5,
+    );
+    expect(mapBox.x).toBeLessThanOrEqual(rowLeft);
+
+    /*
+     * At 390 they wrap — three buttons do not fit on a phone — and that is
+     * allowed. What is not allowed is an orphan pinned to the right, so the
+     * *last* control still starts left of centre rather than ending at the
+     * row's right edge.
+     */
+    await page.setViewportSize({ width: 390, height: 844 });
+    const narrow = (await directions.boundingBox())!;
+    const row = await map.evaluate((el) => {
+      const r = el.parentElement!.getBoundingClientRect();
+      return { left: r.left, right: r.right };
+    });
+    expect(narrow.x, 'Directions is pinned right at 390').toBeLessThan(
+      row.left + (row.right - row.left) / 2,
+    );
+
+    /*
+     * **The external glyph has a gap.** `additions.css` gives `a.btn` a
+     * `display: inline-block` at two classes and an element, so a single module
+     * class could not make this anchor a flex box and the icon sat against the
+     * label reading "⧉DIRECTIONS". Asserting the computed `gap` is what catches
+     * that, where asserting the icon exists would not: it was always there.
+     */
+    for (const width of [1740, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      const style = await directions.evaluate((el) => {
+        const s = el.ownerDocument.defaultView!.getComputedStyle(el);
+        return { display: s.display, gap: s.columnGap };
+      });
+      expect(style.display, `display at ${width}`).toContain('flex');
+      expect(parseFloat(style.gap), `gap at ${width}`).toBeGreaterThan(0);
+    }
+  });
+
+  test('the long data credit is a link into the terms, not a paragraph', async ({ page }) => {
+    /*
+     * Rachid, 2026-09-17: "remove this 'Spot data: councils, venues and
+     * OpenStreetMap…' — that should be in a relevant legal doc instead".
+     *
+     * It is a licence term and not a courtesy (ODbL, Licence Ouverte 2.0,
+     * CC BY 4.0 all want attribution reachable from where the data is shown), so
+     * what has to hold is both halves: the paragraph is gone from the screen,
+     * and the route to the credit is still one press away at every width. The
+     * text itself is asserted on the document, in `e2e/legal.spec.ts`.
+     */
+    await page.goto('/spots');
+    await whenInteractive(page);
+
+    await expect(page.locator('body')).not.toContainText('Open Database Licence');
+
+    const link = page.getByRole('link', { name: 'Spot data sources' });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute('href', '/legal/terms#data-sources-and-licences');
   });
 
   test('serves the map worker as JavaScript, not a 404 page', async ({ page }) => {

@@ -13,7 +13,7 @@ import {
   type SportId,
 } from '@landit/core';
 import { getSpotBySlug, listSpotsNear, type SpotsRecord } from '@landit/db';
-import { Panel, SportChip, Tag } from '@landit/ui-web';
+import { Icon, Panel, SportChip, Tag } from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { headers } from 'next/headers';
@@ -393,14 +393,36 @@ export default async function SpotPage({ params }: Params) {
         */}
         <div className={styles.stripPush}>
           <SpotFave spot={toSpotView(spot)} signedIn={!!session} />
+          {/*
+            **The arrow becomes the external mark, and the name says Google
+            Maps** (Rachid, 2026-09-17, in chat: "the directions should make
+            more clear it opens google maps").
+
+            `mapsLink` is `google.com/maps/search/?api=1&query=…` on every
+            platform, so naming it is a fact rather than a guess.
+
+            **The visible word stays "Directions" here, where the spots list
+            card says "Directions in Google Maps" in full** *(added by the
+            owner-pass-1 worker, 2026-09-17, pending owner confirmation)*. This
+            is one of three actions sharing the width in equal thirds on a
+            phone, `white-space: nowrap`, about 124px each at 390 — four words
+            in caps do not go in it, and letting them wrap would make a
+            three-line button beside two one-line ones. The list card's row
+            wraps and has the room, so it carries the words. What both have in
+            common is the part that does the work for everyone: the external
+            glyph, and an accessible name that says where the link goes and that
+            it opens a new tab.
+          */}
           {maps ? (
             <a
               className={`btn sm ${styles.action}`}
               href={maps}
               target="_blank"
               rel="noreferrer noopener"
+              aria-label={`Directions to ${spot.name} in Google Maps, opens in a new tab`}
             >
-              Directions &rarr;
+              Directions
+              <Icon name="external" size={14} strokeWidth={2.4} />
             </a>
           ) : null}
           {/*
