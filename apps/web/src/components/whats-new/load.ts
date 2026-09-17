@@ -109,6 +109,20 @@ export interface WhatsNewLines {
 const EMPTY_LINES: WhatsNewLines = { lines: [], unread: 0 };
 
 /**
+ * The signed-in rider, resolved once for this module per request.
+ *
+ * `currentRider` is not itself memoised, and every call is a PocketBase
+ * auth-refresh — so on `/whats-new` the two loaders below would re-check the
+ * same token twice between them, on top of the layout's own call and the
+ * page's. This wrapper takes that back to one for this module. Caching
+ * `currentRider` itself would take it to one for the whole request and is the
+ * real fix; it is an owner's call rather than this task's, because a request
+ * that signs a rider in or out and then asks again would start reading a
+ * cached answer. Filed rather than done.
+ */
+const riderForRequest = cache(currentRider);
+
+/**
  * The You tab and its unseen count, for one request.
  *
  * `cache` is React's per-request memo, so the layout's badge and a
@@ -117,7 +131,7 @@ const EMPTY_LINES: WhatsNewLines = { lines: [], unread: 0 };
  * is current.
  */
 export const loadWhatsNewLines = cache(async (): Promise<WhatsNewLines> => {
-  const session = await currentRider();
+  const session = await riderForRequest();
   if (!session) return EMPTY_LINES;
 
   try {
@@ -308,7 +322,7 @@ const EMPTY_VIEW: WhatsNewView = { lines: [], crews: [], unread: 0 };
  * the crew feeds are a read per crew and the bar is on every screen.
  */
 export const loadWhatsNewView = cache(async (): Promise<WhatsNewView> => {
-  const session = await currentRider();
+  const session = await riderForRequest();
   if (!session) return EMPTY_VIEW;
 
   const { client, rider } = session;
