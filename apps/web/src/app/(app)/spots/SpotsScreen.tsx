@@ -1450,7 +1450,6 @@ export function SpotsScreen({
                         <span className={styles.mapPickMark} aria-hidden="true" />
                         {on ? 'On the map' : 'Show on map'}
                       </Button>
-                      <span className={styles.cardActionsPush} />
                       {/*
                         **A button, and still decorative** (Rachid, 2026-09-17,
                         in chat: "the report/spot page/directions should be
@@ -1497,6 +1496,12 @@ export function SpotsScreen({
                         product"; `aria-label` says the same to a screen reader
                         *and* says it opens a new tab, which `target="_blank"`
                         otherwise announces to nobody.
+
+                        **The glyph goes after the label**, because that is what
+                        it means: the words name the destination and the mark
+                        says you are about to leave for it. A leading icon reads
+                        as a category badge on a row of buttons whose other two
+                        have none.
                       */}
                       <a
                         className={`btn sm ghost ${styles.cardAction} ${styles.directions}`}
@@ -1505,8 +1510,8 @@ export function SpotsScreen({
                         rel="noopener noreferrer"
                         aria-label={`Directions to ${spot.name} in Google Maps, opens in a new tab`}
                       >
-                        <Icon name="external" size={14} strokeWidth={2.4} />
                         Directions in Google Maps
+                        <Icon name="external" size={14} strokeWidth={2.4} />
                       </a>
                     </div>
                   )}
@@ -1714,8 +1719,8 @@ export function SpotsScreen({
                     rel="noopener noreferrer"
                     aria-label={`Directions to ${selected.name} in Google Maps, opens in a new tab`}
                   >
-                    <Icon name="external" size={14} strokeWidth={2.4} />
                     Directions
+                    <Icon name="external" size={14} strokeWidth={2.4} />
                   </a>
                   <Link
                     className="btn sm ghost"

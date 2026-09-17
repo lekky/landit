@@ -331,22 +331,46 @@
  * link, this box is visible, so growing an invisible target around it would
  * leave a 34px button with 5px of dead air either side.
  */
-.report {
+/*
+ * **Doubled and scoped, because the quiet did not land** (orchestrator review,
+ * 2026-09-17: "Report is now the loudest control on the card").
+ *
+ * Written as a single `.report`, every line below lost: `box-shadow: none` to
+ * `.btn.sm`'s `2px 2px 0` (two classes), and `color` to `a.btn.ghost`'s
+ * `var(--ink)` (two classes and an element). What shipped was a full hard
+ * offset in the top-right corner — the boldest thing on the card, for the
+ * control a rider should reach for least.
+ *
+ * `.cardTop a.report.report` is three classes and an element and outranks both.
+ * The treatment is the keyline and nothing else: no offset, `--ink-3` until the
+ * pointer is on it, a smaller face. Still 44px, drawn with padding rather than
+ * a bare `min-height`, so the box a thumb lands on is the box a rider sees.
+ *
+ * Its destination, its `aria-label` and its working-signed-out behaviour (the
+ * OSA duty, plan §6.1) are untouched by any of this.
+ */
+.cardTop a.report.report {
   flex: none;
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  padding: 7px 12px;
+  padding: 11px 12px;
   font-size: 11.5px;
   letter-spacing: 0.08em;
   box-shadow: none;
   color: var(--ink-3);
 }
 
-.report:hover {
+/*
+ * Hover is a colour and nothing else — no lift, no offset arriving from
+ * `.btn:hover`. The quietest control on the card stays the quietest while it is
+ * being pointed at.
+ */
+.cardTop a.report.report:hover {
   color: var(--ink);
   transform: none;
-  box-shadow: 2px 2px 0 var(--ink);
+  box-shadow: none;
+  background: var(--paper-2);
 }
 
 /*
@@ -417,11 +441,27 @@
  * The two things a rider came for, ranged right so the button lands under the
  * thumb rather than in the middle of the card.
  */
+/*
+ * **One row, left-aligned, one gap** (orchestrator review of the owner pass,
+ * 2026-09-17).
+ *
+ * The first cut kept the old layout's `justify-content: flex-end` and a
+ * `flex: 1` spacer between "Show on map" and the other two, which was right
+ * when they were captions and wrong the moment they became buttons: three
+ * controls of equal weight came out on three different lines — one hard left,
+ * one hard right, one alone on a row under them — with a 14px gap in a card
+ * whose every other gap is 8.
+ *
+ * So: one line, reading order, `flex-start`, 8px. It still wraps — at 390 and
+ * in the ~560px desktop list column it has to — but it wraps as a **group from
+ * the left**, which is what `flex-end` and the spacer between them made
+ * impossible. No orphan pinned to the right.
+ */
 .cardActions {
   display: flex;
-  gap: 14px;
+  gap: 8px;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   margin-top: 12px;
   flex-wrap: wrap;
 }
@@ -447,7 +487,23 @@
  * design's orange is for the one thing a screen is *for*, and a list card is
  * not one thing.
  */
-.cardAction {
+/*
+ * **Doubled, and under `.cardActions`** — the specificity trap T52 hit on the
+ * spot page, in a new place (orchestrator review, 2026-09-17).
+ *
+ * `additions.css` carries `a.btn, a.btn:hover { display: inline-block }` at one
+ * element and two classes, and a single module class is one point short of it.
+ * So on the *anchor* — Directions, the only one of the three that is a link —
+ * `display: inline-flex` lost, and with it `gap` and `align-items`: the glyph
+ * sat jammed against the label reading "⧉DIRECTIONS". The `<span>` beside it
+ * was fine, which is exactly how a bug like this hides.
+ *
+ * `.cardActions .cardAction.cardAction` is three classes and outranks it. The
+ * rule below is the same shape `.stripPush .action.action` uses on the spot
+ * page, and for the same reason: which of two *tied* rules wins is decided by
+ * stylesheet order, which a CSS module does not get to know (LESSONS §3a).
+ */
+.cardActions .cardAction.cardAction {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -470,10 +526,9 @@
   box-shadow: 3px 3px 0 var(--ink);
 }
 
-/* Pushes the map button hard left and the two link buttons right. */
-.cardActionsPush {
-  flex: 1;
-}
+/* `.cardActionsPush` went with the `flex-end` row it pushed things across
+   (2026-09-17): the three actions read left to right in one order now, so there
+   is nothing to push. */
 
 /*
  * "Show on map" — the explicit control that replaced the whole-card gesture.
@@ -513,7 +568,7 @@
  * above — `.btn` already animates `transform` and `box-shadow`, and this adds
  * the fill so the yellow arrives with them rather than snapping.
  */
-.pageHint {
+.cardActions .pageHint.pageHint {
   transition:
     transform 0.12s,
     box-shadow 0.12s,
@@ -872,8 +927,19 @@
   display: none;
 }
 
-/* The external glyph sits beside the word rather than on top of it. */
-.sheetDirections {
+/*
+ * The external glyph sits beside the word rather than on top of it.
+ *
+ * Doubled and with the element, for the card's reason: this is an `<a class="btn
+ * sm ghost">` and `a.btn`'s `display: inline-block` in `additions.css` outranks
+ * a single module class, so `gap` would have applied to a box that is not a
+ * flex container. The sheet's own `.sheetActions > *` rule loses to it as well,
+ * which is why the display is restated here rather than relied on.
+ */
+.sheetActions a.sheetDirections.sheetDirections {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 7px;
 }
 

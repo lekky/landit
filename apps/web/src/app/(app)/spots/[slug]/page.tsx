@@ -421,8 +421,8 @@ export default async function SpotPage({ params }: Params) {
               rel="noreferrer noopener"
               aria-label={`Directions to ${spot.name} in Google Maps, opens in a new tab`}
             >
-              <Icon name="external" size={14} strokeWidth={2.4} />
               Directions
+              <Icon name="external" size={14} strokeWidth={2.4} />
             </a>
           ) : null}
           {/*
