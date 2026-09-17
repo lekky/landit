@@ -1,4 +1,4 @@
-import { CONTACT, SPORT_IDS } from '@landit/core';
+import { CONTACT, SPORT_IDS, spotCredits } from '@landit/core';
 
 import { countWord, sportsList } from '@/lib/sports';
 
@@ -109,6 +109,54 @@ export interface LegalDoc {
   readonly sections: readonly LegalSection[];
 }
 
+/** Month names, spelled out rather than formatted. See `spotCreditLine`. */
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/**
+ * Every source the spot data has to name, and when each was taken.
+ *
+ * **It lived under the map on `/spots` until 2026-09-17** (Rachid, in chat:
+ * "remove this 'Spot data: councils, venues and OpenStreetMap…' — that should be
+ * in a relevant legal doc instead"). It is a licence term rather than a
+ * courtesy — the Open Database Licence, Licence Ouverte 2.0 and CC BY 4.0 all
+ * require attribution reachable from where the data is shown — so it did not
+ * simply get deleted: it moved here, in full and word for word, and `/spots`
+ * keeps a short "Spot data sources" link into this section. The map's own
+ * attribution control is untouched and stays on the map, where its own terms
+ * require it.
+ *
+ * Generated from `spotCredits()` in `@landit/core`, which is the same table each
+ * spot row is stamped from, so a new dataset credits itself the day it is added
+ * and the dates here cannot drift from the data.
+ *
+ * The date is spelled from the table above rather than from a locale: this
+ * string is rendered on the server and on the client, and nothing rendered in
+ * both may be locale-derived (LESSONS §5).
+ */
+export function spotCreditLine(): string {
+  return spotCredits()
+    .map((source) => {
+      const terms = [source.licenceName];
+      const day = source.snapshot ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(source.snapshot) : null;
+      if (day) terms.push(`updated ${Number(day[3])} ${MONTHS[Number(day[2]) - 1]} ${day[1]}`);
+      return `${source.name} (${terms.join(', ')})`;
+    })
+    .join('; ');
+}
+
 /** "Two" today, "Three" the day T21 lands BMX. Never a literal. */
 const libraryCount = (() => {
   const word = countWord(SPORT_IDS.length);
@@ -206,7 +254,9 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
   {
     id: 'terms',
     title: 'Terms of use',
-    updated: 'August 2026',
+    // September, because "Data sources and licences" arrived on 2026-09-17. The
+    // date on a legal document is a claim about when it last changed.
+    updated: 'September 2026',
     intro:
       'The deal between you and us. Short version: ride safely, be decent to other riders, and we will keep the app running.',
     sections: [
@@ -232,6 +282,27 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
           'You own your notes and everything you track. You give us permission to store them and show them back to you inside the app.',
           'A video you link to has to be yours to share. We do not hold the video, so we cannot take it down — only the link here. If a link points at something that should not be on Land The Trick we will remove the link and, where it matters, the account.',
           'Nothing illegal, nothing abusive, nothing that puts other riders at risk. We will remove content and close accounts that break this.',
+        ],
+      },
+      /*
+       * The spot data's attribution, moved off `/spots` on 2026-09-17 (Rachid,
+       * in chat). See `spotCreditLine` above for why it is a licence term and
+       * not a courtesy, and `SPOT_SOURCES` in `@landit/core` for the table it
+       * is generated from.
+       *
+       * **In the terms rather than the privacy policy.** Nothing here is about
+       * a rider's data — it is about what we are allowed to publish and on whose
+       * conditions, which is what a terms of use is for, and it sits beside
+       * "What you post" for the same reason.
+       */
+      {
+        h: 'Data sources and licences',
+        p: [
+          'The spots on our map come from riders and from public data. The public sources each ask to be named, and some ask for the date their data was taken. Here they are.',
+          `Spot data: ${spotCreditLine()}.`,
+          'The map itself is drawn by OpenFreeMap from OpenMapTiles, using OpenStreetMap data. That credit sits on the map, in its bottom corner, where the tile licence asks for it.',
+          'The licences in full: the Open Database Licence at opendatacommons.org/licenses/odbl, Licence Ouverte 2.0 at etalab.gouv.fr, and CC BY 4.0 at creativecommons.org/licenses/by/4.0.',
+          'None of this makes a spot a promise. Public data goes out of date, parks close and rules change, and we say so on the map as well as here: check before you travel.',
         ],
       },
       {

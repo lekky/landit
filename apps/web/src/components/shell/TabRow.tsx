@@ -84,6 +84,18 @@ export type TabRowItem = {
    * name, as Notes and the notes textarea do on the session form.
    */
   elementId?: string;
+  /**
+   * `aria-describedby` for this tab — something drawn beside the row that
+   * describes *this* tab rather than naming it.
+   *
+   * Plans is the only caller: the lime "2 months free" tag tilted over the
+   * Yearly tab. See `TabItem.describedById` in `packages/ui-web`, which carries
+   * the reasoning, and §3.10's Plans paragraph, which carries the decision.
+   *
+   * Button rows only. A link row's tabs are pages and nothing on a screen has
+   * asked to describe one; the day one does, this is the line to widen.
+   */
+  describedById?: string;
   /** Present on a row that navigates. All items in a row agree. */
   href?: Route;
 };
@@ -192,6 +204,7 @@ export function TabRow({ items, value, group, label, onChange, className }: TabR
         ...(item.note !== undefined ? { note: item.note } : {}),
         ...(item.title ? { title: item.title } : {}),
         ...(item.elementId ? { elementId: item.elementId } : {}),
+        ...(item.describedById ? { describedById: item.describedById } : {}),
       }))}
       value={value}
       label={label}

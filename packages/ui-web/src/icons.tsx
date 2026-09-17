@@ -234,6 +234,26 @@ export const ICONS = {
       <path d="M10 20a2.2 2.2 0 0 0 4 0" />
     </g>
   ),
+  /*
+   * "This leaves Land The Trick" — the box with the arrow out of its corner.
+   *
+   * Added for the spot card's "Directions in Google Maps" (owner pass 1,
+   * 2026-09-17): a link that hands a rider to another company's app should say
+   * so before they press it, and the glyph is what says it at a glance where the
+   * words say it to a screen reader. The set had no external mark at all; the
+   * nearest was `arrow-right`, which means "onward in this product".
+   *
+   * Square corners and the same 24 grid and 2.2 stroke as everything above it —
+   * zero radius is the design's first rule, and the open corner of the box is
+   * what stops it reading as a picture frame.
+   */
+  external: (
+    <g>
+      <path d="M19.5 13.5V20.5H3.5V4.5h7" />
+      <path d="M14 3.5h6.5V10" />
+      <path d="M20.5 3.5L11.5 12.5" />
+    </g>
+  ),
   placeholder: (
     <g>
       <rect x="3.5" y="3.5" width="17" height="17" />

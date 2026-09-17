@@ -92,30 +92,39 @@ test('the yearly saving badge is derived, not typed (LESSONS §4)', async ({ pag
   await expect(page.getByText('2 months free', { exact: true })).toBeVisible();
 });
 
-test('Monthly · Yearly is the product’s tab row, and the saving is inside Yearly', async ({
+test('Monthly · Yearly is the product’s tab row, and the saving describes Yearly', async ({
   page,
 }) => {
   /*
-   * T52, §3.10. Two things at once, and the second is the one that is easy to
-   * lose in a redraw.
+   * T52, §3.10, as amended by the owner on 2026-09-17 ("the yearly should have a
+   * green 2 months free overlay thing — it was present on main"). Two things at
+   * once, and the second is the one that is easy to lose in a redraw.
    *
    * The period picker is a `TabRow` — the same boxed row Progress, Stickers,
    * Crew and a rider's profile use — rather than the one-off segmented control
-   * this screen had. And the saving is **part of the Yearly tab**, where it was
-   * a tag positioned over the toggle's right-hand half with `aria-describedby`
-   * carrying the association for anyone who cannot see position. Inside the tab
-   * it is the tab's own text, so a screen reader reads "Yearly, 2 months free"
-   * with nothing to wire up — and a visitor sitting on Monthly is still never
-   * told they are getting two months free.
+   * this screen had. That part of T52 stands.
+   *
+   * What reversed is where the saving lives. T52 made it the Yearly tab's own
+   * `note`, which put it inside the tab's accessible **name**; it is the tilted
+   * lime tag again, drawn over the tab and pointed at by `aria-describedby`, so
+   * it is a *description* of Yearly rather than part of what the control is
+   * called. The assertion that matters either way is the last one: a visitor
+   * sitting on Monthly is never told they are getting two months free.
    */
-  const yearly = page.getByRole('tab', { name: /^Yearly/ });
-  const monthly = page.getByRole('tab', { name: /^Monthly/ });
+  const yearly = page.getByRole('tab', { name: 'Yearly', exact: true });
+  const monthly = page.getByRole('tab', { name: 'Monthly', exact: true });
 
   await expect(page.getByRole('tablist', { name: 'Billing period' })).toBeVisible();
   await expect(monthly).toHaveAttribute('aria-selected', 'true');
 
-  await expect(yearly).toContainText('2 months free');
-  await expect(monthly).not.toContainText('2 months free');
+  // The tag is a sibling of the row, so the association is by reference. The id
+  // the tab points at is the element carrying the words.
+  const describedBy = await yearly.getAttribute('aria-describedby');
+  expect(describedBy).toBeTruthy();
+  await expect(page.locator(`#${describedBy}`)).toHaveText('2 months free');
+
+  // And it is Yearly's alone: nothing describes Monthly.
+  await expect(monthly).not.toHaveAttribute('aria-describedby', /./);
 
   await yearly.click();
   await expect(yearly).toHaveAttribute('aria-selected', 'true');

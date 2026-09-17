@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  spotCredits,
   distanceLabelIn,
   filterSpots,
   hasCoords,
@@ -21,7 +20,8 @@ import { runActionOr } from '@/lib/runAction';
 import { FindTabs } from '@/components/find/FindTabs';
 import { SportScopeSelect, useSportScope } from '@/components/shell/SportScopeSelect';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
-import { reportHref, spotHref } from '@/lib/routes';
+import { legalSectionId } from '@/content/legal';
+import { legalHref, reportHref, spotHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { useSport } from '@/providers/sport';
 
@@ -36,40 +36,6 @@ import { nearbyReadyBucket } from '@/lib/nearbyTiming';
 import { useFavourites } from './useFavourites';
 import styles from './spots.module.css';
 import { SPOTS_PAGE, type SpotView } from './view';
-
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
-/**
- * "councils, venues and OpenStreetMap (Open Database Licence); the French
- * Ministry of Sport’s equipment census via data.gouv.fr (Licence Ouverte 2.0,
- * updated 8 September 2026); OpenStreetMap contributors (…); GeoNames (CC BY
- * 4.0)". Every source the catalogue says must be named, in its order, then
- * every dataset those sources draw on (`spotCredits`). The date is spelled from a fixed table rather than a locale:
- * this screen hydrates, and nothing on it may be locale-derived (LESSONS §5).
- */
-function creditLine(): string {
-  return spotCredits()
-    .map((source) => {
-      const terms = [source.licenceName];
-      const day = source.snapshot ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(source.snapshot) : null;
-      if (day) terms.push(`updated ${Number(day[3])} ${MONTHS[Number(day[2]) - 1]} ${day[1]}`);
-      return `${source.name} (${terms.join(', ')})`;
-    })
-    .join('; ');
-}
 
 export type { SpotView } from './view';
 
@@ -1433,8 +1399,22 @@ export function SpotsScreen({
                         className={styles.cardFave}
                       />
                     )}
+                    {/*
+                      **Button-shaped, and the quietest of the three** (Rachid,
+                      2026-09-17). It was 12px of underlined grey, which is a
+                      footnote; it is now the same small ghost button the other
+                      two wear, one size down and with no shadow, so it reads as
+                      a control without competing with the two a rider came for.
+
+                      It keeps its corner rather than joining the row below,
+                      which is the decision above and unchanged: the row only
+                      exists on a spot with coordinates, and "this is wrong,
+                      gone, or not safe" has to be on every card. Its
+                      destination, its `aria-label` and its working-signed-out
+                      behaviour (the OSA duty, plan §6.1) are untouched.
+                    */}
                     <Link
-                      className={`cond ${styles.report}`}
+                      className={`btn sm ghost ${styles.report}`}
                       href={reportHref({ type: 'spot', id: spot.id })}
                       aria-label={`Report ${spot.name}`}
                     >
@@ -1472,21 +1452,61 @@ export function SpotsScreen({
                       </Button>
                       <span className={styles.cardActionsPush} />
                       {/*
-                        Decorative: the stretched link above already carries the
-                        card's name, and this only says where the box goes.
+                        **A button, and still decorative** (Rachid, 2026-09-17,
+                        in chat: "the report/spot page/directions should be
+                        ctas? not just strings?").
+
+                        It was "Spot page →" in 13px grey, which is a caption
+                        rather than an offer — the owner is right that the three
+                        things a rider can do from a card all read as footnotes.
+                        So it takes the design's small ghost button, the same
+                        shape "Show on map" wears at the other end of the row.
+
+                        **`aria-hidden` stays.** The whole card is already a link
+                        to this exact address, carrying the spot's name
+                        (`.cardLink`), and the stretched link sits *above* this
+                        span — so a press here goes to the page as it always did,
+                        and a screen reader hears one link to the spot rather
+                        than two. The button is affordance, not a second control;
+                        making it a real `<a>` would put a nameless duplicate in
+                        the accessibility tree for no gain.
+
+                        Its hover comes from the card, for the same reason: the
+                        pointer is over the stretched link, never over this.
                       */}
                       {spot.slug && (
-                        <span className={`cond ${styles.pageHint}`} aria-hidden="true">
-                          Spot page →
+                        <span
+                          className={`btn sm ghost ${styles.cardAction} ${styles.pageHint}`}
+                          aria-hidden="true"
+                        >
+                          Spot page
                         </span>
                       )}
+                      {/*
+                        **"Directions in Google Maps", and it says where it
+                        goes** (same conversation).
+
+                        `mapsLink` builds `google.com/maps/search/?api=1&query=…`
+                        on every platform — the one form that hands off to the
+                        native app on both phones — so the label is a fact, not a
+                        guess. It carries the spot's coordinates and nothing
+                        about the rider: no origin, no "directions from here"
+                        (§6.4 standard 10).
+
+                        The visible words and the icon say "this leaves the
+                        product"; `aria-label` says the same to a screen reader
+                        *and* says it opens a new tab, which `target="_blank"`
+                        otherwise announces to nobody.
+                      */}
                       <a
-                        className={`cond ${styles.directions}`}
+                        className={`btn sm ghost ${styles.cardAction} ${styles.directions}`}
                         href={mapsLink(spot)}
                         target="_blank"
                         rel="noopener noreferrer"
+                        aria-label={`Directions to ${spot.name} in Google Maps, opens in a new tab`}
                       >
-                        Directions
+                        <Icon name="external" size={14} strokeWidth={2.4} />
+                        Directions in Google Maps
                       </a>
                     </div>
                   )}
@@ -1681,12 +1701,20 @@ export function SpotsScreen({
                   Open {selected.name} page →
                 </Link>
                 <div className={styles.sheetActions}>
+                  {/*
+                    The short word, for the spot page's reason: these two share
+                    the sheet's width in equal halves at 320px, and the card
+                    behind the sheet already carries "Directions in Google Maps"
+                    in full. The glyph and the accessible name do the saying.
+                  */}
                   <a
-                    className="btn sm ghost"
+                    className={`btn sm ghost ${styles.sheetDirections}`}
                     href={mapsLink(selected)}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label={`Directions to ${selected.name} in Google Maps, opens in a new tab`}
                   >
+                    <Icon name="external" size={14} strokeWidth={2.4} />
                     Directions
                   </a>
                   <Link
@@ -1700,40 +1728,32 @@ export function SpotsScreen({
               </div>
             )}
 
-            <div className={styles.mapFoot}>
-              {/*
-                Two footers, one shown at a time, chosen by width in CSS for the
-                reason the notice below gives: a footer picked from a measured
-                viewport during render is a first paint that is a guess.
+            {/*
+              The footer is the sheet's alone now.
 
-                **They say different things because the sheet is a different
-                moment.** On a wide screen the map sits beside the list and the
-                thing worth saying is that the two are the same set. In the
-                sheet the list is behind it and one spot fills the view — a
-                rider is looking at where they are about to go, so this is the
-                last place "check before you travel" can still reach them before
-                Directions takes them out of the product entirely. It is the
-                short wording, because a sheet has no room for the long one.
-              */}
-              {/*
-                **Re-worded when the card became a link** (2026-09-06). It used
-                to read "tap a pin or a card — they follow each other", which
-                was true while the whole card selected the map and stopped being
-                true the moment it started navigating instead. A note explaining
-                a behaviour is a dated claim about the product, and this one's
-                date had passed (LESSONS §4).
-              */}
-              {/*
-                **Re-worded again 2026-09-11** (#388; owner, in chat): the map
-                now draws every matching spot, not only the cards on screen, so
-                "every live spot on this list is on the map" became the smaller
-                of two true claims. This is the larger one.
-              */}
-              <p className={`cond ${styles.mapNote}`}>
-                Every matching spot is on the map. The list shows {PAGE} at a time. Cards are links,
-                so the map only moves when you ask it to — press <strong>Show on map</strong> on a
-                card, a pin, or a number.
-              </p>
+              It carried a second paragraph explaining how the map and the list
+              relate — "Every matching spot is on the map. The list shows 24 at a
+              time. Cards are links, so the map only moves when you ask it to…" —
+              shown on a wide screen and hidden in the sheet. The owner took it
+              out on 2026-09-17 ("on the map, get rid of…"), and the instinct is
+              right for the reason the note itself twice recorded: it had been
+              re-worded on 2026-09-06 and again on 2026-09-11, each time because
+              the behaviour it described had moved under it. A paragraph
+              explaining an interface is a dated claim about the product
+              (LESSONS §4), and this one had already cost two edits. "Show on
+              map" says what it does on the button itself.
+
+              What stays is the warning, and it stays **in the sheet only**,
+              which is where it always showed: on a phone the list is behind the
+              map and one spot fills the view, so this is the last place "check
+              before you travel" reaches a rider before Directions takes them out
+              of the product. On a wide screen the same caution is in `.notice`
+              under the map, at full length, so nothing is lost — and with the
+              note gone the footer would otherwise be an empty bordered strip,
+              which is why the CSS now hides the whole thing above 860px rather
+              than only its contents.
+            */}
+            <div className={styles.mapFoot}>
               <p className={styles.mapWarn}>
                 <strong>Check before you travel:</strong> Spots may not be verified.
               </p>
@@ -1790,22 +1810,36 @@ export function SpotsScreen({
             </span>
           </p>
           {/*
-            **The credit line**, and it is a licence term rather than a
-            courtesy: the hand-researched spots were cross-checked against
-            OpenStreetMap (Open Database Licence), and France's parks come from
-            the Ministry of Sport's census under Licence Ouverte 2.0, which asks
-            for the source's name *and* when it was last taken. Both are read
-            from `SPOT_SOURCES` in `@landit/core` — the same table each row is
-            stamped from — so a new dataset credits itself the day it is added,
-            and a row's own source is never shown on its page (owner,
-            2026-09-07). Never folded into `MAP_ATTRIBUTION`: that string is the
-            tile credit and is kept byte-identical to what OpenFreeMap serves
-            so MapLibre de-duplicates it.
+            **The credit, as a link rather than the paragraph** (Rachid,
+            2026-09-17, in chat: "remove this 'Spot data: councils, venues and
+            OpenStreetMap…' — that should be in a relevant legal doc instead").
 
-            Not hidden on a narrow screen the way the long warning is. A
-            licence that asks to be named is not met by a shorter paragraph.
+            It is a licence term rather than a courtesy, and that is why it is
+            still here at all: the hand-researched spots were cross-checked
+            against OpenStreetMap (Open Database Licence), France's parks come
+            from the Ministry of Sport's census under Licence Ouverte 2.0, which
+            asks for the source's name *and* when it was last taken, and the
+            towns come from GeoNames under CC BY 4.0. All three want attribution
+            reasonably reachable from where the data is shown. A link one press
+            from the map meets that; deleting the words would not.
+
+            The full credit is "Data sources and licences" in the terms of use,
+            generated from the same `SPOT_SOURCES` table each row is stamped
+            from (`spotCreditLine` in `content/legal.ts`), so the dates cannot
+            drift from the data.
+
+            **The map's own attribution is untouched.** `MAP_ATTRIBUTION` is the
+            tile credit, kept byte-identical to what OpenFreeMap serves so
+            MapLibre de-duplicates it, and it stays drawn on the map.
+
+            Not hidden on a narrow screen the way the long warning is: a licence
+            that asks to be named is not met at one width only.
           */}
-          <p className={styles.credit}>Spot data: {creditLine()}.</p>
+          <p className={styles.credit}>
+            <Link href={legalHref('terms', legalSectionId('Data sources and licences'))}>
+              Spot data sources
+            </Link>
+          </p>
         </div>
       </div>
     </div>

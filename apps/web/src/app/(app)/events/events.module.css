@@ -20,9 +20,9 @@
   margin-left: auto;
 }
 
-.spacer {
-  flex: 1;
-}
+/* `.spacer` is gone with the filter rows it pushed things across (2026-09-17):
+   the bar's Sort takes `margin-left: auto` instead, and an empty span whose only
+   job is to be in the right place is one more thing to keep there. */
 
 /* ------------------------------------------------------------- heading --- */
 
@@ -80,11 +80,75 @@
   color: var(--ink-2);
 }
 
-.filters {
+/* ------------------------------------------------------- the filter bar -- */
+
+/*
+ * **One bar on a desktop, three lines on a phone** (Rachid, 2026-09-17, in
+ * chat: "bad layout on screenshot", at 1740px).
+ *
+ * It was three `.filters` rows, each `display: flex; flex-wrap: wrap`, stacked
+ * by `.page`'s 18px gap. At 1740 that is four sparse bands before the first
+ * event — `Show [All sports]` alone on one, `Country [UK]` with `Sort` stranded
+ * a thousand pixels away on the next, the kind pills on a third — and it reads
+ * as a form rather than as a bar.
+ *
+ * One row instead, in the order a rider narrows: sport, country, kind, and then
+ * Sort at the far right because it is a question about the list rather than
+ * about what is in it. The 14px column gap is wider than the 8px inside each
+ * group, so the groups read as groups; the 10px row gap is what the line breaks
+ * get when it wraps.
+ *
+ * **The phone keeps T48's stack** and gets it from this same row: the scope
+ * select and the pill group take a full-width flex basis below 861px, so the
+ * bar breaks at exactly the two places it used to be cut, and Country and Sort
+ * share the line between them as they did.
+ */
+.filterBar {
   display: flex;
-  gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+/*
+ * The kind pills, as one group.
+ *
+ * Wrapping them together is what stops the thing §7 asks not to happen between
+ * 861 and 1200px: a bare row of five pills breaks wherever it runs out and
+ * leaves "Jam" alone on the next line, where a group drops all five at once.
+ */
+.kinds {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/*
+ * A 44px floor on the bar's pills, at every width.
+ *
+ * `additions.css` already sets it inside the touch-hygiene block, which is
+ * `@media (max-width: 860px)` — so on the desktop bar the pills measured 35px
+ * beside two 44px selects, which is the mismatched control heights half of the
+ * owner's note. It is stated here rather than widened there because that block
+ * is merged shared code and this is one screen's bar.
+ */
+.filterBar :global(.pill) {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (max-width: 860px) {
+  /*
+   * T48's stacking, restored by basis rather than by three separate rows: the
+   * scope select on its own line under the search, then Country and Sort, then
+   * the pills. Same three lines, one set of markup.
+   */
+  .scopeFilter,
+  .kinds {
+    flex: 1 0 100%;
+  }
 }
 
 /* ---------------------------------------------------------- the rows ----- */
@@ -103,12 +167,19 @@
 
 /* The Soonest / Nearest control. A label and its two options read as one
    thing, so they sit in a group that wraps together rather than letting the
-   word "Sort" strand itself at the end of a line above its own pills. */
+   word "Sort" strand itself at the end of a line above its own pills.
+
+   `margin-left: auto` is what puts it at the right-hand end of the filter bar
+   (2026-09-17): it is the one control there that is about the list rather than
+   about what is in it, and it replaces the `<span class="spacer">` that used to
+   push it — a third thing in the flow whose only job was to be in the right
+   place. */
 .sort {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-left: auto;
 }
 
 /* "Coming up" / "Been to" — the group headings on a rider's own tab.

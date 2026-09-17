@@ -68,12 +68,33 @@
   font-size: 13px;
 }
 
+/*
+ * The filter bar — **given `/events`' treatment so the two lists read alike**
+ * (Rachid, 2026-09-17, in chat, asking for it after the calendar's).
+ *
+ * The row itself is unchanged in what it holds and in what order: the sport
+ * scope, Faves, the feature and area pills, then the location controls pushed
+ * right by `.spacer`. What matches the calendar now is the measure — a 14px
+ * column gap between controls against the 8px inside a control, and a 10px row
+ * gap when it wraps — and the 44px floor below.
+ */
 .filters {
   display: flex;
-  gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+  gap: 10px 14px;
   margin-bottom: 18px;
+}
+
+/*
+ * 44px at every width, for `/events`' reason: `additions.css` sets the floor
+ * inside its `@media (max-width: 860px)` touch block, so on a desktop these
+ * pills were 35px beside a 44px `<select>` — one bar, two control heights.
+ */
+.filters :global(.pill) {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .spacer {
@@ -159,11 +180,41 @@
  * choosing a park. Muted ink, no box — it is a caption to the map, not a
  * second notice competing with the yellow one.
  */
+/*
+ * "Spot data sources" — the one quiet line that keeps three data licences
+ * honoured now the full credit lives in the terms (Rachid, 2026-09-17).
+ *
+ * Deliberately the quietest thing in the column: it is a reference, not
+ * something a rider came here to read. The underline is what makes it findable
+ * at this size — at `--ink-3` and 12px, colour alone would not say "link".
+ *
+ * §4's 44px floor is met by a pseudo-element rather than by height or padding,
+ * the same move `.mapClose` makes a few hundred lines up: the words stay a
+ * 17px line tucked under the warning, and the thing a thumb lands on is 44px
+ * tall around them. `inset: min(0px, …)` only ever grows the box, so it cannot
+ * shrink a target that is already big enough.
+ */
 .credit {
   margin: 8px 0 0;
   font-size: 12px;
   line-height: 1.45;
   color: var(--ink-3);
+}
+
+.credit a {
+  position: relative;
+  color: var(--ink-3);
+  text-decoration: underline;
+}
+
+.credit a::before {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((100% - 44px) / 2));
+}
+
+.credit a:hover {
+  color: var(--ink);
 }
 
 /* --------------------------------------------------------- the two panes -- */
@@ -267,12 +318,35 @@
   flex: 1;
 }
 
+/*
+ * Report, as the quietest of the card's three controls (Rachid, 2026-09-17).
+ *
+ * `.btn sm ghost` underneath, so the keyline, the press and the zero radius are
+ * the design's and are not restated. What this adds is the *quiet*: no shadow,
+ * a smaller face, and `--ink-3` until the pointer is on it. A hard offset under
+ * this one would make the corner of every card shout about reporting it.
+ *
+ * 44px, because §4 puts the floor there and this is a control a thumb uses on a
+ * phone. It is a real height rather than a pseudo-element — unlike the credit
+ * link, this box is visible, so growing an invisible target around it would
+ * leave a 34px button with 5px of dead air either side.
+ */
 .report {
   flex: none;
-  font-size: 12px;
-  letter-spacing: 0.05em;
-  /* A quiet corner control still has to be big enough to hit on a phone. */
-  padding: 2px 0 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 7px 12px;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  box-shadow: none;
+  color: var(--ink-3);
+}
+
+.report:hover {
+  color: var(--ink);
+  transform: none;
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 /*
@@ -352,12 +426,51 @@
   flex-wrap: wrap;
 }
 
-.directions {
-  font-size: 13px;
-  letter-spacing: 0.05em;
+/*
+ * The two buttons at the right-hand end of the row — "Spot page" and
+ * "Directions in Google Maps" (Rachid, 2026-09-17: "should be ctas? not just
+ * strings?").
+ *
+ * `.btn sm ghost` does the drawing; this is the geometry. **44px**, because §4
+ * sets the floor there and `.btn.sm` alone comes out at about 39.
+ *
+ * **Two ways of not overflowing, in this order.** The row wraps first
+ * (`.cardActions` is `flex-wrap: wrap`), so a button that no longer fits beside
+ * the others drops to a second line at full size rather than shrinking under
+ * the floor. And "Directions in Google Maps" is four words in caps — about
+ * 234px — which is wider than the whole card body at 320px, so the *words* are
+ * allowed to wrap inside the button as the last resort. Centred, because a
+ * two-line caps label ragged-left reads as broken.
+ *
+ * All three controls on this row are ghost. One primary would have to be "Show
+ * on map" or "Spot page", and the two are the same weight of decision — the
+ * design's orange is for the one thing a screen is *for*, and a list card is
+ * not one thing.
+ */
+.cardAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 7px;
+  min-height: 44px;
+  flex: 0 1 auto;
 }
 
-/* Pushes the map button hard left and the page hint and Directions right. */
+/*
+ * The card's own hover reaches the decorative "Spot page" button.
+ *
+ * It is a `<span>` under the stretched link, so a pointer is never over it and
+ * `.btn:hover` can never fire — the card is what the rider is actually
+ * pointing at, and it is the card that says so.
+ */
+.cardLinked:hover .pageHint {
+  background: var(--yellow);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+/* Pushes the map button hard left and the two link buttons right. */
 .cardActionsPush {
   flex: 1;
 }
@@ -395,14 +508,16 @@
  * already carries the card's real name and a second announcement of an arrow
  * helps nobody.
  */
+/*
+ * Nothing of its own left but the transition it needs for the card's hover
+ * above — `.btn` already animates `transform` and `box-shadow`, and this adds
+ * the fill so the yellow arrives with them rather than snapping.
+ */
 .pageHint {
-  font-size: 13px;
-  letter-spacing: 0.05em;
-  color: var(--ink-3);
-}
-
-.card:hover .pageHint {
-  color: var(--orange);
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s,
+    background 0.12s;
 }
 
 /* The one control under the cards, as wide as they are. */
@@ -757,17 +872,25 @@
   display: none;
 }
 
+/* The external glyph sits beside the word rather than on top of it. */
+.sheetDirections {
+  gap: 7px;
+}
+
+/*
+ * The panel's footer, **and the sheet's alone** (Rachid, 2026-09-17).
+ *
+ * It held two paragraphs and showed one at a time: a note about how the map and
+ * the list relate, on a wide screen, and the travel warning in the sheet. The
+ * note is gone, so on a wide screen the strip would be a 3px keyline over 10px
+ * of nothing — hence `display: none` here and `block` in the sheet's media
+ * query, where the warning it now holds is the only thing in it.
+ */
 .mapFoot {
+  display: none;
   padding: 10px 14px;
   border-top: 3px solid var(--ink);
   margin-top: 12px;
-}
-
-.mapNote {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--ink-3);
-  letter-spacing: 0.03em;
 }
 
 /*
@@ -1217,11 +1340,8 @@
    * this is a line to be read, and it is aimed at children.
    */
   .mapFoot {
+    display: block;
     background: var(--yellow);
-  }
-
-  .mapNote {
-    display: none;
   }
 
   .mapWarn {

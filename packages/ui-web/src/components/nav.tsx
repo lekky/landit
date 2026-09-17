@@ -54,6 +54,20 @@ export type TabItem = {
    * exactly the markup it rendered before.
    */
   elementId?: string;
+  /**
+   * `aria-describedby` for the tab, for something drawn *beside* it that names
+   * a property of this tab rather than of the row.
+   *
+   * Plans is the case it exists for: the lime "2 months free" tag is tilted over
+   * the Yearly tab's top edge, which says whose saving it is to anyone who can
+   * see where it sits and to nobody else. Put in the tab's label it would become
+   * part of the accessible name — "Yearly, 2 months free" as the name of a
+   * control — where it is a *description* of one. This is the reference that
+   * says so without touching the name.
+   *
+   * Optional and absent by default, like `elementId` above.
+   */
+  describedById?: string;
 };
 
 export type TabsProps = {
@@ -112,6 +126,7 @@ export function Tabs({
             id={it.elementId}
             role="tab"
             aria-selected={on}
+            aria-describedby={it.describedById}
             className={cx('sporttab', on && 'on')}
             title={it.title}
             onClick={() => onChange(it.id)}

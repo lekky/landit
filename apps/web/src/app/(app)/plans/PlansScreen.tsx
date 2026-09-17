@@ -1,7 +1,7 @@
 'use client';
 
 import { BILLING_PERIODS, type BillingPeriod } from '@landit/core';
-import { Button, Panel } from '@landit/ui-web';
+import { Button, Panel, Tag } from '@landit/ui-web';
 import Link from 'next/link';
 import { useActionState, useState } from 'react';
 
@@ -56,6 +56,15 @@ import styles from './plans.module.css';
  * on both sides of it was computed on the server (`view.ts`).
  */
 
+/**
+ * The saving tag's own id, so the Yearly tab can point `aria-describedby` at it.
+ *
+ * The tag is a sibling of the row rather than a child of the tab — a `TabRow`
+ * draws its own buttons — so the association cannot be structural and is made
+ * by reference instead.
+ */
+const SAVING_TAG_ID = 'plans-yearly-saving';
+
 const FAQ: readonly { readonly q: string; readonly a: string }[] = [
   {
     q: 'Does the free tier expire?',
@@ -95,42 +104,72 @@ export function PlansScreen({
         <span className="eyebrow">Membership</span>
         <h1 className={`d ${styles.title}`}>A free tier that isn&rsquo;t a trial</h1>
         <p className={styles.lede}>
-          Twenty hand-picked tricks in every sport, full tracking and the sticker wall cost nothing,
-          forever. Paying opens the rest of the library and shows you the numbers behind your
-          riding.
+          {/*
+            "Loads", not "Twenty" (Rachid, 2026-09-17, in chat).
+
+            The number is real — `FREE_TRICKS_PER_SPORT` in `@landit/core` is 20
+            and the paywall counts it — and it is still said in the six other
+            places that say it, the plan cards among them. What it does *here* is
+            put a ceiling at the top of the page a rider is being sold on: the
+            first sentence of the membership screen should read as generous, and
+            "twenty" reads as a limit before the free tier has been described.
+            One sentence changed, deliberately, rather than the fact.
+          */}
+          Loads of hand-picked tricks in every sport, full tracking and the sticker wall cost
+          nothing, forever. Paying opens the rest of the library and shows you the numbers behind
+          your riding.
         </p>
 
         {/*
           Monthly · Yearly, as a `TabRow` (§3.10, D6).
 
-          It was a two-cell segmented control of its own design, with the
-          saving tag tilted over the right-hand half. The row is the product's
-          one shape for a choice between views of a screen now, so the plans
-          page stops being the only place with a second one.
+          It was a two-cell segmented control of its own design. The row is the
+          product's one shape for a choice between views of a screen now, so the
+          plans page stops being the only place with a second one.
 
-          **The saving rides inside the Yearly tab**, as `TabRowItem`'s `note`
-          — the faded `.n` the sticker wall's counts use. It was a tag sitting
-          over the toggle's top edge, positioned so that it read as belonging
-          to Yearly rather than to the control, with `aria-describedby` saying
-          the same thing to a screen reader. A boxed row lifts its active tab
-          4px and cannot carry something slapped over its edge; putting the
-          words *in* the tab makes the association structural rather than
-          positional, and a screen reader now reads "Yearly, 2 months free"
-          from the tab's own text with nothing to wire up.
+          **The saving is the tilted lime tag again** (Rachid, 2026-09-17, in
+          chat: "the yearly should have a green 2 months free overlay thing — it
+          was present on main"). T52 moved the words inside the Yearly tab, as
+          the row's faded `.n`, on the reasoning that a boxed row has no edge to
+          slap a tag over. The reasoning was sound and the result was quieter
+          than the thing it replaced: a saving that is the reason to press
+          Yearly at all went from an overlay a reader cannot miss to a dimmed
+          number they read as a count. The owner reversed it, and §3.10 records
+          the reversal rather than dropping the paragraph.
+
+          It sits over the Yearly tab rather than over the row, which is the
+          whole point of the tilt: beside the control it would read as a
+          property of whatever is selected, so a visitor on Monthly would be
+          told they are getting two months free. Position carries that for a
+          sighted reader and nothing for anyone else, so `aria-describedby`
+          says it again to a screen reader — a *description* of the tab, not
+          part of its name, which is where the tab's own `note` had put it.
         */}
         <div className={styles.toggleRow}>
-          <TabRow
-            items={BILLING_PERIODS.map((value) => ({
-              id: value,
-              label: value === 'monthly' ? 'Monthly' : 'Yearly',
-              ...(value === 'yearly' && view.savingLabel ? { note: view.savingLabel } : {}),
-            }))}
-            value={period}
-            group="plans"
-            label="Billing period"
-            className={styles.toggle}
-            onChange={(id) => setPeriod(id as BillingPeriod)}
-          />
+          <div className={styles.toggleWrap}>
+            <TabRow
+              items={BILLING_PERIODS.map((value) => ({
+                id: value,
+                label: value === 'monthly' ? 'Monthly' : 'Yearly',
+                ...(value === 'yearly' && view.savingLabel ? { describedById: SAVING_TAG_ID } : {}),
+              }))}
+              value={period}
+              group="plans"
+              label="Billing period"
+              className={styles.toggle}
+              onChange={(id) => setPeriod(id as BillingPeriod)}
+            />
+            {view.savingLabel && (
+              <Tag
+                tilt
+                color="var(--lime)"
+                className={styles.savingTag}
+                style={{ color: 'var(--ink)' }}
+              >
+                <span id={SAVING_TAG_ID}>{view.savingLabel}</span>
+              </Tag>
+            )}
+          </div>
         </div>
       </div>
 

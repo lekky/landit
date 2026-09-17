@@ -738,6 +738,41 @@ the look and the floor sets the size; where they disagree the floor wins, becaus
 replaced a row of pills a thumb could hit. `/events`' own Country select is left alone — it is not
 this task's, and it has [issue #552](https://github.com/lekky/landit/issues/552) of its own.
 
+**The scope select on its own line is a phone layout; the desktop has one filter bar** *(T48's
+paragraph above amended, and the bar added, by the owner — Rachid, 2026-09-17, in chat: "bad layout
+on screenshot", looking at `/events` at about 1740px)*.
+
+T48 put `SportScopeSelect` on a line of its own under the search box on both lists, so that the same
+control was not in two different places on two screens a rider crosses with one tap. **That reading
+holds below 861px and is where it stays.** Above it, three full-width rows of controls — `Show [All
+sports]` alone; `Country [UK]` with `Sort` a thousand pixels away at the right edge; the kind pills;
+then the "Showing UK · See everywhere" strip — is four sparse bands before the first event. It reads
+as a form to fill in rather than a bar to skim, and the two selects sat at different widths with
+their labels on different lines.
+
+So on a desktop `/events` is **one filter bar** under the search box: `Show`, `Country`, the kind
+pills flowing left to right, and `Sort` pushed to the right-hand end by `margin-left: auto` —
+because Sort is the one control there that is about the *list* rather than about what is in it. The
+"Showing UK · See everywhere" strip stays beneath it. Between 861 and about 1200px the bar wraps;
+the pills are a group (`.kinds`) so all five drop together rather than leaving one orphan on a line,
+which is the failure mode a bare row of pills has.
+
+**One set of markup, two layouts.** The phone's three lines come back out of the same row by giving
+the scope select and the pill group a full-width flex basis below 861px, so the bar breaks at
+exactly the two places it used to be cut. Nothing is rendered twice and nothing has to be kept in
+step.
+
+**Heights and gaps are stated for the bar.** `additions.css` puts the 44px floor on `.pill` inside
+its `@media (max-width: 860px)` touch block, so on a desktop the kind pills measured 35px beside two
+44px selects — one bar, two control heights, which is half of what the owner was looking at. Both
+lists now state the floor for their own bar at every width, rather than widening a merged shared
+stylesheet for one screen's layout. The measure is a 14px column gap between controls against the
+8px inside one, so a group reads as a group.
+
+**`/spots` gets the same bar**, so the two lists read alike: the same gaps and the same 44px floor
+over the row it already had (`Show`, Faves, the feature and area pills, then the location controls
+at the right). Its order and contents are unchanged — this is the measure, not a rearrangement.
+
 ### 3.8 Trick page (D7)
 
 Phone order: BackLink → hero band (category tag, difficulty, name, one-line lowdown) → **sticker + video row** (`StickerBadge` in a paper card with "Earned <date>" or "Land it at Sometimes", and the existing video block as a 16:9 thumbnail with a play square; with no video the sticker card spans the row) → the yellow "Can you do it?" band with the `StagePicker` and Share → a row of small buttons (Sticker · Watch · Clip) → **`Accordion`** rows for The lowdown, Tips, What you need, The road to it, Where to practise, Your history / notes / clips → More like this.
@@ -1342,6 +1377,67 @@ on this branch** — measured on a paid rider with a landed trick, a sticker and
 tabs, the console is empty — so this is the shape being removed rather than a fault being seen; the
 review's instance had sixteen stickers where the reproduction has two.
 
+**The spot list card's three text links become buttons, and Directions says where it goes** *(added
+by the owner — Rachid, 2026-09-17, in chat: "the report/spot page/directions should be ctas? not
+just strings? and the directions should make more clear it opens google maps")*.
+
+A spot card offers three things and all three were set as 12–13px captions: "Report" in the corner,
+"Spot page →" and "Directions" in the footer row. They now wear the design's small ghost button —
+the shape "Show on map" already has at the other end of the same row — at §4's 44px. All three are
+ghost and none is primary: the orange is for the one thing a screen is *for*, and a list card is not
+one thing.
+
+Three details that are not cosmetic.
+
+- **"Spot page" stays decorative.** The whole card is already a stretched link to that address
+  carrying the spot's name (`.cardLink`), and it sits *above* this span, so a press lands on the link
+  exactly as before and a screen reader hears one link to the spot rather than two. It is affordance,
+  not a control; its hover comes from the card, because the pointer is never over it.
+- **Report keeps its corner.** The footer row is only drawn for a spot with coordinates, and "this is
+  wrong, gone, or not safe" has to be on every card (plan §6.1). It is the quietest of the three —
+  no shadow, a smaller face, `--ink-3` until hovered — and still a 44px box.
+- **Directions names Google Maps.** `mapsLink` builds `google.com/maps/search/?api=1&query=…` on
+  every platform, so the label is a fact rather than a guess, and the link carries the spot's
+  coordinates and nothing about the rider (§6.4 standard 10). A new `external` icon in
+  `packages/ui-web` (additive; the set had no external mark, and `arrow-right` means "onward in this
+  product") draws the box-with-an-arrow, and the accessible name says both the destination and that
+  it opens a new tab, which `target="_blank"` announces to nobody on its own.
+
+**The full words go where there is room for them; the icon and the accessible name go everywhere**
+*(added by the owner-pass-1 worker, 2026-09-17, pending owner confirmation)*. The list card's action
+row wraps and can carry "Directions in Google Maps" — four words in caps, about 234px, which wraps
+to two lines inside the button at 320px rather than overflowing. The spot page's three equal actions
+and the map sheet's two equal halves cannot: they are `minmax(0, 1fr)` columns about 124px wide at
+390px with `white-space: nowrap`, and a three-line button beside two one-line ones is worse than a
+short label. Those two keep the word "Directions" and carry the glyph and the same `aria-label`. The
+map header's existing "Open in Maps" is untouched — it already names where it goes.
+
+**The map's own attribution control is untouched everywhere.** "OpenFreeMap © OpenMapTiles Data from
+OpenStreetMap" is the tile licence's own term and is kept byte-identical to what OpenFreeMap serves
+so MapLibre de-duplicates it.
+
+**The note under the map goes, and the spot data credit moves into the terms** *(added by the owner
+— Rachid, 2026-09-17, in chat)*.
+
+Two paragraphs sat under `/spots`' map. The first explained the interface — "Every matching spot is
+on the map. The list shows 24 at a time. Cards are links, so the map only moves when you ask it
+to…" — and it is deleted. Its own comments recorded two re-wordings, on 2026-09-06 and 2026-09-11,
+each because the behaviour it described had moved under it: a paragraph explaining an interface is a
+dated claim about the product (LESSONS §4), and "Show on map" says what it does on the button
+itself. With it gone the panel's footer would be an empty bordered strip on a desktop, so the footer
+is now the phone sheet's alone, where it carries the travel warning it always carried there.
+
+The second was the data credit, and that one is a **licence term rather than a courtesy**: the spots
+are used under ODbL (OpenStreetMap), Licence Ouverte 2.0 (the French census, which asks for the
+source *and* the date it was taken) and CC BY 4.0 (GeoNames), all of which want attribution
+reasonably reachable from where the data is shown. So it moved rather than went: the full text is a
+new **"Data sources and licences"** section in the terms of use, generated by `spotCreditLine()` from
+the same `SPOT_SOURCES` table each spot row is stamped from, so the dates cannot drift from the
+data — and `/spots` keeps one quiet "Spot data sources" link into that section, at every width,
+because a licence that asks to be named is not met at one width only. It is in the terms rather than
+the privacy policy because nothing in it is about a rider's data: it is about what we are allowed to
+publish and on whose conditions.
+
 **The spot page's breadcrumb becomes the back link** *(added by the T52 worker, 2026-09-17, pending
 owner confirmation)*. §2.3 gives the spot page "Spots" and the screen had `Spots / Great Britain /
 Corby` instead. The trail's two tail segments are plain text repeating the sub-line under the title,
@@ -1407,15 +1503,39 @@ screens draw that card now**, so [issue #568](https://github.com/lekky/landit/is
 promoting it into `packages/ui-web` — the paint only, with the analytics staying at the call site
 the way `TabRow` splits them — for whoever next has both files open.
 
-**Plans: the saving moves inside the Yearly tab** *(added by the T52 worker, 2026-09-17, pending
-owner confirmation)*. It was a lime tag tilted over the top edge of the toggle's right-hand half,
-positioned so it read as Yearly's rather than as the selected period's, with `aria-describedby`
-carrying the same thing to a screen reader. A boxed row lifts its active tab to a 4px offset and has
-no edge to slap a tag over, so the saving is the Yearly tab's `note` — the faded `.n` the sticker
-wall's counts use. The association becomes structural rather than positional: a screen reader reads
-"Yearly, 2 months free" from the tab's own text, and a visitor on Monthly is still never told they
-are getting two months free. The row is capped at **460px** and centred, because two tabs each
-taking half of a 1180px page would put "Monthly" alone in the middle of 570px of paper.
+**Plans: the saving stays a tilted tag over the Yearly tab** *(added by the T52 worker, 2026-09-17;
+**reversed by the owner the same day** — Rachid, 2026-09-17, in chat: "the yearly should have a
+green 2 months free overlay thing - it was present on main")*.
+
+T52 moved it. On `main` the saving was a lime `Tag`, tilted, slapped over the top edge of the
+toggle's right-hand half — positioned so it read as Yearly's rather than as the selected period's,
+with `aria-describedby` carrying the same association to a screen reader. T52's reasoning for
+moving it was that a boxed row lifts its active tab to a 4px offset and has no edge to slap a tag
+over, so the saving became the Yearly tab's `note`: the faded `.n` the sticker wall's counts use,
+which makes the association structural rather than positional.
+
+**The owner reversed it on sight**, and the reason is worth keeping rather than the paragraph being
+deleted. The saving is the single reason to press Yearly, and the two treatments are not the same
+weight: an overlay in the design's loudest fill is an interruption, a dimmed number inside a tab
+reads as a count of something. T52 optimised the accessible name and lost the sell.
+
+So what ships is `main`'s treatment on the new row. The tag is absolutely positioned against a
+wrapper the row shares, `bottom: calc(100% - 2px)` so it bites 2px into the tab and covers its
+keyline, and **`right: 0` rather than `main`'s `-3px`** — on `main` the toggle was an inline-flex
+control narrower than the page, and here the row runs the full width of a 320px phone, where three
+pixels past its right edge is a document that scrolls sideways (issue #550's fault, in a new place).
+The active tab's lift is a `box-shadow` and not a `transform`, so nothing clips the tag.
+
+**The words are a description, not part of the name.** `TabItem` and `TabRowItem` gain an optional
+`describedById` (additive; absent by default, so every other row renders the markup it rendered
+before) and the Yearly tab points it at the tag's span. A screen reader hears the control called
+"Yearly" and described as "2 months free" — which is what it is — where `note` had made "Yearly, 2
+months free" the control's own name. A visitor sitting on Monthly is still never told they are
+getting two months free, which is the assertion `e2e/plans.spec.ts` keeps either way.
+
+The row is capped at **460px** and centred, because two tabs each taking half of a 1180px page would
+put "Monthly" alone in the middle of 570px of paper. The cap moved onto the wrapper, which is also
+the tag's positioning context.
 
 **The pill rows are the native radios, clipped** *(added by the T52 worker, 2026-09-17, pending
 owner confirmation)*. §3.10 says the radio lists on Coach, Suggest, Report and Close account become
