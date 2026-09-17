@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { loadWhatsNewView } from '@/components/whats-new/load';
 import { WhatsNewPanel } from '@/components/whats-new/WhatsNewPanel';
+import styles from '@/components/whats-new/whats-new.module.css';
 import { ROUTES } from '@/lib/routes';
 import { currentRider } from '@/lib/session';
 
@@ -33,9 +34,9 @@ export default async function WhatsNewPage() {
   const view = await loadWhatsNewView();
 
   return (
-    <>
+    <div className={styles.pageWrap}>
       <span className="eyebrow">Your news</span>
       <WhatsNewPanel view={view} place="page" />
-    </>
+    </div>
   );
 }

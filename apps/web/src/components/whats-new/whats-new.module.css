@@ -11,6 +11,24 @@
  * slot and takes the avatar's ring.
  */
 
+/*
+ * On a desktop the page is the "All →" destination behind a 420px dropdown, so
+ * it is capped rather than run out to 1280px.
+ *
+ * 720px, not the 640 the centred screens use (§3.10): those are forms and this
+ * is a list of one-line sentences with a disc beside each. Measured at 1280 the
+ * lines ended a third of the way across and the rest of the row was empty
+ * paper, which reads as a broken layout rather than a short sentence. Left
+ * rather than centred, because the page's own eyebrow and heading start at the
+ * left margin and a panel centred under them would be a second alignment.
+ *
+ * *(Added by the T47 worker, 2026-09-17, pending owner confirmation —
+ * docs/app-shell-rethink.md §3.6.)*
+ */
+.pageWrap {
+  max-width: 720px;
+}
+
 .head {
   display: flex;
   align-items: baseline;

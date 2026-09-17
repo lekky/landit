@@ -3,7 +3,8 @@
 import type { WhatsNewKind } from '@landit/core';
 import { Avatar, Icon, Panel, SportChip, Tag, type IconName } from '@landit/ui-web';
 import Link from 'next/link';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { TabRow, TAB_PANEL, type TabRowItem } from '@/components/shell/TabRow';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
@@ -37,11 +38,16 @@ import {
  * true of the shapes and not only of the intent.
  *
  * **Opening it marks it read.** `markWhatsNewSeenAction` stamps
- * `users.whats_new_seen_at` on mount, so the badge clears by the next render
- * without the rider having to do anything; "Mark all read" stamps again and is
- * the explicit version of the same promise, for a rider who skimmed a long list
- * and wants to say so. The count the button reports is the count the panel
- * *opened* with, because that is the number that was on the bell.
+ * `users.whats_new_seen_at` on mount and the bell's count goes with it, without
+ * the rider having to do anything; "Mark all read" stamps again and is the
+ * explicit version of the same promise, for a rider who skimmed a long list and
+ * wants to say so. The count the button reports is the count the panel *opened*
+ * with, because that is the number that was on the bell.
+ *
+ * **Every line stays on the list once it is read**, which is why the panel has
+ * no unread styling: this is what has happened lately, not an inbox. The count
+ * is the only thing "read" changes, and it is a count of what arrived since the
+ * rider last looked rather than of what they have not ticked off.
  */
 
 export type WhatsNewPlace = 'page' | 'dropdown';
@@ -80,14 +86,33 @@ export function WhatsNewPanel({
    */
   const openedWith = useRef(view.unread);
 
+  const router = useRouter();
+
+  /**
+   * Stamp the bookmark, then ask the server for a fresh layout.
+   *
+   * The count on the bell comes from the layout's server render, so without the
+   * refresh a rider sits reading four lines with a badge beside them still
+   * saying four, until they happen to navigate. `router.refresh()` re-renders
+   * the server components and **keeps client state**, so the dropdown does not
+   * close and the tab does not move — the number simply goes.
+   *
+   * It costs one server render per opening, which is the honest price of a
+   * badge that is right while a rider is looking at it.
+   */
+  const stampAndRefresh = useCallback(async () => {
+    await markWhatsNewSeenAction();
+    router.refresh();
+  }, [router]);
+
   const stamped = useRef(false);
   useEffect(() => {
     // Once per mount. React's strict mode runs effects twice in development,
     // and a second PATCH would be harmless but pointless.
     if (stamped.current) return;
     stamped.current = true;
-    void markWhatsNewSeenAction();
-  }, []);
+    void stampAndRefresh();
+  }, [stampAndRefresh]);
 
   const tabs: TabRowItem[] = [
     { id: YOU_TAB, label: 'You' },
@@ -122,7 +147,7 @@ export function WhatsNewPanel({
           onClick={() => {
             setRead(true);
             capture(ANALYTICS_EVENTS.whatsNewRead, { unread: openedWith.current });
-            void markWhatsNewSeenAction();
+            void stampAndRefresh();
           }}
         >
           {read ? 'All read' : 'Mark all read'}

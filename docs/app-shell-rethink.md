@@ -372,6 +372,95 @@ them is that a surface does not invent a fourth duration. §3.2's 160ms is the s
 - Phone: the panel is the page `/whats-new`. Desktop: a `Dropdown` from the bell, 420px wide, capped at 8 lines with "All →" to `/whats-new`.
 - The bell count badge **pops** when it increments while the page is open (scale .6 → 1.1 → 1 over 300ms, the existing `pop` shape scaled down); it does not animate on first paint.
 
+**The badge counts the You lines and not the crew tabs** *(added by the T47 worker, 2026-09-17,
+pending owner confirmation)*. §3.6 says the unseen count is "the number of derived lines newer than"
+`whats_new_seen_at` and does not say whether a crew tab's rows are derived lines. They are not, for
+two reasons and the second settles it. A crew feed is a place to go and look rather than news
+addressed to this rider; and it carries the reader's **own** stage changes and stickers back to
+them, so a badge fed by it would light up because the rider logged a trick — a notification about
+yourself. It also keeps the read on the bar cheap, which the next paragraph is about.
+
+**The count is on every page render; the panel's contents are not** *(added by the T47 worker,
+2026-09-17, pending owner confirmation)*. The bell is in the top bar of every signed-in screen, so
+whatever it needs is paid for on the dashboard, the library, every trick page and every spot page.
+The count is one derived computation from six windowed reads fired together — the rider's stickers,
+their attendance, the challenges and their log, their crews, and the live events inside the next
+seven days — memoised for the request so a `/whats-new` render does not pay for it twice, and
+failing soft to zero so a feed that will not load costs a badge rather than a page. The **panel** is
+a further read per crew for the crew tabs, so it is fetched when the panel opens: the same trade
+T45 made for the sport menu's counts, for the same reason.
+
+**A line about something still to come is dated to the moment it started being true** *(added by
+the T47 worker, 2026-09-17, pending owner confirmation)*. A sticker, a banked week and a crew join
+happened at a time, and that time is their `at`. "Corby Jam is Saturday" has not happened yet, so it
+is dated to the event's date minus seven days, and the challenge deadline to its end minus three —
+the moment each line appeared. That is what makes one unseen count mean the same thing for both
+kinds: a forthcoming line arrives once, counts as unseen once, and stops counting when it has been
+read. It also decides the row's `.lab`: a line about something ahead shows its source and no
+relative time, because "6 days ago" beside "Corby Jam is Saturday" is a true timestamp describing
+the wrong thing.
+
+**"Week 5 banked." ships, but only while the streak tuple can say when the week banked** *(added by
+the T47 worker, 2026-09-17, pending owner confirmation)*. §3.6 asked for this judgement. The weekly
+streak stores a counter and two day keys; it does not store the moment a week qualified. That is
+recoverable in exactly one state — the week containing today has qualified *and* `rides_this_week`
+still equals the target, which means the most recent ride is the ride that banked it. So the line
+appears when the week banks and is dropped when the rider rides again. The two alternatives were
+worse: dating it to the week's Monday files it days early and puts it *behind* a bookmark set
+mid-week, so the one line a rider most wants a badge for would never produce one; dating it to the
+latest ride re-dates the banking on every ride and tells a rider the same week banked three times.
+
+**"Leo joined Ramp Rats with your code" is "Leo joined Ramp Rats."** *(added by the T47 worker,
+2026-09-17, pending owner confirmation)*. `crew_members` records who joined, which crew and when,
+and **not** which invite brought them — so "with your code" would be a guess dressed as a fact, and
+in a crew where two members have both minted invites it would tell both of them it was theirs. The
+join is news to every member of an invite-only crew whoever's code it was. Adding an `invite`
+relation to `crew_members` would make the fuller sentence true, and is a second change to the data
+model where §6 allows one. The joiner's name and avatar come from the **crew board route**, never
+from `users`: a member whose profile is private appears on their crew's board by name and is not
+readable any other way (plan §3 guarantee 1), and expanding the relation would quietly name the
+public riders and skip the private ones.
+
+**The windows §3.6 does not give** *(added by the T47 worker, 2026-09-17, pending owner
+confirmation)*. §3.6 names seven days for an event and three for the challenge and is silent on
+stickers and crew joins, so both look back **30 days** — long enough that a rider who opens the app
+monthly still meets the stickers they earned, short enough that the screen is what has happened
+lately rather than a second copy of the stickers wall. The whole list stops at **50 lines**, which
+is not a product rule but a floor under the page: every source is windowed already, so reaching
+fifty means something upstream is wrong, and a list that stops is a better way to find that out than
+four thousand rows. The challenge line is drawn **per sport the rider rides**, so a scooter-only
+rider is never told when the skate week closes.
+
+**Opening the panel clears the badge while it is still open** *(added by the T47 worker,
+2026-09-17, pending owner confirmation)*. The count comes from the layout's server render, so
+stamping `whats_new_seen_at` alone would leave a rider reading four lines with a badge beside them
+still saying four until they happened to navigate. The panel stamps and then asks for a fresh
+layout, which keeps client state — the dropdown stays open, the tab does not move, the number goes.
+It costs one server render per opening. **No line is ever struck off or greyed**: this is what has
+happened lately, not an inbox, so "read" changes the count and nothing else.
+
+**The badge pop keeps §3.6's 300ms rather than taking a token** *(added by the T47 worker,
+2026-09-17, pending owner confirmation)*. This is the opposite call to the one T45 made about the
+dropdown's duration, and deliberately: there §4's motion table gave dropdowns `--dur-ui` and §3.2's
+prose disagreed, so the table won. Nothing in the table covers a pop — `.pop` in `primitives.css`
+is already 0.5s of its own — and §4's row for the bell count points back at §3.6. So 300ms is the
+pop family's third member, not a fourth UI duration.
+
+**On a desktop the page is capped at 720px** *(added by the T47 worker, 2026-09-17, pending owner
+confirmation)*. §7 puts What's new in a dropdown on a desktop and says nothing about the page behind
+"All →". Run out to 1280px the sentences ended a third of the way across a row of empty paper. 720
+rather than the 640 §3.10 gives the centred screens, because those are forms and this is a list of
+one-line sentences with a disc beside each; left-aligned rather than centred, because the page's own
+eyebrow and heading start at the left margin.
+
+**The field joins erasure and the data export** *(added by the T47 worker, 2026-09-17, pending
+owner confirmation)*. §6 says one additive field and says nothing about the two lists every other
+rider fact is on. `whats_new_seen_at` is a record of when a rider last used part of the service, so
+`hooks/lib/erasure.js` clears it when an account is closed — otherwise a closed account keeps a
+stamp saying when it was last read — and writes it into the rider's own download, because a download
+that leaves something out is not everything we hold. Both are one line, and both follow the
+precedent `last_seen` set.
+
 ### 3.7 Find
 
 **Find hub** (`/find`, new route in `apps/web/src/app/(app)/find/page.tsx`) — header "Find / Where to ride", a `TabRow` of For you · Spots · Events (links), then three sections: **You're going** (the rider's upcoming attended events, "Mine →" to `/events/mine`), **Near you** (the nearest spots once location is granted, else the rider's faves and recent session spots, plus the existing "Near me" button), **Coming up** (the next events, "All events →"). Desktop: the three sections are three columns. Signed out: the tab row and Coming up / Near you only.
