@@ -184,9 +184,16 @@ test('a private crew-mate is on the board and in Members, and never in Activity'
     await arrive(ownerPage, 'Ollie Owner');
     await arrive(joinerPage, 'Cara Quiet');
 
-    // A new profile is private by default (AADC standard 7), which is the state
-    // under test — asserted rather than assumed.
-    await joinerPage.goto('/account');
+    /*
+     * A new profile is private by default (AADC standard 7), which is the state
+     * under test — asserted rather than assumed.
+     *
+     * `/account/privacy`, not `/account`: T51 made the account a list of rows
+     * where each row is its own screen (§3.9), so the three privacy radios are
+     * no longer on the landing screen. Reading them from the list would be
+     * asserting against a screen that does not have them.
+     */
+    await joinerPage.goto('/account/privacy');
     await expect(joinerPage.getByRole('radio', { name: /^Private/ })).toBeChecked();
 
     const crewName = `Ramp Rats ${unique()}`;
