@@ -1417,11 +1417,14 @@ placed after four cards: two rows on a phone, where the grid is two columns belo
 a desktop. In "Mine", where the grid is cut into stage sections, it follows the first section. A
 grid with fewer than four cards puts it at the end of them, which is still below what there is.
 
-**`SportSwitch` stays on the branch** *(added by the T52 worker, 2026-09-17)*. T52 removes its last
-*screen* use, from the library. It is still imported by `apps/web/src/app/design/shell/preview.tsx`,
-which is not T50's and not this task's, so the component and its styles stay and deleting them is a
-job for whoever clears that preview. Named here so the next reader does not take a live import for
-an oversight.
+**`SportSwitch` stays on the branch** *(added by the T52 worker, 2026-09-17; re-checked after T50
+merged)*. T52 removes its last *screen* use, from the library, and T50 removed the glossary's — so
+with both in, the grep finds exactly one importer left:
+`apps/web/src/app/design/shell/preview.tsx`, a gallery of shell components that is nobody's task
+this wave. Three other hits are prose in comments. The component and its styles therefore stay, and
+deleting them is a job for whoever clears that preview
+([issue #562](https://github.com/lekky/landit/issues/562), which now also carries `.filter-toggle`'s
+newly dead CSS). Named here so the next reader does not take a live import for an oversight.
 
 ---
 
