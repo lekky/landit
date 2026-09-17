@@ -104,7 +104,14 @@
 .filtersTab {
   display: none;
   min-width: 0;
-  overflow: hidden;
+  /*
+   * `visible`, not `hidden`: the count badge hangs off the top-right corner
+   * (see below), so a box that clipped its own overflow would clip the badge.
+   * The label does its own clipping on the span, which is where `text-overflow`
+   * needs it anyway.
+   */
+  overflow: visible;
+  position: relative;
 }
 
 /*
@@ -138,18 +145,33 @@
  * package's selector is correct for the control it names, and this is a
  * different control.
  *
+ * **It sits on the corner rather than in the row** (review L3). In the flow it
+ * took about 30px from a box that has roughly 100px of content width at 390,
+ * and the label gave way first — so "FILTERS & SORT" clipped to "FILTERS …"
+ * exactly when a rider had a filter on, which is when they are most likely to
+ * be reading it. Nit 11 asked for the word "sort" back; a badge that takes it
+ * away again whenever it appears has not given it back. This is the bell's own
+ * idiom (`.tbBadge`): a pink count on the top-right corner, outside the box,
+ * overlapping the keyline rather than the words.
+ *
  * `:global`, because `.fcount` is `primitives.css`'s class and a bare one here
  * would be hashed into a local name and match nothing — the dead-rule shape
  * LESSONS §3a was written about.
  */
 .filtersTab :global(.fcount) {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
   background: var(--pink);
   color: var(--on-dark);
   border: 2px solid var(--ink);
-  padding: 1px 7px;
   font-size: 11px;
-  letter-spacing: 0.06em;
-  flex: none;
+  letter-spacing: 0.02em;
 }
 
 @media (max-width: 420px) {
@@ -158,6 +180,23 @@
     padding-right: 4px;
     font-size: 12px;
     letter-spacing: 0.05em;
+  }
+
+  /*
+   * **The glyph goes and the words stay**, below 420px (review L3).
+   *
+   * With the badge moved off the row there were still four pixels missing at
+   * 390 — measured — so "FILTERS & SORT" clipped to "FILTERS & SOR…" whether a
+   * filter was on or not. The icon is `aria-hidden` decoration and 16px of it,
+   * plus the 8px `.sporttab` gap, is six times the shortfall; the two tabs
+   * beside it carry no icon either, so the row reads as three boxes of words.
+   *
+   * The order is T45's, from the verify-email strip and the sport chip's name:
+   * the decoration gives way first and the words last. A rider who cannot read
+   * "sort" does not know the sort is in there, which is the whole of nit 11.
+   */
+  .filtersTab > :global(svg) {
+    display: none;
   }
 }
 

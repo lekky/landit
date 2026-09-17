@@ -190,7 +190,14 @@ export function CrewScreen({ view }: { view: CrewView }) {
                 items={[
                   { id: 'board', label: 'Board' },
                   { id: 'activity', label: 'Activity' },
-                  { id: 'members', label: 'Members', note: crew.memberCount },
+                  /*
+                    No count on this tab (review nit 10). `TabRowItem`'s `note`
+                    exists to give a reason to press a tab — "Not yet 118" is a
+                    wall worth opening where "Not yet" is a word — and here the
+                    reason is already answered ten pixels above it: the header
+                    reads "RAMP RATS · 3 RIDERS". One number, once.
+                  */
+                  { id: 'members', label: 'Members' },
                 ]}
                 value={active}
                 group="crew"

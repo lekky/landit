@@ -241,6 +241,27 @@ test('All · Mine · Filters is one row, and it fits a 320px phone', async ({ pa
   const badge = filters.locator('.fcount');
   await expect(badge).toHaveText('1');
   await expect(badge).toHaveCSS('background-color', 'rgb(255, 61, 120)');
+
+  /*
+   * **And the words stay** (review L3). In the flow the badge took about 30px
+   * from a box with roughly 100px of content at 390, and the label gave way
+   * first — so "FILTERS & SORT" clipped to "FILTERS …" exactly when a rider had
+   * a filter on, which is when they are most likely to be reading it. Nit 11
+   * asked for "sort" back; a badge that removed it whenever it appeared had not
+   * given it back. It hangs off the corner now, the bell's own idiom.
+   *
+   * Asserted as "the label is not clipped" rather than on a pixel width: a span
+   * whose content is wider than its box is exactly what `text-overflow` hides,
+   * and it is the thing that was wrong.
+   */
+  const label = filters.locator('.tab-label');
+  await expect(label).toHaveText('Filters & sort');
+  const clipped = await label.evaluate((el) => el.scrollWidth - el.clientWidth);
+  expect(clipped, `the label is clipped by ${clipped}px with a filter on`).toBeLessThanOrEqual(0);
+
+  // And the corner badge does not push the page sideways.
+  const spill = await page.locator('html').evaluate((el) => el.scrollWidth - el.clientWidth);
+  expect(spill, `the document is ${spill}px wider than the screen`).toBeLessThanOrEqual(0);
 });
 
 test('Mine is a tab of that row, and still rewrites the address', async ({ page }) => {

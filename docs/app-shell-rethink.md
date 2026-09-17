@@ -1227,7 +1227,13 @@ private, to a crew-mate, by name and score (plan §3 guarantee 1). A Members tab
 `users` instead would quietly list the public riders and drop the private ones; one that showed
 activity would show more than the feed beside it, which is the line
 `pocketbase/hooks/85_crews.pb.js` draws in a comment. `e2e/crew.spec.ts` puts a private rider in a
-crew and asserts both halves. There is no search on it, nothing to press but a rider's own profile,
+crew and asserts both halves.
+
+**The tab carries no count** *(added by the T52 worker, 2026-09-17, after the second review pass —
+nit 10)*. It did: `TabRowItem`'s `note`, which exists to give a rider a reason to press a tab —
+"Not yet 118" is a wall worth opening where "Not yet" is a word. Here the reason was already
+answered ten pixels above it, because the header reads "Ramp Rats · 3 riders". One number, once, and
+the tab is the word. There is no search on it, nothing to press but a rider's own profile,
 and no way to reach a crew from it — §6.1 is a fact about what this tab does not render.
 
 **The crew's two ghost buttons are 44px at every width** *(added by the T52 worker, 2026-09-17,
@@ -1323,8 +1329,11 @@ here" button in the header of "Your sessions here" is gone and the hero's action
 2026-09-17)*. `sessionsEnabledFor` answers `true` for a `null` rider once `LANDIT_SESSIONS_OPEN` is
 set, which is how a release will run it — so `sessionsEnabledFor(session?.rider ?? null)` put a
 "Log here" on a public spot page for a visitor with no account, pointing at a form that would bounce
-them to `/signin`. It is `session && sessionsEnabledFor(session.rider)`, which is what `riderFor`
-has always asked for the block below it. Caught by the signed-out case in `e2e/spot-page.spec.ts`,
+them to `/signin`. It is **`sessionsEnabledForViewer(session)`** — a named predicate added beside
+the old one in `lib/sessionsPreview.ts`, holding the expression `riderFor` has always used for the
+block below it, so a screen cannot write the shorter, wrong one by accident. Its own unit tests pin
+the trap the e2e cannot reach: with the flag set, the rider-shaped question answers `true` for
+nobody at all. Caught by the signed-out case in `e2e/spot-page.spec.ts`,
 not by the flag, which is off in most places this is run.
 
 **"What's here" takes `LinkCard`'s look, not the component, and fires nothing** *(added by the T52
@@ -1387,6 +1396,15 @@ badge that told a rider at a glance how many narrowings were on rendered as a ba
 `.filtersTab .fcount` restates that rule's own values in the screen's module rather than widening
 the shared selector, because the package's rule is right for the control it names and this is a
 different control.
+
+**And the badge sits on the corner, so the words never give way to it** *(added by the T52 worker,
+2026-09-17, after the second review pass — L3)*. Restated in the flow it took about 30px out of a
+box with roughly 100px of content width at 390, and the label is what gives first: "FILTERS & SORT"
+clipped to "FILTERS …" exactly when a rider had a filter on, which is when they are most likely to
+be reading it. Putting "sort" back and then taking it away again whenever the badge appears is not
+putting it back. It is the bell's own idiom now (`.tbBadge`) — a pink count on the top-right corner,
+outside the box, overlapping the keyline rather than the words — which is why the box is
+`position: relative` and `overflow: visible` while the label keeps its own clip.
 
 **The library keeps a sport control, and it is `SportScopeSelect`** *(added by the T52 worker,
 2026-09-17, after the independent review — the blocker)*. D5 removes every in-page sport *tab row*

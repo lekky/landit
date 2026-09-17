@@ -79,7 +79,17 @@ test('the crew screen is Board · Activity · Members, and each tab shows its ow
   await expect(page.getByText('Just happened')).toBeVisible();
   await expect(page.getByText('This month’s board')).toBeHidden();
 
-  await tabs.getByRole('tab', { name: /Members/ }).click();
+  /*
+   * "Members", and only that (review nit 10). The tab carried the crew's rider
+   * count until the second pass, ten pixels under a header that already reads
+   * "RAMP RATS · 1 RIDER" — `note` is there to give a reason to press a tab,
+   * and here the reason was already answered. `exact` rather than a regex, so
+   * the count coming back fails this.
+   */
+  await expect(tabs.getByRole('tab', { name: 'Members', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 1 }).locator('..')).toContainText('1 rider');
+
+  await tabs.getByRole('tab', { name: 'Members', exact: true }).click();
   await expect(page).toHaveURL(/tab=members/);
   await expect(page.getByText('Who is in it')).toBeVisible();
   // A crew of one is the rider who started it, marked as such.
@@ -107,7 +117,10 @@ test('a deep link opens the tab it names, without a press', async ({ page }) => 
 
   await page.goto('/crew?tab=members');
   const tabs = page.getByRole('tablist', { name: 'What to show for this crew' });
-  await expect(tabs.getByRole('tab', { name: /Members/ })).toHaveAttribute('aria-selected', 'true');
+  await expect(tabs.getByRole('tab', { name: 'Members', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
   await expect(page.getByText('Who is in it')).toBeVisible();
 
   await page.goto('/crew?tab=nonsense');
@@ -218,7 +231,7 @@ test('a private crew-mate is on the board and in Members, and never in Activity'
     await expect(ownerPage.getByText('Cara Quiet')).toBeVisible();
 
     // So does Members, because Members is the board's rows without the ranking.
-    await tabs.getByRole('tab', { name: /Members/ }).click();
+    await tabs.getByRole('tab', { name: 'Members', exact: true }).click();
     await expect(ownerPage.getByText('Who is in it')).toBeVisible();
     await expect(ownerPage.getByText('Cara Quiet')).toBeVisible();
 
