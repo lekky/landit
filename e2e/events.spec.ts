@@ -435,8 +435,36 @@ test('the filters are one bar on a desktop and three lines on a phone', async ({
   expect((await everything.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   expect((await country.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 
+  /*
+   * Below 861px the bar breaks back into T48's stack, out of this same markup:
+   * the scope select alone under the search, then Country with Sort at the
+   * right of its line, then the pills.
+   *
+   * **Measured at 480 rather than 390**, and the difference is worth stating.
+   * The stack holds from 860 down to about 430; at 390 the Country select and
+   * the Soonest / Nearest pair genuinely do not fit on one line, so Sort drops
+   * to a line of its own. That is the flex row doing the honest thing with a
+   * real measurement, and it is not what this is guarding.
+   *
+   * What it is guarding is the **order**, which is a choice. The desktop bar
+   * reads sport → country → kind → Sort, and taking that straight into the
+   * stack put the pill group *between* Country and Sort, so Sort could never
+   * share Country's line at any width. Below 861px the pills go last instead.
+   */
+  await page.setViewportSize({ width: 480, height: 844 });
+  const scopeRow = await rowTop(scope);
+  const countryRow = await rowTop(country);
+  expect(countryRow).toBeGreaterThan(scopeRow);
+  expect(await rowTop(sort)).toBe(countryRow);
+  expect(await rowTop(everything)).toBeGreaterThan(countryRow);
+  // And Sort is still the right-hand end of the line it shares.
+  const countryBox = (await country.boundingBox())!;
+  expect((await sort.boundingBox())!.x).toBeGreaterThan(countryBox.x + countryBox.width);
+
+  // At 390 the pills are still last, which is the whole point of the order.
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await rowTop(country)).toBeGreaterThan(await rowTop(scope));
+  expect(await rowTop(everything)).toBeGreaterThan(await rowTop(sort));
 });
 
 test('an event row is a link to its own page, and says which door it is', async ({ page }) => {

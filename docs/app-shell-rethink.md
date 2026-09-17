@@ -774,6 +774,14 @@ the scope select and the pill group a full-width flex basis below 861px, so the 
 exactly the two places it used to be cut. Nothing is rendered twice and nothing has to be kept in
 step.
 
+**And the pills go last on the phone, which took an `order`.** The bar reads sport → country → kind
+→ Sort left to right, and taking that straight into the stack put the pill *group* between Country
+and Sort — so Sort could never share Country's line, and the phone got a fourth row where T48 had
+three. Below 861px the four take explicit `order` values with the pills last. Measured: the stack is
+T48's three lines from 860 down to about 430, and at 390 and 320 Sort drops to a line of its own
+because the Country select and the Soonest / Nearest pair genuinely do not fit beside each other —
+which is the flex row measuring honestly rather than a layout choice. No width scrolls sideways.
+
 **Heights and gaps are stated for the bar.** `additions.css` puts the 44px floor on `.pill` inside
 its `@media (max-width: 860px)` touch block, so on a desktop the kind pills measured 35px beside two
 44px selects — one bar, two control heights, which is half of what the owner was looking at. Both

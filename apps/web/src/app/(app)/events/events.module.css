@@ -141,12 +141,33 @@
 
 @media (max-width: 860px) {
   /*
-   * T48's stacking, restored by basis rather than by three separate rows: the
-   * scope select on its own line under the search, then Country and Sort, then
-   * the pills. Same three lines, one set of markup.
+   * T48's stacking, restored by basis and order rather than by three separate
+   * rows: the scope select on its own line under the search, then Country with
+   * Sort at the right of the same line, then the pills. Same three lines, one
+   * set of markup.
+   *
+   * **`order` is what keeps it to three.** The desktop bar reads left to right
+   * in the order a rider narrows — sport, country, kind, then Sort at the far
+   * end — and taken straight into the stack that puts the pill group *between*
+   * Country and Sort, so Sort could not share Country's line and the phone got
+   * a fourth row. Below 861px the pills go last instead.
+   *
+   * `.sort`'s `margin-left: auto` still works: an auto margin absorbs the free
+   * space on its own flex line, so Sort sits hard right of Country here exactly
+   * as it sits hard right of the bar on a desktop.
    */
-  .scopeFilter,
+  .scopeFilter {
+    order: 1;
+    flex: 1 0 100%;
+  }
+  .countryPick {
+    order: 2;
+  }
+  .sort {
+    order: 3;
+  }
   .kinds {
+    order: 4;
     flex: 1 0 100%;
   }
 }
