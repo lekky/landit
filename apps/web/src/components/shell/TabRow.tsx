@@ -93,8 +93,28 @@ export type TabRowProps = {
 
 export function TabRow({ items, value, group, label, onChange, className }: TabRowProps) {
   const analyticsIdOf = (id: string) => items.find((item) => item.id === id)?.analyticsId ?? id;
-  const fire = (id: string) =>
+
+  /**
+   * Fire `tabs_switched`, **unless nothing switched**.
+   *
+   * Pressing the tab you are already on is not a switch, and counting it as one
+   * quietly inflates every funnel built on this event: a rider tapping the
+   * active tab twice while reading looks like two moves between sections, so
+   * "which tab do riders actually go to" is answered partly by fidgeting. Found
+   * by the T48 review, in the row rather than on a screen, so all nine users of
+   * `TabRow` get it.
+   *
+   * It returns whether it fired, so both forms below can leave early on the
+   * same condition. For the button form that also skips `onChange`, which would
+   * be setting the caller's state to the value it already holds; a caller that
+   * ever needs "the tab was *pressed*" rather than "the tab changed" should say
+   * so with a prop rather than by reading a no-op event.
+   */
+  const fire = (id: string): boolean => {
+    if (id === value) return false;
     capture(ANALYTICS_EVENTS.tabsSwitched, { group, tab: analyticsIdOf(id) });
+    return true;
+  };
 
   const links = items.every((item) => item.href);
 
@@ -135,7 +155,11 @@ export function TabRow({ items, value, group, label, onChange, className }: TabR
               className={`sporttab ${on ? 'on' : ''}`.trim()}
               aria-current={on ? 'page' : undefined}
               title={item.title}
-              onClick={() => fire(item.id)}
+              // The navigation is left alone — pressing the tab you are on is
+              // allowed to reload the page. Only the count declines it.
+              onClick={() => {
+                fire(item.id);
+              }}
             >
               {item.icon && <Icon name={item.icon} size={16} strokeWidth={2.3} />}
               <span className="tab-label">{item.label}</span>
@@ -161,7 +185,7 @@ export function TabRow({ items, value, group, label, onChange, className }: TabR
       label={label}
       className={rowClass}
       onChange={(id) => {
-        fire(id);
+        if (!fire(id)) return;
         onChange?.(id);
       }}
     />
