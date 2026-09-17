@@ -1,6 +1,8 @@
 import { SPORT_IDS } from '@landit/core';
 import { expect, test } from '@playwright/test';
 
+import { finishOnboarding } from './support/onboarding';
+
 /**
  * The app shell, driven through `/design/shell`.
  *
@@ -801,6 +803,71 @@ test('on a phone, small buttons and sport tabs are 44px tall; on a desktop they 
   // the 36px `.btn.sm` the handoff drew.
   await page.setViewportSize({ width: 1200, height: 800 });
   expect((await small.boundingBox())!.height).toBeLessThan(44);
+});
+
+test('the back link is a 44px target as wide as its words, not as wide as the page', async ({
+  page,
+}) => {
+  /*
+   * `BackLink` is a shell component (§2.3) and T46 is the first task to put it
+   * on a screen, which is when both halves of this were measured for the first
+   * time.
+   *
+   * **Height.** 12px of padding round a 16px icon line is 40, and §4's floor is
+   * 44 — the only element in `<main>` under it on any of the four screens the
+   * link is on.
+   *
+   * **Width.** `display: inline-flex` inside a stretching flex column resolves
+   * to the full column width, so at 390px the link measured 362px wide: about
+   * 300px of blank paper beside "← HOME" that navigated away when a thumb
+   * landed on it. That is the half a height-only assertion would sail past, so
+   * it is asserted against the words rather than against a number — a back link
+   * should be as big as the thing it says and no bigger.
+   *
+   * Measured on a real screen rather than on `/design/shell`, because the
+   * stretching is the *container's* doing: a fixture would prove the component
+   * and miss the caller.
+   */
+  await page.goto('/signup');
+  await page.getByLabel('Your name').fill('Backlink Rider');
+  await page
+    .getByLabel('Email')
+    .fill(`e2e-back-${Math.random().toString(36).slice(2, 10)}@landit.invalid`);
+  await page.getByLabel('Password').fill('a-long-local-test-password');
+  await page.getByLabel('Where you live').selectOption('GB');
+  const now = new Date();
+  await page
+    .getByLabel('Date of birth')
+    .fill(
+      new Date(Date.UTC(now.getUTCFullYear() - 24, now.getUTCMonth(), now.getUTCDate()))
+        .toISOString()
+        .slice(0, 10),
+    );
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await page.waitForURL('**/onboarding');
+  await finishOnboarding(page);
+  await page.waitForURL('**/home');
+
+  await page.setViewportSize(PHONE);
+
+  for (const path of ['/progress', '/stickers', '/challenge']) {
+    await page.goto(path);
+    const back = page.getByRole('main').getByRole('link', { name: 'Home' }).first();
+    const box = (await back.boundingBox())!;
+
+    expect(Math.round(box.height), `the back link is under 44px on ${path}`).toBeGreaterThanOrEqual(
+      44,
+    );
+
+    // Its words, laid out: the link may be a little wider for its padding, but
+    // it must not have swallowed the column.
+    const words = await back.evaluate((el) => {
+      const range = el.ownerDocument.createRange();
+      range.selectNodeContents(el);
+      return range.getBoundingClientRect().width;
+    });
+    expect(box.width, `the back link stretches the column on ${path}`).toBeLessThan(words + 40);
+  }
 });
 
 test('on a phone, no field is small enough for iOS to zoom the page into it', async ({ page }) => {

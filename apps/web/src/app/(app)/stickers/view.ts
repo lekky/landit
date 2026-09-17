@@ -58,14 +58,21 @@ export interface StickerView {
   readonly shareHeadline: string;
 }
 
-/** One tab of the wall. */
+/**
+ * One sport the wall holds.
+ *
+ * It was a **tab** until T46, and the name is kept because that is what
+ * `StickerWallView.tabs` still calls it: the sport tab row is gone (D5, the
+ * sport is the top bar's chip), and what is left is the list of sports this
+ * rider's wall has a shelf for, which the screen uses to pick a default. Its
+ * `earnedLabel` — "3 earned", the faded note beside each sport tab — went with
+ * the row that drew it.
+ */
 export interface WallTabView {
   readonly sport: SportId;
   readonly label: string;
   readonly color: string;
   readonly icon: string;
-  /** "3 earned" — counted over the stickers this tab shows. */
-  readonly earnedLabel: string;
 }
 
 export interface StickerWallView {

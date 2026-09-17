@@ -83,14 +83,43 @@ test('a live challenge can be logged, and the count moves', async ({ page }) => 
   await expect(page.getByText(`1 / ${LIVE_GOAL}`)).toBeVisible({ timeout: 15_000 });
 });
 
+test('the challenge is under Home, and its own sport row is gone (T46)', async ({ page }) => {
+  await newRider(page);
+  await page.goto('/challenge');
+
+  // §2.3: the Challenge is one of the four screens reached from a Home card, so
+  // it says what it is under — an ordinary link, never `history.back()`.
+  const back = page.getByRole('main').getByRole('link', { name: 'Home' }).first();
+  await expect(back).toHaveAttribute('href', '/home');
+
+  // D5: the "Challenge by sport" row goes; the top bar's chip is the switcher,
+  // and the test below drives it.
+  await expect(page.getByRole('tablist', { name: 'Challenge by sport' })).toHaveCount(0);
+  await expect(page.getByRole('main').getByRole('tablist')).toHaveCount(0);
+});
+
 test('every sport has a week running, not just the two the design pack knew about', async ({
   page,
 }) => {
   await newRider(page);
   await page.goto('/challenge');
 
+  /*
+   * Switched from the **top bar's chip**, not from a row on this screen (D5,
+   * T46). The screen's own sport tabs are gone — the sport is chosen once, in
+   * one place, and every screen follows it — so this is the switch a rider
+   * actually presses, and driving it here is what proves the challenge still
+   * changes when they do.
+   */
+  const chip = page.getByRole('button', { name: /^Riding: .+\. Switch sport\.$/ });
+  await expect(chip).toBeVisible();
+
   for (const sport of SPORT_IDS) {
-    await page.getByRole('tab', { name: new RegExp(SPORTS[sport].short, 'i') }).click();
+    await chip.click();
+    const picker = page.getByRole('group', { name: 'Switch sport' });
+    await picker.getByRole('button', { name: new RegExp(SPORTS[sport].label, 'i') }).click();
+    await expect(picker).toBeHidden();
+
     await expect(page.getByText(`Challenge · ${SPORTS[sport].label}`)).toBeVisible();
     await expect(page.getByText('Live now')).toBeVisible();
     await expect(

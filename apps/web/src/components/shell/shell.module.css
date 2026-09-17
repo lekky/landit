@@ -510,9 +510,25 @@
  * The hit area is padded out and the margin pulled back, so it is 44px to a
  * thumb without moving anything around it.
  */
+/*
+ * **44px tall, and only as wide as its words** (T46, the first task to put this
+ * on a screen; review S1).
+ *
+ * The padding was 12px, which with a 16px icon line measured **40px** — the one
+ * element in `<main>` under §4's "nothing tappable below 44px" on any of the
+ * four screens. 14 + 16 + 14 = 44, and the negative margin grows with it so
+ * nothing below moves.
+ *
+ * `align-self: flex-start` is the other half. `display: inline-flex` inside a
+ * stretching flex column resolves to the **full content width**, so at 390px
+ * the link measured 362px wide: 300px of blank paper to the right of "← HOME"
+ * navigated away when a thumb landed on it. A back link should be exactly as
+ * big as the thing it says.
+ */
 .backLink,
 .backLink:hover {
   display: inline-flex;
+  align-self: flex-start;
   align-items: center;
   gap: 7px;
   font-family: var(--fc);
@@ -521,8 +537,8 @@
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-3);
-  padding: 12px 10px 12px 0;
-  margin: -12px 0 2px 0;
+  padding: 14px 10px 14px 0;
+  margin: -14px 0 2px 0;
 }
 .backLink:hover {
   color: var(--ink);

@@ -24,6 +24,16 @@
 
   /* accents */
   --pink: #ff3d78;
+  /*
+   * The soft pink the sticker blocks are filled with (T46, additive).
+   *
+   * `--pink` is the loud one — the sticker wall's progress bar, a link's hover.
+   * This is the one a **fill** takes, where ink has to stay readable on top of
+   * it: Home's Stickers stat block has been `#FFB3C9` since T8, the Stickers
+   * record card matched it by hand, and a literal copied twice is the moment to
+   * mint the token rather than the third time. Same pixels, named.
+   */
+  --pink-soft: #ffb3c9;
   --orange: #ff5a1f;
   --yellow: #ffc23f;
   --lime: #9ce05b;

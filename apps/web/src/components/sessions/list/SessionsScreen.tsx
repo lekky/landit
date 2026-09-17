@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
 import { DeleteSessionDialog } from '@/components/sessions/DeleteSessionDialog';
+import { BackLink } from '@/components/shell/BackLink';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES } from '@/lib/routes';
 import {
@@ -205,6 +206,18 @@ export function SessionsScreen({ view }: { view: SessionsView }) {
 
   return (
     <div className={styles.screen}>
+      {/*
+        The Home back link (rethink §2.3, T46).
+
+        Sessions is one of the four screens that lost their place in the bar
+        when the shell folded nine destinations into four groups (D8): it is
+        reached from a record card on Home, and Home's cell stays lit while a
+        rider is here. A screen that is under something has to say what, or
+        being under it is only true in the routing table. The rest of this
+        header — the title, the stats and the sport scope — is T50's.
+      */}
+      <BackLink href={ROUTES.dashboard} label="Home" />
+
       <div className={styles.top}>
         <h1 className={styles.title}>Progress</h1>
         <Link

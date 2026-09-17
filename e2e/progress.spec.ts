@@ -67,31 +67,156 @@ async function newRider(page: Page): Promise<void> {
   await page.waitForURL('**/home');
 }
 
-test('progress shows the four panels', async ({ page }) => {
+test('progress opens on Record, and the tab row is how the rest is reached', async ({ page }) => {
   await newRider(page);
 
   /*
-   * By URL, not through the bar.
-   *
-   * Progress lost its own cell in the app shell rethink (D8, T45): it is one of
-   * the four screens under **Home**, reached from a record card on the
-   * dashboard, and T46 is what builds those cards. Until that lands there is no
-   * control on `shell-rethink` to click, and a test that clicked one anyway
-   * would be testing T46's work from T45's branch. `nav.test.ts` is what holds
-   * the promise that Home reaches this screen and lights its cell here.
+   * Arrived at from Home's card (T46), which is the only way in now that
+   * Progress has no cell of its own (D8). Clicking it rather than typing the
+   * URL is the point: the card *is* the navigation, and a card that stopped
+   * linking would leave the screen behind it unreachable on a phone.
    */
-  await page.goto('/progress');
+  await page
+    .getByRole('main')
+    .getByRole('link', { name: /^Progress/ })
+    .first()
+    .click();
+  await page.waitForURL('**/progress');
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Where you’re at');
+
+  // Record leads: by category and by stage, with the printable sheets beside
+  // them. Over time and the tree are a tab away, not a scroll away.
   await expect(page.getByText('By stage', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Over time' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Skill tree' })).toBeVisible();
   await expect(page.getByText('Printable sheets')).toBeVisible();
+  await expect(page.locator('.tree')).toHaveCount(0);
+
+  const tabs = page.getByRole('tablist', { name: 'Progress' });
+  await expect(tabs).toBeVisible();
+
+  await tabs.getByRole('tab', { name: 'Over time' }).click();
+  await expect(page.getByText(/tricks landed in the last six months/i)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Insights' })).toBeVisible();
+
+  await tabs.getByRole('tab', { name: 'Skill tree' }).click();
+  await expect(page.locator('.tree')).toBeVisible();
+  await expect(page.getByText(/Tricks unlock tricks/i)).toBeVisible();
+});
+
+test('the three tabs fit on one line, down to the narrowest phone anyone still uses', async ({
+  page,
+}) => {
+  /*
+   * `.tabrow .sporttab` is `white-space: nowrap` (§3.3), which means a label
+   * that does not fit **overflows its box** rather than wrapping it — so a tab
+   * row that is too tight does not look broken, it looks like a word with its
+   * end cut off, which is exactly the failure the sport chip's own width test
+   * was written for (`shell.spec.ts`, D5).
+   *
+   * "Skill tree" is the longest of the three and this row is the product's
+   * tightest: three equal boxes, each with a 16px icon, on a screen that is
+   * mostly bar. The same net `shell.spec.ts` casts over the bottom bar, cast
+   * over these three.
+   */
+  await newRider(page);
+
+  for (const width of [430, 390, 375, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto('/progress');
+
+    const tabs = page.getByRole('tablist', { name: 'Progress' }).getByRole('tab');
+    const overflow = await tabs.evaluateAll((nodes) =>
+      nodes.map((n) => n.scrollWidth - n.clientWidth),
+    );
+    expect(overflow, `a Progress tab is wider than its box at ${width}px`).toEqual(
+      overflow.map(() => 0),
+    );
+
+    // All three on one line: same height, and the row no taller than one tab.
+    const heights = await tabs.evaluateAll((nodes) =>
+      nodes.map((n) => Math.round(n.getBoundingClientRect().height)),
+    );
+    expect(new Set(heights).size, `the Progress tabs disagree on height at ${width}px`).toBe(1);
+
+    // And the row does not push the document sideways.
+    await expect
+      .poll(() => page.locator('html').evaluate((el) => el.scrollWidth - el.clientWidth), {
+        message: `the document scrolls sideways at ${width}px`,
+      })
+      .toBe(0);
+  }
+});
+
+test('the tab is in the address, so Back out of a trick lands on the tab you left', async ({
+  page,
+}) => {
+  /*
+   * The review's S3, and the one place on this screen it hurts most. The skill
+   * tree is a browse-and-tap surface: a rider opens a node, reads the trick,
+   * presses Back. With the tab in `useState` they landed on **Record**, having
+   * lost their place on every single node they opened — where before the
+   * rethink the tree was part of one long scroll and Back restored it with the
+   * scroll position.
+   */
+  await newRider(page);
+  await page.goto('/progress');
+
+  await page.getByRole('tab', { name: 'Skill tree' }).click();
+  await expect(page).toHaveURL(/[?&]tab=skill-tree\b/);
+
+  // Reload keeps it too, which is the same fact said a second way.
+  await page.reload();
+  await expect(page.getByRole('tab', { name: 'Skill tree' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+
+  await page.locator('.tree button.node').first().click();
+  await page.waitForURL('**/library/**');
+  await page.goBack();
+
+  await page.waitForURL(/\/progress/);
+  await expect(page.getByRole('tab', { name: 'Skill tree' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.locator('.tree')).toBeVisible();
+
+  /*
+   * And the first tab is spelled by **absence**, so the screen has one address
+   * as it opens rather than two that render the same thing. `replace` rather
+   * than `push` is the other half: pressing the three tabs must not put three
+   * entries in the history for Back to walk out through.
+   */
+  await page.getByRole('tab', { name: 'Record' }).click();
+  await expect(page).toHaveURL(/\/progress$/);
+});
+
+test('progress says what it is under, and the link goes there', async ({ page }) => {
+  await newRider(page);
+  await page.goto('/progress');
+
+  /*
+   * §2.3: a screen reached from a Home card carries a Home back link. An
+   * ordinary link to `/home`, never `history.back()` — a rider who arrived from
+   * a shared link or a search result has no history to go back through, and a
+   * control that does nothing on a deep link is worse than no control.
+   */
+  // Scoped to `<main>`: both bars carry a Home link too, and the one being
+  // asserted is the one on the page.
+  const back = page.getByRole('main').getByRole('link', { name: 'Home' }).first();
+  await expect(back).toHaveAttribute('href', '/home');
+  await back.click();
+  await page.waitForURL('**/home');
 });
 
 test('the insights panel offers a rookie rider nothing to switch on', async ({ page }) => {
   await newRider(page);
   await page.goto('/progress');
+  // Insights live on the Over time tab (§3.10): they are what six months of
+  // logging *mean*, so they sit with the six months rather than on a tab of
+  // their own.
+  await page.getByRole('tab', { name: 'Over time' }).click();
 
   // The upsell states what insights are and that they are Legend's…
   await expect(page.getByText(/part of Legend/i)).toBeVisible();
@@ -105,8 +230,8 @@ test('the insights panel offers a rookie rider nothing to switch on', async ({ p
 test('the skill tree shows the paywall rather than hiding the tricks', async ({ page }) => {
   await newRider(page);
   await page.goto('/progress');
+  await page.getByRole('tab', { name: 'Skill tree' }).click();
 
-  await expect(page.getByRole('heading', { name: 'Skill tree' })).toBeVisible();
   await expect(page.getByText(/Tricks unlock tricks/i)).toBeVisible();
 
   const tree = page.locator('.tree');
@@ -119,6 +244,7 @@ test('the skill tree shows the paywall rather than hiding the tricks', async ({ 
 test('a node in the tree opens its trick page', async ({ page }) => {
   await newRider(page);
   await page.goto('/progress');
+  await page.getByRole('tab', { name: 'Skill tree' }).click();
 
   const node = page.locator('.tree button.node').first();
   const name = (await node.locator('.nn').innerText()).trim();
@@ -138,13 +264,21 @@ test('printable sheets are offered to paid riders and named as such to free ones
   await expect(page.getByRole('button', { name: /print my sheets/i })).toHaveCount(0);
 });
 
-test('the sport switch offers every sport Land The Trick ships', async ({ page }) => {
+test('the sport row is gone from this screen, at every number of sports', async ({ page }) => {
   await newRider(page);
   await page.goto('/progress');
 
-  // One rider, one sport chosen at onboarding, so the switch stays hidden —
-  // "tabs only appear when a rider does both sports" (handoff, Interactions).
+  /*
+   * D5, and the whole point of the chip: the sport is chosen **once**, in the
+   * top bar, and every in-page sport tab row goes. This one used to sit
+   * directly above the two panels and was the second row of identically shaped
+   * tabs on the screen (#379 item 5). Nothing here is conditional on how many
+   * sports the rider does any more — the row does not exist at one sport or at
+   * three, which is why this assertion no longer depends on the rider.
+   */
   await expect(page.getByRole('tablist', { name: 'Progress by sport' })).toHaveCount(0);
+  // The only tab row on the screen is the three-section one.
+  await expect(page.getByRole('tablist')).toHaveCount(1);
   expect(SPORT_IDS.length).toBe(3);
 });
 

@@ -71,6 +71,139 @@ test('greets the rider by their first name and dates the day', async ({ page }) 
   ).toBeVisible();
 });
 
+/*
+ * The four record cards (T46, rethink §3.4).
+ *
+ * These are not decoration that happens to be clickable. Folding nine
+ * destinations into four groups (D8) took Progress, Sessions, Stickers and the
+ * Challenge off both bars, so these cards are the **only** way a rider reaches
+ * any of them — the same defect `lib/nav.test.ts` exists to stop, arriving from
+ * the other side: the bar can claim to reach a screen all it likes, and if the
+ * card that does the reaching is missing, the screen is gone on a phone.
+ */
+test('the four record cards are the way to the four screens under Home', async ({ page }) => {
+  await arriveAtHome(page, 'Card Rider');
+
+  const main = page.getByRole('main');
+  for (const [title, href] of [
+    ['Progress', '/progress'],
+    // Sessions is drawn for a rider the preview covers, which the e2e server
+    // opens to everybody (`LANDIT_SESSIONS_OPEN=1` in `playwright.config.ts`).
+    ['Sessions', '/progress/sessions'],
+    ['Stickers', '/stickers'],
+    ['Challenge', '/challenge'],
+  ] as const) {
+    const card = main.getByRole('link', { name: new RegExp(`^${title}`) }).first();
+    await expect(card, `the ${title} card is missing from Home`).toBeVisible();
+    await expect(card).toHaveAttribute('href', href);
+  }
+});
+
+test('a record card lands on its screen, and the screen says it is under Home', async ({
+  page,
+}) => {
+  await arriveAtHome(page, 'Sticker Rider');
+
+  await page
+    .getByRole('main')
+    .getByRole('link', { name: /^Stickers/ })
+    .first()
+    .click();
+  await page.waitForURL('**/stickers');
+
+  // §2.3: the back link is a real link to `/home`, not `history.back()`.
+  const back = page.getByRole('main').getByRole('link', { name: 'Home' }).first();
+  await expect(back).toHaveAttribute('href', '/home');
+});
+
+test('the record cards hold their 2 × 2 without pushing the page sideways', async ({ page }) => {
+  await arriveAtHome(page, 'Narrow Rider');
+
+  /*
+   * The cards are the first thing a thumb reaches, and they carry the longest
+   * strings on the dashboard: a challenge title plus "Ends Saturday", a spot
+   * name plus a date. A grid that grows past its share takes the whole document
+   * with it, which is a page that can be pushed off-centre on every screen the
+   * bottom bar is on — the same net `shell.spec.ts` casts over the bar.
+   */
+  for (const width of [430, 390, 375, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto('/home');
+
+    const cards = page.getByRole('main').getByRole('link', { name: /^(Progress|Stickers)/ });
+    const heights = await cards.evaluateAll((nodes) =>
+      nodes.map((n) => Math.round(n.getBoundingClientRect().height)),
+    );
+    expect(heights.length, `the cards are missing at ${width}px`).toBeGreaterThan(0);
+
+    await expect
+      .poll(() => page.locator('html').evaluate((el) => el.scrollWidth - el.clientWidth), {
+        message: `the dashboard scrolls sideways at ${width}px`,
+      })
+      .toBe(0);
+  }
+});
+
+test('a crew line on Home says who did it, as a sentence', async ({ page }) => {
+  /*
+   * The defect this exists for (review B1): `crewActivityLine` in
+   * `@landit/core` returns a **predicate** — "earned the Crewed Up sticker",
+   * "landed Bunny Hop" — and the screen supplies the subject, as `/crew` does.
+   * Home rendered the line alone, so three headless fragments sat under a
+   * heading saying "Your crew" with a 32px avatar the only clue to whose. No
+   * test read a line, which is exactly how it got through.
+   *
+   * So this reads one: the rider's own name, then a lower-case predicate after
+   * it. The lower case is the second half of the fix — `.cond` uppercased these
+   * sentences where `/crew` draws them in body type, and one feed in two voices
+   * is one feed to learn twice.
+   */
+  await arriveAtHome(page, 'Wren Halloway');
+
+  // A crew of one is still a crew, and its owner's own activity is in its feed.
+  await page.goto('/crew');
+  await page.getByLabel('What is it called?').fill('Ramp Rats');
+  await page.getByRole('button', { name: 'Start it' }).click();
+  await expect(page.getByText('Ramp Rats').first()).toBeVisible();
+
+  // Something to have a line about.
+  await page.goto('/library');
+  await page.locator('.tcard').first().click();
+  await page.waitForURL(/\/library\/.+/);
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Sometimes' }).click();
+    await expect(page.getByRole('button', { name: 'Sometimes' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  }).toPass({ timeout: 20_000 });
+  await expect(page.locator('.toast').first()).toBeVisible();
+
+  await page.goto('/home');
+  const crew = page.getByRole('main').locator('section', { hasText: 'Your crew' });
+  const line = crew.locator('p').first();
+  await expect(line).toBeVisible();
+
+  const text = (await line.innerText()).trim();
+  expect(text, 'the crew line has no subject').toMatch(/^Wren\b/);
+  // The predicate, and it is not shouted.
+  const predicate = text.slice('Wren'.length).trim();
+  expect(predicate.length, 'the crew line is a name and nothing else').toBeGreaterThan(0);
+  expect(predicate, 'the crew line is drawn in caps').not.toBe(predicate.toUpperCase());
+});
+
+test('the sport tab row is gone from the dashboard (D5)', async ({ page }) => {
+  await arriveAtHome(page, 'Chip Rider');
+
+  /*
+   * The sport is chosen once, in the top bar's chip, and every in-page sport
+   * row goes with it. Home's was the first one a rider met, directly under the
+   * greeting — and with one sport it was never drawn at all, so a rider who
+   * added a second sport used to watch a new row appear on five screens.
+   */
+  await expect(page.getByRole('main').getByRole('tablist', { name: 'Sport' })).toHaveCount(0);
+});
+
 test('the four stat blocks are there, and the library bar with them', async ({ page }) => {
   await arriveAtHome(page, 'Stat Rider');
 
@@ -208,9 +341,7 @@ test('"I rode today" asks for nothing but the tap', async ({ page }) => {
   expect(asked.join(' ')).not.toContain('geolocation');
 });
 
-test('the crew and sticker panels say what is true rather than showing demo data', async ({
-  page,
-}) => {
+test('the crew panel says what is true rather than showing demo data', async ({ page }) => {
   await arriveAtHome(page, 'Empty Rider');
 
   // The prototype ships a hard-coded demo crew. A real rider has none, and

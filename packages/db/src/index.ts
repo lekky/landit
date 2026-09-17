@@ -115,6 +115,7 @@ export {
   listCrewInvites,
   listCrewMemberships,
   listCrews,
+  getEventsByIds,
   listEventAttendance,
   listEvents,
   listPlans,

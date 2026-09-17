@@ -25,13 +25,94 @@
   margin: 6px 0 0;
 }
 
+/* ----------------------------------------------------------- the tab row -- */
+
+/*
+ * Record · Over time · Skill tree, on the narrowest phones.
+ *
+ * `.tabrow .sporttab` is `flex: 1` and `white-space: nowrap` (§3.3), so a row
+ * whose labels do not fit does not wrap and does not clip — the boxes grow past
+ * their share and **the whole document scrolls sideways**. Measured at 320px:
+ * 30px over, which is a page a thumb can push off-centre on every screen the
+ * bar is on.
+ *
+ * What gives is the padding and then the tracking, never the words: "Skill
+ * tree" is the only thing telling a rider what the third tab holds, and the
+ * same argument the sport chip's name won on (§3.1). 380px rather than 400: at
+ * 430, 390 and 375 the row fits at full size, measured, and a threshold set
+ * where it is not yet needed is type tightened for nothing.
+ *
+ * Local to this screen rather than added to `.tabrow` in `packages/ui-web`,
+ * which is T45's and which T48's Find row shares — the general fix is
+ * [issue #550](https://github.com/lekky/landit/issues/550).
+ */
+@media (max-width: 380px) {
+  .tabs :global(.sporttab) {
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+}
+
+/* --------------------------------------------------------- the tab panel -- */
+
+/*
+ * What sits under the `TabRow` (rethink §3.10).
+ *
+ * The screen's own `gap: 30px` used to separate five stacked sections; three of
+ * them are now behind tabs, so the gap moves in here and the panel stacks
+ * whatever that tab holds. One rule rather than a wrapper per tab, because
+ * every tab wants the same thing: its blocks 22px apart.
+ */
+.panelStack {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
 /* ------------------------------------------------ by category / by stage -- */
 
-.topGrid {
+/*
+ * The Record tab: the two panels, with the printable sheets on the rail.
+ *
+ * "(+ printable sheets on desktop's rail)" is §3.10's phrasing, and the rail is
+ * 340px — the same width the dashboard's is, so the two screens agree about
+ * what a rail is. Below 1100px it stacks under the panels rather than
+ * disappearing: the sheets are what a paid rider is paying for, and a feature
+ * that only exists above a width is a feature half the riders never meet.
+ *
+ * `recordLayout` / `recordPanels`, not `recordGrid`: `.recordGrid` is already
+ * taken further down this file by the insights panel's record cards, and a CSS
+ * module hashes a name once per file — so the second declaration simply won and
+ * the rail came out half the screen wide. Caught on the T46 screenshots, which
+ * is what they are for.
+ */
+.recordLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  gap: 18px;
+  align-items: start;
+}
+
+.recordPanels {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 18px;
+  align-items: start;
 }
+
+@media (max-width: 1100px) {
+  .recordLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*
+ * `.topGrid` stood here and is gone with the long scroll: the two panels it
+ * held are `.recordPanels`'s now, which is the same two columns inside a tab
+ * rather than at the top of a page.
+ */
 
 .pad {
   padding: 20px;
@@ -449,7 +530,7 @@
 }
 
 @media (max-width: 800px) {
-  .topGrid,
+  .recordPanels,
   .timeGrid,
   .insightsGrid {
     grid-template-columns: 1fr;

@@ -654,6 +654,39 @@ export async function listEvents(client: Client, sport?: SportId): Promise<Event
   });
 }
 
+/** A PocketBase record id: fifteen lowercase alphanumerics. */
+const EVENT_ID = /^[a-z0-9]{15}$/;
+
+/**
+ * The live events with these ids, soonest first (T46, additive).
+ *
+ * The same shape as `getSpotsByIds` in `spots.ts`, and it exists for the same
+ * reason: a caller that already knows *which* records it wants should not read
+ * the whole collection to find them. Home's "Next up" knows exactly that — the
+ * rider's own `event_attendance` names them — and reading all 74 live events to
+ * draw one row made every rider, including every first-day account with no
+ * attendance at all, pay for the whole calendar.
+ *
+ * `is_live` is in the filter as well as in the collection's list rule, so a
+ * staff-hidden event does not come back even by id. Ids that are not shaped
+ * like ids are dropped rather than interpolated; nothing a rider typed reaches
+ * a filter from here.
+ */
+export async function getEventsByIds(
+  client: Client,
+  ids: readonly string[],
+): Promise<EventsRecord[]> {
+  const wanted = [...new Set(ids.filter((id) => EVENT_ID.test(id)))];
+  if (!wanted.length) return [];
+  const params = Object.fromEntries(wanted.map((id, i) => [`id${i}`, id]));
+  const byId = wanted.map((_, i) => `id = {:id${i}}`).join(' || ');
+  return records(client, 'events').list({
+    filter: `is_live = true && (${byId})`,
+    params,
+    sort: 'date',
+  });
+}
+
 /* --------------------------------------------------------- announcements -- */
 
 /**
