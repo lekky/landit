@@ -1520,15 +1520,30 @@ die-cut sticker illustrations — PNGs in `packages/ui-web/assets/sports/`, rend
 `Equipment` in `sport-art.tsx`, copied to `public/sports/` by `sync-sports.mjs` on the same terms as
 the avatars and the award badges. Everything else in `ICONS` is untouched and stays on the 24px
 grid; the three stroked paths stay exported for anywhere the art cannot go, such as a favicon or a
-one-colour print. Three things follow that a later session should not "fix" back to a screenshot:
+one-colour print.
+
+**Repainted 2026-09-16 (Rachid, in chat), and the pipeline that made it a one-command swap.** The
+masters arrive at 1254px and 1.5–2 MB each, which is far too heavy to commit to a package every app
+installs, so they stay in the owner's art folder and only the exports ship:
+`packages/ui-web/scripts/export-sport-art.mjs --from <dir>` trims each master's transparent margin
+and writes two palettised PNGs per sport — `<name>.png` at 256px (the `src`) and `<name>@2x.png` at
+512px, which `Equipment` offers together through `srcset` density descriptors. 24–36 KB and
+70–106 KB respectively. New masters in, one command, commit; no code change. Keep it that way — the
+splashes are expected to be repainted again.
+
+Three things follow that a later session should not "fix" back to a screenshot:
 
 - **The art does not take the sport's colour.** A stroked glyph inherited `currentColor`, so a
-  scooter chip drew an orange scooter. The paint is fixed — and, worth knowing, it does not match
-  the palette either: the scooter art is pink, which is BMX's `--pink` in this product, and the
-  board art is teal, which is not a token at all. The chip's keyline and label still carry the
-  sport colour, so the colour-coding survives; the object inside it does not participate.
-  **Open for the owner** if that reads wrong on the wall: repainting is an art decision, not a
-  code one.
+  scooter chip drew an orange scooter. The paint is fixed: since the 2026-09-16 repaint each piece
+  of kit is inked black over a splash of its own — the scooter on cyan, the skateboard on pink, the
+  BMX on orange. **The mismatch this used to warn about was closed from the other end on
+  2026-09-17**: rather than repainting the art to the palette, the sport colours were resampled
+  from the art (§7, T21 — the paragraph that supersedes the 2026-08-16 BMX decision). The chip's
+  keyline is now the same cyan as the splash inside it. The art still does not take the colour —
+  it is a picture, not a glyph, and it never inherits `currentColor` — but the two now agree, so
+  the colour-coding reads as one thing. Repainting the art again is an art decision, not a code
+  one; it means re-running the export **and** re-sampling the three colours, and both are recorded
+  where they happen.
 - **The glyph boxes grew.** `SportChip` gives the art 16/19px where the stroke had 12/13, and the
   onboarding swatch 28px where it had 22. Below roughly 14px a painted wheel closes up and a
   skateboard is a dash. The chip is centred on its tallest child, so the badge grows and nothing
@@ -1536,13 +1551,18 @@ one-colour print. Three things follow that a later session should not "fix" back
   chip 20.6px to 26.4px**. The small one is the layout-sensitive one — it is what a trick card
   carries — and at a 375px viewport no card overflows, no chip is clipped by its parent and the
   document does not scroll sideways.
-- **Six places render it, and a grep for `sport.icon` finds only one of them.** The full set is
-  `SportChip` and `Tabs` (both in `packages/ui-web/src/components/nav.tsx`, the second covering the
-  global sport switch, the sticker wall's tabs and `/design/shell`), the onboarding sport picker,
-  the account screen's sport picker, the trick page's "what you need" kit badge, and the icon grid
-  on `/design`. Four of those reach the icon name as `SPORT_LOOKS[id].icon` rather than
-  `sport.icon`, which is how the first pass of this work shipped half-converted and had to be
-  finished in a second PR. Grep for `.icon` and read the hits, not for a spelling of it.
+- **Ten places render it, and a grep for `sport.icon` finds only one of them.** The full set,
+  re-audited 2026-09-16: `SportChip` and `Tabs` (both in `packages/ui-web/src/components/nav.tsx` —
+  the second covering the global sport switch, the glossary's filter, the sticker wall's tabs and
+  `/design/shell`; the first covering trick cards, the events list and page, and the sticker detail
+  modal), the onboarding sport picker, the account screen's sport picker, the trick page's "what you
+  need" kit badge, the icon grid on `/design`, the session detail's stat row, the session form's
+  sport picker, the sessions feed card and the sessions table. Most reach the icon name as
+  `SPORT_LOOKS[id].icon` or `SPORTS[id].icon` rather than `sport.icon`, which is how the first pass
+  of this work shipped half-converted and had to be finished in a second PR. Grep for `.icon` and
+  read the hits, not for a spelling of it. **Nothing outside that set draws a scooter**: the award
+  badges all carry `ico: 'star'`, the nav and drawer icons are sections rather than sports, and the
+  share card names the sport in text.
 - **The supplied art carried a spray-paint splat behind each object, and it was cut off.** Keeping
   it would have put a coloured blur behind a 16px chip and fought the keyline. The cut is
   reproducible rather than hand-traced: the splat and the equipment share a hue by design, so it
@@ -3529,13 +3549,56 @@ the toast after an edit rather than leaving it to be discovered from a support t
    readers. A test asserts the label is *not* "Flatland" so the round trip cannot happen by
    accident.
 
-**The BMX sport colour is settled: `--pink` (`#FF3D78`), confirmed by the owner on 2026-08-16.**
-The palette does not gain a colour. §1's warning that "every token already has a job" stands, and
-BMX shares rather than takes — `--pink` is also the link-hover colour, the default avatar
-background, and the hue on the `send` level and two stickers. That is the established pattern, not
-a compromise: `--orange` is scooter *and* Street, `--blue` is skate *and* Park. The one difference
-in kind is **link hover**, a global interaction colour rather than a category; if BMX pink ever has
-to read as BMX alone, that rule is what moves, not the sport record.
+**~~The BMX sport colour is settled: `--pink` (`#FF3D78`), confirmed by the owner on
+2026-08-16.~~ Superseded 2026-09-17 — see below.** The 2026-08-16 decision reasoned that the
+palette should not gain a colour: §1's warning that "every token already has a job" stood, and BMX
+shared rather than took, the way `--orange` was scooter *and* Street and `--blue` was skate *and*
+Park. It is recorded here because it held for a month and the reasoning is still sound about
+*tokens* — but it no longer describes sport colour.
+
+**All three sport colours are now the art's, not the palette's (Rachid, 2026-09-17, in chat:
+"the colours defined for each type should match the main colour in the image now").** The painted
+equipment that landed on 2026-09-16 is painted to none of the borrowed tokens, so a cyan scooter sat
+inside an orange keyline and the chip read as two unrelated things. Each sport now takes the main
+splash colour out of its own illustration:
+
+| Sport | Was | Is | Ink on it |
+| --- | --- | --- | --- |
+| Scooter | `--orange` `#FF5A1F` | `#00E0ED` | 11.66:1 |
+| Skateboard | `--blue` `#246BFF` | `#FF007B` | 5.01:1 |
+| BMX | `--pink` `#FF3D78` | `#FF7700` | 7.14:1 |
+
+Four things follow.
+
+- **The palette did not change and did not gain a token.** `--orange`, `--blue`, `--pink` and
+  `--sky` are byte-identical in `tokens.css` and keep every job they had: Street is `--orange`,
+  Park is `--blue`, link hover is `--pink`, and the sticker, challenge, feel, level, plan and
+  clip-platform hues are all untouched. What ended is the *sharing*.
+- **One place, and it is `packages/core/src/data/sports.ts`.** Nothing else may carry a sport hex.
+  The design gallery's `sample.ts` used to keep its own copy and now reads the catalogue, because
+  the gallery is the page a designer opens *to check a colour*. `contrast.test.ts` asserts every
+  sport fill carries ink at AA and that none of them equals a palette token, so a copy-paste back
+  onto a shared value fails rather than ships.
+- **Ink everywhere, and one accessibility failure closed.** `foregroundFor` picks `--on-light` for
+  all three. Skate's old `--blue` cleared AA against neither foreground (4.18 on ink, 4.46 on
+  paper) and was the palette's longest-standing failure on a sport chip; `#FF007B` clears it at
+  5.01:1. `--blue` itself still misses, as Park's colour — a separate decision, still the owner's.
+- **Two near-misses that look like mistakes and are not.** BMX orange `#FF7700` is not `--orange`
+  `#FF5A1F`, and skate pink `#FF007B` is not `--pink` `#FF3D78`. A sport chip and a category tag
+  are never the same control; nobody should "correct" one to the other.
+- **The trade the decision makes, measured, so nobody rediscovers it as a bug.** Text on the fill
+  got better everywhere; the chip's *keyline on paper* got lighter, because two of the three new
+  colours are brighter than the tokens they replaced. Against `--paper`, scooter goes 3.06:1 to
+  **1.60:1** and BMX 3.33:1 to **2.61:1** (skate 4.46:1 to 3.72:1), so two now sit under the 3:1
+  that WCAG 1.4.11 asks of a non-text UI element. It is not a failure as the chip is built —
+  `.sportchip` names the sport in ink *and* draws its equipment, so the keyline is reinforcement
+  rather than the only carrier — but it is the thing to look at first if a chip ever reads as
+  washed out. Closing it means darkening the owner's colour, which is the owner's call — issue
+  #544 holds the numbers and the three options.
+
+Repainted art means re-sampling as well as re-exporting. The values are the median of the strongly
+saturated pixels in each master (`s >= 0.6`, `0.25 < l < 0.8`, which excludes the ink, the die-cut
+keyline and the transparent ground), rounded to a clean hex; `sports.ts` records the pixel counts.
 
 **Still outstanding, and it needs the owner:**
 

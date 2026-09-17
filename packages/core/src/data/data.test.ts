@@ -313,13 +313,33 @@ describe('the cross-sport map', () => {
 });
 
 describe('sports, categories and stages', () => {
-  it('names the three launch sports with their design colours', () => {
+  /**
+   * The literals belong here and only here. This is the assertion *about* the
+   * catalogue, so reading the values back out of it would assert nothing —
+   * every other test and screen takes them from `SPORTS[id].color`.
+   */
+  it('names the three launch sports with the colours sampled from their art', () => {
     expect(SPORT_IDS).toEqual(['scooter', 'skate', 'bmx']);
-    expect(SPORTS.scooter.color).toBe('#FF5A1F');
-    expect(SPORTS.skate.color).toBe('#246BFF');
-    // `--pink`, confirmed by the owner on 2026-08-16 (plan §7, T21).
-    expect(SPORTS.bmx.color).toBe('#FF3D78');
+    // Rachid, 2026-09-17, in chat: a sport's colour is the main colour of its
+    // painted equipment. These replaced `--orange`, `--blue` and `--pink`.
+    expect(SPORTS.scooter.color).toBe('#00E0ED');
+    expect(SPORTS.skate.color).toBe('#FF007B');
+    expect(SPORTS.bmx.color).toBe('#FF7700');
   });
+
+  /**
+   * The point of the repaint: a sport colour is its own value now. If one of
+   * these ever equals a palette token again it is a copy-paste, not a decision
+   * — the 2026-08-16 sharing arrangement was superseded.
+   */
+  it('keeps the sport colours off the shared palette tokens', () => {
+    const shared = ['#FF5A1F', '#246BFF', '#FF3D78', '#3AC0FF'];
+    for (const id of SPORT_IDS) expect(shared).not.toContain(SPORTS[id].color);
+  });
+
+  // The contrast of ink on each sport fill is asserted in
+  // `packages/ui-web/src/contrast.test.ts`, where `contrastRatio` lives. It
+  // cannot be checked here: `packages/core` does not depend on `ui-web`.
 
   it('shows BMX riders "Flatground", where the other two sports say "Flat"', () => {
     // The id is shared and stays shared — only the word on the chip moves.

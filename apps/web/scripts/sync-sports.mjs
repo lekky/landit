@@ -7,6 +7,13 @@
  * copied there at dev and build time rather than committed twice.
  * `public/sports/` is git-ignored.
  *
+ * Two files per sport since 2026-09-16: `<name>.png` at 256px and
+ * `<name>@2x.png` at 512px, which `Equipment` offers together through `srcset`.
+ * Both are plain `.png` in the same directory, so the copy below already takes
+ * them — but a `srcset` candidate that 404s shows a broken image rather than
+ * falling back, so anything that narrows this filter has to leave the `@2x`
+ * alone. `packages/ui-web/scripts/export-sport-art.mjs` is what writes them.
+ *
  * This runs from the `dev` and `build` scripts. If a sport chip shows a broken
  * picture instead of a scooter, this is the first thing to check.
  */

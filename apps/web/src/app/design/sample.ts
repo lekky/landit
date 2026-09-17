@@ -1,3 +1,4 @@
+import { SPORTS as CORE_SPORTS, SPORT_IDS } from '@landit/core';
 import type { CategoryLook, IconName, SportLook, StageLook } from '@landit/ui-web';
 
 /**
@@ -17,10 +18,23 @@ export const CATEGORIES = {
   air: { label: 'Air', color: '#E0392B' },
 } as const satisfies Record<string, CategoryLook>;
 
-export const SPORTS = {
-  scooter: { label: 'Scooter', color: '#FF5A1F', icon: 'scoot' },
-  skate: { label: 'Skate', color: '#246BFF', icon: 'board' },
-} as const satisfies Record<string, SportLook>;
+/**
+ * The sports, from the catalogue rather than copied.
+ *
+ * The exception to this file's rule, and deliberate since 2026-09-17: a sport's
+ * colour is now sampled from its own painted art (`packages/core/src/data/sports.ts`)
+ * and is expected to move again when the art is repainted. A literal here would
+ * mean the gallery — the page a designer opens *to check a colour* — quietly
+ * showing last month's. Everything else below stays copied, because a stage or a
+ * category colour is a fixed design token and the gallery is not a live view of
+ * game data.
+ */
+export const SPORTS = Object.fromEntries(
+  SPORT_IDS.map((id) => [
+    id,
+    { label: CORE_SPORTS[id].short, color: CORE_SPORTS[id].color, icon: CORE_SPORTS[id].icon },
+  ]),
+) as Record<(typeof SPORT_IDS)[number], SportLook>;
 
 /** Five stages, in order. A trick counts as landed at `some` or above. */
 export const STAGES = [
@@ -41,14 +55,14 @@ export const COLOUR_TOKENS = [
   { name: '--paper', hex: '#FFFDF5', use: 'Card surface' },
   { name: '--paper-2', hex: '#FFF7E4', use: 'Secondary surface, table headers' },
   { name: '--wash', hex: '#F2ECDC', use: 'Page background (with dot pattern)' },
-  { name: '--pink', hex: '#FF3D78', use: 'Accent, link hover, BMX' },
-  { name: '--orange', hex: '#FF5A1F', use: 'Primary button, scooter, Street' },
+  { name: '--pink', hex: '#FF3D78', use: 'Accent, link hover' },
+  { name: '--orange', hex: '#FF5A1F', use: 'Primary button, Street' },
   { name: '--yellow', hex: '#FFC23F', use: 'Brand accent, streak, highlight rows' },
   { name: '--lime', hex: '#9CE05B', use: 'Progress fill, landed state' },
   { name: '--green', hex: '#10A06A', use: 'Success, "Every time", Flat' },
   { name: '--mint', hex: '#2EC4B6', use: '"Most times" stage' },
   { name: '--sky', hex: '#3AC0FF', use: '"Sometimes" stage, info toasts' },
-  { name: '--blue', hex: '#246BFF', use: 'Skate, Park' },
+  { name: '--blue', hex: '#246BFF', use: 'Park' },
   { name: '--violet', hex: '#8A3BE0', use: 'Paywall, staff/admin, Hybrid' },
   { name: '--red', hex: '#E0392B', use: 'Destructive actions, errors, Air' },
 ] as const;
