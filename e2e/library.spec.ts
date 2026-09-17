@@ -789,9 +789,7 @@ test('a rider who stopped tracking can clear the history, and it takes the badge
 
 const PHONE = { width: 390, height: 844 };
 
-test('the sticker and the video share the row, and the sticker takes it alone without one', async ({
-  page,
-}) => {
+test('the desktop shares the row; the phone stacks it, video first', async ({ page }) => {
   // With no video: one card, spanning both columns of the row.
   await page.goto(`/library/${freeTrick.id}`);
   const sticker = page.locator('#sticker');
@@ -827,6 +825,27 @@ test('the sticker and the video share the row, and the sticker takes it alone wi
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto('/library/bmx-wheelie');
   expect((await page.locator('#ladder').boundingBox())!.y).toBeLessThan(720);
+
+  /*
+   * **The phone stacks them, video first** (D7a, Rachid, 2026-09-17). Sharing
+   * the row on a phone cost the tutorial three quarters of its area; full width
+   * gives it back the size it has on `main`. The sticker card follows, under it.
+   */
+  await page.setViewportSize(PHONE);
+  await page.goto('/library/bmx-wheelie');
+  const pWatch = (await page.locator('#watch').boundingBox())!;
+  const pSticker = (await page.locator('#sticker').boundingBox())!;
+  expect(pWatch.y + pWatch.height).toBeLessThanOrEqual(pSticker.y + 1);
+  expect(Math.abs(pWatch.x - pSticker.x)).toBeLessThan(2);
+  expect(Math.abs(pWatch.width - pSticker.width)).toBeLessThan(2);
+  // Full width of the row, not half of it, and comfortably bigger than the
+  // 132px the two-column cut gave it.
+  expect(pWatch.width).toBeGreaterThan(300);
+  // Still above the band, and the band still on the first screenful at 844.
+  expect(pSticker.y + pSticker.height).toBeLessThanOrEqual(
+    (await page.locator('#ladder').boundingBox())!.y + 1,
+  );
+  expect((await page.locator('#ladder').boundingBox())!.y).toBeLessThan(844);
 });
 
 test('a section on a phone is a details that opens, and a plain panel on a desktop', async ({

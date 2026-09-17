@@ -30,6 +30,7 @@ All by Rachid, in chat, on the dates given.
 | D5 | **The sport is chosen once**, in a top-bar chip that carries the sport's icon *and name*. The top bar's bottom rule takes the sport colour. Every in-page sport tab row goes. Lists that used to carry their own sport row follow the chip through one dropdown (O1 below). | 2026-09-15 |
 | D6 | Every tab row is a row of separate boxes with the 3px keyline and the hard offset shadow; the active tab lifts to a 4px offset in yellow (the `.sporttab` treatment). Pills keep their keyline-only look because they filter rather than navigate. | 2026-09-15 |
 | D7 | **Trick page: layout A** — the sticker and the video share one row directly under the name, then the stage ladder, then the sections. With no video the sticker card takes the row alone. | 2026-09-16 |
+| D7a | **On a phone the two cards stack, video first; the row is desktop's.** Sharing one row on a phone cost the tutorial three quarters of its area, and the video is what a rider came to see. With no video the sticker card is simply the one card. | 2026-09-17 |
 | D8 | **Desktop follows the same four groups in its top nav** (Home · Tricks · Find · Crew) with the sport chip, Log and the bell beside them. Progress, Sessions, Stickers and Challenge are reached from the Home cards; Plans and the rest from the avatar menu. Every desktop page gets the pass, not only the five with a new shape. | 2026-09-16 |
 | D9 | The streak chip leaves the top bar at every width. It never showed below 520px; the streak is on Home and in What's new. | 2026-09-16 |
 
@@ -821,24 +822,33 @@ an `@media print` block that opens the grid row and restores `content-visibility
 parent printing a trick is exactly who the trick page is for, and the product already treats
 printing as real (Progress's printable sheets).
 
-**Whether a phone should stack the sticker and the video is the owner's** *(added by the T49 worker,
-2026-09-17, pending owner confirmation; raised by the independent review of 2026-09-17, B2)*. D7 says
-the two share one row and §3.8 repeats it, and neither says a phone keeps **two columns** of it. The
-first cut did, equally, and the tutorial came out at **132 × 83** against the **328 × 205** the same
-video has on `main` at 390 — 16% of the area, on the screen the rethink is for, and not "a 16:9
-thumbnail with a play square" in any useful sense.
+**The phone stacks the two cards, video first** *(D7a, Rachid, 2026-09-17, in chat, answering the
+question the independent review raised as B2)*. D7 says the sticker and the video share one row and
+§3.8 repeats it, and neither said what a *phone* does with that row. Two attempts said "two columns",
+and both cost the tutorial more than the arrangement was worth. Measured at 390 on the same trick:
 
-What is built: the row stays at both widths, because D7 is the owner's newer decision, and the phone
-gives the video the **larger share** — a 0.8 / 1.2 split, which makes the frame **164 × 102**, with
-the badge down to 96px so the sticker card is comfortable in what is left. The poster also drops its
-caption and shrinks its play square under a 260px frame (`video.module.css`), which is what stops
-"Open on YouTube" landing on the square.
+| | video frame at 390 | share of `main` |
+| --- | --- | --- |
+| `main` (panel at the top of the reading column) | **328 × 205** | — |
+| first cut, two equal columns | **132 × 83** | 16% |
+| second cut, 0.8 / 1.2 in the video's favour | **164 × 102** | 25% |
+| **stacked, full width** | **302 × 189** | **85%** |
 
-What is not settled: 164 × 102 is half of main's area, and the reading of D7 that satisfies both is
-**one row on desktop, the two cards stacked full width on a phone**. That is a change of a single
-`grid-template-columns` and it is the owner's call, not a worker's. The 2026-09-12 instruction it
-bears on — "the owner asked for prominence where there is a video" — is back in a comment beside the
-card, where the first cut had deleted it with the code it described.
+So below 820px the cards stack, with the **video first** — which is what the 2026-09-12 instruction
+("the owner asked for prominence where there is a video") asked for, and what a rider opened the
+page to see — and the sticker card under it drawn **compact**, its badge beside its two lines rather
+than over them — 122px tall against the 257 the stacked card was, which is what keeps the yellow
+band on the first screenful: measured at 390 its top is **760** against an 844 viewport (**419**
+without a video), and nothing overflows sideways at 320, 360 or 390. With no video the
+sticker card is simply the one card, as D7 already says. **Above 820px nothing changes**: the row is
+exactly as D7 drew it, with the player capped at a 360px track (see the measurements above).
+
+The `@container (max-width: 260px)` rule in `video.module.css` stays, and still bites in three
+measured places: the trick page's own card at **320px**, where a full-width frame is 232; the rider
+profile's video wall (`auto-fill minmax(220px, 1fr)`, 215px frames); and the two-column link grid
+just above 520px, at about 240. It is a rule about a size rather than about a layout, which is why it
+survived the layout that first met it. The four overrides that propped up a 158px card's foot are
+gone with the 158px card.
 
 **"Your history / notes / clips" is one row; the rider's sessions are not in it** *(added by the T49
 worker, 2026-09-17, pending owner confirmation; corrected after the independent review, B3)*. The

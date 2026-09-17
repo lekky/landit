@@ -1197,35 +1197,43 @@ a.jumpBtn:hover {
   }
 
   /*
-   * The row keeps its two columns on a phone — that is what D7's "one row" is
-   * — with the badge over its words rather than beside them, and the page's
-   * own 14px gutters.
-   */
-  /*
-   * **On a phone the video takes the larger share of the row** (independent
-   * review, B2). Equal columns gave a 390px screen two 158px cards and a
-   * 132 × 83 frame — 16% of the area the same player had on `main`, on the one
-   * screen this rethink is for, and not "a 16:9 thumbnail with a play square"
-   * in any useful sense. 0.8 / 1.2 makes it about 166 × 104, and the badge
-   * comes down to 96px so the sticker card is comfortable in what is left
-   * rather than filled edge to edge.
+   * **On a phone the two cards stack, video first** (Rachid, 2026-09-17, in
+   * chat, answering the question the independent review raised as B2; §1's D7
+   * line carries the decision). The row is the desktop's.
    *
-   * D7 says the two share one row and that is the owner's newer decision, so
-   * the row is not stacked here. Whether a phone should stack them is recorded
-   * in §3.8 with both measurements, for the owner.
+   * Sharing one row cost the tutorial more than the arrangement was worth. Two
+   * equal columns gave a 390px screen a **132 × 83** frame against the
+   * **328 × 205** the same video has on `main`; giving the video the larger
+   * share got it to 164 × 102, still a quarter of the area. Full width measures
+   * **302 × 189** — 85% of main's area against 16% — and is what the 2026-09-12
+   * "prominence where there is a video" instruction asked for.
+   *
+   * The video is **first** for the same reason, and the sticker card under it
+   * is drawn **compact**: the badge beside its two lines rather than over them,
+   * which is the desktop arrangement and measures 122px tall against the 257 the
+   * stacked one did. That is what keeps the yellow band on the first screenful
+   * — measured at 390, its top is 760 against an 844 viewport, where the tall
+   * card would have put it past the bottom edge.
    */
   .panel {
     --badge-w: 96px;
   }
 
   .stickerVideo {
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    grid-template-columns: minmax(0, 1fr);
     padding: 14px;
     gap: 12px;
   }
 
+  /*
+   * `order`, not a DOM move: the sticker is first in the markup because that is
+   * the desktop order and because it is the one card that is always there, and
+   * `.cardWide`'s `grid-column: 1 / -1` is a no-op in a single-column grid, so
+   * the "alone" states need nothing of their own here.
+   */
   .videoCard {
     max-width: none;
+    order: -1;
   }
 
   .stickerCard,
@@ -1233,45 +1241,20 @@ a.jumpBtn:hover {
     padding: 11px;
   }
 
-  .stickerCard {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
   .stickerCond {
     font-size: 15px;
   }
 
   /*
-   * The video's title, channel and "Something wrong?" stack in the card rather
-   * than sharing a row with it.
+   * The video's foot keeps its own row again.
    *
-   * Measured at 390: the row is two 169px cards, "Something wrong?" is
-   * `white-space: nowrap` and about 110px of it, and `min-width: 0` on the
-   * title box meant the title shrank to fit what was left instead of the row
-   * wrapping — one word per line, eleven lines deep. The link is not dropped on
-   * a phone: it is the way to report somebody else's video on a page built for
-   * children, and a phone is where most of them are.
+   * It was stacked here while the card was 158px wide and the title shrank to
+   * one word per line beside a `nowrap` "Something wrong?". A full-width card is
+   * the width `WatchPanel` was drawn for, so the four overrides that propped it
+   * up are gone rather than left to describe a layout that no longer exists;
+   * `.watchFoot` wraps the link onto its own line by itself on the narrowest
+   * screens.
    */
-  .videoCard .watchFoot {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 5px;
-  }
-
-  .videoCard .watchTitleBox {
-    flex: none;
-    width: 100%;
-  }
-
-  .videoCard .watchTitle {
-    font-size: 13px;
-  }
-
-  .videoCard .watchReport {
-    white-space: normal;
-  }
 
   .band {
     padding: 14px;
