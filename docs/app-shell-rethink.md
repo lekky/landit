@@ -975,9 +975,15 @@ independent review of 2026-09-17 and are recorded here with the rest:
   is replaced, so a rider on a screen reader who pressed Next heard nothing and had to walk
   backwards through the document to find out whether anything had happened; the panel takes
   `tabIndex={-1}` and is focused on a change but not on first render. It is `aria-labelledby` the
-  tab rather than `aria-label`led with the tab's words, because repeating them gave the Notes panel
-  and the Notes textarea inside it the same accessible name. `TabItem` and `TabRowItem` gain an
-  optional `elementId` for that, additively: a row that passes none renders exactly what it did.
+  tab rather than `aria-label`led with the tab's words, because **that is ARIA's tabs pattern**: a
+  `tabpanel` is named by the tab that controls it, and a name that references its source cannot
+  drift from it the way a copied string can. `TabItem` and `TabRowItem` gain an optional
+  `elementId` for that — it is what makes the reference possible, since a panel cannot point at an
+  element with no id — and it is additive: a row that passes none renders exactly what it did.
+  **It does not remove the duplicate name**, and was never going to: the third step is called Notes
+  and so is the textarea inside it, so two elements answer to "Notes" before and after. A query has
+  to pick by role, which is what `e2e/session-form.spec.ts` does. Renaming the step or the field to
+  separate them would be a copy change to §3.10's own words, so it is not made here.
   *(Arrow-key navigation inside `Tabs` does nothing, on all nine `TabRow` users. That is shared and
   pre-existing — [issue #565](https://github.com/lekky/landit/issues/565).)*
 

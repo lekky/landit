@@ -81,9 +81,9 @@ import type { FormSpot, FormTrick, SessionFormData } from './types';
  * The three steps, in order (§3.10). `id` is also `tabs_switched`'s `tab`.
  *
  * `elementId` is what the panel is `aria-labelledby` (review S3): ARIA names a
- * `tabpanel` after the tab that controls it, and repeating the words in an
- * `aria-label` instead gave the Notes panel and the Notes textarea the same
- * accessible name.
+ * `tabpanel` after the tab that controls it, and a panel cannot point at an
+ * element with no id. It buys the reference, not a unique name — the Notes step
+ * and the notes textarea inside it are both honestly called Notes.
  */
 export const SESSION_STEPS = [
   { id: 'when', label: 'When & where', elementId: 'session-step-when' },
@@ -1146,9 +1146,11 @@ export function FullForm(props: {
 
         **Named by its tab, and focused when the step changes** (review S3).
         `aria-labelledby` rather than `aria-label`: ARIA's tabs pattern names a
-        panel after the tab that controls it, and repeating the words meant
-        "Notes" resolved to two elements — this panel and the notes textarea
-        inside it. And a panel the whole of which was just replaced is where a
+        panel after the tab that controls it, and a name that references its
+        source cannot drift from it the way a copy can. It does not make the
+        name unique — "Notes" still resolves to this panel *and* the textarea
+        inside it, both honestly called that, so a query picks by role. And a
+        panel the whole of which was just replaced is where a
         rider who pressed Next now is: without moving focus, a screen reader
         says nothing at all and the rider has to walk backwards through the
         document to find out whether anything happened. `tabIndex={-1}` makes it

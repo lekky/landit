@@ -78,9 +78,10 @@ export type TabRowItem = {
    * DOM `id` for this tab, so the panel it controls can be `aria-labelledby`
    * it rather than repeating its words in an `aria-label` (T50 review S3).
    *
-   * Worth setting on a row whose panel holds a control with the same name as a
-   * tab: the session form's Notes panel and its Notes textarea both answered to
-   * "Notes" until the panel pointed here instead.
+   * ARIA's tabs pattern names a panel after the tab that controls it; this is
+   * what a panel points at. It is the reference rather than the *uniqueness*
+   * that it buys — a tab and a control inside its panel may honestly share a
+   * name, as Notes and the notes textarea do on the session form.
    */
   elementId?: string;
   /** Present on a row that navigates. All items in a row agree. */
