@@ -3,6 +3,7 @@
 import { CREW_NAME_MAX_LENGTH, crewCapMessage } from '@landit/core';
 import { Avatar, Button, Empty, Icon, Modal, Panel, SportChip, Tag } from '@landit/ui-web';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useActionState, useState, useTransition } from 'react';
 
 import { FEED_META, FEED_WHO, FeedLine, FeedList } from '@/components/feed/FeedLine';
@@ -43,6 +44,7 @@ const CREW_TABS = ['board', 'activity', 'members'] as const;
 type CrewTab = (typeof CREW_TABS)[number];
 
 export function CrewScreen({ view }: { view: CrewView }) {
+  const router = useRouter();
   const [inviting, setInviting] = useState(false);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -154,23 +156,50 @@ export function CrewScreen({ view }: { view: CrewView }) {
         </div>
       </div>
 
+      {/*
+        A `<select>`, not a row of pills (owner, 2026-09-17) — the same call
+        `/events` made about country, for the same reason: "a pill per country
+        is a hundred pills once the calendar is worldwide". A Legend runs ten
+        crews, and ten pills is three or four wrapped rows on a phone before a
+        rider reaches the board. One control, one line, at every width: a
+        switcher that existed only under a breakpoint would give the screen two
+        shapes to learn, which is the argument §3.10 already makes about the
+        tabs below it.
+
+        It borrows the country control's clothes down to the iOS menulist
+        patch, so the two selects a rider meets read as one control.
+      */}
       {view.crews.length > 1 ? (
-        <div className={styles.switcher}>
+        <label className={styles.switcher}>
           <span className="lab">Your crews</span>
-          {view.crews.map((c) => (
-            // A link wearing the pill's clothes, not a button inside an anchor:
-            // the design system styles `.pill` by class, and the module class
-            // outranks the token sheet's `a:hover` (LESSONS §3a).
-            <Link
-              key={c.id}
-              href={`${ROUTES.crew}?crew=${c.id}`}
-              className={`pill ${c.id === crew?.id ? 'on' : ''} ${styles.switcherLink}`}
-              aria-current={c.id === crew?.id ? 'page' : undefined}
-            >
-              {c.name}
-            </Link>
-          ))}
-        </div>
+          <select
+            className="cond"
+            value={crew?.id ?? ''}
+            onChange={(picked) => {
+              const id = picked.target.value;
+              const at = view.crews.findIndex((c) => c.id === id);
+              /*
+                Positional, never the crew's name or id — both are rider facts,
+                and an id in a third-party store is a membership graph. This is
+                the `crew-1`, `crew-2` shape `analytics.ts` already reserves for
+                What's new's crew tabs, on the same reasoning.
+
+                A `<select>` only fires `onChange` on an actual change, so the
+                "pressing the tab you are already on sends nothing" rule that
+                `TabRow` enforces in code holds here for free.
+              */
+              capture(ANALYTICS_EVENTS.tabsSwitched, { group: 'crew', tab: `crew-${at + 1}` });
+              router.push(`${ROUTES.crew}?crew=${id}`);
+            }}
+            aria-label="Choose a crew"
+          >
+            {view.crews.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
       ) : null}
 
       {inviteError ? <p className={styles.error}>{inviteError}</p> : null}

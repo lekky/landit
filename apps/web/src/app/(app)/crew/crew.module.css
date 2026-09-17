@@ -36,11 +36,30 @@
   margin-bottom: 18px;
 }
 
-/* Beats `a:hover { color: var(--pink) }` in the token sheet on specificity. */
-.switcherLink,
-.switcherLink:hover {
-  color: inherit;
-  text-decoration: none;
+/*
+ * The crew picker, wearing `/events`' country control's clothes exactly —
+ * 44px, the ink keyline, the small offset shadow, and the same inlined
+ * chevron. The `appearance` reset is not decoration: left alone, WebKit paints
+ * a grey rounded menulist inside the keyline, which is the only radius and the
+ * only grey fill on the page. `additions.css` explains it at `.field select`.
+ */
+.switcher select {
+  min-height: 44px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  box-shadow: var(--sh-sm);
+  padding: 6px 10px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  max-width: 15rem;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2312100b' stroke-width='2.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 12px 8px;
+  padding-right: 38px;
 }
 
 /*
@@ -159,6 +178,27 @@
   transform: rotate(180deg);
   color: var(--ink-3);
   flex: none;
+}
+
+@media (max-width: 560px) {
+  /*
+   * The actions get their own row on a phone, always — never "beside the name
+   * if the name is short enough" (owner, 2026-09-17).
+   *
+   * `.header` wraps and `.headerActions` is pushed right by `margin-left:
+   * auto`, so whether the two buttons sat on the title's line or under it was
+   * decided by how many characters the crew was called. A crew called RA put
+   * them up; a crew called SNN pushed them down; and every tap of the switcher
+   * re-laid the screen out under the rider's thumb, shifting everything below
+   * by a row. One shape for every crew.
+   */
+  .header {
+    display: block;
+  }
+
+  .headerActions {
+    margin-top: 14px;
+  }
 }
 
 @media (max-width: 420px) {
