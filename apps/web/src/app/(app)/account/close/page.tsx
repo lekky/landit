@@ -64,12 +64,15 @@ export default async function CloseAccountPage() {
         <p className={styles.copy}>
           It cannot be undone, and we cannot get it back for you afterwards.{' '}
           {/*
-            The download is on `/account`, and this is the one link that has to
-            take a rider back to it: the sentence tells them to do a thing that
-            is no longer on the same screen, and a sentence like that without a
-            way to act on it is worse than the panel this replaced.
+            The download is on `/account/data`, and this is the one link that
+            has to take a rider to it: the sentence tells them to do a thing
+            that is not on the same screen, and a sentence like that without a
+            way to act on it is worse than the panel this replaced. It pointed
+            at `/account` until T51 made that screen a list — a rider sent to a
+            list of eight rows to find the download is one tap worse off than
+            before, so the link follows the panel to its own address.
           */}
-          <Link href={ROUTES.account}>Download your data</Link> first if you want to keep it.
+          <Link href={ROUTES.accountData}>Download your data</Link> first if you want to keep it.
         </p>
 
         <CloseAccountForm />

@@ -14,9 +14,11 @@ import {
   type StanceId,
 } from '@landit/core';
 import { Avatar, Button, Equipment, Panel, avatarById } from '@landit/ui-web';
+import Link from 'next/link';
 import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
 
 import { AvatarPicker } from '@/components/AvatarPicker';
+import { ROUTES } from '@/lib/routes';
 import { SPORT_LOOKS, countWord } from '@/lib/sports';
 
 import { saveProfileAction } from './actions';
@@ -70,6 +72,21 @@ import styles from './account.module.css';
  * preference but a setting about who can see a child, and it changes when a
  * rider says so rather than when a finger lands on a list while scrolling.
  */
+
+/**
+ * Which of the panel's two halves to draw (T51, rethink §3.9).
+ *
+ * `/account` is a list of rows now, and two of the rows — "Your profile" and
+ * "What you ride" — are two halves of this one panel. They are drawn from the
+ * same component rather than split into two, because `saveProfileAction` writes
+ * the **whole** profile every time: a component owning only the sports would
+ * post a profile with the other five answers missing, and the first tap on
+ * `/account/sports` would wipe a rider's goal, stance, level and picture.
+ *
+ * So both screens hold the whole draft and show part of it. `'all'` is the
+ * default and is exactly what the panel drew before this prop existed.
+ */
+export type ProfileSection = 'all' | 'profile' | 'sports';
 
 /**
  * The six answers this panel owns, held as one value.
@@ -133,6 +150,7 @@ export function ProfilePanel({
   goalCustom: savedGoalCustom,
   stance: savedStance,
   avatarKey: savedAvatarKey,
+  section = 'all',
 }: {
   name: string;
   sports: readonly SportId[];
@@ -141,6 +159,7 @@ export function ProfilePanel({
   goalCustom: string;
   stance: StanceId | null;
   avatarKey: string | null;
+  section?: ProfileSection;
 }) {
   const [draft, setDraft] = useState<Draft>(() => ({
     sports: [...savedSports],
@@ -282,10 +301,22 @@ export function ProfilePanel({
     change({ ...draft, sports: next, goal: orphaned ? null : draft.goal }, 'sports');
   }
 
+  /*
+   * Which halves this screen draws (T51). `'all'` keeps every block, which is
+   * what `/account` rendered before the list; the two screens take one each.
+   */
+  const showProfile = section !== 'sports';
+  const showSports = section !== 'profile';
+
   return (
     <Panel flat className={styles.profile}>
       <div className={styles.profileHead}>
-        <div className="lab">Your profile</div>
+        {/*
+          The panel names itself only where nothing else does. On
+          `/account/profile` and `/account/sports` the screen's own `h1` is
+          already these words, and the status line still needs the row.
+        */}
+        {section === 'all' ? <div className="lab">Your profile</div> : <span />}
         {/*
           The one place the panel reports itself. It is announced as well as
           shown, because with no Save button the rider's own tap is the whole of
@@ -298,7 +329,23 @@ export function ProfilePanel({
             <span className={`lab ${styles.privacySaved}`}>Saved</span>
           ) : null}
           {status.kind === 'blocked' ? (
-            <span className={styles.profileBlocked}>{status.message}</span>
+            <span className={styles.profileBlocked}>
+              {status.message}
+              {/*
+                On `/account/sports` the answer that is missing is nearly always
+                the goal, because turning a sport off takes the goal that
+                belonged to it — and the goal picker is on the next screen. A
+                message naming something a rider cannot see is a dead end, so it
+                carries the way to it. Nothing is written until they get there,
+                which is the rule this panel has always worked to.
+              */}
+              {section === 'sports' ? (
+                <>
+                  {' '}
+                  <Link href={ROUTES.accountProfile}>Pick a new one →</Link>
+                </>
+              ) : null}
+            </span>
           ) : null}
           {status.kind === 'error' ? (
             <>
@@ -311,75 +358,80 @@ export function ProfilePanel({
         </div>
       </div>
       <p className={styles.profileLede}>
-        What you told us when you signed up. Change any of it whenever you like — it saves as you
-        go, and nothing you have already tracked is affected.
+        {showProfile
+          ? 'What you told us when you signed up. Change any of it whenever you like — it saves as you go, and nothing you have already tracked is affected.'
+          : 'Turn a sport on or off whenever you like. It saves as you go, and nothing you have already tracked is affected.'}
       </p>
 
       <div className={styles.profileForm}>
         {/* ------------------------------------------------------- picture -- */}
-        <div className={styles.avatarRow}>
-          <Avatar avatarId={draft.avatarKey} name={name} size={60} ringWidth={3} />
-          <div className={styles.avatarText}>
-            <div className="lab">Your picture</div>
-            <p className={styles.subtle}>
-              {avatarById(draft.avatarKey)?.name ?? 'Your initial, until you pick one'}
-            </p>
+        {showProfile ? (
+          <div className={styles.avatarRow}>
+            <Avatar avatarId={draft.avatarKey} name={name} size={60} ringWidth={3} />
+            <div className={styles.avatarText}>
+              <div className="lab">Your picture</div>
+              <p className={styles.subtle}>
+                {avatarById(draft.avatarKey)?.name ?? 'Your initial, until you pick one'}
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setPicking(true)}>
+              {draft.avatarKey ? 'Change picture' : 'Choose a picture'}
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setPicking(true)}>
-            {draft.avatarKey ? 'Change picture' : 'Choose a picture'}
-          </Button>
-        </div>
+        ) : null}
 
         {/* -------------------------------------------------- what you ride -- */}
-        <div>
-          <div className={styles.groupHead}>
-            <span className="lab">What you ride</span>
-            <span className={`lab ${styles.groupAside}`}>
-              {draft.sports.length > 1
-                ? `${countWord(draft.sports.length)} libraries on, every page tabbed`
-                : 'One library'}
-            </span>
-          </div>
-          <p className={styles.subtle}>
-            Turning a sport off hides its library, its stickers and its challenge. Nothing you have
-            tracked is deleted, and turning it back on brings all of it back.
-          </p>
-          <div className={styles.sportPicks}>
-            {SPORT_IDS.map((id) => {
-              const sport = SPORTS[id];
-              const on = draft.sports.includes(id);
-              const only = on && draft.sports.length === 1;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => toggleSport(id)}
-                  aria-pressed={on}
-                  disabled={only}
-                  title={only ? 'Keep at least one sport' : undefined}
-                  className={`panel flat ${styles.sportPick}`}
-                  style={{
-                    background: on ? sport.color : 'var(--paper)',
-                    color: on ? '#fff' : 'var(--ink)',
-                  }}
-                >
-                  <span
-                    className={styles.sportPickIcon}
-                    style={{ background: on ? 'var(--paper)' : 'var(--wash)' }}
+        {showSports ? (
+          <div>
+            <div className={styles.groupHead}>
+              {section === 'sports' ? null : <span className="lab">What you ride</span>}
+              <span className={`lab ${styles.groupAside}`}>
+                {draft.sports.length > 1
+                  ? `${countWord(draft.sports.length)} libraries on, every page tabbed`
+                  : 'One library'}
+              </span>
+            </div>
+            <p className={styles.subtle}>
+              Turning a sport off hides its library, its stickers and its challenge. Nothing you
+              have tracked is deleted, and turning it back on brings all of it back.
+            </p>
+            <div className={styles.sportPicks}>
+              {SPORT_IDS.map((id) => {
+                const sport = SPORTS[id];
+                const on = draft.sports.includes(id);
+                const only = on && draft.sports.length === 1;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => toggleSport(id)}
+                    aria-pressed={on}
+                    disabled={only}
+                    title={only ? 'Keep at least one sport' : undefined}
+                    className={`panel flat ${styles.sportPick}`}
+                    style={{
+                      background: on ? sport.color : 'var(--paper)',
+                      color: on ? '#fff' : 'var(--ink)',
+                    }}
                   >
-                    <Equipment name={SPORT_LOOKS[id].icon} size={22} strokeWidth={2.3} />
-                  </span>
-                  <span className={styles.sportPickText}>
-                    <span className={`cond ${styles.optionName}`}>{sport.label}</span>
-                    <span className="lab" style={{ opacity: 0.85 }}>
-                      {on ? (only ? 'On · your only sport' : 'On') : 'Off'}
+                    <span
+                      className={styles.sportPickIcon}
+                      style={{ background: on ? 'var(--paper)' : 'var(--wash)' }}
+                    >
+                      <Equipment name={SPORT_LOOKS[id].icon} size={22} strokeWidth={2.3} />
                     </span>
-                  </span>
-                </button>
-              );
-            })}
+                    <span className={styles.sportPickText}>
+                      <span className={`cond ${styles.optionName}`}>{sport.label}</span>
+                      <span className="lab" style={{ opacity: 0.85 }}>
+                        {on ? (only ? 'On · your only sport' : 'On') : 'Off'}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : null}
 
         {/*
           Goal, stance and level: three pill panels in a row, which is the
@@ -387,136 +439,143 @@ export function ProfilePanel({
           short lists of short answers, and stacking them full-width — the first
           thing this panel did — turned five questions into a page of scrolling.
         */}
-        <div className={styles.trio}>
-          <div className={`panel flat ${styles.trioPanel}`}>
-            <div className="lab">The goal</div>
-            <p className={styles.subtle}>It goes on your dashboard.</p>
-            <div className={styles.pills}>
-              {goals.map((option) => (
+        {showProfile ? (
+          <div className={styles.trio}>
+            <div className={`panel flat ${styles.trioPanel}`}>
+              <div className="lab">The goal</div>
+              <p className={styles.subtle}>It goes on your dashboard.</p>
+              <div className={styles.pills}>
+                {goals.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className="pill"
+                    aria-pressed={draft.goal === option.id}
+                    onClick={() => change({ ...draft, goal: option.id }, 'goal')}
+                    style={
+                      draft.goal === option.id
+                        ? {
+                            background: option.hue,
+                            color: '#fff',
+                            boxShadow: '3px 3px 0 var(--ink)',
+                          }
+                        : undefined
+                    }
+                  >
+                    {option.label}
+                  </button>
+                ))}
                 <button
-                  key={option.id}
                   type="button"
                   className="pill"
-                  aria-pressed={draft.goal === option.id}
-                  onClick={() => change({ ...draft, goal: option.id }, 'goal')}
+                  aria-pressed={draft.goal === CUSTOM_GOAL_ID}
+                  onClick={() => change({ ...draft, goal: CUSTOM_GOAL_ID }, 'goal')}
                   style={
-                    draft.goal === option.id
-                      ? { background: option.hue, color: '#fff', boxShadow: '3px 3px 0 var(--ink)' }
-                      : undefined
-                  }
-                >
-                  {option.label}
-                </button>
-              ))}
-              <button
-                type="button"
-                className="pill"
-                aria-pressed={draft.goal === CUSTOM_GOAL_ID}
-                onClick={() => change({ ...draft, goal: CUSTOM_GOAL_ID }, 'goal')}
-                style={
-                  draft.goal === CUSTOM_GOAL_ID
-                    ? { background: 'var(--ink)', color: 'var(--paper)' }
-                    : undefined
-                }
-              >
-                + Something else
-              </button>
-            </div>
-            {draft.goal === CUSTOM_GOAL_ID ? (
-              <div className={styles.goalOwn}>
-                <label className="lab" htmlFor="account-goal-custom">
-                  Your goal
-                </label>
-                <input
-                  id="account-goal-custom"
-                  className={styles.goalInput}
-                  value={draft.custom}
-                  maxLength={CUSTOM_GOAL_MAX_LENGTH}
-                  onChange={(event) =>
-                    change({ ...draft, custom: event.target.value }, 'goal_text', TYPING_DELAY)
-                  }
-                  // Leaving the field is a rider saying they are done with it,
-                  // and it beats the debounce — so clicking away writes, rather
-                  // than racing a timer the page may not be around to fire.
-                  onBlur={() => flush()}
-                  placeholder="Land a bri flip before the summer holidays"
-                />
-                <p className={styles.subtle}>
-                  {CUSTOM_GOAL_MAX_LENGTH} characters. It goes on your dashboard, so keep it blunt.
-                </p>
-              </div>
-            ) : null}
-          </div>
-
-          <div className={`panel flat ${styles.trioPanel}`}>
-            <div className="lab">Which foot forward</div>
-            <p className={styles.subtle}>
-              Which foot leads. Tips are written for your stance. Tap the one you have picked to
-              clear it.
-            </p>
-            <div className={styles.pills}>
-              {STANCES.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  className="pill"
-                  aria-pressed={draft.stance === option.id}
-                  title={option.sub}
-                  onClick={() =>
-                    change(
-                      { ...draft, stance: draft.stance === option.id ? null : option.id },
-                      'stance',
-                    )
-                  }
-                  style={
-                    draft.stance === option.id
+                    draft.goal === CUSTOM_GOAL_ID
                       ? { background: 'var(--ink)', color: 'var(--paper)' }
                       : undefined
                   }
                 >
-                  {option.label}
+                  + Something else
                 </button>
-              ))}
+              </div>
+              {draft.goal === CUSTOM_GOAL_ID ? (
+                <div className={styles.goalOwn}>
+                  <label className="lab" htmlFor="account-goal-custom">
+                    Your goal
+                  </label>
+                  <input
+                    id="account-goal-custom"
+                    className={styles.goalInput}
+                    value={draft.custom}
+                    maxLength={CUSTOM_GOAL_MAX_LENGTH}
+                    onChange={(event) =>
+                      change({ ...draft, custom: event.target.value }, 'goal_text', TYPING_DELAY)
+                    }
+                    // Leaving the field is a rider saying they are done with it,
+                    // and it beats the debounce — so clicking away writes, rather
+                    // than racing a timer the page may not be around to fire.
+                    onBlur={() => flush()}
+                    placeholder="Land a bri flip before the summer holidays"
+                  />
+                  <p className={styles.subtle}>
+                    {CUSTOM_GOAL_MAX_LENGTH} characters. It goes on your dashboard, so keep it
+                    blunt.
+                  </p>
+                </div>
+              ) : null}
             </div>
-            {draft.stance ? (
-              <p className={`cond ${styles.chosen}`}>
-                {STANCES.find((option) => option.id === draft.stance)?.sub}
-              </p>
-            ) : null}
-          </div>
 
-          <div className={`panel flat ${styles.trioPanel}`}>
-            <div className="lab">Where you are at</div>
-            <p className={styles.subtle}>This sets where your suggestions start, nothing else.</p>
-            <div className={styles.pills}>
-              {LEVELS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  className="pill"
-                  aria-pressed={draft.level === option.id}
-                  title={option.sub}
-                  onClick={() => change({ ...draft, level: option.id }, 'level')}
-                  style={
-                    draft.level === option.id
-                      ? { background: option.hue, boxShadow: '3px 3px 0 var(--ink)' }
-                      : undefined
-                  }
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            {draft.level ? (
-              <p className={`cond ${styles.chosen}`}>
-                {LEVELS.find((option) => option.id === draft.level)?.sub}
+            <div className={`panel flat ${styles.trioPanel}`}>
+              <div className="lab">Which foot forward</div>
+              <p className={styles.subtle}>
+                Which foot leads. Tips are written for your stance. Tap the one you have picked to
+                clear it.
               </p>
-            ) : null}
+              <div className={styles.pills}>
+                {STANCES.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className="pill"
+                    aria-pressed={draft.stance === option.id}
+                    title={option.sub}
+                    onClick={() =>
+                      change(
+                        { ...draft, stance: draft.stance === option.id ? null : option.id },
+                        'stance',
+                      )
+                    }
+                    style={
+                      draft.stance === option.id
+                        ? { background: 'var(--ink)', color: 'var(--paper)' }
+                        : undefined
+                    }
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              {draft.stance ? (
+                <p className={`cond ${styles.chosen}`}>
+                  {STANCES.find((option) => option.id === draft.stance)?.sub}
+                </p>
+              ) : null}
+            </div>
+
+            <div className={`panel flat ${styles.trioPanel}`}>
+              <div className="lab">Where you are at</div>
+              <p className={styles.subtle}>This sets where your suggestions start, nothing else.</p>
+              <div className={styles.pills}>
+                {LEVELS.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className="pill"
+                    aria-pressed={draft.level === option.id}
+                    title={option.sub}
+                    onClick={() => change({ ...draft, level: option.id }, 'level')}
+                    style={
+                      draft.level === option.id
+                        ? { background: option.hue, boxShadow: '3px 3px 0 var(--ink)' }
+                        : undefined
+                    }
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              {draft.level ? (
+                <p className={`cond ${styles.chosen}`}>
+                  {LEVELS.find((option) => option.id === draft.level)?.sub}
+                </p>
+              ) : null}
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
-      {picking ? (
+      {picking && showProfile ? (
         <AvatarPicker
           value={draft.avatarKey}
           name={name}

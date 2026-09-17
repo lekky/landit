@@ -57,6 +57,33 @@ export const ROUTES = {
    * change may not do is make it unfindable.
    */
   accountClose: '/account/close',
+  /**
+   * The seven screens `/account` is a list of (app shell rethink §3.9, T51).
+   *
+   * `/account` used to be one scroll holding every control the product has
+   * about a rider: the profile editor, the sports picker, two privacy
+   * settings, the guardian gate and the data export, one under the other. On a
+   * phone that is a screen a rider swipes through looking for the one thing
+   * they came for. It is a list of rows now, and each row is one of these.
+   *
+   * They are routes rather than client state for the reason `eventsMine` gives:
+   * a setting a rider can link to, bookmark and come back to after signing in
+   * is worth an address, and on a desktop the address is what decides which
+   * panel renders beside the list. `/plans` and `/coach` are two of the eight
+   * rows and already had addresses of their own; these six are the rest.
+   *
+   * All six are gated exactly as `/account` is — they redirect a signed-out
+   * visitor to sign in — and all six carry `noindex`. `/account/close` is
+   * deliberately **not** one of them: it keeps its own page and its own shape
+   * (see `accountClose` above), and the "Your data" row is where a rider finds
+   * it.
+   */
+  accountProfile: '/account/profile',
+  accountSports: '/account/sports',
+  accountPrivacy: '/account/privacy',
+  accountSessions: '/account/sessions',
+  accountGuardian: '/account/guardian',
+  accountData: '/account/data',
   library: '/library',
   /**
    * The glossary (T29): the words riders use, readable signed out like the

@@ -1,0 +1,68 @@
+import { countryName, type SportId } from '@landit/core';
+import { Avatar, Panel, SportChip, Tag } from '@landit/ui-web';
+import type { Metadata } from 'next';
+
+import { SPORT_LOOKS } from '@/lib/sports';
+
+import { requireAccountRider } from '../load';
+
+import styles from '../account.module.css';
+
+export const metadata: Metadata = {
+  title: 'Your account · Land The Trick',
+  description: 'Who you are on Land The Trick, and what you have set up.',
+};
+
+/**
+ * `/account` — who you are, with the list of everything you can change beside
+ * it (app shell rethink §3.9, T51).
+ *
+ * This page is now only the *header*: the rider's name, their picture, their
+ * handle and country, the sports they ride and the plan they are on. Every
+ * control that used to be stacked below it is a row in the list
+ * (`(settings)/layout.tsx`), and each row is a screen of its own.
+ *
+ * On a phone the two read as one screen, in this order: who you are, then what
+ * you can change. On a desktop this is the right-hand pane at `/account` and
+ * the list sits at 340px on the left — which is why it is a summary and not an
+ * empty "pick something on the left": a rider who opens their account with no
+ * particular errand should be shown their account.
+ *
+ * Nothing here is a control, deliberately. The one thing that reads like a
+ * fact and is really a setting — the plan tag — is the "Plans and billing" row
+ * two centimetres away.
+ */
+export default async function AccountPage() {
+  const { rider } = await requireAccountRider();
+  const sports = (rider.sports ?? []) as SportId[];
+
+  return (
+    <div>
+      <span className="eyebrow">Your account</span>
+      <h1 className={`d ${styles.head}`}>{rider.name || 'Rider'}</h1>
+      <p className={styles.lede}>
+        Everything here is yours and private by default. Nobody else can see your account unless you
+        change that.
+      </p>
+
+      <Panel className={styles.identity}>
+        <Avatar avatarId={rider.avatar_key || null} name={rider.name} size={64} ringWidth={3} />
+        <div className={styles.identityText}>
+          <div className={`d ${styles.name}`}>{rider.name || 'Rider'}</div>
+          <p className={`cond ${styles.handle}`}>
+            {rider.handle ? `@${rider.handle}` : 'Handle on its way'}
+            {rider.country ? ` · ${countryName(rider.country)}` : ''}
+          </p>
+          <div className={styles.sports}>
+            {sports.length ? (
+              sports.map((sport) => <SportChip key={sport} sport={SPORT_LOOKS[sport]} />)
+            ) : (
+              <span className="cond">No sports picked yet</span>
+            )}
+          </div>
+        </div>
+        <Tag color="var(--violet)">{rider.plan === 'rookie' ? 'Rookie · free' : rider.plan}</Tag>
+      </Panel>
+    </div>
+  );
+}

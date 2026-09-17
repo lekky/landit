@@ -20,8 +20,14 @@ import styles from './account.module.css';
  *
  * Saving is a form post, not an onChange: a setting about who can see a child
  * changes when they say so, not when a finger lands on a list while scrolling.
+ *
+ * `headed` is the one thing T51 added, and it changes nothing about what the
+ * panel does: on `/account/privacy` the screen's own `h1` is already these four
+ * words, so the panel's label would be the same words twice, 20px apart, in two
+ * sizes. It defaults to the label being drawn, so any caller that has not asked
+ * gets exactly what it got before.
  */
-export function PrivacyPanel({ value }: { value: PrivacyId }) {
+export function PrivacyPanel({ value, headed = true }: { value: PrivacyId; headed?: boolean }) {
   const [state, save, saving] = useActionState<PrivacyFormState | undefined, FormData>(
     setPrivacyAction,
     undefined,
@@ -31,7 +37,7 @@ export function PrivacyPanel({ value }: { value: PrivacyId }) {
 
   return (
     <Panel flat className={styles.privacy}>
-      <div className="lab">Who can see your profile</div>
+      {headed ? <div className="lab">Who can see your profile</div> : null}
       <p className={styles.privacyLede}>
         Your tricks, stickers and streak. Never your email or your surname. New accounts start
         private.

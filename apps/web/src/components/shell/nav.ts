@@ -160,6 +160,20 @@ export const DESTINATIONS: readonly Route[] = [
   ROUTES.crew,
   ROUTES.whatsNew,
   ROUTES.account,
+  /*
+   * The six screens `/account` is a list of (rethink §3.9, T51). They are
+   * destinations like any other — a rider can link to one, bookmark one and
+   * land on one after signing in — so they are written out here and the account
+   * menu's own row is what claims them (`reaches`, below). Leaving them off
+   * would be the old defect in a new place: a screen a rider can reach only by
+   * typing its address.
+   */
+  ROUTES.accountProfile,
+  ROUTES.accountSports,
+  ROUTES.accountPrivacy,
+  ROUTES.accountSessions,
+  ROUTES.accountGuardian,
+  ROUTES.accountData,
   ROUTES.coach,
   ROUTES.plans,
   ROUTES.suggest,
@@ -236,10 +250,36 @@ export type AccountMenuItem = {
    * whether the item is in the menu at all is decided by `accountMenuFor`.
    */
   readonly staff?: true;
+  /**
+   * The screens this row's own screen is a list of.
+   *
+   * The same job `reaches` does on a nav group: it is the claim the menu makes
+   * that these have a way in, and it is what `nav.test.ts` counts. Nothing
+   * draws it — the menu is still six rows — so it never widens the panel.
+   *
+   * Two of the account's six are drawn only for the riders they are about:
+   * "Who sees new sessions" while the preview covers them, "Your guardian"
+   * while the consent gate applies. Both are listed here anyway, because both
+   * answer everybody else with a redirect back to the list rather than a 404 —
+   * the claim is that the rider it is about can get to it, and that holds.
+   */
+  readonly reaches?: readonly Route[];
 };
 
 export const ACCOUNT_MENU: readonly AccountMenuItem[] = [
-  { id: 'account', label: 'Your account', href: ROUTES.account },
+  {
+    id: 'account',
+    label: 'Your account',
+    href: ROUTES.account,
+    reaches: [
+      ROUTES.accountProfile,
+      ROUTES.accountSports,
+      ROUTES.accountPrivacy,
+      ROUTES.accountSessions,
+      ROUTES.accountGuardian,
+      ROUTES.accountData,
+    ],
+  },
   { id: 'coach', label: 'Coach / parent view', href: ROUTES.coach },
   { id: 'plans', label: 'Plans and pricing', href: ROUTES.plans },
   /*

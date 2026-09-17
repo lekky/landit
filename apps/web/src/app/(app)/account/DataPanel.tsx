@@ -25,11 +25,14 @@ import styles from './account.module.css';
  * out should find it under the heading they would look under.
  *
  * A server component since the form left. Nothing here has state any more.
+ *
+ * `headed` (T51) drops the label on `/account/data`, where the page's own `h1`
+ * is already these two words. It defaults to drawing it.
  */
-export function DataPanel() {
+export function DataPanel({ headed = true }: { headed?: boolean } = {}) {
   return (
     <Panel flat className={styles.later}>
-      <div className="lab">Your data</div>
+      {headed ? <div className="lab">Your data</div> : null}
       <p className={`cond ${styles.handle}`} style={{ marginTop: 8 }}>
         Everything Land The Trick holds about you, in one file: your profile, every trick you have
         logged, your notes, your stickers, your crews and anything you have reported to us.
