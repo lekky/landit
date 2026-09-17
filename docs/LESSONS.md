@@ -984,6 +984,14 @@ test that had nothing to do with the change. **After asserting a toast, assert i
 change makes an unrelated test flaky, measure where the control now is before calling the test
 flaky.
 
+**A container query is not a cascade layer** *(T49, 2026-09-17, from the independent review)*. A
+`@container (max-width: 260px)` block was written above the rules it meant to override, in the
+readable place beside the element it measures — and did nothing, because the base `.playMark` and
+`.posterOut` are declared later in the same file at the same (0,1,0) specificity and the later rule
+wins. Only the one declaration with no counterpart below it survived, which is what made it look
+like it worked. **A media or container query buys you no specificity**; put it after what it
+overrides, or raise it. And the way to know is to measure the element, not to read the block.
+
 ## 5a. The shell is not a text box
 
 **Backticks inside a double-quoted shell argument execute.** Filing issue #48 — whose subject

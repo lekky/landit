@@ -5339,7 +5339,9 @@ landing on the ladder. **Built 2026-09-17**: the badge leaves the hero for a car
 the staff video, the hero gains the one-line lowdown (`lowdownTeaser`, the same rule the locked page
 teases with), the band carries `#ladder` and the rider's own row carries `#clips`, and every section
 below is an `Accordion` on a phone and a plain diamond-and-rule panel above 820px — one piece of
-markup either way, through the new component's `plainAbove`. **No new analytics event**: the stage
+markup either way, through the new component's `plainAbove`. The rider's own sessions on the trick
+are the **first** row, which is where the 2026-09-13 instruction put them, and the staff video is
+capped at a 360px track so the band stays on a 1280 × 720 screen. **No new analytics event**: the stage
 picker, Share, the video play and the clip form all keep firing what they fired, and an accordion
 opening is a reading position rather than a rider action. The T49 paragraphs in
 `docs/app-shell-rethink.md` §3.8 record what the spec was silent on — including that §3.8's "Clip"

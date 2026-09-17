@@ -723,9 +723,10 @@ sits, Same trick other sports, and the rider's own. Three exceptions, each for i
   is the one thing on this page written for a grown-up, and a safety note behind a chevron is a
   safety note nobody opened. It was in the reading column beside the kit; it is now on screen at
   both widths without anybody pressing anything.
-- **"Your history / notes / clips" is one row, not three**, holding the rider's sessions on the
-  trick, the history timeline and the notes-and-videos panel in that order. It is the row `#clips`
-  names, and the slashes in §3.8's own title are what say it is one thing.
+- **"Your history / notes / clips" is one row, not three**, holding the history timeline and the
+  notes-and-videos panel. It is the row `#clips` names, and the slashes in §3.8's own title are what
+  say it is one thing. The rider's *sessions* on the trick were briefly in there too and are not:
+  see "the rider's sessions are not in it" below.
 
 **Everything is shut when the page opens** *(added by the T49 worker, 2026-09-17, pending owner
 confirmation)*. §3.8 says the open state is not persisted and does not say what the first paint
@@ -741,6 +742,15 @@ hosting was reversed; T15b's rider-video panel came back as **"Your videos"**, a
 as the tripwire that notices a vault reappearing. Putting "Clip" on a 44px button would have meant
 loosening that assertion to gain a word no rider is waiting for. The **address** is untouched:
 `#clips` is what T45's Log sheet pushes, and it is an address rather than something anybody reads.
+*The independent review of 2026-09-17 agreed and recommended keeping "Video": the line in §3.8 above
+is the one that wants correcting, and that is the owner's to make rather than a worker's.*
+
+**And "Add a clip link" lands on the videos tab** *(added by the T49 worker, 2026-09-17, after the
+independent review, S4)*. §3.5 item 4 says the row "opens the trick picker limited to landed tricks,
+**then the existing video-link field on the trick page**", and the first cut arrived with the notes
+form showing and the field a rider had pressed for one unlabelled tap away. `LogPanel` reads the
+same `#clips` fragment the row itself answers to, on the load and on a `hashchange`, and opens on
+Your videos; every other arrival still opens on the notes.
 
 **The ladder is the band's own, not `StagePicker`** *(added by the T49 worker, 2026-09-17, pending
 owner confirmation)*. §3.8 says the yellow band carries "the `StagePicker` and Share". The band has
@@ -759,18 +769,32 @@ columns rather than a badge-sized track and the rest, because a 16:9 player give
 1180px page is 440px tall and pushes the band — the only control on this page — off the first
 screenful.
 
-**What the row costs on a laptop, measured** *(added by the T49 worker, 2026-09-17, pending owner
-confirmation)*. D7 puts a card-height row between the name and the ladder, and on a 1280 × 720
-window that is enough to take the yellow band below the fold: the top bar, the back link, the hero
-and the row come to about 770px before it starts, where before T49 the band began at about 310. On a
-390 × 844 phone — the screen the rethink is for — the band is still on the first screenful, at about
-490. Nothing is hidden and one short scroll reaches it, and the row is the owner's decision rather
-than the worker's, so it ships as drawn; this is here because it is the one thing the reorder made
-further away rather than nearer, and because a shorter row (a capped player, or a sticker card that
-is a strip rather than a card) is a small change if the owner wants the band back above the fold.
-One side effect is already paid for: the toast stack is fixed at the bottom centre and now overlaps
-the band on that window, which is why `e2e/library.spec.ts` waits for a toast to clear before
-pressing anything in it.
+**What the row costs, measured twice and then capped** *(added by the T49 worker, 2026-09-17,
+pending owner confirmation; the numbers corrected and the cap added after the independent review of
+2026-09-17, S5 and its §4)*. D7 puts a card-height row between the name and the ladder, and the
+first cut of it took the yellow band a long way down the page. The independent review measured it
+properly and found the cost is **two costs, not one**: the band only fell below a 1280 × 720 fold on
+a trick that has a **curated video**, which is a minority today and a growing one, and not on the
+videoless majority.
+
+Top of the band, page coordinates, `main` against this branch:
+
+| | `main` | first cut | with the cap |
+| --- | --- | --- | --- |
+| 1280 × 720, with a video | 291 | 785 | **665** |
+| 1280 × 720, no video | 291 | 527 | **519** |
+| 390 × 844, with a video | 312 | 554 | **573** |
+| 390 × 844, no video | 312 | 480 | **464** |
+
+So the player is capped: a **360px track** on the desktop row takes the frame from 506 × 316 to
+328 × 205 and the band from 785 to 665, which is 55px of yellow on screen at 720 rather than none.
+328 × 205 is not a small player — it is exactly the size `main` gave the same tutorial on a phone —
+and the arithmetic does not allow better: a 16:10 frame under this hero cannot leave the whole 79px
+band above a 720px fold without shrinking to about 224px wide, which is a worse trade than the one
+it fixes. The toast overlap the review found at 785 (S5) goes with it.
+
+On the phone both figures are on the first screenful, which is what matters: the rethink is for that
+screen. Nothing is hidden at either width and one short scroll reaches the band.
 
 **Desktop is the same markup, held open** *(added by the T49 worker, 2026-09-17, pending owner
 confirmation)*. §3.8 says "Desktop does not use it", and one server render cannot know the width, so
@@ -781,6 +805,58 @@ page's two columns already begin, so there is one number for "is this the wide p
 that could disagree by a pixel. The width is read after hydration, so the desktop half of that
 repaint is written into the page's media query as well — otherwise a wide screen meets a page of
 headings with nothing under them for one frame.
+
+**"Stops being a control" is three things, and the first cut had one of them** *(added by the T49
+worker, 2026-09-17, after the independent review, S3)*. It stopped *responding* — `plain`
+short-circuited the handlers — while staying `tabIndex 0` and announced as a disclosure, so a
+keyboard rider on the desktop trick page tabbed through seven stops drawn as plain headings that did
+nothing when pressed. It now takes `tabIndex={-1}` and `pointer-events: none`, with the chevron and
+the press already gone, so the row is a heading at that width in every sense a rider can test.
+
+**On paper, every row is open** *(added by the T49 worker, 2026-09-17, after the independent review,
+S1)*. A printed page's media queries evaluate against the **paper** — about 816 CSS px for A4 at
+96dpi — which is *below* any `plainAbove` a caller is likely to set, so a trick page printed from a
+desktop came out as nine headings and 595 characters against `main`'s 2083. `additions.css` carries
+an `@media print` block that opens the grid row and restores `content-visibility`. A coach or a
+parent printing a trick is exactly who the trick page is for, and the product already treats
+printing as real (Progress's printable sheets).
+
+**Whether a phone should stack the sticker and the video is the owner's** *(added by the T49 worker,
+2026-09-17, pending owner confirmation; raised by the independent review of 2026-09-17, B2)*. D7 says
+the two share one row and §3.8 repeats it, and neither says a phone keeps **two columns** of it. The
+first cut did, equally, and the tutorial came out at **132 × 83** against the **328 × 205** the same
+video has on `main` at 390 — 16% of the area, on the screen the rethink is for, and not "a 16:9
+thumbnail with a play square" in any useful sense.
+
+What is built: the row stays at both widths, because D7 is the owner's newer decision, and the phone
+gives the video the **larger share** — a 0.8 / 1.2 split, which makes the frame **164 × 102**, with
+the badge down to 96px so the sticker card is comfortable in what is left. The poster also drops its
+caption and shrinks its play square under a 260px frame (`video.module.css`), which is what stops
+"Open on YouTube" landing on the square.
+
+What is not settled: 164 × 102 is half of main's area, and the reading of D7 that satisfies both is
+**one row on desktop, the two cards stacked full width on a phone**. That is a change of a single
+`grid-template-columns` and it is the owner's call, not a worker's. The 2026-09-12 instruction it
+bears on — "the owner asked for prominence where there is a video" — is back in a comment beside the
+card, where the first cut had deleted it with the code it described.
+
+**"Your history / notes / clips" is one row; the rider's sessions are not in it** *(added by the T49
+worker, 2026-09-17, pending owner confirmation; corrected after the independent review, B3)*. The
+first cut read §3.8's slashes as "everything of the rider's, together" and put the
+sessions-on-this-trick block inside that row — which is the **last** row of the **second** column,
+so the block went from high in the reading column to the foot of the page and behind a chevron. That
+reverses a dated instruction: "the rider's own sessions on this trick, high in the reading column
+rather than near the foot of it (Rachid, 2026-09-13, in chat) … a rider scrolled past everything the
+page could teach them to reach the one part that is theirs." The first cut also deleted the comment
+that recorded it.
+
+So the block is **its own row, first**, at both widths: "Your sessions on this trick", with
+`trickBlockMeta`'s "6 sessions · first tried 2 Sep" as the sub-line, above The lowdown on a phone and
+first in the left column on a desktop. It is drawn only when there is something in it, and the count
+that decides is read once per request and shared with the block (`trickSessionsForOwner`, `cache`d),
+so a rider the sessions preview does not cover pays for nothing. The `#clips` row keeps the history,
+the notes and the video links — the three that really are one thing — and the 2026-09-13 provenance
+is back in a comment beside the row.
 
 **The title is a heading, and `<summary>` is where it goes** *(added by the T49 worker, 2026-09-17,
 pending owner confirmation)*. §3.8 gives the row "a Barlow Condensed 16px title" and does not say
