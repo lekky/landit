@@ -2852,7 +2852,9 @@ owner:
   gains Halfpipe and DIY). **No licence was granted, and the owner chose to take the facts
   regardless;** the licence column says so rather than hiding it — `ODbL-1.0 AND LicenseRef-none`
   and `LicenseRef-none` — because that column exists for the day somebody asks which rows may be
-  handed on. The credit line names OpenStreetMap contributors and GeoNames (the towns, CC BY 4.0);
+  handed on. The credit names OpenStreetMap contributors and GeoNames (the towns, CC BY 4.0) — in the
+  terms of use since 2026-09-17, under "Data sources and licences", with a short "Spot data
+  sources" link under the map where the paragraph used to be;
   Trucks and Fins, having granted nothing, is not named. **The site is behind a bot shield and the
   importer never fetches it:** `scripts/import-world.mts` reads the list page and the filter lists
   as captured in an ordinary browser, and fetches only OpenStreetMap (Overpass, twelve bands),
@@ -2892,7 +2894,8 @@ owner:
   already seeded — researched, French or the world rows — is dropped. What survives is **7,660
   parks, 348 of them in the UK**, taking the live list to 36,391. They are plain OpenStreetMap,
   so `source: 'osm'` under `ODbL-1.0` with nothing else mixed in, credited under the same
-  "OpenStreetMap contributors" line the credit names once (`spotCredits`), and `noindex` like the
+  "OpenStreetMap contributors" line the credit names once (`spotCredits`, rendered into the terms
+  of use by `spotCreditLine` since 2026-09-17), and `noindex` like the
   rest of the import: 83% have no name of their own and read "Skatepark" (or "Pump track", where
   a name says it is one — which also lists it for BMX) with the town doing the rest. The importer
   measures outlines by id with Overpass `out geom`, kept in `osm-areas.json` in its cache so a

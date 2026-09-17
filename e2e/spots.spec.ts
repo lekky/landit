@@ -577,7 +577,15 @@ test.describe('where to ride', () => {
     // Nothing to close, and gone from the accessibility tree rather than merely
     // invisible: a column that is always on the page has no dismiss.
     await expect(page.getByRole('button', { name: 'Close' })).toHaveCount(0);
-    await expect(page.locator('[class*="mapNote"]')).toBeVisible();
+    /*
+     * The footer goes with the sheet (Rachid, 2026-09-17). It used to hold two
+     * paragraphs and show one at each width — `.mapNote` on the column,
+     * `.mapWarn` in the sheet — and the note is deleted, so above the line the
+     * whole strip is hidden rather than emptied. The full travel warning is
+     * still on the page here, under the map in `.notice`; asserting the strip
+     * is what proves the two layouts still change together at this one pixel.
+     */
+    await expect(page.locator('[class*="mapFoot"]')).toBeHidden();
     await expect(page.locator('[class*="mapWarn"]')).toBeHidden();
   });
 
@@ -605,7 +613,8 @@ test.describe('where to ride', () => {
     const chosen = await findSpot(page, scooterSpot.name);
 
     // The stretched link's accessible name is the card's, not an arrow: the
-    // visible "Spot page →" is decorative and hidden from assistive tech.
+    // visible "Spot page" button is decorative and hidden from assistive tech,
+    // so a screen reader hears one link to the spot rather than two.
     const link = chosen.getByRole('link', { name: /open spot page$/i });
     await expect(link).toHaveAttribute('href', /^\/spots\/[a-z0-9-]+$/);
 
@@ -671,6 +680,75 @@ test.describe('where to ride', () => {
     // A "directions from here" link would carry an origin. Plan §6.4, standard
     // 10: we store — and send — the spot's location, never the rider's.
     expect(href).not.toMatch(/saddr|origin=/);
+  });
+
+  test('Directions says it opens Google Maps, in a new tab', async ({ page }) => {
+    /*
+     * Rachid, 2026-09-17, in chat: "the directions should make more clear it
+     * opens google maps". `mapsLink` is a google.com URL on every platform, so
+     * the claim is a fact rather than a guess — and the href is asserted here
+     * beside the words, which is what stops the label outliving the link.
+     *
+     * `target="_blank"` announces nothing on its own, so the accessible name
+     * carries the new tab as well.
+     */
+    await page.goto('/spots');
+    const directions = (await findSpot(page, scooterSpot.name)).getByRole('link', {
+      name: /Directions/,
+    });
+
+    await expect(directions).toHaveAttribute(
+      'aria-label',
+      `Directions to ${scooterSpot.name} in Google Maps, opens in a new tab`,
+    );
+    await expect(directions).toHaveAttribute('target', '_blank');
+    await expect(directions).toHaveAttribute('rel', /noopener/);
+    expect(await directions.getAttribute('href')).toContain('google.com/maps');
+    // Visibly a button now, not a caption (the owner's "should be ctas?").
+    await expect(directions).toHaveClass(/\bbtn\b/);
+  });
+
+  test('the three things a card offers are controls, and Report is one of them', async ({
+    page,
+  }) => {
+    /*
+     * Rachid, 2026-09-17: "the report/spot page/directions should be ctas? not
+     * just strings?". All three wear the design's small ghost button at §4's
+     * 44px floor. Report keeps its corner rather than joining the footer row,
+     * because that row is only drawn for a spot with coordinates and reporting
+     * has to be on every card (plan §6.1) — its destination is unchanged and is
+     * asserted in `e2e/report.spec.ts`.
+     */
+    await page.goto('/spots');
+    const chosen = await findSpot(page, scooterSpot.name);
+
+    const report = chosen.getByRole('link', { name: `Report ${scooterSpot.name}` });
+    await expect(report).toHaveClass(/\bbtn\b/);
+    expect((await report.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+    const directions = chosen.getByRole('link', { name: /Directions/ });
+    expect((await directions.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  });
+
+  test('the long data credit is a link into the terms, not a paragraph', async ({ page }) => {
+    /*
+     * Rachid, 2026-09-17: "remove this 'Spot data: councils, venues and
+     * OpenStreetMap…' — that should be in a relevant legal doc instead".
+     *
+     * It is a licence term and not a courtesy (ODbL, Licence Ouverte 2.0,
+     * CC BY 4.0 all want attribution reachable from where the data is shown), so
+     * what has to hold is both halves: the paragraph is gone from the screen,
+     * and the route to the credit is still one press away at every width. The
+     * text itself is asserted on the document, in `e2e/legal.spec.ts`.
+     */
+    await page.goto('/spots');
+    await whenInteractive(page);
+
+    await expect(page.locator('body')).not.toContainText('Open Database Licence');
+
+    const link = page.getByRole('link', { name: 'Spot data sources' });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute('href', '/legal/terms#data-sources-and-licences');
   });
 
   test('serves the map worker as JavaScript, not a 404 page', async ({ page }) => {

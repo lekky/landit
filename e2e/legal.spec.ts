@@ -277,6 +277,41 @@ test('the About page says what pays for the site, not what the site earns (2026-
   expect(body).not.toMatch(/twenty hand-picked tricks/i);
 });
 
+test('the terms carry the spot data credit the licences ask for (2026-09-17)', async ({ page }) => {
+  /*
+   * The credit moved off `/spots` on the owner's say-so and landed here, which
+   * is only acceptable because it landed *somewhere*: the spot data is used
+   * under ODbL (OpenStreetMap), Licence Ouverte 2.0 (the French census, which
+   * asks for the source and the date it was taken) and CC BY 4.0 (GeoNames),
+   * and all three want attribution reachable from where the data is shown.
+   *
+   * The anchor is asserted because `/spots` links straight into it — the link
+   * and the `id` both come from `legalSectionId`, so this is what catches the
+   * day the heading is reworded and the link starts landing at the top of the
+   * page instead.
+   *
+   * The text is generated from `SPOT_SOURCES`, so this asserts the licence
+   * names rather than a transcription: a new dataset must add a name here, and
+   * a dataset that loses its credit must fail.
+   */
+  await page.goto('/legal/terms');
+
+  const section = page.locator('#data-sources-and-licences');
+  await expect(section).toBeVisible();
+  await expect(section.getByRole('heading', { name: 'Data sources and licences' })).toBeVisible();
+
+  const words = await section.innerText();
+  expect(words).toMatch(/Open Database Licence/);
+  expect(words).toMatch(/Licence Ouverte 2\.0/);
+  expect(words).toMatch(/CC BY 4\.0/);
+  // Licence Ouverte asks for the date the census was taken, and it is spelled
+  // from a table rather than a locale (LESSONS §5).
+  expect(words).toMatch(/updated \d{1,2} [A-Z][a-z]+ \d{4}/);
+  // The tile credit is the map's own and stays on the map; this section says so
+  // rather than quietly claiming to be it.
+  expect(words).toMatch(/OpenMapTiles/);
+});
+
 test('the cookies page does not offer a setting that does not exist', async ({ page }) => {
   await page.goto('/legal/cookies');
   const body = await page.locator('body').innerText();

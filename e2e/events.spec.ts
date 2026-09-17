@@ -399,6 +399,46 @@ test('the kind pills offer the kinds the half on screen actually holds', async (
   await expect(page.getByRole('button', { name: 'Comp', exact: true })).toHaveCount(0);
 });
 
+test('the filters are one bar on a desktop and three lines on a phone', async ({ page }) => {
+  /*
+   * Rachid, 2026-09-17, in chat, looking at `/events` at about 1740px: "bad
+   * layout on screenshot". It was three full-width rows — the scope select
+   * alone, Country with Sort stranded at the far right, the kind pills — which
+   * reads as a form rather than as a bar.
+   *
+   * Asserted by geometry rather than by class, because what the owner saw was
+   * geometry: above 861px the four controls share one line, and Sort is the
+   * rightmost of them. Below it T48's stack comes back out of the same markup,
+   * so the scope select is on a line of its own above Country.
+   */
+  await newRider(page);
+  await page.goto('/events');
+
+  const scope = page.getByLabel('Show events for');
+  const country = page.getByLabel('Filter events by country');
+  const everything = page.getByRole('button', { name: 'Everything', exact: true });
+  const sort = page.getByRole('group', { name: 'Sort events' });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const rowTop = async (thing: typeof scope) => Math.round((await thing.boundingBox())!.y);
+  const scopeTop = await rowTop(scope);
+  expect(await rowTop(country)).toBe(scopeTop);
+  expect(await rowTop(everything)).toBe(scopeTop);
+  expect(await rowTop(sort)).toBe(scopeTop);
+
+  // Sort is the right-hand end of the bar, not a control stranded mid-row.
+  const bar = (await everything.boundingBox())!;
+  expect((await sort.boundingBox())!.x).toBeGreaterThan(bar.x + bar.width);
+
+  // One height for every control on it — the pills were 35px beside a 44px
+  // select, which is the other half of what the owner was looking at.
+  expect((await everything.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  expect((await country.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await rowTop(country)).toBeGreaterThan(await rowTop(scope));
+});
+
 test('an event row is a link to its own page, and says which door it is', async ({ page }) => {
   await newRider(page);
   await page.goto('/events');
