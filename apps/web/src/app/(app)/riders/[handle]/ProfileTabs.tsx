@@ -44,6 +44,28 @@ export function ProfileTabs({
 }) {
   const ids = hasVideos ? PROFILE_TABS : PROFILE_TABS.slice(0, 2);
   const [tab, setTab] = useTabParam(ids, 'landed');
+  const active = tab as ProfileTab;
+
+  /*
+   * **One node under the row, chosen, rather than three with two of them
+   * `null`** (review finding 3).
+   *
+   * The panels are built in a *server* component and arrive here across the
+   * RSC boundary, so what React sees as this `div`'s children is a list
+   * assembled at runtime rather than the compile-time-static one JSX normally
+   * hands it — and a runtime list of elements is a list React checks for keys.
+   * The review reproduced "Each child in a list should have a unique key prop
+   * … Check the render method of `ProfileTabs`. It was passed a child from
+   * `RiderProfilePage`" five times out of five on the Stickers panel, and could
+   * not find the unkeyed list because there is no `.map` without a key on
+   * either screen. This was the only list.
+   *
+   * Picking the node first means the `div` has exactly one child and no list
+   * exists to check, whatever the transform does — which is a better answer
+   * than a key on each panel, because the panels are not siblings in any
+   * meaningful sense: one of them is on screen and the other two are not.
+   */
+  const panel = active === 'landed' ? landed : active === 'stickers' ? stickers : videos;
 
   return (
     <>
@@ -54,10 +76,8 @@ export function ProfileTabs({
         label="What to show on this profile"
         onChange={setTab}
       />
-      <div key={tab} role="tabpanel" aria-label={LABELS[tab as ProfileTab]} className={TAB_PANEL}>
-        {tab === 'landed' ? landed : null}
-        {tab === 'stickers' ? stickers : null}
-        {tab === 'videos' ? videos : null}
+      <div key={tab} role="tabpanel" aria-label={LABELS[active]} className={TAB_PANEL}>
+        {panel}
       </div>
     </>
   );

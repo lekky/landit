@@ -243,13 +243,30 @@
 
 /*
  * "Start another" and "Join with a code" (§3.10, T52), where a `<summary>` used
- * to open both forms at once. Two ghost buttons wrap onto two lines on a narrow
- * phone rather than shrinking below the 44px `.btn.sm` already gives them.
+ * to open both forms at once.
+ *
+ * **44px at every width** (review finding 4). The comment here used to say
+ * `.btn.sm` already gave them that; it does not — `additions.css` raises `.btn`
+ * to 44px only inside its coarse-pointer block, so these measured 36px at
+ * 1280 and 44px on a phone. §4's floor has no width on it, and the spot page in
+ * this same task states its own `min-height` for exactly that reason. Two
+ * buttons wrap onto two lines on a narrow phone rather than shrinking.
+ *
+ * `.btn.sm` is two classes, so the rule that sets the height is two as well —
+ * the specificity trick this repository uses wherever a module repaints a
+ * design-system button (see `spot.module.css`'s action row).
  */
 .moreButtons {
   display: flex;
   gap: 9px;
   flex-wrap: wrap;
+}
+
+.moreButtons .moreButton.moreButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
 }
 
 .footRow {

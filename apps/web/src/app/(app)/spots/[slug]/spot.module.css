@@ -136,8 +136,17 @@
  * `min-height: 44px` since the mobile audit (#377) — so without this the row
  * was one 44px control beside two 34px ones, all three of them things a thumb
  * is meant to hit.
+ *
+ * **Doubled, and under `.stripPush`** (review finding 2). Written as a single
+ * `.action` this was one specificity point short of `.btn.sm`, so `.btn`'s own
+ * `display` won and the two anchors were laid out as **blocks**: `gap`,
+ * `align-items` and `justify-content` all computed and all did nothing, which
+ * is why the plus sat flush against "Log here" ("+LOG HERE") and why the row
+ * measured 44 / 47 / 47 tall at 390 where it was 104 / 104 / 104 wide. Three
+ * hard-keyline boxes in a row show a 3px difference. The rule below already
+ * knew the trick and this one did not.
  */
-.action {
+.stripPush .action.action {
   display: inline-flex;
   align-items: center;
   justify-content: center;

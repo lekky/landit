@@ -44,6 +44,18 @@
   margin-top: 9px;
 }
 
+/*
+ * "Show: Your sport (Scooter)", one line between the header and the tab row
+ * (§3.3, O1 — added by T52 after the review).
+ *
+ * The control draws itself (`.scopePick` in the shell's module); what this adds
+ * is the gap either side of it, because `.head` carries its own bottom margin
+ * and `.sporttabs` its own.
+ */
+.scope {
+  margin: 0 0 14px;
+}
+
 /* --------------------------------------------------------- the tab row -- */
 
 /*
@@ -95,10 +107,49 @@
   overflow: hidden;
 }
 
+/*
+ * The label clips rather than widening the row, which is what `TabRow`'s own
+ * `.rowFit` does for the two tabs beside it — this box is outside that
+ * component, so it says it itself. `:global`, because `.tab-label` is
+ * `packages/ui-web`'s class (LESSONS §3a).
+ */
+.filtersTab :global(.tab-label) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 860px) {
   .filtersTab {
     display: flex;
   }
+}
+
+/*
+ * The active-filter count, in its new home (review finding 6).
+ *
+ * `.fcount` moved out of `button.filter-toggle` and into `button.sporttab` with
+ * the disclosure, and the only rule for the class anywhere is
+ * `.filter-toggle .fcount` inside `primitives.css`'s phone block — so the badge
+ * that told a rider at a glance how many narrowings were on rendered as a bare
+ * inherited number after the word FILTERS. These are that rule's own values,
+ * restated here rather than widened in shared code (CLAUDE.md step 5): the
+ * package's selector is correct for the control it names, and this is a
+ * different control.
+ *
+ * `:global`, because `.fcount` is `primitives.css`'s class and a bare one here
+ * would be hashed into a local name and match nothing — the dead-rule shape
+ * LESSONS §3a was written about.
+ */
+.filtersTab :global(.fcount) {
+  background: var(--pink);
+  color: var(--on-dark);
+  border: 2px solid var(--ink);
+  padding: 1px 7px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  flex: none;
 }
 
 @media (max-width: 420px) {

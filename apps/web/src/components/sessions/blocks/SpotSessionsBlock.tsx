@@ -11,10 +11,9 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 
 import { sessionDateLabels, spotBlockBadge, trickChipLabel } from '@/lib/sessionDetail';
-import { newSessionHref, sessionHref, sessionsHref } from '@/lib/sessionRoutes';
+import { sessionHref, sessionsHref } from '@/lib/sessionRoutes';
 import type { RiderSession } from '@/lib/session';
 
-import { LogSessionLink } from './LogSessionLink';
 import { riderFor } from './rider';
 import styles from './blocks.module.css';
 
@@ -79,13 +78,21 @@ async function SpotSessions({ spotId, session }: SpotSessionsBlockProps) {
             <span className={styles.badge}>{spotBlockBadge(summary.count, summary.minutes)}</span>
           ) : null}
         </div>
-        <LogSessionLink
-          href={newSessionHref({ spot: spotId })}
-          source="spot"
-          className={styles.yellowCta}
-        >
-          Log a session here
-        </LogSessionLink>
+        {/*
+          "Log a session here" is **on the spot page's hero now** (T52, review
+          finding 5), as "Log here", the third of the three actions §3.10 puts
+          under the band.
+
+          It is a move rather than a second door. Both rendered
+          `newSessionHref({ spot })` through `LogSessionLink` with
+          `source: 'spot'`, so a rider covered by the sessions preview met two
+          identical controls about 600px apart on one page and
+          `session_log_opened` could not tell them apart — the spec paragraph
+          and the PR body both said "goes where it went before", and this is
+          what makes that true. This block is rendered on the spot page and
+          nowhere else, so nothing else loses a link; `EventSessionsBlock` keeps
+          its own, because no event page hero offers one.
+        */}
       </div>
 
       {summary.sessions.slice(0, SHOWN).map((s) => {

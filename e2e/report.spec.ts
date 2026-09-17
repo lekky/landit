@@ -53,11 +53,27 @@ test.describe('the report form', () => {
     await expect(about.getByRole('radio', { name: new RegExp(second.label) })).toBeChecked();
     await expect(first).not.toBeChecked();
 
+    /*
+     * **No reason is checked to begin with**, which is how it was when these
+     * were dots and is the half of the payload a pill row makes easy to lose: a
+     * row that looks like a button invites a default, and a default here would
+     * file every report somebody abandoned halfway under whichever reason
+     * happened to be first. `main`'s markup has no `defaultChecked` on this
+     * group and neither does this one.
+     */
+    for (const reason of REPORT_REASONS) {
+      await expect(why.getByRole('radio', { name: reason.label })).not.toBeChecked();
+    }
+
     // Choosing a reason leaves the subject where the rider put it.
     const reason = REPORT_REASONS[1]!;
     await why.getByText(reason.label, { exact: true }).click();
     await expect(why.getByRole('radio', { name: reason.label })).toBeChecked();
     await expect(about.getByRole('radio', { name: new RegExp(second.label) })).toBeChecked();
+
+    // The arrow keys walk this group too, not only `/suggest`'s topics.
+    await why.getByRole('radio', { name: reason.label }).press('ArrowDown');
+    await expect(why.getByRole('radio', { name: REPORT_REASONS[2]!.label })).toBeChecked();
   });
 
   test('every row is a 44px target at 320px, and nothing overflows', async ({ page }) => {

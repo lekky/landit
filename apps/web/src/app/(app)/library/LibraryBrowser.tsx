@@ -26,6 +26,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
+import { SportScopeSelect, useSportScope } from '@/components/shell/SportScopeSelect';
 import { TabRow } from '@/components/shell/TabRow';
 import { SuggestPrompt } from '@/components/suggest/SuggestPrompt';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
@@ -101,6 +102,32 @@ export function LibraryBrowser({
 }) {
   const router = useRouter();
   const { sport } = useSport();
+
+  /*
+   * Which sports the grid holds — the `SportScopeSelect` under the header
+   * (§3.3, O1), added by T52 after the independent review.
+   *
+   * **The library is a list that used to carry its own sport row**, which is
+   * exactly the case D5 hands to this control: "lists that used to carry their
+   * own sport row follow the chip through one dropdown". Removing `SportSwitch`
+   * without it left a **signed-out visitor** on one sport with nothing anywhere
+   * that could widen them — the top bar's chip is hidden with the rider (T45),
+   * so 175 of the 259 tricks had no route at all on a screen the landing page
+   * advertises as a no-sign-up peek. Found by the review of 2026-09-17.
+   *
+   * The signed-out behaviour is T48's, unchanged and for its reasons: with no
+   * rider `useSportScope` is told so, the "Your sport (X)" option is not offered
+   * at all rather than making a claim about somebody we have never met, a stored
+   * `'chip'` reads as the screen's default, and that default is **every sport**.
+   * Signed in the default is `'chip'`, so the list follows the top bar and a
+   * rider who has never touched this control sees exactly what T52 shipped.
+   *
+   * One sport or all of them, never a combination — O1 took the multi-select
+   * away — so the scope reduces to a single id or `null`, which is what
+   * `tricksFor` and `filterTricks` already mean by "every sport".
+   */
+  const scope = useSportScope('library', signedIn ? 'chip' : 'all', signedIn);
+  const scopeSport = scope.sports[0] ?? null;
 
   /*
    * Where this rider was the last time they were on this screen, if they have
@@ -183,7 +210,7 @@ export function LibraryBrowser({
     });
   };
 
-  const pool = useMemo(() => tricksFor(sport, tricks), [sport, tricks]);
+  const pool = useMemo(() => tricksFor(scopeSport, tricks), [scopeSport, tricks]);
   /*
    * In "My tricks" the switch owns the status: it asks for `tracked` and the
    * sidebar's own status pills are hidden while it is on, so the two controls
@@ -193,10 +220,18 @@ export function LibraryBrowser({
   const list = useMemo(
     () =>
       filterTricks(
-        { search, sport, category, difficulty, status: mine ? 'tracked' : status, sort, byId },
+        {
+          search,
+          sport: scopeSport,
+          category,
+          difficulty,
+          status: mine ? 'tracked' : status,
+          sort,
+          byId,
+        },
         tricks,
       ),
-    [search, sport, category, difficulty, status, sort, byId, tricks, mine],
+    [search, scopeSport, category, difficulty, status, sort, byId, tricks, mine],
   );
   const groups = useMemo(
     () => (mine ? groupTricksByStage(list, byId, sort) : []),
@@ -354,7 +389,13 @@ export function LibraryBrowser({
                 : undefined
             }
           >
-            {categoryLabel(id, sport)}
+            {/*
+              The scope's sport, not the chip's: a category is named differently
+              per sport, and over a grid of all three there is no one sport whose
+              names are the right ones. `categoryLabel` with no sport gives the
+              neutral name, which is the honest answer for "every sport".
+            */}
+            {categoryLabel(id, scopeSport ?? undefined)}
           </Pill>
         ))}
       </div>
@@ -405,16 +446,26 @@ export function LibraryBrowser({
     <div onClickCapture={keepPlace}>
       {/*
         The `SportSwitch` row is gone (D5, T52). The sport is chosen once, in
-        the top bar's chip, and every in-page sport row goes with it — this was
-        the last one on this screen, and `useSport()` above is what the chip
-        now answers.
+        the top bar's chip, and every in-page sport row goes with it — what
+        stands in for it here is the `SportScopeSelect` below the header, which
+        is what D5 hands a list that used to carry its own row.
       */}
       <div className={styles.head}>
         <div>
           <span className="eyebrow">
+            {/*
+              The heading follows the scope, not the chip. A grid of all three
+              sports under "SCOOTER LIBRARY" would be a heading its own rows
+              disprove — the same test the spot page's "Other spots near
+              Adelaide" is held to.
+            */}
             {mine
-              ? `Your ${SPORTS[sport].label.toLowerCase()} tricks`
-              : `${SPORTS[sport].label} library`}
+              ? scopeSport
+                ? `Your ${SPORTS[scopeSport].label.toLowerCase()} tricks`
+                : 'Your tricks, every sport'
+              : scopeSport
+                ? `${SPORTS[scopeSport].label} library`
+                : 'Trick library, every sport'}
           </span>
           <h1 className={`d ${styles.title}`}>
             {mine ? (
@@ -441,6 +492,22 @@ export function LibraryBrowser({
           )}
         </div>
       </div>
+
+      {/*
+        "Show: Your sport (Scooter)" — one line under the header, where the
+        other two lists put it (§3.3, O1).
+
+        It fires `sport_scope_set` from inside `useSportScope`, so the press is
+        counted whichever screen it is on and this component adds no `capture`
+        of its own. "All sports" rather than Spots' "Every spot": the noun this
+        screen counts is a trick.
+      */}
+      <SportScopeSelect
+        state={scope}
+        everyLabel="All sports"
+        label="Show tricks for"
+        className={styles.scope}
+      />
 
       {/*
         All · Mine · Filters, in one row (§3.10, T52).
@@ -505,7 +572,15 @@ export function LibraryBrowser({
           aria-expanded={filtersOpen}
         >
           <Icon name="grid" size={16} strokeWidth={2.4} />
-          <span className="tab-label">Filters</span>
+          {/*
+            "Filters & sort", the words the disclosure has always had (review
+            nit 11). The panel behind it still holds the sort, so shortening the
+            label to "Filters" took away the only thing on the screen that said
+            where sorting lives. It clips with an ellipsis at the narrowest
+            widths like any other label in the row, and the full string stays in
+            the DOM for a screen reader.
+          */}
+          <span className="tab-label">Filters &amp; sort</span>
           {activeFilters > 0 && <span className="fcount">{activeFilters}</span>}
         </button>
       </div>

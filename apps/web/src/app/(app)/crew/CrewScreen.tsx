@@ -242,6 +242,7 @@ export function CrewScreen({ view }: { view: CrewView }) {
             <Button
               size="sm"
               variant="ghost"
+              className={styles.moreButton}
               aria-expanded={opening === 'start'}
               onClick={() => setOpening((was) => (was === 'start' ? null : 'start'))}
             >
@@ -250,6 +251,7 @@ export function CrewScreen({ view }: { view: CrewView }) {
             <Button
               size="sm"
               variant="ghost"
+              className={styles.moreButton}
               aria-expanded={opening === 'join'}
               onClick={() => setOpening((was) => (was === 'join' ? null : 'join'))}
             >

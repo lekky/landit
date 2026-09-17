@@ -25,7 +25,7 @@ import { BackLink } from '@/components/shell/BackLink';
 import { jsonLdText, spotPlaceLd } from '@/lib/structuredData';
 import { ROUTES, libraryHref, reportHref, spotHref } from '@/lib/routes';
 import { newSessionHref } from '@/lib/sessionRoutes';
-import { sessionsEnabledFor } from '@/lib/sessionsPreview';
+import { sessionsEnabledForViewer } from '@/lib/sessionsPreview';
 import { SPORT_LOOKS, sportsList } from '@/lib/sports';
 import { anonymousClient, currentRider } from '@/lib/session';
 
@@ -411,15 +411,18 @@ export default async function SpotPage({ params }: Params) {
             owner-only preview (T41) — asked **exactly** as `riderFor` asks it
             for the block below: is there a rider, *and* is it on for them.
 
-            Both halves, because `sessionsEnabledFor` answers `true` for a
+            Both halves, and through one named predicate rather than an `&&`
+            somebody has to remember. `sessionsEnabledFor` answers `true` for a
             `null` rider once `LANDIT_SESSIONS_OPEN` is set, which is how a
-            release will run it. Written as `sessionsEnabledFor(session?.rider
-            ?? null)` this put a "Log here" on a public spot page for a visitor
-            with no account, pointing at a form that would bounce them to
-            `/signin` — caught by the signed-out case in `e2e/spot-page.spec.ts`
-            rather than by the flag, which is off in most places this is run.
+            release will run it, so `sessionsEnabledFor(session?.rider ?? null)`
+            put a "Log here" on a public spot page for a visitor with no account,
+            pointing at a form that would bounce them to `/signin`. Caught by the
+            signed-out case in `e2e/spot-page.spec.ts` rather than by the flag,
+            which is off in most places this is run; `sessionsEnabledForViewer`
+            is the expression `riderFor` has always used, with unit tests on the
+            case the e2e cannot reach.
           */}
-          {session && sessionsEnabledFor(session.rider) ? (
+          {sessionsEnabledForViewer(session) ? (
             <LogSessionLink
               href={newSessionHref({ spot: spot.id })}
               source="spot"

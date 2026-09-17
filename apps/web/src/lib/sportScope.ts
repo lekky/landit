@@ -36,8 +36,16 @@ export type SportScope = 'chip' | 'all' | SportId;
  * all four, and both of the new ones open on the rider's own sport. The key is
  * per screen rather than shared so that widening the glossary to every sport
  * for one word does not also widen a rider's own diary.
+ *
+ * `library` joins them (T52, after the independent review) — the fifth and the
+ * only one O1 does **not** name. D5 says a list that used to carry its own
+ * sport row follows the chip through one dropdown, and the trick library is
+ * such a list: it is the screen where removing the row left a signed-out
+ * visitor with no way to reach the other two sports at all, because the chip is
+ * hidden with the rider. It is the one of the five that opens on **every
+ * sport** for a visitor rather than on the rider's own, for that reason.
  */
-export type ScopeScreen = 'spots' | 'events' | 'sessions' | 'glossary';
+export type ScopeScreen = 'spots' | 'events' | 'sessions' | 'glossary' | 'library';
 
 /** Where a screen's choice is kept — `localStorage`, per device (§3.3). */
 export function scopeStorageKey(screen: string): string {

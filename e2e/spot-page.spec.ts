@@ -177,12 +177,51 @@ test.describe('a spot page', () => {
     expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(4);
     for (const box of boxes) expect(box?.height).toBeGreaterThanOrEqual(44);
 
+    /*
+     * **And equal in height**, which is the half that shipped wrong: the rule
+     * making the two anchors flex boxes was one specificity point short of
+     * `.btn.sm`, so they were laid out as blocks and the row measured
+     * 44 / 47 / 47 tall while it was 104 / 104 / 104 wide. Three hard-keyline
+     * boxes in a row show a 3px step, and "equal actions" is a claim about what
+     * a rider sees rather than about one axis of it.
+     */
+    const heights = boxes.map((box) => box?.height ?? 0);
+    expect(
+      Math.max(...heights) - Math.min(...heights),
+      `the actions are ${heights.join(' / ')} tall`,
+    ).toBeLessThanOrEqual(1);
+
+    // The layout rules really apply, which is what the doubled class buys: a
+    // block box computes `gap` and ignores it, so the plus sat flush against
+    // the label.
+    for (const control of [directions, logHere]) {
+      // `/flex/` rather than `inline-flex`: at this width the row is a grid, and
+      // CSS blockifies a grid item's `inline-flex` to `flex`. What is being
+      // asserted is that it is a flex box at all — `block` is what shipped.
+      await expect(control).toHaveCSS('display', /flex/);
+    }
+
     const overflow = await page.locator('html').evaluate((el) => el.scrollWidth - el.clientWidth);
     expect(overflow, `the document is ${overflow}px wider than the screen`).toBeLessThanOrEqual(0);
 
     // "Log here" goes where it went before — the same address the block below
     // it has always used, with the spot's record id and nothing a rider typed.
     await expect(logHere).toHaveAttribute('href', /\/progress\/sessions\/new\?spot=[a-z0-9]{15}$/);
+
+    /*
+     * And it is the **only** one on the page (review finding 5). The sessions
+     * block's header carried an identical "Log a session here" — same address,
+     * same `LogSessionLink`, same `source: 'spot'` — about 600px below this
+     * one, so a rider met the same control twice and `session_log_opened` could
+     * not tell them apart. §3.10 says the action goes where it went before,
+     * which is a move; this is what makes the page agree with it.
+     */
+    await expect(page.getByRole('link', { name: 'Log a session here' })).toHaveCount(0);
+    await expect(page.getByText('Your sessions here')).toBeVisible();
+    await expect(
+      page.locator('a[href*="/progress/sessions/new?spot="]'),
+      'the spot page offers more than one way to log a session here',
+    ).toHaveCount(1);
   });
 
   test('offers a visitor Directions and nothing they cannot have', async ({ page }) => {

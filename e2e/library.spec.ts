@@ -37,10 +37,14 @@ const scooterTricks = tricksFor('scooter', TRICKS);
  * A trick whose name is not a substring of another trick's, so "is it on the
  * page" is never ambiguous. Picked from the data rather than typed in, so an
  * edit to the library moves the test instead of breaking it.
+ *
+ * **Across every sport, not only scooter** (T52). A signed-out visitor's
+ * library opens on *all* sports now — `SportScopeSelect`'s default with no
+ * rider — so a name that is unique among the scooter tricks is not enough: six
+ * cards matched "Bunny Hop" the moment the grid stopped being one sport's.
  */
 const distinct = (candidate: (typeof scooterTricks)[number]): boolean =>
-  scooterTricks.filter((t) => t.name.toLowerCase().includes(candidate.name.toLowerCase()))
-    .length === 1;
+  TRICKS.filter((t) => t.name.toLowerCase().includes(candidate.name.toLowerCase())).length === 1;
 
 const freeTrick = scooterTricks.find((t) => !isTrickLocked(t, 'rookie') && distinct(t))!;
 const lockedTrick = scooterTricks.find((t) => isTrickLocked(t, 'rookie') && distinct(t))!;
@@ -112,6 +116,70 @@ test('the library lists the tricks signed out, and the sport row is gone (D5)', 
   await expect(page.getByRole('tablist', { name: 'Which tricks to show' })).toHaveCount(0);
 });
 
+test('a visitor gets every sport, and can narrow to one by name', async ({ page }) => {
+  /*
+   * The blocker the independent review found, pinned.
+   *
+   * Removing `SportSwitch` without putting anything in its place left a
+   * signed-out visitor on whichever sport `useSport()` fell back to, with no
+   * control anywhere that could widen them: the top bar's chip is hidden with
+   * the rider (T45), so 175 of the 259 tricks had no route at all on a screen
+   * the landing page advertises as a no-sign-up peek. `SportScopeSelect` is
+   * what D5 hands a list that used to carry its own sport row (§3.3, O1).
+   *
+   * Two halves, and the first is the one that shipped broken: **the list opens
+   * on every sport**, and "Your sport (…)" is not offered at all — T48's rule,
+   * because it would be a claim about somebody the product has never met.
+   */
+  await page.goto('/library');
+
+  const scope = page.getByLabel('Show tricks for');
+  await expect(scope).toBeVisible();
+  await expect(scope).toHaveValue('all');
+  await expect(scope.getByRole('option', { name: /Your sport/ })).toHaveCount(0);
+
+  // Every sport is on the list, and every sport is an option.
+  const total = TRICKS.filter((t) => t.isLive).length;
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`${total} tricks`);
+  for (const id of SPORT_IDS) {
+    await expect(scope.getByRole('option', { name: SPORTS[id].short })).toHaveCount(1);
+  }
+
+  // And picking one narrows the grid to it, which is the route that had gone.
+  await scope.selectOption('skate');
+  const skate = tricksFor('skate', TRICKS).filter((t) => t.isLive).length;
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`${skate} tricks`);
+  await expect(page.getByText(`${SPORTS.skate.label} library`)).toBeVisible();
+});
+
+test('a rider’s library follows the top bar’s chip, and can be widened', async ({ page }) => {
+  await signUpRookie(page);
+  await page.goto('/library');
+
+  /*
+   * Signed in the default is `'chip'`, so a rider who never touches this
+   * control sees exactly the list they saw before it existed — one sport, the
+   * one the top bar says. That is D5: the sport is chosen once.
+   */
+  const scope = page.getByLabel('Show tricks for');
+  await expect(scope).toHaveValue('chip');
+  await expect(scope.getByRole('option', { name: /Your sport/ })).toHaveCount(1);
+
+  const scooter = tricksFor('scooter', TRICKS).filter((t) => t.isLive).length;
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`${scooter} tricks`);
+
+  // Widened, the heading stops naming one sport — a grid of all three under
+  // "SCOOTER LIBRARY" would be a heading its own rows disprove.
+  await scope.selectOption('all');
+  const total = TRICKS.filter((t) => t.isLive).length;
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`${total} tricks`);
+  await expect(page.getByText('Trick library, every sport')).toBeVisible();
+
+  // And it is remembered on this device, which is what `localStorage` is for.
+  await page.reload();
+  await expect(page.getByLabel('Show tricks for')).toHaveValue('all');
+});
+
 test('All · Mine · Filters is one row, and it fits a 320px phone', async ({ page }) => {
   /*
    * Issue #550's shape, on the widest of the rows: three boxes rather than two,
@@ -157,6 +225,22 @@ test('All · Mine · Filters is one row, and it fits a 320px phone', async ({ pa
   await filters.click();
   await expect(filters).toHaveAttribute('aria-expanded', 'true');
   await expect(page.getByRole('button', { name: 'Park', exact: true })).toBeVisible();
+
+  /*
+   * The active-filter count is still the pink badge (review finding 6). It
+   * moved out of `button.filter-toggle` with the disclosure, and the only rule
+   * for `.fcount` anywhere is `.filter-toggle .fcount` — so it rendered as a
+   * bare inherited number after the word FILTERS, which is the one thing on the
+   * row that says how much of the library a rider has narrowed away.
+   *
+   * Asserted on the fill rather than on the class, because a class that matches
+   * no rule is exactly what shipped.
+   */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Park', exact: true }).click();
+  const badge = filters.locator('.fcount');
+  await expect(badge).toHaveText('1');
+  await expect(badge).toHaveCSS('background-color', 'rgb(255, 61, 120)');
 });
 
 test('Mine is a tab of that row, and still rewrites the address', async ({ page }) => {
@@ -173,6 +257,37 @@ test('Mine is a tab of that row, and still rewrites the address', async ({ page 
   await tabs.getByRole('tab', { name: /^All/ }).click();
   await expect(page).not.toHaveURL(/mine=1/);
   await expect(card(page, freeTrick.name)).toBeVisible();
+});
+
+test('the Rookie nudge sits below the first cards rather than above the grid', async ({ page }) => {
+  /*
+   * The one thing §3.10 names for this screen, and the one thing the specs did
+   * not assert (review §6). Above the grid the nudge was the first thing on the
+   * list: a rider who came to look at tricks met a paragraph about their plan
+   * before a single card.
+   *
+   * Asserted as a **position in the grid**, not a pixel offset — it is a cell
+   * spanning every column, four cards in, so the row it lands on is decided in
+   * CSS by the width and the count is the same at every width.
+   */
+  await signUpRookie(page);
+  await page.goto('/library');
+
+  const nudge = page.getByText('You’re on Rookie');
+  await expect(nudge).toBeVisible();
+
+  const index = await page
+    .locator('.grid-tricks > *')
+    .evaluateAll((nodes) =>
+      nodes.findIndex((node) => (node.textContent ?? '').includes('You’re on Rookie')),
+    );
+  expect(index, 'the nudge is not a cell of the grid at all').toBeGreaterThan(-1);
+  expect(index, `the nudge is child ${index} of the grid`).toBe(4);
+
+  // And it spans the whole row rather than sitting in one card's slot.
+  const grid = await page.locator('.grid-tricks').boundingBox();
+  const box = await page.locator('.grid-tricks > *').nth(4).boundingBox();
+  expect(Math.round(box?.width ?? 0)).toBe(Math.round(grid?.width ?? 0));
 });
 
 test('a paid trick is listed, not hidden, and says which tier it is', async ({ page }) => {
