@@ -303,6 +303,16 @@ test('Mine is a tab of that row, and still rewrites the address', async ({ page 
   await tabs.getByRole('tab', { name: /^All/ }).click();
   await expect(page).not.toHaveURL(/mine=1/);
   await expect(card(page, freeTrick.name)).toBeVisible();
+
+  /*
+   * And the row has a panel (integration review, F8). It declared two tabs over
+   * a grid with no role on it, so a screen reader was told "Mine, tab, 2 of 2"
+   * and then about nothing — the one thing a tab promises. Named by its tab
+   * rather than by a copy of its word, which is ARIA's own pattern.
+   */
+  await expect(page.getByRole('tabpanel', { name: 'All' })).toBeVisible();
+  await tabs.getByRole('tab', { name: /^Mine/ }).click();
+  await expect(page.getByRole('tabpanel', { name: 'Mine' })).toBeVisible();
 });
 
 test('the Rookie nudge sits below the first cards rather than above the grid', async ({ page }) => {

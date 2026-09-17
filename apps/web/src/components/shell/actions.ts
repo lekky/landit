@@ -182,10 +182,11 @@ export async function trickPickerAction(
    *
    * On a rider's first day "Log a trick" was a search box and the line "Search
    * for the one you rode." — addressed to somebody who has ridden nothing the
-   * product knows about, on the screen the whole bottom bar points at. The rows
-   * above the search are the same four tricks Home's own "Start here" offers for
-   * this sport (`suggestedNextTricks`, the one definition of "you could begin on
-   * this"), so the two screens cannot suggest different first tricks.
+   * product knows about, on the screen the whole bottom bar points at. So the
+   * recents' slot carries four tricks to begin on instead: the same four Home's
+   * own "Start here" offers for this sport (`suggestedNextTricks`, the one
+   * definition of "you could begin on this"), so the two screens cannot suggest
+   * different first tricks.
    *
    * The prereq read is made **only** in this branch: a rider with something in
    * progress never sees the list, and a picker that fetched it anyway would
