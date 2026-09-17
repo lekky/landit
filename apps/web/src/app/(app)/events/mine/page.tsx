@@ -23,13 +23,19 @@ export const metadata: Metadata = {
  * A rider's own events — what they are down for, and what they have been to
  * (Rachid, 2026-09-13, in chat).
  *
- * **Why it is a third tab and not a filter.** "I'm going" was write-only: a
+ * **Where it is reached from, since 2026-09-17.** It was a third tab in the
+ * calendar's segmented control; the app shell rethink (§3.7) makes that control
+ * two pills — Upcoming and Past, which are each other's exact complement — and
+ * moves a rider's own events to the Find hub, where they are the "You're going"
+ * section and its "Mine →" link. The route, this gate, the `noindex` and the
+ * counts are unchanged; what moved is the door. The screen carries a "For you"
+ * back link to the hub (§2.3).
+ *
+ * **Why it is a screen and not a filter.** "I'm going" was write-only: a
  * rider could mark an event and the only thing the product ever said back was a
  * counter at the foot of the calendar. The thing they actually want to ask is
  * "what am I doing next, and what have I been to" — and that is one question
- * with two tenses, not a narrowing of either half. It sits in the same
- * segmented control as Upcoming and Past because that is where a rider is
- * already looking when they want it.
+ * with two tenses, not a narrowing of either half.
  *
  * **It is not a third opinion about what "past" means.** The list is
  * `myEvents`, which is cut from `upcomingEvents` and `pastEvents` — the same

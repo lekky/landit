@@ -82,11 +82,11 @@ export async function loadEvents(
      * here any more (Rachid, 2026-09-12, in chat).
      *
      * This used to be the rider's sports, because the screen's filter could
-     * only reach the sport the global switch was on. The filter is now a
-     * multi-select over `SPORT_IDS` (`SportFilter`), so a rider who records
-     * only skate can still ask for BMX — and a count missing from
-     * `countBySport` would render on that BMX pill as "0" while the calendar
-     * behind it was full.
+     * only reach the sport the global switch was on. The screen's control has
+     * been a multi-select and is now `SportScopeSelect` (rethink §3.3, O1), and
+     * both offer every sport there is — so a rider who records only skate can
+     * still open the calendar on BMX, and `countBySport` is computed for every
+     * sport rather than for the subset one rider happens to ride.
      */
     sports: [...SPORT_IDS],
     going,

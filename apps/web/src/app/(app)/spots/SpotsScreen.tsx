@@ -17,9 +17,9 @@ import { Button, Empty, Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { runActionOr } from '@/lib/runAction';
-import { sportFilterProperty } from '@/lib/sportFilter';
 
-import { SportFilter } from '@/components/filters/SportFilter';
+import { FindTabs } from '@/components/find/FindTabs';
+import { SportScopeSelect, useSportScope } from '@/components/shell/SportScopeSelect';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { reportHref, spotHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
@@ -95,9 +95,10 @@ const SHEET_WIDTH = '(max-width: 860px)';
 /**
  * The list query, as one string, so "did it change" is one comparison.
  *
- * The sports are joined in `SPORT_IDS` order — `SportFilter` hands them over
- * that way whatever order they were pressed in — so choosing scooter then BMX
- * and choosing BMX then scooter are the same query and do not refetch.
+ * The sports are joined in `SPORT_IDS` order, which `scopeSports` guarantees by
+ * only ever returning one sport or none. It used to matter more: the
+ * multi-select could produce "scooter and BMX" in either order, and this key is
+ * what made the two the same query rather than two.
  */
 function queryKey(search: string, sports: readonly SportId[], feature: string | null): string {
   return `${search.trim().toLowerCase()}|${sports.join('+')}|${feature ?? ''}`;
@@ -170,7 +171,6 @@ interface Loaded {
 export function SpotsScreen({
   initialSpots,
   initialTotal,
-  countsBySport,
   ownSpots,
   signedIn,
   units,
@@ -180,8 +180,14 @@ export function SpotsScreen({
   readonly initialSpots: readonly SpotView[];
   /** How many spots that first query matches in all. */
   readonly initialTotal: number;
-  /** Live spots per sport, over the whole collection, for the filter pills' counts. */
-  readonly countsBySport: Readonly<Record<string, number>>;
+  /*
+   * There is no per-sport count any more. The multi-select's pills carried one
+   * each ("BMX 210"), which answered "is it worth narrowing to this?" before a
+   * rider narrowed; a `<select>` has no room for a number beside each option
+   * and an option that carried one would read as part of the sport's name. The
+   * server-side `countSpotsBySport` call went with it, which is one query less
+   * on every load of this screen.
+   */
   /** The rider's own submissions that are not on the map: pending or turned down. */
   readonly ownSpots: readonly SpotView[];
   readonly signedIn: boolean;
@@ -244,17 +250,27 @@ export function SpotsScreen({
     if (favesOn && faves.ids.size === 0) setFavesOn(false);
   }
   /*
-   * Which sports the list is narrowed to. **Empty is every spot, and empty is
-   * where it opens** (Rachid, 2026-09-12, in chat).
+   * Which sports the list is narrowed to — the `SportScopeSelect` under the
+   * header (rethink §3.3, O1; Rachid, 2026-09-16, in chat).
    *
-   * It used to be `everySport`, a boolean starting `false` — so the screen
-   * opened filtered to whatever sport the global switch was on, and the only
-   * way to another sport was to change that switch, which changed home, the
-   * library and progress with it. On a rider who records one sport the switch
-   * is not rendered at all (`SportSwitch` needs two), so the other sports'
-   * spots were unreachable. See `SportFilter`.
+   * **Empty is every spot, and `'all'` is where it opens**, which is the
+   * 2026-09-12 decision unchanged: spot sport tags are thin — about 210 of
+   * 3,463 carry BMX — so a list that opened on one sport would be hiding most
+   * of the map from most riders.
+   *
+   * What changed on 2026-09-16 is the *control*. It was a multi-select over
+   * `SPORT_IDS` — "Every spot" plus one pill per sport, any combination — which
+   * answered the two things the sport tab row before it could not: a rider who
+   * records one sport could still reach BMX, and browsing was no longer a
+   * statement about what you ride. O1 keeps both of those and takes the
+   * combination away: the scope is one answer, so the row is a `<select>` that
+   * fits on one line at 320px (issue #465) and its first option *follows the
+   * top bar's sport chip* rather than being a second place the same choice is
+   * made. `scope.sports` is a one-sport list or an empty one, which is the same
+   * shape `filterSpots` and `spotListFilter` already took.
    */
-  const [sports, setSports] = useState<readonly SportId[]>([]);
+  const scope = useSportScope('spots', 'all');
+  const sports = scope.sports;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /*
    * Whether the map sheet is up. **Only a phone can see this** — the sheet
@@ -1075,14 +1091,6 @@ export function SpotsScreen({
    * of a decorative arrow.
    */
 
-  /*
-   * How many live spots each sport has, for the filter pills' counts. Counted
-   * on the server over every live spot rather than the filtered list: the count
-   * answers "is it worth adding BMX?", and one that shrank as you typed a
-   * search would answer a question nobody asked.
-   */
-  const sportNote = useCallback((id: SportId) => String(countsBySport[id] ?? 0), [countsBySport]);
-
   const mine = useMemo(() => ownSpots.filter((spot) => spot.status === 'pending'), [ownSpots]);
   // `listRule` returns a rider's own submission at any status, so a rejected
   // one comes back too. It used to fall between two filters and simply vanish —
@@ -1093,21 +1101,30 @@ export function SpotsScreen({
   return (
     <div>
       {/*
-        There is no `SportSwitch` here any more (Rachid, 2026-09-12, in chat),
-        and the filter row below carries every sport instead.
+        The Find group's tab row (§3.7): For you · Spots · Events, the same
+        three links on all three screens, with `tabs_switched` fired by `TabRow`
+        itself. It replaces the old "What's on" cell's habit of dropping a rider
+        on one of the two lists with no way across to the other.
 
-        T13 put the tab row here in 2026-08-31, correcting a prototype pill that
-        could only ever reach two sports — that reasoning still holds and is why
-        the row is not being replaced by anything like it. What it could not fix
-        is that the row is a *preference*: it is global state shared with home,
-        the library, progress and stickers, so looking for a BMX park changed
-        all four, and it is fed by the rider's own `users.sports`, so a rider who
-        records one sport never saw it and had no way past "Good for Skate".
-        A filter over `SPORT_IDS` answers both, and answers the third thing
-        neither could: "scooter and BMX". Recorded in plan §7 T13.
+        There is no `SportSwitch` here and no pill row either. T13 put the sport
+        tab row here in 2026-08-31, the multi-select replaced it on 2026-09-12,
+        and O1 replaced *that* with the scope select below on 2026-09-16 — three
+        controls for one question, each fixing what the last could not. What
+        survives from all three is the rule they were all reaching for: browsing
+        for a park is not a statement about what you ride, and every sport is
+        reachable whatever a rider's profile records.
       */}
+      <FindTabs current="spots" className={styles.tabs} />
+
       <div className={styles.head}>
-        <div>
+        {/*
+          The eyebrow and the title, **on desktop only** (§3.7). On a phone the
+          tab row above already says "Spots" in the lit box, and a screen that
+          says it twice spends a third of a 390px viewport on furniture before
+          the search box. The `h1` is still in the document at every width, for
+          the reason a heading exists: the outline and anything reading it.
+        */}
+        <div className={styles.headWords}>
           <span className="eyebrow">Spots</span>
           <h1 className={`d ${styles.title}`}>Where to ride</h1>
         </div>
@@ -1152,24 +1169,18 @@ export function SpotsScreen({
       </div>
 
       <div className={styles.filters}>
-        <span className="lab" style={{ color: 'var(--ink-3)' }}>
-          Show
-        </span>
-        <SportFilter
-          value={sports}
-          onChange={(next) => {
-            setSports(next);
-            // Catalogue facts only: which screen, and which sports. Never the
-            // rider's own sports, never the search text, never a position.
-            capture(ANALYTICS_EVENTS.sportFilterSet, {
-              screen: 'spots',
-              sports: sportFilterProperty(next),
-            });
-          }}
-          everyLabel="Every spot"
-          note={sportNote}
-          label="Filter spots by sport"
-        />
+        {/*
+          "Show: Every spot" (§3.3, O1). One line where four pills used to wrap
+          onto two at 375px (issue #465), and one answer rather than a set: the
+          combination the pills allowed is what O1 deliberately gave up, on the
+          reasoning that the sport is chosen once, in the top bar, and a list
+          either follows that or is widened.
+
+          It fires `sport_scope_set` from inside `useSportScope`, so the press
+          is counted whichever screen the control is on and no screen can
+          forget it — the same reasoning `TabRow` fires `tabs_switched` itself.
+        */}
+        <SportScopeSelect state={scope} everyLabel="Every spot" label="Show spots for" />
         {/*
           Faves.
 
