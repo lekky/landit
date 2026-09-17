@@ -256,6 +256,33 @@ describe('a rider joining one of the rider’s crews', () => {
     // spec's "with your code" would be a guess. See `crewJoinLine`.
     expect(lines[0]?.line).not.toContain('your code');
   });
+
+  /*
+   * The crew's name is the one place a sentence in this file ends on something
+   * a rider typed, and it is unmoderated free text — so the product's own full
+   * stop has to give way to whatever punctuation is already there. Found by the
+   * integration review of 2026-09-17 as "… Crew Corby!!!.".
+   */
+  it('does not staple a full stop onto a name that already ends in one', () => {
+    const joined = (crewName: string) =>
+      linesOf(
+        whatsNewLines(
+          {
+            joins: [{ id: 'm1', crewName, riderName: 'Leo', joinedAt: '2026-09-15T18:00:00.000Z' }],
+          },
+          CLOCK,
+        ),
+      )[0];
+
+    expect(joined('Crew Corby!!!')).toBe('Leo joined Crew Corby!!!');
+    expect(joined('Are We Rolling?')).toBe('Leo joined Are We Rolling?');
+    expect(joined('Ramp Rats…')).toBe('Leo joined Ramp Rats…');
+    expect(joined('Ramp Rats...')).toBe('Leo joined Ramp Rats...');
+    // A name that does not end a sentence still gets one, including one that
+    // closes a bracket — "Ramp Rats (Corby)" is a name, not a sentence.
+    expect(joined('Ramp Rats (Corby)')).toBe('Leo joined Ramp Rats (Corby).');
+    expect(joined('Ramp Rats')).toBe('Leo joined Ramp Rats.');
+  });
 });
 
 describe('the order is time and nothing else', () => {

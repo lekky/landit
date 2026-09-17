@@ -5309,11 +5309,33 @@ Crew; the raised LOG cell and the four-action Log sheet (a new `Sheet` primitive
 `ui-web`); the sport switch chip with its sheet and menu; the `TabRow` variant on `Tabs`; `BackLink`;
 `Dropdown`; motion tokens; the streak chip and the section drawer removed; the email banner as a
 one-line strip; a `/find` placeholder redirecting to `/spots` until T48; the new analytics events;
-`e2e/shell.spec.ts` at 375, 861, 960 and 1280px. Alone in its wave: everything else uses what it adds.
+`e2e/shell.spec.ts` at 375, 861, 960 and 1280px. Alone in its wave: everything else uses what it
+adds. **Built 2026-09-17** (PR #539): `nav.ts` keeps its shape and gains `DESTINATIONS`, a
+written-out list of everywhere a rider can go, because with both bars on the same four groups the
+old covers-everything test proved nothing; `packages/ui-web` gains `Sheet`, `Dropdown`, a `bell`
+icon, the five motion tokens and `variant="boxed"` on `Tabs`, all additive, while `TabRow` itself
+lives in `apps/web` because two of its four duties — the analytics call and the `next/link` form —
+cannot live in the package. All six of spec §5's events are added to the catalogue in this one PR so
+the three Wave B branches do not each edit the same region of `analytics.ts`; three of them fire
+here. Signed out the LOG cell is a link to `/signin` rather than a button that could do nothing, and
+the chip's name is on at every width, paid for by shrinking the wordmark below 400px. `/find`
+redirects to `/spots` and `/whats-new` is a one-line placeholder until T48 and T47. The T45
+paragraphs in `docs/app-shell-rethink.md` §3.1, §3.2 and §3.5 record what the spec was silent on.
 
 **T46 · Home as a dashboard of link cards.** `t46-home-cards`. Depends on T45. The four record
 cards both widths, the new Home order, Home back links and lit-cell rules on Progress, Sessions,
 Stickers and Challenge, Progress and Stickers tab rows, sport tab rows removed from those screens.
+**Built 2026-09-17** (PR #548), closing issue #522 on **option 1** (Rachid, 2026-09-16, in chat):
+`/progress` stays "Where you're at" and does not redirect, and the two screens have separate cards.
+Three cards is the ordinary case, not four — the Sessions card is drawn only for a rider the preview
+covers (T41), so the row fills itself rather than holding an empty track, and the two extra reads it
+needs are made behind the same gate. Home drops the four-badge row and the wish-list grid, which the
+Stickers and Progress cards now say in less room; the crew board's slot is the crew's *activity*,
+which is the spec's own call. Progress and Stickers keep their tab in `?tab=` rather than in
+`useState` (`useTabParam`, new and additive) — a rider who opens a skill-tree node and presses Back
+was landing on Record, having lost their place. `ProgressTabs` is removed from `/progress` only, and
+the header collision that left on `/progress/sessions` is T50's. The T46 paragraphs in
+`docs/app-shell-rethink.md` §3.4 and §3.10 record what the spec was silent on.
 
 **T47 · What's new.** `t47-whats-new`. Depends on T45. The one additive field
 `users.whats_new_seen_at` with its hook; the feed derived in `packages/core` from the rider's own
@@ -5321,7 +5343,17 @@ record and the crew feed's six sentences (nothing stored per item — **every li
 product wrote**, and the only free text that reaches one is a crew's name and a rider's display
 name, both of which the crew screen already shows to the same people; "nothing typed by anyone" was
 the original wording here and was not accurate); the panel as a page on the phone and a dropdown on
-desktop; the bell count.
+desktop; the bell count. **Built 2026-09-17** (PR #543), closing issue #550: the count is one
+derived computation from four windowed reads fired together plus up to four more that depend on what
+those found, memoised per request and failing soft to zero, because the bell is in the top bar of
+every signed-in screen; the **panel's** contents are fetched when it opens. The badge counts the You
+lines and not the crew tabs, so a rider is never notified about their own logging. A private
+crew-mate's join is not mentioned — the test is `users.listRule`, which is the crew feed's rule
+rather than the crew board's carve-out. Opening the panel stamps and re-renders, but only when
+there was something to clear and the read succeeded. The tab row is hidden for a rider in one crew,
+and `tabs_switched` carries `crew-1`, never a crew id. The T47 paragraphs in
+`docs/app-shell-rethink.md` §3.6 record what the spec was silent on, including the two rider-typed
+strings that do reach a line.
 
 **T48 · Find.** `t48-find`. Depends on T45. The `/find` summary, the tab row on Spots and Events,
 the sport-scope toggle (open question O1 in the spec), Upcoming · Past as pills, Mine folded into
@@ -5350,7 +5382,17 @@ is drawn as "Video", because plan §6.6 withdrew the clip vocabulary from this p
 
 **T50 · Lists follow the chip.** `t50-lists-follow-chip`. Depends on T45. Sessions header, stats
 and toggle; the session form as three steps on the phone with the sport preset from the chip; the
-quick log's sport tag; the glossary toggle.
+quick log's sport tag; the glossary toggle. **Built 2026-09-17** (PR #560): `/progress/sessions`
+reads **Sessions** under the Home back link and `ProgressTabs` is deleted with the last screen that
+drew it, which closes the header collision T46 recorded. The sport scope and "At an event" become
+two controls rather than one row of alternatives, so "my BMX jam sessions" can be asked for at all,
+and both reset the pager. The form's three steps apply at **every** width — one component tree, not
+a phone one and a desktop one — with `Next` validating its own step, `Save` validating everything, a
+refusal landing on the step that can fix it, and an **edit** saving from wherever it is rather than
+walking to step three. The glossary's `?sport=` becomes the screen's default rather than its
+address, because the scope is a per-device choice the server cannot see. The T50 paragraphs in
+`docs/app-shell-rethink.md` §3.10 record what the spec was silent on, and the two reversals the
+review asks the owner to confirm.
 
 **T51 · Account as a settings list.** `t51-account-settings`. Depends on T45. Seven rows opening
 seven screens on the phone; list-plus-panel on desktop. **Built 2026-09-17**: eight rows, not

@@ -735,7 +735,15 @@ a.pill.on:hover {
   color: var(--ink);
   max-height: min(70vh, 560px);
   overflow: auto;
-  animation: dropin var(--dur-ui) var(--ease-out);
+  /*
+   * `--ease-spring`, not `--ease-out` (integration review, nit 1). §4's rule is
+   * "open toward, close away": sheets, modals and dropdowns open on the spring
+   * and settle on the ease. This opened on the ease, so the one surface of the
+   * three that a desktop rider meets most did not move like the other two. This
+   * is `Dropdown`'s own rule, added by T45 in this wave, so correcting it is not
+   * a change to anything that shipped before the rethink.
+   */
+  animation: dropin var(--dur-ui) var(--ease-spring);
 }
 @keyframes dropin {
   from {

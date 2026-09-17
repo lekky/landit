@@ -197,6 +197,13 @@
  * The sport, chosen once, in the top bar (D5) — icon and the sport's short
  * name, filled with the sport's own colour behind a paper keyline like the
  * avatar's. The fill cross-fades when the sport changes, with the bar's rule.
+ *
+ * **The foreground is set on the element, by `foregroundFor`** (integration
+ * review, nit 4). It was `--on-light` here, which is right for all three sports
+ * today and is right by luck: a sport's colour is a record staff can change, and
+ * a stylesheet cannot measure one. `SportSwitchChip.tsx` asks the same function
+ * every other coloured fill in the product asks, so a fourth sport, or a darker
+ * BMX, cannot go silently unreadable.
  */
 .sportChip,
 .sportChip:hover {
@@ -206,7 +213,6 @@
   gap: 6px;
   padding: 0 10px;
   border: 2.5px solid var(--paper);
-  color: var(--on-light);
   font-family: var(--fc);
   font-weight: 700;
   font-size: 13px;

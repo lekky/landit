@@ -1,7 +1,7 @@
 'use client';
 
 import { SPORTS, SPORT_IDS, type SportId } from '@landit/core';
-import { Dropdown, Equipment, Icon, Sheet } from '@landit/ui-web';
+import { Dropdown, Equipment, Icon, Sheet, foregroundFor } from '@landit/ui-web';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
@@ -165,7 +165,9 @@ export function SportSwitchChip() {
       <button
         type="button"
         className={styles.sportChip}
-        style={{ background: look.color }}
+        // Ink or paper, whichever clears the sport's own colour — never a
+        // constant, because the colour is a record staff can change (nit 4).
+        style={{ background: look.color, color: foregroundFor(look.color) ?? 'var(--on-light)' }}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={`Riding: ${look.short}. Switch sport.`}

@@ -13,7 +13,14 @@ import { finishOnboarding } from './support/onboarding';
 
 const SHELL = '/design/shell';
 
-/** `#ff5a1f` as `rgb(255, 90, 31)`, which is how a browser reports a colour. */
+/**
+ * A hex as `rgb(r, g, b)`, which is how a browser reports a colour.
+ *
+ * The fixed example this comment used to give was scooter's, and it was a stale
+ * one: the sport colours were repainted on `main` before the rethink merged, so
+ * the number named a colour nothing in the product has. It is a hex in and an
+ * `rgb()` out — the callers pass `SPORTS[id].color`, which is where the truth is.
+ */
 function hexToRgb(hex: string): string {
   const value = hex.trim().replace('#', '');
   const n = parseInt(value, 16);

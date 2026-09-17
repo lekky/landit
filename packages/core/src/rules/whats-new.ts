@@ -244,6 +244,28 @@ export function weekBankedLine(weeks: number): string {
 }
 
 /**
+ * Terminal punctuation, for the one sentence that ends on something a rider
+ * typed.
+ *
+ * The ellipsis is here as one character and as three dots, because both are
+ * typed; a closing quote or bracket after a stop is left to the fallthrough,
+ * since "Ramp Rats (Corby)" is a name and wants the product's stop after it.
+ */
+const ENDS_A_SENTENCE = /(?:[.!?…]|\.\.\.)$/u;
+
+/**
+ * The product's full stop, unless the sentence already has one.
+ *
+ * Crew names are free text and unmoderated, and a child who calls their crew
+ * "Crew Corby!!!" got "Crew Corby!!!." — the product's own punctuation stapled
+ * onto theirs. Every other sentence in this file ends on a word the product
+ * chose, so this is the only place it can happen.
+ */
+function endSentence(text: string): string {
+  return ENDS_A_SENTENCE.test(text) ? text : `${text}.`;
+}
+
+/**
  * "Leo joined Ramp Rats."
  *
  * **Not "with your code"**, which is what rethink §3.6 sketches. `crew_members`
@@ -256,7 +278,7 @@ export function weekBankedLine(weeks: number): string {
 export function crewJoinLine(riderName: string, crewName: string): string {
   const who = String(riderName ?? '').trim() || 'A rider';
   const crew = String(crewName ?? '').trim() || 'your crew';
-  return `${who} joined ${crew}.`;
+  return endSentence(`${who} joined ${crew}`);
 }
 
 /* ------------------------------------------------------------------ the feed -- */
