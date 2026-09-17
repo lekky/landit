@@ -78,6 +78,20 @@ test('sessions and progress are both under Home, and both open by address', asyn
     'aria-current',
     'page',
   );
+
+  /*
+   * And both say what they are under (§2.3, T46). The lit cell is the bar's
+   * half of the promise; the back link is the page's, and it is the half a
+   * rider can press. A real link to `/home`, so a deep link still has somewhere
+   * to go.
+   */
+  for (const path of ['/progress', '/progress/sessions']) {
+    await page.goto(path);
+    await expect(
+      page.getByRole('main').getByRole('link', { name: 'Home' }).first(),
+      `${path} has no Home back link`,
+    ).toHaveAttribute('href', '/home');
+  }
 });
 
 test('a rider with no sessions is offered a way to log one', async ({ page }) => {

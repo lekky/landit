@@ -71,6 +71,63 @@ test('greets the rider by their first name and dates the day', async ({ page }) 
   ).toBeVisible();
 });
 
+/*
+ * The four record cards (T46, rethink §3.4).
+ *
+ * These are not decoration that happens to be clickable. Folding nine
+ * destinations into four groups (D8) took Progress, Sessions, Stickers and the
+ * Challenge off both bars, so these cards are the **only** way a rider reaches
+ * any of them — the same defect `lib/nav.test.ts` exists to stop, arriving from
+ * the other side: the bar can claim to reach a screen all it likes, and if the
+ * card that does the reaching is missing, the screen is gone on a phone.
+ */
+test('the four record cards are the way to the four screens under Home', async ({ page }) => {
+  await arriveAtHome(page, 'Card Rider');
+
+  const main = page.getByRole('main');
+  for (const [title, href] of [
+    ['Progress', '/progress'],
+    // Sessions is drawn for a rider the preview covers, which the e2e server
+    // opens to everybody (`LANDIT_SESSIONS_OPEN=1` in `playwright.config.ts`).
+    ['Sessions', '/progress/sessions'],
+    ['Stickers', '/stickers'],
+    ['Challenge', '/challenge'],
+  ] as const) {
+    const card = main.getByRole('link', { name: new RegExp(`^${title}`) }).first();
+    await expect(card, `the ${title} card is missing from Home`).toBeVisible();
+    await expect(card).toHaveAttribute('href', href);
+  }
+});
+
+test('a record card lands on its screen, and the screen says it is under Home', async ({
+  page,
+}) => {
+  await arriveAtHome(page, 'Sticker Rider');
+
+  await page
+    .getByRole('main')
+    .getByRole('link', { name: /^Stickers/ })
+    .first()
+    .click();
+  await page.waitForURL('**/stickers');
+
+  // §2.3: the back link is a real link to `/home`, not `history.back()`.
+  const back = page.getByRole('main').getByRole('link', { name: 'Home' }).first();
+  await expect(back).toHaveAttribute('href', '/home');
+});
+
+test('the sport tab row is gone from the dashboard (D5)', async ({ page }) => {
+  await arriveAtHome(page, 'Chip Rider');
+
+  /*
+   * The sport is chosen once, in the top bar's chip, and every in-page sport
+   * row goes with it. Home's was the first one a rider met, directly under the
+   * greeting — and with one sport it was never drawn at all, so a rider who
+   * added a second sport used to watch a new row appear on five screens.
+   */
+  await expect(page.getByRole('main').getByRole('tablist', { name: 'Sport' })).toHaveCount(0);
+});
+
 test('the four stat blocks are there, and the library bar with them', async ({ page }) => {
   await arriveAtHome(page, 'Stat Rider');
 

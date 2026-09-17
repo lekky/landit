@@ -89,15 +89,21 @@ async function markSometimes(page: Page): Promise<void> {
  * collection and pass by finding nothing, which is the failure mode this
  * file's own header warns about (LESSONS §5).
  *
- * Retried on `aria-pressed` for the reason `markSometimes` gives: the control
+ * Retried on `aria-selected` for the reason `markSometimes` gives: the control
  * is server-rendered, so it is on screen before React owns it, and a press
  * before hydration does nothing at all.
+ *
+ * A `tab`, not a pressed `button`, since T46: the switch is the boxed `TabRow`
+ * every screen uses (§3.10), which is a `role="tablist"` of tabs. It was an
+ * underline bar of toggles only because a sport tab row used to sit above it
+ * and two identical rows read as one control (#379 item 5) — the sport row went
+ * with D5, and so did the reason.
  */
 async function showWholeWall(page: Page): Promise<void> {
-  const notYet = page.getByRole('button', { name: /^Not yet \d+$/ });
+  const notYet = page.getByRole('tab', { name: /^Not yet \d+$/ });
   await expect(async () => {
     await notYet.click();
-    await expect(notYet).toHaveAttribute('aria-pressed', 'true');
+    await expect(notYet).toHaveAttribute('aria-selected', 'true');
   }).toPass({ timeout: 20_000 });
 }
 
@@ -122,6 +128,30 @@ test('the wall is signed-in only', async ({ page }) => {
   await page.waitForURL('**/signin');
 });
 
+test('the wall is under Home, and has one tab row rather than two (T46)', async ({ page }) => {
+  await arrive(page, 'Walled Rider');
+  await page.goto('/stickers');
+
+  // §2.3: a Home back link, and a real link rather than `history.back()`.
+  const back = page.getByRole('main').getByRole('link', { name: 'Home' }).first();
+  await expect(back).toHaveAttribute('href', '/home');
+
+  /*
+   * D5: the sport row goes. It used to sit above the heading, and the Earned /
+   * Not yet switch was drawn as an underline bar inside the ink panel purely to
+   * avoid reading as a second copy of it (#379 item 5). With the sport row gone
+   * the switch is the boxed row every other screen uses, in the header, and
+   * there is exactly one tab row on the page.
+   */
+  await expect(page.getByRole('main').getByRole('tablist')).toHaveCount(1);
+  const tabs = page.getByRole('tablist', { name: 'Which badges to show' });
+  await expect(tabs.getByRole('tab')).toHaveCount(2);
+  // The counts came with it: "Not yet 109" is a reason to press, "Not yet" is a
+  // word.
+  await expect(tabs.getByRole('tab', { name: /^Earned \d+$/ })).toBeVisible();
+  await expect(tabs.getByRole('tab', { name: /^Not yet \d+$/ })).toBeVisible();
+});
+
 test('a fresh wall shows the award set, locked — bar the founder badge', async ({ page }) => {
   await arrive(page, 'Fresh Rider');
   await page.goto('/stickers');
@@ -143,7 +173,7 @@ test('a fresh wall shows the award set, locked — bar the founder badge', async
   expect(earned).toBeLessThanOrEqual(1);
 
   // The earned tab's own count agrees with the heading.
-  await expect(page.getByRole('button', { name: `Earned ${earned}` })).toBeVisible();
+  await expect(page.getByRole('tab', { name: `Earned ${earned}` })).toBeVisible();
 
   // The locked half lives behind "Not yet" now; the heading above still counts
   // the whole wall either way. The halves are disjoint, so that side holds
@@ -164,8 +194,8 @@ test('the two tabs are disjoint halves, shelved the same way, and visibly differ
   // disjoint, nothing locked is drawn there at all. This is also what protects
   // the once-only pop: the wall acknowledges fresh awards on mount whatever
   // view is showing, so the default has to be the view that draws them.
-  const earnedTab = page.getByRole('button', { name: /^Earned \d+$/ });
-  await expect(earnedTab).toHaveAttribute('aria-pressed', 'true');
+  const earnedTab = page.getByRole('tab', { name: /^Earned \d+$/ });
+  await expect(earnedTab).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('.sticker.locked')).toHaveCount(0);
 
   /*
@@ -187,7 +217,7 @@ test('the two tabs are disjoint halves, shelved the same way, and visibly differ
   expect(onEarned.length).toBeGreaterThan(0);
 
   await showWholeWall(page);
-  await expect(earnedTab).toHaveAttribute('aria-pressed', 'false');
+  await expect(earnedTab).toHaveAttribute('aria-selected', 'false');
 
   const onNotYet = await badgeNames();
   expect(onNotYet.length).toBeGreaterThan(0);
