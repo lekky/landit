@@ -25,7 +25,7 @@ All by Rachid, in chat, on the dates given.
 | --- | --- | --- |
 | D1 | The phone's bottom bar is five cells: **Home · Tricks · LOG · Find · Crew**, LOG raised and yellow in the middle (shape A; B and C rejected). | 2026-09-15 |
 | D2 | **Find opens on a summary page** ("For you"), with Spots and Events as tabs of one row, not a drawer. | 2026-09-15 |
-| D3 | **LOG opens a sheet with four actions**: I rode today, Log a trick, Log a session, Add a clip link. | 2026-09-15 |
+| D3 | **LOG opens a sheet with three actions**: I rode today, Log a trick, Log a session. *Four until 2026-09-17, when the owner removed "Add a clip link" — it opened the trick picker only to land on the video field the trick page already carries. Clips themselves are unchanged.* | 2026-09-15, amended 2026-09-17 |
 | D4 | **The bell ("What's new") has two tabs**: You, and one per crew. In-app only; push notifications are out of scope. | 2026-09-15 |
 | D5 | **The sport is chosen once**, in a top-bar chip that carries the sport's icon *and name*. The top bar's bottom rule takes the sport colour. Every in-page sport tab row goes. Lists that used to carry their own sport row follow the chip through one dropdown (O1 below). | 2026-09-15 |
 | D6 | Every tab row is a row of separate boxes with the 3px keyline and the hard offset shadow; the active tab lifts to a 4px offset in yellow (the `.sporttab` treatment). Pills keep their keyline-only look because they filter rather than navigate. | 2026-09-15 |
@@ -65,7 +65,7 @@ Nine destinations become four groups plus the things that are yours, at every wi
 | --- | --- | --- | --- |
 | **Home** `/home` | the dashboard | Progress `/progress`, Sessions `/progress/sessions`, Stickers `/stickers`, Challenge `/challenge` — four **record cards** on Home; each of those screens shows a **Home** back link and keeps the Home cell / nav item lit | bar, nav |
 | **Tricks** `/library` | the library | the trick page `/library/[slug]`, the glossary `/glossary` | bar, nav |
-| **LOG** (phone) / **Log** (desktop) | a **sheet** (phone) or **modal** (desktop), never a page | I rode today · Log a trick · Log a session · Add a clip link | the middle cell / the yellow button beside the chip |
+| **LOG** (phone) / **Log** (desktop) | a **sheet** (phone) or **modal** (desktop), never a page | I rode today · Log a trick · Log a session | the middle cell / the yellow button beside the chip |
 | **Find** `/find` (new route) | the **For you** summary | Spots `/spots`, Events `/events`, the archive `/events/past`, your events `/events/mine` (folded into For you as "You're going") — one row of tabs on all of them | bar, nav |
 | **Crew** `/crew` | the crew | rider profiles `/riders/[handle]`, invites `/join/[code]` | bar, nav |
 | **Avatar menu** | — | Your account, Coach / parent view, Plans and pricing, Tell us an idea, Report something, (staff) Admin portal, Sign out — unchanged | top bar |
@@ -359,8 +359,8 @@ threshold set where it is not yet needed is a decoration removed for nothing.
 1. **I rode today** (lime tick) — "One tap. Counts a ride for the streak, nothing else." Calls the existing `rodeTodayAction`; on success the sheet closes and the existing toast shows. **Once today's ride is counted the row says so and goes inert** — "Counted today. One a day is all it takes.", the disabled treatment, and `log_action_picked` does not fire for a tap that can do nothing (owner, 2026-09-17: "i rode today should be disabled somehow if they already logged today?"). The shell computes it from `users.last_ride` in the rider's own timezone.
 2. **Log a trick** (yellow grid) — "One trick, up a stage." Opens the trick picker: the rider's three most recently worked-on tricks on the current sport, then a search field over the library; choosing one goes to `/library/[slug]#ladder` where the existing `StagePicker` is the action.
 3. **Log a session** (sky clock) — "A ride: where, how long, how it felt, the tricks you worked on." Opens the existing quick log (`QuickLog`) in the same sheet; "Add tricks, clip and notes" escalates to the full form as today. Shown only when `sessionsEnabled`.
-4. **Add a clip link** (dashed keyline, no shadow) — "YouTube or TikTok, onto a trick you have logged." Opens the trick picker limited to landed tricks, then the existing video-link field on the trick page.
-- Fires `log_action_picked` `{ action: 'rode' | 'trick' | 'session' | 'clip' }`.
+- **A fourth row, "Add a clip link", was here until 2026-09-17** (owner, in chat). It opened the trick picker limited to landed tricks and then landed on the video-link field the trick page already carries — a signpost to a signpost. Clips are unchanged: they are added on the trick page, in "Your history, notes and videos". `#clips` remains a valid anchor and still opens that row on Your videos; nothing in the sheet sends a rider to it now.
+- Fires `log_action_picked` `{ action: 'rode' | 'trick' | 'session' }`.
 
 **A rider with nothing on the go is offered somewhere to start, and the row is where the recents
 would be** *(added by the integration-pass worker, 2026-09-17, pending owner confirmation)*. §3.5
@@ -376,8 +376,8 @@ that branch, so a rider with something in progress pays nothing for a list they 
 It sits **in the recents' slot, under the search field**, rather than literally above the search as
 the finding phrased it: the two lists answer the same question at two ages of account, one of them
 is on screen at a time, and moving the search box down the sheet for a new rider would give the
-sheet two shapes to learn. "Add a clip link" is unchanged — a rider who has landed nothing has
-nowhere to put a clip, and that row's own line already says so.
+sheet two shapes to learn. *(The sentence that stood here about "Add a clip link" being unchanged
+went with the row itself on 2026-09-17.)*
 
 **And the picker never offers a trick the rider's plan does not open** *(added by the
 integration-pass worker, 2026-09-17, pending owner confirmation)*. §3.5 is silent on the paywall and
@@ -839,12 +839,14 @@ loosening that assertion to gain a word no rider is waiting for. The **address**
 *The independent review of 2026-09-17 agreed and recommended keeping "Video": the line in §3.8 above
 is the one that wants correcting, and that is the owner's to make rather than a worker's.*
 
-**And "Add a clip link" lands on the videos tab** *(added by the T49 worker, 2026-09-17, after the
-independent review, S4)*. §3.5 item 4 says the row "opens the trick picker limited to landed tricks,
-**then the existing video-link field on the trick page**", and the first cut arrived with the notes
-form showing and the field a rider had pressed for one unlabelled tap away. `LogPanel` reads the
-same `#clips` fragment the row itself answers to, on the load and on a `hashchange`, and opens on
-Your videos; every other arrival still opens on the notes.
+**And `#clips` lands on the videos tab** *(added by the T49 worker, 2026-09-17, after the
+independent review, S4; the row that produced it removed by the owner later the same day)*. §3.5
+item 4 said the row "opens the trick picker limited to landed tricks, **then the existing
+video-link field on the trick page**", and the first cut arrived with the notes form showing and
+the field a rider had pressed for one unlabelled tap away. `LogPanel` reads the `#clips` fragment
+on the load and on a `hashchange`, and opens on Your videos; every other arrival still opens on the
+notes. The behaviour stays now the sheet's row is gone, because `#clips` is still a valid address
+for that row — it simply has no producer inside the app.
 
 **The ladder is the band's own, not `StagePicker`** *(added by the T49 worker, 2026-09-17, pending
 owner confirmation)*. §3.8 says the yellow band carries "the `StagePicker` and Share". The band has
@@ -1713,7 +1715,7 @@ facts only, and each added to the pinned list in `analytics.test.ts`:
 | Event | Properties | Fired by |
 | --- | --- | --- |
 | `log_sheet_opened` | `where: 'mobile' \| 'top'` | LogCell, LogButton |
-| `log_action_picked` | `action: 'rode' \| 'trick' \| 'session' \| 'clip'` | LogSheet |
+| `log_action_picked` | `action: 'rode' \| 'trick' \| 'session'` | LogSheet |
 | `tabs_switched` | `group`, `tab` (ids from the screen's tab list; `analyticsId` where the tab is a record, e.g. `crew-1`) | `TabRow` — `apps/web/src/components/shell/TabRow.tsx`, which fires it itself so no screen has to remember (§3.3), and not at all when the pressed tab is the active one *(T47, 2026-09-17)* |
 | `sport_scope_set` | `screen`, `scope: 'chip' \| 'all' \| 'other'` | SportScopeSelect |
 | `whats_new_opened` | `where: 'mobile' \| 'top'`, `unread` (integer) | `BellButton` for `top`; `WhatsNewPanel`'s mount for `mobile` — the page, not the bell's tap, so "All →", a deep link and the back button all count *(T47, 2026-09-17)* |

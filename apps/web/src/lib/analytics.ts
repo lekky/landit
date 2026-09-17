@@ -623,9 +623,13 @@ export const ANALYTICS_EVENTS = {
    */
   logSheetOpened: 'log_sheet_opened',
   /**
-   * Which of the sheet's four a rider took: `rode`, `trick`, `session` or
-   * `clip`. Four fixed strings written in `LogSheet.tsx`, and nothing else —
-   * not the trick picked, not the spot, not the stage.
+   * Which of the sheet's three a rider took: `rode`, `trick` or `session`.
+   * Three fixed strings written in `LogSheet.tsx`, and nothing else — not the
+   * trick picked, not the spot, not the stage.
+   *
+   * **`clip` was a fourth until 2026-09-17**, when the owner took "Add a clip
+   * link" off the sheet. Readings that span that date are counting a row that
+   * stopped existing, not a habit that stopped.
    */
   logActionPicked: 'log_action_picked',
   /**
