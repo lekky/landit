@@ -1,0 +1,218 @@
+'use client';
+
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
+
+import { cx } from '../cx';
+import { Icon } from '../icons';
+
+/**
+ * A disclosure row (app shell rethink §3.8) — a title, an optional sub-line, a
+ * chevron, and a body that grows out from under it.
+ *
+ * **Why it exists.** The trick page has a dozen sections and a phone has one
+ * column; before T49 a rider scrolled past everything the page could teach them
+ * to reach their own history with the trick. Closed rows turn that scroll into
+ * a list of names, and a name is something a child can choose from.
+ *
+ * **`<details>` / `<summary>` underneath.** Not a `div` with `aria-expanded`:
+ * the native element already carries the role, the state and the keyboard
+ * behaviour, it works with no JavaScript at all, and the browser's own
+ * find-in-page opens it. What this component adds on top is the motion the
+ * design asks for, which the native element has none of.
+ *
+ * **How the motion is done.** The body is a grid whose single row goes from
+ * `0fr` to `1fr` over `--dur-ui` — the one way to animate to a height nobody
+ * has measured. The row is put into that state *one frame after* the `open`
+ * attribute lands, because a subtree the UA was hiding has no painted `0fr` to
+ * transition from; and on the way back the transition runs first and the
+ * attribute is dropped `--dur-ui` later, which is the shape `Sheet` already
+ * uses for the same reason. `prefers-reduced-motion` is covered by the floor at
+ * the foot of `additions.css`, which clamps the transition; the close then
+ * waits 200ms with nothing to look at, which is the right way round (a rider
+ * who asked for less motion still asked for the row to shut).
+ *
+ * **Open state is never persisted** (§3.8). It is a reading position, not a
+ * preference: a rider who opened "Tips" on one trick has said nothing about the
+ * next one.
+ *
+ * **A row whose `id` is the address opens itself.** The Log sheet's "Add a clip
+ * link" lands on `/library/<trick>#clips`, and a fragment that scrolls to a shut
+ * box is a link that did not work. The check runs on mount and again on
+ * `hashchange`, so a second trip from the sheet to a page already open lands the
+ * same way as the first.
+ *
+ * **`plainAbove` is what keeps a desktop out of it.** §3.8 says the desktop
+ * page keeps its plain panels, and one server render cannot know the width. So
+ * above that width the row is held open, the chevron goes and the summary stops
+ * being a control — the caller's stylesheet does the rest of the repaint. The
+ * width is read the way `Sheet` reads its own (`useSyncExternalStore` over
+ * `matchMedia`, the server answering "phone"), so there is no hydration
+ * mismatch to throw the tree away (LESSONS §3a); the caller's desktop CSS
+ * covers the first frame.
+ */
+
+export type AccordionProps = {
+  /** The row's name. Words, not markup — it is the summary's whole label. */
+  title: ReactNode;
+  /** An optional 13px line under the title: a count, a date, a hint. */
+  sub?: ReactNode;
+  children: ReactNode;
+  /** Open on first render. Not persisted, and never read back. */
+  defaultOpen?: boolean;
+  /**
+   * The element's id, which is also the fragment that opens it: a page linking
+   * to `#clips` gets the row open rather than a closed box scrolled into view.
+   */
+  id?: string;
+  /**
+   * Above this viewport width (in px) the row is held open, loses its chevron
+   * and stops being pressable — for a layout whose wide form has no disclosure
+   * in it at all. Left out, the row is a disclosure at every width.
+   */
+  plainAbove?: number;
+  className?: string;
+  style?: CSSProperties;
+};
+
+/**
+ * How long a closing row stays open, in step with `--dur-ui`.
+ *
+ * The token is the authority and this number matches it, for the reason
+ * `CLOSE_MS` in `overlays.tsx` gives: a wait shorter than the transition cuts
+ * it off, a longer one leaves a row that has finished shutting still marked
+ * open.
+ */
+const CLOSE_MS = 200;
+
+function subscribeToWidth(query: string): (onChange: () => void) => () => void {
+  return (onChange) => {
+    const mq = window.matchMedia(query);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  };
+}
+
+/** Whether the viewport is past `plainAbove`. `false` on the server. */
+function usePlain(plainAbove: number | undefined): boolean {
+  const query = `(min-width: ${(plainAbove ?? 0) + 1}px)`;
+  const subscribe = useCallback(
+    (onChange: () => void) =>
+      plainAbove === undefined ? () => {} : subscribeToWidth(query)(onChange),
+    [plainAbove, query],
+  );
+  return useSyncExternalStore(
+    subscribe,
+    () => (plainAbove === undefined ? false : window.matchMedia(query).matches),
+    () => false,
+  );
+}
+
+export function Accordion({
+  title,
+  sub,
+  children,
+  defaultOpen = false,
+  id,
+  plainAbove,
+  className,
+  style,
+}: AccordionProps) {
+  const plain = usePlain(plainAbove);
+  const [open, setOpen] = useState(defaultOpen);
+  /** The class that drives the transition — a frame behind `open`, and ahead of
+   * it on the way back. */
+  const [grown, setGrown] = useState(defaultOpen);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const frame = useRef<number | null>(null);
+  const bodyId = `${useId().replace(/[^a-zA-Z0-9]/g, '')}-body`;
+
+  const clearPending = useCallback(() => {
+    if (closeTimer.current !== null) clearTimeout(closeTimer.current);
+    if (frame.current !== null) cancelAnimationFrame(frame.current);
+    closeTimer.current = null;
+    frame.current = null;
+  }, []);
+
+  const show = useCallback(() => {
+    clearPending();
+    setOpen(true);
+    // Two frames: the first paints the body at `0fr` now that the UA has
+    // stopped hiding it, the second is the one the transition starts from.
+    frame.current = requestAnimationFrame(() => {
+      frame.current = requestAnimationFrame(() => setGrown(true));
+    });
+  }, [clearPending]);
+
+  const hide = useCallback(() => {
+    clearPending();
+    setGrown(false);
+    closeTimer.current = setTimeout(() => setOpen(false), CLOSE_MS);
+  }, [clearPending]);
+
+  useEffect(() => clearPending, [clearPending]);
+
+  // The fragment that names this row opens it (see the note above).
+  useEffect(() => {
+    if (!id) return;
+    const match = () => {
+      if (window.location.hash !== `#${id}`) return;
+      clearPending();
+      setOpen(true);
+      setGrown(true);
+    };
+    match();
+    window.addEventListener('hashchange', match);
+    return () => window.removeEventListener('hashchange', match);
+  }, [id, clearPending]);
+
+  const isOpen = plain || open;
+
+  return (
+    <details
+      id={id}
+      className={cx('accordion', plain && 'accordion-plain', className)}
+      style={style}
+      open={isOpen}
+      /* React owns the attribute, so the UA's own toggle is undone on the next
+         render; `onClick` below is what actually opens and shuts the row. This
+         keeps the two in step when a browser toggles it some other way — a
+         find-in-page hit, for one. */
+      onToggle={(event) => {
+        if (plain) return;
+        const next = event.currentTarget.open;
+        if (next && !open) show();
+        if (!next && open) hide();
+      }}
+    >
+      <summary
+        className="accordion-head"
+        aria-controls={bodyId}
+        onClick={(event) => {
+          event.preventDefault();
+          if (plain) return;
+          if (open) hide();
+          else show();
+        }}
+      >
+        <span className="accordion-text">
+          <span className="accordion-title">{title}</span>
+          {sub && <span className="accordion-sub">{sub}</span>}
+        </span>
+        <Icon name="chevron" size={18} strokeWidth={2.6} className="accordion-chev" />
+      </summary>
+
+      <div id={bodyId} className={cx('accordion-body', grown && 'is-grown')}>
+        <div className="accordion-inner">{children}</div>
+      </div>
+    </details>
+  );
+}

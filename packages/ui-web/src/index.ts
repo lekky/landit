@@ -68,6 +68,7 @@ export {
   type AvatarId,
 } from './avatars';
 
+export { Accordion, type AccordionProps } from './components/Accordion';
 export { Avatar, type AvatarProps } from './components/Avatar';
 export {
   Button,
