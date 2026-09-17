@@ -104,6 +104,9 @@ of that.
 
 ## Where things live
 
+- [`marketing/chatgpt-brief.md`](chatgpt-brief.md) — the standing brief for handing the whole
+  post to ChatGPT: style, slots, the ten types, the rotation, the verified figures and the
+  Buffer channel ids. Everything below, written for something that cannot read this repo.
 - `marketing/social/` — finished posters, named `YYYY-MM-DD-<slug>-<n>-<part>.png`.
 - Buffer holds the queue. Its free plan caps the **whole organisation at 10 scheduled posts**,
   and one day costs three (one per channel), so roughly three days can sit queued at once.
