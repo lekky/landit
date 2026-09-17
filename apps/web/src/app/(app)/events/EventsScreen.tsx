@@ -323,11 +323,15 @@ export function EventsScreen({
    * and a badge saying "1" on a fresh calendar would be a filter nobody applied.
    * Country counts only when it is not the one the screen opened on, for the
    * same reason.
+   *
+   * **The sort is not in here either**, and for a different one: the list says
+   * its own order directly above the first row ("Nearest first"), so naming it
+   * here would be the same fact twice on one screen — and the pair read as two
+   * different claims when only one of them can change the list.
    */
   const applied = [
     country && country !== view.defaultCountry ? country : null,
     kind ? (view.kinds.find((k) => k.id === kind)?.id ?? null) : null,
-    sort === 'nearest' ? 'Nearest first' : null,
   ].filter((entry): entry is string => Boolean(entry));
   const activeFilters = applied.length;
 
@@ -879,10 +883,15 @@ export function EventsScreen({
           <button
             type="button"
             className={`cond ${styles.showingAll}`}
+            /*
+              Clears what this line names, and nothing it does not: the country
+              and the kind. The order is left alone — it is stated by the list
+              itself and a rider who asked for nearest did not ask for that to
+              be undone by a button about filters.
+            */
             onClick={() => {
               setCountry('');
               setKind(null);
-              if (sort === 'nearest') chooseSort('date');
             }}
           >
             {applied.length > 1 || (applied.length === 1 && !country) ? 'Clear' : 'See everywhere'}

@@ -1,6 +1,6 @@
 'use client';
 
-import { CREW_NAME_MAX_LENGTH } from '@landit/core';
+import { CREW_NAME_MAX_LENGTH, crewCapMessage } from '@landit/core';
 import { Avatar, Button, Empty, Icon, Modal, Panel, SportChip, Tag } from '@landit/ui-web';
 import Link from 'next/link';
 import { useActionState, useState, useTransition } from 'react';
@@ -67,6 +67,8 @@ export function CrewScreen({ view }: { view: CrewView }) {
     part a rider needs to decide with.
   */
   const [leaving, setLeaving] = useState(false);
+  /* Crews **owned**, against the plan's allowance: joining is never capped. */
+  const atCrewCap = view.crews.filter((c) => c.isOwner).length >= view.crewCap;
 
   const crew = view.selected;
 
@@ -261,18 +263,34 @@ export function CrewScreen({ view }: { view: CrewView }) {
         `page.tsx` — the same record the hook reads before it refuses a create,
         so this row cannot offer what the server would turn down.
       */}
-      {crew && view.crews.filter((c) => c.isOwner).length < view.crewCap ? (
+      {crew ? (
         <div className={styles.more}>
           <div className={styles.moreButtons}>
-            <Button
-              size="sm"
-              variant="ghost"
-              className={styles.moreButton}
-              aria-expanded={opening === 'start'}
-              onClick={() => setOpening((was) => (was === 'start' ? null : 'start'))}
-            >
-              Start another
-            </Button>
+            {/*
+              **"Start another" is what the cap hides; "Join with a code" never
+              is.** Joining is uncapped at every tier — the limit is on minting
+              invite codes, not on having mates — and hiding both behind one
+              test would have shut a rider out of a crew somebody had already
+              invited them to, which is the opposite of what the cap is for.
+            */}
+            {atCrewCap ? (
+              <p className={styles.capNote}>
+                {crewCapMessage(view.crewCap, view.planName)}{' '}
+                <Link className={styles.capLink} href={ROUTES.plans}>
+                  See plans
+                </Link>
+              </p>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                className={styles.moreButton}
+                aria-expanded={opening === 'start'}
+                onClick={() => setOpening((was) => (was === 'start' ? null : 'start'))}
+              >
+                Start another
+              </Button>
+            )}
             <Button
               size="sm"
               variant="ghost"

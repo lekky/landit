@@ -431,3 +431,27 @@
 .leaveActions > :last-child {
   margin-left: auto;
 }
+
+/*
+ * What a rider at their plan's crew allowance reads where "Start another" was
+ * (owner, 2026-09-17). A sentence rather than a disabled button: a control that
+ * cannot do anything teaches nothing, and the number is the plan's, so the way
+ * to change it is a plan rather than a retry.
+ *
+ * "Join with a code" stays beside it, always — joining is uncapped at every
+ * tier, and a rider invited to a mate's crew must not be shut out by a limit on
+ * making their own.
+ */
+.capNote {
+  margin: 0;
+  align-self: center;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+.capLink {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

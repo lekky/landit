@@ -26,7 +26,7 @@ import styles from './home.module.css';
  * whole of how a rider gets to them — which makes this screen navigation as
  * much as a summary, and is why the cards sit directly under the streak rather
  * than below two grids of trick art. The order the owner agreed on the canvas
- * is: greeting → streak → the four cards → Working on it → crew activity →
+ * is: greeting → streak → the four cards → Your tricks → crew activity →
  * Next up → Your spots.
  *
  * **The sport tab row is gone** (D5). The sport is chosen once, in the top
@@ -56,8 +56,8 @@ export function HomeScreen({ view }: { view: HomeView }) {
    * Where the section's "more" link goes, and it is **not** the same question
    * as which cards are under it (review, regression inventory).
    *
-   * The heading follows what is shown: "Working on it" when something is in
-   * progress, "Start here" when nothing is. The link follows what the rider
+   * The heading is "Your tricks" either way since 2026-09-17; what still
+   * follows the state is the list under it. The link follows what the rider
    * *has*: any trick with a stage on it at all — landed, learning or want-to —
    * means `/library?mine=1` has something in it, so that is where the link
    * goes. Tying both to `working` sent the one rider most likely to have a
