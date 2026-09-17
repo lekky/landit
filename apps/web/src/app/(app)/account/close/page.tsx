@@ -56,7 +56,13 @@ export default async function CloseAccountPage() {
       <div>
         <BackLink href={ROUTES.account} label="Your account" />
       </div>
-      <span className="eyebrow">Your account</span>
+      {/*
+        The eyebrow said "Your account" too, six pixels under a back link that
+        now says it in the same condensed uppercase at almost the same size —
+        the same words twice, one of them a control and one of them not. The
+        old 13.5px sentence-case link was different enough to carry both; this
+        one is not, so the eyebrow goes rather than the link.
+      */}
       <h1 className={`d ${styles.head}`}>Closing your account</h1>
 
       <Panel flat className={styles.panel}>
