@@ -770,32 +770,56 @@ columns rather than a badge-sized track and the rest, because a 16:9 player give
 1180px page is 440px tall and pushes the band — the only control on this page — off the first
 screenful.
 
-**What the row costs, measured twice and then capped** *(added by the T49 worker, 2026-09-17,
-pending owner confirmation; the numbers corrected and the cap added after the independent review of
-2026-09-17, S5 and its §4)*. D7 puts a card-height row between the name and the ladder, and the
-first cut of it took the yellow band a long way down the page. The independent review measured it
-properly and found the cost is **two costs, not one**: the band only fell below a 1280 × 720 fold on
-a trick that has a **curated video**, which is a minority today and a growing one, and not on the
-videoless majority.
+**What the row costs, measured three times: the cap, then the stack** *(added by the T49 worker,
+2026-09-17, pending owner confirmation; the desktop numbers corrected and the cap added after the
+independent review's S5, the phone numbers corrected and the conclusion rewritten after its second
+pass, L1)*. D7 puts a card-height row between the name and the ladder, and the first cut of it took
+the yellow band a long way down the page. The independent review measured it and found the cost was
+**two costs, not one**: the band only fell below a 1280 × 720 fold on a trick with a **curated
+video**, which is a minority today and a growing one, and not on the videoless majority.
 
-Top of the band, page coordinates, `main` against this branch:
+Top of the band, page coordinates, `main` against this branch at each of the three shapes:
 
-| | `main` | first cut | with the cap |
-| --- | --- | --- | --- |
-| 1280 × 720, with a video | 291 | 785 | **665** |
-| 1280 × 720, no video | 291 | 527 | **519** |
-| 390 × 844, with a video | 312 | 554 | **573** |
-| 390 × 844, no video | 312 | 480 | **464** |
+| | `main` | first cut | with the cap | with D7a's stack |
+| --- | --- | --- | --- | --- |
+| 1280 × 720, with a video | 291 | 785 | **665** | 665 |
+| 1280 × 720, no video | 291 | 527 | **519** | 519 |
+| 390 × 844, with a video | 312 | 554 | 573 | **760** |
+| 390 × 844, no video | 312 | 480 | 464 | **419** |
 
-So the player is capped: a **360px track** on the desktop row takes the frame from 506 × 316 to
+On the **desktop** the player is capped: a **360px track** takes the frame from 506 × 316 to
 328 × 205 and the band from 785 to 665, which is 55px of yellow on screen at 720 rather than none.
 328 × 205 is not a small player — it is exactly the size `main` gave the same tutorial on a phone —
 and the arithmetic does not allow better: a 16:10 frame under this hero cannot leave the whole 79px
 band above a 720px fold without shrinking to about 224px wide, which is a worse trade than the one
-it fixes. The toast overlap the review found at 785 (S5) goes with it.
+it fixes. The toast overlap the review found at 785 (S5) goes with it. D7a changed nothing here.
 
-On the phone both figures are on the first screenful, which is what matters: the rethink is for that
-screen. Nothing is hidden at either width and one short scroll reaches the band.
+**On a phone D7a moved the cost rather than removing it, and this is where it landed.** Stacking
+gives the tutorial back 85% of the area it has on `main` (302 × 189 against 132 × 83) and costs the
+band the height of the second card. Measured against the **effective** first screenful — the
+viewport less the fixed bottom bar, which is what a rider actually sees — on a trick **with** a
+curated video:
+
+| phone | band top | usable above the bottom bar | band visible |
+| --- | --- | --- | --- |
+| iPhone SE · 375 × 667 | 788 | 604 | **none** |
+| Galaxy A · 360 × 740 | 777 | 677 | **none** |
+| iPhone 13 · 390 × 844 | 760 | 781 | **21px of 84** — the "Can you do it?" strip, no stage buttons |
+| Pixel 7 · 412 × 915 | 757 | 852 | all 84 |
+
+So the honest sentence is not the one this paragraph used to end with. **On a trick with a curated
+video the band is one short scroll down on the smaller phones**, and entirely off the first screen
+on two of the four; without a video it is on the first screenful everywhere (419). Nothing is
+hidden, nothing is unreachable, and the video is what a rider opened the page to see — but the
+rethink's stated priority is the phone, and D7a was chosen on the strength of the older, stale
+version of this table, so the number is written down here rather than left to be rediscovered.
+
+**Two levers, and both are the owner's.** Moving the compact sticker card **below the band** on a
+phone recovers about **140px** (band to roughly 620, fully visible on three of the four phones
+above); capping the phone frame's **height** recovers about **50** more. On a 667-tall phone with a
+top bar, a full-width player and a bottom bar, nothing gets all of it back. Neither is done here:
+D7a says video first and the row is the owner's shape, and moving a card past the band is a third
+arrangement rather than a correction to the second.
 
 **Desktop is the same markup, held open** *(added by the T49 worker, 2026-09-17, pending owner
 confirmation)*. §3.8 says "Desktop does not use it", and one server render cannot know the width, so
@@ -837,11 +861,13 @@ and both cost the tutorial more than the arrangement was worth. Measured at 390 
 So below 820px the cards stack, with the **video first** — which is what the 2026-09-12 instruction
 ("the owner asked for prominence where there is a video") asked for, and what a rider opened the
 page to see — and the sticker card under it drawn **compact**, its badge beside its two lines rather
-than over them — 122px tall against the 257 the stacked card was, which is what keeps the yellow
-band on the first screenful: measured at 390 its top is **760** against an 844 viewport (**419**
-without a video), and nothing overflows sideways at 320, 360 or 390. With no video the
-sticker card is simply the one card, as D7 already says. **Above 820px nothing changes**: the row is
-exactly as D7 drew it, with the player capped at a 360px track (see the measurements above).
+than over them: 122px tall against the 257 the stacked card was, which is 135px of the band's height
+bought back. Measured at 390 the band's top is **760** against an 844 viewport (**419** without a
+video), and nothing overflows sideways at 320, 360 or 390. *What those two numbers mean for the
+smaller phones is the paragraph above — on a trick with a video the band is one short scroll down
+there, and the compact card is what stops it being further.* With no video the sticker card is
+simply the one card, as D7 already says. **Above 820px nothing changes**: the row is exactly as D7
+drew it, with the player capped at a 360px track (see the measurements above).
 
 The `@container (max-width: 260px)` rule in `video.module.css` stays, and still bites in three
 measured places: the trick page's own card at **320px**, where a full-width frame is 232; the rider
