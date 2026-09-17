@@ -200,7 +200,7 @@ export function StagePanel({
           and the buttons land on one line together, as the phone mock-up has
           them. Both are drawn from `landedLabel`; only one is ever on screen.
         */}
-        {landedLabel && !confirming && (
+        {landedLabel && (
           <div className={styles.bandLanded}>
             <div className={`lab ${styles.bandLabel}`}>First landed</div>
             <div className={`cond ${styles.bandDate}`}>{landedLabel}</div>
@@ -211,8 +211,14 @@ export function StagePanel({
           Beside the ladder rather than under it. Share first, because stopping
           is the rarer and heavier of the two and should not be the one a thumb
           lands on.
+
+          These used to be hidden while `confirming`, because the confirm was a
+          strip that took their place in the band. It is a dialog now, so the
+          band stays exactly as it was underneath it — a page that rearranges
+          itself behind a modal is the jump this pass is removing, not a
+          smaller version of it.
         */}
-        {current && !confirming && (
+        {current && (
           <div className={styles.bandActions}>
             {landedLabel && share && (
               <Button
