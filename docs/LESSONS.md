@@ -753,6 +753,22 @@ reversal.
 
 ## 5. Tests that cannot silently pass
 
+**When you delete a control, grep the e2e for the words on it — do not just re-run the specs you
+changed.** T52 removed a duplicate "Log a session here" from the spot page's sessions block, after
+an independent review pointed out that the hero's new "Log here" was a second copy of it rather than
+the same link moved. The task's own specs were updated and the six files it had touched were run
+locally: all green. `session-detail.spec.ts` — a file the task never opened, covering a screen it did
+not change — asserted that same accessible name on the same page, and CI's e2e job failed eighteen
+minutes later on a branch whose three local gates were all clean.
+
+The cost is one CI cycle, and the cheap version of the check is `grep -rn "<the words>" e2e/` at the
+moment of deletion: an accessible name is what every Playwright locator is written against, so
+removing one breaks tests by *string*, with no import to follow, no type error and no signal in the
+diff. The same grep is worth running for a **renamed** label — T52 also shortened "Filters & sort"
+to "Filters" for a while, which no spec happened to pin. And when a change removes something shared
+rather than adding to it, **run the whole suite locally once** rather than the subset the task
+touched; sixteen minutes beats finding out from a red check after a push.
+
 **Prove a guarantee as observed behaviour, not as rule text.** T2's four §3 guarantees are
 tested over HTTP against a real PocketBase instance: a private profile 404s to another rider, a
 clip's bytes are refused to a forged token, a rookie is refused a paid trick — including with a

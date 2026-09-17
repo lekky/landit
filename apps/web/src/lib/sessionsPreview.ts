@@ -28,3 +28,25 @@ export function sessionsEnabledFor(rider: Parameters<typeof isOwner>[0]): boolea
   if ((process.env.LANDIT_SESSIONS_OPEN ?? '').trim() === '1') return true;
   return isOwner(rider);
 }
+
+/**
+ * The same question asked of a **viewer** — "is there somebody signed in, and
+ * are sessions on for them" — which is the form every screen actually wants.
+ *
+ * It exists because the other form is easy to misuse in exactly one way, and
+ * T52 misused it: `sessionsEnabledFor(session?.rider ?? null)` on the spot page
+ * put a "Log here" button in front of a **signed-out visitor**, because the
+ * first line above answers `true` for a `null` rider once the flag is set — and
+ * the flag being set is how sessions are released. The blocks have always asked
+ * both halves (`riderFor`: `viewer && sessionsEnabledFor(viewer.rider)`); this
+ * is that expression, named, so a screen cannot write the shorter one by
+ * accident.
+ *
+ * Sync and viewer-shaped rather than `riderFor`'s async lookup, so a server
+ * component that already holds its session can ask without a second read.
+ */
+export function sessionsEnabledForViewer(
+  viewer: { readonly rider: Parameters<typeof isOwner>[0] } | null | undefined,
+): boolean {
+  return viewer ? sessionsEnabledFor(viewer.rider) : false;
+}

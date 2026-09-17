@@ -34,9 +34,18 @@ const unique = () => Math.random().toString(36).slice(2, 10);
 const scooterTricks = tricksFor('scooter', TRICKS);
 
 /**
- * A trick whose name is not a substring of another trick's, so "is it on the
- * page" is never ambiguous. Picked from the data rather than typed in, so an
- * edit to the library moves the test instead of breaking it.
+ * A trick whose name is not a substring of another *scooter* trick's, so "is it
+ * on the page" is never ambiguous. Picked from the data rather than typed in, so
+ * an edit to the library moves the test instead of breaking it.
+ *
+ * **Scooter, and the list tests narrow the grid to match** (T52). A signed-out
+ * visitor's library opens on *every* sport now — `SportScopeSelect`'s default
+ * with no rider — and six cards matched "Bunny Hop" the moment the grid stopped
+ * being one sport's. Widening this to every sport fixed those four and quietly
+ * moved which trick the **trick page's** twenty-odd tests run against, which is
+ * a fixture T49 chose for its own reasons. So the fixture stays as it was and
+ * the tests that browse a grid say which grid they mean, with `narrowToScooter`
+ * below.
  */
 const distinct = (candidate: (typeof scooterTricks)[number]): boolean =>
   scooterTricks.filter((t) => t.name.toLowerCase().includes(candidate.name.toLowerCase()))
@@ -47,6 +56,25 @@ const lockedTrick = scooterTricks.find((t) => isTrickLocked(t, 'rookie') && dist
 
 /** One trick card in the grid, found by the name it shows. */
 const card = (page: Page, name: string) => page.locator('.tcard').filter({ hasText: name });
+
+/**
+ * Put the grid on scooter, which is the grid the fixtures above are unique in.
+ *
+ * Signed out the library opens on **every sport** since T52 — the blocker the
+ * review found was that a visitor had no way to widen it, and the answer was
+ * `SportScopeSelect` with "All sports" as a visitor's default. A test that then
+ * asks "is Bunny Hop on the page" is asking about three sports' worth of cards.
+ *
+ * The scope is per device in `localStorage`, so one call holds for the rest of
+ * the test including navigations away and back — which is what the
+ * place-keeping tests need.
+ */
+async function narrowToScooter(page: Page): Promise<void> {
+  await page.getByLabel('Show tricks for').selectOption('scooter');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(
+    `${scooterTricks.filter((t) => t.isLive).length} tricks`,
+  );
+}
 
 /*
  * Tests in this file run in order in a single worker rather than one per core.
@@ -84,22 +112,233 @@ async function signUpRookie(page: Page): Promise<void> {
   await page.waitForURL('**/home');
 }
 
-test('the library lists the tricks, signed out, with one tab per sport', async ({ page }) => {
+test('the library lists the tricks signed out, and the sport row is gone (D5)', async ({
+  page,
+}) => {
   await page.goto('/library');
+  await narrowToScooter(page);
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText('tricks');
   await expect(card(page, freeTrick.name)).toBeVisible();
 
-  // Three sports since T21 — screenshot 08 shows two because it predates the
-  // decision (plan §7 ground rules).
+  /*
+   * This asserted "one tab per sport" until T52. The sport is chosen once now,
+   * in the top bar's chip (D5), and every in-page sport row goes with it — this
+   * was the last one on this screen. The assertion is inverted rather than
+   * deleted, because the row coming back is the thing the decision forbids and
+   * nothing else would notice.
+   *
+   * Three sports since T21, and the count is kept: it is what stops this
+   * passing because `SPORT_IDS` quietly emptied.
+   */
   for (const id of SPORT_IDS) {
-    await expect(page.getByRole('tab', { name: new RegExp(SPORTS[id].label, 'i') })).toBeVisible();
+    await expect(page.getByRole('tab', { name: new RegExp(SPORTS[id].label, 'i') })).toHaveCount(0);
   }
   expect(SPORT_IDS.length).toBe(3);
+
+  // Signed out there is no All · Mine either: a visitor has no tracked tricks,
+  // so the row would be a control with one working side.
+  await expect(page.getByRole('tablist', { name: 'Which tricks to show' })).toHaveCount(0);
+});
+
+test('a visitor gets every sport, and can narrow to one by name', async ({ page }) => {
+  /*
+   * The blocker the independent review found, pinned.
+   *
+   * Removing `SportSwitch` without putting anything in its place left a
+   * signed-out visitor on whichever sport `useSport()` fell back to, with no
+   * control anywhere that could widen them: the top bar's chip is hidden with
+   * the rider (T45), so 175 of the 259 tricks had no route at all on a screen
+   * the landing page advertises as a no-sign-up peek. `SportScopeSelect` is
+   * what D5 hands a list that used to carry its own sport row (§3.3, O1).
+   *
+   * Two halves, and the first is the one that shipped broken: **the list opens
+   * on every sport**, and "Your sport (…)" is not offered at all — T48's rule,
+   * because it would be a claim about somebody the product has never met.
+   */
+  await page.goto('/library');
+
+  const scope = page.getByLabel('Show tricks for');
+  await expect(scope).toBeVisible();
+  await expect(scope).toHaveValue('all');
+  await expect(scope.getByRole('option', { name: /Your sport/ })).toHaveCount(0);
+
+  // Every sport is on the list, and every sport is an option.
+  const total = TRICKS.filter((t) => t.isLive).length;
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`${total} tricks`);
+  for (const id of SPORT_IDS) {
+    await expect(scope.getByRole('option', { name: SPORTS[id].short })).toHaveCount(1);
+  }
+
+  // And picking one narrows the grid to it, which is the route that had gone.
+  await scope.selectOption('skate');
+  const skate = tricksFor('skate', TRICKS).filter((t) => t.isLive).length;
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`${skate} tricks`);
+  await expect(page.getByText(`${SPORTS.skate.label} library`)).toBeVisible();
+});
+
+test('a rider’s library follows the top bar’s chip, and can be widened', async ({ page }) => {
+  await signUpRookie(page);
+  await page.goto('/library');
+
+  /*
+   * Signed in the default is `'chip'`, so a rider who never touches this
+   * control sees exactly the list they saw before it existed — one sport, the
+   * one the top bar says. That is D5: the sport is chosen once.
+   */
+  const scope = page.getByLabel('Show tricks for');
+  await expect(scope).toHaveValue('chip');
+  await expect(scope.getByRole('option', { name: /Your sport/ })).toHaveCount(1);
+
+  const scooter = tricksFor('scooter', TRICKS).filter((t) => t.isLive).length;
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`${scooter} tricks`);
+
+  // Widened, the heading stops naming one sport — a grid of all three under
+  // "SCOOTER LIBRARY" would be a heading its own rows disprove.
+  await scope.selectOption('all');
+  const total = TRICKS.filter((t) => t.isLive).length;
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`${total} tricks`);
+  await expect(page.getByText('Trick library, every sport')).toBeVisible();
+
+  // And it is remembered on this device, which is what `localStorage` is for.
+  await page.reload();
+  await expect(page.getByLabel('Show tricks for')).toHaveValue('all');
+});
+
+test('All · Mine · Filters is one row, and it fits a 320px phone', async ({ page }) => {
+  /*
+   * Issue #550's shape, on the widest of the rows: three boxes rather than two,
+   * one of them carrying a count. `.tabrow .sporttab` is `flex: 1` with
+   * `white-space: nowrap`, so a label that will not fit makes its box refuse to
+   * shrink and the whole document scrolls sideways — which on this screen would
+   * also take the card grid with it.
+   *
+   * 320 is the narrowest phone the product is built for, and it is the width
+   * `TabRow`'s own tightening (`.rowFit`, under 420px) exists for.
+   */
+  await page.setViewportSize({ width: 320, height: 844 });
+  await signUpRookie(page);
+  await page.goto('/library');
+
+  const tabs = page.getByRole('tablist', { name: 'Which tricks to show' });
+  await expect(tabs.getByRole('tab')).toHaveCount(2);
+  const filters = page.getByRole('button', { name: /Filters/ });
+  await expect(filters).toBeVisible();
+
+  // `locator.evaluate`, not `page.evaluate`: the root `tsc --noEmit` compiles
+  // `e2e/` without the DOM lib, so a bare `document` in a spec is a build
+  // failure rather than a browser call.
+  const root = page.locator('html');
+  for (const width of [320, 360, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    const overflow = await root.evaluate((el) => el.scrollWidth - el.clientWidth);
+    expect(
+      overflow,
+      `the document is ${overflow}px wider than the screen at ${width}`,
+    ).toBeLessThanOrEqual(0);
+  }
+
+  // Every box in the row is a 44px target (§4), the Filters one included.
+  for (const box of [tabs.getByRole('tab').first(), tabs.getByRole('tab').last(), filters]) {
+    const size = await box.boundingBox();
+    expect(size?.height).toBeGreaterThanOrEqual(44);
+  }
+
+  // And the third box is a disclosure rather than a tab — a screen reader told
+  // "Filters, tab" would expect the panel under the row to become the filters.
+  await expect(filters).toHaveAttribute('aria-expanded', 'false');
+  await filters.click();
+  await expect(filters).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByRole('button', { name: 'Park', exact: true })).toBeVisible();
+
+  /*
+   * The active-filter count is still the pink badge (review finding 6). It
+   * moved out of `button.filter-toggle` with the disclosure, and the only rule
+   * for `.fcount` anywhere is `.filter-toggle .fcount` — so it rendered as a
+   * bare inherited number after the word FILTERS, which is the one thing on the
+   * row that says how much of the library a rider has narrowed away.
+   *
+   * Asserted on the fill rather than on the class, because a class that matches
+   * no rule is exactly what shipped.
+   */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Park', exact: true }).click();
+  const badge = filters.locator('.fcount');
+  await expect(badge).toHaveText('1');
+  await expect(badge).toHaveCSS('background-color', 'rgb(255, 61, 120)');
+
+  /*
+   * **And the words stay** (review L3). In the flow the badge took about 30px
+   * from a box with roughly 100px of content at 390, and the label gave way
+   * first — so "FILTERS & SORT" clipped to "FILTERS …" exactly when a rider had
+   * a filter on, which is when they are most likely to be reading it. Nit 11
+   * asked for "sort" back; a badge that removed it whenever it appeared had not
+   * given it back. It hangs off the corner now, the bell's own idiom.
+   *
+   * Asserted as "the label is not clipped" rather than on a pixel width: a span
+   * whose content is wider than its box is exactly what `text-overflow` hides,
+   * and it is the thing that was wrong.
+   */
+  const label = filters.locator('.tab-label');
+  await expect(label).toHaveText('Filters & sort');
+  const clipped = await label.evaluate((el) => el.scrollWidth - el.clientWidth);
+  expect(clipped, `the label is clipped by ${clipped}px with a filter on`).toBeLessThanOrEqual(0);
+
+  // And the corner badge does not push the page sideways.
+  const spill = await page.locator('html').evaluate((el) => el.scrollWidth - el.clientWidth);
+  expect(spill, `the document is ${spill}px wider than the screen`).toBeLessThanOrEqual(0);
+});
+
+test('Mine is a tab of that row, and still rewrites the address', async ({ page }) => {
+  await signUpRookie(page);
+  await page.goto('/library');
+
+  const tabs = page.getByRole('tablist', { name: 'Which tricks to show' });
+  await expect(tabs.getByRole('tab', { name: /^All/ })).toHaveAttribute('aria-selected', 'true');
+
+  await tabs.getByRole('tab', { name: /^Mine/ }).click();
+  await expect(page).toHaveURL(/mine=1/);
+  await expect(page.getByText('You are not tracking anything yet')).toBeVisible();
+
+  await tabs.getByRole('tab', { name: /^All/ }).click();
+  await expect(page).not.toHaveURL(/mine=1/);
+  await expect(card(page, freeTrick.name)).toBeVisible();
+});
+
+test('the Rookie nudge sits below the first cards rather than above the grid', async ({ page }) => {
+  /*
+   * The one thing §3.10 names for this screen, and the one thing the specs did
+   * not assert (review §6). Above the grid the nudge was the first thing on the
+   * list: a rider who came to look at tricks met a paragraph about their plan
+   * before a single card.
+   *
+   * Asserted as a **position in the grid**, not a pixel offset — it is a cell
+   * spanning every column, four cards in, so the row it lands on is decided in
+   * CSS by the width and the count is the same at every width.
+   */
+  await signUpRookie(page);
+  await page.goto('/library');
+
+  const nudge = page.getByText('You’re on Rookie');
+  await expect(nudge).toBeVisible();
+
+  const index = await page
+    .locator('.grid-tricks > *')
+    .evaluateAll((nodes) =>
+      nodes.findIndex((node) => (node.textContent ?? '').includes('You’re on Rookie')),
+    );
+  expect(index, 'the nudge is not a cell of the grid at all').toBeGreaterThan(-1);
+  expect(index, `the nudge is child ${index} of the grid`).toBe(4);
+
+  // And it spans the whole row rather than sitting in one card's slot.
+  const grid = await page.locator('.grid-tricks').boundingBox();
+  const box = await page.locator('.grid-tricks > *').nth(4).boundingBox();
+  expect(Math.round(box?.width ?? 0)).toBe(Math.round(grid?.width ?? 0));
 });
 
 test('a paid trick is listed, not hidden, and says which tier it is', async ({ page }) => {
   await page.goto('/library');
+  await narrowToScooter(page);
 
   const locked = card(page, lockedTrick.name);
   await expect(locked).toBeVisible();
@@ -109,6 +348,7 @@ test('a paid trick is listed, not hidden, and says which tier it is', async ({ p
 
 test('search and the filters narrow the grid', async ({ page }) => {
   await page.goto('/library');
+  await narrowToScooter(page);
 
   await page.getByLabel('Search tricks').fill(freeTrick.name);
   await expect(card(page, freeTrick.name)).toBeVisible();
@@ -589,6 +829,7 @@ const offset = (page: Page) => page.locator('html').evaluate((el) => el.scrollTo
 
 test('the arrow out of a trick page lands back where the rider left the grid', async ({ page }) => {
   await page.goto('/library');
+  await narrowToScooter(page);
   await expect(card(page, freeTrick.name)).toBeVisible();
 
   const left = await toTheBottom(page);
@@ -647,6 +888,7 @@ test('a browser Back brings the sort and the offset back together', async ({ pag
 
 test('a search survives the trick page too, and the grid stays narrowed', async ({ page }) => {
   await page.goto('/library');
+  await narrowToScooter(page);
 
   await page.getByLabel('Search tricks').fill('grind');
   const narrowed = page.locator('.tcard');
@@ -667,6 +909,10 @@ test('arriving at the library any other way starts at the top, as it always did'
   page,
 }) => {
   await page.goto('/library');
+  // Signed out, so the grid opens on every sport (T52) and this test browses it
+  // by name — see `narrowToScooter`. The scope survives the detour through
+  // Find, which is the point of it living in `localStorage`.
+  await narrowToScooter(page);
   const left = await toTheBottom(page);
   expect(left).toBeGreaterThan(400);
 

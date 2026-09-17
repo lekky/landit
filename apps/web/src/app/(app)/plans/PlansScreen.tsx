@@ -1,10 +1,11 @@
 'use client';
 
 import { BILLING_PERIODS, type BillingPeriod } from '@landit/core';
-import { Button, Panel, Tag } from '@landit/ui-web';
+import { Button, Panel } from '@landit/ui-web';
 import Link from 'next/link';
 import { useActionState, useState } from 'react';
 
+import { TabRow } from '@/components/shell/TabRow';
 import { ROUTES } from '@/lib/routes';
 
 import { openBillingPortalAction } from './actions';
@@ -74,9 +75,6 @@ const FAQ: readonly { readonly q: string; readonly a: string }[] = [
   },
 ];
 
-/** Ties the Yearly button to the saving tag via `aria-describedby`. */
-const SAVING_TAG_ID = 'plans-yearly-saving';
-
 export function PlansScreen({
   view,
   showSessions,
@@ -102,43 +100,37 @@ export function PlansScreen({
           riding.
         </p>
 
+        {/*
+          Monthly · Yearly, as a `TabRow` (§3.10, D6).
+
+          It was a two-cell segmented control of its own design, with the
+          saving tag tilted over the right-hand half. The row is the product's
+          one shape for a choice between views of a screen now, so the plans
+          page stops being the only place with a second one.
+
+          **The saving rides inside the Yearly tab**, as `TabRowItem`'s `note`
+          — the faded `.n` the sticker wall's counts use. It was a tag sitting
+          over the toggle's top edge, positioned so that it read as belonging
+          to Yearly rather than to the control, with `aria-describedby` saying
+          the same thing to a screen reader. A boxed row lifts its active tab
+          4px and cannot carry something slapped over its edge; putting the
+          words *in* the tab makes the association structural rather than
+          positional, and a screen reader now reads "Yearly, 2 months free"
+          from the tab's own text with nothing to wire up.
+        */}
         <div className={styles.toggleRow}>
-          <div className={styles.toggle} role="group" aria-label="Billing period">
-            {BILLING_PERIODS.map((value) => (
-              <button
-                key={value}
-                type="button"
-                className={`cond ${styles.toggleButton}`}
-                aria-pressed={period === value}
-                aria-describedby={
-                  value === 'yearly' && view.savingLabel ? SAVING_TAG_ID : undefined
-                }
-                data-on={period === value ? 'true' : undefined}
-                onClick={() => setPeriod(value)}
-              >
-                {value === 'monthly' ? 'Monthly' : 'Yearly'}
-              </button>
-            ))}
-            {/*
-              Slapped over the top edge of the toggle's right-hand half, which
-              is Yearly. Beside the whole control (as the prototype has it) the
-              tag reads as a property of whatever is currently selected, so a
-              visitor sitting on Monthly is told they are getting two months
-              free. Sitting it on the Yearly button says whose saving it is
-              without spending words on it, and `aria-describedby` says the same
-              thing to a screen reader, where position carries nothing.
-            */}
-            {view.savingLabel && (
-              <Tag
-                tilt
-                color="var(--lime)"
-                className={styles.savingTag}
-                style={{ color: 'var(--ink)' }}
-              >
-                <span id={SAVING_TAG_ID}>{view.savingLabel}</span>
-              </Tag>
-            )}
-          </div>
+          <TabRow
+            items={BILLING_PERIODS.map((value) => ({
+              id: value,
+              label: value === 'monthly' ? 'Monthly' : 'Yearly',
+              ...(value === 'yearly' && view.savingLabel ? { note: view.savingLabel } : {}),
+            }))}
+            value={period}
+            group="plans"
+            label="Billing period"
+            className={styles.toggle}
+            onChange={(id) => setPeriod(id as BillingPeriod)}
+          />
         </div>
       </div>
 

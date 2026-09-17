@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { BackLink } from '@/components/shell/BackLink';
 import { ROUTES, legalHref, signInHref } from '@/lib/routes';
 import { currentRider } from '@/lib/session';
 
@@ -47,10 +48,21 @@ export default async function CloseAccountPage() {
 
   return (
     <div className={styles.page}>
-      <Link className={`cond ${styles.back}`} href={ROUTES.account}>
-        ← Your account
-      </Link>
-      <span className="eyebrow">Your account</span>
+      {/*
+        §2.3: an account sub-screen carries "Your account". In a wrapper,
+        because `BackLink` is `inline-flex` and the eyebrow under it is a
+        `<span>` — see the same note on `/coach`.
+      */}
+      <div>
+        <BackLink href={ROUTES.account} label="Your account" />
+      </div>
+      {/*
+        The eyebrow said "Your account" too, six pixels under a back link that
+        now says it in the same condensed uppercase at almost the same size —
+        the same words twice, one of them a control and one of them not. The
+        old 13.5px sentence-case link was different enough to carry both; this
+        one is not, so the eyebrow goes rather than the link.
+      */}
       <h1 className={`d ${styles.head}`}>Closing your account</h1>
 
       <Panel flat className={styles.panel}>

@@ -59,6 +59,41 @@ test('"Send another" puts an empty form back after an idea is sent', async ({ pa
   await expect(page.getByRole('heading', { name: 'Thanks — that is with us.' })).toBeVisible();
 });
 
+test('the pill rows are still a radio group, and post the value the dots did', async ({ page }) => {
+  /*
+   * T52: the topic list is a column of pill rows now (§3.10) and the radio
+   * underneath each one is clipped rather than replaced.
+   *
+   * Which means three things have to still be true, and none of them is visible
+   * in the markup on its own: the group has to *be* a radio group to a screen
+   * reader and to a keyboard, pressing a row has to check its radio, and the
+   * form has to post the checked `topic` — a control that looks selected while
+   * the server receives `trick` is the failure this shape invites, and it would
+   * file every idea under the default.
+   */
+  await arrive(page);
+  await page.goto('/suggest');
+
+  const trick = page.getByRole('radio', { name: /A trick we’re missing/ });
+  const bug = page.getByRole('radio', { name: /Something is broken/ });
+
+  // The default is the first one, as it was when these were dots.
+  await expect(trick).toBeChecked();
+
+  // Pressing the row — not the input, which is clipped out of sight — checks it.
+  await page.getByText('Something is broken').click();
+  await expect(bug).toBeChecked();
+  await expect(trick).not.toBeChecked();
+
+  // And the arrow keys still walk the group, which `display: none` would break.
+  await bug.press('ArrowDown');
+  await expect(page.getByRole('radio', { name: /Something else/ })).toBeChecked();
+
+  await page.getByLabel('What is the idea?').fill('The grind section will not open on my phone.');
+  await page.getByRole('button', { name: 'Send it', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Thanks — that is with us.' })).toBeVisible();
+});
+
 test('the email address is offered once, beside "Send it"', async ({ page }) => {
   await arrive(page);
   await page.goto('/suggest');

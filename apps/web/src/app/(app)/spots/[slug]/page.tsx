@@ -19,9 +19,13 @@ import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
+import { LogSessionLink } from '@/components/sessions/blocks/LogSessionLink';
 import { SpotSessionsBlock } from '@/components/sessions/blocks/SpotSessionsBlock';
+import { BackLink } from '@/components/shell/BackLink';
 import { jsonLdText, spotPlaceLd } from '@/lib/structuredData';
 import { ROUTES, libraryHref, reportHref, spotHref } from '@/lib/routes';
+import { newSessionHref } from '@/lib/sessionRoutes';
+import { sessionsEnabledForViewer } from '@/lib/sessionsPreview';
 import { SPORT_LOOKS, sportsList } from '@/lib/sports';
 import { anonymousClient, currentRider } from '@/lib/session';
 
@@ -304,23 +308,18 @@ export default async function SpotPage({ params }: Params) {
         indoor={Boolean(spot.indoor)}
       />
 
-      <nav className={styles.crumb} aria-label="Breadcrumb">
-        <Link className={styles.crumbLink} href={ROUTES.spots}>
-          Spots
-        </Link>
-        {spot.country ? (
-          <>
-            <span aria-hidden="true">/</span>
-            <span>{spot.country}</span>
-          </>
-        ) : null}
-        {spot.town ? (
-          <>
-            <span aria-hidden="true">/</span>
-            <span>{spot.town}</span>
-          </>
-        ) : null}
-      </nav>
+      {/*
+        "Spots", the group's back link (§2.3, T52), where a three-part
+        breadcrumb used to be.
+
+        The trail said `Spots / Great Britain / Corby` at 12.5px, and its two
+        tail segments were plain text repeating the sub-line under the title,
+        which already reads "Corby, Great Britain". What was load-bearing was
+        the first segment — the way back to the list — and at 12.5px with no
+        padding it was the smallest target on the page. `BackLink` is the
+        product's one shape for that now, at §4's 44px.
+      */}
+      <BackLink href={ROUTES.spots} label="Spots" />
 
       <div className={styles.band}>
         <div className={styles.chips}>
@@ -375,12 +374,62 @@ export default async function SpotPage({ params }: Params) {
           independent of who is reading it. A public, crawlable page whose HTML
           differed by rider would be a page no cache could hold.
         */}
+        {/*
+          The three actions (§3.10, T52): Faved · Directions · Log here.
+
+          One place in the DOM, two shapes. Above 820px they sit at the
+          right-hand end of the strip — the hero band's second half, which is
+          where the design puts them on a desktop. Below it the strip's own
+          `flex-wrap` drops them onto a line of their own under the hero, where
+          they take equal thirds of the width and the whole row is a thumb's
+          reach. Two copies of the same three buttons behind a media query would
+          be two things to keep in step.
+
+          Not all three are always there, which is why they share the width
+          rather than each taking a third of it: `SpotFave` draws nothing at all
+          for a reader with no account, and "Log here" is behind the sessions
+          preview, so a signed-out visitor gets Directions alone and it fills the
+          row rather than sitting in a third of it.
+        */}
         <div className={styles.stripPush}>
           <SpotFave spot={toSpotView(spot)} signedIn={!!session} />
           {maps ? (
-            <a className="btn sm" href={maps} target="_blank" rel="noreferrer noopener">
+            <a
+              className={`btn sm ${styles.action}`}
+              href={maps}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
               Directions &rarr;
             </a>
+          ) : null}
+          {/*
+            "Log here" goes where it went before: `newSessionHref({ spot })`,
+            the same address as the "Log a session here" link inside "Your
+            sessions here", counted through the same `LogSessionLink` with the
+            same `source: 'spot'`. And behind the same gate — sessions are in
+            owner-only preview (T41) — asked **exactly** as `riderFor` asks it
+            for the block below: is there a rider, *and* is it on for them.
+
+            Both halves, and through one named predicate rather than an `&&`
+            somebody has to remember. `sessionsEnabledFor` answers `true` for a
+            `null` rider once `LANDIT_SESSIONS_OPEN` is set, which is how a
+            release will run it, so `sessionsEnabledFor(session?.rider ?? null)`
+            put a "Log here" on a public spot page for a visitor with no account,
+            pointing at a form that would bounce them to `/signin`. Caught by the
+            signed-out case in `e2e/spot-page.spec.ts` rather than by the flag,
+            which is off in most places this is run; `sessionsEnabledForViewer`
+            is the expression `riderFor` has always used, with unit tests on the
+            case the e2e cannot reach.
+          */}
+          {sessionsEnabledForViewer(session) ? (
+            <LogSessionLink
+              href={newSessionHref({ spot: spot.id })}
+              source="spot"
+              className={`btn sm ${styles.action}`}
+            >
+              Log here
+            </LogSessionLink>
           ) : null}
         </div>
       </div>
@@ -426,16 +475,40 @@ export default async function SpotPage({ params }: Params) {
                 </div>
               </Panel>
             ) : (
+              /*
+                Coloured cards, one per feature (§3.10, T52).
+
+                They were paper cells in a hairline grid with a 9px accent bar
+                above each name — the colour was a stripe on the card rather
+                than the card. §3.10 asks for `LinkCard`s, which is Home's
+                coloured card that is a link: the fill carries the colour, the
+                whole box is the target, and an arrow at the bottom right says
+                it goes somewhere.
+
+                **The look, not the component.** Home's `LinkCard` fires
+                `nav_clicked` `{ to, where: 'home-card' }`, and `to` is one of
+                four route ids; a spot's feature is neither, so using it here
+                would mean inventing a property value at the call site — the one
+                thing `analytics.ts` forbids. These fire nothing, as T48 decided
+                for the Find hub's section links, and what measures the screen is
+                the `spot_page_opened` it already sends.
+
+                **The fill is the design system's own tint recipe** —
+                `color-mix(in oklab, <accent> 42%, #fff)`, which is what
+                `StickerBadge` fills its disc with — rather than the accent at
+                full strength. Eight accents reach this grid, `--violet` and
+                `--blue` among them, and ink on either at full strength is the
+                contrast failure `.btn`'s own note in `primitives.css` records.
+                The tint keeps the colour-coding and keeps one text colour.
+              */
               <div className={styles.whats}>
                 {tags.map((tag) => {
                   const feature = spotFeature(tag);
-                  return (
-                    <div className={styles.feature} key={tag}>
-                      <span
-                        className={styles.featureBar}
-                        style={{ background: `var(--${feature?.accent ?? 'wash'})` }}
-                        aria-hidden="true"
-                      />
+                  const fill = {
+                    background: `color-mix(in oklab, var(--${feature?.accent ?? 'wash'}) 42%, #fff)`,
+                  };
+                  const body = (
+                    <>
                       <h3 className={styles.featureName}>{feature?.label ?? tag}</h3>
                       {/*
                         A tag nobody has written an explanation for is still
@@ -443,21 +516,30 @@ export default async function SpotPage({ params }: Params) {
                         but nothing here guesses at what an unknown word means.
                       */}
                       {feature ? <p className={styles.featureAbout}>{feature.about}</p> : null}
-                      {/*
-                        "Bowl tricks →" goes to the library narrowed to the
-                        category those tricks are in. There is no feature-to-
-                        trick relation in this product and this does not invent
-                        one; where no category is honestly the answer — a pump
-                        track, moguls — the link is simply absent.
-                      */}
-                      {feature?.tricks ? (
-                        <Link
-                          className={styles.featureLink}
-                          href={libraryHref({ cat: feature.tricks })}
-                        >
-                          {feature.label} tricks &rarr;
-                        </Link>
-                      ) : null}
+                    </>
+                  );
+
+                  /*
+                    "Bowl tricks →" goes to the library narrowed to the category
+                    those tricks are in. There is no feature-to-trick relation in
+                    this product and this does not invent one; where no category
+                    is honestly the answer — a pump track, moguls — there is
+                    nowhere to go, so the card is a card rather than a link with
+                    an arrow that lies.
+                  */
+                  return feature?.tricks ? (
+                    <Link
+                      key={tag}
+                      className={`${styles.feature} ${styles.featureLinked}`}
+                      style={fill}
+                      href={libraryHref({ cat: feature.tricks })}
+                    >
+                      {body}
+                      <span className={styles.featureGo}>{feature.label} tricks &rarr;</span>
+                    </Link>
+                  ) : (
+                    <div className={styles.feature} style={fill} key={tag}>
+                      {body}
                     </div>
                   );
                 })}

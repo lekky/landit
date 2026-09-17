@@ -147,7 +147,17 @@ test('the spot block is the rider’s own, and absent signed out', async ({ brow
   await page.goto(`/spots/${seeded.spotSlug}`);
   await expect(page.getByRole('heading', { name: 'Your sessions here' })).toBeVisible();
   await expect(page.getByText(/No other rider.s sessions show here/)).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Log a session here' })).toHaveAttribute(
+  /*
+   * The way to log a session at this spot is **"Log here" in the hero** since
+   * T52: it is one of the three actions §3.10 puts under the band, and the
+   * identical "Log a session here" that used to sit in this block's own header
+   * was removed rather than duplicated (review finding 5) — two controls with
+   * one address and one analytics `source` could not be told apart.
+   *
+   * The assertion is the same one: a signed-in rider on a spot page has a way
+   * to log a session there, and it carries the spot's id.
+   */
+  await expect(page.getByRole('link', { name: 'Log here' })).toHaveAttribute(
     'href',
     /\/progress\/sessions\/new\?spot=/,
   );

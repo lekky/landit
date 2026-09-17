@@ -26,7 +26,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
-import { SportSwitch } from '@/components/shell/SportSwitch';
+import { SportScopeSelect, useSportScope } from '@/components/shell/SportScopeSelect';
+import { TabRow } from '@/components/shell/TabRow';
 import { SuggestPrompt } from '@/components/suggest/SuggestPrompt';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { libraryArrival, rememberLibraryPlace } from '@/lib/libraryPlace';
@@ -35,6 +36,18 @@ import { SPORT_LOOKS } from '@/lib/sports';
 import { useSport } from '@/providers/sport';
 
 import styles from './library.module.css';
+
+/**
+ * How many cards the Rookie nudge sits below (§3.10, T52).
+ *
+ * Four: two rows on a phone, where `.grid-tricks` is two columns below 520px,
+ * and one on a desktop, where it is four or five. A number of *cards* rather
+ * than of rows, because how many fit on a row is decided in CSS by the width of
+ * the viewport and a count worked out in the browser is one the server guessed
+ * differently (LESSONS §3a). A grid with fewer than four cards puts the nudge
+ * at the end of them, which is still below what there is.
+ */
+const NUDGE_AFTER = 4;
 
 /**
  * The trick library: search, the sticky filter column, the rookie banner and
@@ -89,6 +102,32 @@ export function LibraryBrowser({
 }) {
   const router = useRouter();
   const { sport } = useSport();
+
+  /*
+   * Which sports the grid holds — the `SportScopeSelect` under the header
+   * (§3.3, O1), added by T52 after the independent review.
+   *
+   * **The library is a list that used to carry its own sport row**, which is
+   * exactly the case D5 hands to this control: "lists that used to carry their
+   * own sport row follow the chip through one dropdown". Removing `SportSwitch`
+   * without it left a **signed-out visitor** on one sport with nothing anywhere
+   * that could widen them — the top bar's chip is hidden with the rider (T45),
+   * so 175 of the 259 tricks had no route at all on a screen the landing page
+   * advertises as a no-sign-up peek. Found by the review of 2026-09-17.
+   *
+   * The signed-out behaviour is T48's, unchanged and for its reasons: with no
+   * rider `useSportScope` is told so, the "Your sport (X)" option is not offered
+   * at all rather than making a claim about somebody we have never met, a stored
+   * `'chip'` reads as the screen's default, and that default is **every sport**.
+   * Signed in the default is `'chip'`, so the list follows the top bar and a
+   * rider who has never touched this control sees exactly what T52 shipped.
+   *
+   * One sport or all of them, never a combination — O1 took the multi-select
+   * away — so the scope reduces to a single id or `null`, which is what
+   * `tricksFor` and `filterTricks` already mean by "every sport".
+   */
+  const scope = useSportScope('library', signedIn ? 'chip' : 'all', signedIn);
+  const scopeSport = scope.sports[0] ?? null;
 
   /*
    * Where this rider was the last time they were on this screen, if they have
@@ -171,7 +210,7 @@ export function LibraryBrowser({
     });
   };
 
-  const pool = useMemo(() => tricksFor(sport, tricks), [sport, tricks]);
+  const pool = useMemo(() => tricksFor(scopeSport, tricks), [scopeSport, tricks]);
   /*
    * In "My tricks" the switch owns the status: it asks for `tracked` and the
    * sidebar's own status pills are hidden while it is on, so the two controls
@@ -181,10 +220,18 @@ export function LibraryBrowser({
   const list = useMemo(
     () =>
       filterTricks(
-        { search, sport, category, difficulty, status: mine ? 'tracked' : status, sort, byId },
+        {
+          search,
+          sport: scopeSport,
+          category,
+          difficulty,
+          status: mine ? 'tracked' : status,
+          sort,
+          byId,
+        },
         tricks,
       ),
-    [search, sport, category, difficulty, status, sort, byId, tricks, mine],
+    [search, scopeSport, category, difficulty, status, sort, byId, tricks, mine],
   );
   const groups = useMemo(
     () => (mine ? groupTricksByStage(list, byId, sort) : []),
@@ -249,6 +296,66 @@ export function LibraryBrowser({
     />
   );
 
+  /**
+   * "You're on Rookie", below the first rows of cards (§3.10, T52).
+   *
+   * A grid cell spanning every column, drawn once wherever the grid puts it.
+   * It renders `null` for anybody it is not about — a paid rider, a visitor, a
+   * rookie with nothing locked in this sport — so the two call sites can place
+   * it without asking again.
+   */
+  const nudge = showRookieBanner ? (
+    <Panel flat className={styles.banner}>
+      <span className={styles.bannerIcon}>
+        <Icon name="lock" size={17} strokeWidth={2.6} />
+      </span>
+      <div className={styles.bannerText}>
+        <div className={`cond ${styles.bannerTitle}`}>You&rsquo;re on Rookie</div>
+        {/*
+          Not "Rookie and Easy tricks are yours. The Spicy, Gnarly and Pro
+          tiers open up on Shredder", which is what this said until 2026-09-04
+          and was false in both directions — the free tier is a hand-picked
+          twenty per sport that reaches past Easy, and it has never covered all
+          of Easy (`PLANS` in `@landit/core`, issue #286). The grid around this
+          banner shows every lock, so the banner does not need to enumerate
+          tiers it would get wrong.
+        */}
+        <p className={styles.bannerBody}>
+          Twenty hand-picked tricks in every sport are yours. The rest of the library opens up on
+          Shredder.
+        </p>
+      </div>
+      {/*
+        A real link since T15 built `/plans`. Until then this was the label
+        "Upgrading is not switched on yet", because `typedRoutes` made a link
+        to an unbuilt page a compile error (LESSONS §3a) — and it outlived the
+        reason by long enough to still be telling riders they could not buy
+        anything after Stripe went live. A dead label is not a safe default: it
+        goes stale silently, where a dead link does not compile.
+
+        The label is **"Upgrade now"**, chosen by the owner (2026-08-18, in
+        chat) over "Get Shredder", which this first shipped with because it
+        matched the plans page's own button on the same purchase. Do not
+        "correct" it back for consistency: the two say different things on
+        purpose. The plans page names the plan because the rider is already
+        choosing between three; this banner names the *action*, because a
+        rookie looking at a locked trick has not started choosing yet.
+
+        Still within plan §6.4, standard 13. "Now" is when the button works,
+        not a deadline — there is no countdown, no scarcity and no claim that
+        the price is about to change. That standard bars manufactured urgency,
+        not the imperative mood.
+      */}
+      <Link
+        className={`btn sm ${styles.bannerCta}`}
+        href={ROUTES.plans}
+        style={{ background: 'var(--violet)' }}
+      >
+        Upgrade now
+      </Link>
+    </Panel>
+  ) : null;
+
   const filters = (
     <Panel flat className={styles.filters}>
       <div className="lab">Category</div>
@@ -282,7 +389,13 @@ export function LibraryBrowser({
                 : undefined
             }
           >
-            {categoryLabel(id, sport)}
+            {/*
+              The scope's sport, not the chip's: a category is named differently
+              per sport, and over a grid of all three there is no one sport whose
+              names are the right ones. `categoryLabel` with no sport gives the
+              neutral name, which is the honest answer for "every sport".
+            */}
+            {categoryLabel(id, scopeSport ?? undefined)}
           </Pill>
         ))}
       </div>
@@ -331,14 +444,28 @@ export function LibraryBrowser({
 
   return (
     <div onClickCapture={keepPlace}>
-      <SportSwitch note={(id) => tricksFor(id, tricks).length} label="Trick library sport" />
-
+      {/*
+        The `SportSwitch` row is gone (D5, T52). The sport is chosen once, in
+        the top bar's chip, and every in-page sport row goes with it — what
+        stands in for it here is the `SportScopeSelect` below the header, which
+        is what D5 hands a list that used to carry its own row.
+      */}
       <div className={styles.head}>
         <div>
           <span className="eyebrow">
+            {/*
+              The heading follows the scope, not the chip. A grid of all three
+              sports under "SCOOTER LIBRARY" would be a heading its own rows
+              disprove — the same test the spot page's "Other spots near
+              Adelaide" is held to.
+            */}
             {mine
-              ? `Your ${SPORTS[sport].label.toLowerCase()} tricks`
-              : `${SPORTS[sport].label} library`}
+              ? scopeSport
+                ? `Your ${SPORTS[scopeSport].label.toLowerCase()} tricks`
+                : 'Your tricks, every sport'
+              : scopeSport
+                ? `${SPORTS[scopeSport].label} library`
+                : 'Trick library, every sport'}
           </span>
           <h1 className={`d ${styles.title}`}>
             {mine ? (
@@ -366,107 +493,104 @@ export function LibraryBrowser({
         </div>
       </div>
 
-      <div className="two-col">
-        <div>
-          <button
-            type="button"
-            className="filter-toggle"
-            onClick={() => setFiltersOpen((open) => !open)}
-            aria-expanded={filtersOpen}
-          >
-            <Icon name="grid" size={17} strokeWidth={2.4} />
-            <span>Filters &amp; sort</span>
-            {activeFilters > 0 && <span className="fcount">{activeFilters}</span>}
-            <span className={styles.toggleState}>{filtersOpen ? 'Hide' : 'Show'}</span>
-          </button>
-          <div className={`filterwrap${filtersOpen ? ' open' : ''}`}>{filters}</div>
-        </div>
+      {/*
+        "Show: Your sport (Scooter)" — one line under the header, where the
+        other two lists put it (§3.3, O1).
 
-        <div>
-          {/*
+        It fires `sport_scope_set` from inside `useSportScope`, so the press is
+        counted whichever screen it is on and this component adds no `capture`
+        of its own. "All sports" rather than Spots' "Every spot": the noun this
+        screen counts is a trick.
+      */}
+      <SportScopeSelect
+        state={scope}
+        everyLabel="All sports"
+        label="Show tricks for"
+        className={styles.scope}
+      />
+
+      {/*
+        All · Mine · Filters, in one row (§3.10, T52).
+
+        Three things were stacked here before, in an order the phone got wrong:
+        the Filters disclosure came first, because it lives in the left column of
+        `.two-col` and that column is what stacks on top, and the All / My tricks
+        pair came after it in the right-hand one. So a rider on a phone met a
+        control for narrowing a list above the control that says *which* list.
+
+        The row is above both columns now, which is also what puts the filter
+        panel it opens directly underneath it on a phone. Above 860px the
+        Filters box is not drawn at all — the same width at which
+        `.filter-toggle` has always appeared, and where the rail is on screen
+        anyway — so a desktop gets All · Mine, as §7 asks.
+
+        **The Filters box is in the row, not in the tab list.** `TabRow`'s
+        button form is a `role="tablist"`, and a disclosure that opens a panel of
+        checkboxes is not a tab: a screen reader told "Filters, tab, 3 of 3"
+        expects the view under it to become the filters. So the row is one flex
+        line holding the tab list and one button, drawn as the same box by the
+        same `.tabrow .sporttab` rules. It reads as one row and says two true
+        things.
+      */}
+      {/*
+        Signed out the row holds only the Filters box, which is not drawn above
+        860px — so on a desktop it would be an empty flex line carrying
+        `.sporttabs`' own 18px of bottom margin, above a screen a visitor came to
+        read. `.tricksRowAlone` takes the whole row away at that width instead.
+      */}
+      <div
+        className={`sporttabs tabrow ${styles.tricksRow} ${
+          signedIn ? '' : styles.tricksRowAlone
+        }`.trim()}
+      >
+        {signedIn && (
+          /*
             "My tricks" (T22). Signed in only — a visitor with no account has no
             tracked tricks, so the switch would be a control with one working
             side, and the library is deliberately readable signed out.
 
-            A pair of buttons rather than pills: the two are one choice with two
-            answers, and the pills below are many independent narrowings. The
-            shape says which kind of control it is before the label is read.
+            The counts are the tabs' `note`, the way the sticker wall carries
+            "Not yet 118": the number is the reason to press either one, and
+            `tabs_switched` still carries the tab id and nothing else.
+          */
+          <TabRow
+            className={styles.tricksTabs}
+            items={[
+              { id: 'all', label: 'All', note: pool.length },
+              { id: 'mine', label: 'Mine', note: tracked },
+            ]}
+            value={mine ? 'mine' : 'all'}
+            group="tricks"
+            label="Which tricks to show"
+            onChange={(id) => setMine(id === 'mine')}
+          />
+        )}
+        <button
+          type="button"
+          className={`sporttab ${styles.filtersTab}`}
+          onClick={() => setFiltersOpen((open) => !open)}
+          aria-expanded={filtersOpen}
+        >
+          <Icon name="grid" size={16} strokeWidth={2.4} />
+          {/*
+            "Filters & sort", the words the disclosure has always had (review
+            nit 11). The panel behind it still holds the sort, so shortening the
+            label to "Filters" took away the only thing on the screen that said
+            where sorting lives. It clips with an ellipsis at the narrowest
+            widths like any other label in the row, and the full string stays in
+            the DOM for a screen reader.
           */}
-          {signedIn && (
-            <div className={styles.mineSwitch} role="group" aria-label="Which tricks to show">
-              <button
-                type="button"
-                className={`cond ${styles.mineOption}`}
-                aria-pressed={!mine}
-                onClick={() => setMine(false)}
-              >
-                All {pool.length} tricks
-              </button>
-              <button
-                type="button"
-                className={`cond ${styles.mineOption}`}
-                aria-pressed={mine}
-                onClick={() => setMine(true)}
-              >
-                My tricks · {tracked}
-              </button>
-            </div>
-          )}
+          <span className="tab-label">Filters &amp; sort</span>
+          {activeFilters > 0 && <span className="fcount">{activeFilters}</span>}
+        </button>
+      </div>
 
-          {showRookieBanner && (
-            <Panel flat className={styles.banner}>
-              <span className={styles.bannerIcon}>
-                <Icon name="lock" size={17} strokeWidth={2.6} />
-              </span>
-              <div className={styles.bannerText}>
-                <div className={`cond ${styles.bannerTitle}`}>You&rsquo;re on Rookie</div>
-                {/*
-                  Not "Rookie and Easy tricks are yours. The Spicy, Gnarly and
-                  Pro tiers open up on Shredder", which is what this said until
-                  2026-09-04 and was false in both directions — the free tier is
-                  a hand-picked twenty per sport that reaches past Easy, and it has
-                  never covered all of Easy (`PLANS` in `@landit/core`, issue
-                  #286). The grid beside this banner shows every lock, so the
-                  banner does not need to enumerate tiers it would get wrong.
-                */}
-                <p className={styles.bannerBody}>
-                  Twenty hand-picked tricks in every sport are yours. The rest of the library opens
-                  up on Shredder.
-                </p>
-              </div>
-              {/*
-                A real link since T15 built `/plans`. Until then this was the
-                label "Upgrading is not switched on yet", because `typedRoutes`
-                made a link to an unbuilt page a compile error (LESSONS §3a) —
-                and it outlived the reason by long enough to still be telling
-                riders they could not buy anything after Stripe went live. A
-                dead label is not a safe default: it goes stale silently, where
-                a dead link does not compile.
+      <div className="two-col">
+        <div>
+          <div className={`filterwrap${filtersOpen ? ' open' : ''}`}>{filters}</div>
+        </div>
 
-                The label is **"Upgrade now"**, chosen by the owner
-                (2026-08-18, in chat) over "Get Shredder", which this first
-                shipped with because it matched the plans page's own button on
-                the same purchase. Do not "correct" it back for consistency:
-                the two say different things on purpose. The plans page names
-                the plan because the rider is already choosing between three;
-                this banner names the *action*, because a rookie looking at a
-                locked trick has not started choosing yet.
-
-                Still within plan §6.4, standard 13. "Now" is when the button
-                works, not a deadline — there is no countdown, no scarcity and
-                no claim that the price is about to change. That standard bars
-                manufactured urgency, not the imperative mood.
-              */}
-              <Link
-                className={`btn sm ${styles.bannerCta}`}
-                href={ROUTES.plans}
-                style={{ background: 'var(--violet)' }}
-              >
-                Upgrade now
-              </Link>
-            </Panel>
-          )}
-
+        <div>
           <div className={`lab ${styles.count}`}>
             {list.length} trick{list.length === 1 ? '' : 's'}
             {category ? ` · ${CATS[category].blurb}` : ''}
@@ -474,7 +598,7 @@ export function LibraryBrowser({
 
           {mine ? (
             groups.length ? (
-              groups.map((group) => (
+              groups.map((group, index) => (
                 <section key={group.stage} className={styles.stageGroup}>
                   <div className={styles.stageHead}>
                     <span
@@ -486,6 +610,9 @@ export function LibraryBrowser({
                     <span className={styles.stageRule} />
                   </div>
                   <div className="grid-tricks">{group.tricks.map(card)}</div>
+                  {/* The nudge below the first group's cards, for the same
+                      reason it is below the first rows of the flat grid. */}
+                  {index === 0 && nudge}
                 </section>
               ))
             ) : (
@@ -504,7 +631,24 @@ export function LibraryBrowser({
               />
             )
           ) : list.length ? (
-            <div className="grid-tricks">{list.map(card)}</div>
+            /*
+              The nudge is a cell of the grid rather than a band above it
+              (§3.10: "the Rookie nudge moves below the first card rows"). It
+              spans every column, so it is a full-width strip that happens to
+              sit after the first `NUDGE_AFTER` cards — which at two columns on a
+              phone is two rows, and at four or five on a desktop is one.
+
+              Above the grid it was the first thing on the list: a rider who came
+              to look at tricks was shown a paragraph about their plan before a
+              single card. Below the first rows they have seen what they came
+              for, and the locks in the grid are what makes the sentence mean
+              anything.
+            */
+            <div className="grid-tricks">
+              {list.slice(0, NUDGE_AFTER).map(card)}
+              {nudge}
+              {list.slice(NUDGE_AFTER).map(card)}
+            </div>
           ) : (
             <Empty
               icon="search"

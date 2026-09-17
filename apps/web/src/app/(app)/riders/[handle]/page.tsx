@@ -30,12 +30,14 @@ import { Avatar, Panel, SportChip, StickerBadge, Tag } from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { BackLink } from '@/components/shell/BackLink';
 import { VideoWall } from '@/components/video/VideoWall';
 import { shortDate } from '@/lib/dates';
 import { ROUTES, reportHref, riderHref, signInHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { anonymousClient, currentRider } from '@/lib/session';
 
+import { ProfileTabs } from './ProfileTabs';
 import styles from './profile.module.css';
 
 export const metadata: Metadata = {
@@ -152,12 +154,18 @@ export default async function RiderProfilePage({
   const stance = STANCES.find((s) => s.id === rider.stance);
   const sports = ((rider.sports ?? []) as SportId[]).filter((s) => SPORT_LOOKS[s]);
   const firstName = (rider.name || 'This rider').split(' ')[0] || 'This rider';
+  /*
+   * Whatever the `clips` rule handed this viewer, and nothing filtered here
+   * (guarantee 2). An empty list is the answer both for a rider with no videos
+   * and for a viewer who may not see them, which is why the tab is dropped
+   * rather than shown empty — see `ProfileTabs`.
+   */
+  const videos = videoLinksFromRecords(videoRecords);
 
   return (
     <div>
-      <Link className={`cond ${styles.back}`} href={ROUTES.crew}>
-        ← Crew
-      </Link>
+      {/* §2.3: a rider profile carries "Crew", the group it is reached from. */}
+      <BackLink href={ROUTES.crew} label="Crew" />
 
       <Panel className={styles.card}>
         <div className={styles.banner}>
@@ -231,115 +239,144 @@ export default async function RiderProfilePage({
         </Panel>
       ) : null}
 
-      <div className={styles.grid}>
-        <Panel className={styles.panel}>
-          <div className={styles.panelHead}>
-            <span className="lab">{isSelf ? "What you've landed" : "What they've landed"}</span>
-          </div>
-          {landed.length === 0 ? (
-            <p className={styles.panelEmpty}>Nothing landed yet.</p>
-          ) : (
-            <div className={styles.landedList}>
-              {landed.slice(0, 12).map((t) => (
-                <div key={t.slug} className={styles.landedRow}>
-                  <span
-                    className={styles.swatch}
-                    style={{ background: CATS[t.cat as keyof typeof CATS]?.color }}
-                    title={categoryLabel(t.cat as never, t.sport)}
-                  />
-                  <span className={`cond ${styles.landedName}`}>{t.name}</span>
-                  <SportChip sport={SPORT_LOOKS[t.sport]} small />
-                  <span className={styles.landedRule} />
-                  {t.at ? (
-                    <span className={`lab ${styles.landedDate}`}>{shortDate(t.at, timezone)}</span>
-                  ) : null}
-                  <Tag color={STAGE[t.stage].color}>{STAGE[t.stage].short}</Tag>
-                </div>
-              ))}
-            </div>
-          )}
-        </Panel>
+      {/*
+        Landed · Stickers · Videos (§3.10, T52).
 
-        <div className={styles.side}>
-          <Panel className={styles.sidePanel}>
-            <div className="lab">Stickers</div>
-            {isSelf ? (
-              earned.length ? (
-                <div className={styles.stickerGrid}>
-                  {earned.slice(0, 6).map((row) => {
-                    const sticker = stickerById.get(row.sticker);
-                    if (!sticker) return null;
-                    return (
-                      <StickerBadge
-                        key={row.id}
-                        earned
-                        sticker={{
-                          name: sticker.name,
-                          hue: sticker.hue,
-                          ...(sticker.ico ? { icon: sticker.ico as never } : {}),
-                          ...(sticker.img ? { img: sticker.img } : {}),
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className={styles.sideBody}>None yet. Log a trick and the first one drops.</p>
-              )
+        The three used to be a `1fr / 300px` grid with the landed list on the
+        left, a sticker panel and one other card stacked beside it, and the
+        video wall underneath — a phone read all four as one column, so a
+        rider's clips were four scrolls below their name. Three tabs, at every
+        width, and every panel below is still built on the server: the tabs
+        component is handed finished markup and decides only which is on screen.
+
+        The two panels that are **not** tabs stay under the row. "Who sees this"
+        is about the profile rather than a view of it, and "Getting in touch" is
+        the OSA route to a person (plan §6.1) — a safeguarding link a reader has
+        to find the right tab for is a safeguarding link that is not there.
+      */}
+      <ProfileTabs
+        hasVideos={videos.length > 0}
+        landed={
+          <Panel className={styles.panel}>
+            <div className={styles.panelHead}>
+              <span className="lab">{isSelf ? "What you've landed" : "What they've landed"}</span>
+            </div>
+            {landed.length === 0 ? (
+              <p className={styles.panelEmpty}>Nothing landed yet.</p>
             ) : (
-              <div className={styles.stickerCount}>
-                <span className="d">{earned.length}</span>
-                <span className="cond">earned on their wall</span>
+              <div className={styles.landedList}>
+                {landed.slice(0, 12).map((t) => (
+                  <div key={t.slug} className={styles.landedRow}>
+                    <span
+                      className={styles.swatch}
+                      style={{ background: CATS[t.cat as keyof typeof CATS]?.color }}
+                      title={categoryLabel(t.cat as never, t.sport)}
+                    />
+                    <span className={`cond ${styles.landedName}`}>{t.name}</span>
+                    <SportChip sport={SPORT_LOOKS[t.sport]} small />
+                    <span className={styles.landedRule} />
+                    {t.at ? (
+                      <span className={`lab ${styles.landedDate}`}>
+                        {shortDate(t.at, timezone)}
+                      </span>
+                    ) : null}
+                    <Tag color={STAGE[t.stage].color}>{STAGE[t.stage].short}</Tag>
+                  </div>
+                ))}
               </div>
             )}
           </Panel>
-
-          {isSelf ? (
-            <Panel className={styles.sidePanel}>
-              <div className="lab">Crew</div>
-              <p className={styles.sideBody}>
-                Your crews and your board live on the crew screen. Nobody can find them from here.
-              </p>
-              <Link className="btn sm ghost" href={ROUTES.crew}>
-                Open your crew
-              </Link>
-            </Panel>
-          ) : (
-            <Panel className={styles.sidePanel}>
-              <div className="lab">Getting in touch</div>
-              <p className={styles.sideBody}>
-                There is no messaging on Land The Trick — not here and not anywhere. If something
-                about {firstName}&rsquo;s profile is wrong, tell us and a person will look at it.
-              </p>
-              {/*
-                T18. This paragraph promised a route and did not have one until
-                now. It is a plain link rather than a modal so it works from any
-                profile, signed in or not, which is the OSA duty (plan §6.1) —
-                and it goes to us, never to the rider, which is what keeps the
-                no-stranger-contact position intact.
-              */}
-              <Link
-                className="btn sm ghost"
-                href={reportHref({ type: 'profile', id: rider.id })}
-                prefetch={false}
-              >
-                Report this profile
-              </Link>
-            </Panel>
-          )}
-        </div>
-      </div>
-
-      {/*
-        Videos (T15b). Full width below the grid, and it draws itself only if the
-        API returned something — a panel saying "this rider has videos you cannot
-        see" would be information about a choice they made not to share.
-      */}
-      <VideoWall
-        videos={videoLinksFromRecords(videoRecords)}
-        isSelf={isSelf}
-        firstName={firstName}
+        }
+        stickers={
+          <Panel className={styles.panel}>
+            <div className={styles.panelHead}>
+              <span className="lab">{isSelf ? 'Your stickers' : 'Their stickers'}</span>
+            </div>
+            <div className={styles.stickerBody}>
+              {isSelf ? (
+                earned.length ? (
+                  <div className={styles.stickerGrid}>
+                    {earned.slice(0, 12).map((row) => {
+                      const sticker = stickerById.get(row.sticker);
+                      if (!sticker) return null;
+                      return (
+                        <StickerBadge
+                          key={row.id}
+                          earned
+                          sticker={{
+                            name: sticker.name,
+                            hue: sticker.hue,
+                            ...(sticker.ico ? { icon: sticker.ico as never } : {}),
+                            ...(sticker.img ? { img: sticker.img } : {}),
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className={styles.sideBody}>None yet. Log a trick and the first one drops.</p>
+                )
+              ) : (
+                /*
+                  Somebody else's wall is a count, not the art, exactly as it
+                  was in the side panel. Which badges a rider holds is a list of
+                  what they have been doing; the number is what the card above
+                  already says.
+                */
+                <div className={styles.stickerCount}>
+                  <span className="d">{earned.length}</span>
+                  <span className="cond">earned on their wall</span>
+                </div>
+              )}
+            </div>
+          </Panel>
+        }
+        videos={
+          /*
+            Videos (T15b). It draws itself only if the API returned something —
+            a panel saying "this rider has videos you cannot see" would be
+            information about a choice they made not to share — which is why
+            `ProfileTabs` does not offer the tab at all when it is empty.
+          */
+          <VideoWall videos={videos} isSelf={isSelf} firstName={firstName} />
+        }
       />
+
+      <div className={styles.side}>
+        {isSelf ? (
+          <Panel className={styles.sidePanel}>
+            <div className="lab">Crew</div>
+            <p className={styles.sideBody}>
+              Your crews and your board live on the crew screen. Nobody can find them from here.
+            </p>
+            <Link className="btn sm ghost" href={ROUTES.crew}>
+              Open your crew
+            </Link>
+          </Panel>
+        ) : (
+          <Panel className={styles.sidePanel}>
+            <div className="lab">Getting in touch</div>
+            <p className={styles.sideBody}>
+              There is no messaging on Land The Trick — not here and not anywhere. If something
+              about {firstName}&rsquo;s profile is wrong, tell us and a person will look at it.
+            </p>
+            {/*
+              T18. This paragraph promised a route and did not have one until
+              now. It is a plain link rather than a modal so it works from any
+              profile, signed in or not, which is the OSA duty (plan §6.1) —
+              and it goes to us, never to the rider, which is what keeps the
+              no-stranger-contact position intact.
+            */}
+            <Link
+              className="btn sm ghost"
+              href={reportHref({ type: 'profile', id: rider.id })}
+              prefetch={false}
+            >
+              Report this profile
+            </Link>
+          </Panel>
+        )}
+      </div>
     </div>
   );
 }
@@ -358,9 +395,7 @@ async function NotVisible({ handle, signedIn }: { handle: string; signedIn: bool
 
   return (
     <div className={styles.refusal}>
-      <Link className={`cond ${styles.back}`} href={ROUTES.crew}>
-        ← Crew
-      </Link>
+      <BackLink href={ROUTES.crew} label="Crew" />
       <Panel flat className={styles.refusalPanel}>
         <span className="eyebrow">@{handle}</span>
         <h1 className={`d ${styles.refusalHead}`}>

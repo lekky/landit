@@ -15,9 +15,9 @@ import {
 import { listTrickPrereqs, listTrickProgress, listTricks, tricksFromRecords } from '@landit/db';
 import { Difficulty, Panel, SportChip, Tag } from '@landit/ui-web';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { BackLink } from '@/components/shell/BackLink';
 import { ROUTES, signInHref } from '@/lib/routes';
 import { SPORT_LOOKS, sportsList } from '@/lib/sports';
 import { currentRider } from '@/lib/session';
@@ -121,10 +121,20 @@ export default async function CoachViewPage() {
   ];
 
   return (
-    <div>
-      <Link className={`cond ${styles.back}`} href={ROUTES.account}>
-        ← Account
-      </Link>
+    <div className={styles.page}>
+      {/*
+        §2.3: reached from the account list, so it says so.
+
+        In a wrapper of its own because `BackLink` is `inline-flex` — it hugs
+        its words rather than stretching a phone's width, which is the whole
+        point of it — and the eyebrow under it is a `<span>`. Left as siblings
+        the two share a line and the screen opens "← YOUR ACCOUNT COACH /
+        PARENT VIEW · READ ONLY". Every other screen that carries a back link
+        follows it with a block, or is a flex column.
+      */}
+      <div>
+        <BackLink href={ROUTES.account} label="Your account" />
+      </div>
       <span className="eyebrow">Coach / parent view · read only</span>
       <h1 className={`d ${styles.head}`}>
         {(rider.name || 'This rider').split(' ')[0]}&rsquo;s week

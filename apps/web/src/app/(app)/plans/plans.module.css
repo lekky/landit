@@ -34,57 +34,27 @@
 /* ------------------------------------------------------ the period toggle -- */
 
 /*
- * The saving tag sits above the toggle and out of flow, so the top margin buys
- * the headroom it no longer takes for itself. Without it the tag would collide
- * with the lede.
+ * The two-cell segmented control and the tag tilted over its top edge are gone
+ * (T52): Monthly · Yearly is a `TabRow` now (§3.10), and the saving is the
+ * Yearly tab's own `note`, so it needs neither absolute positioning nor a
+ * headroom margin to clear the lede.
  */
 .toggleRow {
   display: flex;
-  align-items: center;
   justify-content: center;
-  margin-top: 38px;
-}
-
-.toggle {
-  position: relative;
-  display: inline-flex;
-  border: 3px solid var(--ink);
-  box-shadow: 3px 3px 0 var(--ink);
+  margin-top: 24px;
 }
 
 /*
- * Slapped over the top edge of the toggle's right-hand half, which is the
- * Yearly button — the same move the "Most riders" tag makes on a plan card, and
- * the reason the saving reads as belonging to Yearly rather than to whichever
- * period happens to be selected.
- *
- * Offsets resolve against the padding box, inside the 3px keyline, so
- * `bottom: calc(100% - 2px)` leaves the tag's lower edge 5px below the toggle's
- * outer top — the keyline covered and a couple of px bitten out of the button's
- * 9px of padding. The tilt drops the right-hand corner ~2px further, which is
- * why the bite is this shallow: any deeper and that corner crowds the cap
- * height of "Yearly". Anchoring by `bottom` rather than a negative `top` keeps
- * the bite fixed if the tag's own height moves with the font. `.tag` already
- * sets `white-space: nowrap`.
+ * Capped, because a `TabRow`'s tabs each take an equal share of the row and
+ * this one is two tabs on a 1180px page: run out full width, "Monthly" would
+ * sit alone in the middle of 570px of paper. The cap is the width two tabs and
+ * the saving want and no more; below it the row is the full width of the phone,
+ * as every other row in the product is.
  */
-.savingTag {
-  position: absolute;
-  bottom: calc(100% - 2px);
-  right: -3px;
-}
-
-.toggleButton {
-  padding: 9px 20px;
-  font-size: 13.5px;
-  background: var(--paper);
-  color: var(--ink);
-  border: none;
-  cursor: pointer;
-}
-
-.toggleButton[data-on='true'] {
-  background: var(--ink);
-  color: var(--paper);
+.toggle {
+  width: 100%;
+  max-width: 460px;
 }
 
 /* --------------------------------------------------------------- the cards -- */
