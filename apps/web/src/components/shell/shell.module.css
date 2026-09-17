@@ -612,7 +612,7 @@
  * tappable is below 44px, and this control is the one that used to be a row of
  * pills a thumb could hit. The precedent sets the *look*; the floor sets the
  * size, and where the two disagree the floor wins. `/events`' own Country
- * select is not touched here — it is not this task's, and it has an issue of
+ * select is not touched here — it is not this task's, and it has issue #552 of
  * its own rather than a drive-by change to a control T48 did not come for.
  */
 .scopePick {

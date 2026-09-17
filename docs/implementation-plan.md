@@ -5262,7 +5262,13 @@ desktop; the bell count.
 
 **T48 · Find.** `t48-find`. Depends on T45. The `/find` summary, the tab row on Spots and Events,
 the sport-scope toggle (open question O1 in the spec), Upcoming · Past as pills, Mine folded into
-For you, the archive unchanged behind the Past pill.
+For you, the archive unchanged behind the Past pill. **Built 2026-09-17**: `/find` is a page rather
+than T45's redirect and joins `PUBLIC_ROUTES`; `SportScopeSelect` replaces `SportFilter` on both
+lists, so the multi-select combination and the per-sport counts go (and with them
+`countSpotsBySport` on `/spots`, one query less per load); Events' three-tab switch becomes two
+pills and `/events/mine` is reached from the hub's "You're going" with a "For you" back link, its
+gate, `noindex` and counts untouched. Closes issue #465. The T48 paragraphs in
+`docs/app-shell-rethink.md` §3.7 and §5 record what the spec was silent on.
 
 **T49 · Trick page.** `t49-trick-page`. Depends on T45. Layout A (sticker beside video), the
 `Accordion` primitive for the phone's sections, desktop columns kept, the Log sheet's trick picker

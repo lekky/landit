@@ -1,7 +1,7 @@
 'use client';
 
 import { distanceLabelIn, sortSpotsByDistance } from '@landit/core';
-import { Icon, Panel, Pill, Tag } from '@landit/ui-web';
+import { Icon, Panel, Pill } from '@landit/ui-web';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -185,10 +185,13 @@ export function FindScreen({ data }: { readonly data: FindData }) {
 
       {spots.length ? (
         <>
-          {!nearby && (
-            <p className={`lab ${styles.quiet}`}>
-              {signedIn ? 'Your faves and the spots you’ve ridden' : ''}
-            </p>
+          {/*
+            What this list *is*, when it is not the nearest ones. Without it a
+            rider reads four parks under "Near you" as an answer to a question
+            they have not asked yet, and one of them may be two counties away.
+          */}
+          {!nearby && signedIn && (
+            <p className={`lab ${styles.quiet}`}>Your faves and the spots you’ve ridden</p>
           )}
           {spots.map((spot) => (
             <SpotRow
@@ -325,16 +328,22 @@ function SpotRow({
   readonly spot: SpotView;
   readonly distance: string | null;
 }) {
+  /*
+   * The kind of spot goes in the meta line rather than in a `Tag`, which is
+   * what the list cards on `/spots` do with it. A `Tag` with no `color` takes
+   * the stylesheet's `--on-dark` on no fill at all — cream on paper, an empty
+   * box where a word should be — and inventing a fill for a spot type would be
+   * a colour the design pack does not have.
+   */
   const body = (
     <>
       <div className={styles.rowBody}>
         <span className={`d ${styles.rowName}`}>{spot.name}</span>
         <div className={`lab ${styles.rowMeta}`}>
-          {spot.town}
+          {[spot.town, spot.type].filter(Boolean).join(' · ')}
           {distance && <> · about {distance} away</>}
         </div>
       </div>
-      {spot.type && <Tag style={{ fontSize: 10 }}>{spot.type}</Tag>}
     </>
   );
 

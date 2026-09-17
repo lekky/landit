@@ -192,6 +192,21 @@
   min-height: 44px;
 }
 
+/*
+ * "Near me" carries a 14px map glyph, and `.pill` is a plain inline box with no
+ * gap — drawn as it comes, the icon and the word touch. `/spots` says the same
+ * thing in its own `.nearMe`; this is that rule, here, because a module cannot
+ * borrow one from another file. `:global`, because `.pill` is
+ * `packages/ui-web`'s and a bare name would hash into a class nothing writes
+ * (LESSONS §3a).
+ */
+.here :global(.pill) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+}
+
 .on {
   display: inline-flex;
   align-items: center;

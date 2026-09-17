@@ -570,6 +570,75 @@ precedent `last_seen` set.
 - `/spots` and `/events` gain the same `TabRow` at the top and lose their eyebrow + h1 header on the phone (they keep it on desktop). Their sport pill rows become `SportScopeSelect` (O1: Spots opens on Every spot, Events on your sport). Events' Upcoming / Past / Mine switch becomes pills Upcoming · Past; Mine lives on For you.
 - Fires `tabs_switched` `{ group: 'find', tab }`.
 
+**The hub keeps its header at every width, and the two lists give theirs up by clipping it**
+*(added by the T48 worker, 2026-09-17, pending owner confirmation)*. §3.7 asks for "Find / Where to
+ride" on the hub and for `/spots` and `/events` to lose their eyebrow + h1 on the phone. Two things
+had to be settled to build that. The hub is the group's *landing* screen rather than a list with a
+lit tab above it, so nothing else on it says where a rider is — its header stays on at 390px. And
+the two lists take the clip that the spot cards already use (`position: absolute`, 1×1,
+`clip-path: inset(50%)`) rather than `display: none`, because the latter takes the `h1` out of the
+accessibility tree as well as off the screen, and a phone screen with no heading at all is a worse
+page than one with a redundant heading. On `/events` the clip goes on the header *row* rather than
+on a wrapper inside it: `.page` is a flex column with an 18px gap, and a row that is merely empty
+still collects a gap on each side — 36px of nothing, which is most of what hiding the heading was
+meant to save.
+
+**`/events/mine` keeps its title at every width and gains a "For you" back link** *(added by the
+T48 worker, 2026-09-17, pending owner confirmation)*. It is the one screen in the group that the
+Upcoming · Past pills cannot describe — they are each other's exact complement and a rider's own
+events are neither — so the pills are not rendered there at all, and with the title clipped a phone
+would show a list of events with nothing on screen saying whose they are. §2.3 asks a screen
+reached from somewhere else for a back link, and the somewhere else is now the hub's "You're going",
+so it carries one. The calendar's own "You're down for N events" panel keeps its "See yours →",
+which makes two doors into the route rather than the one the Mine pill used to be.
+
+**"Coming up" opens on the reader's country and widens rather than emptying** *(added by the T48
+worker, 2026-09-17, pending owner confirmation)*. §3.7 says "the next events" and does not say
+whose. The calendar is two hundred-odd events across thirty countries and `/events` already opens
+narrowed to the reader's own country for that reason (2026-09-12), resolved on the server from a
+declared sign-up country or `Accept-Language`; a hub that led with a jam in Chile for a rider in
+Corby would be a section nobody reads twice. Where that country has nothing upcoming in it the
+section falls back to the whole calendar, because an empty panel reads as a product with no events
+in it. A `.lab` line says which country when the narrowing actually held, and says nothing when it
+did not, so it never claims a filter that is not on. Events the rider is already going to are left
+out, so the hub does not print the same jam twice.
+
+**The hub's rows send `from=list`, and the hub itself fires nothing new** *(added by the T48 worker,
+2026-09-17, pending owner confirmation)*. §5 gives T48 one event, `tabs_switched`, and `TabRow`
+fires it. The section links ("Mine →", "All spots →", "All events →") deliberately fire nothing:
+`nav_clicked`'s `to` is a group id and its `where` is one of four fixed places, so a route pushed
+into it from here would be a property invented at the call site, which is the one thing the
+catalogue forbids. An event row on the hub links with `EventPageSource` `'list'` — the same value a
+row on `/events` sends — rather than a fourth value, because the hub is a list of events and adding
+one would be a catalogue change for a distinction nothing is asking about yet. What measures the
+hub is `tabs_switched { group: 'find' }` plus the `spot_page_opened` and `event_page_opened` the
+rows already land on.
+
+**A stored scope arrives one render after the server's default** *(added by the T48 worker,
+2026-09-17, pending owner confirmation)*. `SportScopeSelect` keeps its choice in `localStorage`,
+which the server cannot see, so `useSportScope` is a `useSyncExternalStore` whose server snapshot is
+the screen's default — no hydration mismatch, nothing that could throw the tree away (LESSONS §3a) —
+and a rider who has chosen a scope on this device sees their list a moment after hydration. That is
+the price of a per-device preference; it is deliberately not paid with a cookie, because a display
+choice about which sports a list shows does not belong in a header sent with every request, and on
+both screens the default is the wider list, so what changes after hydration is a narrowing rather
+than a rider being shown somebody else's list first.
+
+**The per-sport counts go with the pills, and `/spots` makes one query less** *(added by the T48
+worker, 2026-09-17, pending owner confirmation)*. The multi-select's pills each carried a count
+("BMX 210"), which answered "is it worth narrowing to this?" before a rider narrowed. A `<select>`
+has no room for a number beside each option and an option that carried one would read as part of the
+sport's name, so they are gone — and with them `countSpotsBySport`, which `/spots` called on every
+load to compute them. `view.countBySport` stays on the events view, which is cheap and which
+`/events/past` may still want.
+
+**The scope select is 44px where the Country select it copies is about 32** *(added by the T48
+worker, 2026-09-17, pending owner confirmation)*. §3.3 names the Country control on `/events` as the
+precedent for the select treatment, and §4 says nothing tappable is below 44px. The precedent sets
+the look and the floor sets the size; where they disagree the floor wins, because this control
+replaced a row of pills a thumb could hit. `/events`' own Country select is left alone — it is not
+this task's, and it has [issue #552](https://github.com/lekky/landit/issues/552) of its own.
+
 ### 3.8 Trick page (D7)
 
 Phone order: BackLink → hero band (category tag, difficulty, name, one-line lowdown) → **sticker + video row** (`StickerBadge` in a paper card with "Earned <date>" or "Land it at Sometimes", and the existing video block as a 16:9 thumbnail with a play square; with no video the sticker card spans the row) → the yellow "Can you do it?" band with the `StagePicker` and Share → a row of small buttons (Sticker · Watch · Clip) → **`Accordion`** rows for The lowdown, Tips, What you need, The road to it, Where to practise, Your history / notes / clips → More like this.
@@ -707,6 +776,17 @@ Changed: `sport_switched` gains `where: 'chip'` (the tab rows that fired it with
 `nav_clicked` gains the values `find`, `log` for `to` and `'top'` for `where`. Removed:
 `nav_section_opened` (the drawer is gone; its doc comment is deleted, not left describing a
 control that no longer exists).
+
+**`sport_filter_set` stops firing but stays in the catalogue** *(added by the T48 worker,
+2026-09-17, pending owner confirmation)*. It was the multi-select's event, fired from `/spots` and
+`/events`, and `SportScopeSelect` replaced both rows — so nothing sends it any more and
+`sport_scope_set` is the question it used to answer. The entry is left where it is rather than
+deleted: T46 and T47 have `analytics.ts` open in the same wave, and removing a catalogue line is
+also a decision about the history already in the funnel, which is the owner's rather than a build
+session's. Its doc comment now describes a control that no longer exists, which
+[issue #551](https://github.com/lekky/landit/issues/551) is where that gets settled. Same for
+`events_view_switched`'s `'mine'`: the pill that sent it is gone, and `'upcoming'` and `'past'`
+still fire from the two that replaced it.
 
 ---
 

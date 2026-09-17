@@ -48,8 +48,10 @@
  *
  * Clipped rather than `display: none`, so the `h1` stays in the accessibility
  * tree: a phone with no heading is a worse screen than one with a redundant
- * heading, and the clip costs nothing. A rider's own events keep the words at
- * every width — see the comment in `EventsScreen.tsx`.
+ * heading, and the clip costs nothing. The class sits on `.headRow` itself, not
+ * on a wrapper inside it, so the row leaves `.page`'s flex flow and takes its
+ * two 18px gaps with it. A rider's own events keep the words at every width —
+ * see the comment in `EventsScreen.tsx`.
  */
 @media (max-width: 860px) {
   .headWords {

@@ -133,9 +133,7 @@ test('the bottom bar is four groups and a LOG cell, in the order D1 sets', async
   for (const [name, href] of [
     ['Home', '/home'],
     ['Tricks', '/library'],
-    // `/find` redirects to `/spots` until T48 builds the summary. The cell
-    // points at the group's own address either way, so nothing has to change
-    // in the bar when the page arrives.
+    // The Find group's own address, which is the 'For you' summary (T48).
     ['Find', '/find'],
     ['Crew', '/crew'],
   ] as const) {
@@ -626,9 +624,8 @@ test('every nav group is a real link, at both widths', async ({ page }) => {
   for (const [name, href] of [
     ['Home', '/home'],
     ['Tricks', '/library'],
-    // A redirect to `/spots` until T48, which is a screen existing rather than
-    // a label standing in for one: the cell points at the group and stays put
-    // when the summary lands.
+    // The Find group's own address — the 'For you' summary (T48), not a label
+    // standing in for a screen.
     ['Find', '/find'],
     ['Crew', '/crew'],
   ] as const) {

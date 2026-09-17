@@ -467,23 +467,29 @@ export function EventsScreen({
       */}
       {mine && <BackLink href={ROUTES.find} label="For you" />}
 
-      <div className={styles.headRow}>
-        {/*
-          The eyebrow, the title and the lede — **seen on desktop only**
-          (§3.7). Below 861px the tab row above already says "Events" in the lit
-          box and the pills below say which half; three lines of furniture
-          before the first event was most of a 390px screen. Clipped rather than
-          `display: none`, so the `h1` is still in the accessibility tree: a
-          phone with no heading at all would be a worse screen, not a shorter
-          one.
+      {/*
+        The eyebrow, the title and the lede — **seen on desktop only** (§3.7).
+        Below 861px the tab row above already says "Events" in the lit box and
+        the pills below say which half; three lines of furniture before the
+        first event was most of a 390px screen.
 
-          **A rider's own events keep theirs at every width**, because this
-          screen has no pills to say where it is: "Upcoming" and "Past" are the
-          calendar's two halves and `mine` is neither, so without the title a
-          phone would show a list of events with nothing on screen saying they
-          are the rider's own.
-        */}
-        <div className={mine ? undefined : styles.headWords}>
+        Clipped rather than `display: none`, so the `h1` is still in the
+        accessibility tree: a phone with no heading at all would be a worse
+        screen, not a shorter one. The clip goes on **this** element rather than
+        on an inner wrapper, because `.page` is a flex column with an 18px gap
+        and a row that is merely empty still collects a gap on each side — 36px
+        of nothing between the tab row and the pills, which is most of what
+        hiding the heading was supposed to save. Absolutely positioned, it is
+        out of flow and the gap closes.
+
+        **A rider's own events keep theirs at every width**, because that screen
+        has no pills to say where it is: "Upcoming" and "Past" are the
+        calendar's two halves and `mine` is neither, so without the title a
+        phone would show a list of events with nothing on screen saying they are
+        the rider's own.
+      */}
+      <div className={mine ? styles.headRow : `${styles.headRow} ${styles.headWords}`}>
+        <div>
           <span className="eyebrow">{mine ? 'Yours' : past ? 'The archive' : 'Events'}</span>
           <h1 className={`d ${styles.head}`}>
             {mine ? 'Your events' : past ? 'Events that have already happened' : 'What’s coming up'}
