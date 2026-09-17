@@ -65,6 +65,19 @@ export interface SessionFormData {
   /** The rider's zone, for checking a picked time on submit. Never formatted with in render. */
   readonly timezone: string;
   readonly initial: SessionFormValues;
+  /**
+   * `initial.sport` was decided by the link the rider arrived on — an event's
+   * sport, or a trick's — rather than merely defaulted to their first (T50).
+   *
+   * The form's sport now follows the top bar's chip (rethink §3.10, D5), which
+   * only the browser knows; this says when it must not. A rider who taps "Log a
+   * session" from a skateboard trick's page means skateboard, whatever the chip
+   * says, and a session saved against the wrong sport drops the trick they came
+   * to log (`TricksField` filters by `values.sport`). Always `false` in edit
+   * mode, where the saved sport is the rider's own answer and nothing overrides
+   * it.
+   */
+  readonly sportFromLink: boolean;
   /** Trick entries that already moved a stage, and where to: "Most times". Edit mode. */
   readonly promoted: readonly { readonly trickId: string; readonly label: string }[];
   readonly sports: readonly SportId[];

@@ -29,7 +29,6 @@ import {
   weekdayName,
   weeklyStreakLabel,
   type RideSession,
-  type SportId,
 } from '@landit/core';
 import {
   getSessionQuota,
@@ -46,7 +45,7 @@ import {
 } from '@landit/db';
 
 import { eventHref, spotHref, trickHref } from '@/lib/routes';
-import { sessionFilterSports, topSpotBarWidth } from '@/lib/sessionList';
+import { topSpotBarWidth } from '@/lib/sessionList';
 import { editSessionHref, sessionHref } from '@/lib/sessionRoutes';
 
 import type { SessionCardView, SessionsSidebarView, SessionsView } from './types';
@@ -309,16 +308,19 @@ export async function buildSessionsView(input: {
     }),
   };
 
-  const sports = sessionFilterSports(
-    rider.sports ?? [],
-    sessions.map((s) => s.sport),
-  );
-
+  /*
+   * No sport list is shaped here any more (T50). The row of sport chips this
+   * fed — "All · Scooter · BMX · At an event", one question with four answers —
+   * is the `SportScopeSelect` now (rethink §3.10, O1), which offers every sport
+   * from the catalogue whatever the rider's profile records and tracks the top
+   * bar's chip. So the server no longer works out which sports to offer, and
+   * the "a sport dropped from the profile still has sessions worth finding"
+   * case is covered by the control offering all three rather than by a read.
+   */
   return {
     sessions: sessions.map((s) => cardView(s, names, timezone, today)),
     timezone,
     currentMonthKey,
-    filterSports: sports.map((id: SportId) => ({ id, label: SPORTS[id].short })),
     sidebar,
   };
 }

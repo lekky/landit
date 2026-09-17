@@ -1,7 +1,7 @@
 'use client';
 
-import { SESSION_FEELS, type SessionField } from '@landit/core';
-import { FeelFace, Icon, SegmentedPicker } from '@landit/ui-web';
+import { SESSION_FEELS, SPORTS, type SessionField } from '@landit/core';
+import { FeelFace, Icon, SegmentedPicker, Tag } from '@landit/ui-web';
 import { useState, type ReactNode } from 'react';
 
 import type { SessionFormValues } from '@/lib/sessionForm';
@@ -55,6 +55,19 @@ export function QuickLog(props: {
       <span className={styles.grab} aria-hidden="true" />
       <div className={styles.quickHead}>
         <span className={styles.quickTitle}>Rode just now</span>
+        {/*
+          The sport, as a `Tag` (rethink §3.10, T50).
+
+          The quick log asks three questions and the sport is not one of them —
+          it is taken from the top bar's chip and saved with the session, so
+          until now the one thing a rider could not see before pressing "Log it"
+          was which library the ride would land in. A tag states it without
+          adding a fourth control: changing it is what "Add tricks, clip and
+          notes →" is for.
+        */}
+        <Tag color={SPORTS[values.sport].color} className={styles.quickSport}>
+          {SPORTS[values.sport].short}
+        </Tag>
         <span className={styles.quickStamp}>{data.stamp}</span>
         <button
           type="button"

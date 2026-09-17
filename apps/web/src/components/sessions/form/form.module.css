@@ -116,6 +116,36 @@
 
 .body {
   padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/*
+ * The three steps' tab row (rethink §3.10, T50).
+ *
+ * `TabRow` brings the whole look — separate boxes, the 3px keyline, the yellow
+ * 4px lift on the active one, and `.rowFit`, which is what keeps "When & where"
+ * from widening a 320px phone. Nothing is painted here; the row only has to
+ * stop stretching to the height of a flex column.
+ */
+.steps {
+  flex: none;
+}
+
+/*
+ * "What you rode", as a statement rather than a control (§3.10).
+ *
+ * The sport art beside the tag, at the size the mate chips and the trick rows
+ * use for an inline glyph. No keyline and no fill of its own: `Tag` carries the
+ * sport's colour, and a box around a box would be the second border on a card
+ * that already has one.
+ */
+.sportPreset {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
 }
 .cols {
   display: grid;
@@ -781,10 +811,20 @@
 .quickHead {
   display: flex;
   align-items: center;
+  /*
+   * Wrapping, since T50 put the sport tag in here. Four things on one dark bar
+   * — title, tag, stamp, close — do not fit a 320px phone, and a row that
+   * refuses to wrap takes the whole document sideways with it (issue #550, the
+   * same failure one control along). Two lines at 320 is the cheaper answer.
+   */
+  flex-wrap: wrap;
   gap: 12px;
   background: #12100b;
   color: #fffdf5;
   padding: 8px 8px 8px 18px;
+}
+.quickSport {
+  flex: none;
 }
 .quickTitle {
   font-family: var(--fd);

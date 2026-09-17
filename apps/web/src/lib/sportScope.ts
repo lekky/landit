@@ -29,8 +29,15 @@ import { SPORTS, SPORT_IDS, type SportId } from '@landit/core';
  */
 export type SportScope = 'chip' | 'all' | SportId;
 
-/** Which screen a scope belongs to. One key per screen, per device. */
-export type ScopeScreen = 'spots' | 'events';
+/**
+ * Which screen a scope belongs to. One key per screen, per device.
+ *
+ * `sessions` and `glossary` join the two lists T48 built it for (T50): O1 names
+ * all four, and both of the new ones open on the rider's own sport. The key is
+ * per screen rather than shared so that widening the glossary to every sport
+ * for one word does not also widen a rider's own diary.
+ */
+export type ScopeScreen = 'spots' | 'events' | 'sessions' | 'glossary';
 
 /** Where a screen's choice is kept — `localStorage`, per device (§3.3). */
 export function scopeStorageKey(screen: string): string {
