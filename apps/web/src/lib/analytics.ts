@@ -631,7 +631,15 @@ export const ANALYTICS_EVENTS = {
   /**
    * A tab row was switched (§3.3). Carries `group` and `tab`, both catalogue
    * ids from the screen's own tab list (`find`/`spots`, `progress`/`over-time`,
-   * `whats-new`/`crew`) — never a crew's name, which a rider typed.
+   * `whats-new`/`crew-1`) — never a crew's name or id, both of which are rider
+   * facts. Where a row's tabs *are* records, the screen sets `analyticsId` on
+   * the item and the real id stays local state (T47: What's new numbers its
+   * crew tabs `crew-1`, `crew-2`, because a crew id in a third-party store is
+   * a membership graph).
+   *
+   * **Only on an actual switch.** Pressing the tab you are already on sends
+   * nothing: counting it would put fidgeting into every funnel built on this
+   * event. `TabRow` decides that, so no screen has to.
    *
    * It replaces the several per-screen switch events the tab rows are taking
    * over from, and it exists because the rethink turns tab rows into the
@@ -648,13 +656,28 @@ export const ANALYTICS_EVENTS = {
    */
   sportScopeSet: 'sport_scope_set',
   /**
-   * The bell was opened. Carries `where` (`mobile` — the `/whats-new` page — or
-   * `top`, the desktop dropdown) and `unread`, an integer count of lines the
+   * What's new was opened. Carries `where` (`mobile` — the `/whats-new` page —
+   * or `top`, the desktop dropdown) and `unread`, an integer count of lines the
    * rider had not seen. A count of product-written lines, not a description of
    * the rider: T47 is what makes it anything other than 0.
+   *
+   * **Fired from two places, and neither is the bell's tap.** `top` comes from
+   * `BellButton` when the dropdown opens, because there opening *is* the press.
+   * `mobile` comes from `WhatsNewPanel`'s mount effect on the page, because on
+   * a phone the bell is a `Link`: a capture on its click raced the navigation,
+   * and a rider arriving by "All →", by a deep link or by the back button fired
+   * nothing at all.
    */
   whatsNewOpened: 'whats_new_opened',
-  /** "Mark all read" — carries `unread`, the count that was cleared. T47's. */
+  /**
+   * "Mark all read" — carries `unread`, the count the panel **opened** with,
+   * which is the number that was on the bell. T47's.
+   *
+   * It fires only when that count was above zero. Opening the panel already
+   * stamps the bookmark, so a press at zero would carry the same number the
+   * `whats_new_opened` before it carried and measure nothing; gated this way it
+   * answers "how many lines did a rider clear by hand".
+   */
   whatsNewRead: 'whats_new_read',
   /**
    * Something on the signed-out landing page was pressed.

@@ -369,11 +369,24 @@ test('a private crew-mate’s join is not named in the You feed', async ({ brows
     await arrive(ownerPage, 'Ollie Owner');
     await arrive(joinerPage, 'Cara Quiet');
 
-    // A new profile is private by default (AADC standard 7), which is the state
-    // under test — asserted rather than assumed, because the whole point is
-    // that this rider is private.
+    /*
+     * A new profile is private by default (AADC standard 7), which is the state
+     * under test — asserted rather than assumed, because the whole point is
+     * that this rider is private.
+     *
+     * **`/^Private/`, the profile-privacy radio.** This read `/Only me/` until
+     * the second review pass, and there is no such profile-privacy option: the
+     * three are "Public", "Riders only" and "Private" (`PRIVACY` in
+     * `packages/core/src/data/profile.ts`). "Only me" is the default of the
+     * *sessions* visibility group, which renders only where `sessionsEnabledFor`
+     * is true — so on a server with `LANDIT_SESSIONS_OPEN=1` the assertion found
+     * that radio, it was checked, and the test went green through a door that
+     * has nothing to do with profile privacy; without the flag it found nothing
+     * and failed. Exactly the shape LESSONS §5 warns about, in a file whose own
+     * comments argue against it twice.
+     */
     await joinerPage.goto('/account');
-    await expect(joinerPage.getByRole('radio', { name: /Only me/ })).toBeChecked();
+    await expect(joinerPage.getByRole('radio', { name: /^Private/ })).toBeChecked();
 
     const crewName = `Ramp Rats ${unique()}`;
     await ownerPage.goto('/crew');

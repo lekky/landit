@@ -182,7 +182,8 @@ one (T47).
 - Hover: `translate(-1px,-1px)`, 4px shadow (existing `.sporttab:hover`). Press: `translate(2px,2px)`, 1px shadow (existing `.btn:active`).
 - Renders as links (`role="tablist"` when the tabs switch content in place; plain `nav` of links when they are routes, as on Find).
 - Switching content in place cross-fades the panel over 120ms.
-- Fires `tabs_switched` `{ group, tab }` where both are catalogue ids (e.g. `find` / `spots`, `progress` / `over-time`, `whats-new` / `crew`).
+- Fires `tabs_switched` `{ group, tab }` where both are catalogue ids (e.g. `find` / `spots`, `progress` / `over-time`, `whats-new` / `crew-1`).
+- **A label that does not fit is clipped, and the type tightens first** (`.rowFit` in `apps/web/src/components/shell/shell.module.css`, added by T47 — see below).
 - Used by: Find (For you · Spots · Events), Progress (Record · Over time · Skill tree), Stickers (Earned · Not yet), Crew (Board · Activity · Members), Rider profile (Landed · Stickers · Videos), Plans (Monthly · Yearly), Tricks (All · Mine · Filters on the phone; All · Mine on desktop), What's new (You · crews), the session form's three steps.
 
 **`TabRow` is a component in `apps/web`, and it is what fires the event** *(added by the T45 worker,
@@ -204,6 +205,32 @@ the whole of it; two of its four bullets cannot live in `packages/ui-web`. So th
   it and the fade runs on every switch.
 
 §5's "Fired by: TabRow" therefore means `apps/web/src/components/shell/TabRow.tsx`, not `Tabs`.
+
+**The row never widens the page, and the words are the last thing to give** *(added by the T47
+worker, 2026-09-17, pending owner confirmation)*. §3.3 specifies the tab's type and says nothing
+about what happens when a label is longer than its share of the row. What happens is that the whole
+document scrolls sideways: `.tabrow .sporttab` is `flex: 1` with `white-space: nowrap`, and a flex
+item's `min-width` is `auto`, so the box refuses to shrink below its content. Measured on
+`/whats-new` with a 40-character crew name — the maximum a rider can set — the page was 475px wide
+at 320, 360, 375 and 390, with the feed panel's right keyline off screen and the last tab cut
+mid-word. Issue #550 filed the general case after T46 met it on Progress with three ordinary words.
+
+`TabRow` now adds `.rowFit` to every row it draws, and it gives way in the order T45 used for the
+sport chip's name below 520px — the decoration first, the words last:
+
+1. **Below 420px the type tightens**: 12px at 0.05em with 4px of side padding, where the row is
+   otherwise 13px at 0.09em with 10px. These are T46's numbers, proved on Progress and promoted
+   here so no screen has to remember them.
+2. **`min-width: 0` on the box**, which is what actually stops the overflow at every width rather
+   than postponing it to a longer label.
+3. **The label clips with an ellipsis** and keeps the full string in the DOM, so a screen reader
+   still reads the whole crew name; a pointer gets it from `title`, which `TabRow` sets from the
+   item. `packages/ui-web` wraps a plain tab label in `span.tab-label` for this, because
+   `text-overflow` needs a box and the anonymous text run inside a flex container is not one.
+
+It is in `TabRow` rather than in `packages/ui-web`'s `.tabrow` because that stylesheet is merged
+shared code two sibling tasks were building on in the same wave; this reaches every row that goes
+through the component and moves nothing that does not.
 
 **`BackLink`** (new, `apps/web/src/components/shell/BackLink.tsx`) — arrow-left icon + label in `.lab` at 13px, `--ink-3`. A link. Used per §2.3.
 
@@ -472,10 +499,18 @@ rider is never told when the skate week closes.
 **Opening the panel clears the badge while it is still open** *(added by the T47 worker,
 2026-09-17, pending owner confirmation)*. The count comes from the layout's server render, so
 stamping `whats_new_seen_at` alone would leave a rider reading four lines with a badge beside them
-still saying four until they happened to navigate. The panel stamps and then asks for a fresh
+still saying four until they happened to navigate. So the panel stamps and then asks for a fresh
 layout, which keeps client state — the dropdown stays open, the tab does not move, the number goes.
-It costs one server render per opening. **No line is ever struck off or greyed**: this is what has
-happened lately, not an inbox, so "read" changes the count and nothing else.
+
+**It does that only when there is something to clear and the read succeeded.** An opening at zero
+unread makes no request at all: no write, no re-render, nothing. The first cut stamped on every
+opening, so a rider pressing the bell out of habit paid a write and a full server re-render of
+whatever page they were on to move a bookmark that was already past everything; and because the
+loader fails soft to an empty list, a *failed* read would have walked the bookmark past news nobody
+was shown. `WhatsNewLines` carries `ok` for the second half of that.
+
+**No line is ever struck off or greyed**: this is what has happened lately, not an inbox, so "read"
+changes the count and nothing else.
 
 **The tab row is hidden for a rider in one crew** *(added by the T47 worker, 2026-09-17, pending
 owner confirmation)*. §3.6 asks for "a `TabRow` of **You** and one tab per crew", and a rider in no
@@ -663,10 +698,10 @@ facts only, and each added to the pinned list in `analytics.test.ts`:
 | --- | --- | --- |
 | `log_sheet_opened` | `where: 'mobile' \| 'top'` | LogCell, LogButton |
 | `log_action_picked` | `action: 'rode' \| 'trick' \| 'session' \| 'clip'` | LogSheet |
-| `tabs_switched` | `group`, `tab` (ids from the screen's tab list) | `TabRow` — `apps/web/src/components/shell/TabRow.tsx`, which fires it itself so no screen has to remember (§3.3) |
+| `tabs_switched` | `group`, `tab` (ids from the screen's tab list; `analyticsId` where the tab is a record, e.g. `crew-1`) | `TabRow` — `apps/web/src/components/shell/TabRow.tsx`, which fires it itself so no screen has to remember (§3.3), and not at all when the pressed tab is the active one *(T47, 2026-09-17)* |
 | `sport_scope_set` | `screen`, `scope: 'chip' \| 'all' \| 'other'` | SportScopeSelect |
-| `whats_new_opened` | `where: 'mobile' \| 'top'`, `unread` (integer) | BellButton |
-| `whats_new_read` | `unread` (the count cleared) | "Mark all read" |
+| `whats_new_opened` | `where: 'mobile' \| 'top'`, `unread` (integer) | `BellButton` for `top`; `WhatsNewPanel`'s mount for `mobile` — the page, not the bell's tap, so "All →", a deep link and the back button all count *(T47, 2026-09-17)* |
+| `whats_new_read` | `unread` (the count the panel opened with) | "Mark all read", and only when that count was above zero *(T47, 2026-09-17)* |
 
 Changed: `sport_switched` gains `where: 'chip'` (the tab rows that fired it without `where` go).
 `nav_clicked` gains the values `find`, `log` for `to` and `'top'` for `where`. Removed:
