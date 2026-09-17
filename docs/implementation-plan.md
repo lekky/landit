@@ -5370,7 +5370,18 @@ rather than the rider being sent to the other screen. The T51 paragraphs in
 
 **T52 · The secondary screens.** `t52-secondary-screens`. Depends on T45. Crew tabs, rider
 profile tabs, spot page actions, Plans tabs, Coach / Suggest / Report / Close as pills and
-centred at 640px, the Tricks header.
+centred at 640px, the Tricks header. **Built 2026-09-17**: Crew's board and feed become Board ·
+Activity · Members at every width (the third tab is the board's own rows, from the crew-board
+route, so nothing new is exposed and a private rider is still absent from Activity); a rider
+profile is the card plus Landed · Stickers · Videos, the last drawn only where the `clips` rule
+returned something; the spot page trades its breadcrumb for a "Spots" back link, gains Faved ·
+Directions · Log here as three equal actions and draws "What's here" as coloured cards; Plans'
+segmented toggle becomes a `TabRow` with the yearly saving inside the Yearly tab; Suggest and
+Report keep their native radios under pill rows and they, Coach and Close account centre at
+640px; the library loses the last `SportSwitch` row (D5), puts All · Mine · Filters in one row
+above the two columns and moves the Rookie nudge four cards into the grid. The T52 paragraphs in
+`docs/app-shell-rethink.md` §3.10 record what the spec was silent on, including the one place it
+disagreed with itself (§7's "board left, activity right").
 
 Wave A is T45 alone. Wave B is T46 ∥ T47 ∥ T48 (route-disjoint). Wave C is T49 ∥ T50 ∥ T51 ∥ T52
 (route-disjoint). Each is one session, one branch, one PR, raised only when asked.

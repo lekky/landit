@@ -408,12 +408,18 @@ export default async function SpotPage({ params }: Params) {
             the same address as the "Log a session here" link inside "Your
             sessions here", counted through the same `LogSessionLink` with the
             same `source: 'spot'`. And behind the same gate — sessions are in
-            owner-only preview (T41), and `sessionsEnabledFor` is the one
-            question that decides it, asked here exactly as `riderFor` asks it
-            for the block below. A rider who cannot log a session is not shown
-            a button that would 404 on the way in.
+            owner-only preview (T41) — asked **exactly** as `riderFor` asks it
+            for the block below: is there a rider, *and* is it on for them.
+
+            Both halves, because `sessionsEnabledFor` answers `true` for a
+            `null` rider once `LANDIT_SESSIONS_OPEN` is set, which is how a
+            release will run it. Written as `sessionsEnabledFor(session?.rider
+            ?? null)` this put a "Log here" on a public spot page for a visitor
+            with no account, pointing at a form that would bounce them to
+            `/signin` — caught by the signed-out case in `e2e/spot-page.spec.ts`
+            rather than by the flag, which is off in most places this is run.
           */}
-          {sessionsEnabledFor(session?.rider ?? null) ? (
+          {session && sessionsEnabledFor(session.rider) ? (
             <LogSessionLink
               href={newSessionHref({ spot: spot.id })}
               source="spot"

@@ -84,18 +84,93 @@ async function signUpRookie(page: Page): Promise<void> {
   await page.waitForURL('**/home');
 }
 
-test('the library lists the tricks, signed out, with one tab per sport', async ({ page }) => {
+test('the library lists the tricks signed out, and the sport row is gone (D5)', async ({
+  page,
+}) => {
   await page.goto('/library');
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText('tricks');
   await expect(card(page, freeTrick.name)).toBeVisible();
 
-  // Three sports since T21 — screenshot 08 shows two because it predates the
-  // decision (plan §7 ground rules).
+  /*
+   * This asserted "one tab per sport" until T52. The sport is chosen once now,
+   * in the top bar's chip (D5), and every in-page sport row goes with it — this
+   * was the last one on this screen. The assertion is inverted rather than
+   * deleted, because the row coming back is the thing the decision forbids and
+   * nothing else would notice.
+   *
+   * Three sports since T21, and the count is kept: it is what stops this
+   * passing because `SPORT_IDS` quietly emptied.
+   */
   for (const id of SPORT_IDS) {
-    await expect(page.getByRole('tab', { name: new RegExp(SPORTS[id].label, 'i') })).toBeVisible();
+    await expect(page.getByRole('tab', { name: new RegExp(SPORTS[id].label, 'i') })).toHaveCount(0);
   }
   expect(SPORT_IDS.length).toBe(3);
+
+  // Signed out there is no All · Mine either: a visitor has no tracked tricks,
+  // so the row would be a control with one working side.
+  await expect(page.getByRole('tablist', { name: 'Which tricks to show' })).toHaveCount(0);
+});
+
+test('All · Mine · Filters is one row, and it fits a 320px phone', async ({ page }) => {
+  /*
+   * Issue #550's shape, on the widest of the rows: three boxes rather than two,
+   * one of them carrying a count. `.tabrow .sporttab` is `flex: 1` with
+   * `white-space: nowrap`, so a label that will not fit makes its box refuse to
+   * shrink and the whole document scrolls sideways — which on this screen would
+   * also take the card grid with it.
+   *
+   * 320 is the narrowest phone the product is built for, and it is the width
+   * `TabRow`'s own tightening (`.rowFit`, under 420px) exists for.
+   */
+  await page.setViewportSize({ width: 320, height: 844 });
+  await signUpRookie(page);
+  await page.goto('/library');
+
+  const tabs = page.getByRole('tablist', { name: 'Which tricks to show' });
+  await expect(tabs.getByRole('tab')).toHaveCount(2);
+  const filters = page.getByRole('button', { name: /Filters/ });
+  await expect(filters).toBeVisible();
+
+  for (const width of [320, 360, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(
+      overflow,
+      `the document is ${overflow}px wider than the screen at ${width}`,
+    ).toBeLessThanOrEqual(0);
+  }
+
+  // Every box in the row is a 44px target (§4), the Filters one included.
+  for (const box of [tabs.getByRole('tab').first(), tabs.getByRole('tab').last(), filters]) {
+    const size = await box.boundingBox();
+    expect(size?.height).toBeGreaterThanOrEqual(44);
+  }
+
+  // And the third box is a disclosure rather than a tab — a screen reader told
+  // "Filters, tab" would expect the panel under the row to become the filters.
+  await expect(filters).toHaveAttribute('aria-expanded', 'false');
+  await filters.click();
+  await expect(filters).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByRole('button', { name: 'Park', exact: true })).toBeVisible();
+});
+
+test('Mine is a tab of that row, and still rewrites the address', async ({ page }) => {
+  await signUpRookie(page);
+  await page.goto('/library');
+
+  const tabs = page.getByRole('tablist', { name: 'Which tricks to show' });
+  await expect(tabs.getByRole('tab', { name: /^All/ })).toHaveAttribute('aria-selected', 'true');
+
+  await tabs.getByRole('tab', { name: /^Mine/ }).click();
+  await expect(page).toHaveURL(/mine=1/);
+  await expect(page.getByText('You are not tracking anything yet')).toBeVisible();
+
+  await tabs.getByRole('tab', { name: /^All/ }).click();
+  await expect(page).not.toHaveURL(/mine=1/);
+  await expect(card(page, freeTrick.name)).toBeVisible();
 });
 
 test('a paid trick is listed, not hidden, and says which tier it is', async ({ page }) => {

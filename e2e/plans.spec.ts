@@ -74,7 +74,9 @@ test('the prices are plan §6.7’s, and the toggle switches every card at once'
   await expect(rookie).toContainText('Free');
   await expect(rookie).toContainText('forever');
 
-  await page.getByRole('button', { name: 'Yearly', exact: true }).click();
+  // A tab of the row now rather than half a segmented control (T52, §3.10),
+  // and it still switches every card at once.
+  await page.getByRole('tab', { name: /^Yearly/ }).click();
 
   await expect(shredder).toContainText('£39.99');
   await expect(shredder).toContainText('per year');
@@ -90,17 +92,34 @@ test('the yearly saving badge is derived, not typed (LESSONS §4)', async ({ pag
   await expect(page.getByText('2 months free', { exact: true })).toBeVisible();
 });
 
-test('the saving belongs to Yearly, and says so to a screen reader', async ({ page }) => {
-  // The badge used to sit beside the whole toggle, where a visitor on the
-  // default Monthly reads it as describing Monthly. It is now anchored to the
-  // Yearly button; position carries that for a sighted reader and
-  // `aria-describedby` carries it for everyone else. A layout change that
-  // detaches the two fails here.
-  const yearly = page.getByRole('button', { name: 'Yearly', exact: true });
-  await expect(yearly).toHaveAccessibleDescription('2 months free');
-  await expect(
-    page.getByRole('button', { name: 'Monthly', exact: true }),
-  ).toHaveAccessibleDescription('');
+test('Monthly · Yearly is the product’s tab row, and the saving is inside Yearly', async ({
+  page,
+}) => {
+  /*
+   * T52, §3.10. Two things at once, and the second is the one that is easy to
+   * lose in a redraw.
+   *
+   * The period picker is a `TabRow` — the same boxed row Progress, Stickers,
+   * Crew and a rider's profile use — rather than the one-off segmented control
+   * this screen had. And the saving is **part of the Yearly tab**, where it was
+   * a tag positioned over the toggle's right-hand half with `aria-describedby`
+   * carrying the association for anyone who cannot see position. Inside the tab
+   * it is the tab's own text, so a screen reader reads "Yearly, 2 months free"
+   * with nothing to wire up — and a visitor sitting on Monthly is still never
+   * told they are getting two months free.
+   */
+  const yearly = page.getByRole('tab', { name: /^Yearly/ });
+  const monthly = page.getByRole('tab', { name: /^Monthly/ });
+
+  await expect(page.getByRole('tablist', { name: 'Billing period' })).toBeVisible();
+  await expect(monthly).toHaveAttribute('aria-selected', 'true');
+
+  await expect(yearly).toContainText('2 months free');
+  await expect(monthly).not.toContainText('2 months free');
+
+  await yearly.click();
+  await expect(yearly).toHaveAttribute('aria-selected', 'true');
+  await expect(monthly).toHaveAttribute('aria-selected', 'false');
 });
 
 test('achievements are never for sale, and the page says so (plan §1, §2.4)', async ({ page }) => {

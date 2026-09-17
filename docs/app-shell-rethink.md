@@ -1206,6 +1206,223 @@ rule in §3.7 without exception: with no rider the first option is not offered a
 every sport. `currentRider()` is called in `page.tsx` — the same second read `/events` and `/spots`
 already make for the same control, on a route group whose layout resolves the rider anyway.
 
+**Crew's three tabs are on at every width, and §7's desktop cell is the older
+sentence** *(added by the T52 worker, 2026-09-17, pending owner confirmation)*. §3.10 asks for a
+`TabRow` of Board · Activity · Members and §7's desktop column still says "board left, activity
+right", which is the layout the screen had. Only one of the two can be built, and the row wins on
+three counts. §3.3 lists Crew among `TabRow`'s users with no width on it, as it lists Progress and
+Stickers, and both of those are tabbed at every width since T46. A row that existed only below
+860px would leave **Members with nowhere to be** on a desktop, since the desktop layout §7
+describes has two panels and Members is a third. And the phone — the device this rethink is for —
+read the old grid as one long scroll with the activity underneath the board, which is what the
+tabs are for. So the `1fr / 340px` grid goes and one panel is on screen at a time.
+
+**Members is the board's own rows without the ranking** *(added by the T52 worker, 2026-09-17,
+pending owner confirmation)*. §3.10 says "the existing members list", and there was not one: the
+board *is* every member, ranked, with two scores each. So the third tab is the same payload drawn
+as a roster — avatar, name, sports, and the one fact the board has never shown, which of them
+started the crew. **It reads nothing new.** Those rows come from
+`GET /api/landit/crew-board/{crew}`, the single route allowed to name a rider whose profile is
+private, to a crew-mate, by name and score (plan §3 guarantee 1). A Members tab that reached for
+`users` instead would quietly list the public riders and drop the private ones; one that showed
+activity would show more than the feed beside it, which is the line
+`pocketbase/hooks/85_crews.pb.js` draws in a comment. `e2e/crew.spec.ts` puts a private rider in a
+crew and asserts both halves. There is no search on it, nothing to press but a rider's own profile,
+and no way to reach a crew from it — §6.1 is a fact about what this tab does not render.
+
+**The crew's two ghost buttons are 44px at every width** *(added by the T52 worker, 2026-09-17,
+after the independent review — finding 4)*. They measured 36px at 1280 and 44px on a phone, under a
+comment claiming `.btn.sm` already gave them the floor. It does not: `additions.css` raises `.btn`
+to 44px only inside its coarse-pointer block, so the floor arrived with the pointer rather than with
+§4, which has no width on it. The spot page's action row in this same task states its own
+`min-height` for that reason and these now do too. "Invite a mate" and "Leave crew" are the same
+miss and are **not** changed here — they are not this task's, and they are listed with the rest of
+the screens' pre-existing under-44px controls in
+[issue #567](https://github.com/lekky/landit/issues/567).
+
+**"Start another" and "Join with a code" open one at a time, and keep the ceiling they had**
+*(added by the T52 worker, 2026-09-17, pending owner confirmation)*. §3.10 asks for two small ghost
+buttons revealing "the existing forms"; they reveal one each, because the two are alternatives — a
+rider is either starting a crew or redeeming somebody's code — and a phone that opened both put two
+forms and four controls under somebody who wanted one. The pair is still drawn only while the rider
+owns fewer than `MAX_OWNED_CREWS`, exactly as the `<details>` was: joining is not capped by the
+server, but widening what the screen offers is not a change this task came for.
+
+**A rider profile's Videos tab is not drawn when there is nothing on the wall** *(added by the T52
+worker, 2026-09-17, pending owner confirmation)*. `VideoWall` renders nothing rather than saying
+"this rider has videos you cannot see", because a count of what you may not see is information
+about a choice somebody made — and an empty list is the same answer for a rider with no clips and
+for a viewer the `clips` rule refused. A tab that was always there would put that sentence back one
+level up. So the row is Landed · Stickers for most riders and gains Videos where there is something
+to show, which is the call §3.1 makes for the sport chip at one sport and §3.6 for What's new at one
+crew. **Two panels stay off the row**: "Who sees this" is about the profile rather than a view of
+it, and "Getting in touch" is the OSA route to a person (plan §6.1) — a safeguarding link a reader
+has to find the right tab for is a safeguarding link that is not there.
+
+**A rider's own sticker wall shows twelve badges where it showed six** *(added by the T52 worker,
+2026-09-17, after the independent review — nit 8)*. The wall was a 300px side panel three badges
+across, so six was two rows; the tab has the full width and fits four or five across, so six was a
+row and a half of a panel with room for three. Twelve is two full rows at every width this screen
+has. It is a content change and it was not named anywhere, which is what the nit was about — the
+whole wall is still one tap away at `/stickers`, and somebody else's is still a count rather than
+the art.
+
+**The tab panel renders one node, not three with two of them `null`** *(added by the T52 worker,
+2026-09-17, after the independent review — finding 3)*. The review reproduced a React "unique key"
+warning on the Stickers panel — "Check the render method of `ProfileTabs`. It was passed a child
+from `RiderProfilePage`" — five times out of five for any rider with something on their wall, and
+could not find the unkeyed list because there is no `.map` without a key on either screen. The list
+was the panel's own children: three panels built in a *server* component cross the RSC boundary and
+arrive as a list assembled at runtime rather than the compile-time-static one JSX normally hands
+React, and a runtime list of elements is one React checks for keys. Choosing the node before
+rendering it means there is no list to check, whatever the transform does. **It does not reproduce
+on this branch** — measured on a paid rider with a landed trick, a sticker and a clip, on all three
+tabs, the console is empty — so this is the shape being removed rather than a fault being seen; the
+review's instance had sixteen stickers where the reproduction has two.
+
+**The spot page's breadcrumb becomes the back link** *(added by the T52 worker, 2026-09-17, pending
+owner confirmation)*. §2.3 gives the spot page "Spots" and the screen had `Spots / Great Britain /
+Corby` instead. The trail's two tail segments are plain text repeating the sub-line under the title,
+which already reads "Corby, Great Britain", and its one link was 12.5px of unpadded type — the
+smallest target on the page. `BackLink` is the product's one shape for this now, at §4's 44px.
+Nothing is lost to a crawler: the page carries no `BreadcrumbList` structured data, and the town and
+country are in the `<h1>`, the sub-line, the metadata description and the JSON-LD place.
+
+**The three actions are one row in the DOM, laid out twice, and they are grid columns rather than
+flex items** *(added by the T52 worker, 2026-09-17, pending owner confirmation)*. §3.10 puts Faved ·
+Directions · Log here "under the hero on the phone, in the hero band on desktop", which is two
+positions for one control; they are the same three boxes in the strip that joins the band, and the
+strip's own wrap drops them onto a line of their own below 820px. Built with `flex: 1` they measured
+**81 / 115 / 115** at 390px: `flex-basis: 0` with `box-sizing: border-box` cannot shrink an item
+below its own padding and border, so the two `.btn`s started 34px ahead of the fave wrapper, which
+has neither, and then took an equal share of what was left on top of that. `grid-auto-columns:
+minmax(0, 1fr)` is equal whatever is inside it, and `grid-auto-flow: column` keeps it equal when
+there are two actions or one — `SpotFave` draws nothing signed out, and "Log here" is behind the
+sessions preview.
+
+**Equal in height as well, which took a second class** *(added by the T52 worker, 2026-09-17, after
+the independent review — finding 2)*. The rule that made the two anchors flex boxes was written as a
+single `.action`, one specificity point short of `.btn.sm`, so `.btn`'s own `display` won and they
+were laid out as **blocks**: `gap`, `align-items` and `justify-content` all computed and all did
+nothing. Measured at 390 the row was 104 / 104 / 104 wide and **44 / 47 / 47 tall**, with the plus
+flush against "Log here" where "Directions →" had its space — a 3px step between three hard-keyline
+boxes, and a row that was equal in the dimension the spec names and not in the one a rider sees. It
+is `.stripPush .action.action` now, which is the trick the padding rule two lines below it already
+used.
+
+**"Log here" is the sessions block's link moved, not copied** *(added by the T52 worker,
+2026-09-17, after the independent review — finding 5)*. Both rendered `newSessionHref({ spot })`
+through `LogSessionLink` with `source: 'spot'`, so a rider covered by the preview met two identical
+controls about 600px apart on one page and `session_log_opened` could not tell them apart. §3.10
+says "Log here goes where it goes today", which reads as a move, so it is one: the "Log a session
+here" button in the header of "Your sessions here" is gone and the hero's action is the single door.
+`SpotSessionsBlock` is rendered on the spot page and nowhere else, so nothing else loses a link, and
+`EventSessionsBlock` keeps its own because no event page hero offers one.
+
+**And "Log here" asks both halves of the sessions question** *(added by the T52 worker,
+2026-09-17)*. `sessionsEnabledFor` answers `true` for a `null` rider once `LANDIT_SESSIONS_OPEN` is
+set, which is how a release will run it — so `sessionsEnabledFor(session?.rider ?? null)` put a
+"Log here" on a public spot page for a visitor with no account, pointing at a form that would bounce
+them to `/signin`. It is `session && sessionsEnabledFor(session.rider)`, which is what `riderFor`
+has always asked for the block below it. Caught by the signed-out case in `e2e/spot-page.spec.ts`,
+not by the flag, which is off in most places this is run.
+
+**"What's here" takes `LinkCard`'s look, not the component, and fires nothing** *(added by the T52
+worker, 2026-09-17, pending owner confirmation)*. §3.10 asks for coloured `LinkCard`s. Home's
+`LinkCard` fires `nav_clicked` `{ to, where: 'home-card' }` where `to` is one of four route ids, and
+a spot's feature is neither a route nor a Home card — using it would mean inventing a property value
+at the call site, which is the one thing `analytics.ts` forbids. These cards fire nothing, as T48
+decided for the Find hub's section links, and what measures the screen is the `spot_page_opened` it
+already sends. The fill is the design system's own tint recipe, `color-mix(in oklab, <accent> 42%,
+#fff)` — the one `StickerBadge` fills its disc with — rather than the accent at full strength:
+eight accents reach this grid, `--violet` and `--blue` among them, and ink on either of those at
+full strength is the contrast failure `.btn`'s note in `primitives.css` records. A feature with no
+library category is a card rather than a link, because an arrow that goes nowhere is a lie. **Two
+screens draw that card now**, so [issue #568](https://github.com/lekky/landit/issues/568) proposes
+promoting it into `packages/ui-web` — the paint only, with the analytics staying at the call site
+the way `TabRow` splits them — for whoever next has both files open.
+
+**Plans: the saving moves inside the Yearly tab** *(added by the T52 worker, 2026-09-17, pending
+owner confirmation)*. It was a lime tag tilted over the top edge of the toggle's right-hand half,
+positioned so it read as Yearly's rather than as the selected period's, with `aria-describedby`
+carrying the same thing to a screen reader. A boxed row lifts its active tab to a 4px offset and has
+no edge to slap a tag over, so the saving is the Yearly tab's `note` — the faded `.n` the sticker
+wall's counts use. The association becomes structural rather than positional: a screen reader reads
+"Yearly, 2 months free" from the tab's own text, and a visitor on Monthly is still never told they
+are getting two months free. The row is capped at **460px** and centred, because two tabs each
+taking half of a 1180px page would put "Monthly" alone in the middle of 570px of paper.
+
+**The pill rows are the native radios, clipped** *(added by the T52 worker, 2026-09-17, pending
+owner confirmation)*. §3.10 says the radio lists on Coach, Suggest, Report and Close account become
+`Pill` rows. `Pill` itself is a `<button aria-pressed>`, and these lists are inside forms that post
+a field — so what ships is the design's `.pill` treatment on a `<span>` inside the `<label>`, with
+the same `<input type="radio">` underneath, clipped out of sight rather than replaced. The group
+still walks under the arrow keys, the label still activates it, a screen reader still hears "radio,
+2 of 5", and the server receives exactly the value it did before. `display: none` and
+`visibility: hidden` would each have taken the radio out of its group; `appearance: none` would have
+left an empty box in forced-colours mode. They are **full-width rows** rather than a wrapping row of
+chips because the options carry a sentence each and because a reason that moved position with the
+width of the screen would be harder to find twice — on the one form somebody may be filling in while
+upset. **Coach and Close account have no radio list at all**, so what §3.10 gives them is the 640px
+centring, and both trade their own 13.5px back link for `BackLink` at §4's 44px.
+
+**Tricks: the Filters box is in the row and outside the tab list** *(added by the T52 worker,
+2026-09-17, pending owner confirmation)*. §3.10 asks for the phone's Filters toggle to join All ·
+Mine "in one `TabRow`". `TabRow`'s button form is a `role="tablist"`, and a disclosure that opens a
+panel of checkboxes is not a tab: a screen reader told "Filters, tab, 3 of 3" expects the view under
+the row to become the filters. So the row is one flex line holding the two-tab list and one
+`<button class="sporttab">`, painted by the same `.tabrow .sporttab` rules — one row to the eye, two
+true things to a screen reader. The row sits **above `.two-col`** rather than inside its right-hand
+column, which is also what fixes the order on a phone: the left column stacks first, so the Filters
+disclosure used to arrive *above* the control that says which list is being narrowed.
+
+**The box keeps its words and its badge** *(added by the T52 worker, 2026-09-17, after the
+independent review — finding 6 and nit 11)*. Two things came out in the move and neither was
+deliberate. The label was shortened to "Filters", and the panel behind it still holds the **sort**,
+so the only thing on the screen that said where sorting lives had gone: it reads "Filters & sort"
+again, and clips with an ellipsis like every other label in the row. And the active-filter count
+went with the button into `.sporttab`, where the one rule for `.fcount` anywhere in the repository —
+`.filter-toggle .fcount`, inside `primitives.css`'s phone block — no longer reaches it, so the pink
+badge that told a rider at a glance how many narrowings were on rendered as a bare inherited number.
+`.filtersTab .fcount` restates that rule's own values in the screen's module rather than widening
+the shared selector, because the package's rule is right for the control it names and this is a
+different control.
+
+**The library keeps a sport control, and it is `SportScopeSelect`** *(added by the T52 worker,
+2026-09-17, after the independent review — the blocker)*. D5 removes every in-page sport *tab row*
+and then says, in the same sentence, that **lists which used to carry their own sport row follow the
+chip through one dropdown (O1)**. §3.3's O1 paragraph names Spots, Events, Sessions and the glossary
+and omits Tricks, and the first cut of T52 read that omission as "the chip covers it". It does not
+cover a **signed-out visitor**: the chip is hidden with the rider (T45), so `/library` opened on
+whichever sport `useSport()` fell back to, 175 of the 259 tricks had no route from anywhere, and the
+landing page's no-sign-up peek at the library became a peek at a third of it.
+
+So the library gets the same control the other two lists have, on the same terms T48 settled: signed
+in the default is `'chip'`, so the list follows the top bar and a rider who never touches it sees
+what they saw before; signed out there is no "Your sport (X)" option at all — it would be a claim
+about somebody the product has never met — a stored `'chip'` reads as the screen's default, and that
+default is **every sport**. Three consequences worth naming. The heading follows the scope rather
+than the chip, because "SCOOTER LIBRARY" over a grid of all three is a heading its own rows
+disprove. The category pills take the **neutral** names when the scope is every sport, since a
+category is named differently per sport and over three there is no one sport whose names are right.
+And the scope is one sport or all of them, never a combination — O1 took the multi-select away —
+which is exactly what `tricksFor` and `filterTricks` already mean by a `null` sport, so no shared
+signature moves.
+
+**The nudge is a grid cell, four cards in** *(added by the T52 worker, 2026-09-17, pending owner
+confirmation)*. §3.10 says the Rookie nudge moves below the first card rows, and how many cards make
+a row is decided in CSS by the width of the viewport — a count worked out in the browser is one the
+server guessed differently (LESSONS §3a). So it is a cell of `.grid-tricks` spanning every column,
+placed after four cards: two rows on a phone, where the grid is two columns below 520px, and one on
+a desktop. In "Mine", where the grid is cut into stage sections, it follows the first section. A
+grid with fewer than four cards puts it at the end of them, which is still below what there is.
+
+**`SportSwitch` stays on the branch** *(added by the T52 worker, 2026-09-17)*. T52 removes its last
+*screen* use, from the library. It is still imported by `apps/web/src/app/design/shell/preview.tsx`,
+which is not T50's and not this task's, so the component and its styles stay and deleting them is a
+job for whoever clears that preview. Named here so the next reader does not take a live import for
+an oversight.
+
 ---
 
 ## 4. Motion

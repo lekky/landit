@@ -655,25 +655,37 @@
 
   /*
    * On a phone the three actions are a row of their own under the hero, each
-   * taking an equal share of the width (§3.10). `flex: 1` rather than three
-   * fixed thirds, because `SpotFave` renders nothing signed out and "Log here"
-   * is behind the sessions preview: what is there fills the row instead of
-   * leaving a gap where a control a reader cannot have would have been.
+   * taking an equal share of the width (§3.10).
+   *
+   * **A grid of `minmax(0, 1fr)` columns, not `flex: 1`.** Measured at 390px
+   * the flex version came out 81 / 115 / 115: `flex-basis: 0` with
+   * `box-sizing: border-box` cannot shrink an item below its own padding and
+   * border, so the two `.btn`s started 34px ahead of the fave wrapper — which
+   * has neither — and then took an equal share of what was left on top of it.
+   * Equal *columns* are equal whatever is inside them.
+   *
+   * `grid-auto-flow: column` rather than a fixed three, because `SpotFave`
+   * renders nothing at all signed out and "Log here" is behind the sessions
+   * preview: what is there fills the row instead of leaving a gap where a
+   * control the reader cannot have would have been.
    */
   .stripPush {
     margin-left: 0;
     width: 100%;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
     gap: 8px;
   }
 
-  .stripPush > * {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .action,
-  .faveBtn {
+  /*
+   * Doubled, and under `.stripPush`, to clear `.btn.sm`'s own padding: a
+   * single module class is one specificity point short of it, and which of two
+   * tied rules wins is decided by stylesheet order — which a module does not
+   * get to know (LESSONS §3a).
+   */
+  .stripPush .action.action,
+  .stripPush .faveBtn.faveBtn {
     padding-left: 6px;
     padding-right: 6px;
     justify-content: center;
