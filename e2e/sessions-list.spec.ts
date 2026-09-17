@@ -67,17 +67,26 @@ async function aLiveSpotName(): Promise<string> {
   return name;
 }
 
-/** One session in the diary, logged the way a rider would log it. */
+/**
+ * One session in the diary, logged the way a rider would log it.
+ *
+ * The spot is only picked the first time: after that the quick log opens on the
+ * rider's most recent spot, so the control names that spot rather than offering
+ * to pick one.
+ */
 async function logAQuickSession(page: Page): Promise<void> {
   const spotName = await aLiveSpotName();
   await page.goto('/progress/sessions/new?quick=1');
-  await page.getByRole('button', { name: /Pick where you rode/ }).click();
-  const sheet = page.getByRole('dialog', { name: 'Where did you ride?' });
-  await sheet.getByLabel('Search spots').fill(spotName.slice(0, 12));
-  await sheet
-    .getByRole('button', { name: new RegExp(spotName.slice(0, 12), 'i') })
-    .first()
-    .click();
+  const prompt = page.getByRole('button', { name: /Pick where you rode/ });
+  if (await prompt.count()) {
+    await prompt.click();
+    const sheet = page.getByRole('dialog', { name: 'Where did you ride?' });
+    await sheet.getByLabel('Search spots').fill(spotName.slice(0, 12));
+    await sheet
+      .getByRole('button', { name: new RegExp(spotName.slice(0, 12), 'i') })
+      .first()
+      .click();
+  }
   await page.getByRole('radio', { name: /Good/ }).click();
   await page.getByRole('button', { name: 'Log it' }).click();
   await expect(page.getByText('Session logged')).toBeVisible();
@@ -244,4 +253,26 @@ test('a phone gets the month’s three numbers, which only the sidebar carried',
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(page.getByRole('region', { name: 'This month' })).toBeHidden();
   await expect(page.getByRole('complementary', { name: 'Your month' })).toBeVisible();
+});
+
+test('changing the scope puts the rider back on page one', async ({ page }) => {
+  /*
+   * Review S2. The chip row this replaced reset both pagers on every press; the
+   * select was wired without it, so a rider on page 2 who widened the scope was
+   * looking at page 2 of a longer list — the newest sessions in the sport they
+   * had just added were on the page above and they were never shown them.
+   *
+   * Four quick logs, which is exactly a Rookie month, so the feed has two pages
+   * at three a page.
+   */
+  await newRider(page, true);
+  for (let i = 0; i < 4; i += 1) await logAQuickSession(page);
+
+  await page.goto('/progress/sessions');
+  const pager = page.getByRole('navigation', { name: 'Pages' });
+  await pager.getByRole('button', { name: 'Page 2' }).click();
+  await expect(page.getByText('Showing 4–4 of 4')).toBeVisible();
+
+  await page.getByLabel('Show sessions for').selectOption('all');
+  await expect(page.getByText('Showing 1–3 of 4')).toBeVisible();
 });

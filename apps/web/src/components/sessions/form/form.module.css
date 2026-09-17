@@ -147,6 +147,28 @@
   gap: 10px;
   min-height: 34px;
 }
+
+/*
+ * "Keep Scooter" — the way out of the revealed picker that is not a choice
+ * (review N4). A ghost control rather than a fourth button in the row: it
+ * cancels, it does not select, and the row above it is where selecting happens.
+ */
+.keepSport {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 4px 12px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 2.5px dashed var(--ink);
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+}
 .cols {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -346,18 +368,30 @@
   color: #6e665a;
   margin-top: 2px;
 }
+/*
+ * The Change button, on "Where" and now on "What you rode" (review N3).
+ *
+ * Two corrections, both of them pre-existing and both of them T50's now that
+ * this is a control every multi-sport rider meets on the form's second step:
+ * §4's 44px floor, where it was 32; and the tokens, where it was the same three
+ * values written as raw hex. The file's header says the values are the session
+ * handoff's — they are, and `--ink` / `--paper` are what those values are
+ * *called*, so a later change to the palette reaches this too.
+ */
 .miniBtn {
+  display: inline-flex;
+  align-items: center;
   flex: none;
   font-family: var(--fc);
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  border: 2.5px solid #12100b;
-  background: #fffdf5;
-  color: #12100b;
-  padding: 4px 10px;
-  min-height: 32px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 4px 12px;
+  min-height: 44px;
   cursor: pointer;
 }
 .recentRow {

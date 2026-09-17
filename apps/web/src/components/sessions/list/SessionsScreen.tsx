@@ -17,6 +17,7 @@ import { BackLink } from '@/components/shell/BackLink';
 import { SportScopeSelect, useSportScope } from '@/components/shell/SportScopeSelect';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES } from '@/lib/routes';
+import type { SportScope } from '@/lib/sportScope';
 import {
   clampPage,
   defaultOpenMonths,
@@ -130,6 +131,23 @@ export function SessionsScreen({ view }: { view: SessionsView }) {
   const toFirstPage = () => {
     setPage(1);
     setTablePage(1);
+  };
+
+  /**
+   * The scope select, with both pagers reset behind it (review S2).
+   *
+   * The chip row it replaced did this on every press, in `chooseFilter`. Left
+   * out, a rider on page 2 of the feed who widened the scope to "All sports"
+   * stayed on page *2* of a now longer list — so the newest sessions in the
+   * sport they had just added were on the page above, and they were never shown
+   * them. The pill already resets; this puts the select back in step with it.
+   */
+  const scopeControl = {
+    ...scope,
+    setScope: (next: SportScope) => {
+      scope.setScope(next);
+      toFirstPage();
+    },
   };
 
   const chooseMode = (next: ViewMode) => {
@@ -327,7 +345,7 @@ export function SessionsScreen({ view }: { view: SessionsView }) {
                 to remember to count the press.
               */}
               <SportScopeSelect
-                state={scope}
+                state={scopeControl}
                 everyLabel="All sports"
                 label="Show sessions for"
                 className={styles.scope}

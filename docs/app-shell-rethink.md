@@ -865,63 +865,8 @@ the other two.
   `shell-rethink` between the two merges** and is a sequencing fact for the owner rather than
   something this task can close.
 - **Sessions** — header with the Log button; on the phone three `StatBlock`s (sessions, time, moved up) then the feed; `SportScopeSelect` replaces the sport pills; the "At an event" pill stays.
-
-**The scope and the event pill are two controls, and the stat blocks are the sidebar's numbers**
-*(added by the T50 worker, 2026-09-17, pending owner confirmation)*. Three things §3.10's line
-decides without saying so.
-
-- **"At an event" stops being an alternative to a sport.** The row it leaves was one `aria-pressed`
-  group — All · Scooter · BMX · At an event — so "BMX" and "At an event" were answers to the same
-  question and "my BMX jam sessions" could not be asked for at all. With the sport on the select and
-  the pill on its own, both hold at once (`sessionListFilter`).
-- **`StatBlock` is Home's, not a `packages/ui-web` export.** §3.10 names it and the only one in the
-  product is a local function in `HomeScreen`. This screen draws its own in the same treatment — 3px
-  keyline, 3px offset, a fixed fill, an Anton number over a `.lab` — rather than lifting Home's into
-  shared code, because two screens is not yet a component and `ui-web` is additive-only shared code
-  in a wave three siblings are building on.
-- **The numbers are `view.sidebar`'s**, so the blocks and the desktop's ink month card can never
-  disagree: this month on the rider's clock, counted on the server, not a sum over whatever the feed
-  is currently filtered to. The blocks are drawn below 700px only and the sidebar above it, so
-  neither width is told its month twice, and the phone's three (sessions, time, moved up) are three
-  of the card's four — "spots ridden" is the one that did not make the cut, because a rider who
-  logged four sessions at one park learns least from it.
-
-**`ProgressTabs` and the screen's title** *(added by the T50 worker, 2026-09-17)*. The header is
-this task's, as the T46 paragraph above says. `/progress/sessions` now reads **Sessions** under the
-Home back link, `ProgressTabs.tsx` and its module are deleted with the last screen that drew them,
-and the page title drops "· Progress". The asymmetry T46 recorded is closed by the Home cards being
-the route to both screens rather than by either linking to the other.
 - **Session form** — three steps on the phone via `TabRow` (When & where · What · Notes) with Next / Save; "What you rode" becomes a preset `Tag` from the chip with a Change link, not a three-button row. Desktop: the same three steps inside the modal, step one as two cards side by side.
 - **Quick log** — unchanged, shows the sport `Tag`; on desktop a 640px modal.
-
-**What the three steps hold, and which one a refusal lands on** *(added by the T50 worker,
-2026-09-17, pending owner confirmation)*. §3.10 names the steps and not their contents. The cut is
-the handoff's own phone order, 1c, in three contiguous pieces — nothing is resequenced, so a rider
-who knew the long form meets the same fields in the same order with two page breaks in it:
-
-1. **When & where** — when, how long, where, and the "is on here today" event band.
-2. **What** — what you rode, the aim, the tricks.
-3. **Notes** — how it felt, the weather, notes, who you rode with, the clip, who can see it.
-
-"How it felt" is on Notes rather than What because it is a thing a rider *says* about the ride
-rather than a thing they did, and because **it is the one required field that is not on step one**:
-putting it on the step with Save means the refusal is beside the control. The steps apply **at every
-width**, which is what §3.10's "the same three steps inside the modal" asks for, so there is one
-component tree and not a phone one and a desktop one.
-
-Three consequences, each of them a decision the section is silent on:
-
-- **Next validates its own step and Save validates everything.** `formProblems` runs over the whole
-  values object either way — it is the one place that knows the rules — and Next keeps only the
-  answers belonging to the step in front of the rider. Without that, a rider fills three steps and
-  is thrown back to the first for a spot they never picked; with it, they cannot walk past the
-  problem in the first place.
-- **A refusal lands on the step that can fix it** (`stepForField`). This is the stepped form's one
-  new way to be wrong: a message about a control two steps behind the rider is a message nobody can
-  act on, and it applies to the server's refusals as much as the browser's.
-- **The header's button follows the footer's** — Next until the last step, Save on it. Two primaries
-  saying different things would be a form arguing with itself.
-
 - **Stickers** — Earned / Not yet as a `TabRow` in the header; the `SportSwitch` goes.
 
 **The wall's tabs keep their counts, and `sticker_view_switched` stops firing** *(added by the T46
@@ -952,6 +897,94 @@ the ink panel and into a boxed `TabRow`.
 - **Events archive** — the Past pill; the year/town index stays.
 - **Plans** — Monthly · Yearly as a `TabRow`; otherwise unchanged (three cards on desktop, stacked on the phone).
 - **Glossary** — `SportScopeSelect` replaces its own sport tabs.
+- **Coach, Suggest, Report, Close account** — radio lists become `Pill` rows; content otherwise unchanged; desktop centred at 640px.
+- **Tricks** — the `SportSwitch` goes; the phone's Filters toggle joins All · Mine in one `TabRow`; the Rookie nudge moves below the first card rows.
+
+**The scope and the event pill are two controls, and the stat blocks are the sidebar's numbers**
+*(added by the T50 worker, 2026-09-17, pending owner confirmation)*. Three things §3.10's line
+decides without saying so.
+
+- **"At an event" stops being an alternative to a sport.** The row it leaves was one `aria-pressed`
+  group — All · Scooter · BMX · At an event — so "BMX" and "At an event" were answers to the same
+  question and "my BMX jam sessions" could not be asked for at all. With the sport on the select and
+  the pill on its own, both hold at once (`sessionListFilter`). **Both reset the pager**, as the one
+  row did: a rider on page 2 who widens the scope to "All sports" is looking at page 2 of a longer
+  list, so the newest sessions in the sport they just added are on the page above and they are never
+  shown them (review S2). And the pill is drawn at 44px rather than 28, because it is now the only
+  pill on a line with a 44px control instead of one of five identical chips (review N1).
+- **`StatBlock` is Home's, not a `packages/ui-web` export.** §3.10 names it and the only one in the
+  product is a local function in `HomeScreen`. This screen draws its own in the same treatment — 3px
+  keyline, 3px offset, a fixed fill, an Anton number over a `.lab` — rather than lifting Home's into
+  shared code, because two screens is not yet a component and `ui-web` is additive-only shared code
+  in a wave three siblings are building on.
+- **The numbers are `view.sidebar`'s**, so the blocks and the desktop's ink month card can never
+  disagree: this month on the rider's clock, counted on the server, not a sum over whatever the feed
+  is currently filtered to. The blocks are drawn below 700px only and the sidebar above it, so
+  neither width is told its month twice, and the phone's three (sessions, time, moved up) are three
+  of the card's four — "spots ridden" is the one that did not make the cut, because a rider who
+  logged four sessions at one park learns least from it.
+
+**`ProgressTabs` and the screen's title** *(added by the T50 worker, 2026-09-17)*. The header is
+this task's, as the T46 paragraph above says. `/progress/sessions` now reads **Sessions** under the
+Home back link, `ProgressTabs.tsx` and its module are deleted with the last screen that drew them,
+and the page title drops "· Progress". The asymmetry T46 recorded is closed by the Home cards being
+the route to both screens rather than by either linking to the other.
+
+**What the three steps hold, and which one a refusal lands on** *(added by the T50 worker,
+2026-09-17, pending owner confirmation)*. §3.10 names the steps and not their contents. The cut is
+the handoff's own phone order, 1c, in three contiguous pieces — nothing is resequenced, so a rider
+who knew the long form meets the same fields in the same order with two page breaks in it:
+
+1. **When & where** — when, how long, where, and the "is on here today" event band.
+2. **What** — what you rode, the aim, the tricks.
+3. **Notes** — how it felt, the weather, notes, who you rode with, the clip, who can see it.
+
+"How it felt" is on Notes rather than What because it is a thing a rider *says* about the ride
+rather than a thing they did, and because **it is the one required field that is not on step one**:
+putting it on the step with Save means the refusal is beside the control. The steps apply **at every
+width**, which is what §3.10's "the same three steps inside the modal" asks for, so there is one
+component tree and not a phone one and a desktop one.
+
+Six consequences, each of them a decision the section is silent on. The last three were found by the
+independent review of 2026-09-17 and are recorded here with the rest:
+
+- **Next validates its own step and Save validates everything.** `formProblems` runs over the whole
+  values object either way — it is the one place that knows the rules — and Next keeps only the
+  answers belonging to the step in front of the rider. Without that, a rider fills three steps and
+  is thrown back to the first for a spot they never picked; with it, they cannot walk past the
+  problem in the first place.
+- **A refusal lands on the step that can fix it** (`stepForField`). This is the stepped form's one
+  new way to be wrong: a message about a control two steps behind the rider is a message nobody can
+  act on, and it applies to the server's refusals as much as the browser's.
+- **The header's button follows the footer's.** Two primaries saying different things would be a
+  form arguing with itself.
+- **Next is for a *new* session only; an edit saves from whichever step it is on** (review S1). The
+  argument for stepping is "twelve fields in one scroll", which is a problem a blank form has. An
+  edit arrives with every field filled and already valid, and the rider is there to change one word
+  — so making them walk to the third step to find Save, past two buttons pointing the other way,
+  was a change to a shipped screen that nothing asked for. `isEdit` rather than `mode === 'edit'`,
+  so it covers the session a quick log just saved and a prompt reopened.
+- **The saved state's three "while it's fresh" prompts set the step, not only the scroll** (review
+  B1 — a blocker). On one long form every anchor was always in the document; with three steps only
+  the open step's cards are rendered, so a rider who pressed "A clip" landed on When & where with no
+  clip field, no message and a button reading Next. `stepForSection` maps the three prompts onto
+  their steps — `tricks` and `notes` to What, because `#session-notes` is the **aim** card, which is
+  where `main` scrolled to as well, and `clip` to Notes — and the scroll effect waits for the step
+  as well as the stage.
+- **A step change moves focus to the panel, which is named by its tab** (review S3). The whole panel
+  is replaced, so a rider on a screen reader who pressed Next heard nothing and had to walk
+  backwards through the document to find out whether anything had happened; the panel takes
+  `tabIndex={-1}` and is focused on a change but not on first render. It is `aria-labelledby` the
+  tab rather than `aria-label`led with the tab's words, because repeating them gave the Notes panel
+  and the Notes textarea inside it the same accessible name. `TabItem` and `TabRowItem` gain an
+  optional `elementId` for that, additively: a row that passes none renders exactly what it did.
+  *(Arrow-key navigation inside `Tabs` does nothing, on all nine `TabRow` users. That is shared and
+  pre-existing — [issue #565](https://github.com/lekky/landit/issues/565).)*
+
+And one smaller thing: **the revealed sport picker has a "Keep <sport>" way out** (review N4).
+Without it the only exit is to pick something, and picking the sport already showing is what tells
+the form the rider answered this themselves — so "never mind" would quietly stop the top bar's chip
+leading the field.
 
 **`?sport=` becomes the glossary's default rather than its address, and the per-sport counts go**
 *(added by the T50 worker, 2026-09-17, pending owner confirmation)*. The row the select replaces
@@ -965,12 +998,11 @@ caller. The tabs' per-sport counts ("Skate 31") go for the reason T48's paragrap
 a `<select>` has no room for a number beside each option, and one that carried it would read as
 part of the sport's name.
 
-**The glossary reads `signedIn` on the server.** It is public and crawlable, so it takes the T48
+**The glossary reads `signedIn` on the server** *(added by the T50 worker, 2026-09-17, pending
+owner confirmation)*. It is public and crawlable, so it takes the T48
 rule in §3.7 without exception: with no rider the first option is not offered and the page opens on
 every sport. `currentRider()` is called in `page.tsx` — the same second read `/events` and `/spots`
 already make for the same control, on a route group whose layout resolves the rider anyway.
-- **Coach, Suggest, Report, Close account** — radio lists become `Pill` rows; content otherwise unchanged; desktop centred at 640px.
-- **Tricks** — the `SportSwitch` goes; the phone's Filters toggle joins All · Mine in one `TabRow`; the Rookie nudge moves below the first card rows.
 
 ---
 

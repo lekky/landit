@@ -22,7 +22,14 @@ import { useSport } from '@/providers/sport';
 
 import { editSessionAction, logSessionAction } from './actions';
 import styles from './form.module.css';
-import { FormHeader, FullForm, SESSION_STEPS, stepForField, type SessionStepId } from './FullForm';
+import {
+  FormHeader,
+  FullForm,
+  SESSION_STEPS,
+  stepForField,
+  stepForSection,
+  type SessionStepId,
+} from './FullForm';
 import { QuickLog } from './QuickLog';
 import { SavedState, type FreshSection } from './SavedState';
 import { SessionWall } from './SessionWall';
@@ -123,12 +130,22 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
     if (stage === 'wall') capture(ANALYTICS_EVENTS.sessionQuotaWallSeen, { plan: data.plan });
   }, [stage, data.plan]);
 
-  // A "while it's fresh" prompt lands the rider on the section it named.
+  /*
+   * A "while it's fresh" prompt lands the rider on the section it named.
+   *
+   * **Depends on `step` as well as `stage`** (review B1). With one long form
+   * every anchor was always in the document; with three steps only the open
+   * step's cards are rendered, so this ran before `openFresh`'s step had been
+   * drawn, `getElementById` answered `null`, and `?.scrollIntoView()` did
+   * nothing at all — no scroll, no message, and a rider who pressed "A clip"
+   * looking at When, How long and Where.
+   */
   useEffect(() => {
     if (stage !== 'full' || !focusSection.current) return;
+    if (stepForSection(focusSection.current) !== step) return;
     document.getElementById(`session-${focusSection.current}`)?.scrollIntoView({ block: 'start' });
     focusSection.current = null;
-  }, [stage]);
+  }, [stage, step]);
 
   const isEdit = editingId !== null;
   const dirty = formIsDirty(values, baseline);
@@ -203,6 +220,22 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
 
   const stepIndex = SESSION_STEPS.findIndex((s) => s.id === step);
   const lastStep = stepIndex === SESSION_STEPS.length - 1;
+
+  /**
+   * Whether the primary button saves rather than moving on.
+   *
+   * **Next is for a new session only** (review S1). Stepping answers "twelve
+   * fields in one scroll", which is a problem a *blank* form has: an edit
+   * arrives with every field filled and already valid, and the rider is there
+   * to change one word. Making them walk to the third step to find Save — with
+   * every button on the way pointing the other way — is a worse screen than the
+   * one they had, and it was a change to a shipped form that nothing asked for.
+   *
+   * `isEdit` rather than `data.mode === 'edit'`, so it also covers the session a
+   * quick log just saved and a "while it's fresh" prompt reopened: that is a
+   * correction to an existing session too, and it is the path B1 is about.
+   */
+  const saves = isEdit || lastStep;
 
   /**
    * Next: the current step's own problems, then forward.
@@ -327,10 +360,20 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
     });
   };
 
+  /**
+   * A "while it's fresh" prompt reopens the saved session at the part it names.
+   *
+   * **It sets the step first** (review B1). Before the form was stepped every
+   * anchor was in the document and this only had to scroll; now the section has
+   * to be on screen before it can be scrolled to, and a prompt that landed a
+   * rider on "When & where" — with no clip field, no message and a button
+   * reading Next — was the worst outcome in the change.
+   */
   const openFresh = (section: FreshSection) => {
     if (!saved) return;
     setEditingId(saved.sessionId);
     focusSection.current = section;
+    setStep(stepForSection(section));
     setStage('full');
   };
 
@@ -424,9 +467,9 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
         // The header's button follows the footer's: Next until the last step,
         // where it saves. Two primaries that said different things would be a
         // form arguing with itself.
-        saveLabel={lastStep ? 'Save' : 'Next'}
+        saveLabel={saves ? 'Save' : 'Next'}
         pending={pending}
-        onSave={() => (lastStep ? submit(false) : next())}
+        onSave={() => (saves ? submit(false) : next())}
         onClose={requestClose}
       />
     ) : null;
@@ -467,17 +510,18 @@ export function SessionFormScreen({ data, shell }: SessionFormScreenProps) {
               Cancel
             </button>
             {/*
-              Next / Save (§3.10). The last step saves; the two before it move
-              on, taking their own problems with them rather than storing them
-              up for the end.
+              Next / Save (§3.10). On a new session the last step saves and the
+              two before it move on, taking their own problems with them rather
+              than storing them up for the end. On an edit every step saves
+              (`saves`, above).
             */}
             <button
               type="button"
               className={`btn ${styles.saveBtn}`}
-              onClick={() => (lastStep ? submit(false) : next())}
+              onClick={() => (saves ? submit(false) : next())}
               disabled={pending}
             >
-              {pending ? 'Saving…' : lastStep ? (isEdit ? 'Save changes' : 'Save session') : 'Next'}
+              {pending ? 'Saving…' : saves ? (isEdit ? 'Save changes' : 'Save session') : 'Next'}
             </button>
           </div>
         ) : null}

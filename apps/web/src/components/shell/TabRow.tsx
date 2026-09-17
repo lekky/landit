@@ -74,6 +74,15 @@ export type TabRowItem = {
    * "Over time".
    */
   title?: string;
+  /**
+   * DOM `id` for this tab, so the panel it controls can be `aria-labelledby`
+   * it rather than repeating its words in an `aria-label` (T50 review S3).
+   *
+   * Worth setting on a row whose panel holds a control with the same name as a
+   * tab: the session form's Notes panel and its Notes textarea both answered to
+   * "Notes" until the panel pointed here instead.
+   */
+  elementId?: string;
   /** Present on a row that navigates. All items in a row agree. */
   href?: Route;
 };
@@ -152,6 +161,7 @@ export function TabRow({ items, value, group, label, onChange, className }: TabR
             <Link
               key={item.id}
               href={item.href as Route}
+              id={item.elementId}
               className={`sporttab ${on ? 'on' : ''}`.trim()}
               aria-current={on ? 'page' : undefined}
               title={item.title}
@@ -180,6 +190,7 @@ export function TabRow({ items, value, group, label, onChange, className }: TabR
         icon: item.icon,
         ...(item.note !== undefined ? { note: item.note } : {}),
         ...(item.title ? { title: item.title } : {}),
+        ...(item.elementId ? { elementId: item.elementId } : {}),
       }))}
       value={value}
       label={label}

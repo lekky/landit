@@ -259,13 +259,26 @@
 .scope {
   min-width: 0;
 }
+/*
+ * "At an event" (review N1).
+ *
+ * It was one of five identical chips in a row; it is now the only pill on a
+ * line with the 44px scope select, and 28px of paint beside a 44px control was
+ * the first thing the eye landed on. `.tap` already gave it a 44px hit area
+ * below 700px — this makes the box the size of the target, at every width, and
+ * level with the control beside it. `inline-flex` + `align-items: center`
+ * rather than vertical padding, so the words stay centred as the box grows.
+ */
 .chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-family: var(--fc);
   font-weight: 700;
   font-size: 12.5px;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  padding: 5px 11px;
+  padding: 5px 13px;
   border: 2.5px solid var(--ink);
   background: var(--paper);
   color: var(--ink);

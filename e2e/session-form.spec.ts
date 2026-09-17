@@ -54,9 +54,16 @@ async function newRider(page: Page, everySport = false): Promise<void> {
 /** The full form's three steps (§3.10). */
 const steps = (page: Page) => page.getByRole('tablist', { name: 'Session form steps' });
 
-/** Pick a live spot in the "Where" card, wherever the card is drawn. */
+/**
+ * Pick a live spot in the "Where" card, wherever the card is drawn.
+ *
+ * A no-op once the rider has logged somewhere: the form opens on their most
+ * recent spot, so the control names that spot rather than offering to pick one.
+ */
 async function pickSpot(page: Page, spotName: string): Promise<void> {
-  await page.getByRole('button', { name: /Pick where you rode/ }).click();
+  const prompt = page.getByRole('button', { name: /Pick where you rode/ });
+  if ((await prompt.count()) === 0) return;
+  await prompt.click();
   const sheet = page.getByRole('dialog', { name: 'Where did you ride?' });
   await sheet.getByLabel('Search spots').fill(spotName.slice(0, 12));
   await sheet
@@ -233,4 +240,93 @@ test('the quick log says which sport it is about to log', async ({ page }) => {
   await page.goto('/progress/sessions/new?quick=1');
   await expect(page.getByText('Rode just now')).toBeVisible();
   await expect(page.getByText(SPORTS.scooter.short, { exact: true }).first()).toBeVisible();
+});
+
+test('each "while it is fresh" prompt opens the form on the field it names', async ({ page }) => {
+  /*
+   * The blocker the T50 review found (B1). On one long form every anchor was
+   * always in the document and the prompt only had to scroll; with three steps
+   * the section has to be on screen first. Built wrong, a rider who pressed
+   * "A clip" got When, How long and Where — no clip field anywhere, no message,
+   * and a primary button reading Next.
+   *
+   * Nothing exercised this path on either side of the change, which is why it
+   * got through. One rider, three quick logs (Rookie allows four a month), a
+   * different prompt each time.
+   */
+  const spotName = await aLiveSpotName();
+  await newRider(page);
+
+  const cases = [
+    { prompt: 'Tricks you worked on', step: 'What', anchor: '#session-tricks' },
+    { prompt: 'A clip', step: 'Notes', anchor: '#session-clip' },
+    // "Notes and the aim" points at the **aim** card, which is on What — the
+    // same place `main` scrolled to, because `#session-notes` is its id.
+    { prompt: 'Notes and the aim', step: 'What', anchor: '#session-notes' },
+  ] as const;
+
+  for (const { prompt, step, anchor } of cases) {
+    await page.goto('/progress/sessions/new?quick=1');
+    await pickSpot(page, spotName);
+    await page.getByRole('radio', { name: /Good/ }).click();
+    await page.getByRole('button', { name: 'Log it' }).click();
+    await expect(page.getByText('Anything else while it is fresh?')).toBeVisible();
+
+    await page.getByRole('button', { name: prompt }).click();
+    await expect(
+      steps(page).getByRole('tab', { name: step, exact: true }),
+      `"${prompt}" did not open the ${step} step`,
+    ).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator(anchor), `"${prompt}" did not show ${anchor}`).toBeVisible();
+  }
+});
+
+test('an edit saves from whichever step it is on', async ({ page }) => {
+  /*
+   * Review S1. Stepping answers "twelve fields in one scroll", which is a
+   * problem a blank form has; an edit arrives filled and valid and the rider is
+   * there to change one word. Built without the exception, every primary button
+   * on the screen read NEXT until the third step, where `main` offered SAVE
+   * immediately. There was no e2e over the edit form on either side, which is
+   * why nothing caught it.
+   */
+  const spotName = await aLiveSpotName();
+  await newRider(page);
+
+  await page.goto('/progress/sessions/new?quick=1');
+  await pickSpot(page, spotName);
+  await page.getByRole('radio', { name: /Good/ }).click();
+  await page.getByRole('button', { name: 'Log it' }).click();
+  await expect(page.getByText('Session logged')).toBeVisible();
+
+  await page.goto('/progress/sessions');
+  await page.getByRole('link', { name: 'Edit', exact: true }).first().click();
+  await page.waitForURL('**/edit');
+
+  // Step one of an edit, and the primary already saves.
+  const row = steps(page);
+  await expect(row.getByRole('tab', { name: 'When & where' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByRole('button', { name: 'Save changes' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Next', exact: true })).toHaveCount(0);
+
+  // Change a field on the third step, walk back to the first, and save there.
+  await row.getByRole('tab', { name: 'Notes', exact: true }).click();
+  /*
+   * By role, not by label. The panel is `aria-labelledby` its tab — ARIA's own
+   * pattern — and the tab is called Notes, so the panel and the textarea inside
+   * it share an accessible name whichever way the panel is labelled. What the
+   * `aria-labelledby` fixed is that the panel now *references* the tab instead
+   * of copying its words, so the two cannot drift apart.
+   */
+  await page
+    .getByRole('textbox', { name: 'Notes', exact: true })
+    .fill('Kept the speed through the bowl.');
+  await row.getByRole('tab', { name: 'When & where' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
+
+  await page.waitForURL((url) => !url.pathname.endsWith('/edit'));
+  await expect(page.getByText('Kept the speed through the bowl.')).toBeVisible();
 });

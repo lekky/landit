@@ -32,7 +32,15 @@ import {
   WeatherIcon,
 } from '@landit/ui-web';
 import Link from 'next/link';
-import { useEffect, useId, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 
 import { TAB_PANEL, TabRow, type TabRowItem } from '@/components/shell/TabRow';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
@@ -45,6 +53,9 @@ import {
 } from '@/lib/sessionForm';
 
 import styles from './form.module.css';
+// Type only, so the cycle with `SavedState` (which imports `ChevronRight` from
+// here) is erased rather than real.
+import type { FreshSection } from './SavedState';
 import { SpotSearchSheet } from './SpotSearchSheet';
 import type { FormSpot, FormTrick, SessionFormData } from './types';
 
@@ -66,11 +77,18 @@ import type { FormSpot, FormTrick, SessionFormData } from './types';
  * where a field is drawn, not what it means.
  */
 
-/** The three steps, in order (§3.10). `id` is also `tabs_switched`'s `tab`. */
+/**
+ * The three steps, in order (§3.10). `id` is also `tabs_switched`'s `tab`.
+ *
+ * `elementId` is what the panel is `aria-labelledby` (review S3): ARIA names a
+ * `tabpanel` after the tab that controls it, and repeating the words in an
+ * `aria-label` instead gave the Notes panel and the Notes textarea the same
+ * accessible name.
+ */
 export const SESSION_STEPS = [
-  { id: 'when', label: 'When & where' },
-  { id: 'what', label: 'What' },
-  { id: 'notes', label: 'Notes' },
+  { id: 'when', label: 'When & where', elementId: 'session-step-when' },
+  { id: 'what', label: 'What', elementId: 'session-step-what' },
+  { id: 'notes', label: 'Notes', elementId: 'session-step-notes' },
 ] as const satisfies readonly TabRowItem[];
 
 export type SessionStepId = (typeof SESSION_STEPS)[number]['id'];
@@ -84,11 +102,54 @@ export type SessionStepId = (typeof SESSION_STEPS)[number]['id'];
  * whole values object rather than per step. Validating only the visible step
  * would let a rider walk past a missing spot and meet it from the server
  * instead, which is a round trip to say something the browser already knew.
+ *
+ * **A map rather than a chain of `if`s** (review N5). The chain fell through to
+ * `'notes'`, so a `SessionField` added later would have landed there silently
+ * and sent a rider to the wrong step to fix it. `satisfies` makes the next
+ * field a compile error instead.
  */
+const FIELD_STEPS = {
+  startedAt: 'when',
+  durationMinutes: 'when',
+  spotId: 'when',
+  sport: 'what',
+  aim: 'what',
+  tricks: 'what',
+  feel: 'notes',
+  weather: 'notes',
+  notes: 'notes',
+  crewIds: 'notes',
+  clip: 'notes',
+} as const satisfies Record<SessionField, SessionStepId>;
+
 export function stepForField(field: SessionField): SessionStepId {
-  if (field === 'startedAt' || field === 'durationMinutes' || field === 'spotId') return 'when';
-  if (field === 'sport' || field === 'aim' || field === 'tricks') return 'what';
-  return 'notes';
+  return FIELD_STEPS[field];
+}
+
+/**
+ * Which step holds a "while it's fresh" prompt's anchor (review B1).
+ *
+ * After a quick log the saved card offers three prompts — Tricks you worked on,
+ * A clip, Notes and the aim — and each reopens the form scrolled to the section
+ * it names. On one long form every anchor was always in the document; with
+ * three steps only the open step's cards are rendered, so `getElementById`
+ * answered `null` and `?.scrollIntoView()` did nothing. A rider who pressed
+ * "A clip" got When, How long and Where, with no clip field anywhere and no
+ * message saying why.
+ *
+ * The map is not `stepForField`'s: the anchors are card ids rather than field
+ * names, and `session-notes` is on the **aim** card (`order: 4`), which is on
+ * What. That is where `main` scrolled to as well, so the prompt lands exactly
+ * where it always did.
+ */
+const SECTION_STEPS = {
+  tricks: 'what',
+  notes: 'what',
+  clip: 'notes',
+} as const satisfies Record<FreshSection, SessionStepId>;
+
+export function stepForSection(section: FreshSection): SessionStepId {
+  return SECTION_STEPS[section];
 }
 
 type Change = (patch: Partial<SessionFormValues>) => void;
@@ -378,24 +439,36 @@ export function SportField(props: {
         What you rode
       </Label>
       {picking ? (
-        <SegmentedPicker<SportId>
-          label="What you rode"
-          options={data.sports.map((id) => ({
-            id,
-            label: (
-              <span className={styles.sportLabel}>
-                <Equipment name={SPORTS[id].icon} size={19} />
-                {SPORTS[id].label}
-              </span>
-            ),
-          }))}
-          value={values.sport}
-          onChange={(next) => {
-            onChange({ sport: next });
-            setPicking(false);
-          }}
-          className={styles.seg}
-        />
+        <>
+          <SegmentedPicker<SportId>
+            label="What you rode"
+            options={data.sports.map((id) => ({
+              id,
+              label: (
+                <span className={styles.sportLabel}>
+                  <Equipment name={SPORTS[id].icon} size={19} />
+                  {SPORTS[id].label}
+                </span>
+              ),
+            }))}
+            value={values.sport}
+            onChange={(next) => {
+              onChange({ sport: next });
+              setPicking(false);
+            }}
+            className={styles.seg}
+          />
+          {/*
+            A way back that is not a choice (review N4). Without it the only
+            exit from the picker is to pick something — and picking the sport
+            already selected is what tells the form the rider answered this
+            themselves, which stops the top bar's chip leading it. "Never mind"
+            should not quietly change what the form does.
+          */}
+          <button type="button" className={styles.keepSport} onClick={() => setPicking(false)}>
+            Keep {sport.label}
+          </button>
+        </>
       ) : (
         <div className={styles.sportPreset}>
           <Equipment name={sport.icon} size={26} />
@@ -759,6 +832,23 @@ export function FullForm(props: {
 }) {
   const { data, values, errors, onChange, step } = props;
   const { spots, remember } = useKnownSpots(data);
+
+  /*
+   * Move focus to the panel when the step changes, and only then (review S3).
+   *
+   * `shown` holds the step the panel last rendered with, so the first render
+   * does not steal focus from wherever the rider arrived — a form that grabs
+   * focus on load is a form that has taken the browser's Find away before
+   * anybody asked it to.
+   */
+  const panel = useRef<HTMLDivElement | null>(null);
+  const shown = useRef<SessionStepId>(step);
+  useEffect(() => {
+    if (shown.current === step) return;
+    shown.current = step;
+    panel.current?.focus();
+  }, [step]);
+
   const aimId = useId();
   const notesId = useId();
   const dateId = useId();
@@ -1051,12 +1141,26 @@ export function FullForm(props: {
         onChange={(id) => props.onStep(id as SessionStepId)}
         className={styles.steps}
       />
-      {/* Keyed on the step so React remounts it and §4's 120ms cross-fade runs. */}
+      {/*
+        Keyed on the step so React remounts it and §4's 120ms cross-fade runs.
+
+        **Named by its tab, and focused when the step changes** (review S3).
+        `aria-labelledby` rather than `aria-label`: ARIA's tabs pattern names a
+        panel after the tab that controls it, and repeating the words meant
+        "Notes" resolved to two elements — this panel and the notes textarea
+        inside it. And a panel the whole of which was just replaced is where a
+        rider who pressed Next now is: without moving focus, a screen reader
+        says nothing at all and the rider has to walk backwards through the
+        document to find out whether anything happened. `tabIndex={-1}` makes it
+        focusable by script without putting it in the tab order.
+      */}
       <div
         key={step}
+        ref={panel}
+        tabIndex={-1}
         className={`${styles.cols} ${TAB_PANEL}`}
         role="tabpanel"
-        aria-label={SESSION_STEPS.find((s) => s.id === step)?.label}
+        aria-labelledby={SESSION_STEPS.find((s) => s.id === step)?.elementId}
       >
         <div className={styles.col}>{left}</div>
         <div className={styles.col}>{right}</div>
