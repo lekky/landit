@@ -10,18 +10,7 @@
  * matching where `.sporttab` already goes `flex: 1`.
  */
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  margin-bottom: 14px;
-  color: var(--ink-3);
-  font-size: 13.5px;
-}
-
-.back:hover {
-  color: var(--ink);
-}
+/* The back link is `BackLink`'s, in the shell's module, at §4's 44px. */
 
 .head {
   display: flex;

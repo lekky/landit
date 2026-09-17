@@ -1,27 +1,12 @@
 /*
  * The trick page and its locked twin (screenshots 09 and 10).
  *
- * The two share their furniture — the back link, the header band, the panel
- * that holds them — and differ in exactly the ways the design says they do: the
- * locked header is a hatch instead of the category colour, and its name is
- * `--ink-3` instead of white on a 3px ink shadow.
+ * The two share their furniture — the header band and the panel that holds them
+ * — and differ in exactly the ways the design says they do: the locked header
+ * is a hatch instead of the category colour, and its name is `--ink-3` instead
+ * of white on a 3px ink shadow. The back link is `BackLink`'s, in the shell's
+ * module, at §4's 44px like every other screen's.
  */
-
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: none;
-  border: none;
-  padding: 0;
-  margin-bottom: 14px;
-  color: var(--ink-3);
-  font-size: 13.5px;
-}
-
-.back:hover {
-  color: var(--ink);
-}
 
 /*
  * `--badge-w` is declared on the card rather than on the hero because three

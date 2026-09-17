@@ -20,9 +20,23 @@ import styles from './shell.module.css';
  *
  * T45 ships the component; T46 and T49 onward are what put it on the screens.
  */
-export function BackLink({ href, label }: { href: Route; label: string }) {
+export function BackLink({
+  href,
+  label,
+  scroll,
+}: {
+  href: Route;
+  label: string;
+  /**
+   * `false` where the destination restores a scroll offset of its own — the
+   * library's place memory does, and Next's own jump to the top would fight it
+   * for the same frame. Left undefined everywhere else, which is Next's
+   * default: a fresh arrival belongs at the top of the page.
+   */
+  scroll?: boolean;
+}) {
   return (
-    <Link href={href} className={styles.backLink}>
+    <Link href={href} className={styles.backLink} scroll={scroll}>
       <Icon name="arrow-left" size={16} strokeWidth={2.6} aria-hidden />
       {label}
     </Link>

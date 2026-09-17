@@ -49,6 +49,9 @@ import styles from './library.module.css';
  */
 const NUDGE_AFTER = 4;
 
+/** The two tabs' DOM ids, so the grid can be `aria-labelledby` the live one. */
+const TAB_ID = { all: 'tricks-tab-all', mine: 'tricks-tab-mine' } as const;
+
 /**
  * The trick library: search, the sticky filter column, the rookie banner and
  * the grid (screenshot 08).
@@ -556,8 +559,8 @@ export function LibraryBrowser({
           <TabRow
             className={styles.tricksTabs}
             items={[
-              { id: 'all', label: 'All', note: pool.length },
-              { id: 'mine', label: 'Mine', note: tracked },
+              { id: 'all', label: 'All', note: pool.length, elementId: TAB_ID.all },
+              { id: 'mine', label: 'Mine', note: tracked, elementId: TAB_ID.mine },
             ]}
             value={mine ? 'mine' : 'all'}
             group="tricks"
@@ -590,7 +593,26 @@ export function LibraryBrowser({
           <div className={`filterwrap${filtersOpen ? ' open' : ''}`}>{filters}</div>
         </div>
 
-        <div>
+        {/*
+          The All · Mine row's `tabpanel` (integration review, F8).
+
+          The row declared two `role="tab"`s over a grid with no role on it, so a
+          screen reader was told "Mine, tab, 2 of 2" and then about no panel —
+          which is the one thing a tab promises. This column is what those tabs
+          switch: the count line and the cards under it. It is `aria-labelledby`
+          the tab rather than repeating its word, which is ARIA's own pattern.
+
+          Only where the row is drawn: signed out there are no tabs, only the
+          Filters box, and a `tabpanel` with no tablist above it is a promise
+          about a control that is not there. No `key` and no `TAB_PANEL` fade,
+          deliberately — remounting this column on every switch would throw away
+          the library's place memory, which is a rider's scroll position.
+        */}
+        <div
+          {...(signedIn
+            ? { role: 'tabpanel', 'aria-labelledby': mine ? TAB_ID.mine : TAB_ID.all }
+            : {})}
+        >
           <div className={`lab ${styles.count}`}>
             {list.length} trick{list.length === 1 ? '' : 's'}
             {category ? ` · ${CATS[category].blurb}` : ''}

@@ -4,6 +4,7 @@ import {
   SESSIONS_PER_PAGE,
   filterSessions,
   groupSessionsByMonth,
+  sessionMonthSummary,
   sessionStageMoves,
   sessionTimeLabel,
 } from '@landit/core';
@@ -247,21 +248,45 @@ export function SessionsScreen({ view }: { view: SessionsView }) {
    * four cards including a plans teaser is not what belongs above a diary on a
    * 390px screen.
    *
-   * They are `view.sidebar`'s numbers, so the two can never disagree — this
-   * month on the rider's own clock, counted on the server, not the filtered
-   * list the feed below is showing.
+   * **They are the scope's numbers, not the account's** (integration review,
+   * F4). They were `view.sidebar`'s — this month across every sport, counted on
+   * the server — sitting directly above a feed the `SportScopeSelect` narrows.
+   * Measured on a rider with three scooter sessions and the chip on skate, the
+   * screen read "3 SESSIONS · 3H · 1 MOVED UP" and then, an inch below it, "No
+   * sessions". The blocks and the feed answer the same question now: the same
+   * `sessionMonthSummary` the server runs, over the same filtered list the feed
+   * is showing. Every session the month holds is already on the client — the
+   * loader reads them all and the paging is done here — so this costs no read.
+   *
+   * The **quota strip** below is deliberately left account-wide: a monthly cap
+   * counts sessions, not sessions of one sport, and narrowing it would be a
+   * screen telling a rider they have more of their allowance left than they do.
    */
+  const scopedMonth = useMemo(
+    () =>
+      sessionMonthSummary(
+        filtered.map((s) => s.session),
+        view.currentMonthKey,
+        view.timezone,
+      ),
+    [filtered, view.currentMonthKey, view.timezone],
+  );
+
   const monthStats = (
     <section className={`${styles.phoneMonth} ${styles.hideDesktop}`} aria-label="This month">
       <span className={`lab ${styles.phoneMonthHead}`}>{view.sidebar.monthName} so far</span>
       <div className={styles.monthStats}>
         <StatBlock
-          n={view.sidebar.sessions}
-          label={view.sidebar.sessions === 1 ? 'session' : 'sessions'}
+          n={scopedMonth.sessions}
+          label={scopedMonth.sessions === 1 ? 'session' : 'sessions'}
           hue="var(--yellow)"
         />
-        <StatBlock n={view.sidebar.time} label="on the board" hue="var(--lime)" />
-        <StatBlock n={view.sidebar.stageMoves} label="moved up" hue="var(--pink-soft)" />
+        <StatBlock
+          n={sessionTimeLabel(scopedMonth.minutes)}
+          label="on the board"
+          hue="var(--lime)"
+        />
+        <StatBlock n={scopedMonth.stageMoves} label="moved up" hue="var(--pink-soft)" />
       </div>
     </section>
   );

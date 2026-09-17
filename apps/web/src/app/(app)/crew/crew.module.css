@@ -305,9 +305,22 @@
   line-height: 1.55;
 }
 
+/*
+ * The gate's one way out, at §4's 44px (issue #558).
+ *
+ * It measured 19px tall: a line of text with no padding, on the screen a child
+ * held behind the consent gate is most likely to be standing on, and the only
+ * control the panel has. The 10px of vertical padding and the 44px floor are
+ * what make it reachable by a thumb; the 12px of `margin-top` it had comes off
+ * by the same 10, so the words sit where they always did and only the target
+ * grows.
+ */
 .gateLink {
-  display: inline-block;
-  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 2px;
+  padding: 10px 12px 10px 0;
   font-family: var(--fc);
   letter-spacing: 0.04em;
 }

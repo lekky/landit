@@ -105,7 +105,13 @@ export function CrewScreen({ view }: { view: CrewView }) {
             Crews open up as soon as your parent or guardian says yes. Everything else — the
             library, your tricks, your streak — works exactly as it does now.
           </p>
-          <Link className={styles.gateLink} href={ROUTES.account}>
+          {/*
+            Straight to the guardian screen, not to the list (issue #558).
+            `/account` is eight rows now, and the child this panel is written
+            for had to find "Your guardian" among them — on the one screen where
+            they have exactly one thing to do.
+          */}
+          <Link className={styles.gateLink} href={ROUTES.accountGuardian}>
             Ask them again from your account →
           </Link>
         </Panel>

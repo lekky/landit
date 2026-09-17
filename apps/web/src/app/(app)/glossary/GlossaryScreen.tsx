@@ -12,6 +12,7 @@ import { Icon, Panel } from '@landit/ui-web';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef } from 'react';
 
+import { BackLink } from '@/components/shell/BackLink';
 import { SportScopeSelect, useSportScope } from '@/components/shell/SportScopeSelect';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES, trickHref } from '@/lib/routes';
@@ -105,9 +106,16 @@ export function GlossaryScreen({
 
   return (
     <div>
-      <Link className={`cond ${styles.back}`} href={from ? trickHref(from) : ROUTES.library}>
-        <Icon name="back" size={16} /> {from ? 'Back to the trick' : 'All tricks'}
-      </Link>
+      {/*
+        `BackLink` rather than the screen's own 13.5px link: it measured 17px
+        tall where every other screen's is at §4's 44px. Where it goes and what
+        it says are unchanged — `?from=` still sends a reader back to the trick
+        whose copy linked a word.
+      */}
+      <BackLink
+        href={from ? trickHref(from) : ROUTES.library}
+        label={from ? 'Back to the trick' : 'All tricks'}
+      />
 
       <div className={styles.head}>
         <div>

@@ -1095,7 +1095,8 @@ export function FullForm(props: {
       />
       <p className={styles.hint}>
         {visibilityLine(values.visibility, data.visibilityDefault)}{' '}
-        <Link href={ROUTES.account} className={styles.inlineLink}>
+        {/* "Who sees new sessions" has its own address now (#558). */}
+        <Link href={ROUTES.accountSessions} className={styles.inlineLink}>
           Change the default
         </Link>
       </p>

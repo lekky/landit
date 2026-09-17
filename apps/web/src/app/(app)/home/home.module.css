@@ -13,6 +13,28 @@
   gap: 30px;
 }
 
+/*
+ * The four section links — "All 12 of yours →", "Crew →", "Find →", "Spots →" —
+ * at §4's 44px at **every** width (integration review, F9).
+ *
+ * `.sechead .more` is text with no padding at all, so it measured 16px tall at
+ * 1280. `additions.css` grows it, but only inside its coarse-pointer block, so
+ * the floor arrived with the pointer rather than with §4 — and §4 has no width
+ * on it. On this screen the four are the only route into My tricks, the crew,
+ * the calendar and the spots, and a rider on a laptop or a hybrid device was
+ * aiming at a 16px line.
+ *
+ * Padding out and the same margin back, which is exactly what the coarse block
+ * does, so the words do not move: the link sits where it did and the hit area
+ * reaches the 44px. Here rather than in `packages/ui-web` because that
+ * stylesheet is merged shared code and this is a fix to one screen's targets —
+ * the general case is [#567](https://github.com/lekky/landit/issues/567).
+ */
+.page :global(.sechead .more) {
+  padding: 14px 0 14px 12px;
+  margin: -14px 0 -14px -12px;
+}
+
 /* --------------------------------------------------------- announcement -- */
 
 .notice {

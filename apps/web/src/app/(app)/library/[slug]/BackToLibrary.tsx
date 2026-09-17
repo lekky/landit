@@ -1,13 +1,11 @@
 'use client';
 
-import { Icon } from '@landit/ui-web';
 import Link from 'next/link';
 import { useState } from 'react';
 
+import { BackLink } from '@/components/shell/BackLink';
 import { rememberedLibraryHref } from '@/lib/libraryPlace';
 import { ROUTES } from '@/lib/routes';
-
-import styles from './trick.module.css';
 
 /**
  * The arrow out of a trick page, and the other half of the library's place
@@ -59,9 +57,12 @@ export function BackToLibrary({
     );
   }
 
-  return (
-    <Link className={`cond ${styles.back}`} href={href} scroll={scroll}>
-      <Icon name="back" size={16} /> All tricks
-    </Link>
-  );
+  /*
+   * `BackLink` rather than this page's own 13.5px link (§2.3, which names the
+   * trick page's as a `BackLink`). The old one measured 17px tall — the
+   * smallest target on the page, on the control a rider presses most — while
+   * every other screen in the product had been on the 44px shape since T45.
+   * The place memory is unchanged: same href, same `scroll`.
+   */
+  return <BackLink href={href} label="All tricks" scroll={scroll} />;
 }

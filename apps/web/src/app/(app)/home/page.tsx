@@ -190,24 +190,35 @@ export default async function HomePage() {
   /* ------------------------------------------------------------ stickers -- */
 
   const stickerById = new Map(stickerRecords.map((s) => [s.id, s]));
-  const earned = earnedRecords
+
+  /*
+   * The Stickers card's two values, **scoped to one sport**.
+   *
+   * The card sits in a `SportView`, whose contract is "everything that changes
+   * when the rider switches sport" — and it used to carry a count of every
+   * sticker on every wall and a "newest" that could easily not be on the wall
+   * the card opens. A rider with one skate sticker, chipped to scooter, was told
+   * "1 · Newest: First skate trick" and then met an empty scooter wall.
+   *
+   * The scope is the wall's own, reused rather than re-derived: a shared sticker
+   * sits on every wall, a sport sticker only on its own
+   * (`app/(app)/stickers/page.tsx`, "<sport> and shared").
+   *
+   * Newest is sorted by `earned_at` rather than trusted from the read's order:
+   * the award rows come back in whatever order the collection gives, so "newest"
+   * has to be asked of the date. An empty string is how PocketBase spells
+   * "never", and it sorts to the bottom, which is where a row with no date
+   * belongs.
+   */
+  const earnedOnWall = [...earnedRecords]
+    .sort((a, b) => (a.earned_at < b.earned_at ? 1 : a.earned_at > b.earned_at ? -1 : 0))
     .map((row) => stickerById.get(row.sticker))
     .filter((s): s is (typeof stickerRecords)[number] => Boolean(s));
 
-  /*
-   * The newest one the rider holds, for the Stickers card's sub-line.
-   *
-   * Sorted by `earned_at` here rather than trusted from the read's order: the
-   * wall is keyed by sticker and the award rows come back in whatever order the
-   * collection gives, so "newest" has to be asked of the date. An empty string
-   * is how PocketBase spells "never", and it sorts to the bottom, which is
-   * where a row with no date belongs.
-   */
-  const newestSticker =
-    [...earnedRecords]
-      .sort((a, b) => (a.earned_at < b.earned_at ? 1 : a.earned_at > b.earned_at ? -1 : 0))
-      .map((row) => stickerById.get(row.sticker)?.name)
-      .find((name): name is string => Boolean(name)) ?? null;
+  const stickersFor = (sport: string) => {
+    const wall = earnedOnWall.filter((s) => !s.sport || s.sport === sport);
+    return { count: wall.length, newest: wall[0]?.name ?? null };
+  };
 
   /* ---------------------------------------------------------------- crew -- */
 
@@ -255,6 +266,7 @@ export default async function HomePage() {
 
   const bySport: Record<string, SportView> = {};
   for (const sport of sports) {
+    const stickers = stickersFor(sport);
     bySport[sport] = buildSportView({
       sport,
       snapshot,
@@ -264,7 +276,8 @@ export default async function HomePage() {
       goal,
       globalLanded,
       sportCount: sports.length,
-      stickerCount: earned.length,
+      stickerCount: stickers.count,
+      newestSticker: stickers.newest,
       challenges,
       clock,
       today,
@@ -289,7 +302,6 @@ export default async function HomePage() {
       spare: Math.max(0, progress.rides - progress.target),
       rodeToday: rodeToday(streakState.lastRide, clock),
     },
-    newestSticker,
     sessionsCard,
     crewActivity,
     nextEvent,
@@ -479,7 +491,10 @@ interface SportViewInput {
   goal: string | null;
   globalLanded: number;
   sportCount: number;
+  /** Stickers earned on **this sport's** wall — its own plus the shared ones. */
   stickerCount: number;
+  /** The newest of those, by `earned_at`, or `null`. */
+  newestSticker: string | null;
   challenges: readonly Challenge[];
   clock: { timezone: string };
   today: string;
@@ -615,6 +630,7 @@ function buildSportView(input: SportViewInput): SportView {
     total: stats.total,
     pct: stats.pct,
     stickerCount: input.stickerCount,
+    newestSticker: input.newestSticker,
     libraryLabel: `${look.label} library`,
     summary,
     acrossSports,

@@ -110,7 +110,17 @@ export function HomeScreen({ view }: { view: HomeView }) {
         icon="star"
         hue="var(--pink-soft)"
         value={String(current.stickerCount)}
-        sub={view.newestSticker ? `Newest: ${view.newestSticker}` : 'None yet — the first is close'}
+        /*
+          Both values are the chip's sport — the wall this card opens, scoped
+          "<sport> and shared" exactly as `/stickers` scopes it. The desktop
+          greeting's Stickers block reads `current.stickerCount` too, so the two
+          can never disagree.
+        */
+        sub={
+          current.newestSticker
+            ? `Newest: ${current.newestSticker}`
+            : 'None yet — the first is close'
+        }
       />
       <LinkCard
         href={ROUTES.challenge}

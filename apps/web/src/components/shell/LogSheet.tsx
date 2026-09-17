@@ -1,6 +1,6 @@
 'use client';
 
-import { SPORTS } from '@landit/core';
+import { SPORTS, STAGE } from '@landit/core';
 import { Icon, Sheet, Tag, type IconName } from '@landit/ui-web';
 import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
@@ -15,7 +15,7 @@ import { useToast } from '@/providers/toast';
 
 import { rodeTodayAction } from '@/app/(app)/home/actions';
 
-import { trickPickerAction, type PickerTrick } from './actions';
+import { trickPickerAction, type PickerTrick, type TrickPicker } from './actions';
 import styles from './shell.module.css';
 
 /**
@@ -110,9 +110,7 @@ function TrickPicker({
   onPick: (trick: PickerTrick) => void;
 }) {
   const { sport } = useSport();
-  const [data, setData] = useState<{ recent: readonly PickerTrick[]; all: readonly PickerTrick[] }>(
-    { recent: [], all: [] },
-  );
+  const [data, setData] = useState<TrickPicker>({ recent: [], all: [], startHere: [] });
   const [loaded, setLoaded] = useState(false);
   const [query, setQuery] = useState('');
 
@@ -129,9 +127,21 @@ function TrickPicker({
   }, [sport, landedOnly]);
 
   const needle = query.trim().toLowerCase();
+  /*
+   * Recents when there are any, the starter tricks when there are not.
+   *
+   * A rider's first day used to be an empty search box under "Search for the one
+   * you rode." — a sentence addressed to somebody who has ridden nothing the
+   * product knows about yet. The server sends four tricks to begin on (the same
+   * four Home's own "Start here" offers), and the heading changes with them so
+   * the list never claims to be a history.
+   */
+  const starting = data.recent.length === 0 && data.startHere.length > 0;
   const rows = needle
     ? data.all.filter((trick) => trick.name.toLowerCase().includes(needle)).slice(0, 30)
-    : data.recent;
+    : starting
+      ? data.startHere
+      : data.recent;
 
   return (
     <>
@@ -149,13 +159,18 @@ function TrickPicker({
       {!needle && data.recent.length > 0 && (
         <p className={styles.sheetNote}>What you have been working on</p>
       )}
+      {!needle && starting && (
+        <p className={styles.sheetNote}>Start here — or search for another</p>
+      )}
 
       <ul className={styles.pickerList}>
         {rows.map((trick) => (
           <li key={trick.slug}>
             <button type="button" className={styles.pickerRow} onClick={() => onPick(trick)}>
               {trick.name}
-              {trick.stage && <span className={styles.pickerStage}>{STAGE_WORD[trick.stage]}</span>}
+              {trick.stage && (
+                <span className={styles.pickerStage}>{STAGE[trick.stage].short}</span>
+              )}
             </button>
           </li>
         ))}
@@ -173,15 +188,6 @@ function TrickPicker({
     </>
   );
 }
-
-/** The stage words, as the picker's right-hand label shows them. */
-const STAGE_WORD: Record<string, string> = {
-  want: 'Want to',
-  trying: 'Trying',
-  some: 'Sometimes',
-  most: 'Most times',
-  every: 'Every time',
-};
 
 /* ----------------------------------------------------------------- sheet -- */
 
@@ -243,9 +249,9 @@ export function LogSheet({
 
   const goToTrick = (trick: PickerTrick, hash: string) => {
     onClose();
-    // `#ladder` and `#clips` are T49's anchors; until that lands this arrives at
-    // the top of the trick page, which already holds the stage picker and, a
-    // little further down, the clip field.
+    // `#ladder` and `#clips` are the trick page's own anchors (T49): the yellow
+    // stage band, and the row holding the rider's history, notes and videos —
+    // which `LogPanel` opens on Your videos when it is reached this way.
     router.push(`${trickHref(trick.slug)}${hash}` as Route);
   };
 
