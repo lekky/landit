@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { EventSessionsBlock } from '@/components/sessions/blocks/EventSessionsBlock';
+import { BackLink } from '@/components/shell/BackLink';
 import { ROUTES, eventHref, reportHref, signInHref } from '@/lib/routes';
 import { anonymousClient, currentRider } from '@/lib/session';
 import { eventLd, jsonLdText } from '@/lib/structuredData';
@@ -227,17 +228,26 @@ export default async function EventPage({ params, searchParams }: Params) {
       />
       <PageOpened source={source} kind={view.kind} />
 
-      <nav className={styles.crumb} aria-label="Breadcrumb">
-        <Link href={ROUTES.events}>Events</Link>
-        {view.country && (
-          <>
-            <span aria-hidden="true">/</span>
-            <span>{view.country}</span>
-          </>
-        )}
-        <span aria-hidden="true">/</span>
-        <span>{view.town}</span>
-      </nav>
+      {/*
+        "Events", the group's back link (§2.3), where a three-part breadcrumb
+        used to be — the same correction `/spots/[slug]` took in T52, made on
+        the same group's other detail page after the independent review of the
+        combined branch found the two disagreeing (2026-09-17).
+
+        The trail said `Events / United Kingdom / Corby`, and its two tail
+        segments were plain text repeating the sub-line under the title, which
+        already reads "Corby Skatepark · Corby, United Kingdom". What was
+        load-bearing was the first segment — the way back to the calendar — and
+        it was 12.5px of unpadded type, the smallest target on the page.
+        `BackLink` is the product's one shape for that, at §4's 44px.
+
+        **Nothing a crawler reads is lost.** The page carries no `BreadcrumbList`
+        structured data — its JSON-LD is `eventLd`, an `Event` with a `Place` and
+        a `PostalAddress` — so the town and the country still reach a search
+        engine through `addressLocality` and `addressCountry`, as well as
+        through the `<h1>`, the sub-line and the metadata description.
+      */}
+      <BackLink href={ROUTES.events} label="Events" />
 
       <Panel className={styles.head}>
         <div

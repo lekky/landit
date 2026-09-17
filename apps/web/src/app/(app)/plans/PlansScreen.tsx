@@ -3,9 +3,10 @@
 import { BILLING_PERIODS, type BillingPeriod } from '@landit/core';
 import { Button, Panel, Tag } from '@landit/ui-web';
 import Link from 'next/link';
-import { useActionState, useState } from 'react';
+import { useActionState } from 'react';
 
-import { TabRow } from '@/components/shell/TabRow';
+import { TabRow, TAB_PANEL } from '@/components/shell/TabRow';
+import { useTabParam } from '@/components/shell/useTabParam';
 import { ROUTES } from '@/lib/routes';
 
 import { openBillingPortalAction } from './actions';
@@ -65,6 +66,15 @@ import styles from './plans.module.css';
  */
 const SAVING_TAG_ID = 'plans-yearly-saving';
 
+/**
+ * A period tab's DOM id, so the cards under it can be `aria-labelledby` it.
+ *
+ * ARIA's tabs pattern names a `tabpanel` after the tab that controls it, and a
+ * panel cannot point at an element with no id. One function, so the tab and the
+ * panel cannot drift (the session form's three steps do the same).
+ */
+const periodTabId = (period: BillingPeriod) => `plans-period-${period}`;
+
 const FAQ: readonly { readonly q: string; readonly a: string }[] = [
   {
     q: 'Does the free tier expire?',
@@ -92,7 +102,29 @@ export function PlansScreen({
   /** Owner-only preview (T41): the sessions comparison shows for `sessionsEnabledFor` alone. */
   showSessions: boolean;
 }) {
-  const [period, setPeriod] = useState<BillingPeriod>('monthly');
+  /*
+   * **The period is in `?tab=`, not in `useState`** (the Progress pattern,
+   * `useTabParam`; independent review of the combined branch, 2026-09-17).
+   *
+   * Two things it buys, and the first is the one a rider notices. A link to
+   * yearly pricing works: `/plans?tab=yearly` opens on the yearly prices, which
+   * is what somebody sharing "it's £39.99 a year" actually means to send. And
+   * Back keeps the tab — a rider who presses Yearly, opens a card's checkout and
+   * comes back lands on the prices they were reading rather than on Monthly.
+   *
+   * `replace`, not `push`, so pressing both tabs does not leave two history
+   * entries for Back to walk out through; and the default is spelled by
+   * *absence*, so the screen as it opens has one address rather than two that
+   * render the same thing. `useTabParam` validates against `BILLING_PERIODS`,
+   * so a hand-typed `?tab=nonsense` opens Monthly rather than an empty screen.
+   *
+   * It is still a `role="tablist"` with a `role="tabpanel"` under it: the panel
+   * changes in place and the document does not navigate. Only where the answer
+   * is stored moved.
+   */
+  const [tab, setTab] = useTabParam(BILLING_PERIODS, 'monthly');
+  const period = tab as BillingPeriod;
+  const setPeriod = setTab;
   const [portal, portalAction, portalPending] = useActionState<{ error?: string }, FormData>(
     openBillingPortalAction,
     {},
@@ -151,13 +183,14 @@ export function PlansScreen({
               items={BILLING_PERIODS.map((value) => ({
                 id: value,
                 label: value === 'monthly' ? 'Monthly' : 'Yearly',
+                elementId: periodTabId(value),
                 ...(value === 'yearly' && view.savingLabel ? { describedById: SAVING_TAG_ID } : {}),
               }))}
               value={period}
               group="plans"
               label="Billing period"
               className={styles.toggle}
-              onChange={(id) => setPeriod(id as BillingPeriod)}
+              onChange={setPeriod}
             />
             {view.savingLabel && (
               <Tag
@@ -195,7 +228,31 @@ export function PlansScreen({
         </Panel>
       )}
 
-      <div className={styles.grid}>
+      {/*
+        The other half of the tab row: the thing that actually changes when a
+        period is pressed, named after the tab that changed it.
+
+        Without it a screen reader is told "Yearly, tab, 2 of 2" and then told
+        about no panel at all, so the row announces a relationship the document
+        does not have. `aria-labelledby` rather than a copy of the word in an
+        `aria-label`, because the tab already carries the name and two copies of
+        one name can drift.
+
+        **Only the cards are in it.** They are what the period changes — every
+        price on both sides was computed on the server (`view.ts`). The guardian
+        notices, the currency footnote, the sessions comparison and the FAQ all
+        read the same either way, and a panel that claimed them would be telling
+        a screen reader the FAQ answers change with the billing period.
+
+        Keyed on the period so React remounts it and §4's 120ms cross-fade runs
+        on every switch.
+      */}
+      <div
+        key={period}
+        role="tabpanel"
+        aria-labelledby={periodTabId(period)}
+        className={`${styles.grid} ${TAB_PANEL}`}
+      >
         {view.cards.map((card) => (
           <PlanCard key={card.slug} card={card} period={period} view={view} />
         ))}

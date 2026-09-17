@@ -131,6 +131,68 @@ test('Monthly · Yearly is the product’s tab row, and the saving describes Yea
   await expect(monthly).toHaveAttribute('aria-selected', 'false');
 });
 
+test('the period tabs have a panel, and it is named after the tab that changed it', async ({
+  page,
+}) => {
+  /*
+   * A `role="tablist"` with no `role="tabpanel"` under it announces a
+   * relationship the document does not have: a screen reader is told "Yearly,
+   * tab, 2 of 2" and then told about no panel at all. Found by the independent
+   * review of the combined branch (2026-09-17); the sticker wall and the session
+   * form already did this, and Plans did not.
+   *
+   * The panel is the cards and only the cards — they are what the period
+   * changes. The FAQ, the guardian notices and the sessions comparison read the
+   * same either way, and a panel claiming them would be a claim that they change
+   * with the billing period.
+   */
+  const panel = page.getByRole('tabpanel');
+  await expect(panel).toHaveCount(1);
+
+  const monthlyId = await page
+    .getByRole('tab', { name: 'Monthly', exact: true })
+    .getAttribute('id');
+  expect(monthlyId).toBeTruthy();
+  await expect(panel).toHaveAttribute('aria-labelledby', monthlyId!);
+  await expect(panel).toContainText('Shredder');
+
+  await page.getByRole('tab', { name: 'Yearly', exact: true }).click();
+  const yearlyId = await page.getByRole('tab', { name: 'Yearly', exact: true }).getAttribute('id');
+  await expect(page.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', yearlyId!);
+});
+
+test('the period is in the address, so a link to yearly pricing works', async ({ page }) => {
+  /*
+   * The Progress pattern (`useTabParam`), brought to Plans by the same review.
+   * Two things it buys: "it's £39.99 a year" can be sent as a link, and a rider
+   * who opens a checkout from the yearly prices and presses Back lands on the
+   * yearly prices.
+   *
+   * The default is spelled by **absence**, so the screen as it opens has one
+   * address rather than two that render the same thing — and `replace` rather
+   * than `push`, so pressing both tabs does not leave two entries for Back to
+   * walk out through.
+   */
+  await page.goto('/plans?tab=yearly');
+  await expect(page.getByRole('tab', { name: 'Yearly', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByText('£39.99')).toBeVisible();
+
+  // Back to Monthly takes the parameter off rather than writing `?tab=monthly`.
+  await page.getByRole('tab', { name: 'Monthly', exact: true }).click();
+  await expect(page).toHaveURL(/\/plans$/);
+
+  // A hand-typed value that is not a billing period opens Monthly rather than
+  // an empty screen — `useTabParam` validates against `BILLING_PERIODS`.
+  await page.goto('/plans?tab=nonsense');
+  await expect(page.getByRole('tab', { name: 'Monthly', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+});
+
 test('achievements are never for sale, and the page says so (plan §1, §2.4)', async ({ page }) => {
   const faq = page.getByText('Do stickers come faster on a paid plan?');
   await expect(faq).toBeVisible();

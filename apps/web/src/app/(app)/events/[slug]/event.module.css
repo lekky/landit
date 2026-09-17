@@ -30,29 +30,10 @@
   gap: 18px;
 }
 
-/* ---------------------------------------------------------- breadcrumb --- */
-
-.crumb {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-  flex-wrap: wrap;
-  font-family: var(--fc);
-  font-weight: 600;
-  font-size: 12.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-.crumb a,
-.crumb a:hover {
-  color: var(--ink);
-}
-
-.crumb a:hover {
-  color: var(--orange);
-}
+/* `.crumb` went with the `Events / United Kingdom / Corby` trail it drew
+   (2026-09-17): the page opens on `BackLink` now, which brings its own class
+   from the shell, and a rule nothing writes is a rule the next reader has to
+   work out is dead (LESSONS §3a). */
 
 /* ------------------------------------------------- band and status strip -- */
 

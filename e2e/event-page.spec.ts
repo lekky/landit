@@ -59,6 +59,32 @@ test('an upcoming event has a page of its own, readable signed out', async ({ pa
   await expect(page.getByText('No phone listed')).toBeVisible();
 });
 
+test('opens on the group’s back link, not a breadcrumb (§2.3)', async ({ page }) => {
+  /*
+   * The same correction `/spots/[slug]` took in T52, made on the calendar's own
+   * detail page after the combined branch's review found the two disagreeing
+   * (2026-09-17). It said `Events / United Kingdom / Manchester`, whose two tail
+   * segments repeated the sub-line under the title and whose one link was 12.5px
+   * of unpadded type.
+   *
+   * The 44px is asserted because that is the point of the change: §4 puts the
+   * floor there and the breadcrumb's link was under half of it.
+   */
+  await page.goto('/events/e2e-jam');
+
+  const back = page.locator('#main').getByRole('link', { name: 'Events', exact: true });
+  await expect(back).toBeVisible();
+  await expect(back).toHaveAttribute('href', '/events');
+  expect((await back.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+  // Nothing the trail carried is lost: the town and the country are still under
+  // the title, and still in the JSON-LD's PostalAddress (asserted below).
+  await expect(page.getByText('Projekts MCR · Manchester')).toBeVisible();
+
+  // And the trail itself is gone, separators and all.
+  await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveCount(0);
+});
+
 test('the page never says who else is going, and says that it never will', async ({ page }) => {
   await page.goto('/events/e2e-jam');
 
