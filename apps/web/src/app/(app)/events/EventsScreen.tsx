@@ -599,6 +599,37 @@ export function EventsScreen({
         )}
       </div>
 
+      {/*
+        "Show: Your sport (Scooter)" (§3.3, O1).
+
+        **On its own line under the header, as §3.3 describes and `/spots`
+        already does** (review N7). The first cut left it at the right-hand end
+        of the kind pills, which is where `SportFilter` used to sit — it read
+        well enough, but it put the same control in two different places on two
+        screens a rider moves between with one tap.
+
+        **The calendar opens on the rider's own sport**, where `/spots` opens on
+        every spot. The difference is the data and nothing else: staff tag all
+        74 events, so "your sport" is a real narrowing here, and spot sport tags
+        are thin enough that the same default would hide most of the map. O1
+        says so in as many words.
+
+        **Not rendered on a rider's own events** (review B1). Their own list is
+        a handful of decisions they already made, not a calendar to browse, and
+        a sport filter over it could only ever hide one of them. The screen is
+        every sport, and there is no control offering to change that.
+
+        The per-sport counts went with the pills — a `<select>` has no room for
+        a number beside each option — so `view.countBySport` is no longer read
+        here. It stays on the view for `/events/past` and anything else that
+        wants it later.
+      */}
+      {!mine && (
+        <div className={styles.filters}>
+          <SportScopeSelect state={scope} everyLabel="All sports" label="Show events for" />
+        </div>
+      )}
+
       <div className={styles.filters}>
         {/*
           A `<select>`, not a row of pills. The calendar is worldwide, so a pill
@@ -702,37 +733,6 @@ export function EventsScreen({
           </Pill>
         ))}
       </div>
-
-      {/*
-        "Show: Your sport (Scooter)" (§3.3, O1).
-
-        **On its own line under the header, as §3.3 describes and `/spots`
-        already does** (review N7). The first cut left it at the right-hand end
-        of the kind pills, which is where `SportFilter` used to sit — it read
-        well enough, but it put the same control in two different places on two
-        screens a rider moves between with one tap.
-
-        **The calendar opens on the rider's own sport**, where `/spots` opens on
-        every spot. The difference is the data and nothing else: staff tag all
-        74 events, so "your sport" is a real narrowing here, and spot sport tags
-        are thin enough that the same default would hide most of the map. O1
-        says so in as many words.
-
-        **Not rendered on a rider's own events** (review B1). Their own list is
-        a handful of decisions they already made, not a calendar to browse, and
-        a sport filter over it could only ever hide one of them. The screen is
-        every sport, and there is no control offering to change that.
-
-        The per-sport counts went with the pills — a `<select>` has no room for
-        a number beside each option — so `view.countBySport` is no longer read
-        here. It stays on the view for `/events/past` and anything else that
-        wants it later.
-      */}
-      {!mine && (
-        <div className={styles.filters}>
-          <SportScopeSelect state={scope} everyLabel="All sports" label="Show events for" />
-        </div>
-      )}
 
       {archive && <ArchiveIndex archive={archive} />}
 

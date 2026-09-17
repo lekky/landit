@@ -144,6 +144,41 @@ async function watchGeolocation(page: Page): Promise<void> {
 
 const geoCalls = (page: Page) => page.evaluate(() => window.__geoCalls);
 
+/**
+ * Wait until the calendar is actually listening.
+ *
+ * **A server-rendered control is visible before it works.** Every control on
+ * this screen is painted by the server and only becomes live when React
+ * hydrates — and the Details modal needs more than React: it opens from
+ * `useSearchParams()` reading a native `pushState`, which Next only reflects
+ * once its own router has attached. A press that lands before that changes the
+ * address and opens nothing, which is what two tests in this file were doing
+ * intermittently in a full run and never on their own (issue #557, and the
+ * independent review of 2026-09-17 measured the same thing twice).
+ *
+ * `aria-pressed` flipping is the proof, the way `spots.spec.ts`' own
+ * `whenInteractive` uses it: the pill's state lives in React, so the attribute
+ * cannot change until the component owns the DOM node. It polls the press
+ * rather than asserting it once, because the race is exactly that the first
+ * press can be too early.
+ *
+ * The kind pill rather than the scope select, because this puts the screen back
+ * the way it found it: "Everything" is where the row opens and nothing is
+ * stored. Only `/events` has a Comp on it, which is the one route the callers
+ * use.
+ */
+async function whenInteractive(page: Page): Promise<void> {
+  const comp = page.getByRole('button', { name: 'Comp', exact: true });
+  await expect
+    .poll(async () => {
+      await comp.click();
+      return comp.getAttribute('aria-pressed');
+    })
+    .toBe('true');
+  await page.getByRole('button', { name: 'Everything' }).click();
+  await expect(comp).toHaveAttribute('aria-pressed', 'false');
+}
+
 test('the list shows an upcoming event with its date block and its details', async ({ page }) => {
   await newRider(page);
   await page.goto('/events');
@@ -152,6 +187,7 @@ test('the list shows an upcoming event with its date block and its details', asy
   await expect(page.getByText('E2E Northern Jam')).toBeVisible();
   await expect(page.getByText('Projekts MCR · Manchester · All levels')).toBeVisible();
 
+  await whenInteractive(page);
   await page.getByRole('button', { name: 'Details' }).first().click();
   const modal = page.getByRole('dialog');
   await expect(modal).toBeVisible();
@@ -379,6 +415,7 @@ test('the Details modal has an address, and the back button closes it', async ({
   await newRider(page);
   await page.goto('/events');
 
+  await whenInteractive(page);
   const details = page.getByRole('button', { name: 'Details' }).first();
   await details.click();
 
@@ -577,7 +614,7 @@ test('a visitor’s calendar is every sport, and the pill count matches what the
   // The pill's number and the list agree. Read off the pill rather than
   // hard-coded, so a seeded event added later moves both together.
   const pill = page.getByRole('link', { name: /^Upcoming/ });
-  const counted = Number((await pill.innerText()).replace(/D+/g, ''));
+  const counted = Number((await pill.innerText()).replace(/[^0-9]+/g, ''));
   expect(counted).toBeGreaterThan(0);
   // Capped at the page size, because a long calendar pages — the seeded one is
   // two events, and the cap is what stops this becoming a flake on a fuller

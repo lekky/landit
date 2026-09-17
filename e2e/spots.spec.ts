@@ -244,13 +244,19 @@ test.describe('where to ride', () => {
      *
      * Counting the options rather than naming them is deliberate: a fourth
      * sport should move this assertion, not slip past it. There are
-     * `SPORT_IDS.length + 1` of them, not `+ 2`, because "Your sport" and the
-     * chip's own sport are the same option — the list is "your sport", "every
-     * spot", and one entry per *other* sport.
+     * `SPORT_IDS.length + 1` of them either way, but for two different reasons.
+     * Signed in — which is `find.spec.ts`' half of this — the list is "your
+     * sport", "every spot", and one entry per *other* sport. **This file is a
+     * visitor**, and a visitor is offered no "your sport" at all (review S1):
+     * they have no chip in the top bar, so the words would be a claim about
+     * somebody the product has never met. Their list is "every spot" and then
+     * every sport there is.
      */
     await page.goto('/spots');
     const scope = page.getByLabel('Show spots for');
     await expect(scope.locator('option')).toHaveCount(SPORT_IDS.length + 1);
+    await expect(scope.locator('option[value="chip"]')).toHaveCount(0);
+    await expect(scope.locator('option').first()).toHaveText('Every spot');
     // And the global tab row is gone from this screen with it.
     await expect(page.getByRole('tablist', { name: 'Spots by sport' })).toHaveCount(0);
 
@@ -264,13 +270,13 @@ test.describe('where to ride', () => {
     await expect(card(page, bmxNotScooterSpot.name)).toBeVisible();
 
     /*
-     * Scooter is `'chip'` and not `'scooter'`, which is the design rather than
-     * an accident: the chip's own sport is the *first* option ("Your sport
-     * (Scooter)") and the entries below "Every spot" are one per **other**
-     * sport. Offering it twice would be two ways to say one thing, and only one
-     * of them would keep following the chip.
+     * By name, because this is a visitor. A signed-in rider reaches their own
+     * sport through `'chip'` — the first option, which keeps following the top
+     * bar — and it is not offered a second time by name; `find.spec.ts` pins
+     * that half. With no chip there is nothing to follow and every sport is
+     * simply listed.
      */
-    await scope.selectOption('chip');
+    await scope.selectOption('scooter');
     await expect(page.getByText(bmxNotScooterSpot.name, { exact: true })).toHaveCount(0);
   });
 
@@ -306,9 +312,15 @@ test.describe('where to ride', () => {
     await page.reload();
     await expect(page.getByLabel('Show spots for')).toHaveValue('bmx');
 
-    // And the calendar keeps its own answer: one key per screen.
+    /*
+     * And the calendar keeps its own answer: one key per screen. `'all'` and
+     * not `'chip'` because this is a visitor — O1's "Events opens on your
+     * sport" is about a rider whose sport the product knows, and a public page
+     * does not open narrowed for somebody who has told us nothing (review S1).
+     * `events.spec.ts` pins the signed-in default beside this one.
+     */
     await page.goto('/events');
-    await expect(page.getByLabel('Show events for')).toHaveValue('chip');
+    await expect(page.getByLabel('Show events for')).toHaveValue('all');
   });
 
   test('narrows the list by search and by sport', async ({ page }) => {
