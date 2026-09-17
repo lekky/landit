@@ -5335,7 +5335,18 @@ gate, `noindex` and counts untouched. Closes issue #465. The T48 paragraphs in
 
 **T49 · Trick page.** `t49-trick-page`. Depends on T45. Layout A (sticker beside video), the
 `Accordion` primitive for the phone's sections, desktop columns kept, the Log sheet's trick picker
-landing on the ladder.
+landing on the ladder. **Built 2026-09-17**: the badge leaves the hero for a card of its own beside
+the staff video, the hero gains the one-line lowdown (`lowdownTeaser`, the same rule the locked page
+teases with), the band carries `#ladder` and the rider's own row carries `#clips`, and every section
+below is an `Accordion` on a phone and a plain diamond-and-rule panel above 820px — one piece of
+markup either way, through the new component's `plainAbove`. The rider's own sessions on the trick
+are the **first** row, which is where the 2026-09-13 instruction put them, and the staff video is
+capped at a 360px track so the band stays on a 1280 × 720 screen; on a phone the two cards stack, video first (D7a, Rachid, 2026-09-17, in chat). **No new analytics event**: the stage
+picker, Share, the video play and the clip form all keep firing what they fired, and an accordion
+opening is a reading position rather than a rider action. The T49 paragraphs in
+`docs/app-shell-rethink.md` §3.8 record what the spec was silent on — including that §3.8's "Clip"
+is drawn as "Video", because plan §6.6 withdrew the clip vocabulary from this page and
+`e2e/library.spec.ts` guards it.
 
 **T50 · Lists follow the chip.** `t50-lists-follow-chip`. Depends on T45. Sessions header, stats
 and toggle; the session form as three steps on the phone with the sport preset from the chip; the

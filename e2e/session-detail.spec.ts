@@ -162,6 +162,18 @@ test('the spot block is the rider’s own, and absent signed out', async ({ brow
 test('the trick block counts the sessions that worked it', async ({ page }) => {
   await signIn(page);
   await page.goto(`/library/${trick.id}`);
-  await expect(page.getByRole('heading', { name: `${trick.name} in your sessions` })).toBeVisible();
-  await expect(page.getByText('1 session · first tried', { exact: false })).toBeVisible();
+  /*
+   * Since T49 the block is the **first** row of the trick page's reading
+   * column, which is where the 2026-09-13 instruction put it, and the row's own
+   * heading and sub-line carry what the block's head used to: "Your sessions on
+   * this trick" over "1 session · first tried 2 Sep". The block is still what
+   * draws the rows; `heading={false}` is what stops the sentence appearing
+   * twice, a line apart.
+   */
+  const row = page.getByRole('heading', { name: /Your sessions on this trick/ });
+  await expect(row).toBeVisible();
+  await expect(row).toContainText('1 session · first tried');
+  // First: nothing the page teaches comes before the part that is theirs.
+  const lowdown = (await page.getByRole('heading', { name: 'The lowdown' }).boundingBox())!;
+  expect((await row.boundingBox())!.y).toBeLessThan(lowdown.y);
 });

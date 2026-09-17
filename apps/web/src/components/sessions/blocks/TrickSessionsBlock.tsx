@@ -1,5 +1,4 @@
 import { DEFAULT_TIMEZONE, stageMoveLabel, trickSessionSummary } from '@landit/core';
-import { listSessionsForTrickForOwner } from '@landit/db';
 import { Icon } from '@landit/ui-web';
 import Link from 'next/link';
 import { Suspense } from 'react';
@@ -10,7 +9,7 @@ import type { RiderSession } from '@/lib/session';
 
 import { PagedPanel } from '@/components/panels/PagedPanel';
 
-import { riderFor, spotNames } from './rider';
+import { riderFor, spotNames, trickSessionsForOwner } from './rider';
 import styles from './blocks.module.css';
 
 /**
@@ -26,6 +25,16 @@ export interface TrickSessionsBlockProps {
   readonly trickName: string;
   /** The page's rider: `null` signed out, omitted to look it up. */
   readonly session?: RiderSession | null;
+  /**
+   * Draw the block's own "<Trick> in your sessions" head, with the count and
+   * the day it was first tried. `true` by default, which is every caller that
+   * had one before.
+   *
+   * The trick page passes `false` since T49: the block sits inside a disclosure
+   * row whose heading *is* that sentence and whose sub-line carries the same
+   * meta, so drawing it again would be the same fact twice, a line apart.
+   */
+  readonly heading?: boolean;
 }
 
 /**
@@ -48,7 +57,12 @@ export function TrickSessionsBlock(props: TrickSessionsBlockProps) {
   );
 }
 
-async function TrickSessions({ trickId, trickName, session }: TrickSessionsBlockProps) {
+async function TrickSessions({
+  trickId,
+  trickName,
+  session,
+  heading = true,
+}: TrickSessionsBlockProps) {
   const viewer = await riderFor(session);
   if (!viewer) return null;
 
@@ -56,8 +70,11 @@ async function TrickSessions({ trickId, trickName, session }: TrickSessionsBlock
   const timezone = rider.timezone || DEFAULT_TIMEZONE;
   let summary;
   try {
+    // `trickSessionsForOwner` is `cache`d, so a host page that has already
+    // counted these rows to decide whether to draw the block at all does not
+    // pay for them twice (T49).
     summary = trickSessionSummary(
-      await listSessionsForTrickForOwner(client, { userId: rider.id, trickId }),
+      await trickSessionsForOwner(client, rider.id, trickId),
       trickId,
       timezone,
     );
@@ -72,15 +89,21 @@ async function TrickSessions({ trickId, trickName, session }: TrickSessionsBlock
   );
 
   return (
-    <section className={styles.trick} aria-labelledby="trick-sessions-title">
-      <div className={styles.trickHead}>
-        <h2 id="trick-sessions-title" className={styles.trickTitle}>
-          {trickName} in your sessions
-        </h2>
-        <span className={styles.trickMeta}>
-          {trickBlockMeta(summary.count, summary.firstTriedOn)}
-        </span>
-      </div>
+    <section
+      className={styles.trick}
+      aria-labelledby={heading ? 'trick-sessions-title' : undefined}
+      aria-label={heading ? undefined : `${trickName} in your sessions`}
+    >
+      {heading && (
+        <div className={styles.trickHead}>
+          <h2 id="trick-sessions-title" className={styles.trickTitle}>
+            {trickName} in your sessions
+          </h2>
+          <span className={styles.trickMeta}>
+            {trickBlockMeta(summary.count, summary.firstTriedOn)}
+          </span>
+        </div>
+      )}
       <PagedPanel
         panel="sessions"
         perPage={SHOWN}

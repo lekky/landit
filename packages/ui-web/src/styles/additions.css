@@ -802,6 +802,169 @@ a.pill.on:hover {
   text-align: center;
 }
 
+/* -------------------------------------------------------------- accordion -- */
+
+/*
+ * `Accordion` (§3.8) — the disclosure row the phone's trick page is a list of.
+ *
+ * The box is the design's ordinary raised surface, said again here rather than
+ * borrowed from `.panel`, because a row is not a panel: it is 3px of ink, the
+ * small shadow and paper, at the 56px §3.8 gives it, and `.panel`'s padding
+ * would fight the summary's own.
+ */
+.accordion {
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  /*
+   * A fragment link lands under a sticky top bar unless the target says how
+   * much bar there is. 76px is the bar at its tallest (11px of padding either
+   * side of a 34px chip, plus its 3px rule) with a little air over the row's
+   * own keyline.
+   */
+  scroll-margin-top: 76px;
+}
+/*
+ * The summary is the row. `list-style: none` plus the WebKit pseudo-element is
+ * what removes the UA's own triangle — one of them alone leaves it on one
+ * engine or the other — and `display: flex` is applied after, because setting
+ * `display` on a `summary` is itself what drops the marker in Blink.
+ */
+.accordion-head {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 14px;
+  cursor: pointer;
+  color: var(--ink);
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press);
+}
+.accordion-head::-webkit-details-marker {
+  display: none;
+}
+/* §4's one gesture: every tappable box presses. */
+.accordion-head:active {
+  transform: translate(2px, 2px);
+}
+/*
+ * The design's focus ring, not the browser's (independent review, N2). This
+ * sheet already gives one to `.segpick .seg`, `.clipposter` and `a.trickpill`;
+ * the row is the control a phone page is made of and had the UA's 1px outline.
+ */
+.accordion-head:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--yellow);
+}
+/* The heading is the row's whole left-hand side. `margin: 0` because the
+   shared stylesheet gives every heading one and a row is not a paragraph. */
+.accordion-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.accordion-sub {
+  display: block;
+  font-family: var(--fb);
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.35;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+.accordion-chev {
+  flex: none;
+  transition: transform var(--dur-press) var(--ease-out);
+}
+.accordion[open] .accordion-chev {
+  transform: rotate(180deg);
+}
+/*
+ * `0fr → 1fr`: the only way to transition to a height nobody has measured. The
+ * inner box is what clips during the travel, and its padding is also what keeps
+ * the hard offset shadows of whatever is inside from being clipped at the end
+ * of it.
+ */
+.accordion-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-ui) var(--ease-out);
+}
+.accordion-body.is-grown {
+  grid-template-rows: 1fr;
+}
+.accordion-inner {
+  overflow: hidden;
+  min-height: 0;
+  padding: 0 12px 14px;
+}
+/*
+ * Held open, and no longer a control (`plainAbove`). The caller's own
+ * stylesheet repaints the head — this only takes the disclosure away.
+ *
+ * **The class arrives one render late, and that is the caller's to cover.** The
+ * server has no width to read, so `plainAbove` is answered "phone" there and
+ * these rules are not on until the client has measured. A caller using
+ * `plainAbove` therefore writes the same three declarations under its own media
+ * query — `::details-content { content-visibility: visible }`, the open row and
+ * the hidden chevron — so a wide screen never shows a shut box for a frame.
+ * The trick page's module is the worked example.
+ */
+.accordion-plain .accordion-head {
+  cursor: default;
+  /* With the chevron gone and the press gone, this is a heading drawn in a
+     row's clothes; nothing should be able to press it, which is the other half
+     of `tabIndex={-1}` in the component (review S3). */
+  pointer-events: none;
+}
+.accordion-plain .accordion-head:active {
+  transform: none;
+}
+.accordion-plain .accordion-head:focus-visible {
+  box-shadow: none;
+}
+.accordion-plain .accordion-chev {
+  display: none;
+}
+.accordion-plain .accordion-body {
+  grid-template-rows: 1fr;
+}
+.accordion-plain::details-content {
+  content-visibility: visible;
+}
+/*
+ * **On paper every row is open** (independent review of 2026-09-17, S1).
+ *
+ * A printed page's media queries evaluate against the *paper*, about 816 CSS px
+ * for A4 at 96dpi, which is below any `plainAbove` a caller is likely to set —
+ * so a trick page printed from a desktop came out as nine headings and 595
+ * characters where `main` gave 2083. A coach printing a trick, or a parent
+ * putting one on a fridge, is exactly who this is for.
+ *
+ * Two declarations, because a shut `details` hides its contents two ways: the
+ * grid row is at `0fr` and the UA has skipped rendering the subtree.
+ */
+@media print {
+  .accordion-body {
+    grid-template-rows: 1fr;
+  }
+  .accordion::details-content {
+    content-visibility: visible;
+  }
+  .accordion-chev {
+    display: none;
+  }
+}
+
 /* ------------------------------------------------ the top bar at 400px -- */
 
 /*
