@@ -485,13 +485,40 @@ test.describe('where to ride', () => {
       .toBeGreaterThan(300);
     await settle();
 
-    await page.getByRole('button', { name: 'Show on map' }).first().click();
+    /*
+     * "Show on map" on a card that is **already on screen**, rather than
+     * `.first()`.
+     *
+     * Playwright scrolls a control into view before clicking it, so pressing
+     * the first card's button from halfway down the list scrolls the page back
+     * to the top — and the position this test exists to prove is kept is then
+     * the top of the page, which is kept for free. It read as a pass only
+     * because the old anchor happened to sit above the viewport at whatever
+     * offset the auto-scroll left; on CI it did not, and the assertion below
+     * measured 99 rather than a negative number.
+     *
+     * Choosing a button inside the viewport means nothing scrolls on the click,
+     * so `held` is the place the rider actually was.
+     */
+    const onMap = page.getByRole('button', { name: 'Show on map' });
+    const inView = await onMap.evaluateAll((nodes, height) => {
+      const index = nodes.findIndex((node) => {
+        const box = node.getBoundingClientRect();
+        return box.top > 80 && box.bottom < height - 80;
+      });
+      return index;
+    }, HEIGHT);
+    expect(inView, 'no "Show on map" button is on screen after the scroll').toBeGreaterThanOrEqual(
+      0,
+    );
+    await onMap.nth(inView).click();
+
     const scrim = page.locator('[class*="mapScrim"]');
     await expect(scrim).toBeVisible();
     await settle();
 
-    // Read after the sheet is up: pressing "Show on map" scrolls the chosen
-    // card into view, so this is the place the rider is actually left.
+    // Read after the sheet is up, which is the place the rider is actually
+    // left — and it is above the top of the viewport, because they had scrolled.
     const held = await pageTop();
     expect(held).toBeLessThan(0);
 
