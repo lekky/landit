@@ -357,6 +357,16 @@ session's to inherit.
 **Gate on exit codes, never on piped output.** A `| tail` or `| tee` returns the pipe's status,
 not the command's. This is the trap most likely to make a red build look green.
 
+**A green `pnpm test` says nothing about whether the test file compiles.** Vitest strips types
+rather than checking them, so a test that runs is a test that ran — and `pnpm build` is what
+actually type-checks `**/*.test.ts` along with everything else. T51 wrote a fixture casting a
+rider's unset stance to `Partial<UsersRecord>`, which is a value the generated union cannot
+express (issue #134); the single-file vitest run was green, the suite was green, and `pnpm build`
+failed on it a minute later. Cheap to lose once and worth knowing: when you are iterating on a
+test file with `vitest run <file>`, the fast loop is the one gate that cannot see a type error.
+The remedy is the gate order `CLAUDE.md` step 6 already gives — **build first**, then test, then
+lint — so the slowest signal is not the last one you collect.
+
 **Once a PR is asked for, seeing it merged is part of the task, not a follow-up.** A Wave 1
 session ended its turn saying it was "monitoring the checks" on a PR that was already green, and
 stopped. The PR sat open and mergeable until someone noticed. Poll until every required check
