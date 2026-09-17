@@ -5279,7 +5279,20 @@ and toggle; the session form as three steps on the phone with the sport preset f
 quick log's sport tag; the glossary toggle.
 
 **T51 · Account as a settings list.** `t51-account-settings`. Depends on T45. Seven rows opening
-seven screens on the phone; list-plus-panel on desktop.
+seven screens on the phone; list-plus-panel on desktop. **Built 2026-09-17**: eight rows, not
+seven — the owner added "Your guardian" on 2026-09-16 and it goes first while the consent gate
+applies, so the gate's only control still has a way in. Six new routes (`/account/profile`,
+`/account/sports`, `/account/privacy`, `/account/sessions`, `/account/guardian`, `/account/data`),
+each gated as `/account` is, each `noindex`, all six in `GATED_ROUTES` and `DESTINATIONS` and
+claimed by the account menu's own row. The panels moved and did not change: `ProfilePanel` draws
+two of the rows from one component because `saveProfileAction` writes the whole profile every time,
+and the rest take a `headed` prop so the screen's `h1` is not their label repeated.
+`/account/close` is untouched behind a `(settings)` route group. The independent review found one
+functional regression and it is fixed: splitting the profile editor across two screens broke T23's
+"hold the whole change and write it in one post" rule, because the held draft does not survive a
+route change — so the goal picker is drawn on `/account/sports` when a toggle orphans the goal,
+rather than the rider being sent to the other screen. The T51 paragraphs in
+`docs/app-shell-rethink.md` §3.9 record what the spec was silent on.
 
 **T52 · The secondary screens.** `t52-secondary-screens`. Depends on T45. Crew tabs, rider
 profile tabs, spot page actions, Plans tabs, Coach / Suggest / Report / Close as pills and

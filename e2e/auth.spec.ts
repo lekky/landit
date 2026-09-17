@@ -200,7 +200,16 @@ test('a younger rider arrives at an account that says what it is waiting for', a
   await finishOnboarding(page);
 
   await page.waitForURL('**/home');
+
+  // The list says what the account is waiting for, and the row is the way in —
+  // the eighth row of the settings list, drawn only while the gate applies
+  // (rethink §3.9, T51; Rachid, 2026-09-16, in chat).
   await page.goto('/account');
+  await expect(page.getByRole('link', { name: /Your guardian/ })).toContainText(
+    'Waiting on a grown-up',
+  );
+
+  await page.goto('/account/guardian');
   await expect(page.getByText(/a grown-up needs to say yes/i)).toBeVisible();
   // What they can do comes first, and it is most of the product.
   await expect(page.getByText('Log every trick you land')).toBeVisible();

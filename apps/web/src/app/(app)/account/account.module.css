@@ -534,3 +534,233 @@
   color: var(--ink);
   font-size: 13.5px;
 }
+
+/* ==========================================================================
+   The account as a settings list (app shell rethink §3.9, T51)
+   ========================================================================== */
+
+/*
+ * The frame: a list, and the screen a row opens.
+ *
+ * Below 861px it is one column and the list is either the whole screen (at
+ * `/account`) or not drawn at all. Above it, the list is a 340px rail and the
+ * chosen panel is beside it at every one of the seven addresses — the URL is
+ * what picks the panel, so a link lands on it.
+ *
+ * The detail pane is first in the DOM and the grid puts the list on the left,
+ * rather than the flex `order` a first cut used: the `h1` of whichever screen
+ * a rider is on then comes before the navigation that reaches the others.
+ */
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (max-width: 860px) {
+  /*
+   * On a phone a row's screen is a screen, with a "Your account" back link
+   * (§2.3) — so the list is not under it. `display: none` rather than a clip:
+   * this is navigation that is genuinely somewhere else, reachable in one tap
+   * from the back link, not a heading being hidden from the eye alone.
+   */
+  .shell:not(.shellRoot) .listCol {
+    display: none;
+  }
+}
+
+@media (min-width: 861px) {
+  .shell {
+    display: grid;
+    grid-template-columns: 340px minmax(0, 1fr);
+    gap: 26px;
+    align-items: start;
+  }
+  .listCol {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .detail {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+/*
+ * The back link is the phone's. On a desktop the list is 340px to the left
+ * with the current row lit, and a second control with the same words going to
+ * the same address is the thing T48 took off `/events/mine`.
+ */
+@media (min-width: 861px) {
+  .detailBack {
+    display: none;
+  }
+}
+
+.detailHead {
+  font-size: clamp(26px, 4.4vw, 36px);
+  margin: 6px 0 16px;
+}
+
+/* ------------------------------------------------------------- the rows -- */
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/*
+ * One row: §3.9's 60px, a 40px fixed-fill icon square, a 16px title, a 13px
+ * sub-line carrying the current value, and a chevron. The shape is
+ * `OptionRow`'s from the Log sheet — §3.5 says as much — at this section's
+ * numbers, and §4's press applies to it like every other tappable box.
+ */
+.settingsRow,
+.settingsRow:hover {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /*
+   * 60px on the nose (§3.9), and the padding is what gets it there rather than
+   * `min-height`, which never binds: the 40px mark plus the 3px `--bd` on each
+   * edge is 46, so 7px top and bottom is 60. At 8px the rows measured 62.
+   */
+  min-height: 60px;
+  padding: 7px 12px;
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  color: var(--ink);
+  text-decoration: none;
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press);
+}
+.settingsRow:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.settingsRow:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+/*
+ * The row whose screen is open, on a desktop. It takes the tab row's lift
+ * rather than a fill of its own (§3.3, D6) — one idea for "this is the one you
+ * are looking at" across the product. On a phone it never applies: the list and
+ * the screen are never on the page together.
+ */
+.settingsRowOn,
+.settingsRowOn:hover {
+  background: var(--yellow);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.settingsMark {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--ink);
+  color: var(--on-light);
+}
+
+.settingsText {
+  flex: 1;
+  /* Without this a long value widens the rail instead of wrapping in it. */
+  min-width: 0;
+}
+
+.settingsTitle {
+  display: block;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+}
+
+.settingsValue {
+  display: block;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settingsRowOn .settingsValue {
+  color: var(--ink-2);
+}
+
+/* Pointing right, which is where the row goes. */
+.settingsChevron {
+  flex: none;
+  color: var(--ink-3);
+  transform: rotate(-90deg);
+}
+
+/* ----------------------------------------------- the foot of the column -- */
+
+/*
+ * Staff's door and "Still on its way": the two panels that are not settings,
+ * under the rows rather than in them. `.later`'s numbers, restated because
+ * they sit in a 340px rail on a desktop rather than in a full-width column.
+ */
+.aside {
+  margin-top: 16px;
+  padding: 14px 16px;
+}
+
+.asideLinks {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+/*
+ * For a label a screen reader still needs and the eye does not: the panel's
+ * heading names its radio group, and the screen's own `h1` already says the
+ * words. `display: none` would take the group's name away with it.
+ */
+.clipped {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * The profile panel's head row on a screen whose `h1` already names it, with
+ * nothing saved yet: no label, no status, so no height. The live region itself
+ * stays in the DOM — a region added at the same moment as its content is one
+ * some screen readers never announce — it simply stops reserving 24px of empty
+ * paper at the top of `/account/profile` and `/account/sports`.
+ */
+.profileHeadQuiet {
+  min-height: 0;
+}
+.profileHeadQuiet .profileStatus {
+  min-height: 0;
+}
+
+/*
+ * The goal picker, borrowed by `/account/sports` while a sport toggle has left
+ * the rider without a goal.
+ *
+ * It is one panel rather than the trio's three, so it takes the width it is
+ * given rather than a third of it, and it sits under the sport cards with the
+ * `.profileForm` gap above it. Nothing here is new paint: `.trioPanel` is the
+ * same box the goal picker draws in on `/account/profile`.
+ */
+.orphanGoal {
+  margin-top: 4px;
+}
+.orphanGoal > * {
+  max-width: 560px;
+}

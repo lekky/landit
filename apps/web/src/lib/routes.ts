@@ -57,6 +57,38 @@ export const ROUTES = {
    * change may not do is make it unfindable.
    */
   accountClose: '/account/close',
+  /**
+   * The six routes below are the screens `/account` opens that did not already
+   * have an address (app shell rethink §3.9, T51).
+   *
+   * The list itself has **eight** rows: these six, plus `plans` and `coach`,
+   * which are screens of the product's own and are linked rather than owned.
+   * §3.9 asked for seven; the eighth, "Your guardian", is the owner's addition
+   * of 2026-09-16 and is drawn only while the consent gate applies.
+   *
+   * `/account` used to be one scroll holding every control the product has
+   * about a rider: the profile editor, the sports picker, two privacy
+   * settings, the guardian gate and the data export, one under the other. On a
+   * phone that is a screen a rider swipes through looking for the one thing
+   * they came for. It is a list of rows now, and each row is one of these.
+   *
+   * They are routes rather than client state for the reason `eventsMine` gives:
+   * a setting a rider can link to, bookmark and come back to after signing in
+   * is worth an address, and on a desktop the address is what decides which
+   * panel renders beside the list.
+   *
+   * All six are gated exactly as `/account` is — they redirect a signed-out
+   * visitor to sign in — and all six carry `noindex`. `/account/close` is
+   * deliberately **not** one of them: it keeps its own page and its own shape
+   * (see `accountClose` above), and the "Your data" row is where a rider finds
+   * it.
+   */
+  accountProfile: '/account/profile',
+  accountSports: '/account/sports',
+  accountPrivacy: '/account/privacy',
+  accountSessions: '/account/sessions',
+  accountGuardian: '/account/guardian',
+  accountData: '/account/data',
   library: '/library',
   /**
    * The glossary (T29): the words riders use, readable signed out like the

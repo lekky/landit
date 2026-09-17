@@ -79,6 +79,20 @@ export const GATED_ROUTES: readonly Route[] = [
   ROUTES.crew,
   ROUTES.coach,
   ROUTES.account,
+  /*
+   * The six screens the account list opens (rethink §3.9, T51). Each is one of
+   * the panels `/account` used to hold, on an address of its own, and each is
+   * gated exactly as the screen it came off: a signed-out visitor is sent to
+   * sign in, and the page carries `noindex`. Listed one by one rather than
+   * matched by prefix, because this file is deliberately a list and not a
+   * filter (see the note at the top).
+   */
+  ROUTES.accountProfile,
+  ROUTES.accountSports,
+  ROUTES.accountPrivacy,
+  ROUTES.accountSessions,
+  ROUTES.accountGuardian,
+  ROUTES.accountData,
   ROUTES.onboarding,
   /*
    * What's new (rethink §3.6). A rider's own stickers, their crews' joins and

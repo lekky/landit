@@ -46,6 +46,9 @@ const reachable = (sessionsEnabled?: boolean) =>
     ...navFor(sessionsEnabled).map((item) => item.href),
     ...navFor(sessionsEnabled).flatMap((item) => item.reaches ?? []),
     ...ACCOUNT_MENU.map((item) => item.href),
+    // The account's own screens (rethink §3.9, T51): the menu's row is the way
+    // into the list, and the list is the way into these six.
+    ...ACCOUNT_MENU.flatMap((item) => item.reaches ?? []),
     BELL_DESTINATION,
   ]);
 

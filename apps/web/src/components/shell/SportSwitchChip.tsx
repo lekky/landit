@@ -137,7 +137,10 @@ export function SportSwitchChip() {
       {SPORT_IDS.filter((id) => !sports.includes(id)).map((id) => (
         <Link
           key={id}
-          href={ROUTES.account}
+          // The sports picker has an address of its own since T51 made
+          // `/account` a list of rows, and "Add it in your account" means that
+          // one screen rather than the list it is on.
+          href={ROUTES.accountSports}
           className={styles.sportRowOff}
           onClick={() => setOpen(false)}
         >

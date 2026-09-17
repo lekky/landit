@@ -29,8 +29,21 @@ type Status = { readonly kind: 'saved' } | { readonly kind: 'error'; readonly me
  *
  * No analytics event. The catalogue has none for this setting, and adding one
  * is outside T40 (plan §7, T40).
+ *
+ * **`headed` hides the label from the screen and not from a screen reader**
+ * (T51). On `/account/sessions` the page's `h1` already says these four words,
+ * so drawing them again is the same words twice — but the label is also what
+ * names the radio group (`aria-labelledby`), so it is clipped rather than
+ * removed. `display: none` would take the group's name away with it, and an
+ * unnamed radio group is announced as three loose radios.
  */
-export function SessionVisibilityPanel({ value }: { value: SessionVisibilityId }) {
+export function SessionVisibilityPanel({
+  value,
+  headed = true,
+}: {
+  value: SessionVisibilityId;
+  headed?: boolean;
+}) {
   const [chosen, setChosen] = useState<SessionVisibilityId>(value);
   const [saved, setSaved] = useState<SessionVisibilityId>(value);
   const [status, setStatus] = useState<Status | null>(null);
@@ -55,7 +68,7 @@ export function SessionVisibilityPanel({ value }: { value: SessionVisibilityId }
 
   return (
     <Panel className={styles.sessionVis}>
-      <div className="lab" id="session-visibility-title">
+      <div className={headed ? 'lab' : styles.clipped} id="session-visibility-title">
         Who sees new sessions
       </div>
 
