@@ -13,7 +13,7 @@ import {
   type SportId,
   type StanceId,
 } from '@landit/core';
-import { Avatar, Button, Equipment, Panel, avatarById } from '@landit/ui-web';
+import { Avatar, Button, Equipment, Panel, avatarById, foregroundFor } from '@landit/ui-web';
 import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
 
 import { AvatarPicker } from '@/components/AvatarPicker';
@@ -540,7 +540,17 @@ export function ProfilePanel({
                     className={`panel flat ${styles.sportPick}`}
                     style={{
                       background: on ? sport.color : 'var(--paper)',
-                      color: on ? '#fff' : 'var(--ink)',
+                      /*
+                       * `foregroundFor`, not `#fff` — which is what this was, and
+                       * was already wrong: white on the old scooter orange was
+                       * 3.06:1, below AA. The 2026-09-17 repaint would have made
+                       * it unreadable rather than merely poor (white on the
+                       * scooter's cyan is 1.60:1), so it is fixed here rather than
+                       * left for someone to find on the screen. The onboarding
+                       * picker, which is the same control one screen earlier,
+                       * already asked properly.
+                       */
+                      color: on ? (foregroundFor(sport.color) ?? 'var(--on-dark)') : 'var(--ink)',
                     }}
                   >
                     <span

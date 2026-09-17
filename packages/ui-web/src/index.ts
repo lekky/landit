@@ -30,6 +30,7 @@ export {
   SPORT_ART_NAMES,
   hasSportArt,
   sportArtSrc,
+  sportArtSrcSet,
   type EquipmentProps,
   type SportArtName,
 } from './sport-art';

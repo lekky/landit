@@ -19,6 +19,18 @@ import { Icon, type IconName } from './icons';
  * `apps/web` copies them into `public/` at dev and build time (see
  * `apps/web/scripts/sync-sports.mjs`). That is why the base path is a URL.
  *
+ * **Swapping the art is one command** (2026-09-16). The masters are 1254px and
+ * weigh 1.5–2 MB each, far too heavy to sit in a package every app installs, so
+ * they stay in the owner's art folder and only the two exported sizes are
+ * committed:
+ *
+ *     node packages/ui-web/scripts/export-sport-art.mjs --from <dir of masters>
+ *
+ * writes `<name>.png` at 256px and `<name>@2x.png` at 512px for all three. New
+ * masters in, that command, commit — no code change. Worth keeping that way:
+ * the splash colours behind the equipment are not the product's sport colours,
+ * and recoloured masters may follow (owner, 2026-09-16, in chat).
+ *
  * Two things the art cannot do that the glyph could, both by nature and neither
  * a defect to fix in code:
  * - it does not take the sport's colour. A chip's keyline still does the
@@ -37,10 +49,10 @@ export const SPORT_ART_BASE_PATH = '/sports';
  * `@landit/ui-web` takes colours and labels; the sport list stays in core.
  */
 export const SPORT_ART = {
-  scoot: { file: 'scoot.png', label: 'Stunt scooter' },
-  board: { file: 'board.png', label: 'Skateboard' },
-  bmx: { file: 'bmx.png', label: 'BMX bike' },
-} as const satisfies Record<string, { file: string; label: string }>;
+  scoot: { file: 'scoot.png', file2x: 'scoot@2x.png', label: 'Stunt scooter' },
+  board: { file: 'board.png', file2x: 'board@2x.png', label: 'Skateboard' },
+  bmx: { file: 'bmx.png', file2x: 'bmx@2x.png', label: 'BMX bike' },
+} as const satisfies Record<string, { file: string; file2x: string; label: string }>;
 
 /** The icon names that have painted art. */
 export type SportArtName = keyof typeof SPORT_ART;
@@ -55,6 +67,23 @@ export function hasSportArt(name: IconName | string): name is SportArtName {
 /** `/sports/board.png`. Pass a base path to serve them from somewhere else. */
 export function sportArtSrc(name: SportArtName, base: string = SPORT_ART_BASE_PATH): string {
   return `${base}/${SPORT_ART[name].file}`;
+}
+
+/**
+ * `/sports/board.png 1x, /sports/board@2x.png 2x` — what `Equipment` offers a
+ * browser so a retina screen gets the 512 and everything else gets the 256.
+ *
+ * Density descriptors rather than the `w` descriptors the badges use, because
+ * unlike a sticker wall the equipment is drawn at a size the CSS already fixes
+ * (15–28px today, 64px in the design gallery). There is no layout for the
+ * browser to work out, only how many device pixels it has to fill it with.
+ *
+ * The 1x is named explicitly even though it is also the `src`: a `srcset` with
+ * only a `2x` candidate leaves the 1x case to the fallback, which is correct
+ * but reads as an omission the next time someone opens this.
+ */
+export function sportArtSrcSet(name: SportArtName, base: string = SPORT_ART_BASE_PATH): string {
+  return `${base}/${SPORT_ART[name].file} 1x, ${base}/${SPORT_ART[name].file2x} 2x`;
 }
 
 export type EquipmentProps = {
@@ -104,6 +133,7 @@ export function Equipment({
     // every caller so far puts this in a flex row next to a label.
     <img
       src={sportArtSrc(name)}
+      srcSet={sportArtSrcSet(name)}
       alt={title ?? ''}
       aria-hidden={title ? undefined : true}
       width={size}
