@@ -76,9 +76,7 @@ test.describe('the report form', () => {
       expect(box?.height, `"${reason.label}" is ${box?.height}px tall`).toBeGreaterThanOrEqual(44);
     }
 
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    );
+    const overflow = await page.locator('html').evaluate((el) => el.scrollWidth - el.clientWidth);
     expect(overflow, `the document is ${overflow}px wider than the screen`).toBeLessThanOrEqual(0);
   });
 });

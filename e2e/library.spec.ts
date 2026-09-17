@@ -132,11 +132,13 @@ test('All · Mine · Filters is one row, and it fits a 320px phone', async ({ pa
   const filters = page.getByRole('button', { name: /Filters/ });
   await expect(filters).toBeVisible();
 
+  // `locator.evaluate`, not `page.evaluate`: the root `tsc --noEmit` compiles
+  // `e2e/` without the DOM lib, so a bare `document` in a spec is a build
+  // failure rather than a browser call.
+  const root = page.locator('html');
   for (const width of [320, 360, 390]) {
     await page.setViewportSize({ width, height: 844 });
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    );
+    const overflow = await root.evaluate((el) => el.scrollWidth - el.clientWidth);
     expect(
       overflow,
       `the document is ${overflow}px wider than the screen at ${width}`,
