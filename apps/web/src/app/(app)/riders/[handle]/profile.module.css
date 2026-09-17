@@ -6,19 +6,11 @@
  * plain panels — hard shadows, zero radius, as everywhere.
  */
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--ink-3);
-  font-size: 13.5px;
-  margin-bottom: 14px;
-  text-decoration: none;
-}
-
-.back:hover {
-  color: var(--ink);
-}
+/*
+ * `.back` is gone (T52). The screen carries `BackLink` now — the shell's own
+ * 44px "← Crew" (§2.3) — rather than a 13.5px link that was the one control on
+ * this page under §4's floor.
+ */
 
 .card {
   padding: 0;
@@ -114,17 +106,11 @@
 
 /* ----------------------------------------------------------------- panels -- */
 
-.grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
-  gap: 20px;
-}
-
-@media (max-width: 860px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-}
+/*
+ * The `1fr / 340px` grid is gone (T52): the landed list, the stickers and the
+ * videos are three tabs of one row now (§3.10), so one panel is on screen at a
+ * time and takes the width it is given.
+ */
 
 .panel {
   padding: 0;
@@ -176,10 +162,18 @@
   color: var(--ink-3);
 }
 
+/*
+ * "Crew" or "Getting in touch", under the tabbed panel rather than beside it.
+ * On a wide screen it keeps the panel's company rather than running the full
+ * width: it is one short paragraph and a button, and a 1280px row of it would
+ * be a sentence with half a metre of paper after it.
+ */
 .side {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin-top: 18px;
+  max-width: 520px;
 }
 
 .sidePanel {
@@ -193,18 +187,21 @@
   color: var(--ink-2);
 }
 
+/* The sticker tab's body, inside the panel's keyline rather than in a card. */
+.stickerBody {
+  padding: 18px;
+}
+
 .stickerGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 12px;
 }
 
 .stickerCount {
   display: flex;
   align-items: baseline;
   gap: 9px;
-  margin-top: 10px;
 }
 
 .stickerCount :global(.d) {

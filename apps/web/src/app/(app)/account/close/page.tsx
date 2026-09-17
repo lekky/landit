@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { BackLink } from '@/components/shell/BackLink';
 import { ROUTES, legalHref, signInHref } from '@/lib/routes';
 import { currentRider } from '@/lib/session';
 
@@ -47,9 +48,8 @@ export default async function CloseAccountPage() {
 
   return (
     <div className={styles.page}>
-      <Link className={`cond ${styles.back}`} href={ROUTES.account}>
-        ← Your account
-      </Link>
+      {/* §2.3: an account sub-screen carries "Your account". */}
+      <BackLink href={ROUTES.account} label="Your account" />
       <span className="eyebrow">Your account</span>
       <h1 className={`d ${styles.head}`}>Closing your account</h1>
 

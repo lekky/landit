@@ -15,9 +15,9 @@ import {
 import { listTrickPrereqs, listTrickProgress, listTricks, tricksFromRecords } from '@landit/db';
 import { Difficulty, Panel, SportChip, Tag } from '@landit/ui-web';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { BackLink } from '@/components/shell/BackLink';
 import { ROUTES, signInHref } from '@/lib/routes';
 import { SPORT_LOOKS, sportsList } from '@/lib/sports';
 import { currentRider } from '@/lib/session';
@@ -121,10 +121,9 @@ export default async function CoachViewPage() {
   ];
 
   return (
-    <div>
-      <Link className={`cond ${styles.back}`} href={ROUTES.account}>
-        ← Account
-      </Link>
+    <div className={styles.page}>
+      {/* §2.3: reached from the account list, so it says so. */}
+      <BackLink href={ROUTES.account} label="Your account" />
       <span className="eyebrow">Coach / parent view · read only</span>
       <h1 className={`d ${styles.head}`}>
         {(rider.name || 'This rider').split(' ')[0]}&rsquo;s week

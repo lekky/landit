@@ -10,20 +10,14 @@
  * so they take the register `.lede` uses for body copy on every other screen.
  * Same house style, applied to the role the text now has.
  */
+/*
+ * Centred at 640px on a desktop (§3.10, T52), where it was 66ch pinned to the
+ * left margin. `.back` is gone with the 13.5px link it styled: the screen
+ * carries `BackLink` now, at §4's 44px.
+ */
 .page {
-  max-width: 66ch;
-}
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--ink-3);
-  font-size: 13.5px;
-  margin-bottom: 14px;
-  text-decoration: none;
-}
-.back:hover {
-  color: var(--ink);
+  max-width: 640px;
+  margin-inline: auto;
 }
 .head {
   font-size: clamp(30px, 5.4vw, 44px);

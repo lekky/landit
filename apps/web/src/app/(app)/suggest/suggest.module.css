@@ -8,8 +8,18 @@
  * a change to the other. Everything with a look is still the design system's.
  */
 
+/*
+ * Centred at 640px on a desktop (§3.10, T52).
+ *
+ * It was 62ch pinned to the left margin, which on a 1180px page left two thirds
+ * of the width empty to the right of a form. `640px` is §3.10's number and it is
+ * close to what 62ch measured; what changes is that the column now sits in the
+ * middle of the page rather than against its edge, which is where a screen with
+ * nothing beside it belongs. Below 640 it is the width of the phone, as before.
+ */
 .page {
-  max-width: 62ch;
+  max-width: 640px;
+  margin-inline: auto;
 }
 
 .head {
@@ -45,37 +55,92 @@
   padding: 0;
 }
 
+/* ------------------------------------------------------------ pill rows -- */
+
+/*
+ * The radio list, as pill rows (§3.10, T52).
+ *
+ * The control underneath is unchanged: a native radio, in a fieldset, posting
+ * the same field. It is clipped out of sight rather than removed, so the group
+ * still works from a keyboard and still reads as a group — and every visual
+ * state below hangs off `:checked` and `:focus-visible` on that input, which is
+ * what keeps the picture and the form in step. `appearance: none` would have
+ * been shorter and is the thing that goes wrong in forced-colours mode, where a
+ * control with no appearance and no fill is an empty box.
+ *
+ * Full-width rows rather than a wrapping row of chips, because these options
+ * carry a sentence each and one that wrapped inside a chip would be a chip the
+ * width of the screen anyway. It is also the shape that survives 320px.
+ */
 .choices,
 .reasons {
   display: grid;
-  gap: 4px;
+  gap: 8px;
   margin-top: 10px;
 }
 
 .choice {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 8px;
+  display: block;
   cursor: pointer;
-  border: 2px solid transparent;
 }
 
-.choice:hover,
-.choice:focus-within {
-  border-color: var(--ink-1);
+/*
+ * Out of sight, never out of the tree: `display: none` and `visibility: hidden`
+ * both take a radio out of its group, so the arrow keys stop working and the
+ * label has nothing to activate. This is the clip the spot cards use.
+ */
+.choiceInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
 }
 
-.choice input {
-  margin-top: 3px;
-  flex: none;
+/*
+ * `.pill` is the design's own filter chip and this is it, with three of its
+ * assumptions relaxed for a row that holds a title and a sentence: it wraps, it
+ * is as wide as the column, and only the title is uppercase.
+ */
+.choiceBox {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  min-height: 44px;
+  justify-content: center;
+  padding: 10px 14px;
+  text-align: left;
+  white-space: normal;
+}
+
+.choice:hover .choiceBox {
+  background: var(--paper-2);
+}
+
+.choiceInput:checked + .choiceBox {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.choiceInput:focus-visible + .choiceBox {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
 }
 
 .choiceBlurb {
   display: block;
   color: var(--ink-3);
   font-size: 13px;
-  margin-top: 2px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  line-height: 1.4;
+}
+
+/* On the ink fill, the grey the profile banner's meta line uses. */
+.choiceInput:checked + .choiceBox .choiceBlurb {
+  color: var(--ink-soft);
 }
 
 .count {

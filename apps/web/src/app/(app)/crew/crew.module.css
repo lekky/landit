@@ -43,17 +43,11 @@
   text-decoration: none;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
-  gap: 20px;
-}
-
-@media (max-width: 860px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-}
+/*
+ * The `1fr / 340px` grid that held the board and the feed side by side is gone
+ * (T52): they are two tabs of one row now (§3.10), so there is one panel on
+ * screen at a time and it takes the width it is given.
+ */
 
 .panel {
   padding: 0;
@@ -177,6 +171,22 @@
   }
 }
 
+/* ---------------------------------------------------------------- members -- */
+
+/*
+ * The sentence under the roster (T52). It is the Members tab's version of the
+ * promise the activity feed's empty state makes: a private rider is on the
+ * board and in this list, and opening them shows only what they have opened.
+ */
+.membersNote {
+  margin: 0;
+  padding: 14px 16px;
+  border-top: 2px solid var(--wash);
+  color: var(--ink-3);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* ------------------------------------------------------------------- feed -- */
 
 /*
@@ -231,9 +241,15 @@
   padding-top: 16px;
 }
 
-.more summary {
-  cursor: pointer;
-  color: var(--ink-3);
+/*
+ * "Start another" and "Join with a code" (§3.10, T52), where a `<summary>` used
+ * to open both forms at once. Two ghost buttons wrap onto two lines on a narrow
+ * phone rather than shrinking below the 44px `.btn.sm` already gives them.
+ */
+.moreButtons {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
 }
 
 .footRow {

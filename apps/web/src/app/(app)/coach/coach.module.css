@@ -1,17 +1,15 @@
 /* The coach / parent view (screenshot 24). Six cards and one list. */
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--ink-3);
-  font-size: 13.5px;
-  margin-bottom: 14px;
-  text-decoration: none;
-}
-
-.back:hover {
-  color: var(--ink);
+/*
+ * Centred at 640px on a desktop (§3.10, T52), and `.back` is gone with the
+ * 13.5px link it styled — the screen carries `BackLink` now, at §4's 44px.
+ *
+ * The six cards keep their `auto-fit` track and simply fit fewer per row in
+ * the narrower column, which is what they already do on a tablet.
+ */
+.page {
+  max-width: 640px;
+  margin-inline: auto;
 }
 
 .head {

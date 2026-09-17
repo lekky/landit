@@ -30,32 +30,11 @@
  * (issue #297).
  */
 
-/* ------------------------------------------------------------ breadcrumb -- */
-
-.crumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-  font-family: var(--fc);
-  font-weight: 600;
-  font-size: 12.5px;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-.crumbLink,
-.crumbLink:hover {
-  color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.crumbLink:hover {
-  color: var(--orange);
-}
+/*
+ * The breadcrumb's styles are gone with it (T52). `BackLink` in the shell is
+ * what takes a rider back to `/spots` now (§2.3), and the town and country the
+ * trail repeated are the sub-line under the title.
+ */
 
 /* ----------------------------------------------------------------- band -- */
 
@@ -150,6 +129,22 @@
   flex-wrap: wrap;
 }
 
+/*
+ * Faved · Directions · Log here, at §4's 44px (T52).
+ *
+ * `.btn.sm` is smaller than that, and `SpotFave`'s own button has carried a
+ * `min-height: 44px` since the mobile audit (#377) — so without this the row
+ * was one 44px control beside two 34px ones, all three of them things a thumb
+ * is meant to hit.
+ */
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+}
+
 /* ----------------------------------------------------------------- grid -- */
 
 .cols {
@@ -233,29 +228,60 @@
  * neighbour rather than under it. The visible result is the design's grid, and
  * an unfilled remainder is paper — the same nothing the panel around it is.
  */
+/*
+ * "What's here", as coloured cards (§3.10, T52).
+ *
+ * It was one bordered block subdivided by hairlines, with each cell's colour
+ * reduced to a 9px bar above its name. These are separate boxes with their own
+ * keyline and hard offset, gapped like every other card grid in the product —
+ * the shape `LinkCard` gave Home.
+ */
 .whats {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  background: var(--paper);
-  border: var(--bd);
-  box-shadow: var(--sh-sm);
+  gap: 14px;
 }
 
 .feature {
-  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
   padding: 14px;
-  border-top: 3px solid var(--ink);
-  border-left: 3px solid var(--ink);
-  margin: -3px 0 0 -3px;
   display: flex;
   flex-direction: column;
   gap: 7px;
   min-width: 0;
+  min-height: 112px;
 }
 
-.featureBar {
-  height: 9px;
-  border: 2px solid var(--ink);
+/*
+ * A card that goes somewhere lifts on hover and takes §4's one press gesture,
+ * the same `translate(2px, 2px)` with the shadow dropping to 1px that every
+ * other tappable box in the product does. A card with nowhere to go does
+ * neither, which is how the two are told apart before the arrow is read.
+ *
+ * Both colour rules are stated because the token sheet's `a:hover { color:
+ * var(--pink) }` outranks a bare class (issue #297, and this file's own note).
+ */
+.featureLinked,
+.featureLinked:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.featureLinked:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.featureLinked:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.featureLinked {
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press);
 }
 
 .featureName {
@@ -273,23 +299,20 @@
   color: var(--ink-2);
 }
 
-/* Bottom-pinned, so every cell's link sits on the same line whatever the
-   explanation's length. */
-.featureLink,
-.featureLink:hover {
+/*
+ * Bottom-pinned, so every card's onward line sits on the same row whatever the
+ * explanation's length. A span rather than a link now: the card is the link, so
+ * a second anchor inside it would be a target inside a target.
+ */
+.featureGo {
   margin-top: auto;
+  padding-top: 4px;
   font-family: var(--fc);
   font-weight: 700;
   font-size: 11.5px;
   letter-spacing: 0.11em;
   text-transform: uppercase;
   color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.featureLink:hover {
-  color: var(--orange);
 }
 
 /* ------------------------------------------------------------ the panels -- */
@@ -630,9 +653,31 @@
     padding: 12px 14px;
   }
 
+  /*
+   * On a phone the three actions are a row of their own under the hero, each
+   * taking an equal share of the width (§3.10). `flex: 1` rather than three
+   * fixed thirds, because `SpotFave` renders nothing signed out and "Log here"
+   * is behind the sessions preview: what is there fills the row instead of
+   * leaving a gap where a control a reader cannot have would have been.
+   */
   .stripPush {
     margin-left: 0;
     width: 100%;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .stripPush > * {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .action,
+  .faveBtn {
+    padding-left: 6px;
+    padding-right: 6px;
+    justify-content: center;
+    white-space: nowrap;
   }
 
   /*

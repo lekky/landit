@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useActionState, useState, useTransition } from 'react';
 
 import { FEED_META, FEED_WHO, FeedLine, FeedList } from '@/components/feed/FeedLine';
+import { TAB_PANEL, TabRow } from '@/components/shell/TabRow';
+import { useTabParam } from '@/components/shell/useTabParam';
 import { ROUTES, riderHref } from '@/lib/routes';
 import { runActionOr } from '@/lib/runAction';
 
@@ -31,13 +33,43 @@ import styles from './crew.module.css';
  * the server (`view.ts`), so nothing here fetches and nothing here decides who
  * may see what.
  */
+/**
+ * Board · Activity · Members (rethink §3.10, T52).
+ *
+ * The ids are the catalogue ones `tabs_switched` carries as `tab`, under the
+ * group `crew`, and they are what `?tab=` spells.
+ */
+const CREW_TABS = ['board', 'activity', 'members'] as const;
+type CrewTab = (typeof CREW_TABS)[number];
+
 export function CrewScreen({ view }: { view: CrewView }) {
   const [inviting, setInviting] = useState(false);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [minting, startMinting] = useTransition();
+  /**
+   * Which of the two ways into another crew is open, if either.
+   *
+   * §3.10 asks for "Start another" and "Join with a code" as two small ghost
+   * buttons that reveal the existing forms, in place of the one `<details>` that
+   * used to open both at once. One at a time: they are alternatives — you are
+   * either starting a crew or redeeming somebody's code — and a phone that
+   * opened both put two forms and four controls under a rider who wanted one.
+   */
+  const [opening, setOpening] = useState<'start' | 'join' | null>(null);
 
   const crew = view.selected;
+
+  /*
+   * The tab is in `?tab=`, the Progress pattern (§3.10, `useTabParam`).
+   *
+   * A rider opens a mate from the board, reads their profile and presses Back —
+   * and with the tab in `useState` they would land on Board however they left.
+   * It rides beside `?crew=`, which the hook carries through untouched, so a
+   * rider in two crews keeps both answers in one address.
+   */
+  const [tab, setTab] = useTabParam(CREW_TABS, 'board');
+  const active = tab as CrewTab;
 
   const openInvite = () => {
     if (!crew) return;
@@ -132,10 +164,51 @@ export function CrewScreen({ view }: { view: CrewView }) {
               <p className={styles.gateBody}>{crew.problem}</p>
             </Panel>
           ) : (
-            <div className={styles.grid}>
-              <Board rows={crew.board} onInvite={openInvite} />
-              <Feed items={crew.feed} />
-            </div>
+            <>
+              {/*
+                Board · Activity · Members (§3.10, D6).
+
+                The board and the feed used to sit side by side in a
+                `1fr / 340px` grid that stacked on a phone, which made the
+                activity the second half of a long scroll and gave the crew's
+                membership nowhere of its own. Three tabs at **every width**:
+                §3.3 lists this row among `TabRow`'s users without a width on
+                it, §3.10 names all three tabs, and a row that existed only
+                below 860px would leave Members homeless on a desktop and give
+                the screen two shapes to learn. Recorded in
+                `docs/app-shell-rethink.md` §3.10 against §7's older
+                "board left, activity right".
+
+                Nothing new is exposed by the third tab. Every field on a
+                Members row — the name, the handle, the avatar, the sports, who
+                started the crew — is already on the board above it, from the
+                same `crew-board` route (plan §3 guarantee 1). There is no
+                search, no directory and nothing to press but a rider's own
+                profile, which the board already links.
+              */}
+              <TabRow
+                items={[
+                  { id: 'board', label: 'Board' },
+                  { id: 'activity', label: 'Activity' },
+                  { id: 'members', label: 'Members', note: crew.memberCount },
+                ]}
+                value={active}
+                group="crew"
+                label="What to show for this crew"
+                onChange={setTab}
+              />
+
+              <div
+                key={active}
+                role="tabpanel"
+                aria-label={TAB_LABEL[active]}
+                className={TAB_PANEL}
+              >
+                {active === 'board' ? <Board rows={crew.board} onInvite={openInvite} /> : null}
+                {active === 'activity' ? <Feed items={crew.feed} /> : null}
+                {active === 'members' ? <Members rows={crew.board} /> : null}
+              </div>
+            </>
           )}
 
           <div className={styles.footRow}>
@@ -164,10 +237,27 @@ export function CrewScreen({ view }: { view: CrewView }) {
         more boards than they run. Joining with a code is never capped.
       */}
       {crew && view.crews.filter((c) => c.isOwner).length < MAX_OWNED_CREWS ? (
-        <details className={styles.more}>
-          <summary className="lab">Start another crew, or join one with a code</summary>
-          <NoCrew compact />
-        </details>
+        <div className={styles.more}>
+          <div className={styles.moreButtons}>
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-expanded={opening === 'start'}
+              onClick={() => setOpening((was) => (was === 'start' ? null : 'start'))}
+            >
+              Start another
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-expanded={opening === 'join'}
+              onClick={() => setOpening((was) => (was === 'join' ? null : 'join'))}
+            >
+              Join with a code
+            </Button>
+          </div>
+          {opening ? <NoCrew compact only={opening} /> : null}
+        </div>
       ) : null}
 
       {inviting && crew && inviteCode ? (
@@ -186,6 +276,13 @@ export function CrewScreen({ view }: { view: CrewView }) {
 function riderCount(n: number): string {
   return `${n} ${n === 1 ? 'rider' : 'riders'}`;
 }
+
+/** What a screen reader is told the panel under the row is. */
+const TAB_LABEL: Readonly<Record<CrewTab, string>> = {
+  board: 'This month’s board',
+  activity: 'Just happened',
+  members: 'Members',
+};
 
 /* ----------------------------------------------------------------- board -- */
 
@@ -274,6 +371,71 @@ function Board({
   );
 }
 
+/* --------------------------------------------------------------- members -- */
+
+/**
+ * Who is in the crew — the board's own rows, without the ranking.
+ *
+ * **It reads nothing the board did not already read.** These are
+ * `SelectedCrewView.board`, from `GET /api/landit/crew-board/{crew}`, which is
+ * the one route allowed to name a rider whose profile is private (plan §3
+ * guarantee 1: by name and score, to a crew-mate). So the third tab is the
+ * second view of a payload the first tab already had, and there is no second
+ * request, no `users` read and nothing on screen that was not one tap away.
+ *
+ * What it drops is the two scores and the rank, because a roster is a list of
+ * who is here rather than a second league table — and what it adds is the one
+ * fact the board has never shown, which of them started the crew.
+ */
+function Members({ rows }: { rows: readonly BoardRowView[] }) {
+  return (
+    <Panel className={styles.panel}>
+      <div className={styles.panelHead}>
+        <span className="lab">Who is in it</span>
+      </div>
+      {rows.length === 0 ? (
+        <p className={styles.panelEmpty}>
+          Nobody here yet. Invites are the only way in — there is no list of crews to browse and
+          nobody can ask to join.
+        </p>
+      ) : (
+        rows.map((row) => (
+          <Link
+            key={row.id}
+            href={riderHref(row.handle)}
+            className={`${styles.row} ${row.isMe ? styles.rowMe : ''}`}
+          >
+            <Avatar avatarId={row.avatarKey} name={row.name} size={38} />
+            <span className={styles.rowWho}>
+              <span className={`cond ${styles.rowName}`}>
+                {row.name}
+                {row.isMe ? ' (you)' : ''}
+                {row.isOwner ? (
+                  <Tag color="var(--sky)" className={styles.flair}>
+                    Started it
+                  </Tag>
+                ) : null}
+              </span>
+              <span className={styles.rowSports}>
+                {row.sports.map((sport) => (
+                  <SportChip key={sport.label} sport={sport} small />
+                ))}
+              </span>
+            </span>
+            <span className={styles.rowStats}>
+              <Icon name="back" size={16} strokeWidth={2.4} className={styles.chevron} />
+            </span>
+          </Link>
+        ))
+      )}
+      <p className={styles.membersNote}>
+        A rider whose profile is private still holds their place here. Opening one shows you
+        whatever they have chosen to show.
+      </p>
+    </Panel>
+  );
+}
+
 /* ------------------------------------------------------------------ feed -- */
 
 function Feed({ items }: { items: readonly FeedItemView[] }) {
@@ -328,7 +490,20 @@ function Feed({ items }: { items: readonly FeedItemView[] }) {
  * invite-only with no discovery — is a fact about what this component does not
  * render as much as about what the server refuses.
  */
-function NoCrew({ compact = false }: { compact?: boolean }) {
+function NoCrew({
+  compact = false,
+  only,
+}: {
+  compact?: boolean;
+  /**
+   * Draw one of the two panels rather than both (T52).
+   *
+   * The empty state still offers both, because a rider with no crew has two
+   * ways in and no reason to prefer either. A rider who already has one asked
+   * for one of them by name, and gets that one.
+   */
+  only?: 'start' | 'join';
+}) {
   const [createState, create, creating] = useActionState<CrewFormState | undefined, FormData>(
     createCrewAction,
     undefined,
@@ -352,55 +527,59 @@ function NoCrew({ compact = false }: { compact?: boolean }) {
       ) : null}
 
       <div className={styles.startForms}>
-        <Panel flat className={styles.startPanel}>
-          <div className="lab">Start a crew</div>
-          <form
-            action={create}
-            className={styles.startForm}
-            onSubmit={() => capture(ANALYTICS_EVENTS.crewCreated, { outcome: 'attempted' })}
-          >
-            <div className="field">
-              <label htmlFor="crew-name">What is it called?</label>
-              <input
-                id="crew-name"
-                name="name"
-                maxLength={CREW_NAME_MAX_LENGTH}
-                placeholder="Ramp Rats"
-                autoComplete="off"
-              />
-            </div>
-            {createState?.error ? <p className={styles.error}>{createState.error}</p> : null}
-            <Button type="submit" disabled={creating} size="sm">
-              {creating ? 'Starting…' : 'Start it'}
-            </Button>
-          </form>
-        </Panel>
+        {only === 'join' ? null : (
+          <Panel flat className={styles.startPanel}>
+            <div className="lab">Start a crew</div>
+            <form
+              action={create}
+              className={styles.startForm}
+              onSubmit={() => capture(ANALYTICS_EVENTS.crewCreated, { outcome: 'attempted' })}
+            >
+              <div className="field">
+                <label htmlFor="crew-name">What is it called?</label>
+                <input
+                  id="crew-name"
+                  name="name"
+                  maxLength={CREW_NAME_MAX_LENGTH}
+                  placeholder="Ramp Rats"
+                  autoComplete="off"
+                />
+              </div>
+              {createState?.error ? <p className={styles.error}>{createState.error}</p> : null}
+              <Button type="submit" disabled={creating} size="sm">
+                {creating ? 'Starting…' : 'Start it'}
+              </Button>
+            </form>
+          </Panel>
+        )}
 
-        <Panel flat className={styles.startPanel}>
-          <div className="lab">Join with a code</div>
-          <form
-            action={joinCrew}
-            className={styles.startForm}
-            onSubmit={() =>
-              capture(ANALYTICS_EVENTS.crewJoined, { outcome: 'attempted', from: 'crew' })
-            }
-          >
-            <div className="field">
-              <label htmlFor="crew-code">The code a mate sent you</label>
-              <input
-                id="crew-code"
-                name="code"
-                placeholder="ABCDE-FGHJK"
-                autoComplete="off"
-                spellCheck={false}
-              />
-            </div>
-            {joinState?.error ? <p className={styles.error}>{joinState.error}</p> : null}
-            <Button type="submit" disabled={joining} size="sm" variant="ghost">
-              {joining ? 'Checking…' : 'Join'}
-            </Button>
-          </form>
-        </Panel>
+        {only === 'start' ? null : (
+          <Panel flat className={styles.startPanel}>
+            <div className="lab">Join with a code</div>
+            <form
+              action={joinCrew}
+              className={styles.startForm}
+              onSubmit={() =>
+                capture(ANALYTICS_EVENTS.crewJoined, { outcome: 'attempted', from: 'crew' })
+              }
+            >
+              <div className="field">
+                <label htmlFor="crew-code">The code a mate sent you</label>
+                <input
+                  id="crew-code"
+                  name="code"
+                  placeholder="ABCDE-FGHJK"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </div>
+              {joinState?.error ? <p className={styles.error}>{joinState.error}</p> : null}
+              <Button type="submit" disabled={joining} size="sm" variant="ghost">
+                {joining ? 'Checking…' : 'Join'}
+              </Button>
+            </form>
+          </Panel>
+        )}
       </div>
     </div>
   );

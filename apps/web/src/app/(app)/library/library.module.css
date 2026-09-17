@@ -44,14 +44,70 @@
   margin-top: 9px;
 }
 
-.toggleState {
-  margin-left: auto;
+/* --------------------------------------------------------- the tab row -- */
+
+/*
+ * All · Mine · Filters (§3.10, T52).
+ *
+ * The wrapper carries `.sporttabs.tabrow` as well as this class, so the Filters
+ * button — which is a plain `<button class="sporttab">` sitting outside the tab
+ * list, because a disclosure is not a tab — is painted by the same
+ * `.tabrow .sporttab` rules as the two tabs beside it, including `flex: 1` and
+ * the 44px floor. One row to the eye, two controls to a screen reader.
+ *
+ * `.sporttabs` brings `flex-wrap: wrap` and `.tabrow` takes it away again, so
+ * the three boxes stay on one line and give up their padding and tracking
+ * first — `TabRow`'s own `.rowFit` does that for the two tabs, and the rule
+ * below does it for the button.
+ */
+.tricksRow {
+  align-items: stretch;
 }
 
-/* The rookie banner: what the plan covers, stated once, with no urgency. */
+/* Two tabs, so two shares of the row against the Filters box's one. */
+.tricksTabs {
+  flex: 2;
+  margin: 0;
+  min-width: 0;
+}
+
+/*
+ * The Filters disclosure, drawn as the row's third box and only on a phone.
+ * `.filter-toggle` has been `display: none` above 860px since the library was
+ * built, for the reason it still is: above that width the filter rail is on
+ * screen beside the grid and there is nothing to disclose.
+ */
+.filtersTab {
+  display: none;
+  min-width: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 860px) {
+  .filtersTab {
+    display: flex;
+  }
+}
+
+@media (max-width: 420px) {
+  .filtersTab {
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+}
+
+/*
+ * The rookie banner: what the plan covers, stated once, with no urgency.
+ *
+ * It is a cell of `.grid-tricks` now rather than a band above it (T52), so it
+ * spans every column wherever the grid puts it — which is what "below the first
+ * card rows" means at a width the server cannot know.
+ */
 .banner {
+  grid-column: 1 / -1;
   padding: 13px 15px;
-  margin-bottom: 14px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -101,41 +157,12 @@
 }
 
 /*
- * The "All tricks / My tricks" switch (T22).
- *
- * One box split by an ink rule rather than two buttons with a gap, because it
- * is one choice: the shared border is what says the two sides are exclusive.
- * The selected side inverts to ink, which is how `Pill` marks its own selection
- * — the difference in *shape* is what separates one-of-two from many-of-many.
+ * The "All tricks / My tricks" switch (T22) is gone (T52): it is two tabs of
+ * the row above now, which is the one shape the product uses for a choice
+ * between views of a screen (D6). Its `.toggleState` "Hide / Show" went with
+ * the old filter toggle — `aria-expanded` is what said it, and the boxed row
+ * has no room for a third word.
  */
-.mineSwitch {
-  display: inline-flex;
-  border: var(--bd);
-  box-shadow: var(--sh-sm);
-  background: var(--paper);
-  margin-bottom: 14px;
-  max-width: 100%;
-}
-
-.mineOption {
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  padding: 9px 16px;
-  background: none;
-  border: 0;
-  color: var(--ink);
-  white-space: nowrap;
-}
-
-.mineOption + .mineOption {
-  border-left: 3px solid var(--ink);
-}
-
-.mineOption[aria-pressed='true'] {
-  background: var(--ink);
-  color: var(--paper);
-}
 
 /*
  * A stage heading in "My tricks": swatch, name, count, then a rule to the edge.
