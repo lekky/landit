@@ -97,6 +97,50 @@ describe('an event the rider said yes to', () => {
     // Seven days before the event, which is what makes it unseen exactly once.
     expect(line?.at).toBe('2026-09-12T00:00:00.000Z');
   });
+
+  /*
+   * Review B2. The window opening alone was wrong on the common case: most
+   * riders press "I'm going" inside the week, and the line then arrived dated
+   * five days in the past — older than the bookmark, so the bell never counted
+   * it, and under every sticker earned since, so the list buried it.
+   */
+  it('is dated to when the rider said yes, when that is later than the window', () => {
+    const [line] = whatsNewLines(
+      {
+        events: [{ ...event, date: '2026-09-19', saidYesAt: '2026-09-16T11:00:00.000Z' }],
+      },
+      CLOCK,
+    );
+
+    expect(line?.at).toBe('2026-09-16T11:00:00.000Z');
+  });
+
+  it('keeps the window opening when the rider said yes before it', () => {
+    // Said yes a month ago, for an event that is only now inside the week. The
+    // news is that it is nearly here, and that is what the date says.
+    const [line] = whatsNewLines(
+      {
+        events: [{ ...event, date: '2026-09-19', saidYesAt: '2026-08-20T11:00:00.000Z' }],
+      },
+      CLOCK,
+    );
+
+    expect(line?.at).toBe('2026-09-12T00:00:00.000Z');
+  });
+
+  it('badges and sorts above a sticker earned before the rider said yes', () => {
+    const lines = whatsNewLines(
+      {
+        stickers: [{ id: 's1', name: 'First Fifty', earnedAt: '2026-09-16T10:45:00.000Z' }],
+        events: [{ ...event, date: '2026-09-19', saidYesAt: '2026-09-16T11:00:00.000Z' }],
+      },
+      CLOCK,
+    );
+
+    expect(linesOf(lines)[0]).toBe('Corby Jam is Saturday. You said you’re going.');
+    // The rider read their news at 10:50 — after the sticker, before the RSVP.
+    expect(unseenWhatsNew(lines, '2026-09-16T10:50:00.000Z')).toBe(1);
+  });
 });
 
 describe('the live challenge’s deadline', () => {
@@ -250,29 +294,61 @@ describe('the order is time and nothing else', () => {
   });
 });
 
-describe('nothing a rider typed reaches a line (plan §6.1)', () => {
+describe('every sentence is a frame the product wrote (plan §6.1)', () => {
   /**
-   * The checkable half of "every sentence is one the product wrote": whatever
-   * arbitrary text goes in as a catalogue name comes out *only* as that name,
-   * and nothing else in the payload carries prose.
+   * The checkable half of the rule, and it is **not** "nothing typed by anyone
+   * appears" — that was the claim this file made until review S6, and it was
+   * not true. Two of the five strings dropped into these frames are typed by a
+   * rider: a crew's **name** and a rider's **display name**, both 2–40
+   * unmoderated characters. A sticker's name, an event's name and a
+   * challenge's title are staff-entered catalogue rows.
+   *
+   * What is actually being asserted is the thing §6.1 is about: the *frame* is
+   * the product's, the only rider-typed values that reach it are the two names
+   * the crew screen already shows to the same people, and there is nowhere in a
+   * line for a sentence somebody wrote. So the fixtures below are named for
+   * what each string really is, and a crew name is given a shape a catalogue id
+   * never would — punctuation and an emoji — so that a version which started
+   * quietly passing something else through would not slip by.
    */
-  it('renders catalogue names and no other caller-supplied text', () => {
+  it('renders the five names and no other caller-supplied text', () => {
+    const CATALOGUE = ['First Fifty', 'Corby Jam', 'Switch week'];
+    const RIDER_TYPED = ['Leo’s Crew — Corby!! 🛴', 'Leo'];
+
     const lines = whatsNewLines(
       {
-        stickers: [{ id: 's1', name: 'First Fifty', hue: '#ff00aa', earnedAt: NOW }],
-        events: [{ id: 'e1', name: 'Corby Jam', date: '2026-09-19' }],
-        challenges: [{ id: 'c1', title: 'Switch week', ends: '2026-09-17', goal: 3, logged: 1 }],
-        joins: [{ id: 'm1', crewName: 'Ramp Rats', riderName: 'Leo', joinedAt: NOW }],
+        stickers: [{ id: 's1', name: CATALOGUE[0] as string, hue: '#ff00aa', earnedAt: NOW }],
+        events: [{ id: 'e1', name: CATALOGUE[1] as string, date: '2026-09-19' }],
+        challenges: [
+          { id: 'c1', title: CATALOGUE[2] as string, ends: '2026-09-17', goal: 3, logged: 1 },
+        ],
+        joins: [
+          {
+            id: 'm1',
+            crewName: RIDER_TYPED[0] as string,
+            riderName: RIDER_TYPED[1] as string,
+            joinedAt: NOW,
+          },
+        ],
       },
       CLOCK,
     );
 
-    const words = ['First Fifty', 'Corby Jam', 'Switch week', 'Ramp Rats', 'Leo'];
+    expect(lines).toHaveLength(4);
     for (const line of lines) {
-      const stripped = words.reduce((text, word) => text.split(word).join(''), line.line);
-      // What is left is the product's own sentence frame — no stray field.
+      const stripped = [...CATALOGUE, ...RIDER_TYPED].reduce(
+        (text, word) => text.split(word).join(''),
+        line.line,
+      );
+      // What is left is the product's own sentence frame — no stray field, and
+      // nothing the caller passed that was not one of the five names.
       expect(stripped).toMatch(/^[A-Za-z0-9 .,’']*$/);
     }
+
+    // The crew name goes through whole, punctuation and all, rather than being
+    // sanitised into something that looks catalogue-shaped and is not.
+    const join = lines.find((line) => line.kind === 'join');
+    expect(join?.line).toBe('Leo joined Leo’s Crew — Corby!! 🛴.');
   });
 
   it('never carries a rider’s handle or id on a line', () => {

@@ -14,10 +14,25 @@ import {
  *
  * This is the whole vocabulary of the **You** tab, and it is written the same
  * way `crewActivityLine` is written next door and for the same reason (plan
- * §6.1): every sentence here is one *the product* wrote from catalogue facts —
- * a sticker's name, an event's name, a challenge's title, a crew's name, a
- * rider's display name. Nothing a rider typed reaches this file, so there is no
- * shape in which What's new could become a place riders talk to each other.
+ * §6.1): every sentence here is a frame *the product* wrote, and the only
+ * things dropped into it are a sticker's name, an event's name, a challenge's
+ * title, a crew's name and a rider's display name.
+ *
+ * **Two of those five are typed by a person, and it is worth being exact about
+ * which** (review S6, correcting a sentence this comment used to carry). A
+ * sticker's name, an event's name and a challenge's title are staff-entered
+ * catalogue rows. A rider's **display name** and a **crew's name** are free
+ * text a rider typed, 2–40 characters, unmoderated — the crew name arrives here
+ * through `crewJoinLine`, and the panel uses it again as a tab label.
+ *
+ * That is not a new exposure and it is not a messaging channel, which is the
+ * thing plan §6.1 is actually about: both strings are already on the crew
+ * screen, they reach only the crew-mates who could already read them, a rider
+ * cannot address one at a particular person, and no line here has a field a
+ * rider could put a sentence in. What would be a channel is a *sentence*
+ * somebody wrote, and there is nowhere for one. The distinction matters enough
+ * to write down, because "nothing typed by anyone appears" is easier to say and
+ * was not true.
  *
  * Three things follow from "derived, not stored", and each one is a decision:
  *
@@ -39,7 +54,8 @@ import {
  * are things that *happened*, and their `at` is when. An event and a challenge
  * deadline are things that are *coming*, and they have no "when it happened" to
  * carry — so they are dated to **the moment the line started being true**: the
- * event's date minus seven days, the challenge's end minus three. That is what
+ * challenge's end minus three days, and for an event the later of its date
+ * minus seven and the moment the rider said they were going. That is what
  * makes the unseen count coherent across both kinds: a forthcoming line arrives
  * once, counts as unseen once, and stops counting when the rider has read it.
  * The caller reads `ahead` to decide what the row's `.lab` says, because "6 days
@@ -116,6 +132,13 @@ export interface WhatsNewEvent {
   /** The event's catalogue name, as staff entered it. */
   readonly name: string;
   readonly date: DayKey;
+  /**
+   * When the rider said they are going — `event_attendance.created`.
+   *
+   * The line is dated to **whichever is later**, this or the window opening.
+   * See `whatsNewLines`.
+   */
+  readonly saidYesAt?: Instant;
 }
 
 export interface WhatsNewChallenge {
@@ -277,10 +300,28 @@ export function whatsNewLines(
     // yesterday is not news about what is coming.
     if (compareDayKeys(event.date, today) < 0) continue;
     if (compareDayKeys(event.date, eventHorizon) > 0) continue;
+
+    /*
+     * **Whichever is later: the window opening, or the rider saying yes.**
+     *
+     * The window opening alone was wrong, and wrong on the common case (review
+     * B2). Most riders press "I'm going" *inside* the week, and dating the line
+     * to the event minus seven days then filed it five days in the past: it
+     * arrived already older than the bookmark, so the bell never counted it and
+     * the list buried it under stickers earned minutes earlier. §3.6's own
+     * worked example — "Corby Jam is Saturday. You said you're going." — was
+     * the one line a rider makes by hand and the one line that could not badge.
+     *
+     * The challenge deadline keeps the plain rule, and rightly: nobody opts
+     * into it, so there is no later moment to prefer.
+     */
+    const opened = dayIso(addDays(event.date, -WHATS_NEW_EVENT_DAYS));
+    const saidYes = event.saidYesAt == null ? null : instantIso(event.saidYesAt);
+
     lines.push({
       id: `event:${event.id}`,
       kind: 'event',
-      at: dayIso(addDays(event.date, -WHATS_NEW_EVENT_DAYS)),
+      at: saidYes && saidYes > opened ? saidYes : opened,
       line: eventAheadLine(event.name, event.date, today),
       ahead: true,
     });

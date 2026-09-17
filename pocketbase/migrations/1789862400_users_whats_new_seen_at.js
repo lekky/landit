@@ -30,7 +30,20 @@
  *
  * It is a fact held about a rider, so it is inside the same guarantees as the
  * rest: `hooks/lib/erasure.js` clears it when an account is closed and writes
- * it into the rider's own data export.
+ * it into the rider's own data export. It is also pinned empty on create, like
+ * every other date on this row — a field an account can arrive holding is one
+ * nobody can read as a record of anything.
+ *
+ * **The paragraphs above are about the write. The read is an open question**
+ * ([issue #554](https://github.com/lekky/landit/issues/554)). `users.viewRule`
+ * hands a `public`-privacy rider's whole record to anyone, signed in or not, so
+ * this stamp — like `last_seen` beside it — is a "when was this child last on
+ * the app" signal on a public profile. `privacy` defaults to private, and
+ * `last_seen` has behaved this way since 2026-09-07, so this adds a second
+ * field to an existing shape rather than opening a new one. PocketBase's
+ * `hidden` flag is not the fix: it withholds a field from its owner too, which
+ * would break the count this exists for. The issue has the measurement and the
+ * options.
  */
 migrate(
   (app) => {

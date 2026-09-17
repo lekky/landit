@@ -71,6 +71,11 @@ export interface WhatsNewView {
    * feed the badge.
    */
   readonly unread: number;
+  /**
+   * Did the read succeed? The panel stamps the rider's bookmark on open, and a
+   * bookmark must never move past a list that failed to load (review N5).
+   */
+  readonly ok: boolean;
 }
 
 /** What the desktop dropdown shows before "All →" (rethink §3.6). */

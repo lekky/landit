@@ -37,7 +37,11 @@ import styles from './shell.module.css';
  */
 
 export type TabRowItem = {
-  /** A catalogue id — what `tabs_switched` carries as `tab`. */
+  /**
+   * The tab's own id — React's key, the caller's state, and the default value
+   * of `tabs_switched`'s `tab`. Where that id is a record id rather than a
+   * catalogue one, set `analyticsId` as well: see below.
+   */
   id: string;
   label: string;
   icon?: IconName;
@@ -51,6 +55,25 @@ export type TabRowItem = {
    * and nothing else.
    */
   note?: string | number;
+  /**
+   * What `tabs_switched` carries as `tab`, when `id` may not leave the browser.
+   *
+   * `ANALYTICS_EVENTS.tabsSwitched` says both properties are catalogue ids, and
+   * a row whose tabs *are* records has to say something else: What's new has a
+   * tab per crew, and sending `crew.id` would put a membership graph into a
+   * third-party store — every rider who shares a crew, linked, on a product
+   * whose child-safety position rests on crews having no discovery surface
+   * (T47 review S3). Such a row sends `crew-1`, `crew-2` and keeps the real id
+   * as local state.
+   */
+  analyticsId?: string;
+  /**
+   * `title` for the tab, for a label the row will clip.
+   *
+   * Worth setting where the label is data rather than copy — a crew's name, not
+   * "Over time".
+   */
+  title?: string;
   /** Present on a row that navigates. All items in a row agree. */
   href?: Route;
 };
@@ -69,13 +92,40 @@ export type TabRowProps = {
 };
 
 export function TabRow({ items, value, group, label, onChange, className }: TabRowProps) {
-  const fire = (tab: string) => capture(ANALYTICS_EVENTS.tabsSwitched, { group, tab });
+  const analyticsIdOf = (id: string) => items.find((item) => item.id === id)?.analyticsId ?? id;
+  const fire = (id: string) =>
+    capture(ANALYTICS_EVENTS.tabsSwitched, { group, tab: analyticsIdOf(id) });
 
   const links = items.every((item) => item.href);
 
+  /*
+   * **The row never widens the page** (issue #550, T47 review B1).
+   *
+   * `.tabrow .sporttab` is `flex: 1` with `white-space: nowrap`, and a flex
+   * item's `min-width` is `auto` — so a label that does not fit makes its box
+   * refuse to shrink, the row grows past its container, and the whole document
+   * scrolls sideways. Measured with a 37-character crew name: 475px of document
+   * at 320, 360, 375 and 390.
+   *
+   * It is fixed **here** rather than on a screen because §3.3 lists nine users
+   * of this row and several have three tabs or more; T46 tightened it for
+   * Progress alone and filed #550 saying so. It is fixed here rather than in
+   * `packages/ui-web`'s `.tabrow` because that stylesheet is merged shared code
+   * two sibling tasks are building on this wave, and the class below reaches
+   * every row that goes through this component without moving anything that
+   * does not.
+   *
+   * What gives is the label, and only once there is no padding left to give:
+   * `rowFit` clips with an ellipsis and leaves the full string in the DOM, so a
+   * screen reader still reads the whole crew name and a pointer gets it from
+   * `title`. #550 asked for the words to be the last thing to go, and they are —
+   * the tracking and the padding tighten first.
+   */
+  const rowClass = `${styles.rowFit} ${className ?? ''}`.trim();
+
   if (links) {
     return (
-      <nav className={`sporttabs tabrow ${className ?? ''}`.trim()} aria-label={label}>
+      <nav className={`sporttabs tabrow ${rowClass}`.trim()} aria-label={label}>
         {items.map((item) => {
           const on = item.id === value;
           return (
@@ -84,10 +134,11 @@ export function TabRow({ items, value, group, label, onChange, className }: TabR
               href={item.href as Route}
               className={`sporttab ${on ? 'on' : ''}`.trim()}
               aria-current={on ? 'page' : undefined}
+              title={item.title}
               onClick={() => fire(item.id)}
             >
               {item.icon && <Icon name={item.icon} size={16} strokeWidth={2.3} />}
-              {item.label}
+              <span className="tab-label">{item.label}</span>
               {item.note !== undefined && <span className="n">{item.note}</span>}
             </Link>
           );
@@ -104,10 +155,11 @@ export function TabRow({ items, value, group, label, onChange, className }: TabR
         label: item.label,
         icon: item.icon,
         ...(item.note !== undefined ? { note: item.note } : {}),
+        ...(item.title ? { title: item.title } : {}),
       }))}
       value={value}
       label={label}
-      className={className}
+      className={rowClass}
       onChange={(id) => {
         fire(id);
         onChange?.(id);

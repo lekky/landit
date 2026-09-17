@@ -119,16 +119,29 @@ export function BellButton({ unread = 0 }: { unread?: number }) {
         aria-haspopup={phone ? undefined : 'dialog'}
         aria-expanded={phone ? undefined : open}
         onClick={(event) => {
-          if (phone) {
-            capture(ANALYTICS_EVENTS.whatsNewOpened, { where: 'mobile', unread });
-            return;
-          }
+          /*
+           * **The phone fires nothing here** (review N1). The bell is a `Link`,
+           * so a `capture` on its click raced the navigation and PostHog could
+           * drop it — and a rider who reached `/whats-new` by "All →", by a deep
+           * link or by the back button fired nothing at all, so the mobile
+           * number undercounted. The page counts its own opening on mount,
+           * which is the thing that actually happened.
+           */
+          if (phone) return;
+
           event.preventDefault();
           if (!open) {
             capture(ANALYTICS_EVENTS.whatsNewOpened, { where: 'top', unread });
-            // Re-read every time it opens rather than once: the panel is a
-            // shortcut to a live page, and a list cached from the first press
-            // of the session would be a stale one by the second.
+            /*
+             * Re-read every time it opens rather than once: the panel is a
+             * shortcut to a live page, and a list cached from the first press
+             * of the session would be a stale one by the second.
+             *
+             * The old view is dropped first, so a second opening shows the
+             * loading line rather than the *first* opening's list while the new
+             * one is in flight (review N6).
+             */
+            setView(null);
             void whatsNewViewAction().then(setView);
           }
           setOpen(!open);

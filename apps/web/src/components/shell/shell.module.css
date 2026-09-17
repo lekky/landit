@@ -481,6 +481,57 @@
 /* ---------------------------------------------------------------- tab row -- */
 
 /*
+ * **A tab row never widens the page** (issue #550, T47 review B1).
+ *
+ * `.tabrow .sporttab` in the design system is `flex: 1` with
+ * `white-space: nowrap`, and a flex item's `min-width` is `auto` — so a label
+ * that does not fit makes its box refuse to shrink below its content, the row
+ * grows past its container, and the **whole document** scrolls sideways.
+ * Measured on `/whats-new` at 320, 360, 375 and 390 with a 37-character crew
+ * name: 475px of document every time, the feed panel's right keyline off screen
+ * and the last tab cut mid-word.
+ *
+ * Three things, in the order #550 asked for — the words go last:
+ *
+ * 1. **The padding and the tracking tighten below 420px.** T46 proved these
+ *    numbers on Progress and filed #550 asking for them here, so this is that
+ *    fix promoted rather than a second guess at it. 420 rather than 380: a
+ *    three-tab row of ordinary words fits at 390 and a row of crew names does
+ *    not, and tightening type nobody is struggling with costs nothing.
+ * 2. **`min-width: 0`** is what actually stops the overflow, at every width.
+ *    Without it the rules above only postpone the failure to a longer name.
+ * 3. **The label clips with an ellipsis.** `.tab-label` is the box
+ *    `packages/ui-web` now wraps a plain tab label in, because `text-overflow`
+ *    needs one and the anonymous text run inside a flex container is not a box.
+ *    The full string stays in the DOM, so a screen reader reads all of it; a
+ *    pointer gets it from `title`, which `TabRow` sets from the item.
+ *
+ * Scoped to this class, so it reaches every row that goes through `TabRow` and
+ * nothing that does not — the sport switch and the sticker wall's own `Tabs`
+ * are untouched.
+ */
+.rowFit :global(.sporttab) {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rowFit :global(.tab-label) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .rowFit :global(.sporttab) {
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+}
+
+/*
  * The 120ms cross-fade a `TabRow` switches a panel with (§4, review S10).
  *
  * The class is handed to the caller as `TAB_PANEL` rather than applied here,

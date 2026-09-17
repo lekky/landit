@@ -2,10 +2,12 @@
 
 import type { WhatsNewKind } from '@landit/core';
 import { Avatar, Icon, Panel, SportChip, Tag, type IconName } from '@landit/ui-web';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { FEED_META, FEED_WHO, FeedLine, FeedList } from '@/components/feed/FeedLine';
 import { TabRow, TAB_PANEL, type TabRowItem } from '@/components/shell/TabRow';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { riderHref, ROUTES } from '@/lib/routes';
@@ -33,16 +35,22 @@ import {
  * purpose.** The You tab is the derived feed — sentences the product wrote from
  * the rider's own rows, in `@landit/core` where they can be unit-tested. A crew
  * tab is the **existing crew activity feed**, unchanged: same route, same six
- * sentences, same row. Neither has anywhere a rider could put a word of their
- * own, which is what plan §6.1 means by "no rider-to-rider messaging" being
- * true of the shapes and not only of the intent.
+ * sentences, same `FeedLine`. Neither has anywhere a rider could put a
+ * *sentence* of their own, which is what plan §6.1 means by "no rider-to-rider
+ * messaging" being true of the shapes and not only of the intent. Two
+ * rider-typed **names** do appear — a crew's and a rider's — and both are
+ * already on the crew screen for the same readers; `@landit/core`'s
+ * `whats-new.ts` says which is which and why the distinction matters.
  *
- * **Opening it marks it read.** `markWhatsNewSeenAction` stamps
- * `users.whats_new_seen_at` on mount and the bell's count goes with it, without
- * the rider having to do anything; "Mark all read" stamps again and is the
- * explicit version of the same promise, for a rider who skimmed a long list and
- * wants to say so. The count the button reports is the count the panel *opened*
- * with, because that is the number that was on the bell.
+ * **Opening it marks it read, when there is something to mark.**
+ * `markWhatsNewSeenAction` stamps `users.whats_new_seen_at` on mount and the
+ * bell's count goes with it, without the rider having to do anything — but only
+ * when the count was above zero and the read succeeded, so a bell pressed out of
+ * habit costs no write and no re-render, and a feed that failed to load never
+ * walks the bookmark past news nobody saw. "Mark all read" is the explicit
+ * version of the same promise, for a rider who skimmed a long list and wants to
+ * say so, and it reports the count the panel *opened* with because that is the
+ * number that was on the bell.
  *
  * **Every line stays on the list once it is read**, which is why the panel has
  * no unread styling: this is what has happened lately, not an inbox. The count
@@ -51,6 +59,13 @@ import {
  */
 
 export type WhatsNewPlace = 'page' | 'dropdown';
+
+/** `/whats-new`, opening on the tab the rider was reading. */
+function allHref(crewId: string | undefined): Route {
+  return (
+    crewId ? `${ROUTES.whatsNew}?tab=${encodeURIComponent(crewId)}` : ROUTES.whatsNew
+  ) as Route;
+}
 
 /** The disc beside a You line: a fixed fill and an icon, both by kind. */
 const LINE_LOOK: Record<WhatsNewKind, { icon: IconName; fill: string }> = {
@@ -69,22 +84,35 @@ const NOTHING_YET =
 export function WhatsNewPanel({
   view,
   place = 'page',
+  initialTab,
 }: {
   view: WhatsNewView;
   place?: WhatsNewPlace;
+  /**
+   * Which tab to open on — a crew id from `?tab=`, so "All →" pressed on a
+   * crew tab in the dropdown lands on that crew rather than back on You
+   * (review N4). Ignored when the rider is not in that crew any more.
+   */
+  initialTab?: string;
 }) {
-  const [tab, setTab] = useState<string>(YOU_TAB);
+  const opensOn =
+    initialTab && view.crews.some((crew) => crew.id === initialTab) ? initialTab : YOU_TAB;
+  const [tab, setTab] = useState<string>(opensOn);
   const [read, setRead] = useState(false);
 
   /*
    * The count the bell was showing when this opened.
    *
-   * Held in a ref rather than read from `view` at press time because the
-   * stamp below changes what `unread` would be on the next render, and the
-   * analytics property is meant to say how much news the rider had — not how
-   * much was left by the time they pressed a button clearing it.
+   * Frozen at mount rather than read from `view` at press time, because the
+   * stamp below changes what `unread` would be on the next render: the
+   * analytics property is meant to say how much news the rider had, not how
+   * much was left by the time they pressed the button clearing it. The button
+   * is also *drawn* from it — disabled and reading "All read" at zero — which
+   * is why this is state rather than a ref: a ref read during render is a value
+   * React has not promised to re-render for, and the lint rule is right to say
+   * so.
    */
-  const openedWith = useRef(view.unread);
+  const [openedWith] = useState(view.unread);
 
   const router = useRouter();
 
@@ -105,20 +133,58 @@ export function WhatsNewPanel({
     router.refresh();
   }, [router]);
 
+  /**
+   * There is something to clear, and the list we would be clearing is real.
+   *
+   * Two guards on one line, from two findings. **Nothing unread, nothing to
+   * do** (review S2): stamping on every opening meant a rider who pressed the
+   * bell out of habit paid a write and a full server re-render of whatever page
+   * they were on, to move a bookmark that was already past everything. And
+   * **never stamp a list that failed to load** (review N5): the loader fails
+   * soft to an empty list so a broken feed cannot take the library down, which
+   * would otherwise let a transient read failure walk the bookmark past news
+   * the rider was never shown.
+   */
+  const clearable = view.ok && view.unread > 0;
+
   const stamped = useRef(false);
   useEffect(() => {
     // Once per mount. React's strict mode runs effects twice in development,
     // and a second PATCH would be harmless but pointless.
     if (stamped.current) return;
     stamped.current = true;
-    void stampAndRefresh();
-  }, [stampAndRefresh]);
+
+    /*
+     * The opening is counted here rather than on the control that was pressed
+     * (review N1). On a phone the bell is a `Link`, so a `capture` on its click
+     * raced the navigation and PostHog could drop it — and a rider arriving by
+     * "All →", by a deep link or by the back button fired nothing at all, so
+     * the mobile number undercounted by however many of those there were. The
+     * page mounting is the thing that actually happened. The dropdown keeps
+     * firing from `BellButton`, where opening it *is* the press.
+     */
+    if (place === 'page') {
+      capture(ANALYTICS_EVENTS.whatsNewOpened, { where: 'mobile', unread: view.unread });
+    }
+
+    if (clearable) void stampAndRefresh();
+  }, [clearable, place, stampAndRefresh, view.unread]);
 
   const tabs: TabRowItem[] = [
     { id: YOU_TAB, label: 'You' },
-    ...view.crews.map((crew) => ({ id: crew.id, label: crew.name })),
+    ...view.crews.map((crew, index) => ({
+      id: crew.id,
+      label: crew.name,
+      // The crew's name is rider-typed and 2–40 characters, so the row has to
+      // be able to clip it — `title` is what a pointer gets instead (B1).
+      title: crew.name,
+      // Never the crew id: `tabs_switched` carries catalogue facts, and a crew
+      // id in a third-party store is a membership graph (review S3).
+      analyticsId: `crew-${index + 1}`,
+    })),
   ];
 
+  const inDropdown = place === 'dropdown';
   const crew = view.crews.find((c) => c.id === tab) ?? null;
   const lines = place === 'dropdown' ? view.lines.slice(0, WHATS_NEW_DROPDOWN_LINES) : view.lines;
   const crewItems =
@@ -140,17 +206,30 @@ export function WhatsNewPanel({
         ) : (
           <span className="lab">What’s new</span>
         )}
+        {/*
+          **Offered only when it would do something** (review N2, N3).
+
+          It was drawn and enabled on an empty feed and on a bell already at
+          zero, where pressing it wrote a bookmark that was already past
+          everything and fired `whats_new_read` carrying the same number the
+          `whats_new_opened` before it carried — an event that measured nothing
+          the first one did not. Now the count it reports is the count the panel
+          *opened* with, and it only fires when that count was above zero, so
+          "how many did a rider clear by hand" is a question the catalogue can
+          answer. At zero it reads "All read" and is disabled, which is also
+          what it says the moment it has been pressed.
+        */}
         <button
           type="button"
           className={styles.markRead}
-          disabled={read}
+          disabled={read || openedWith === 0}
           onClick={() => {
             setRead(true);
-            capture(ANALYTICS_EVENTS.whatsNewRead, { unread: openedWith.current });
+            capture(ANALYTICS_EVENTS.whatsNewRead, { unread: openedWith });
             void stampAndRefresh();
           }}
         >
-          {read ? 'All read' : 'Mark all read'}
+          {read || openedWith === 0 ? 'All read' : 'Mark all read'}
         </button>
       </div>
 
@@ -176,9 +255,15 @@ export function WhatsNewPanel({
           cross-fade runs on every switch (`TAB_PANEL`, T45).
         */}
         <div key={tab} className={TAB_PANEL}>
-          {crew ? <CrewFeed crew={crew} items={crewItems ?? []} /> : <YouFeed lines={lines} />}
+          {crew ? (
+            <CrewFeed crew={crew} items={crewItems ?? []} inDropdown={inDropdown} />
+          ) : (
+            <YouFeed lines={lines} inDropdown={inDropdown} />
+          )}
           {more && (
-            <Link href={ROUTES.whatsNew} className={styles.all}>
+            // Carrying the tab, so a rider reading a crew in the dropdown lands
+            // on that crew rather than back on You (review N4).
+            <Link href={allHref(crew?.id)} className={styles.all}>
               All →
             </Link>
           )}
@@ -188,15 +273,21 @@ export function WhatsNewPanel({
   );
 }
 
-function YouFeed({ lines }: { lines: readonly WhatsNewLineView[] }) {
+function YouFeed({
+  lines,
+  inDropdown,
+}: {
+  lines: readonly WhatsNewLineView[];
+  inDropdown: boolean;
+}) {
   if (lines.length === 0) return <p className={styles.empty}>{NOTHING_YET}</p>;
 
   return (
-    <div className={styles.feed}>
+    <FeedList className={inDropdown ? styles.dropdownFeed : undefined}>
       {lines.map((line) => {
         const look = LINE_LOOK[line.kind];
         return (
-          <Row
+          <FeedLine
             key={line.id}
             disc={
               line.avatarKey || line.riderName ? (
@@ -213,25 +304,27 @@ function YouFeed({ lines }: { lines: readonly WhatsNewLineView[] }) {
             }
             meta={
               <>
-                <span className={`lab ${styles.when}`}>{line.source}</span>
-                {line.when && <span className={`lab ${styles.when}`}>{line.when}</span>}
+                <span className={`lab ${FEED_META}`}>{line.source}</span>
+                {line.when && <span className={`lab ${FEED_META}`}>{line.when}</span>}
               </>
             }
           >
             {line.line}
-          </Row>
+          </FeedLine>
         );
       })}
-    </div>
+    </FeedList>
   );
 }
 
 function CrewFeed({
   crew,
   items,
+  inDropdown,
 }: {
   crew: { name: string; problem: string | null };
   items: readonly WhatsNewCrewItemView[];
+  inDropdown: boolean;
 }) {
   if (crew.problem) return <p className={styles.empty}>{crew.problem}</p>;
 
@@ -245,38 +338,25 @@ function CrewFeed({
   }
 
   return (
-    <div className={styles.feed}>
+    <FeedList className={inDropdown ? styles.dropdownFeed : undefined}>
       {items.map((item) => (
-        <Row
+        <FeedLine
           key={item.id}
           disc={<Avatar avatarId={item.avatarKey} name={item.name} size={32} />}
           meta={
             <>
-              <span className={`lab ${styles.when}`}>{item.when}</span>
+              <span className={`lab ${FEED_META}`}>{item.when}</span>
               {item.sport ? <SportChip sport={item.sport} small /> : null}
               {item.hue ? <Tag color={item.hue}>Sticker</Tag> : null}
             </>
           }
         >
-          <Link href={riderHref(item.handle)} className={styles.who}>
+          <Link href={riderHref(item.handle)} className={FEED_WHO}>
             {item.name}
           </Link>{' '}
           {item.line}
-        </Row>
+        </FeedLine>
       ))}
-    </div>
-  );
-}
-
-/** The row itself: 32px disc, one sentence, a `.lab` line under it (§3.6). */
-function Row({ disc, meta, children }: { disc: ReactNode; meta: ReactNode; children: ReactNode }) {
-  return (
-    <div className={styles.row}>
-      {disc}
-      <div className={styles.body}>
-        <p className={styles.line}>{children}</p>
-        <div className={styles.meta}>{meta}</div>
-      </div>
-    </div>
+    </FeedList>
   );
 }

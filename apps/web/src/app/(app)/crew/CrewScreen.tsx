@@ -5,6 +5,7 @@ import { Avatar, Button, Empty, Icon, Panel, SportChip, Tag } from '@landit/ui-w
 import Link from 'next/link';
 import { useActionState, useState, useTransition } from 'react';
 
+import { FEED_META, FEED_WHO, FeedLine, FeedList } from '@/components/feed/FeedLine';
 import { ROUTES, riderHref } from '@/lib/routes';
 import { runActionOr } from '@/lib/runAction';
 
@@ -287,26 +288,32 @@ function Feed({ items }: { items: readonly FeedItemView[] }) {
           place on the board.
         </p>
       ) : (
-        <div className={styles.feed}>
+        /*
+          The row is `FeedLine` in `components/feed/` since T47, where What's
+          new's crew tab draws the same one. Same markup, same styles, moved
+          rather than copied — a change to this row is now a change in one file
+          (T47 review S5).
+        */
+        <FeedList>
           {items.map((item) => (
-            <div key={item.id} className={styles.feedItem}>
-              <Avatar avatarId={item.avatarKey} name={item.name} size={32} />
-              <div className={styles.feedBody}>
-                <p className={styles.feedLine}>
-                  <Link href={riderHref(item.handle)} className={styles.feedWho}>
-                    {item.name}
-                  </Link>{' '}
-                  {item.line}
-                </p>
-                <div className={styles.feedMeta}>
-                  <span className={`lab ${styles.feedWhen}`}>{item.when}</span>
+            <FeedLine
+              key={item.id}
+              disc={<Avatar avatarId={item.avatarKey} name={item.name} size={32} />}
+              meta={
+                <>
+                  <span className={`lab ${FEED_META}`}>{item.when}</span>
                   {item.sport ? <SportChip sport={item.sport} small /> : null}
                   {item.hue ? <Tag color={item.hue}>Sticker</Tag> : null}
-                </div>
-              </div>
-            </div>
+                </>
+              }
+            >
+              <Link href={riderHref(item.handle)} className={FEED_WHO}>
+                {item.name}
+              </Link>{' '}
+              {item.line}
+            </FeedLine>
           ))}
-        </div>
+        </FeedList>
       )}
     </Panel>
   );

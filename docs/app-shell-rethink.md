@@ -366,7 +366,7 @@ them is that a surface does not invent a fourth duration. §3.2's 160ms is the s
 ### 3.6 What's new
 
 **`WhatsNewPanel`** (new, `apps/web/src/components/whats-new/`) — header "What's new" with "Mark all read"; a `TabRow` of **You** and one tab per crew (named after the crew); a `Panel flat` of **`FeedLine`s** (the existing crew-feed row: 32px avatar or icon disc, one sentence, a `.lab` time and source).
-- **You** lists, newest first: stickers earned (`sticker_earned` rows), events the rider said yes to that are within 7 days ("Corby Jam is Saturday. You said you're going."), the live challenge's deadline once inside 3 days ("Switch week ends Sunday. 1 of 3 logged."), a banked week ("Week 5 banked."), and joins to the rider's crews ("Leo joined Ramp Rats with your code"). Every line is a sentence the product wrote from catalogue facts; nothing typed by anyone appears.
+- **You** lists, newest first: stickers earned (`sticker_earned` rows), events the rider said yes to that are within 7 days ("Corby Jam is Saturday. You said you're going."), the live challenge's deadline once inside 3 days ("Switch week ends Sunday. 1 of 3 logged."), a banked week ("Week 5 banked."), and joins to the rider's crews ("Leo joined Ramp Rats with your code"). Every line is a sentence the product wrote from catalogue facts; nothing typed by anyone appears. *(The last clause is not quite right and T47 corrected it in the build: a rider's **display name** and a **crew's name** are rider-typed, and both reach a line. See "The two rider-typed strings" below.)*
 - A crew tab is the existing crew activity feed (`crewActivityLine`, the six sentences), unchanged.
 - **Data:** nothing new is stored per item. The list is derived at read time from collections the rider can already read. One additive field on `users`: `whats_new_seen_at` (date). The unseen count is the number of derived lines newer than it; "Mark all read" and opening the panel set it to now. Server-side, the field is own-write only.
 - Phone: the panel is the page `/whats-new`. Desktop: a `Dropdown` from the bell, 420px wide, capped at 8 lines with "All →" to `/whats-new`.
@@ -381,20 +381,39 @@ them, so a badge fed by it would light up because the rider logged a trick — a
 yourself. It also keeps the read on the bar cheap, which the next paragraph is about.
 
 **The count is on every page render; the panel's contents are not** *(added by the T47 worker,
-2026-09-17, pending owner confirmation)*. The bell is in the top bar of every signed-in screen, so
-whatever it needs is paid for on the dashboard, the library, every trick page and every spot page.
-The count is one derived computation from six windowed reads fired together — the rider's stickers,
-their attendance, the challenges and their log, their crews, and the live events inside the next
-seven days — memoised for the request so a `/whats-new` render does not pay for it twice, and
-failing soft to zero so a feed that will not load costs a badge rather than a page. The **panel** is
-a further read per crew for the crew tabs, so it is fetched when the panel opens: the same trade
-T45 made for the sport menu's counts, for the same reason.
+2026-09-17, pending owner confirmation; the numbers corrected after the review)*. The bell is in the
+top bar of every signed-in screen, so whatever it needs is paid for on the dashboard, the library,
+every trick page and every spot page.
 
-**A line about something still to come is dated to the moment it started being true** *(added by
-the T47 worker, 2026-09-17, pending owner confirmation)*. A sticker, a banked week and a crew join
+The count is one derived computation from **four reads fired together — the rider's stickers earned
+in the last thirty days, the live challenges closing inside three, their crews, and the live events
+inside the next seven — and then up to four more that depend on what the first four found**: the
+sticker catalogue only if a sticker was earned, the attendance rows only for events that exist, the
+challenge log only for challenges that are closing, the crew joins only if there are crews. A rider
+with none of those pays four. It is memoised for the request, so a `/whats-new` render does not pay
+for it twice, and it fails soft to zero so a feed that will not load costs a badge rather than a
+page. The **panel** is a further read per crew for the crew tabs, so it is fetched when the panel
+opens: the same trade T45 made for the sport menu's counts, for the same reason.
+
+*This paragraph first said "six windowed reads", and one of the six was windowed.* The other four
+were `getFullList` — one of them reading every challenge that has ever existed for every sport, 81
+rows and growing by three a week, to answer a question about the next three days, and another
+reading a rider's whole logging history to count this week's entries. The independent review of
+2026-09-17 measured nine extra API calls on one `/library` load and said so. The reads are windowed
+now and the sentence is the one the code produces, which is the point of writing a cost down.
+
+**A line about something still to come is dated to the moment it started being true — or to the
+moment the rider opted in, whichever is later** *(added by the T47 worker, 2026-09-17, pending owner
+confirmation; the second half added after the review)*. A sticker, a banked week and a crew join
 happened at a time, and that time is their `at`. "Corby Jam is Saturday" has not happened yet, so it
-is dated to the event's date minus seven days, and the challenge deadline to its end minus three —
-the moment each line appeared. That is what makes one unseen count mean the same thing for both
+is dated to the later of the event's date minus seven days and the moment the rider pressed "I'm
+going"; the challenge deadline, which nobody opts into, is dated to its end minus three.
+
+*The opt-in half was missing and it broke the common case.* Most riders say yes to an event inside
+the week, and the window-opening rule then dated the line five days into the past: it arrived older
+than the rider's bookmark, so the bell never counted it, and it filed itself below stickers earned
+minutes earlier. §3.6's own worked example was the one line a rider creates by hand and the one line
+that could not badge. `event_attendance.created` is what the later stamp reads. That is what makes one unseen count mean the same thing for both
 kinds: a forthcoming line arrives once, counts as unseen once, and stops counting when it has been
 read. It also decides the row's `.lab`: a line about something ahead shows its source and no
 relative time, because "6 days ago" beside "Corby Jam is Saturday" is a true timestamp describing
@@ -421,6 +440,25 @@ from `users`: a member whose profile is private appears on their crew's board by
 readable any other way (plan §3 guarantee 1), and expanding the relation would quietly name the
 public riders and skip the private ones.
 
+**A private rider's crew join is not mentioned** *(added by the T47 worker, 2026-09-17, pending
+owner confirmation)*. §3.6 asks for "joins to the rider's crews" and does not say whose. The
+conservative reading ships: the line appears only for a crew-mate this reader could already see —
+`public`, or `members` and in the crew — which is decided by asking `users.listRule` rather than by
+keeping a second copy of the privacy model.
+
+That is the same test `pocketbase/hooks/85_crews.pb.js` spells out for the crew feed, and it is the
+test rather than the crew board's on purpose. The board names a private rider by name and score,
+which is plan §3 guarantee 1's single carve-out, and the feed's own comment says in as many words
+that the carve-out "does not stretch to here", because what a rider *did* is more than a name and a
+score. The first cut of T47 read the board, and the result was a You tab reading "Cara Quiet joined
+Ramp Rats." one tab away from a crew feed whose empty state says private riders never show up — a
+promise and a screen disagreeing inside the same panel.
+
+**Widening it is the owner's call.** The argument for is real: "somebody joined your crew" is
+arguably board-shaped — a membership, not an activity — and a rider who joins a crew has chosen to
+be in it. If that is the decision, the crew tab's empty-state sentence needs rewriting in the same
+change, because it would stop being true of the screen it is on.
+
 **The windows §3.6 does not give** *(added by the T47 worker, 2026-09-17, pending owner
 confirmation)*. §3.6 names seven days for an event and three for the challenge and is silent on
 stickers and crew joins, so both look back **30 days** — long enough that a rider who opens the app
@@ -439,6 +477,22 @@ layout, which keeps client state — the dropdown stays open, the tab does not m
 It costs one server render per opening. **No line is ever struck off or greyed**: this is what has
 happened lately, not an inbox, so "read" changes the count and nothing else.
 
+**The tab row is hidden for a rider in one crew** *(added by the T47 worker, 2026-09-17, pending
+owner confirmation)*. §3.6 asks for "a `TabRow` of **You** and one tab per crew", and a rider in no
+crew or one crew gets no row at all — the same call §3.1 makes for the sport chip, which is hidden
+for a rider who tracks one sport, and for the same reason: a row of one is not a choice, and two
+tabs where the second is the rider's only crew is a control that says nothing the screen does not.
+It comes back the moment there is a second crew. Named here because it is a behaviour the spec does
+not describe, not because it needs deciding.
+
+**"Mark all read" is offered only when it would do something** *(added by the T47 worker,
+2026-09-17, pending owner confirmation)*. At zero unread it reads "All read" and is disabled, which
+is also what it says the moment it has been pressed, and `whats_new_read` fires only when the count
+it cleared was above zero. Without that the button was live on an empty feed and on a bell already
+at zero, and the event carried the same number as the `whats_new_opened` before it — because
+opening had already stamped — so it measured nothing the first event did not. It now answers "how
+many lines did a rider clear by hand", which is a different question from "how many did they have".
+
 **The badge pop keeps §3.6's 300ms rather than taking a token** *(added by the T47 worker,
 2026-09-17, pending owner confirmation)*. This is the opposite call to the one T45 made about the
 dropdown's duration, and deliberately: there §4's motion table gave dropdowns `--dur-ui` and §3.2's
@@ -452,6 +506,20 @@ confirmation)*. §7 puts What's new in a dropdown on a desktop and says nothing 
 rather than the 640 §3.10 gives the centred screens, because those are forms and this is a list of
 one-line sentences with a disc beside each; left-aligned rather than centred, because the page's own
 eyebrow and heading start at the left margin.
+
+**The two rider-typed strings, named** *(added by the T47 worker, 2026-09-17, pending owner
+confirmation)*. §3.6 and the plan both say "nothing typed by anyone appears", and that is not true of
+any version of this screen: a **crew's name** and a rider's **display name** are free text, 2–40
+characters, unmoderated, and both reach a You line — the crew name twice, since it is also a tab
+label. The three other values dropped into a sentence are staff-entered catalogue rows: a sticker's
+name, an event's name, a challenge's title.
+
+The thing §6.1 is actually about still holds, which is why this is a correction to the sentence
+rather than to the screen: the **frame** of every line is the product's, the two names reach only the
+crew-mates who can already read them on the crew screen, a rider cannot aim one at a particular
+person, and no line has a field a rider could put a sentence in. What would make this a messaging
+channel is a sentence somebody wrote, and there is nowhere for one. `whats-new.test.ts` now passes a
+crew name in as what it is — punctuation, an emoji and all — rather than as a catalogue string.
 
 **The field joins erasure and the data export** *(added by the T47 worker, 2026-09-17, pending
 owner confirmation)*. §6 says one additive field and says nothing about the two lists every other

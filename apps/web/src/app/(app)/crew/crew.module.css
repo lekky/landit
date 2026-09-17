@@ -179,49 +179,16 @@
 
 /* ------------------------------------------------------------------- feed -- */
 
-.feed {
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-}
-
-.feedItem {
-  display: flex;
-  gap: 11px;
-}
-
-.feedBody {
-  min-width: 0;
-}
-
-.feedLine {
-  margin: 0;
-  font-size: 14.5px;
-  line-height: 1.35;
-}
-
-.feedWho,
-.feedWho:hover {
-  color: var(--ink);
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.feedMeta {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-top: 4px;
-  flex-wrap: wrap;
-}
-
-.feedWhen {
-  color: var(--ink-3);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-}
+/*
+ * The feed row's styles left this file in T47 (review S5).
+ *
+ * They are `apps/web/src/components/feed/feed.module.css` now, unchanged, and
+ * both this screen and What's new import the component that uses them — What's
+ * new's crew tab draws the same rows as this panel, and §3.6 asks for the same
+ * row rather than a second one that matches today. Nothing was redesigned in
+ * the move; the classes were `.feed`, `.feedItem`, `.feedBody`, `.feedLine`,
+ * `.feedWho`, `.feedMeta` and `.feedWhen`.
+ */
 
 /* -------------------------------------------------------- start, or join -- */
 

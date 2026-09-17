@@ -5254,8 +5254,11 @@ Stickers and Challenge, Progress and Stickers tab rows, sport tab rows removed f
 
 **T47 · What's new.** `t47-whats-new`. Depends on T45. The one additive field
 `users.whats_new_seen_at` with its hook; the feed derived in `packages/core` from the rider's own
-record and the crew feed's six sentences (nothing stored per item, nothing typed by anyone); the
-panel as a page on the phone and a dropdown on desktop; the bell count.
+record and the crew feed's six sentences (nothing stored per item — **every line is a frame the
+product wrote**, and the only free text that reaches one is a crew's name and a rider's display
+name, both of which the crew screen already shows to the same people; "nothing typed by anyone" was
+the original wording here and was not accurate); the panel as a page on the phone and a dropdown on
+desktop; the bell count.
 
 **T48 · Find.** `t48-find`. Depends on T45. The `/find` summary, the tab row on Spots and Events,
 the sport-scope toggle (open question O1 in the spec), Upcoming · Past as pills, Mine folded into

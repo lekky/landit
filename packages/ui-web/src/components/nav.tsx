@@ -28,6 +28,15 @@ export type TabItem = {
   color?: string;
   /** Faded number on the right of the label, e.g. a trick count. */
   note?: string | number;
+  /**
+   * `title` for the tab, for a label the row may have to clip (T47).
+   *
+   * Only worth setting where the label is data rather than copy — a crew's
+   * name, not "Over time". A clipped label is still complete in the DOM, so a
+   * screen reader reads all of it either way; this is for the sighted reader
+   * with a pointer.
+   */
+  title?: string;
 };
 
 export type TabsProps = {
@@ -86,6 +95,7 @@ export function Tabs({
             role="tab"
             aria-selected={on}
             className={cx('sporttab', on && 'on')}
+            title={it.title}
             onClick={() => onChange(it.id)}
             // A boxed row's active tab is the design's yellow lift (§3.3, D6),
             // the same one on every screen, so it takes no colour from the item
@@ -115,7 +125,23 @@ export function Tabs({
                 <span className="tab-short">{it.shortLabel}</span>
               </>
             ) : (
-              it.label
+              /*
+               * Wrapped, where it used to be a bare text node (T47).
+               *
+               * A label a caller cannot predict the length of — a crew's name on
+               * What's new, 2 to 40 characters — has to be able to clip, and
+               * `text-overflow` needs a box of its own: the anonymous text run
+               * inside a flex container is not one, so an ellipsis set on the
+               * button did nothing and a 37-character crew name pushed the whole
+               * document 85px sideways on a 320px phone (issue #550, T47 review
+               * B1). The `.tab-full` / `.tab-short` pair above has always had its
+               * box; this gives the ordinary case the same one.
+               *
+               * Inert on its own: it inherits everything from `.sporttab` and is
+               * still one flex item where the text run was. Only a row that asks
+               * for it clips — `TabRow` in `apps/web` is the one that does.
+               */
+              <span className="tab-label">{it.label}</span>
             )}
             {it.note !== undefined && <span className="n">{it.note}</span>}
           </button>

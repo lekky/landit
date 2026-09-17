@@ -20,6 +20,8 @@ import { call, makeRider, superuser } from './helpers';
  * *and* the unchanged value, rather than only the refusal.
  */
 
+const password = 'a-long-local-test-password';
+
 const ISO_ISH = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/;
 
 const STAMP = '2026-09-16 12:00:00.000Z';
@@ -39,6 +41,33 @@ describe('a rider owns their own What’s new bookmark', () => {
   it('starts empty, so a new rider’s whole feed is unseen', async () => {
     const rider = await makeRider();
     expect(await seenAtOf(rider.id)).toBe('');
+  });
+
+  it('cannot arrive already set, however the sign-up was shaped', async () => {
+    /*
+     * Review N7. A sign-up posting this field was accepted and the value
+     * stored — harmless in itself, since it only hid the rider's own badge from
+     * themselves, but every other date on this row is pinned on create and this
+     * one was not. The pin is `USER_WHATS_NEW_DEFAULTS`, and it is separate from
+     * the streak's because this field stays *writable* afterwards, which the
+     * test below it proves.
+     */
+    const suffix = `${Date.now()}${Math.floor(Math.random() * 1e6)}`.slice(-12);
+    const created = await call<{ id: string }>('POST', '/api/collections/users/records', {
+      body: {
+        email: `pinned-${suffix}@landit.invalid`,
+        password,
+        passwordConfirm: password,
+        name: 'Pinned Rider',
+        handle: `pinned${suffix}`,
+        country: 'GB',
+        age_band: 'adult',
+        whats_new_seen_at: '2099-01-01 00:00:00.000Z',
+      },
+    });
+    expect(created.status).toBe(200);
+
+    expect(await seenAtOf(created.body.id)).toBe('');
   });
 
   it('is written by the rider, with their own token', async () => {
@@ -143,7 +172,6 @@ describe('the bookmark is inside the account guarantees', () => {
   });
 
   it('is cleared when the account is erased', async () => {
-    const password = 'a-long-local-test-password';
     const rider = await makeRider();
     expect(
       (

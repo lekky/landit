@@ -27,16 +27,28 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function WhatsNewPage() {
+export default async function WhatsNewPage({
+  searchParams,
+}: {
+  /**
+   * `?tab=<crew id>` — which tab to open on.
+   *
+   * Written by the desktop dropdown's "All →", so a rider reading a crew there
+   * lands on that crew rather than back on You (review N4). A crew id in a URL
+   * is what `/crew?crew=` already does; it is not an analytics property, and
+   * the panel ignores one naming a crew this rider is not in.
+   */
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const session = await currentRider();
   if (!session) redirect(ROUTES.signIn);
 
-  const view = await loadWhatsNewView();
+  const [view, { tab }] = await Promise.all([loadWhatsNewView(), searchParams]);
 
   return (
     <div className={styles.pageWrap}>
       <span className="eyebrow">Your news</span>
-      <WhatsNewPanel view={view} place="page" />
+      <WhatsNewPanel view={view} place="page" initialTab={tab} />
     </div>
   );
 }
