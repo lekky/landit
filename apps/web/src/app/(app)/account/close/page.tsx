@@ -48,8 +48,14 @@ export default async function CloseAccountPage() {
 
   return (
     <div className={styles.page}>
-      {/* §2.3: an account sub-screen carries "Your account". */}
-      <BackLink href={ROUTES.account} label="Your account" />
+      {/*
+        §2.3: an account sub-screen carries "Your account". In a wrapper,
+        because `BackLink` is `inline-flex` and the eyebrow under it is a
+        `<span>` — see the same note on `/coach`.
+      */}
+      <div>
+        <BackLink href={ROUTES.account} label="Your account" />
+      </div>
       <span className="eyebrow">Your account</span>
       <h1 className={`d ${styles.head}`}>Closing your account</h1>
 
