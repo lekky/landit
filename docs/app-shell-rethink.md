@@ -225,8 +225,18 @@ things it used to hold are not on it. Each is recorded here rather than left as 
 - **"On the wish list"** (a second grid of trick cards). "Want to" is the Progress card's third
   number, and the list itself is `/library?mine=1`. On a phone it was the largest thing on the
   dashboard and the least often acted on.
-- **The crew board** (a ranked table of names and landed counts), which §3.4 replaces with the
-  crew's activity. The board is what `/crew` is for; a dashboard wants "what happened".
+
+  **And the route to it is one tap, not two** *(added by the T46 worker after the independent
+  review, 2026-09-17)*. The first cut tied the section's "more" link to whether something was **in
+  progress**, so a rider with nothing in progress got "Library →" to the *unfiltered* library — and
+  that is precisely the rider most likely to have a want-to list, since a want-to is what you have
+  instead of something in progress. The heading still follows what is shown ("Working on it" or
+  "Start here"); the link now follows what the rider **has**, and reads "All N of yours →" into
+  `/library?mine=1` whenever any trick carries a stage at all.
+- **The crew board** (a ranked table of names and landed counts). This one is **not** a call the
+  worker made: §3.4 puts the crew's *activity* in that slot, so the board's departure is the spec's
+  own. It is recorded here because it is the largest visible difference on the screen, not because
+  anything is pending on it. The board is still what `/crew` is for.
 
 Two more calls the section is silent on. **"Working on it" and "Start here" both show four cards
 on desktop and the first two on a phone**, cut in CSS at 860px rather than sliced — a count
@@ -234,6 +244,13 @@ decided in the browser is a count the server guessed differently, and the grid w
 hydration (LESSONS §3a). And **"Your spots" links to `/spots`**, not to `/find`: the faves are
 spots, and `/find` is the group's summary rather than the list. "Next up" links to `/find` as §3.4
 says.
+
+**"Your spots" is full width beneath the pair on desktop** *(added by the T46 worker, 2026-09-17,
+pending owner confirmation)*. §3.4's desktop order stops at "crew activity and Next up side by
+side" and does not place the faves. They go under both, across the full width: a third column would
+give each of the three about 380px, narrower than the phone's own two-up spot cards, and the faves
+are the one of the three that is a **grid** rather than a list — it wants the width more than the
+other two want the company.
 
 **Three record cards is the ordinary case** *(added by the T46 worker, 2026-09-17, pending owner
 confirmation)*. §3.4 says the Sessions card is hidden unless `sessionsEnabledFor(rider)`, and
@@ -388,10 +405,32 @@ the other two.
   paying for and a paid feature that only exists on a wide screen is one half the riders never
   find.
 - **The tab panel is `role="tabpanel"`, named after its tab**, and keyed on the tab id so §4's
-  120ms cross-fade runs on every switch.
+  120ms cross-fade runs on every switch. Both tab rows have one; the wall's is on a wrapper,
+  because `Panel` in `packages/ui-web` takes no ARIA props and is not worth widening for two
+  attributes.
+- **The selected tab lives in `?tab=`**, not in `useState`
+  (`apps/web/src/components/shell/useTabParam.ts`, additive, new file). §3.3 does not say where a
+  tab row keeps its answer, and component state is the obvious choice until you use one: a rider on
+  the skill tree opens a node, reads the trick, presses Back — and lands on Record, having lost
+  their place on every node they opened. Before the rethink the tree was part of one long scroll,
+  so Back restored it with the scroll position; turning that scroll into tabs took it away. The
+  hook `replace`s rather than pushes, so three tab presses do not put three entries in the history,
+  and the first tab is spelled by **absence**, so the screen has one address as it opens. It stays
+  a `role="tablist"`: the panel still changes in place and the document does not navigate.
 - **`ProgressTabs` is removed from `/progress` only.** It still draws on `/progress/sessions`,
   whose header is T50's (§8). Issue #522 closed on option 1, so `/progress` stays "Where you're at"
   and does not redirect; the two screens have separate Home cards now.
+
+  Two consequences of that, neither of them a mistake but neither what the sentence above says it
+  is doing, both surfaced by the independent review *(added by the T46 worker, 2026-09-17)*:
+  **`/progress` now has no in-page route to the diary at all** — the Home Sessions card is the only
+  way, while `/progress/sessions` still links back here, so the pair is asymmetric until T50. And
+  **`/progress/sessions` reads top to bottom as `← HOME`, `<h1>Progress</h1>`, then SESSIONS |
+  WHERE YOU'RE AT** — so a rider who taps the blue *Sessions* card lands on a page called
+  *Progress*, one tap from the green *Progress* card's destination. T46 deliberately adds only the
+  back link there and leaves the header to T50, which means **the collision is live on
+  `shell-rethink` between the two merges** and is a sequencing fact for the owner rather than
+  something this task can close.
 - **Sessions** — header with the Log button; on the phone three `StatBlock`s (sessions, time, moved up) then the feed; `SportScopeSelect` replaces the sport pills; the "At an event" pill stays.
 - **Session form** — three steps on the phone via `TabRow` (When & where · What · Notes) with Next / Save; "What you rode" becomes a preset `Tag` from the chip with a Change link, not a three-button row. Desktop: the same three steps inside the modal, step one as two cards side by side.
 - **Quick log** — unchanged, shows the sport `Tag`; on desktop a 640px modal.
@@ -409,7 +448,15 @@ the ink panel and into a boxed `TabRow`.
   the several per-screen switch events the tab rows are taking over from", and firing both would be
   one tap counted under two names. The catalogue entry stays in `analytics.ts` (nothing is removed
   from it here), and `tabs_switched { group: 'stickers', tab: 'earned' | 'unearned' }` is the
-  measurement from now on.
+  measurement from now on. The review's note on it stands: a catalogue entry nothing fires is a
+  trap for the next reader of `analytics.ts`, and a one-line "nothing fires this since T46" on the
+  entry would close it — left for the owner, since the catalogue is deliberately outside T46's
+  scope.
+- **`empty_state_action { screen: 'home', action: 'library' }` keeps firing.** It came from the
+  Stickers empty state, which is a card now; without moving it to "Nothing to show yet / Find a
+  trick" the value would have gone quiet altogether, which is a screen going invisible rather than
+  a screen going away.
+
 - **Challenge** — the `SportSwitch` goes; layout unchanged (desktop: card left, Coming up and history right).
 - **Crew** — `TabRow` Board · Activity · Members; Invite in the header; Start another / Join with a code as two small ghost buttons that reveal the existing forms.
 - **Rider profile** — profile card with the three numbers; `TabRow` Landed · Stickers · Videos.

@@ -144,6 +144,54 @@ test('the record cards hold their 2 × 2 without pushing the page sideways', asy
   }
 });
 
+test('a crew line on Home says who did it, as a sentence', async ({ page }) => {
+  /*
+   * The defect this exists for (review B1): `crewActivityLine` in
+   * `@landit/core` returns a **predicate** — "earned the Crewed Up sticker",
+   * "landed Bunny Hop" — and the screen supplies the subject, as `/crew` does.
+   * Home rendered the line alone, so three headless fragments sat under a
+   * heading saying "Your crew" with a 32px avatar the only clue to whose. No
+   * test read a line, which is exactly how it got through.
+   *
+   * So this reads one: the rider's own name, then a lower-case predicate after
+   * it. The lower case is the second half of the fix — `.cond` uppercased these
+   * sentences where `/crew` draws them in body type, and one feed in two voices
+   * is one feed to learn twice.
+   */
+  await arriveAtHome(page, 'Wren Halloway');
+
+  // A crew of one is still a crew, and its owner's own activity is in its feed.
+  await page.goto('/crew');
+  await page.getByLabel('What is it called?').fill('Ramp Rats');
+  await page.getByRole('button', { name: 'Start it' }).click();
+  await expect(page.getByText('Ramp Rats').first()).toBeVisible();
+
+  // Something to have a line about.
+  await page.goto('/library');
+  await page.locator('.tcard').first().click();
+  await page.waitForURL(/\/library\/.+/);
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Sometimes' }).click();
+    await expect(page.getByRole('button', { name: 'Sometimes' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  }).toPass({ timeout: 20_000 });
+  await expect(page.locator('.toast').first()).toBeVisible();
+
+  await page.goto('/home');
+  const crew = page.getByRole('main').locator('section', { hasText: 'Your crew' });
+  const line = crew.locator('p').first();
+  await expect(line).toBeVisible();
+
+  const text = (await line.innerText()).trim();
+  expect(text, 'the crew line has no subject').toMatch(/^Wren\b/);
+  // The predicate, and it is not shouted.
+  const predicate = text.slice('Wren'.length).trim();
+  expect(predicate.length, 'the crew line is a name and nothing else').toBeGreaterThan(0);
+  expect(predicate, 'the crew line is drawn in caps').not.toBe(predicate.toUpperCase());
+});
+
 test('the sport tab row is gone from the dashboard (D5)', async ({ page }) => {
   await arriveAtHome(page, 'Chip Rider');
 
@@ -293,9 +341,7 @@ test('"I rode today" asks for nothing but the tap', async ({ page }) => {
   expect(asked.join(' ')).not.toContain('geolocation');
 });
 
-test('the crew and sticker panels say what is true rather than showing demo data', async ({
-  page,
-}) => {
+test('the crew panel says what is true rather than showing demo data', async ({ page }) => {
   await arriveAtHome(page, 'Empty Rider');
 
   // The prototype ships a hard-coded demo crew. A real rider has none, and

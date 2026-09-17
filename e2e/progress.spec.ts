@@ -147,6 +147,51 @@ test('the three tabs fit on one line, down to the narrowest phone anyone still u
   }
 });
 
+test('the tab is in the address, so Back out of a trick lands on the tab you left', async ({
+  page,
+}) => {
+  /*
+   * The review's S3, and the one place on this screen it hurts most. The skill
+   * tree is a browse-and-tap surface: a rider opens a node, reads the trick,
+   * presses Back. With the tab in `useState` they landed on **Record**, having
+   * lost their place on every single node they opened — where before the
+   * rethink the tree was part of one long scroll and Back restored it with the
+   * scroll position.
+   */
+  await newRider(page);
+  await page.goto('/progress');
+
+  await page.getByRole('tab', { name: 'Skill tree' }).click();
+  await expect(page).toHaveURL(/[?&]tab=skill-tree\b/);
+
+  // Reload keeps it too, which is the same fact said a second way.
+  await page.reload();
+  await expect(page.getByRole('tab', { name: 'Skill tree' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+
+  await page.locator('.tree button.node').first().click();
+  await page.waitForURL('**/library/**');
+  await page.goBack();
+
+  await page.waitForURL(/\/progress/);
+  await expect(page.getByRole('tab', { name: 'Skill tree' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.locator('.tree')).toBeVisible();
+
+  /*
+   * And the first tab is spelled by **absence**, so the screen has one address
+   * as it opens rather than two that render the same thing. `replace` rather
+   * than `push` is the other half: pressing the three tabs must not put three
+   * entries in the history for Back to walk out through.
+   */
+  await page.getByRole('tab', { name: 'Record' }).click();
+  await expect(page).toHaveURL(/\/progress$/);
+});
+
 test('progress says what it is under, and the link goes there', async ({ page }) => {
   await newRider(page);
   await page.goto('/progress');

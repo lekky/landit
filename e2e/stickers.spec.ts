@@ -152,6 +152,16 @@ test('the wall is under Home, and has one tab row rather than two (T46)', async 
   await expect(tabs.getByRole('tab', { name: /^Not yet \d+$/ })).toBeVisible();
 
   /*
+   * And a panel for them to control. A screen reader told "Earned, tab, 1 of 2"
+   * and then told about no panel at all is half a pattern — the wall had the
+   * tablist and not the tabpanel, which is the half a `role="tablist"` count
+   * would never have caught.
+   */
+  const panel = page.getByRole('tabpanel');
+  await expect(panel).toHaveCount(1);
+  await expect(panel).toHaveAttribute('aria-label', /^(Earned|Not yet)$/);
+
+  /*
    * And the two of them fit, down to 320px. `.tabrow .sporttab` is `flex: 1`
    * and `white-space: nowrap` (§3.3), so a row that does not fit grows past its
    * share and pushes the whole document sideways rather than wrapping — which
