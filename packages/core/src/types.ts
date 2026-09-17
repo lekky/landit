@@ -405,6 +405,27 @@ export interface Plan {
   readonly sessionClipCap?: number;
   /** Whether the session clip cap does not apply. Absent reads as `false`. */
   readonly sessionClipsUnlimited?: boolean;
+  /**
+   * How many **crews** a rider on this plan may create (owner's decision,
+   * Rachid, 2026-09-17, in chat: "1 for free, 3 for 3.99 and 10 for the top
+   * tier").
+   *
+   * Creating, not belonging: a rider may be *in* as many crews as they are
+   * invited to, and joining with a code is never capped. What this limits is
+   * minting — a crew is an invite code generator, which is the anti-spam
+   * argument `MAX_OWNED_CREWS` used to carry alone.
+   *
+   * Capacity rather than achievement, so it sits on the right side of "stickers
+   * and stages are never for sale" (plan §2.4).
+   *
+   * **Optional, and absent reads as one**, not zero: the fail-closed direction
+   * for a cap on creating is the smallest plan's allowance, and a rider with no
+   * readable plan record should still be able to run the crew they already
+   * have. Every plan in `PLANS` sets it. Read from the `plans` record by
+   * `pocketbase/hooks/85_crews.pb.js`, like every other entitlement, so staff
+   * can tune it without a deploy.
+   */
+  readonly crewCap?: number;
 }
 
 /* ------------------------------------------------------------ video links */
@@ -908,8 +929,24 @@ export interface RideSession {
   readonly startedAt: string;
   readonly durationMinutes: SessionDurationMinutes;
   readonly sport: SportId;
-  /** Empty only if the spot was since removed from the map. */
+  /** Empty when the rider typed the place instead — see `spotName`. */
   readonly spotId: string;
+  /**
+   * Where it was, in the rider's own words, for a place the map does not have
+   * (owner, Rachid, 2026-09-17, in chat: "need a 'custom' or can't find it and
+   * let them type free text, and free text ones obviously don't link to a page
+   * after").
+   *
+   * **Present only when `spotId` is empty** — the server clears one when the
+   * other is set, so a session never carries two answers to "where". It is
+   * plain text a rider typed: render it as words, never as a link, and never
+   * look it up against the spots collection.
+   *
+   * It is rider-typed, so it stays out of analytics and out of the crew feed
+   * and What's new, which are sentences the product wrote (§3.6). It rides on
+   * the session's own visibility, exactly as `notes` does.
+   */
+  readonly spotName?: string;
   readonly eventId?: string;
   readonly aim?: string;
   /**

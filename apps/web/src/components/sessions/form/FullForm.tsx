@@ -316,9 +316,22 @@ export function WhereField(props: {
   const pick = (next: FormSpot) => {
     props.remember(next);
     // An event belongs to a place; moving the session somewhere else takes it off.
-    onChange({ spotId: next.id, eventId: next.id === values.spotId ? values.eventId : '' });
+    // A chosen spot also clears anything typed: one answer to "where", not two.
+    onChange({
+      spotId: next.id,
+      spotName: '',
+      eventId: next.id === values.spotId ? values.eventId : '',
+    });
     setSearching(false);
   };
+
+  /** A place the map does not have, typed in the sheet (owner, 2026-09-17). */
+  const nameIt = (name: string) => {
+    onChange({ spotId: '', spotName: name, eventId: '' });
+    setSearching(false);
+  };
+
+  const typed = values.spotName.trim();
 
   return (
     <>
@@ -328,6 +341,23 @@ export function WhereField(props: {
           <div className={styles.spotText}>
             <div className={styles.spotName}>{spot.name}</div>
             {spot.town ? <div className={styles.spotSub}>{spot.town}</div> : null}
+          </div>
+          <button type="button" className={styles.miniBtn} onClick={() => setSearching(true)}>
+            Change
+          </button>
+        </div>
+      ) : typed ? (
+        /*
+          A place the rider typed because the map does not have it (owner,
+          2026-09-17). Deliberately **not** a link and deliberately not dressed
+          as a spot: no pin icon, no town line, no chevron — it is words, and
+          the row says as much so a rider is not left wondering why this one has
+          no page behind it.
+        */
+        <div className={styles.spotRow}>
+          <div className={styles.spotText}>
+            <div className={styles.spotName}>{typed}</div>
+            <div className={styles.spotSub}>Not on the map — just a name</div>
           </div>
           <button type="button" className={styles.miniBtn} onClick={() => setSearching(true)}>
             Change
@@ -387,6 +417,8 @@ export function WhereField(props: {
         <SpotSearchSheet
           recent={data.recentSpotIds.map((id) => spots.get(id)).filter((s): s is FormSpot => !!s)}
           onPick={pick}
+          onName={nameIt}
+          named={typed}
           onClose={() => setSearching(false)}
         />
       ) : null}

@@ -802,6 +802,46 @@ a.pill.on:hover {
   }
 }
 
+/*
+ * The phone's drop-down panel (owner, 2026-09-17: "/whats-new feels better as a
+ * slide down panel").
+ *
+ * The bell used to navigate to `/whats-new` on a phone and open a `Dropdown`
+ * on a desktop. Reading the news is a glance, and a glance should not cost a
+ * page: the panel now drops from under the top bar at both widths, and the page
+ * keeps its place underneath.
+ *
+ * It is the full width of the screen rather than the desktop's 420px column,
+ * hangs from the bar rather than from the 34px button (a panel anchored to a
+ * button that small reads as a tooltip), and rises out from under the bar —
+ * `translateY(-100%)` inside `overflow: hidden` would need a wrapper, so the
+ * same 8px rise and fade the desktop uses is kept and the distance is what
+ * changes. §4's floor clamps it under `prefers-reduced-motion` like everything
+ * else.
+ *
+ * `position: fixed` takes it out of the anchor's box, which is what lets it span
+ * the screen; the top is the bar's own height. It stays a menu, not a dialog:
+ * the page behind is not held still and a tap outside dismisses it, which is
+ * `Dropdown`'s standing decision (§3.2) and the reason it is not a `Sheet`.
+ */
+@media (max-width: 860px) {
+  .dropdown-full {
+    position: fixed;
+    top: 55px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: min(72dvh, calc(100dvh - 55px - 16px));
+    animation: dropin-full var(--dur-ui) var(--ease-spring);
+  }
+}
+@keyframes dropin-full {
+  from {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+}
+
 /* --------------------------------------------------------------- tab row -- */
 
 /*

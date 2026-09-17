@@ -1,6 +1,7 @@
 import {
   SPORT_IDS,
   crewActivityLine,
+  crewCapFor,
   isConsentLimited,
   riderMonthKey,
   type ConsentState,
@@ -11,6 +12,7 @@ import {
   getCrewFeed,
   listCrewMemberships,
   listCrews,
+  listPlans,
   type CrewFeedItem,
 } from '@landit/db';
 import type { Metadata } from 'next';
@@ -75,11 +77,26 @@ export default async function CrewPage({
     sportsList(rider.sports?.length ? (rider.sports as SportId[]) : SPORT_IDS),
   );
 
+  /*
+   * The rider's crew allowance, read off their plan record (owner, 2026-09-17).
+   *
+   * The record, not `@landit/core`'s copy of the number: the hook that enforces
+   * it reads the record too, so a staff edit moves both at once and the screen
+   * can never offer a crew the server would refuse. `crewCapFor` supplies the
+   * fail-closed one when the plan cannot be read, which is the same floor the
+   * hook uses.
+   */
+  const plans = await listPlans(client).catch(() => []);
+  const planRecord = plans.find((p) => p.slug === (rider.plan || 'rookie')) ?? null;
+  const crewCap = crewCapFor(planRecord ? { crewCap: planRecord.crew_cap } : null);
+
   const base = {
     firstName: (rider.name || 'Rider').split(' ')[0] || 'Rider',
     handle: rider.handle || null,
     sportsLine,
     consentLimited,
+    crewCap,
+    planName: planRecord?.name || 'Your plan',
   };
 
   // A rider held behind the guardian gate is in no crew and cannot be put in

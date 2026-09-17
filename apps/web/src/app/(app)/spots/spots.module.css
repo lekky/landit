@@ -1204,6 +1204,20 @@
    * plus the notch inset) — see the `.mapPanel` note below on why it clears the
    * nav rather than covering it.
    *
+   * `--sheet-panel-gap` is that plus the **30px the LOG square is raised** above
+   * the bar's top edge (`shell.module.css`), and only the *panel* uses it. The
+   * panel's bottom edge used to run across the middle of the yellow square
+   * (owner, 2026-09-17: "panel covers half the log button in nav", said of the
+   * sheet next door and true of this one too), and the shared `Sheet` now
+   * stands off by the same 30, so the two sheets on a phone sit on one line.
+   *
+   * **The scrim keeps the smaller gap on purpose.** Dimming only as far as the
+   * panel would leave a bright 30px band of the page — the "check before you
+   * travel" strip, sliced — showing between the sheet and the bar, which is
+   * what the owner saw in the same screenshot. The scrim runs to the top of
+   * `.mobnav`, the LOG square stands in the dimmed band where a rider can still
+   * see it, and the bar itself stays undimmed and usable.
+   *
    * `--sheet-h` is the height, and 78% is the owner's "at least 3/4 of the
    * screen" (Rachid, 2026-09-08, in chat) replacing the 52% it was. The second
    * term is a floor under the *page*, not the sheet: at least 56px of the list
@@ -1214,7 +1228,8 @@
     display: flex;
     flex-direction: column;
     --sheet-gap: calc(63px + env(safe-area-inset-bottom));
-    --sheet-h: min(78vh, calc(100vh - 56px - var(--sheet-gap)));
+    --sheet-panel-gap: calc(var(--sheet-gap) + 30px);
+    --sheet-h: min(78vh, calc(100vh - 56px - var(--sheet-panel-gap)));
   }
 
   /*
@@ -1230,7 +1245,7 @@
    */
   @supports (height: 1dvh) {
     .grid {
-      --sheet-h: min(78dvh, calc(100dvh - 56px - var(--sheet-gap)));
+      --sheet-h: min(78dvh, calc(100dvh - 56px - var(--sheet-panel-gap)));
     }
   }
 
@@ -1312,7 +1327,7 @@
     position: fixed;
     left: 8px;
     right: 8px;
-    bottom: var(--sheet-gap);
+    bottom: var(--sheet-panel-gap);
     /*
      * Above the scrim below it, and above the sticky `.topbar` (60) it used to
      * merely tie with — a tie settled by source order is not an ordering, it is
@@ -1323,7 +1338,7 @@
     height: var(--sheet-h);
     min-height: 0;
     margin: 0;
-    transform: translateY(calc(100% + var(--sheet-gap)));
+    transform: translateY(calc(100% + var(--sheet-panel-gap)));
     transition: transform 180ms ease-out;
   }
 
@@ -1419,7 +1434,7 @@
    * is put back when they close it.
    */
   .card {
-    scroll-margin-bottom: calc(var(--sheet-h) + var(--sheet-gap) + 12px);
+    scroll-margin-bottom: calc(var(--sheet-h) + var(--sheet-panel-gap) + 12px);
   }
 
   /*

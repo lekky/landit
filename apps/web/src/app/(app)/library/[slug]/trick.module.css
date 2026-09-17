@@ -1008,6 +1008,17 @@
   padding: 22px 24px 0;
 }
 
+/*
+ * The locked block carries the hatch too (owner, 2026-09-17: "the 'this one is
+ * on shredder' should have the diagonal line background").
+ *
+ * The same 45° hatch as the header above it, the locked trick card and the
+ * skill tree — one pattern for one meaning, "you cannot have this yet". The
+ * lowdown teaser between them stays on plain paper: that is the trick talking,
+ * where this is the product talking, and the existing comment in
+ * `LockedTrick.tsx` draws the same line. A 3px ink rule separates the teaser
+ * from the hatch so the two do not bleed into each other.
+ */
 .lockBody {
   padding: 34px 24px;
   display: flex;
@@ -1015,6 +1026,8 @@
   align-items: center;
   gap: 14px;
   text-align: center;
+  background: repeating-linear-gradient(45deg, var(--hatch-a) 0 11px, var(--hatch-b) 11px 22px);
+  border-top: 3px solid var(--ink);
 }
 
 .lockMark {

@@ -45,7 +45,19 @@ export function QuickLog(props: {
 
   const pick = (next: FormSpot) => {
     remember(next);
-    props.onChange({ spotId: next.id, eventId: next.id === values.spotId ? values.eventId : '' });
+    // A chosen spot clears anything typed: one answer to "where", not two.
+    props.onChange({
+      spotId: next.id,
+      spotName: '',
+      eventId: next.id === values.spotId ? values.eventId : '',
+    });
+    setPickedHere(true);
+    setSearching(false);
+  };
+
+  /** A place the map does not have, typed in the sheet (owner, 2026-09-17). */
+  const nameIt = (name: string) => {
+    props.onChange({ spotId: '', spotName: name, eventId: '' });
     setPickedHere(true);
     setSearching(false);
   };
@@ -92,13 +104,22 @@ export function QuickLog(props: {
         <button type="button" className={styles.quickSpot} onClick={() => setSearching(true)}>
           <Icon name="map" size={22} style={{ color: '#ff5a1f' }} />
           <span className={styles.spotText}>
-            <span className={styles.quickSpotName}>{spot ? spot.name : 'Pick where you rode'}</span>
+            {/*
+              A spot from the map, or a place the rider typed because the map
+              does not have it (owner, 2026-09-17). The typed one says so on its
+              sub-line, because it is words rather than somewhere with a page.
+            */}
+            <span className={styles.quickSpotName}>
+              {spot ? spot.name : values.spotName.trim() || 'Pick where you rode'}
+            </span>
             <span className={styles.spotSub}>
               {spot ? (
                 <>
                   {origin} · <span className={styles.touchWord}>tap</span>
                   <span className={styles.clickWord}>click</span> to change
                 </>
+              ) : values.spotName.trim() ? (
+                'Not on the map — just a name'
               ) : (
                 'Your spots and the map’s'
               )}
@@ -168,6 +189,8 @@ export function QuickLog(props: {
         <SpotSearchSheet
           recent={data.recentSpotIds.map((id) => spots.get(id)).filter((s): s is FormSpot => !!s)}
           onPick={pick}
+          onName={nameIt}
+          named={values.spotName}
           onClose={() => setSearching(false)}
         />
       ) : null}

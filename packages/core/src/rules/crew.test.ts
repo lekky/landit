@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CREW_CAPS,
   CREW_NAME_MAX_LENGTH,
   INVITE_CODE_ALPHABET,
   INVITE_CODE_LENGTH,
+  MAX_OWNED_CREWS,
   SUPERVISED_MIN_DIFF,
   crewActivityLine,
+  crewCapFor,
+  crewCapMessage,
   crewNameProblem,
   crewSlug,
   formatInviteCode,
@@ -198,5 +202,45 @@ describe('supervisedTricks', () => {
   it('mixes the two: a flagged trick and an unmigrated one both count', () => {
     const list = [flagged('drop-in', 2, true), trick('old-pro-trick', 5), trick('old-easy', 3)];
     expect(supervisedTricks(list).map((t) => t.id)).toEqual(['drop-in', 'old-pro-trick']);
+  });
+});
+
+describe('how many crews a plan may create', () => {
+  /*
+   * The owner's numbers (Rachid, 2026-09-17, in chat: "1 for free, 3 for 3.99
+   * and 10 for the top tier"), and the fail-closed floor under them.
+   *
+   * What the server enforces is the `plans` record, not these constants —
+   * `planCrewCap` in `pocketbase/hooks/lib/landit.js` reads the column, and
+   * `pocketbase/tests/crews.test.ts` reads the number back off the record
+   * rather than assuming it. What is checked here is the shape of the rule: the
+   * three numbers `PLANS` and the migration are seeded from, and that an absent
+   * or nonsense cap reads as one rather than as none.
+   */
+  it('carries the three numbers the plans and the migration share', () => {
+    expect(CREW_CAPS).toEqual({ rookie: 1, shredder: 3, legend: 10 });
+    expect(CREW_CAPS.rookie).toBeLessThanOrEqual(MAX_OWNED_CREWS);
+    expect(CREW_CAPS.shredder).toBeLessThanOrEqual(MAX_OWNED_CREWS);
+  });
+
+  it('reads a missing cap as one, never as none', () => {
+    // A rider whose plan record cannot be read still runs the crew they have:
+    // failing closed on a cap for *creating* means the smallest allowance, not
+    // nothing at all.
+    expect(crewCapFor(null)).toBe(1);
+    expect(crewCapFor(undefined)).toBe(1);
+    expect(crewCapFor({})).toBe(1);
+    expect(crewCapFor({ crewCap: 0 })).toBe(1);
+    expect(crewCapFor({ crewCap: -3 })).toBe(1);
+  });
+
+  it('takes the plan record’s number when there is one', () => {
+    expect(crewCapFor({ crewCap: 3 })).toBe(3);
+    expect(crewCapFor({ crewCap: 10 })).toBe(10);
+  });
+
+  it('says the refusal in words that agree with the number', () => {
+    expect(crewCapMessage(1, 'Rookie')).toBe('Rookie runs 1 crew at once.');
+    expect(crewCapMessage(3, 'Shredder')).toBe('Shredder runs 3 crews at once.');
   });
 });

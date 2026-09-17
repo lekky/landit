@@ -571,6 +571,11 @@ export interface SessionDraft {
   readonly durationMinutes: unknown;
   readonly sport: unknown;
   readonly spotId: string | null | undefined;
+  /**
+   * A place the rider typed because the map does not have it (owner, 2026-09-17).
+   * Used only when `spotId` is empty; it names the ride and links to nothing.
+   */
+  readonly spotName?: string;
   readonly feel: unknown;
   readonly weather?: unknown;
   readonly aim?: string;
@@ -604,7 +609,9 @@ export const SESSION_REFUSALS = {
   future: 'That time has not happened yet.',
   durationMinutes: 'Pick how long you rode for.',
   sport: 'Pick what you rode.',
-  spotId: 'Pick where you rode.',
+  spotId: 'Pick where you rode, or type where it was.',
+  spotNameLong: `A place name can be up to ${SESSION_LIMITS.spotNameMax} characters.`,
+  spotNameBadCharacters: 'Place names cannot contain line breaks.',
   spotHidden: 'That spot is not on the map.',
   eventHidden: 'That event is not on the calendar.',
   feel: 'Pick how it felt.',
@@ -630,6 +637,22 @@ export const SESSION_REFUSALS = {
  * plus the things a form cannot know (the spot is live, the crew-mate is a
  * crew-mate, the plan allows a clip, the month has room).
  */
+/**
+ * Is every character of this line printable?
+ *
+ * The same scan `crewNameProblem` uses, and for the same reason: the rule has
+ * to run in the PocketBase JSVM as well (`hooks/lib/session_rules.js`), whose
+ * regular-expression engine is not V8's, and a rule the server spells
+ * differently from the client is a rule with two answers.
+ */
+function isPrintableLine(value: string): boolean {
+  for (let i = 0; i < value.length; i += 1) {
+    const code = value.charCodeAt(i);
+    if (code < 0x20 || code === 0x7f) return false;
+  }
+  return true;
+}
+
 export function sessionProblems(
   draft: SessionDraft,
   now: number = Date.now(),
@@ -651,7 +674,31 @@ export function sessionProblems(
   if (!(SPORT_IDS as readonly unknown[]).includes(draft.sport)) {
     problems.sport = SESSION_REFUSALS.sport;
   }
-  if (!draft.spotId) problems.spotId = SESSION_REFUSALS.spotId;
+  /*
+   * Where it was: a spot from the map, **or** a place the rider typed because
+   * the map does not have it (owner, Rachid, 2026-09-17, in chat: "need a
+   * 'custom' or can't find it and let them type free text").
+   *
+   * One of the two, never neither: a session with no place is a session that
+   * cannot answer the first question anybody asks of it. A typed name is plain
+   * text and stays plain text — nothing renders it as a link, and no lookup
+   * tries to match it back to a spot, which is what keeps "it doesn't link to a
+   * page after" true rather than merely intended.
+   *
+   * It is trimmed before it is measured, so a name of spaces is no name; line
+   * breaks and control characters are refused for the reason crew names refuse
+   * them (`crewNameProblem`) — a name carrying a newline can pretend to be two
+   * rows in a list.
+   */
+  const typedSpot = (draft.spotName ?? '').trim();
+  if (!draft.spotId && !typedSpot) problems.spotId = SESSION_REFUSALS.spotId;
+  else if (!draft.spotId) {
+    if (typedSpot.length > SESSION_LIMITS.spotNameMax) {
+      problems.spotId = SESSION_REFUSALS.spotNameLong;
+    } else if (!isPrintableLine(typedSpot)) {
+      problems.spotId = SESSION_REFUSALS.spotNameBadCharacters;
+    }
+  }
   // Optional (Rachid, 2026-09-13, in chat): a rider logging the ride itself is
   // not made to rate it first. Only a value that is not one of the five is
   // refused — none at all is a session that says nothing about how it felt.
@@ -842,6 +889,14 @@ export function sessionMonthSummary(
     minutes,
     hours: sessionHours(minutes),
     stageMoves: inMonth.reduce((sum, s) => sum + sessionStageMoves(s).length, 0),
+    /*
+      Spots, not places: a session whose "where" is a name the rider typed
+      (`spotName`, owner 2026-09-17) counts towards sessions and minutes and not
+      towards this. Two riders' "the bank behind the leisure centre" are not
+      known to be the same place, and a count that pretended otherwise would be
+      a number nobody could check. `filter(Boolean)` is what does it — a typed
+      place leaves `spotId` empty.
+    */
     spotsRidden: new Set(inMonth.map((s) => s.spotId).filter(Boolean)).size,
   };
 }

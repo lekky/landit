@@ -1,7 +1,7 @@
 'use client';
 
-import { CREW_NAME_MAX_LENGTH, MAX_OWNED_CREWS } from '@landit/core';
-import { Avatar, Button, Empty, Icon, Panel, SportChip, Tag } from '@landit/ui-web';
+import { CREW_NAME_MAX_LENGTH } from '@landit/core';
+import { Avatar, Button, Empty, Icon, Modal, Panel, SportChip, Tag } from '@landit/ui-web';
 import Link from 'next/link';
 import { useActionState, useState, useTransition } from 'react';
 
@@ -57,6 +57,16 @@ export function CrewScreen({ view }: { view: CrewView }) {
    * opened both put two forms and four controls under a rider who wanted one.
    */
   const [opening, setOpening] = useState<'start' | 'join' | null>(null);
+  /*
+    Leaving asks first (owner, 2026-09-17: "leave crew needs a confirmation").
+
+    Heavier than a confirm normally deserves, and deliberately: crews are
+    invite-only with no discovery (plan §6.1), so a rider who leaves by
+    mis-tapping cannot walk back in — somebody has to send them a fresh code.
+    The dialog names the crew and says that consequence in a line, which is the
+    part a rider needs to decide with.
+  */
+  const [leaving, setLeaving] = useState(false);
 
   const crew = view.selected;
 
@@ -231,12 +241,9 @@ export function CrewScreen({ view }: { view: CrewView }) {
                 : 'Invite-only — nobody can find this crew or ask to join it.'}
             </p>
             {crew.membershipId ? (
-              <form action={leaveCrewAction} onSubmit={() => capture(ANALYTICS_EVENTS.crewLeft)}>
-                <input type="hidden" name="membership" value={crew.membershipId} />
-                <Button type="submit" variant="ghost" size="sm">
-                  Leave crew
-                </Button>
-              </form>
+              <Button variant="ghost" size="sm" onClick={() => setLeaving(true)}>
+                Leave crew
+              </Button>
             ) : null}
           </div>
         </>
@@ -248,8 +255,13 @@ export function CrewScreen({ view }: { view: CrewView }) {
         Counted on crews *owned*, not crews belonged to: the server's ceiling is
         on ownership (minting invites is what it limits), and a rider may sit on
         more boards than they run. Joining with a code is never capped.
+
+        The number is the **rider's plan's** (owner, 2026-09-17: "1 for free, 3
+        for 3.99 and 10 for the top tier"), read off the `plans` record in
+        `page.tsx` — the same record the hook reads before it refuses a create,
+        so this row cannot offer what the server would turn down.
       */}
-      {crew && view.crews.filter((c) => c.isOwner).length < MAX_OWNED_CREWS ? (
+      {crew && view.crews.filter((c) => c.isOwner).length < view.crewCap ? (
         <div className={styles.more}>
           <div className={styles.moreButtons}>
             <Button
@@ -273,6 +285,31 @@ export function CrewScreen({ view }: { view: CrewView }) {
           </div>
           {opening ? <NoCrew compact only={opening} /> : null}
         </div>
+      ) : null}
+
+      {leaving && crew && crew.membershipId ? (
+        <Modal onClose={() => setLeaving(false)} width={460} label={`Leave ${crew.name}?`}>
+          <div className={styles.leaveBody}>
+            <h2 className={`d ${styles.leaveTitle}`}>Leave {crew.name}?</h2>
+            <p className={styles.leaveCopy}>
+              You come off the board and the activity feed.{' '}
+              <b>You will need a new invite code to come back</b> — nobody can search for a crew or
+              ask to join one.
+              {crew.isOwner ? ' The crew carries on with whoever is left in it.' : ''}
+            </p>
+            <div className={styles.leaveActions}>
+              <Button size="sm" variant="ghost" onClick={() => setLeaving(false)}>
+                Stay in
+              </Button>
+              <form action={leaveCrewAction} onSubmit={() => capture(ANALYTICS_EVENTS.crewLeft)}>
+                <input type="hidden" name="membership" value={crew.membershipId} />
+                <Button type="submit" size="sm">
+                  Leave crew
+                </Button>
+              </form>
+            </div>
+          </div>
+        </Modal>
       ) : null}
 
       {inviting && crew && inviteCode ? (

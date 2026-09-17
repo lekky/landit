@@ -133,4 +133,14 @@ export const SESSION_LIMITS = {
   notesMax: 2000,
   crewMax: 10,
   tricksMax: 20,
+  /**
+   * A place the rider typed because the map does not have it (owner, Rachid,
+   * 2026-09-17, in chat: "need a 'custom' or can't find it and let them type
+   * free text, and free text ones obviously don't link to a page after").
+   *
+   * Short on purpose: it is the name of a place, not a note. 80 is longer than
+   * every spot name in the imported set and short enough that it cannot become
+   * somewhere to write a paragraph nobody will read back.
+   */
+  spotNameMax: 80,
 } as const;

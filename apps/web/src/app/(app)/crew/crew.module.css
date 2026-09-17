@@ -388,3 +388,46 @@
   margin-top: 3px;
   letter-spacing: 0.04em;
 }
+
+/*
+ * The "leave this crew?" confirm (owner, 2026-09-17: "leave crew needs a
+ * confirmation").
+ *
+ * The shape the delete-a-session confirm already uses — title, one paragraph of
+ * consequence, then Stay in / Leave crew — because they are the same kind of
+ * moment and a rider should not have to read two different dialogs to answer
+ * the same question. `Modal` draws no gutters of its own, so the body brings
+ * them.
+ */
+.leaveBody {
+  padding: 20px 22px 22px;
+}
+
+.leaveTitle {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.leaveCopy {
+  margin: 11px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.leaveCopy b {
+  color: var(--ink);
+}
+
+.leaveActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.leaveActions > :last-child {
+  margin-left: auto;
+}

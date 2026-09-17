@@ -1381,3 +1381,55 @@
     justify-content: center;
   }
 }
+
+/*
+ * "Can't find it? Type where it was" — the spot picker's way out (owner,
+ * Rachid, 2026-09-17, in chat).
+ *
+ * Quiet by design: it sits under the results because it is the answer to "none
+ * of these", and it is a text link rather than a button so it never competes
+ * with the spots above it. The box it opens carries the design's own field
+ * treatment, and says in one line that what it saves is a name rather than a
+ * place with a page.
+ */
+.customOpen {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.customOpen:hover {
+  color: var(--ink);
+}
+
+.customBox {
+  margin-top: 6px;
+  padding: 12px;
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.customActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.customActions > :last-child {
+  margin-left: auto;
+}
