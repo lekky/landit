@@ -637,9 +637,9 @@ test('arriving at the library any other way starts at the top, as it always did'
   // top-of-grid arrival they always got.
   const nav = page.getByRole('navigation', { name: 'Main' });
   // **Find**, not Spots: the bar carries four groups since the app shell
-  // rethink (T45) and `/find` lands on `/spots` until T48 builds the summary.
+  // rethink (T45), and Find lands on its own "For you" summary (T48).
   await nav.getByRole('link', { name: 'Find' }).click();
-  await expect(page).toHaveURL(/\/spots$/);
+  await expect(page).toHaveURL(/\/find$/);
   await nav.getByRole('link', { name: 'Tricks' }).click();
   await expect(page).toHaveURL(/\/library$/);
   await expect(card(page, freeTrick.name)).toBeVisible();

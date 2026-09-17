@@ -236,6 +236,29 @@ through the component and moves nothing that does not.
 
 **`SportScopeSelect`** (new, `apps/web/src/components/shell/SportScopeSelect.tsx`) — one line under a list's header: a `.lab` label ("Show") and a **styled `<select>`** in the design's select treatment (the Country select on `/events` is the precedent: 3px keyline, `--sh-sm`, Barlow Condensed 700 uppercase). Options: **Your sport (Scooter)** — which tracks the chip, so switching the chip switches the list — then **All sports** (reads "Every spot" on Spots), then one entry per other sport the rider does not currently have selected. Default per O1: Spots → Every spot; Events, Sessions, Glossary → Your sport. Choosing fires `sport_scope_set` `{ screen, scope: 'chip' | 'all' | 'other' }` (never the sport id of an "other" choice beyond the three catalogue ids). The choice is per screen and per device (`localStorage` key `landit.scope.<screen>`), not rider data.
 
+**Three corrections to the paragraph above, from the code that built it** *(added by the T48
+worker, 2026-09-17, pending owner confirmation)*.
+
+- **The keyline is 2.5px, not 3.** The paragraph names the Country select on `/events` as the
+  precedent *and* says "3px keyline"; the precedent is `2.5px solid var(--ink)`, and the control
+  matches the precedent rather than the number, because it sits one line away from it on the same
+  screen. The face is `.cond` (Barlow Condensed 600), which is the same class the Country select
+  uses, rather than the 700 named above.
+- **The browser's own menulist is turned off.** `appearance: none`, the inline chevron and 38px of
+  right padding, the block `additions.css` already applies to `.field select` and explains there:
+  left alone, WebKit paints a grey rounded menulist inside the ink keyline, which is the only radius
+  and the only grey fill on the page. Stated unconditionally, where the package's copy lives inside
+  a phone media query — the reason is not a phone reason, and one control that looks the same at
+  every width beats two that differ at 861px. The same three lines and §4's 44px went onto
+  `/events`' Country select in the same pass ([issue #552](https://github.com/lekky/landit/issues/552)).
+- **With no rider there is no "Your sport" option at all.** Signed out the top bar has no sport chip
+  (T45 hides the right-hand group with the rider), so the first option would be a claim about
+  somebody the product has never met, following a fallback they cannot see or change. The control
+  therefore takes "is anybody signed in" as its own input — never as a fallback that happens to name
+  a real sport (LESSONS §3a) — and with no rider it offers "All sports" and then every sport, a
+  stored `'chip'` reads as the screen's default, and both screens pass "every sport" as that
+  default. See §3.7.
+
 ### 3.4 Home
 
 **`LinkCard`** (new, `apps/web/src/app/(app)/home/LinkCard.tsx`) — a coloured card that is a link: `.lab` title with a 18px icon at the right, an Anton number at 30px, a 12.5px `--ink-2` sub-line, an arrow at the bottom-right. 3px keyline, `--sh-sm`, `min-height: 112px`. Press: the button press. Four of them on Home in a `2 × 2` grid below 860px and one `4-up` row above: **Progress** (landed count · learning · want to), **Sessions** (this month · last spot and day; hidden when sessions are not enabled for the rider, as `sessionsEnabled` already decides), **Stickers** (earned · newest), **Challenge** (logged / goal · title · ends). Fires the existing `nav_clicked` `{ to, where: 'home-card' }`.
@@ -570,6 +593,103 @@ precedent `last_seen` set.
 - `/spots` and `/events` gain the same `TabRow` at the top and lose their eyebrow + h1 header on the phone (they keep it on desktop). Their sport pill rows become `SportScopeSelect` (O1: Spots opens on Every spot, Events on your sport). Events' Upcoming / Past / Mine switch becomes pills Upcoming · Past; Mine lives on For you.
 - Fires `tabs_switched` `{ group: 'find', tab }`.
 
+**The hub keeps its header at every width, and the two lists give theirs up by clipping it**
+*(added by the T48 worker, 2026-09-17, pending owner confirmation)*. §3.7 asks for "Find / Where to
+ride" on the hub and for `/spots` and `/events` to lose their eyebrow + h1 on the phone. Two things
+had to be settled to build that. The hub is the group's *landing* screen rather than a list with a
+lit tab above it, so nothing else on it says where a rider is — its header stays on at 390px. And
+the two lists take the clip that the spot cards already use (`position: absolute`, 1×1,
+`clip-path: inset(50%)`) rather than `display: none`, because the latter takes the `h1` out of the
+accessibility tree as well as off the screen, and a phone screen with no heading at all is a worse
+page than one with a redundant heading. On `/events` the clip goes on the header *row* rather than
+on a wrapper inside it: `.page` is a flex column with an 18px gap, and a row that is merely empty
+still collects a gap on each side — 36px of nothing, which is most of what hiding the heading was
+meant to save.
+
+**`/events/mine` keeps its title at every width, has no pills and no sport scope, and takes no
+back link** *(added by the T48 worker, 2026-09-17, pending owner confirmation; amended after the
+independent review of 2026-09-17, findings B1 and S3)*. It is the one screen in the group that the
+Upcoming · Past pills cannot describe — they are each other's exact complement and a rider's own
+events are neither — so the pills are not rendered there at all, and with the title clipped a phone
+would show a list of events with nothing on screen saying whose they are.
+
+**The sport scope does not apply to it either.** O1 sets a default for *a calendar of what is on*;
+a rider's own events are a record of decisions they already made, and a filter over five rows can
+only hide one of them. Measured before the fix: a rider down for two events across two sports
+opened the screen and saw one. So `mine` is every sport, whatever is stored, and
+`SportScopeSelect` is not rendered on it — the same treatment the pills get, for the same reason.
+
+**And it carries no back link.** §2.3 asks a screen reached from somewhere else for one, and the
+first cut gave this one "← For you"; but §2.3's examples are screens with no row above them naming
+the parent, and here the Find tab row is there with "For you" lit. Two controls with the same words,
+going to the same address, 40px apart on a phone is a thing a child has to work out rather than
+read. The row is the back link. The calendar's own "You're down for N events" panel keeps its
+"See yours →", which makes two doors into the route rather than the one the Mine pill used to be.
+
+**A visitor's lists open on every sport, and are never offered "your sport"** *(added by the T48
+worker, 2026-09-17, pending owner confirmation; independent review finding S1)*. §3.7's signed-out
+line covers the hub and not the two lists. Signed out there is no sport chip — T45 hides the whole
+right-hand group with the rider — and `useSport()` still answers with its first sport, so the first
+cut opened a visitor's `/events`, `/events/past` and `/events/past/[year]/[town]` narrowed to
+scooter under a control reading "Your sport (Scooter)". Three things were wrong with that and only
+one of them is cosmetic: those are public, crawlable pages whose whole justification is a stranger
+arriving from a search result; the words are a claim about somebody we have never met; and the
+Upcoming pill above still read the unfiltered total over a narrowed list, so the screen disagreed
+with itself.
+
+So the scope control takes "is anybody signed in" as its own input. With no rider the chip is
+`null`: the first option is not offered at all, a stored `'chip'` reads as the screen's default,
+and both screens pass "every sport" as that default. `/spots` gets the same treatment in the same
+change — its default was already "every spot", but a stored `'chip'` could have narrowed it the
+same way, and one rule is better than one rule and an exception.
+
+**"Coming up" opens on the reader's country and widens rather than emptying** *(added by the T48
+worker, 2026-09-17, pending owner confirmation)*. §3.7 says "the next events" and does not say
+whose. The calendar is two hundred-odd events across thirty countries and `/events` already opens
+narrowed to the reader's own country for that reason (2026-09-12), resolved on the server from a
+declared sign-up country or `Accept-Language`; a hub that led with a jam in Chile for a rider in
+Corby would be a section nobody reads twice. Where that country has nothing upcoming in it the
+section falls back to the whole calendar, because an empty panel reads as a product with no events
+in it. A `.lab` line says which country when the narrowing actually held, and says nothing when it
+did not, so it never claims a filter that is not on. Events the rider is already going to are left
+out, so the hub does not print the same jam twice.
+
+**The hub's rows send `from=list`, and the hub itself fires nothing new** *(added by the T48 worker,
+2026-09-17, pending owner confirmation)*. §5 gives T48 one event, `tabs_switched`, and `TabRow`
+fires it. The section links ("Mine →", "All spots →", "All events →") deliberately fire nothing:
+`nav_clicked`'s `to` is a group id and its `where` is one of four fixed places, so a route pushed
+into it from here would be a property invented at the call site, which is the one thing the
+catalogue forbids. An event row on the hub links with `EventPageSource` `'list'` — the same value a
+row on `/events` sends — rather than a fourth value, because the hub is a list of events and adding
+one would be a catalogue change for a distinction nothing is asking about yet. What measures the
+hub is `tabs_switched { group: 'find' }` plus the `spot_page_opened` and `event_page_opened` the
+rows already land on.
+
+**A stored scope arrives one render after the server's default** *(added by the T48 worker,
+2026-09-17, pending owner confirmation)*. `SportScopeSelect` keeps its choice in `localStorage`,
+which the server cannot see, so `useSportScope` is a `useSyncExternalStore` whose server snapshot is
+the screen's default — no hydration mismatch, nothing that could throw the tree away (LESSONS §3a) —
+and a rider who has chosen a scope on this device sees their list a moment after hydration. That is
+the price of a per-device preference; it is deliberately not paid with a cookie, because a display
+choice about which sports a list shows does not belong in a header sent with every request, and on
+both screens the default is the wider list, so what changes after hydration is a narrowing rather
+than a rider being shown somebody else's list first.
+
+**The per-sport counts go with the pills, and `/spots` makes one query less** *(added by the T48
+worker, 2026-09-17, pending owner confirmation)*. The multi-select's pills each carried a count
+("BMX 210"), which answered "is it worth narrowing to this?" before a rider narrowed. A `<select>`
+has no room for a number beside each option and an option that carried one would read as part of the
+sport's name, so they are gone — and with them `countSpotsBySport`, which `/spots` called on every
+load to compute them. `view.countBySport` stays on the events view, which is cheap and which
+`/events/past` may still want.
+
+**The scope select is 44px where the Country select it copies is about 32** *(added by the T48
+worker, 2026-09-17, pending owner confirmation)*. §3.3 names the Country control on `/events` as the
+precedent for the select treatment, and §4 says nothing tappable is below 44px. The precedent sets
+the look and the floor sets the size; where they disagree the floor wins, because this control
+replaced a row of pills a thumb could hit. `/events`' own Country select is left alone — it is not
+this task's, and it has [issue #552](https://github.com/lekky/landit/issues/552) of its own.
+
 ### 3.8 Trick page (D7)
 
 Phone order: BackLink → hero band (category tag, difficulty, name, one-line lowdown) → **sticker + video row** (`StickerBadge` in a paper card with "Earned <date>" or "Land it at Sometimes", and the existing video block as a 16:9 thumbnail with a play square; with no video the sticker card spans the row) → the yellow "Can you do it?" band with the `StagePicker` and Share → a row of small buttons (Sticker · Watch · Clip) → **`Accordion`** rows for The lowdown, Tips, What you need, The road to it, Where to practise, Your history / notes / clips → More like this.
@@ -707,6 +827,17 @@ Changed: `sport_switched` gains `where: 'chip'` (the tab rows that fired it with
 `nav_clicked` gains the values `find`, `log` for `to` and `'top'` for `where`. Removed:
 `nav_section_opened` (the drawer is gone; its doc comment is deleted, not left describing a
 control that no longer exists).
+
+**`sport_filter_set` stops firing but stays in the catalogue** *(added by the T48 worker,
+2026-09-17, pending owner confirmation)*. It was the multi-select's event, fired from `/spots` and
+`/events`, and `SportScopeSelect` replaced both rows — so nothing sends it any more and
+`sport_scope_set` is the question it used to answer. The entry is left where it is rather than
+deleted: T46 and T47 have `analytics.ts` open in the same wave, and removing a catalogue line is
+also a decision about the history already in the funnel, which is the owner's rather than a build
+session's. Its doc comment now describes a control that no longer exists, which
+[issue #551](https://github.com/lekky/landit/issues/551) is where that gets settled. Same for
+`events_view_switched`'s `'mine'`: the pill that sent it is gone, and `'upcoming'` and `'past'`
+still fire from the two that replaced it.
 
 ---
 

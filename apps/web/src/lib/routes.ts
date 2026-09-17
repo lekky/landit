@@ -105,9 +105,10 @@ export const ROUTES = {
    * D2, 2026-09-15).
    *
    * One of the four groups both bars carry, holding Spots, Events, the archive
-   * and the rider's own events. **It is a redirect to `/spots` until T48** — the
-   * route exists now because T45 builds the bars that point at it, and a cell
-   * pointing at nothing is worse than a cell that lands one screen early.
+   * and the rider's own events. It lands on the **For you** summary (T48): what
+   * the rider is going to, what is near them, and what is coming up, with the
+   * group's tab row above and the full list behind each section. Public, like
+   * the two screens its tabs lead to.
    */
   find: '/find',
   /**

@@ -1,0 +1,239 @@
+/*
+ * The Find hub (rethink §3.7) — three summary columns and nothing else.
+ *
+ * Every value here is a token or a number the design already uses: the 3px ink
+ * keyline, the hard offset shadows, zero radius, the three faces. Nothing on
+ * this screen is a new colour, a new shadow or a new radius, which is the one
+ * rule the spec puts above the others.
+ *
+ * **Global classes are wrapped in `:global(...)`.** `.lab`, `.d` and `.panel`
+ * are `packages/ui-web`'s; a module that names one bare in a descendant
+ * selector writes a rule that can never match, because the build hashes it into
+ * a class the JSX never writes (LESSONS §3a — seven of those had been dead for
+ * a month before anybody noticed).
+ */
+
+.head {
+  margin-bottom: 14px;
+}
+
+.title {
+  font-size: clamp(30px, 5vw, 44px);
+  margin-top: 6px;
+}
+
+.tabs {
+  margin-bottom: 20px;
+}
+
+/*
+ * Three columns on a wide screen (§3.7), one on a phone.
+ *
+ * `auto-fit` rather than `repeat(3, 1fr)`, because the hub has two sections for
+ * a visitor and three for a rider: a fixed three-column grid would leave a
+ * visitor looking at an empty third of the page. The 240px floor is what stops
+ * a column narrowing past the point where an event's date block and its name
+ * fit on one row.
+ */
+.columns {
+  display: grid;
+  gap: 26px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 861px) {
+  .columns {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 22px;
+    align-items: start;
+  }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: var(--bd);
+  padding-bottom: 6px;
+}
+
+.sectionTitle {
+  font-size: 20px;
+  margin: 0;
+}
+
+/*
+ * "All events →". A link at the 44px target without a box of its own: the
+ * padding gives the thumb its square and the negative margin takes it back off
+ * the layout, so the heading rule still sits where the eye expects it.
+ */
+.more,
+.more:hover {
+  color: var(--ink-3);
+  white-space: nowrap;
+  padding: 12px 0;
+  margin: -12px 0;
+}
+
+.more:hover {
+  color: var(--ink);
+}
+
+.quiet {
+  color: var(--ink-3);
+  margin: 0;
+}
+
+.none {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+/* ------------------------------------------------------------------ rows -- */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  min-height: 56px;
+}
+
+/*
+ * A spot row is a link to the spot's page, so it takes the panel's surface
+ * itself rather than wrapping one — and the design's one gesture with it: the
+ * press moves 2px and drops the shadow to 1px (§4).
+ */
+.rowLink,
+.rowLink:hover {
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  color: var(--ink);
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press);
+}
+
+.rowLink:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.rowLink:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.rowBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowName,
+.rowName:hover {
+  display: block;
+  font-size: 17px;
+  line-height: 1.15;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.rowMeta {
+  color: var(--ink-3);
+  margin-top: 3px;
+  font-size: 11px;
+}
+
+/* The event date block, the same square `/events` draws, at the hub's size. */
+.date {
+  width: 46px;
+  min-width: 46px;
+  border: var(--bd);
+  text-align: center;
+  padding: 4px 0 5px;
+  color: var(--on-light);
+}
+
+.dateDay {
+  display: block;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.dateMonth {
+  display: block;
+  font-size: 9.5px;
+  margin-top: 2px;
+}
+
+/* ------------------------------------------------------- where you are -- */
+
+/*
+ * Standard 10's indicator and its way out, in the same words and the same
+ * colours `/spots` and `/events` use — one feature, drawn once, wherever a
+ * rider meets it.
+ */
+.here {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 44px;
+}
+
+/*
+ * "Near me" carries a 14px map glyph, and `.pill` is a plain inline box with no
+ * gap — drawn as it comes, the icon and the word touch. `/spots` says the same
+ * thing in its own `.nearMe`; this is that rule, here, because a module cannot
+ * borrow one from another file. `:global`, because `.pill` is
+ * `packages/ui-web`'s and a bare name would hash into a class nothing writes
+ * (LESSONS §3a).
+ */
+.here :global(.pill) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+}
+
+.on {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 11px;
+  border: 2.5px solid var(--ink);
+  background: var(--lime);
+  box-shadow: var(--sh-sm);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  background: var(--ink);
+  border-radius: 50%;
+}
+
+.off,
+.off:hover {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  padding: 11px 0;
+  margin: -11px 0;
+  cursor: pointer;
+}

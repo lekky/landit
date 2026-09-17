@@ -594,3 +594,77 @@
 .backLink:hover {
   color: var(--ink);
 }
+
+/* ------------------------------------------------------- sport scope row -- */
+
+/*
+ * "Show: Your sport (Scooter)" — `SportScopeSelect` (§3.3, O1).
+ *
+ * The design's select treatment, which is the Country control on `/events`:
+ * a 2.5px ink keyline, the paper fill and the small hard offset, with the
+ * condensed face the rest of the furniture uses. Restated here rather than
+ * shared out of `events.module.css`, because a module is scoped to its own
+ * file and the alternative is a global class in `additions.css` for two
+ * controls — which is the shared, additive-only stylesheet the shell's own
+ * furniture has no business growing into (see this file's opening note).
+ *
+ * **44px, where the Country select is about 32.** §4's floor is that nothing
+ * tappable is below 44px, and this control is the one that used to be a row of
+ * pills a thumb could hit. The precedent sets the *look*; the floor sets the
+ * size, and where the two disagree the floor wins. `/events`' own Country
+ * select is not touched here — it is not this task's, and it has issue #552 of
+ * its own rather than a drive-by change to a control T48 did not come for.
+ */
+.scopePick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+/*
+ * `:global(.lab)`, because `.lab` is `packages/ui-web`'s and this module does
+ * not define it — written bare, the build hashes it into a class the JSX never
+ * writes and the rule is dead on arrival (LESSONS §3a, the seven dead rules).
+ */
+.scopePick :global(.lab) {
+  color: var(--ink-3);
+}
+/*
+ * **The browser's own menulist is turned off** (review S2).
+ *
+ * `additions.css` already patches exactly this for `.field select`, and says
+ * why in as many words: left alone, WebKit paints "a grey rounded menulist
+ * inside the ink keyline — the only radius and the only grey fill on the page".
+ * Zero border radius is the design's first rule, and this control is now
+ * permanent furniture on the two biggest screens in the product, so it is the
+ * wrong one to leave looking like a system widget.
+ *
+ * The chevron is the same inline SVG at the same ink, because it is the same
+ * control wearing the same treatment; the 38px of right padding is what keeps a
+ * long option ("Your sport (Scooter)") off it.
+ *
+ * Stated **unconditionally**, where `.field select`'s copy lives inside
+ * `@media (max-width: 860px)`. That block is the phone's touch-hygiene sweep
+ * and the fix arrived with it; the reason is not a phone reason. A desktop
+ * Chromium paints its own arrow too, and one control that looks the same at
+ * every width beats two that differ at 861px.
+ */
+.scopePick select {
+  min-height: 44px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  box-shadow: var(--sh-sm);
+  padding: 6px 10px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  max-width: 15rem;
+  min-width: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2312100b' stroke-width='2.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 12px 8px;
+  padding-right: 38px;
+}

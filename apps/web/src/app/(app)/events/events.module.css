@@ -26,11 +26,45 @@
 
 /* ------------------------------------------------------------- heading --- */
 
+/* The Find group's tab row, above everything else on the screen (§3.7). */
+.tabs {
+  margin: 16px 0 14px;
+}
+
 .headRow {
   display: flex;
   align-items: flex-end;
   gap: 14px;
   flex-wrap: wrap;
+}
+
+/*
+ * The eyebrow, the title and the lede, **seen on desktop only** (§3.7).
+ *
+ * Below 861px the tab row above says "Events" in the lit box and the two pills
+ * below say which half of the calendar is on screen, so these three lines were
+ * the same information a third time — measured at 390px, about 150px before the
+ * first event.
+ *
+ * Clipped rather than `display: none`, so the `h1` stays in the accessibility
+ * tree: a phone with no heading is a worse screen than one with a redundant
+ * heading, and the clip costs nothing. The class sits on `.headRow` itself, not
+ * on a wrapper inside it, so the row leaves `.page`'s flex flow and takes its
+ * two 18px gaps with it. A rider's own events keep the words at every width —
+ * see the comment in `EventsScreen.tsx`.
+ */
+@media (max-width: 860px) {
+  .headWords {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
 }
 
 .head {
@@ -341,7 +375,22 @@
   gap: 8px;
 }
 
+/*
+ * The Country control, brought up to the two rules the scope select beside it
+ * already meets (issue #552, review S2).
+ *
+ * **44px**, where the padding alone came out at about 37: §4 of the app shell
+ * rethink sets the floor at 44 for anything tappable, and this is a control a
+ * thumb uses on `/events` and `/events/past`.
+ *
+ * **No native menulist.** Left alone, WebKit paints a grey rounded box inside
+ * the ink keyline — the only radius and the only grey fill on the page — which
+ * `additions.css` already patches for `.field select` and explains there. Two
+ * selects one line apart, one of them a system widget, is the version of this
+ * that reads as a bug.
+ */
 .countryPick select {
+  min-height: 44px;
   border: 2.5px solid var(--ink);
   background: var(--paper);
   box-shadow: var(--sh-sm);
@@ -349,6 +398,14 @@
   font-size: 13px;
   letter-spacing: 0.04em;
   max-width: 15rem;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2312100b' stroke-width='2.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 12px 8px;
+  padding-right: 38px;
 }
 
 .locating {
@@ -462,37 +519,34 @@
    44px minimum height is the accessibility floor the handoff sets for every
    control on a phone, and this is one a thumb has to hit. */
 
+/*
+ * Upcoming · Past, as two pills (§3.7, D6) rather than the one segmented box
+ * they used to share with Mine.
+ *
+ * The pills are `packages/ui-web`'s `.pill` — keyline only, ink when on, which
+ * is D6's "pills keep their keyline-only look because they filter rather than
+ * navigate". What this file adds is the 44px floor (§4's touch target, which
+ * `.pill`'s 7px padding does not reach on its own) and the count's colour.
+ */
 .viewSwitch {
   display: flex;
-  width: max-content;
-  max-width: 100%;
-  border: 3px solid var(--ink);
-  box-shadow: 3px 3px 0 var(--ink);
-  background: var(--paper);
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.viewSwitchItem {
+.viewSwitchItem,
+.viewSwitchItem:hover {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   min-height: 44px;
-  padding: 9px 18px;
-  font-size: 14px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--ink);
-  border-right: 3px solid var(--ink);
-}
-
-.viewSwitchItem:last-child {
-  border-right: 0;
 }
 
 /* The global `a:hover { color: var(--pink) }` outranks a single class, so the
    hover is stated on the element itself (issue #297, and the same trap
    LESSONS §3a records for `.btn`). */
 .viewSwitchItem:hover {
-  color: var(--ink);
   background: var(--yellow);
 }
 

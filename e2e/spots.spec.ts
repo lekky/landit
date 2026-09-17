@@ -20,6 +20,8 @@ declare const window: {
   sessionStorage: unknown;
   /* Two frames is how the sheet's scroll test waits for a scroll to land. */
   requestAnimationFrame: (run: () => void) => number;
+  /* And this is how it checks the wheel actually moved something. */
+  scrollY: number;
 };
 declare const navigator: object;
 declare const document: { cookie: string };
@@ -114,23 +116,27 @@ const card = (page: Page, name: string) =>
  * badge never appeared. Nothing was wrong with the product; the spec was
  * relying on a race it never stated.
  *
- * `aria-pressed` flipping is the proof: the pill's state lives in React, so the
- * attribute cannot change until the component owns the DOM node.
+ * **A choice that sticks is the proof.** The scope `<select>` is controlled by
+ * React, so before hydration a native `selectOption` sets the DOM value and the
+ * first React render puts it straight back to the server's; after hydration the
+ * change reaches `setScope` and the value is kept. Polling until it holds is
+ * therefore the same assertion the old sport pill's `aria-pressed` made, on the
+ * control that replaced it (rethink §3.3, O1) — and it retries rather than
+ * failing on the race, which is what the pill version could not do.
  *
- * It presses a *sport* pill and then puts it back, rather than pressing "Every
- * spot" as it used to. Since the filter became a multi-select the screen opens
- * on "Every spot" already pressed (2026-09-12), so that pill's `aria-pressed`
- * is `true` in the server's own markup and flipping nothing proves nothing. A
- * sport pill starts `false`, so it can only read `true` once React is live —
- * and pressing "Every spot" afterwards leaves the screen unfiltered, which is
- * what the rest of this file expects to find.
+ * It is put back to "Every spot" afterwards, which is what this screen opens on
+ * and what the rest of this file expects to find.
  */
 async function whenInteractive(page: Page): Promise<void> {
-  const sport = page.getByRole('button', { name: /^BMX/ });
-  await sport.click();
-  await expect(sport).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('button', { name: 'Every spot' }).click();
-  await expect(sport).toHaveAttribute('aria-pressed', 'false');
+  const scope = page.getByLabel('Show spots for');
+  await expect
+    .poll(async () => {
+      await scope.selectOption('bmx');
+      return scope.inputValue();
+    })
+    .toBe('bmx');
+  await scope.selectOption('all');
+  await expect(scope).toHaveValue('all');
 }
 
 async function findSpot(page: Page, name: string) {
@@ -179,13 +185,13 @@ test.describe('where to ride', () => {
 
     await expect(page.getByRole('heading', { name: 'Where to ride' })).toBeVisible();
 
-    // **The screen opens on every spot**, with nothing pressed but "Every spot"
-    // (owner, 2026-09-12). It used to open filtered to whatever sport the
-    // global switch was on, so this count was only true after a press.
-    await expect(page.getByRole('button', { name: 'Every spot' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    // **The screen opens on every spot** (owner, 2026-09-12; kept by O1 on
+    // 2026-09-16, which sets the default per screen from the quality of the
+    // data and leaves this one alone). It used to open filtered to whatever
+    // sport the global switch was on, so this count was only true after a
+    // press. The control is a `<select>` since the rethink; the default is the
+    // thing being pinned, not the widget.
+    await expect(page.getByLabel('Show spots for')).toHaveValue('all');
 
     // The count is the claim about the whole collection; the cards below it are
     // one page of that. Asserting the count is what proves the seed landed —
@@ -225,84 +231,96 @@ test.describe('where to ride', () => {
   test('offers every sport, BMX included', async ({ page }) => {
     /*
      * The defect this pins (owner, 2026-08-31: "doesn't have bmx"), now on the
-     * control that replaced the one it was written for.
+     * third control to answer this question on this screen.
      *
-     * This screen has had two sport controls and both could strand a rider.
-     * The prototype's "Switch to {other}" pill picked the first sport that was
-     * not the current one — a toggle at two sports, a dead end at three, with
-     * BMX unreachable. `SportSwitch` fixed that and introduced its own: it is
-     * fed by the rider's own `users.sports` and renders nothing below two, so a
-     * rider who records one sport saw no tabs and a pill hard-wired to that
-     * sport. The filter row is over `SPORT_IDS` and is the same for everybody.
+     * Two of the three could strand a rider. The prototype's "Switch to
+     * {other}" pill picked the first sport that was not the current one — a
+     * toggle at two sports, a dead end at three, with BMX unreachable.
+     * `SportSwitch` fixed that and introduced its own: it is fed by the rider's
+     * own `users.sports` and renders nothing below two, so a rider who records
+     * one sport saw no tabs and a pill hard-wired to that sport. The
+     * multi-select row was over `SPORT_IDS`, and so is `SportScopeSelect`
+     * (rethink §3.3, O1) — every sport there is, the same for everybody.
      *
-     * Counting the pills rather than naming them is deliberate: a fourth sport
-     * should move this assertion, not slip past it.
+     * Counting the options rather than naming them is deliberate: a fourth
+     * sport should move this assertion, not slip past it. There are
+     * `SPORT_IDS.length + 1` of them either way, but for two different reasons.
+     * Signed in — which is `find.spec.ts`' half of this — the list is "your
+     * sport", "every spot", and one entry per *other* sport. **This file is a
+     * visitor**, and a visitor is offered no "your sport" at all (review S1):
+     * they have no chip in the top bar, so the words would be a claim about
+     * somebody the product has never met. Their list is "every spot" and then
+     * every sport there is.
      */
     await page.goto('/spots');
-    const row = page.getByRole('group', { name: 'Filter spots by sport' });
-    // One per sport, plus "Every spot".
-    await expect(row.getByRole('button')).toHaveCount(SPORT_IDS.length + 1);
+    const scope = page.getByLabel('Show spots for');
+    await expect(scope.locator('option')).toHaveCount(SPORT_IDS.length + 1);
+    await expect(scope.locator('option[value="chip"]')).toHaveCount(0);
+    await expect(scope.locator('option').first()).toHaveText('Every spot');
     // And the global tab row is gone from this screen with it.
     await expect(page.getByRole('tablist', { name: 'Spots by sport' })).toHaveCount(0);
 
     await whenInteractive(page);
-    const bmx = row.getByRole('button', { name: /^BMX/ });
-    await bmx.click();
-    await expect(bmx).toHaveAttribute('aria-pressed', 'true');
+    await scope.selectOption('bmx');
+    await expect(scope).toHaveValue('bmx');
 
-    // And it is a real filter, not a pill that only highlights: a park that
-    // takes BMX and bans scooters is on the list under BMX and gone under
-    // Scooter.
+    // And it is a real filter, not a label that only changes: a park that takes
+    // BMX and bans scooters is on the list under BMX and gone under Scooter.
     await page.getByLabel('Search spots').fill(bmxNotScooterSpot.name);
     await expect(card(page, bmxNotScooterSpot.name)).toBeVisible();
 
-    await bmx.click();
-    await row.getByRole('button', { name: /^Scooter/ }).click();
+    /*
+     * By name, because this is a visitor. A signed-in rider reaches their own
+     * sport through `'chip'` — the first option, which keeps following the top
+     * bar — and it is not offered a second time by name; `find.spec.ts` pins
+     * that half. With no chip there is nothing to follow and every sport is
+     * simply listed.
+     */
+    await scope.selectOption('scooter');
     await expect(page.getByText(bmxNotScooterSpot.name, { exact: true })).toHaveCount(0);
   });
 
-  test('takes more than one sport at once', async ({ page }) => {
+  test('is one scope at a time, and remembers it on this device', async ({ page }) => {
     /*
-     * The ask this row was built for (owner, 2026-09-12: "I just want them to
-     * be able to pick everything, or one of each, or multiple"). Neither
-     * control this screen had before could express "scooter and BMX" — they
-     * were one sport or all of them.
+     * O1, 2026-09-16 (Rachid, in chat). The row this replaced was a
+     * multi-select built for "everything, or one of each, or multiple"
+     * (2026-09-12); the dropdown deliberately gives that up, because the sport
+     * is chosen once — in the top bar — and a list either follows it, widens,
+     * or is pointed at one other sport.
      *
-     * Any of the chosen sports, not all: a park that takes BMX and bans
-     * scooters belongs in "scooter and BMX", because the rider is asking for
-     * both lists at once.
+     * Two things are pinned here and they are the whole of the decision: there
+     * is no way to ask for two sports at once, and the answer survives a
+     * reload because it is kept per screen and per device.
      */
     await page.goto('/spots');
     await whenInteractive(page);
 
-    const row = page.getByRole('group', { name: 'Filter spots by sport' });
-    await row.getByRole('button', { name: /^Scooter/ }).click();
-    await row.getByRole('button', { name: /^BMX/ }).click();
+    const scope = page.getByLabel('Show spots for');
+    // One control, one answer. A multi-select would be a `<select multiple>` or
+    // a row of pressables; this is neither.
+    await expect(scope).not.toHaveAttribute('multiple', /.*/);
+    await expect(page.getByRole('group', { name: 'Filter spots by sport' })).toHaveCount(0);
 
-    // Both pills stay on — pressing the second does not replace the first.
-    await expect(row.getByRole('button', { name: /^Scooter/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    await expect(row.getByRole('button', { name: /^BMX/ })).toHaveAttribute('aria-pressed', 'true');
-    // "Every spot" is off, because this is a narrowing and says so.
-    await expect(page.getByRole('button', { name: 'Every spot' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-
+    await scope.selectOption('bmx');
+    await expect(scope).toHaveValue('bmx');
     await page.getByLabel('Search spots').fill(bmxNotScooterSpot.name);
     await expect(card(page, bmxNotScooterSpot.name)).toBeVisible();
 
-    // Pressing the last chosen sport off widens back to every spot rather than
-    // emptying the screen.
-    await page.getByRole('button', { name: 'Clear' }).click();
-    await row.getByRole('button', { name: /^Scooter/ }).click();
-    await row.getByRole('button', { name: /^BMX/ }).click();
-    await expect(page.getByRole('button', { name: 'Every spot' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    // Per device, so it is still BMX on the way back. The default is "every
+    // spot", which is what makes this assertion mean the choice was kept rather
+    // than that nothing happened.
+    await page.reload();
+    await expect(page.getByLabel('Show spots for')).toHaveValue('bmx');
+
+    /*
+     * And the calendar keeps its own answer: one key per screen. `'all'` and
+     * not `'chip'` because this is a visitor — O1's "Events opens on your
+     * sport" is about a rider whose sport the product knows, and a public page
+     * does not open narrowed for somebody who has told us nothing (review S1).
+     * `events.spec.ts` pins the signed-in default beside this one.
+     */
+    await page.goto('/events');
+    await expect(page.getByLabel('Show events for')).toHaveValue('all');
   });
 
   test('narrows the list by search and by sport', async ({ page }) => {
@@ -448,23 +466,71 @@ test.describe('where to ride', () => {
      * The hold takes the body out of flow at a negative offset, so while the
      * sheet is up `scrollY` is 0 however far down the list a rider had got —
      * true of the mechanism and useless as a probe, since it reads 0 whether
-     * the page is held or scrolled back to the top. Where the heading actually
-     * is cannot be fooled either way.
+     * the page is held or scrolled back to the top. Where something near the
+     * top of the page actually is cannot be fooled either way.
+     *
+     * The Find tab row rather than the `h1`, because the heading is clipped out
+     * of sight at this width (rethink §3.7: the row already says "Spots") and a
+     * 1px box is a worse ruler than a control that is really there. It has to
+     * be the *first* thing in the document, which the row is: "Show on map"
+     * scrolls the chosen card into view, so anything lower down can still be on
+     * screen when the page behind is held.
      */
-    const heading = page.getByRole('heading', { level: 1, name: 'Where to ride' });
-    const pageTop = async () => Math.round((await heading.boundingBox())!.y);
+    const anchor = page.getByRole('navigation', { name: 'Find: for you, spots or events' });
+    const pageTop = async () => Math.round((await anchor.boundingBox())!.y);
 
-    // Somewhere down the list, so there is a position worth keeping.
-    await page.mouse.wheel(0, 600);
+    /*
+     * Somewhere down the list, so there is a position worth keeping — and
+     * *proved* to be somewhere, rather than assumed.
+     *
+     * A wheel over a page that is momentarily too short to scroll moves
+     * nothing, and the assertion below would then be measuring a page that was
+     * never scrolled instead of one that was held. Since the scope control
+     * became a `<select>` the helper above leaves a widening request in flight
+     * for a beat, which is exactly when that happens.
+     */
+    await expect
+      .poll(async () => {
+        await page.mouse.wheel(0, 600);
+        return page.evaluate(() => window.scrollY);
+      })
+      .toBeGreaterThan(300);
     await settle();
 
-    await page.getByRole('button', { name: 'Show on map' }).first().click();
+    /*
+     * "Show on map" on a card that is **already on screen**, rather than
+     * `.first()`.
+     *
+     * Playwright scrolls a control into view before clicking it, so pressing
+     * the first card's button from halfway down the list scrolls the page back
+     * to the top — and the position this test exists to prove is kept is then
+     * the top of the page, which is kept for free. It read as a pass only
+     * because the old anchor happened to sit above the viewport at whatever
+     * offset the auto-scroll left; on CI it did not, and the assertion below
+     * measured 99 rather than a negative number.
+     *
+     * Choosing a button inside the viewport means nothing scrolls on the click,
+     * so `held` is the place the rider actually was.
+     */
+    const onMap = page.getByRole('button', { name: 'Show on map' });
+    const inView = await onMap.evaluateAll((nodes, height) => {
+      const index = nodes.findIndex((node) => {
+        const box = node.getBoundingClientRect();
+        return box.top > 80 && box.bottom < height - 80;
+      });
+      return index;
+    }, HEIGHT);
+    expect(inView, 'no "Show on map" button is on screen after the scroll').toBeGreaterThanOrEqual(
+      0,
+    );
+    await onMap.nth(inView).click();
+
     const scrim = page.locator('[class*="mapScrim"]');
     await expect(scrim).toBeVisible();
     await settle();
 
-    // Read after the sheet is up: pressing "Show on map" scrolls the chosen
-    // card into view, so this is the place the rider is actually left.
+    // Read after the sheet is up, which is the place the rider is actually
+    // left — and it is above the top of the viewport, because they had scrolled.
     const held = await pageTop();
     expect(held).toBeLessThan(0);
 
