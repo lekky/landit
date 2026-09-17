@@ -49,7 +49,15 @@ import {
   type PlansRecord,
   type UsersRecord,
 } from '@landit/db';
-import { Accordion, Difficulty, Equipment, Panel, SportChip, Tag } from '@landit/ui-web';
+import {
+  Accordion,
+  Difficulty,
+  Equipment,
+  Panel,
+  SportChip,
+  Tag,
+  foregroundFor,
+} from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -832,7 +840,13 @@ export default async function TrickPage({ params }: Params) {
               title="What you need"
             >
               <div className={styles.kit}>
-                <span className={styles.kitIcon} style={{ background: sport.color }}>
+                <span
+                  className={styles.kitIcon}
+                  style={{
+                    background: sport.color,
+                    color: foregroundFor(sport.color) ?? 'var(--on-light)',
+                  }}
+                >
                   <Equipment name={SPORT_LOOKS[trick.sport].icon} size={22} strokeWidth={2.3} />
                 </span>
                 <div className={styles.kitText}>

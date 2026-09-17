@@ -1,27 +1,12 @@
 /*
  * The trick page and its locked twin (screenshots 09 and 10).
  *
- * The two share their furniture — the back link, the header band, the panel
- * that holds them — and differ in exactly the ways the design says they do: the
- * locked header is a hatch instead of the category colour, and its name is
- * `--ink-3` instead of white on a 3px ink shadow.
+ * The two share their furniture — the header band and the panel that holds them
+ * — and differ in exactly the ways the design says they do: the locked header
+ * is a hatch instead of the category colour, and its name is `--ink-3` instead
+ * of white on a 3px ink shadow. The back link is `BackLink`'s, in the shell's
+ * module, at §4's 44px like every other screen's.
  */
-
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: none;
-  border: none;
-  padding: 0;
-  margin-bottom: 14px;
-  color: var(--ink-3);
-  font-size: 13.5px;
-}
-
-.back:hover {
-  color: var(--ink);
-}
 
 /*
  * `--badge-w` is declared on the card rather than on the hero because three
@@ -662,6 +647,14 @@ a.jumpBtn:hover {
   padding: 11px 14px;
 }
 
+/*
+ * The fill is a sport's colour and the foreground is `foregroundFor`'s, set on
+ * the element beside it (integration review, nit 4). It was `--on-dark` here —
+ * paper on scooter's, skate's and BMX's oranges and lime, all three of which
+ * ink clears AA on and paper does not. A colour is a fact a sport record holds
+ * and staff can change; the stylesheet cannot measure it, so the answer belongs
+ * where the fill is chosen, as every other coloured disc in the product does it.
+ */
 .kitIcon {
   width: 34px;
   height: 34px;
@@ -669,7 +662,6 @@ a.jumpBtn:hover {
   display: grid;
   place-items: center;
   flex: none;
-  color: var(--on-dark);
 }
 
 .kitText {

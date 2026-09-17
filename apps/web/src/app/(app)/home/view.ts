@@ -156,7 +156,17 @@ export interface SportView {
   readonly wanted: number;
   readonly total: number;
   readonly pct: number;
+  /**
+   * Stickers earned on **this sport's wall** — its own plus the shared ones,
+   * the scope `/stickers` uses for "<sport> and shared".
+   *
+   * It is scoped because it sits in a `SportView`: a card that counted every
+   * wall told a rider chipped to scooter that they had one sticker and then
+   * opened an empty scooter wall.
+   */
   readonly stickerCount: number;
+  /** The newest of those, by `earned_at`, for the card's sub-line. `null` at zero. */
+  readonly newestSticker: string | null;
   readonly libraryLabel: string;
   readonly summary: string;
   /** "6 landed across your sports", or nothing when there is only one. */
@@ -196,15 +206,13 @@ export interface HomeView {
   /** "Saturday 15 August", built from a table rather than from ICU. */
   readonly dateLabel: string;
   readonly streak: StreakView;
-  /**
-   * The newest sticker this rider holds, for the Stickers card's sub-line.
-   *
-   * A name rather than the four badges the wall used to draw here: the card
-   * carries the count, the wall carries the collection, and a dashboard row of
-   * art that repeats what is one tap away is a row that costs a phone screen
-   * for nothing.
+  /*
+   * The newest sticker is a name rather than the four badges the wall used to
+   * draw here: the card carries the count, the wall carries the collection, and
+   * a dashboard row of art that repeats what is one tap away is a row that costs
+   * a phone screen for nothing. It lives on `SportView` rather than here,
+   * because the card follows the chip.
    */
-  readonly newestSticker: string | null;
   /** The Sessions card, or `null` when the preview is not open to this rider. */
   readonly sessionsCard: SessionsCardView | null;
   /** Three lines of the rider's first crew's feed, newest first. */

@@ -255,6 +255,40 @@ test('a phone gets the month’s three numbers, which only the sidebar carried',
   await expect(page.getByRole('complementary', { name: 'Your month' })).toBeVisible();
 });
 
+/**
+ * The three blocks and the feed answer the same question (integration review,
+ * F4).
+ *
+ * They were `view.sidebar`'s — this month across every sport, counted on the
+ * server — sitting directly above a feed the scope select narrows. Measured on
+ * a rider with a scooter session and the scope on skate, the screen read
+ * "1 SESSION · 1H" and then, an inch below it, "Nothing logged under that
+ * filter yet."
+ */
+test('the month’s three numbers follow the scope the feed is on', async ({ page }) => {
+  await newRider(page, true);
+  await logAQuickSession(page);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/progress/sessions');
+
+  const month = page.getByRole('region', { name: 'This month' });
+  const sessions = month.locator('div').filter({ hasText: /^sessions?$/ });
+
+  // The session is a scooter one, and the diary opens on the rider's own sport,
+  // so it is in the feed and in the count. This is what stops the assertion
+  // below passing on a screen that simply has nothing on it.
+  await expect(page.getByRole('article').first()).toBeVisible();
+  await expect(month).toContainText('1');
+  await expect(sessions).toHaveText('session');
+
+  // Now narrow to a sport the rider has logged nothing in.
+  await page.getByLabel('Show sessions for').selectOption('skate');
+  await expect(page.getByText('Nothing logged under that filter yet.')).toBeVisible();
+  await expect(sessions).toHaveText('sessions');
+  await expect(month.locator('div', { hasText: /^0$/ }).first()).toBeVisible();
+});
+
 test('changing the scope puts the rider back on page one', async ({ page }) => {
   /*
    * Review S2. The chip row this replaced reset both pagers on every press; the

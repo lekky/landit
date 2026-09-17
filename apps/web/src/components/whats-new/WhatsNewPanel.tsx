@@ -76,7 +76,18 @@ const LINE_LOOK: Record<WhatsNewKind, { icon: IconName; fill: string }> = {
   join: { icon: 'users', fill: 'var(--violet)' },
 };
 
-const YOU_TAB = 'you';
+/** The first tab's id. Exported so the page's `?tab=` wrapper can name it. */
+export const YOU_TAB = 'you';
+
+/**
+ * The DOM id of a tab, so its panel can be `aria-labelledby` it (§3.3).
+ *
+ * The place is in the id because a desktop rider standing on `/whats-new` can
+ * open the bell over it, which puts two copies of this panel in one document —
+ * and two elements answering to one id is a reference that names whichever the
+ * browser finds first.
+ */
+const tabElementId = (place: WhatsNewPlace, id: string) => `whats-new-${place}-tab-${id}`;
 
 const NOTHING_YET =
   'Nothing here yet. Stickers you earn, riders joining your crews and what’s coming up will land here.';
@@ -84,20 +95,30 @@ const NOTHING_YET =
 export function WhatsNewPanel({
   view,
   place = 'page',
-  initialTab,
+  tab: controlledTab,
+  onTab,
 }: {
   view: WhatsNewView;
   place?: WhatsNewPlace;
   /**
-   * Which tab to open on — a crew id from `?tab=`, so "All →" pressed on a
-   * crew tab in the dropdown lands on that crew rather than back on You
-   * (review N4). Ignored when the rider is not in that crew any more.
+   * The tab being read, where somebody outside keeps it.
+   *
+   * The **page** does (`WhatsNewPageBody`), in `?tab=` through `useTabParam` —
+   * the same place Progress and the sticker wall keep theirs, so the address
+   * a rider is on says which tab they are on, a reload keeps it, and the
+   * dropdown's "All →" lands where it pointed. The **dropdown** does not: it
+   * is a panel over whatever page the rider is reading, and rewriting that
+   * page's query because somebody glanced at a crew tab would be the bell
+   * editing the address of a screen it is only floating above.
+   *
+   * Left undefined, the panel keeps the tab in its own state.
    */
-  initialTab?: string;
+  tab?: string;
+  onTab?: (id: string) => void;
 }) {
-  const opensOn =
-    initialTab && view.crews.some((crew) => crew.id === initialTab) ? initialTab : YOU_TAB;
-  const [tab, setTab] = useState<string>(opensOn);
+  const [localTab, setLocalTab] = useState<string>(YOU_TAB);
+  const tab = controlledTab ?? localTab;
+  const setTab = onTab ?? setLocalTab;
   const [read, setRead] = useState(false);
 
   /*
@@ -171,10 +192,11 @@ export function WhatsNewPanel({
   }, [clearable, place, stampAndRefresh, view.unread]);
 
   const tabs: TabRowItem[] = [
-    { id: YOU_TAB, label: 'You' },
+    { id: YOU_TAB, label: 'You', elementId: tabElementId(place, YOU_TAB) },
     ...view.crews.map((crew, index) => ({
       id: crew.id,
       label: crew.name,
+      elementId: tabElementId(place, crew.id),
       // The crew's name is rider-typed and 2–40 characters, so the row has to
       // be able to clip it — `title` is what a pointer gets instead (B1).
       title: crew.name,
@@ -253,8 +275,23 @@ export function WhatsNewPanel({
         {/*
           Keyed on the tab so React remounts the panel and §4's 120ms
           cross-fade runs on every switch (`TAB_PANEL`, T45).
+
+          **And it is the tab row's `tabpanel`** (integration review, F8). The
+          row declared `role="tab"` over a panel with no role at all, so a
+          screen reader was told "You, tab, 1 of 3" and then about nothing —
+          which is what a tab is *for*. It is `aria-labelledby` the tab rather
+          than carrying a copy of its words, which is ARIA's own pattern and a
+          name that cannot drift from the crew's. The role is only claimed where
+          the row is actually drawn: a rider in one crew gets no row (§3.6), and
+          a lone `tabpanel` is a promise about a control that is not there.
         */}
-        <div key={tab} className={TAB_PANEL}>
+        <div
+          key={tab}
+          className={TAB_PANEL}
+          {...(tabs.length > 1
+            ? { role: 'tabpanel', 'aria-labelledby': tabElementId(place, tab) }
+            : {})}
+        >
           {crew ? (
             <CrewFeed crew={crew} items={crewItems ?? []} inDropdown={inDropdown} />
           ) : (

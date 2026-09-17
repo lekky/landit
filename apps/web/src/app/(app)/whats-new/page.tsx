@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import { loadWhatsNewView } from '@/components/whats-new/load';
-import { WhatsNewPanel } from '@/components/whats-new/WhatsNewPanel';
+import { WhatsNewPageBody } from '@/components/whats-new/WhatsNewPageBody';
 import styles from '@/components/whats-new/whats-new.module.css';
-import { ROUTES } from '@/lib/routes';
+import { ROUTES, signInHref } from '@/lib/routes';
 import { currentRider } from '@/lib/session';
 
 /**
@@ -27,28 +27,31 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function WhatsNewPage({
-  searchParams,
-}: {
-  /**
-   * `?tab=<crew id>` — which tab to open on.
-   *
-   * Written by the desktop dropdown's "All →", so a rider reading a crew there
-   * lands on that crew rather than back on You (review N4). A crew id in a URL
-   * is what `/crew?crew=` already does; it is not an analytics property, and
-   * the panel ignores one naming a crew this rider is not in.
-   */
-  searchParams: Promise<{ tab?: string }>;
-}) {
+export default async function WhatsNewPage() {
   const session = await currentRider();
-  if (!session) redirect(ROUTES.signIn);
+  /*
+   * `signInHref`, not a bare `/signin` (integration review, F10). `/crew` has
+   * always sent a signed-out visitor back to where they were going; this one
+   * dropped them on the sign-in form with nothing saying where they had been,
+   * so following a "What's new" link from an email meant signing in and then
+   * finding the page again by hand.
+   */
+  if (!session) redirect(signInHref(ROUTES.whatsNew));
 
-  const [view, { tab }] = await Promise.all([loadWhatsNewView(), searchParams]);
+  const view = await loadWhatsNewView();
 
+  /*
+   * `?tab=<crew id>` is read and written by `WhatsNewPageBody` — the desktop
+   * dropdown's "All →" writes one so a rider reading a crew there lands on that
+   * crew rather than back on You (review N4), and pressing a tab here writes one
+   * too, so the tab survives a reload and a trip to a rider's profile. A crew id
+   * in a URL is what `/crew?crew=` already does; it is not an analytics
+   * property, and a crew this rider is not in opens You.
+   */
   return (
     <div className={styles.pageWrap}>
       <span className="eyebrow">Your news</span>
-      <WhatsNewPanel view={view} place="page" initialTab={tab} />
+      <WhatsNewPageBody view={view} />
     </div>
   );
 }

@@ -303,6 +303,16 @@ test('Mine is a tab of that row, and still rewrites the address', async ({ page 
   await tabs.getByRole('tab', { name: /^All/ }).click();
   await expect(page).not.toHaveURL(/mine=1/);
   await expect(card(page, freeTrick.name)).toBeVisible();
+
+  /*
+   * And the row has a panel (integration review, F8). It declared two tabs over
+   * a grid with no role on it, so a screen reader was told "Mine, tab, 2 of 2"
+   * and then about nothing — the one thing a tab promises. Named by its tab
+   * rather than by a copy of its word, which is ARIA's own pattern.
+   */
+  await expect(page.getByRole('tabpanel', { name: 'All' })).toBeVisible();
+  await tabs.getByRole('tab', { name: /^Mine/ }).click();
+  await expect(page.getByRole('tabpanel', { name: 'Mine' })).toBeVisible();
 });
 
 test('the Rookie nudge sits below the first cards rather than above the grid', async ({ page }) => {
@@ -1278,4 +1288,122 @@ test('the locked page carries none of the new markup', async ({ page }) => {
   await expect(page.locator('#watch')).toHaveCount(0);
   await expect(page.locator('#clips')).toHaveCount(0);
   await expect(page.getByRole('navigation', { name: 'Jump to a section' })).toHaveCount(0);
+});
+
+/* ------------------------------------------- the LOG sheet's trick picker -- */
+
+/**
+ * Open "Log a trick" from the bottom bar's LOG cell and return the sheet.
+ *
+ * The cell is a `button` in React state, so the press is retried the way
+ * `stickers.spec.ts` retries the stage picker: a server-rendered control is on
+ * screen before it works.
+ */
+async function openTrickPicker(page: Page) {
+  const cell = page
+    .getByRole('navigation', { name: 'Main, compact', exact: true })
+    .getByRole('button', { name: 'Log something' });
+  await expect(async () => {
+    await cell.click();
+    await expect(page.getByRole('dialog', { name: 'Log something' })).toBeVisible();
+  }).toPass({ timeout: 20_000 });
+
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Log a trick/ })
+    .click();
+  const sheet = page.getByRole('dialog', { name: 'Which trick?' });
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
+
+/**
+ * The paywall, on the one screen that used to walk a rookie straight into it
+ * (integration review, F1).
+ *
+ * The picker listed **every** live trick in the sport, unmarked, and choosing a
+ * paid one landed on `LockedTrick` — which has no `#ladder`, so the tap that was
+ * going to log a trick could not. The session form's own picker has always left
+ * them out. This is the assertion that notices if either one stops.
+ *
+ * It is not a security test: enforcement is the `trick_progress` hook's and is
+ * proved over HTTP (`pocketbase/tests/guarantee-3-paywall.test.ts`). It is about
+ * a picker offering things that work.
+ */
+test('the LOG sheet never offers a rookie a trick their plan does not open', async ({ page }) => {
+  await signUpRookie(page);
+  await page.setViewportSize(PHONE);
+  await page.goto('/home');
+
+  const sheet = await openTrickPicker(page);
+  const search = sheet.getByRole('searchbox', { name: 'Search tricks' });
+
+  /*
+   * The **free** trick first, deliberately, and it is not a convenience
+   * assertion — it is what stops the one below passing by finding nothing.
+   * The rows arrive from a server action after the sheet is up, so "no row
+   * named the paid trick" is true of a picker that has not loaded yet, and
+   * measured against the unfiltered code it passed for exactly that reason
+   * (LESSONS §5). This proves the list is live and the search works.
+   */
+  await search.fill(freeTrick.name);
+  await expect(sheet.getByRole('button', { name: freeTrick.name })).toBeVisible();
+
+  /*
+   * Then the paid one. "Nothing by that name." is the deterministic half — it
+   * is rendered only once the read has landed *and* the list came back empty —
+   * so it goes before the count, which is the one that would otherwise be
+   * satisfied by an empty screen.
+   */
+  await search.fill(lockedTrick.name);
+  await expect(sheet.getByText('Nothing by that name.')).toBeVisible();
+  await expect(sheet.getByRole('button', { name: lockedTrick.name })).toHaveCount(0);
+});
+
+/**
+ * A rider's first day (integration review, F6).
+ *
+ * "Log a trick" was an empty search box under "Search for the one you rode." —
+ * addressed to somebody who has ridden nothing this product knows about, two
+ * taps after sign-up, on the screen the whole bottom bar points at.
+ */
+test('a rider with nothing on the go is offered somewhere to start', async ({ page }) => {
+  await signUpRookie(page);
+  await page.setViewportSize(PHONE);
+  await page.goto('/home');
+
+  const sheet = await openTrickPicker(page);
+  await expect(sheet.getByText('Start here — or search for another')).toBeVisible();
+
+  const rows = sheet.locator('ul li button');
+  await expect(rows.first()).toBeVisible();
+  const offered = await rows.allInnerTexts();
+  expect(offered.length).toBeGreaterThan(0);
+
+  // Free-tier and unlocked, the same as Home's own "Start here" — a starter
+  // list holding a paid trick would be the previous test's bug in a new place.
+  const locked = new Set(
+    scooterTricks.filter((t) => isTrickLocked(t, 'rookie')).map((t) => t.name.toLowerCase()),
+  );
+  for (const row of offered) expect(locked.has(row.trim().toLowerCase())).toBe(false);
+});
+
+/**
+ * The trick page's back link, at §4's 44px (integration review, F3).
+ *
+ * It kept a 13.5px line of its own — 17px tall, the smallest target on the
+ * page, on the control a rider presses most — while every other screen moved to
+ * `BackLink` with T45. Spec §2.3 names this one as a `BackLink`.
+ */
+test('the trick page’s back link is a 44px target', async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  await page.goto(`/library/${freeTrick.id}`);
+
+  const back = page.getByRole('link', { name: 'All tricks' });
+  const box = (await back.boundingBox())!;
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  // As wide as its words rather than as wide as the page, which is the other
+  // half of what `BackLink` is (`shell.spec.ts` makes the same pair).
+  const page_ = (await page.locator('main').boundingBox())!;
+  expect(box.width).toBeLessThan(page_.width / 2);
 });

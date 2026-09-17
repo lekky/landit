@@ -119,6 +119,16 @@ test('a rookie meets the clip field locked, with what unlocks it', async ({ page
   ).toBeVisible();
   await expect(clip.getByRole('textbox')).toHaveCount(0);
   await expect(clip.getByRole('link', { name: 'See the plans' })).toBeVisible();
+
+  /*
+   * "Change the default" goes to the sessions-visibility screen (issue #558).
+   *
+   * It said "your account" and meant one of the seven screens `/account` became
+   * a list of, so a rider told what their default is — on the step where they
+   * are choosing who sees this one — was sent to a list of eight rows.
+   */
+  await page.getByRole('link', { name: 'Change the default' }).click();
+  await page.waitForURL('**/account/sessions');
 });
 
 test('Next · Next · Save writes the same session the one long form did', async ({ page }) => {

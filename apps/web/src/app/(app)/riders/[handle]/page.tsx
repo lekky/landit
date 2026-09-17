@@ -233,7 +233,8 @@ export default async function RiderProfilePage({
         <Panel flat className={styles.viewing}>
           <span className="lab">Who sees this</span>
           <span className={styles.viewingBody}>{rule.blurb}</span>
-          <Link className="btn sm ghost" href={ROUTES.account}>
+          {/* The privacy screen itself, not the list it is a row of (#558). */}
+          <Link className="btn sm ghost" href={ROUTES.accountPrivacy}>
             Change it
           </Link>
         </Panel>

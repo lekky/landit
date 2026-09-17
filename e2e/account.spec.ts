@@ -247,6 +247,30 @@ test('the guardian row is the gate’s way in, and nobody else is offered it', a
   await expect(page.getByLabel(/parent or carer/i)).toBeVisible();
 });
 
+/*
+ * Issue #558. Three links still said "your account" and meant one of the seven
+ * screens `/account` became a list of. This is the one that matters most: it is
+ * on the screen a child held behind the consent gate is most likely to be
+ * standing on, it was the only control that panel has, and it measured 19px.
+ */
+test('the crew gate points a waiting child straight at the guardian screen', async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  await onboardedRider(page, 11);
+
+  await page.goto('/crew');
+  const ask = page.getByRole('link', { name: /Ask them again from your account/ });
+  await expect(ask).toBeVisible();
+
+  // §4's floor. It was a line of text with no padding at all — the way in for
+  // the rider with the least reason to be able to find anything else.
+  const box = await ask.boundingBox();
+  expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+  await ask.click();
+  await page.waitForURL('**/account/guardian');
+  await expect(page.getByLabel(/parent or carer/i)).toBeVisible();
+});
+
 test('a rider the gate does not apply to is sent back to the list', async ({ page }) => {
   await onboardedRider(page);
 

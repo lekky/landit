@@ -1,9 +1,10 @@
 'use server';
 
-import { isLandedStage, type SportId, type StageId } from '@landit/core';
-import { listTrickProgress, listTricks } from '@landit/db';
+import { isLandedStage, suggestedNextTricks, type SportId, type StageId } from '@landit/core';
+import { listTrickPrereqs, listTrickProgress, listTricks, tricksFromRecords } from '@landit/db';
 
 import { currentRider } from '@/lib/session';
+import { lockedForPlan, planIdOf } from '@/lib/trickLock';
 
 /**
  * What the LOG sheet's trick picker needs, fetched when the sheet opens.
@@ -91,15 +92,34 @@ export interface TrickPicker {
   readonly recent: readonly PickerTrick[];
   /** The whole library for this sport, for the search field to filter. */
   readonly all: readonly PickerTrick[];
+  /**
+   * Four tricks to begin on, for a rider with nothing in progress (§3.5).
+   *
+   * Empty for everybody else, and empty for "Add a clip link" — a rider who has
+   * landed nothing has nowhere to put a clip, and the row says so already.
+   */
+  readonly startHere: readonly PickerTrick[];
 }
 
-const EMPTY: TrickPicker = { recent: [], all: [] };
+const EMPTY: TrickPicker = { recent: [], all: [], startHere: [] };
+
+/** How many starter tricks the picker offers, matching Home's "Start here". */
+const START_HERE = 4;
 
 /**
  * The picker's rows for one sport.
  *
  * `limitToLanded` is "Add a clip link"'s: a clip goes onto a trick the rider has
  * landed, so offering the rest would be offering a dead end.
+ *
+ * **A trick behind this rider's paywall is not offered at all.** The picker used
+ * to list every live trick in the sport, unmarked, and a Rookie who picked one
+ * arrived at `LockedTrick` — a page with no stage ladder on it, so the tap that
+ * was going to log a trick could not. The session form's own picker has always
+ * left locked tricks out (`components/sessions/form/load.ts`), and
+ * `lib/trickLock.ts` is now the one rule both ask. Nothing about enforcement
+ * changes: the `trick_progress` hook is still where the paywall binds (plan §3,
+ * guarantee 3). This is about not offering a rider a door that is shut.
  */
 export async function trickPickerAction(
   sport: SportId,
@@ -113,15 +133,26 @@ export async function trickPickerAction(
     listTrickProgress(session.client, session.rider.id),
   ]);
 
+  const plan = session.rider.plan;
   const byRecord = new Map(tricks.map((trick) => [trick.id, trick]));
   const stageByRecord = new Map(progress.map((row) => [row.trick, row.stage]));
+
+  // The catalogue shape the paywall rule reads, keyed by slug as `@landit/core`
+  // keys everything. Prereqs are not needed for the lock and are fetched below
+  // only where they are.
+  const ruleBySlug = new Map(tricksFromRecords(tricks).map((trick) => [trick.id, trick]));
+  const offered = (slug: string): boolean => {
+    const rule = ruleBySlug.get(slug);
+    return rule ? !lockedForPlan(rule, plan) : false;
+  };
 
   const row = (recordId: string, name: string, slug: string): PickerTrick => {
     const stage = stageByRecord.get(recordId);
     return { slug, name, ...(stage ? { stage } : {}) };
   };
 
-  const keep = (trick: PickerTrick) => !limitToLanded || isLandedStage(trick.stage as StageId);
+  const keep = (trick: PickerTrick) =>
+    offered(trick.slug) && (!limitToLanded || isLandedStage(trick.stage as StageId));
 
   const all = tricks.map((trick) => row(trick.id, trick.name, trick.slug)).filter(keep);
 
@@ -146,5 +177,36 @@ export async function trickPickerAction(
     .filter(keep)
     .slice(0, 3);
 
-  return { recent, all };
+  /*
+   * "Start here", for a rider with nothing on the go.
+   *
+   * On a rider's first day "Log a trick" was a search box and the line "Search
+   * for the one you rode." — addressed to somebody who has ridden nothing the
+   * product knows about, on the screen the whole bottom bar points at. So the
+   * recents' slot carries four tricks to begin on instead: the same four Home's
+   * own "Start here" offers for this sport (`suggestedNextTricks`, the one
+   * definition of "you could begin on this"), so the two screens cannot suggest
+   * different first tricks.
+   *
+   * The prereq read is made **only** in this branch: a rider with something in
+   * progress never sees the list, and a picker that fetched it anyway would
+   * charge every opening for a first-day screen.
+   */
+  let startHere: readonly PickerTrick[] = [];
+  if (!limitToLanded && recent.length === 0) {
+    const prereqs = await listTrickPrereqs(session.client);
+    const byId: Record<string, StageId> = {};
+    for (const progressRow of progress) {
+      const record = byRecord.get(progressRow.trick);
+      if (record) byId[record.slug] = progressRow.stage as StageId;
+    }
+    startHere = suggestedNextTricks(byId, planIdOf(plan), sport, tricksFromRecords(tricks, prereqs))
+      // Easiest first, then by name. Plain `<` rather than `localeCompare`,
+      // the call Home's own list makes for the same reason (LESSONS §3a).
+      .sort((a, b) => a.diff - b.diff || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+      .slice(0, START_HERE)
+      .map((trick) => ({ slug: trick.id, name: trick.name }));
+  }
+
+  return { recent, all, startHere };
 }

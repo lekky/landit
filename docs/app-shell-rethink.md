@@ -349,6 +349,34 @@ threshold set where it is not yet needed is a decoration removed for nothing.
 4. **Add a clip link** (dashed keyline, no shadow) — "YouTube or TikTok, onto a trick you have logged." Opens the trick picker limited to landed tricks, then the existing video-link field on the trick page.
 - Fires `log_action_picked` `{ action: 'rode' | 'trick' | 'session' | 'clip' }`.
 
+**A rider with nothing on the go is offered somewhere to start, and the row is where the recents
+would be** *(added by the integration-pass worker, 2026-09-17, pending owner confirmation)*. §3.5
+item 2 gives the picker "the rider's three most recently worked-on tricks on the current sport, then
+a search field" and does not say what a rider on their **first day** meets. What they met was an
+empty box under "Search for the one you rode." — a sentence addressed to somebody who has ridden
+nothing this product knows about, on the screen the whole bottom bar points at, two taps after
+sign-up. So with no recents the picker shows **four tricks to begin on**: `suggestedNextTricks`, the
+same source and the same sort as Home's own "Start here", free-tier and with every prerequisite
+landed, under "Start here — or search for another". The prereq read that needs is made **only** in
+that branch, so a rider with something in progress pays nothing for a list they will never see.
+
+It sits **in the recents' slot, under the search field**, rather than literally above the search as
+the finding phrased it: the two lists answer the same question at two ages of account, one of them
+is on screen at a time, and moving the search box down the sheet for a new rider would give the
+sheet two shapes to learn. "Add a clip link" is unchanged — a rider who has landed nothing has
+nowhere to put a clip, and that row's own line already says so.
+
+**And the picker never offers a trick the rider's plan does not open** *(added by the
+integration-pass worker, 2026-09-17, pending owner confirmation)*. §3.5 is silent on the paywall and
+the first cut listed every live trick in the sport, unmarked: a Rookie searching "whip" was offered
+twelve paid tricks and, on choosing one, arrived at `LockedTrick` — which has no `#ladder` on it, so
+the tap that was going to log a trick could not. The session form's picker has always left them out
+and FEATURES says so in as many words ("locked ones left out"); the rule is `lib/trickLock.ts` now,
+asked by both. Nothing about **enforcement** moves — the `trick_progress` hook is still where the
+paywall binds (plan §3, guarantee 3) — and nothing is hidden that a rider cannot already see: the
+library still shows every locked trick with its lock on it, which is the product's position. This is
+only about what a *picker* offers, and a picker exists to offer things that work.
+
 **"Log a session" navigates rather than embedding the quick log** *(added by the T45 worker,
 2026-09-16, pending owner confirmation)*. The row goes to `newSessionHref({ quick: true })` — the
 existing quick log at its own address, which the sessions layout already intercepts into a modal
@@ -424,6 +452,14 @@ second one.
 confirmation)*. §3.2's prose says 160ms and §4's motion table gives dropdowns `--dur-ui`, which is
 200ms. The table wins, because it is the thing the tokens are named from and the point of naming
 them is that a surface does not invent a fourth duration. §3.2's 160ms is the stale number.
+
+*And on `--ease-spring`, which the first cut got the other way round (added by the integration-pass
+worker, 2026-09-17, pending owner confirmation).* §3.2's prose says "an 8px rise and fade over
+160ms ease-out", and §4's rule above the table is the one that governs: **open toward, close away** —
+sheets, modals and dropdowns all open on the spring. `.dropdown`'s `dropin` was written with
+`--ease-out`, so the surface a desktop rider meets most often was the one of the three that did not
+move like the others. Corrected in `additions.css`; it is `Dropdown`'s own rule, added in this wave,
+so nothing that shipped before the rethink changes. Read §3.2's "ease-out" as describing the close.
 
 ### 3.6 What's new
 
@@ -1118,7 +1154,27 @@ decides without saying so.
   is currently filtered to. The blocks are drawn below 700px only and the sidebar above it, so
   neither width is told its month twice, and the phone's three (sessions, time, moved up) are three
   of the card's four — "spots ridden" is the one that did not make the cut, because a rider who
-  logged four sessions at one park learns least from it.
+  logged four sessions at one park learns least from it. *(The first half of this bullet is
+  reversed below: the blocks follow the scope now.)*
+
+**The phone's three blocks are the scope's month, not the account's** *(added by the
+integration-pass worker, 2026-09-17, pending owner confirmation; it reverses the last bullet above)*.
+The bullet chose "counted on the server" over "a sum over whatever the feed is filtered to", and the
+screen that produced read "3 SESSIONS · 3H · 1 MOVED UP" and then, an inch below it, **"No
+sessions"** — measured on a rider with three scooter sessions and the chip on skate. A number
+directly above a list it does not describe is not a more authoritative number, it is a screen
+disagreeing with itself, and the blocks are drawn *for* the feed under them.
+
+So they are the same `sessionMonthSummary` the server runs, over the same filtered list. It is the
+first of the finding's two options and it is both cheap and exact: the diary's loader reads **every**
+one of the rider's sessions and the paging happens in the browser, so the month is already in hand
+and nothing is fetched. Two things stay account-wide on purpose. The **quota strip** below, because a
+monthly cap counts sessions and not sessions of one sport, and narrowing it would tell a rider they
+have more of their allowance left than they do. And the **desktop sidebar's** ink month card, which
+is not this correction's — it carries the streak, the quota and "where you ride" beside the four
+numbers, and scoping only some of what is in one card is a second decision. That leaves the two
+widths answering differently until somebody settles it:
+[issue #570](https://github.com/lekky/landit/issues/570).
 
 **`ProgressTabs` and the screen's title** *(added by the T50 worker, 2026-09-17)*. The header is
 this task's, as the T46 paragraph above says. `/progress/sessions` now reads **Sessions** under the

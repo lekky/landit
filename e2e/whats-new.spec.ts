@@ -196,6 +196,50 @@ test('a rider with no crew gets no tab row, and one with a crew gets its name', 
   await expect(page.getByRole('link', { name: 'Crew Rider' }).first()).toBeVisible();
   await expect(page.getByText(/earned the .+ sticker$/).first()).toBeVisible();
   await expect(page.getByText(/^You earned the .+ sticker\.$/)).toBeHidden();
+
+  /*
+   * The tab row's own **panel** (integration review, F8).
+   *
+   * The row declared `role="tab"` over content with no role on it, so a screen
+   * reader was told "You, tab, 1 of 2" and then about no panel at all — which
+   * is the one thing a tab promises. It is named by its tab rather than by a
+   * copy of its words, which is ARIA's pattern and a name that cannot drift
+   * from the crew's.
+   */
+  await expect(page.getByRole('tabpanel', { name: crewName })).toBeVisible();
+
+  /*
+   * And the tab is in `?tab=` (integration review, F8).
+   *
+   * The page **read** the param — the desktop dropdown's "All →" writes one —
+   * and never wrote one, so a rider who pressed a crew tab and then opened a
+   * rider's profile came back to You. Every other tab row that switches a panel
+   * in place keeps its answer in the address (`useTabParam`, T46).
+   */
+  await expect(page).toHaveURL(/\/whats-new\?tab=/);
+  await page.reload();
+  await expect(
+    page.getByRole('tablist', { name: 'What’s new' }).getByRole('tab', { name: crewName }),
+  ).toHaveAttribute('aria-selected', 'true');
+
+  // The first tab is spelled by absence, so the screen has one address as it
+  // opens rather than two that render the same thing.
+  await page.getByRole('tablist', { name: 'What’s new' }).getByRole('tab', { name: 'You' }).click();
+  await expect(page).toHaveURL(/\/whats-new$/);
+  await expect(page.getByRole('tabpanel', { name: 'You' })).toBeVisible();
+});
+
+/**
+ * Signed out, `/whats-new` brings a visitor back (integration review, F10).
+ *
+ * It redirected to a bare `/signin`, so following a link to it meant signing in
+ * and then finding the page again by hand. `/crew` has always carried the
+ * `next=`; this is the same gate written the same way.
+ */
+test('a signed-out visitor is sent to sign in and brought back', async ({ page }) => {
+  await page.goto('/whats-new');
+  await page.waitForURL('**/signin**');
+  expect(new URL(page.url()).searchParams.get('next')).toBe('/whats-new');
 });
 
 test('a long crew name never widens the page, at any width', async ({ page }) => {

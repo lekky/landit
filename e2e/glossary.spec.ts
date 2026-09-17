@@ -90,6 +90,31 @@ test('an old ?sport= link still opens on that sport, and a junk one on all of it
   await expect(page.getByRole('heading', { level: 2 })).toHaveCount(GLOSSARY.length);
 });
 
+/**
+ * The back link at §4's 44px (integration review, F3).
+ *
+ * This screen and the trick page both kept a 13.5px line of their own — 17px
+ * tall, measured — while every other screen moved to `BackLink` with T45.
+ * Asserted in both of its states, because `?from=` changes where it goes and
+ * what it says, and both of those had to survive the swap.
+ */
+test('the back link is a 44px target, whichever way it points', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page.goto('/glossary');
+  const plain = page.getByRole('link', { name: 'All tricks' });
+  expect((await plain.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+  await page.goto('/glossary?from=tailwhip');
+  const back = page.getByRole('link', { name: 'Back to the trick' });
+  expect((await back.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  // As wide as its words rather than as wide as the page, the other half of
+  // what `BackLink` is.
+  const box = (await back.boundingBox())!;
+  const main = (await page.locator('main').boundingBox())!;
+  expect(box.width).toBeLessThan(main.width / 2);
+});
+
 test('a deep link lands on the term and offers the way back to the trick', async ({ page }) => {
   await page.goto('/glossary?from=tailwhip#kerb');
   const kerb = page.locator('article#kerb');

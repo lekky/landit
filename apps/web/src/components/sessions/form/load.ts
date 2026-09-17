@@ -5,8 +5,6 @@ import {
   clipWatchUrl,
   formatDayLong,
   formatPricePence,
-  isTrickFree,
-  isTrickLocked,
   sessionClipsRemaining,
   sessionQuotaResets,
   sessionVisibilityDefault,
@@ -14,7 +12,6 @@ import {
   type PlanId,
   type SportId,
   type StageId,
-  type Trick,
 } from '@landit/core';
 import {
   countSessionClips,
@@ -47,6 +44,7 @@ import {
   shortDayMonth,
 } from '@/lib/sessionForm';
 import type { NewSessionPrefill } from '@/lib/sessionRoutes';
+import { lockedForPlan } from '@/lib/trickLock';
 
 import type { FormEvent, FormMate, FormSpot, FormTrick, SessionFormData } from './types';
 
@@ -81,10 +79,10 @@ function upgradeFor(plans: readonly PlansRecord[]): SessionFormData['upgrade'] {
   return price ? { name: target.name, price } : null;
 }
 
-function locked(trick: Trick, plan: string): boolean {
-  // A plan slug the catalogue does not know unlocks nothing, the way the hook reads it.
-  return PLAN[plan as PlanId] ? isTrickLocked(trick, plan as PlanId) : !isTrickFree(trick);
-}
+// A plan slug the catalogue does not know unlocks nothing, the way the hook
+// reads it. The rule is `lib/trickLock.ts`'s so the LOG sheet's picker asks the
+// same question this one does.
+const locked = lockedForPlan;
 
 async function loadTricks(
   client: Client,
