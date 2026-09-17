@@ -170,7 +170,7 @@ export function ProfilePanel({
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [picking, setPicking] = useState(false);
   /**
-   * Has a sport toggle taken the goal that belonged to it? (T51, review B1.)
+   * Which sport's toggle took the goal that belonged to it? (T51, review B1.)
    *
    * On one screen this needed no state: the goal picker was always on the page,
    * so "the draft is incomplete" and "the rider can finish it" were the same
@@ -181,12 +181,19 @@ export function ProfilePanel({
    * told to pick a goal, picked one, saw "Saved", and the sport was still on.
    *
    * So the goal picker comes to the sports screen instead of the rider going to
-   * it, and the single post this panel was built around still happens. It is
-   * `true` from the toggle that orphaned the goal until a write actually lands,
-   * rather than derived from `status`, so the block does not flicker away
-   * between the tap on a goal and the answer coming back.
+   * it, and the single post this panel was built around still happens. It holds
+   * the sport from the toggle that orphaned the goal until a write actually
+   * lands, rather than being derived from `status`, so the block does not
+   * flicker away between the tap on a goal and the answer coming back.
+   *
+   * **The sport, and not just a flag**, because a rider can turn it back on
+   * again while the picker is up. The goal does not come back with it — it was
+   * cleared, so the draft is still incomplete and the write is still held, which
+   * is exactly what one screen did — but "that sport carried your goal" stops
+   * being true the moment the sport is on, and the picker has to say the other
+   * thing instead.
    */
-  const [goalOrphaned, setGoalOrphaned] = useState(false);
+  const [goalTakenBy, setGoalTakenBy] = useState<SportId | null>(null);
 
   /**
    * The newest draft not yet safely stored, and which controls produced it.
@@ -267,7 +274,7 @@ export function ProfilePanel({
       if (pending.current === job) pending.current = null;
       // The answer is complete and stored, so the sports screen's borrowed goal
       // picker has done its job and goes.
-      setGoalOrphaned(false);
+      setGoalTakenBy(null);
       setStatus({ kind: 'saved' });
     });
   }, []);
@@ -305,7 +312,7 @@ export function ProfilePanel({
    * and changing your mind loses nobody their goal.
    *
    * On `/account/sports` the goal picker is not on the screen, so this is also
-   * what calls it in (`goalOrphaned`). The pair have to finish in one post and
+   * what calls it in (`goalTakenBy`). The pair have to finish in one post and
    * the pending draft does not survive a route change — see that state's note.
    */
   function toggleSport(id: SportId) {
@@ -321,7 +328,7 @@ export function ProfilePanel({
       draft.goal !== CUSTOM_GOAL_ID &&
       !goalsFor(next).some((g) => g.id === draft.goal),
     );
-    if (orphaned) setGoalOrphaned(true);
+    if (orphaned) setGoalTakenBy(id);
     change({ ...draft, sports: next, goal: orphaned ? null : draft.goal }, 'sports');
   }
 
@@ -561,10 +568,20 @@ export function ProfilePanel({
               a link to `/account/profile` could not do, because the pending
               draft does not survive a route change.
             */}
-            {section === 'sports' && goalOrphaned ? (
+            {section === 'sports' && goalTakenBy ? (
               <div className={styles.orphanGoal}>
                 {goalPanel(
-                  'That sport carried your goal, so it needs a new one. Pick one and both changes save together.',
+                  /*
+                    Two sentences, because a rider can turn the sport back on
+                    while the picker is up (review N15). The goal does not come
+                    back with it, so the picker is still needed and the write is
+                    still held — but "that sport carried your goal" describes a
+                    screen where the sport is off, and it was still saying so
+                    with the card reading On.
+                  */
+                  draft.sports.includes(goalTakenBy)
+                    ? 'Your goal went when that sport did, and it does not come back with it. Pick one to save this change.'
+                    : 'That sport carried your goal, so it needs a new one. Pick one and both changes save together.',
                 )}
               </div>
             ) : null}

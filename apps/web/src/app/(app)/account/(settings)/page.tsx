@@ -113,12 +113,21 @@ export default async function AccountPage() {
         with nothing said about it. Crew is a cell in the bar at every width, so
         the cost was small — but a link deleted in silence is a link nobody
         decided to delete, so it comes back, on the card about who the rider is.
+
+        In a labelled panel rather than as a bare button (review N17). It arrived
+        as one ghost button floating between the identity card and the rows,
+        which works and is findable and looks like nothing decided it belonged
+        there. This is the treatment the panel it came from used, minus the two
+        links that found homes of their own.
       */}
-      <div className={styles.asideLinks}>
-        <Link className="btn sm ghost" href={ROUTES.crew}>
-          Your crew
-        </Link>
-      </div>
+      <Panel flat className={styles.aside}>
+        <div className="lab">Who you ride with</div>
+        <div className={styles.asideLinks}>
+          <Link className="btn sm ghost" href={ROUTES.crew}>
+            Your crew
+          </Link>
+        </div>
+      </Panel>
     </div>
   );
 }

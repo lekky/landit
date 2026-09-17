@@ -717,7 +717,8 @@ is not about with a **redirect back to the list**: not a 404, because the screen
 error, because they have done nothing wrong. `/account/sessions` gives a rider outside the sessions
 preview the same answer, for the same reasons.
 
-**And the panel itself is still on `/account`, under the lede, while the gate applies.** A row
+**And the panel itself is still on `/account`, under the lede, while the gate applies** *(added by
+the T51 worker, 2026-09-17, after the independent review; pending owner confirmation)*. A row
 first in a list is a signpost, and putting the gate behind one is only an improvement if the child
 is standing where the list starts — measured on the first cut at 390px, the row's top was **450px
 down**, behind the eyebrow, the heading, the lede and the whole identity card, with the email field
