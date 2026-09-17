@@ -1557,6 +1557,19 @@ The row is capped at **460px** and centred, because two tabs each taking half of
 put "Monthly" alone in the middle of 570px of paper. The cap moved onto the wrapper, which is also
 the tag's positioning context.
 
+**Plans' hero stopped counting tricks, and then so did everything else** *(added by the owner —
+Rachid, 2026-09-17, in chat)*. The hero read "Twenty hand-picked tricks in every sport…" and became
+"Loads of hand-picked tricks…" on the owner's first pass, on the narrow reasoning that a ceiling at
+the top of a page a rider is being sold on reads as a limit before the free tier has been
+described. Later the same day the owner generalised it — "dont mention counts of tricks in free
+text as its always subject to change, so remove it everywhere" — which reverses the rule
+`packages/core/src/data/plans.ts` had carried since 2026-09-04 ("'Twenty' is safe to write down").
+So no plan card, landing paragraph, library banner or locked trick states a count now. **The
+allowance is unchanged**: `FREE_TRICKS_PER_SPORT` is still twenty a sport, still enforced by the
+hook and still asserted by `data.test.ts`. The full reasoning and the tests that hold it live in
+`plans.ts` and in the implementation plan; this paragraph is here because `/plans` is a §3.10
+screen and the sentence is on it.
+
 **Plans' tabs get a panel, and the period gets an address** *(added by the owner-pass-1 worker,
 2026-09-17, after the independent review of the combined branch)*. Two things the row was missing
 that every other `TabRow` on a screen already had.

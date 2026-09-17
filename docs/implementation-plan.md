@@ -4090,7 +4090,22 @@ Three things about the shape are worth keeping, because they were not free choic
 **What this does to the paid tiers is not settled.** Shredder's pitch sells the gap between free
 and paid, and that gap has halved; issue #129 (Legend has lost its headline perk) now covers both
 tiers rather than one. The free share also drifts down on its own as staff add tricks, because
-twenty is a count and not a proportion — the same property that makes it safe to print on a card.
+twenty is a count and not a proportion.
+
+**Superseded 2026-09-17: the count is not printed anywhere a rider reads** (Rachid, in chat, on
+PR #572: "dont mention counts of tricks in free text as its always subject to change, so remove it
+everywhere"). The sentence above closed "— the same property that makes it safe to print on a
+card", which was the rule from 2026-09-04 and is reversed. The reasoning it rested on was about
+*accuracy*: twenty is per-sport, deliberated and pinned by `data.test.ts`, so a card quoting it
+could not go quietly wrong. What it did not weigh is that the allowance is a **pricing lever**, and
+it has already moved once (ten → twenty in eight days). Every move drags a copy edit across the
+plan cards, the landing page, the library banner, a locked trick, two PocketBase migrations and the
+specs behind all of them — and a test that pins a number cannot catch the sentence nobody
+remembered to change. So the copy says *what* the free tier is, hand-picked and in every sport, and
+the app shows what a rider actually gets. **The allowance itself is unchanged**:
+`FREE_TRICKS_PER_SPORT` is still twenty a sport and the hook still enforces it; only the words
+went. `packages/core/src/data/plans.ts` carries the rule, `data.test.ts` fails on a count in any
+plan string, and `1789948800_plan_copy_no_counts.js` carries it to a running box.
 
 **`supervise`, a new optional field on `Trick`.** It marks a trick a guardian should know about,
 per trick rather than inferred from `diff`. The line: the rider goes upside down (a flip or an
@@ -5293,6 +5308,20 @@ chat, answering issue #507 ahead of turning sessions on for everyone). Depends o
   - **`down` is a no-op, deliberately.** There is no single previous state to restore — each box
     drifted somewhere different — and reinstating the prototype's copy would put "Exclusive avatar
     drops" back on a live card.
+- **`1789948800_plan_copy_no_counts.js` takes the count of free tricks out of the cards on a
+  running box** (Rachid, 2026-09-17, in chat, on PR #572) — the same three fields, the same blast
+  radius, pinned to canonical by `pocketbase/tests/plan-copy-no-counts.test.ts`. Three sentences
+  changed: Rookie's pitch and its second perk, and Shredder's "not just the twenty we picked for
+  you". A **fourth** file rather than an edit to `1789776000` because production has already run
+  that one and PocketBase will not re-run it — an edit would live in the repository and never reach
+  a card. `plan-copy-refresh.test.ts` stops pinning plan copy as a consequence and keeps its
+  structural assertions, the same handover it received from `free-tier-twenty.test.ts`; only one
+  file may pin copy at a time, or copy can never change again.
+  - **`down` writes the 2026-09-12 wording**, unlike `1789776000`'s. Here there *is* a single
+    previous state — the copy that migration wrote — so a rollback leaves three accurate cards
+    rather than a mixture. `COPY_WITH_COUNTS` is a snapshot and is deliberately not pinned to core.
+  - **The allowance does not change.** `FREE_TRICKS_PER_SPORT` and the hook that enforces it are
+    untouched; this is a copy migration and `data.test.ts` still asserts twenty free tricks a sport.
 - **No new analytics event.** `/plans` is already counted (`$pageview`, `checkout_started` carrying
   the plan slug); this adds a line to a counted screen rather than a rider action.
 

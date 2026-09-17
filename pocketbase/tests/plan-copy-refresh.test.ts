@@ -23,12 +23,21 @@ const migration = path.join(
  * mismatch. It reads the migration as text rather than importing it, because
  * the file calls `migrate()`, a global only PocketBase provides.
  *
- * **This is now the file that pins plan copy.** `free-tier-twenty.test.ts` used
- * to, and stopped when this migration superseded it: `COPY_TWENTY` in
- * `1789171200` is a snapshot of what the cards said on 2026-09-12 and is
- * history from here, exactly as `COPY_TEN` beside it already was. Keeping both
- * pinned would mean plan copy could never change again without editing a
- * migration production has already run.
+ * **It pinned plan copy from 2026-09-14 until 2026-09-17, and no longer does.**
+ * `free-tier-twenty.test.ts` held the job before it and handed it over on the
+ * same reasoning, which applies again now: `1789948800_plan_copy_no_counts.js`
+ * took the count of free tricks out of the cards (Rachid, 2026-09-17), so this
+ * migration's `COPY` is a snapshot of what they said on 2026-09-14 and is
+ * history from here — exactly as `COPY_TWENTY` and `COPY_TEN` in `1789171200`
+ * already were. Keeping both pinned would mean plan copy could never change
+ * again without editing a migration production has already run, which
+ * PocketBase will not re-run: the edit would live in the repository and never
+ * reach a card.
+ *
+ * `plan-copy-no-counts.test.ts` is the file that pins copy against
+ * `@landit/core` now, and only one ever may be. What stays here is everything
+ * that is true of this migration whatever the words are: its blast radius, the
+ * slugs it names, the perks it must never reinstate, and that it creates no row.
  */
 describe('the plan-copy-refresh migration', () => {
   const read = async () => readFile(migration, 'utf8');
@@ -44,15 +53,17 @@ describe('the plan-copy-refresh migration', () => {
     return source.slice(start, end).replace(/\\'/g, "'").replace(/\s+/g, ' ');
   };
 
-  it('carries every line of all three cards, Legend included', async () => {
+  it('is the 2026-09-14 snapshot, and is not compared against core any more', async () => {
+    /*
+     * The handover, asserted so it cannot be undone by somebody "fixing" this
+     * file back to canonical: these are the three sentences `1789948800`
+     * replaced, and they are *supposed* to still be here. A box that never ran
+     * the newer migration is entitled to this state.
+     */
     const block = await copyBlock();
-
-    for (const plan of PLANS) {
-      for (const line of [plan.pitch, ...plan.perks, ...plan.missing]) {
-        const needle = line.replace(/\s+/g, ' ').trim();
-        expect(block, `${plan.id}: "${needle}"`).toContain(needle);
-      }
-    }
+    expect(block).toContain('Twenty hand-picked tricks in every sport');
+    expect(block).toContain('Twenty free tricks in each sport, not just the beginner ones');
+    expect(block).toContain('not just the twenty we picked for you');
   });
 
   it('names all three slugs, because Legend is the row nothing else has written', async () => {

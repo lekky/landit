@@ -139,13 +139,17 @@ export function PlansScreen({
           {/*
             "Loads", not "Twenty" (Rachid, 2026-09-17, in chat).
 
-            The number is real — `FREE_TRICKS_PER_SPORT` in `@landit/core` is 20
-            and the paywall counts it — and it is still said in the six other
-            places that say it, the plan cards among them. What it does *here* is
-            put a ceiling at the top of the page a rider is being sold on: the
-            first sentence of the membership screen should read as generous, and
-            "twenty" reads as a limit before the free tier has been described.
-            One sentence changed, deliberately, rather than the fact.
+            This sentence went first, on the reasoning that a ceiling at the top
+            of the page a rider is being sold on reads as a limit before the free
+            tier has been described. Later the same day the owner took the
+            number out **everywhere** — "dont mention counts of tricks in free
+            text as its always subject to change, so remove it everywhere" — so
+            this is no longer the odd one out: no plan card, no landing
+            paragraph, no locked trick and no library banner counts them now.
+
+            The number itself is unchanged. `FREE_TRICKS_PER_SPORT` and the hook
+            that enforces it are exactly where they were; `plans.ts` carries the
+            full reasoning and `plans.test.ts` fails if a count comes back.
           */}
           Loads of hand-picked tricks in every sport, full tracking and the sticker wall cost
           nothing, forever. Paying opens the rest of the library and shows you the numbers behind

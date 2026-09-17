@@ -232,6 +232,44 @@ test('the free tier is described as free rather than as a trial', async ({ page 
   await expect(page.getByText('Does the free tier expire?')).toBeVisible();
 });
 
+test('no card counts the tricks it gives you (2026-09-17)', async ({ page }) => {
+  /*
+   * Rachid, 2026-09-17, in chat: "dont mention counts of tricks in free text as
+   * its always subject to change, so remove it everywhere". The allowance is a
+   * pricing lever — ten on 2026-09-04, twenty on 2026-09-12 — not a fact about
+   * the library, and a sentence quoting it goes stale the next time it moves.
+   *
+   * Asserted **on the rendered page**, not only on `PLANS`, because `/plans`
+   * reads its copy from the `plans` rows rather than from the repository
+   * (`view.ts`): core, the seed and a migration are three places the words
+   * live, and this is the one a rider actually sees.
+   * `data.test.ts` holds the same rule against core and
+   * `plan-copy-no-counts.test.ts` holds it against the migration.
+   */
+  const body = await page.locator('body').innerText();
+
+  expect(body).not.toMatch(
+    /\b(one|two|three|four|five|six|seven|eight|nine|ten|twenty|thirty|forty|fifty|\d+)\s+(free\s+|hand-picked\s+)*tricks?\b/i,
+  );
+  expect(body).not.toMatch(/\bthe (ten|twenty)\b/i);
+
+  // The sentences that used to carry it, named so a paste cannot bring them
+  // back quietly.
+  expect(body).not.toMatch(/twenty hand-picked tricks/i);
+  expect(body).not.toMatch(/twenty free tricks in each sport/i);
+  expect(body).not.toMatch(/not just the twenty we picked/i);
+
+  // What replaced them still says what the free tier is, so the page has not
+  // simply lost the claim.
+  await expect(page.locator('[data-plan="rookie"]')).toContainText(/hand-picked tricks/i);
+  await expect(page.locator('[data-plan="shredder"]')).toContainText(/the whole library/i);
+
+  // Numbers that are not counts of tricks are untouched: the five stages, and
+  // the video allowance rendered from `videoLinkCap`.
+  await expect(page.locator('[data-plan="rookie"]')).toContainText('5 stages');
+  await expect(page.locator('[data-plan="shredder"]')).toContainText(/10 video links/i);
+});
+
 /**
  * Whose currency the prices are in (issue #170).
  *
