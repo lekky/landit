@@ -173,6 +173,25 @@ const USER_WHATS_NEW_DEFAULTS = {
   whats_new_seen_at: '',
 };
 
+/**
+ * `stickers_seen_at`, on exactly the same terms as `whats_new_seen_at` above.
+ *
+ * A second field with that shape, added for the library's sticker shelf
+ * (Rachid, 2026-09-18, in chat): the rider's own bookmark in their own wall,
+ * stamped when they open `/stickers`, and read as "stickers earned since". It
+ * is pinned empty on create so an account cannot arrive claiming to have looked
+ * already, and writable ever after because the client is the only thing that
+ * knows the wall was opened.
+ *
+ * Its own constant rather than a second key in the one above, so that each list
+ * keeps the comment explaining why *that* field is unfrozen — a shared list
+ * would have to explain two features at once, and the next field of this shape
+ * would make it three.
+ */
+const USER_STICKERS_DEFAULTS = {
+  stickers_seen_at: '',
+};
+
 /*
  * It is **deliberately absent from the frozen lists above**, and this comment is
  * here so that absence reads as a decision rather than an oversight (T47,
@@ -347,6 +366,10 @@ function guardUserWrite(e, isCreate) {
       // the one field here with that shape. See `USER_WHATS_NEW_DEFAULTS`.
       for (const field of Object.keys(USER_WHATS_NEW_DEFAULTS)) {
         record.set(field, USER_WHATS_NEW_DEFAULTS[field]);
+      }
+      // The sticker wall's bookmark, same shape. See `USER_STICKERS_DEFAULTS`.
+      for (const field of Object.keys(USER_STICKERS_DEFAULTS)) {
+        record.set(field, USER_STICKERS_DEFAULTS[field]);
       }
     }
     return;

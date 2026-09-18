@@ -1,5 +1,7 @@
-import { CATEGORY_IDS, type PlanId, type StageId } from '@landit/core';
+import { CATEGORY_IDS, SPORT_IDS, type PlanId, type StageId } from '@landit/core';
 import {
+  listRiderStickers,
+  listStickers,
   listTrickPrereqs,
   listTrickProgress,
   listTricks,
@@ -12,6 +14,7 @@ import { ROUTES } from '@/lib/routes';
 import { anonymousClient, currentRider } from '@/lib/session';
 
 import { LibraryBrowser } from './LibraryBrowser';
+import { buildShelves, type ShelfBySport } from '@/lib/libraryShelf';
 
 export const metadata: Metadata = {
   title: 'Trick library · Land The Trick',
@@ -67,9 +70,37 @@ export default async function LibraryPage({
   const tricks = tricksFromRecords(trickRecords, prereqRecords);
 
   let byId: Record<string, StageId> = {};
+  /*
+   * The sticker shelf beside the heading (`lib/libraryShelf.ts`), and the two
+   * extra reads it needs — **only for a rider there is one to draw for**.
+   *
+   * This page is the product's shop window and serves signed-out visitors, who
+   * have no stickers and no wall: paying for both of them to render a control
+   * nobody can use would be the landing page subsidising a feature it cannot
+   * show. So the whole block sits inside the session branch, next to the
+   * progress read that is already there for the same reason.
+   */
+  let shelves: ShelfBySport = {};
   if (session) {
-    const progress = await listTrickProgress(client, session.rider.id);
+    const [progress, stickerRecords, earnedRecords] = await Promise.all([
+      listTrickProgress(client, session.rider.id),
+      listStickers(client),
+      listRiderStickers(client, session.rider.id),
+    ]);
     byId = trickProgressById(progress, trickRecords);
+    shelves = buildShelves({
+      stickers: stickerRecords,
+      earned: earnedRecords,
+      seenAt: session.rider.stickers_seen_at,
+      /*
+       * Every sport, not the rider's own. The shelf is chosen by the top bar's
+       * chip, which is client state this server render cannot see, and building
+       * all three is filtering a list already in memory — cheaper than the
+       * `riderSnapshot` read it would take to narrow it, and it means the chip
+       * can never land on a sport with no shelf behind it.
+       */
+      sports: SPORT_IDS,
+    });
   }
 
   return (
@@ -80,6 +111,7 @@ export default async function LibraryPage({
       signedIn={!!session}
       initialMine={mine && !!session}
       initialCategory={cat}
+      shelves={shelves}
     />
   );
 }

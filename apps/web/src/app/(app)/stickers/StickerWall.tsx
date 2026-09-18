@@ -21,7 +21,7 @@ import { ROUTES } from '@/lib/routes';
 import { useToast } from '@/providers/toast';
 import { useSport } from '@/providers/sport';
 
-import { acknowledgeStickersAction } from './actions';
+import { acknowledgeStickersAction, markStickerWallSeenAction } from './actions';
 import { WALL_VIEW_IDS, WALL_VIEW_LABELS, capShelf, shelveWall, type WallView } from './groups';
 import type { StickerView, StickerWallView } from './view';
 
@@ -116,6 +116,28 @@ export function StickerWall({ view }: { view: StickerWallView }) {
     }
     void acknowledgeStickersAction([...new Set(fresh.map((s) => s.riderStickerId as string))]);
   }, [view.bySport]);
+
+  /*
+   * Stamp the visit itself, once, whatever was on the wall (2026-09-18).
+   *
+   * Its own effect rather than a line in the one above, because the two are
+   * about different things and the one above returns early: acknowledging is
+   * "this award has been shown to the rider" and only fires when something was
+   * unannounced, while this is "the rider came and looked", which is true of a
+   * visit that had nothing new on it at all. That is exactly the visit the
+   * library's shelf flag needs recorded — otherwise a rider who saw the toast,
+   * came to the wall and left would keep a flag pointing at stickers they have
+   * just been looking at.
+   *
+   * Same ref guard and the same reason: React mounts effects twice in
+   * development, and this is a write.
+   */
+  const visited = useRef(false);
+  useEffect(() => {
+    if (visited.current) return;
+    visited.current = true;
+    void markStickerWallSeenAction();
+  }, []);
 
   if (!current) return null;
 

@@ -1429,3 +1429,17 @@ test('the trick page’s back link is a 44px target', async ({ page }) => {
   const page_ = (await page.locator('main').boundingBox())!;
   expect(box.width).toBeLessThan(page_.width / 2);
 });
+
+/**
+ * The library is the product's shop window and serves signed-out visitors
+ * (`app/(app)/library/page.tsx`), so the sticker shelf beside the heading is
+ * not drawn for them — and, more to the point, the three reads behind it are
+ * never made. A control offering "your stickers" to somebody with no account
+ * is an invitation to a sign-in wall, and the landing page should not pay for
+ * it either.
+ */
+test('a signed-out visitor gets no sticker shelf on the library', async ({ page }) => {
+  await page.goto('/library');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Your stickers:/ })).toHaveCount(0);
+});

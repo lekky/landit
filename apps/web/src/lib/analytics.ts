@@ -621,7 +621,12 @@ export const ANALYTICS_EVENTS = {
    *
    * `to` is a group id from `components/shell/nav.ts` — `home`, `library`,
    * `find` or `crew` — or an account-menu item's id. `where` is `mobile` (the
-   * bottom bar), `top` (the desktop nav), `account-menu` or `home-card` (T46).
+   * bottom bar), `top` (the desktop nav), `account-menu`, `home-card` (T46) or
+   * `library-head` (the sticker shelf beside the library's count, 2026-09-18),
+   * which is the first `where` that is not a bar or a menu: it says the rider
+   * reached their wall from the screen they were browsing rather than by going
+   * back to Home for it, which is the whole question the shelf was built to
+   * answer.
    *
    * **Not the LOG cell.** It opens a sheet rather than going anywhere, so it
    * fires `log_sheet_opened` and nothing sends `to: 'log'`.

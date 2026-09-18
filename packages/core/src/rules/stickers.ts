@@ -210,3 +210,55 @@ export function newlyEarnedStickerIds(
 export function stickerCondition(sticker: Sticker): string {
   return sticker.n !== undefined ? `${sticker.n} ${sticker.cond}` : sticker.cond;
 }
+
+/**
+ * One earned award, as much of it as the "new since" count needs.
+ *
+ * A structural type rather than `RiderStickersRecord`: `packages/core` never
+ * imports `packages/db` (nothing here may depend on how a row is stored), and
+ * the only two facts this rule needs are when the award landed and which wall
+ * it hangs on.
+ */
+export interface EarnedAward {
+  /** PocketBase's date, or `''` for a row that somehow has none. */
+  readonly earnedAt: string;
+  /** The sticker's sport, or `null` for a shared award. */
+  readonly sport: SportId | null;
+}
+
+/**
+ * How many of this rider's awards they have not been to the wall to look at.
+ *
+ * **The comparison is `>`, not `>=`.** The wall stamps `stickers_seen_at` when
+ * it opens, so an award earned in the same second as that visit — the rider
+ * landed a trick, the toast fired, they tapped through to the wall — is one
+ * they have just been shown. `>=` would leave it counted and put a flag on a
+ * screen the rider had that moment walked away from.
+ *
+ * **A rider who has never opened the wall has seen nothing**, so an empty
+ * `seenAt` counts every award. That is the same reading PocketBase's own empty
+ * date has everywhere else in the product: absent, not "the beginning of time"
+ * in some other direction.
+ *
+ * **Scoped like the wall it links to** — `sport` and shared, the scope
+ * `/stickers` groups by and Home's Stickers card counts in. Passing `null` for
+ * `sport` counts every wall, which is what a rider with one sport is looking at
+ * anyway. A sticker with no sport is shared and lands on every wall.
+ *
+ * A row with no `earned_at` is not counted. PocketBase spells "never" as an
+ * empty string, and an award whose date never landed is not evidence that
+ * something arrived after the rider last looked — failing closed, which for an
+ * unread badge means not shouting.
+ */
+export function newAwardCount(
+  awards: readonly EarnedAward[],
+  seenAt: string | null | undefined,
+  sport: SportId | null = null,
+): number {
+  const since = seenAt || '';
+  return awards.filter((award) => {
+    if (!award.earnedAt) return false;
+    if (sport && award.sport && award.sport !== sport) return false;
+    return award.earnedAt > since;
+  }).length;
+}

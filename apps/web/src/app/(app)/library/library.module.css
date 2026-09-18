@@ -329,3 +329,151 @@
   color: var(--ink-3);
   margin-bottom: 11px;
 }
+
+/* ------------------------------------------------------ the sticker shelf -- */
+
+/*
+ * "Your stickers" beside the count (`StickerShelf.tsx`, Rachid 2026-09-18).
+ *
+ * The heading and the shelf are one row *inside* `.head`, which is why this
+ * wrapper exists: `.head` turns into a column below 860px so the search field
+ * gets its own full-width row, and the shelf has to stay with the number rather
+ * than follow the search down. `flex: none` so the search keeps taking the rest
+ * of the row on desktop.
+ */
+.headText {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex: none;
+}
+
+.shelf {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 14px 7px 10px;
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  color: var(--ink);
+  text-decoration: none;
+  /* The press the rest of the product's controls have. */
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press);
+}
+.shelf:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+.shelf:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+/*
+ * The three badges, overlapping like a hand of cards.
+ *
+ * The negative margin is what makes three fit where two would sit, and the
+ * paper drop-shadows either side of each badge are the gap between them: the
+ * art is transparent outside its shield, so without an outline the overlap
+ * reads as one smeared shape. Never a filter that dims them — a locked badge
+ * keeps its colour (owner, 2026-09-01, #266).
+ */
+.shelfArts {
+  display: flex;
+  flex: none;
+}
+.shelfArts img,
+.shelfFallback {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  margin-right: -11px;
+  flex: none;
+  filter: drop-shadow(1.5px 0 0 var(--paper)) drop-shadow(-1.5px 0 0 var(--paper));
+}
+.shelfArts img:last-child,
+.shelfFallback:last-child {
+  margin-right: 0;
+}
+/* A record from before the printed art: its hue, with the star over it. */
+.shelfFallback {
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--ink);
+  filter: none;
+}
+
+.shelfText {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  line-height: 1.15;
+}
+.shelfText b {
+  font-size: 19px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+/* The empty wall's two lines, in the muted ink the eyebrow uses. */
+.shelfEmpty {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+/*
+ * "2 NEW" — stickers earned since the rider last opened the wall.
+ *
+ * The bell's badge colours and its 9+ cap (`shell.module.css`, `.tbBadge`),
+ * because it is the same promise: pink on an ink keyline, drawn only above
+ * zero, and a number that stops growing rather than widening the control.
+ */
+.shelfFlag {
+  background: var(--pink);
+  color: var(--on-dark);
+  border: 2px solid var(--ink);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  flex: none;
+}
+
+@media (max-width: 860px) {
+  /* The shelf holds the heading's own row, hard against the right edge. */
+  .headText {
+    justify-content: space-between;
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  /*
+   * "Your" goes, the badges come down to 34px and the padding tightens.
+   *
+   * Measured at 390px with the word in: the shelf and "84 tricks" came to more
+   * than the row has and the heading wrapped onto two lines. The link's
+   * accessible name is built in the component and still says "Your stickers".
+   */
+  .shelfWord {
+    display: none;
+  }
+  .shelf {
+    gap: 9px;
+    padding: 6px 12px 6px 8px;
+  }
+  .shelfArts img,
+  .shelfFallback {
+    width: 34px;
+    height: 34px;
+  }
+}

@@ -166,6 +166,7 @@ export {
   leaveCrew,
   logChallengeEntry,
   markStickerSeen,
+  markStickerWallSeen,
   markWhatsNewSeen,
   removeVideoLink,
   saveTrickNote,
