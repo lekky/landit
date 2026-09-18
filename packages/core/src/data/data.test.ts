@@ -4,6 +4,7 @@ import { AVATARS, AVATAR_GROUPS } from './avatars';
 import { CATEGORY_IDS, CATS, TIERS_LABEL, categoryLabel } from './categories';
 import { CHALLENGES } from './challenges';
 import { EVENTS } from './events';
+import type { LandItEvent } from '../types';
 import { PLAN, PLANS } from './plans';
 import {
   DEFAULT_PRIVACY,
@@ -807,6 +808,39 @@ describe('spots, events and profile options', () => {
       expect(event.id.length).toBeLessThanOrEqual(40);
       expect(event.sports.length).toBeGreaterThan(0);
     }
+  });
+
+  it('keeps every event field inside the column it seeds into', () => {
+    // The `events` collection caps each text column (`pocketbase/migrations/
+    // 1786838400_init_collections.js`, and `address` in the location migration).
+    // A researched listing that runs one character over is refused by PocketBase
+    // with a bare "Failed to create record" 400, from inside a seed integration
+    // test that takes two minutes to reach it and does not name the field. This
+    // asserts the limits where the data lives, so the next refill pass is told
+    // which event and which field in a second.
+    const limits = {
+      id: 40,
+      name: 80,
+      town: 60,
+      venue: 80,
+      level: 60,
+      price: 40,
+      spots: 40,
+      blurb: 400,
+      country: 60,
+      address: 200,
+      phone: 40,
+      sourceUrl: 500,
+    } as const;
+    const over: string[] = [];
+    for (const event of EVENTS as readonly LandItEvent[]) {
+      for (const [field, max] of Object.entries(limits)) {
+        const value = event[field as keyof LandItEvent];
+        if (typeof value !== 'string' || value.length <= max) continue;
+        over.push(`${event.id}.${field} is ${value.length}, over ${max}`);
+      }
+    }
+    expect(over).toEqual([]);
   });
 
   it('offers three stances, three privacy levels and four riding levels', () => {
