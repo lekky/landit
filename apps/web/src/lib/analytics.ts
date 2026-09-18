@@ -426,11 +426,10 @@ export const ANALYTICS_EVENTS = {
    */
   eventPageOpened: 'event_page_opened',
   /**
-   * The calendar was switched between its tabs — Upcoming, the archive, and a
-   * rider's own events.
+   * The calendar was switched between Upcoming and the archive.
    *
-   * Carries `view`, which is `'upcoming'`, `'past'` or `'mine'`: the tab being
-   * moved *to*, and one of three fixed strings chosen here. Nothing else — not
+   * Carries `view`, which is `'upcoming'` or `'past'`: the pill being moved
+   * *to*, and one of two fixed strings chosen here. Nothing else — not
    * which events were on screen, not the filters, not the reader, and above all
    * **not how many events are in their own tab**, which is a count of one
    * rider's plans and a rider fact rather than a catalogue one.
@@ -444,13 +443,12 @@ export const ANALYTICS_EVENTS = {
    * guessable from `event_page_opened`, which cannot tell an archive reader
    * from anybody else.
    *
-   * `'mine'` joined it in 2026-09-13 rather than getting an event of its own,
-   * because it is the same press on the same control and splitting it would
-   * make "how often does anybody use this switch" two numbers that have to be
-   * added up by hand. It answers the same shape of question the archive's does:
-   * "I'm going" was write-only for a month — a rider could mark an event and
-   * the product never said it back — and if the tab that fixed that is never
-   * opened, the marking was never the point.
+   * **`'mine'` stopped firing on 2026-09-17 and its history is still in the
+   * funnel.** It joined this event in 2026-09-13, when a rider's own events
+   * were the segmented control's third tab; O1 moved them to the Find hub, so
+   * the press that sent `view: 'mine'` no longer exists. A chart spanning that
+   * date is counting two different controls, and the `'mine'` rows stop rather
+   * than falling to zero (#551).
    */
   eventsViewSwitched: 'events_view_switched',
   /**
@@ -936,32 +934,26 @@ export const ANALYTICS_EVENTS = {
    */
   nearbySortReady: 'nearby_sort_ready',
   /**
-   * A list was narrowed by sport — the multi-select pill row on `/events` and
-   * `/spots` (Rachid, 2026-09-12, in chat).
+   * **Retired 2026-09-17. Nothing fires this any more — see `sportScopeSet`.**
    *
-   * Carries `screen` (`'events' | 'spots'`) and `sports`: either the literal
-   * `'all'`, or the chosen sport ids in `SPORT_IDS` order joined with `+` —
-   * `'bmx'`, `'scooter+bmx'`, and so on. Both are catalogue facts. The ids are
-   * three fixed strings written in this repository, the order is fixed here so
-   * two riders who chose the same sports produce the same value rather than a
-   * record of which pill they pressed first, and nothing about the rider
-   * travels — not what they ride, not what the other filters said, not what
-   * they had typed in the search box.
+   * It was the multi-select sport pill row's event on `/events` and `/spots`
+   * (Rachid, 2026-09-12, in chat), carrying `screen` and a `sports` value that
+   * was either `'all'` or the chosen ids in `SPORT_IDS` order joined with `+`.
+   * O1 (Rachid, 2026-09-16, in chat) replaced both rows with
+   * `SportScopeSelect`, and `SportFilter.tsx` and `lib/sportFilter.ts` went
+   * with them.
    *
-   * It exists because these two screens just stopped defaulting to one sport.
-   * They used to open filtered to whatever the rider rides; they now open on
-   * everything, on the reasoning that a rider looking at what is on wants to
-   * see what is on. That is a bet, and this is the only thing that settles it:
-   * if riders narrow to their own sport on nearly every visit, the old default
-   * was right and the answer is to remember their choice rather than to hand
-   * them a wider list each time. `'all'` never firing and `'all'` being the
-   * only value are opposite findings with opposite next steps, and neither is
-   * visible in `event_page_opened` or `spot_page_opened`, which cannot tell a
-   * rider who filtered from one who did not.
+   * **The line stays rather than being deleted**, because roughly six months of
+   * `sport_filter_set` are already in the funnel and the name has to keep
+   * meaning what it meant when they were recorded. Deleting it would leave that
+   * history with nothing in the repository that says what it was or why it
+   * stopped (#551).
    *
-   * Deliberately not fired on load. This counts a press, so the denominator is
-   * "riders who touched the filter" — a screen opening on `'all'` by default is
-   * not evidence of anything and would drown the presses that are.
+   * The two are not interchangeable in a chart. `sport_scope_set` cannot
+   * express a combination — a scope is the chip's sport, every sport, or one
+   * other — and Events now opens narrowed rather than on everything, so the
+   * question the old event was asked to settle ("do riders narrow to their own
+   * sport?") has a different denominator on either side of the change.
    */
   sportFilterSet: 'sport_filter_set',
   /**

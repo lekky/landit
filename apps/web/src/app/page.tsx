@@ -1,4 +1,4 @@
-import { PLANS, TRICKS } from '@landit/core';
+import { PLANS, TRICKS, formatPricePence } from '@landit/core';
 import { Icon, foregroundFor, stickerArtSrc } from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Image from 'next/image';
@@ -93,12 +93,19 @@ export const metadata: Metadata = {
   alternates: { canonical: ROUTES.home },
 };
 
-/** Pence to the string the FAQ says, so the copy cannot drift from checkout. */
+/**
+ * Pence to the string the FAQ says, so the copy cannot drift from checkout.
+ *
+ * The formatting itself is `formatPricePence`'s and not this file's (#459).
+ * A second copy of the same arithmetic had already diverged in one place —
+ * zero renders `Free` there and rendered `£0.00` here — and it is the line
+ * that a second currency will have to find (#170).
+ */
 function price(planId: string): string {
   const plan = PLANS.find((p) => p.id === planId);
   // Canonical data in the same repo: a miss is a rename to follow up here.
   if (!plan) throw new Error(`Landing page references unknown plan "${planId}"`);
-  return `£${(plan.priceMonthlyPence / 100).toFixed(2)}`;
+  return formatPricePence(plan.priceMonthlyPence);
 }
 
 /**
@@ -260,7 +267,7 @@ export default async function LandingPage() {
           {/*
            * The wordmark is the second half of the headline — the sentence
            * reads "Track your progress and land the trick" — so it carries the
-           * alt text rather than being decorative, and `priority` because it is
+           * alt text rather than being decorative, and `preload` because it is
            * the largest thing above the fold.
            */}
           <span className={styles.lockup}>
@@ -269,7 +276,7 @@ export default async function LandingPage() {
               alt="land the trick"
               width={720}
               height={214}
-              priority
+              preload
             />
             <span className={styles.gleam} aria-hidden="true">
               <i />

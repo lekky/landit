@@ -3,7 +3,6 @@
 import { SPORTS, SPORT_IDS, type SportId } from '@landit/core';
 import { Button, Panel, SectionHead, Tabs, type TabItem } from '@landit/ui-web';
 
-import { SportSwitch } from '@/components/shell/SportSwitch';
 import { useModal } from '@/providers/modal';
 import { useSport } from '@/providers/sport';
 import { useToast } from '@/providers/toast';
@@ -45,11 +44,17 @@ export function ShellPreview() {
           Global state — switching here switches everywhere. Currently on{' '}
           <b>{SPORTS[sport].label}</b>.
         </p>
-        <SportSwitch note={() => '12 landed'} />
+        <p style={{ maxWidth: 640, color: 'var(--ink-2)', margin: '0 0 14px', fontSize: 14.5 }}>
+          The in-page row riders used to meet on Home, Progress, the sticker wall, the challenge and
+          the trick library is gone — the shell rethink (D5) put the switch in the top bar as a
+          chip, so every screen reads its sport from the same one place instead of drawing its own.
+          What is left below is the underlying <code>Tabs</code> control the row was built from,
+          which the product still uses.
+        </p>
 
         <div style={{ marginTop: 26 }}>
           <div className="lab" style={{ marginBottom: 8, color: 'var(--ink-3)' }}>
-            The same row, compact
+            The row, compact
           </div>
           <p style={{ maxWidth: 640, color: 'var(--ink-2)', margin: '0 0 12px', fontSize: 14.5 }}>
             Narrow the window under 520px: the labels shorten and the notes go, so three tabs still

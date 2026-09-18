@@ -1696,14 +1696,18 @@ placed after four cards: two rows on a phone, where the grid is two columns belo
 a desktop. In "Mine", where the grid is cut into stage sections, it follows the first section. A
 grid with fewer than four cards puts it at the end of them, which is still below what there is.
 
-**`SportSwitch` stays on the branch** *(added by the T52 worker, 2026-09-17; re-checked after T50
-merged)*. T52 removes its last *screen* use, from the library, and T50 removed the glossary's — so
-with both in, the grep finds exactly one importer left:
-`apps/web/src/app/design/shell/preview.tsx`, a gallery of shell components that is nobody's task
-this wave. Three other hits are prose in comments. The component and its styles therefore stay, and
-deleting them is a job for whoever clears that preview
-([issue #562](https://github.com/lekky/landit/issues/562), which now also carries `.filter-toggle`'s
-newly dead CSS). Named here so the next reader does not take a live import for an oversight.
+**`SportSwitch` is gone** *(the note that stood here said it stayed — added by the T52 worker,
+2026-09-17, and true for as long as the design preview imported it)*. T52 removed its last *screen*
+use, from the library, and T50 removed the glossary's, which left one importer:
+`apps/web/src/app/design/shell/preview.tsx`, a gallery of shell components that was nobody's task
+that wave. `chore-issue-sweep-2` cleared that entry and deleted the component
+([issue #562](https://github.com/lekky/landit/issues/562)). The preview's "Sport switch" section
+still exists and now shows the underlying `Tabs` control with a line saying where the row went.
+`.sporttabs-compact` and the `.tab-full` / `.tab-short` pair **stay**: `Tabs compact` still asks for
+them. `.filter-toggle`'s CSS in `primitives.css` is still dead and is still unswept — it is
+referenced by live prose in `library.module.css` and `LibraryBrowser.tsx` that would have to be
+rewritten with it. Remaining hits on `SportSwitch` are prose in comments describing what a screen
+no longer draws.
 
 ---
 
