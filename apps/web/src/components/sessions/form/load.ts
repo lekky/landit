@@ -38,6 +38,7 @@ import {
 import {
   editSessionValues,
   eventsInFormWindow,
+  eventsOnDay,
   localDateTimeIn,
   newSessionValues,
   sessionOpenSource,
@@ -304,9 +305,18 @@ export async function loadEditSessionForm(
   ]);
 
   const day = toDayKey(saved.startedAt, timezone);
+  /*
+    An edit asks about the session's own day, which can be any distance behind
+    today — so the window is joined by that day's events however old it is,
+    rather than handing the form an empty picker for a session it is editing.
+  */
   const inWindow = eventsInFormWindow(base.events, today);
+  const onItsDay = eventsOnDay(base.events, day).filter(
+    (e) => !inWindow.some((w) => w.id === e.id),
+  );
+  const reachable = [...inWindow, ...onItsDay];
   const events =
-    attached && !inWindow.some((e) => e.id === attached.id) ? [...inWindow, attached] : inWindow;
+    attached && !reachable.some((e) => e.id === attached.id) ? [...reachable, attached] : reachable;
   const savedSpot = spots.find((s) => s.id === saved.spotId);
   const sports = (rider.sports ?? []) as SportId[];
 

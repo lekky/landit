@@ -5489,6 +5489,13 @@ is written here rather than left in a commit message.
   away, so this is no new read and no new request.
 - **The band is untouched.** It still speaks only for an event on today within 1 km, and still says
   "is on here today", which stays true. The picker sits beside it rather than replacing it.
+- **An edit reaches its own day.** A session being edited can be any age, and thirty days back from
+  *today* would hand an older one an empty picker, so the edit loader joins the window with that
+  session's own day's events however far back it is.
+- **The screens that show an event were already right.** The session page's event pill and the
+  diary card's both read `session.event` and have since T37/T39 — they were drawing a field almost
+  nothing could set, which is the half of this the picker fixes rather than replaces. Nothing on
+  either screen changed, and the e2e reads the pill back off the diary to prove the round trip.
 - **Analytics.** One new event, `session_event_attached { via: 'offer' | 'picker' }` — which
   control attached it, never which event and never the day (`analytics.ts`'s session rule).
   Its whole job is to say whether the offer was enough or riders simply were never asked.
