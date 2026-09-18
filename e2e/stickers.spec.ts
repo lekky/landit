@@ -642,3 +642,90 @@ test('the Stickers card counts the wall it opens, and names a badge that is on i
     page.getByRole('tabpanel').getByRole('img', { name: `${named} sticker, earned` }),
   ).toBeVisible();
 });
+
+/**
+ * The sticker shelf on the tricks page (Rachid, 2026-09-18, in chat).
+ *
+ * **What only this can observe**: that the flag is counting the right thing.
+ * The obvious implementation reads `rider_stickers.seen_at`, and every unit
+ * test of *that* would pass — but the toast on the trick page stamps it seconds
+ * after the award, so the flag would be blank by the time a rider reached the
+ * library. That is the defect the new `users.stickers_seen_at` exists to avoid,
+ * and it is only visible in a browser that has walked the whole path: land a
+ * trick, be told, go to the tricks page, and still be shown there is something
+ * to go and look at.
+ */
+test('the library shelf flags stickers the rider has not been to look at, and the wall clears it', async ({
+  page,
+}) => {
+  await arrive(page, 'Shelf Rider');
+  await landSomething(page);
+
+  // The toast has already announced these — `rider_stickers.seen_at` is
+  // stamped. The flag has to survive that, because the rider still has not
+  // been to the wall.
+  await page.goto('/library');
+  const shelf = page.getByRole('link', { name: /^Your stickers:/ });
+  await expect(shelf).toBeVisible();
+  await expect(shelf).toContainText(/\d+ new/);
+
+  // The count in the accessible name says the same thing the pink flag does.
+  await expect(shelf).toHaveAccessibleName(/\d+ earned, \d+ you have not seen/);
+
+  // Going and looking is what clears it.
+  await shelf.click();
+  await page.waitForURL('**/stickers');
+  await expect(page.getByText('Sticker wall')).toBeVisible();
+
+  /*
+   * The stamp is written by a server action the wall fires on arrival, so it
+   * lands a beat after the page does — which is the real behaviour, not a test
+   * artefact: a rider who bounced straight back would see the flag once more.
+   * Retried rather than slept on, the same shape `markSometimes` uses above.
+   */
+  await expect(async () => {
+    await page.goto('/library');
+    const cleared = page.getByRole('link', { name: /^Your stickers:/ });
+    await expect(cleared).toBeVisible();
+    await expect(cleared).not.toContainText(/\d+ new/);
+    await expect(cleared).toHaveAccessibleName(/\d+ earned$/);
+  }).toPass({ timeout: 20_000 });
+});
+
+test('the shelf counts the wall it opens, not every sticker the rider holds', async ({ page }) => {
+  await arriveOnEverySport(page, 'Shelf Scope Rider');
+
+  // Earned on skate, and only on skate — the same fixture the Stickers card's
+  // scoping test uses, and for the same reason: a shared badge would sit on
+  // every wall and the wrong-scope bug would pass.
+  await switchSport(page, 'skate');
+  await page.goto(`/library/${skateStarter.id}`);
+  await markSometimes(page);
+  await expect(page.locator('.toast', { hasText: 'Logged as sometimes' })).toBeVisible();
+
+  /*
+   * The shelf follows the top bar's chip, which is client state restored after
+   * hydration — so the first paint of a fresh navigation can still be the
+   * previous sport's. Waiting on the heading's own eyebrow naming the sport is
+   * how `cardCount` above waits for the same thing, and for the same reason.
+   */
+  const shelfCount = async (id: SportId): Promise<number> => {
+    await page.goto('/library');
+    await expect(page.getByText(`${SPORTS[id].label} library`)).toBeVisible();
+    const name = await page
+      .getByRole('link', { name: /^Your stickers:/ })
+      .getAttribute('aria-label');
+    return Number(/(\d+) earned/.exec(name ?? '')?.[1] ?? '-1');
+  };
+
+  const skate = await shelfCount('skate');
+  await switchSport(page, 'scooter');
+  const scooter = await shelfCount('scooter');
+
+  // Both walls hold the shared badges; only skate holds the trick badge. A
+  // shelf counting the whole collection would give the same number twice.
+  expect(skate).toBeGreaterThan(scooter);
+
+  // And the number is the wall's own, so the wall agrees with it.
+  expect(scooter).toBe(await earnedOnTheWall(page, 'scooter'));
+});

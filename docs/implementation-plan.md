@@ -5377,6 +5377,17 @@ was landing on Record, having lost their place. `ProgressTabs` is removed from `
 the header collision that left on `/progress/sessions` is T50's. The T46 paragraphs in
 `docs/app-shell-rethink.md` §3.4 and §3.10 record what the spec was silent on.
 
+**The library's sticker shelf.** Out of plan, agreed in chat (Rachid, 2026-09-18). "Your stickers"
+beside the library heading's count — the three newest badges on the chip's wall as art, the total,
+and a "N new" flag. The one additive field `users.stickers_seen_at`, on the same terms as
+`whats_new_seen_at` (pinned empty on create, own-write ever after, cleared and exported by
+`hooks/lib/erasure.js`), because the existing `rider_stickers.seen_at` cannot answer this question:
+it is stamped by whichever toast announced the award, seconds after it landed, so a flag reading it
+would have been blank on this screen almost every time. The count rule is
+`newAwardCount` in `packages/core`, scoped "<sport> and shared" like the wall and Home's card. The
+four earlier sketches put the control in the **top bar** beside the bell; the owner chose the page,
+so `components/shell` is untouched and D9's "four things where five did not fit" stands.
+
 **T47 · What's new.** `t47-whats-new`. Depends on T45. The one additive field
 `users.whats_new_seen_at` with its hook; the feed derived in `packages/core` from the rider's own
 record and the crew feed's six sentences (nothing stored per item — **every line is a frame the

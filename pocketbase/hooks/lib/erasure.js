@@ -157,6 +157,10 @@ function anonymiseAccount(app, rider, by) {
   // and nobody to read it, so the date it was last read is one more fact about
   // when a closed account was used.
   rider.set('whats_new_seen_at', '');
+  // The same, for the sticker wall's bookmark: a closed account has no wall to
+  // go back to, and the date it was last opened is one more fact about when the
+  // account was used.
+  rider.set('stickers_seen_at', '');
 
   // Private, suspended and stamped. `privacy` matters even on a wiped row: it is
   // what the view rules read, and a `public` shell is still a record another
@@ -371,6 +375,9 @@ function exportFor(app, rider) {
       // Held from T47 and disclosed from the same day, rather than added to this
       // list a release later the way the streak fields had to be.
       whats_new_seen_at: on(rider, 'whats_new_seen_at'),
+      // Held from the library shelf (2026-09-18) and disclosed from the same
+      // day, for the reason the line above gives.
+      stickers_seen_at: on(rider, 'stickers_seen_at'),
       created: on(rider, 'created'),
     },
     trick_progress: rows('trick_progress', (row) => ({

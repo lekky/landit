@@ -31,11 +31,13 @@ import { TabRow } from '@/components/shell/TabRow';
 import { SuggestPrompt } from '@/components/suggest/SuggestPrompt';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { libraryArrival, rememberLibraryPlace } from '@/lib/libraryPlace';
+import type { ShelfBySport } from '@/lib/libraryShelf';
 import { ROUTES, libraryHref, trickHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { useSport } from '@/providers/sport';
 
 import styles from './library.module.css';
+import { StickerShelf } from './StickerShelf';
 
 /**
  * How many cards the Rookie nudge sits below (§3.10, T52).
@@ -83,6 +85,7 @@ export function LibraryBrowser({
   signedIn,
   initialMine = false,
   initialCategory = null,
+  shelves = {},
 }: {
   /** Every live trick, from the database, so a staff edit shows up here. */
   tricks: readonly Trick[];
@@ -102,6 +105,11 @@ export function LibraryBrowser({
    * the one arrival that came asking for a subset.
    */
   initialCategory?: CategoryId | null;
+  /**
+   * The sticker shelf per sport, built on the server (`lib/libraryShelf.ts`). Empty for a
+   * signed-out visitor, who has no wall — and the control is then not drawn.
+   */
+  shelves?: ShelfBySport;
 }) {
   const router = useRouter();
   const { sport } = useSport();
@@ -458,31 +466,49 @@ export function LibraryBrowser({
         is what D5 hands a list that used to carry its own row.
       */}
       <div className={styles.head}>
-        <div>
-          <span className="eyebrow">
-            {/*
+        {/*
+          The heading and the sticker shelf are one row inside `.head`, so the
+          shelf sits beside the count at every width. `.head` itself becomes a
+          column below 860px to give the search field its own full-width row
+          (owner, 2026-09-17), and without this wrapper the shelf would have
+          followed the search down there instead of staying with the number it
+          belongs to.
+        */}
+        <div className={styles.headText}>
+          <div>
+            <span className="eyebrow">
+              {/*
               The heading follows the scope, not the chip. A grid of all three
               sports under "SCOOTER LIBRARY" would be a heading its own rows
               disprove — the same test the spot page's "Other spots near
               Adelaide" is held to.
             */}
-            {mine
-              ? scopeSport
-                ? `Your ${SPORTS[scopeSport].label.toLowerCase()} tricks`
-                : 'Your tricks, every sport'
-              : scopeSport
-                ? `${SPORTS[scopeSport].label} library`
-                : 'Trick library, every sport'}
-          </span>
-          <h1 className={`d ${styles.title}`}>
-            {mine ? (
-              <>{tracked} tracked</>
-            ) : (
-              <>
-                {pool.length} trick{pool.length === 1 ? '' : 's'}
-              </>
-            )}
-          </h1>
+              {mine
+                ? scopeSport
+                  ? `Your ${SPORTS[scopeSport].label.toLowerCase()} tricks`
+                  : 'Your tricks, every sport'
+                : scopeSport
+                  ? `${SPORTS[scopeSport].label} library`
+                  : 'Trick library, every sport'}
+            </span>
+            <h1 className={`d ${styles.title}`}>
+              {mine ? (
+                <>{tracked} tracked</>
+              ) : (
+                <>
+                  {pool.length} trick{pool.length === 1 ? '' : 's'}
+                </>
+              )}
+            </h1>
+          </div>
+          {/*
+            The chip's sport, not `scopeSport`. The shelf opens the wall, and
+            the wall is scoped "<sport> and shared" by the chip — as Home's
+            Stickers card is. Following this screen's SHOW select instead would
+            give the same rider two different sticker counts depending on a
+            control that is about which *tricks* are listed.
+          */}
+          <StickerShelf shelf={shelves[sport]} />
         </div>
         <div className={`search ${styles.search}`}>
           <Icon name="search" size={19} strokeWidth={2.6} />

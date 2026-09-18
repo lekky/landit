@@ -701,3 +701,43 @@ export async function markWhatsNewSeen(
 ): Promise<UsersRecord> {
   return records(client, 'users').update(userId, { whats_new_seen_at: at.toISOString() });
 }
+
+/* ------------------------------------------------------------ the wall -- */
+
+/**
+ * Stamp when this rider last opened their sticker wall (2026-09-18).
+ *
+ * The library's sticker shelf flags "stickers you have not been to look at",
+ * and this is the whole of what that flag stores: the count is the number of
+ * `rider_stickers` rows earned after this date. Nothing is recorded per
+ * sticker, because `rider_stickers` already holds every award with its
+ * `earned_at` — a second copy would be a second thing to keep in step.
+ *
+ * **Not `rider_stickers.seen_at`, which answers a different question.** That
+ * field means "this award has been announced" and is stamped by whichever
+ * screen announced it, usually a toast on the screen the rider was already
+ * looking at. This one means "the rider has been to the wall". A rider who saw
+ * a toast in passing and never opened the wall still has something to go and
+ * look at, and the shelf says so.
+ *
+ * Own-write, the rider's own id only, on exactly the terms `markWhatsNewSeen`
+ * above sets out: the field is absent from the guard's frozen lists on purpose
+ * and `users.updateRule` is `id = @request.auth.id`, so a call naming anybody
+ * else 404s rather than being refused here.
+ *
+ * `at` defaults to now, and is a parameter for the same two reasons: a screen
+ * stamping the moment it rendered can say so, and the tests can pass a fixed
+ * instant.
+ *
+ * Named `markStickerWallSeen` rather than `markStickersSeen`: `markStickerSeen`
+ * already exists two screens away and stamps a *row* in `rider_stickers`. Two
+ * exported functions differing by one letter, meaning different things, is a
+ * bug waiting for a tired reader.
+ */
+export async function markStickerWallSeen(
+  client: Client,
+  userId: string,
+  at: Date = new Date(),
+): Promise<UsersRecord> {
+  return records(client, 'users').update(userId, { stickers_seen_at: at.toISOString() });
+}

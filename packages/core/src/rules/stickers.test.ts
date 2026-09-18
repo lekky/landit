@@ -10,6 +10,7 @@ import {
   KIND_RULES,
   earnedStickerIds,
   evaluateSticker,
+  newAwardCount,
   newlyEarnedStickerIds,
   resolveStickerRule,
   stickerCondition,
@@ -506,5 +507,49 @@ describe('what a rider on the free tier can reach', () => {
       expect(earned, sport).not.toContain('street-king');
       expect(earned, sport).not.toContain('the-full-run');
     }
+  });
+});
+
+describe('newAwardCount', () => {
+  const award = (earnedAt: string, sport: 'scooter' | 'skate' | null = null) => ({
+    earnedAt,
+    sport,
+  });
+
+  it('counts everything for a rider who has never opened the wall', () => {
+    // An empty stamp is PocketBase's "never", not a date at one end of time.
+    expect(newAwardCount([award('2026-09-01'), award('2026-09-02')], '')).toBe(2);
+    expect(newAwardCount([award('2026-09-01')], null)).toBe(1);
+    expect(newAwardCount([award('2026-09-01')], undefined)).toBe(1);
+  });
+
+  it('counts only what landed after the last visit', () => {
+    const awards = [award('2026-09-01'), award('2026-09-10'), award('2026-09-17')];
+    expect(newAwardCount(awards, '2026-09-09')).toBe(2);
+    expect(newAwardCount(awards, '2026-09-17')).toBe(0);
+  });
+
+  it('does not count an award earned in the same instant as the visit', () => {
+    // The wall stamps as it opens, so this is the rider who tapped through
+    // from the toast: they have just been shown it. `>=` would flag it.
+    expect(newAwardCount([award('2026-09-18T10:00:00.000Z')], '2026-09-18T10:00:00.000Z')).toBe(0);
+  });
+
+  it('scopes to the sport’s wall: its own plus the shared ones', () => {
+    const awards = [
+      award('2026-09-18', 'scooter'),
+      award('2026-09-18', 'skate'),
+      award('2026-09-18'),
+    ];
+    expect(newAwardCount(awards, '2026-09-01', 'scooter')).toBe(2);
+    expect(newAwardCount(awards, '2026-09-01', 'skate')).toBe(2);
+    // No sport asked for means every wall, which is what one-sport riders see.
+    expect(newAwardCount(awards, '2026-09-01')).toBe(3);
+  });
+
+  it('ignores a row with no date rather than treating it as new', () => {
+    // Failing closed: for an unread badge, that means not shouting.
+    expect(newAwardCount([award('')], '2026-09-01')).toBe(0);
+    expect(newAwardCount([award('')], '')).toBe(0);
   });
 });
