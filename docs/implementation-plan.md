@@ -5462,6 +5462,46 @@ disagreed with itself (§7's "board left, activity right").
 Wave A is T45 alone. Wave B is T46 ∥ T47 ∥ T48 (route-disjoint). Wave C is T49 ∥ T50 ∥ T51 ∥ T52
 (route-disjoint). Each is one session, one branch, one PR, raised only when asked.
 
+**T53 · "Were you at an event?" on the session form.** `fix-session-at-an-event`. Added 2026-09-18
+(Rachid, in chat: "no way to log a session at an event? should be a new option under where to ask
+if you're at an event"). Depends on T38. **Amends two of T38's tunable defaults**, which is why it
+is written here rather than left in a commit message.
+
+- **The gap.** An event only ever reached a session by being offered. Either the rider arrived from
+  that event's page on its own day (`newSessionHref({ event })`), or the purple band spoke up —
+  and the band needs an event dated *today* whose pin is within 1 km of a spot *on the map*
+  (`eventsAtSpotToday`, `EVENT_AT_SPOT_KM`). A jam in a car park, a rider who typed their own place
+  (the free-text spot, 2026-09-17), or anyone writing up Saturday on the Monday had no way to say
+  where they were. The diary's own "At an event" filter (T37) and the event page's "You logged N
+  sessions here" (T39) were reading a field almost nothing could set.
+- **The press.** Under Where, beneath the band: "Were you at an event?", or "At a different event?"
+  where the band is already offering one — so declining the offer is not a dead end. It opens a
+  sheet listing **one day's events**: the day the session is set to, not today, nearest to the
+  chosen spot first and by name where the rider typed their own place. No search box; a day's worth
+  of a national calendar is a list, not a haystack. With nothing on that day it says so and says
+  the session still logs — and it does **not** link out to `/events`, because leaving the form
+  would cost the rider everything they had typed into it.
+- **The window widens, and only backwards.** The form was handed today's events alone; it is now
+  handed today and the thirty days behind it (`EVENT_PICKER_DAYS_BACK`, a tunable default the
+  design does not state, beside the 1 km one above), plus the one a link named or the one already
+  attached, whatever its date. A session cannot start in the future, so nothing ahead of today is
+  ever listed. `listEvents` already read every live event before this and threw all but today's
+  away, so this is no new read and no new request.
+- **The band is untouched.** It still speaks only for an event on today within 1 km, and still says
+  "is on here today", which stays true. The picker sits beside it rather than replacing it.
+- **An edit reaches its own day.** A session being edited can be any age, and thirty days back from
+  *today* would hand an older one an empty picker, so the edit loader joins the window with that
+  session's own day's events however far back it is.
+- **The screens that show an event were already right.** The session page's event pill and the
+  diary card's both read `session.event` and have since T37/T39 — they were drawing a field almost
+  nothing could set, which is the half of this the picker fixes rather than replaces. Nothing on
+  either screen changed, and the e2e reads the pill back off the diary to prove the round trip.
+- **Analytics.** One new event, `session_event_attached { via: 'offer' | 'picker' }` — which
+  control attached it, never which event and never the day (`analytics.ts`'s session rule).
+  Its whole job is to say whether the offer was enough or riders simply were never asked.
+- **Server-side: nothing.** `66_sessions.pb.js` never constrained the event field — the relation is
+  the schema's, events are public catalogue rows, and no guarantee in §3 is touched.
+
 ### Dependency graph
 
 ```
