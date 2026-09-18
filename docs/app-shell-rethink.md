@@ -885,12 +885,23 @@ video**, which is a minority today and a growing one, and not on the videoless m
 
 Top of the band, page coordinates, `main` against this branch at each of the three shapes:
 
-| | `main` | first cut | with the cap | with D7a's stack |
-| --- | --- | --- | --- | --- |
-| 1280 × 720, with a video | 291 | 785 | **665** | 665 |
-| 1280 × 720, no video | 291 | 527 | **519** | 519 |
-| 390 × 844, with a video | 312 | 554 | 573 | **760** |
-| 390 × 844, no video | 312 | 480 | 464 | **419** |
+| | `main` | first cut | with the cap | with D7a's stack | **owner's order** |
+| --- | --- | --- | --- | --- | --- |
+| 1280 × 720, with a video | 291 | 785 | **665** | 665 | **333** |
+| 1280 × 720, no video | 291 | 527 | **519** | 519 | **333** |
+| 390 × 844, with a video | 312 | 554 | 573 | **760** | **286** |
+| 390 × 844, no video | 312 | 480 | 464 | **419** | **305** |
+
+**The last column is the answer, and the shape of it matters more than the numbers**
+*(measured 2026-09-18 on this branch, `bunny-hop` with a tutorial and `tic-tac` without)*. Moving
+the video under the ladder does not shrink the cost — it removes it. At 1280 × 720 the band's top
+is **333 either way**: identical with a video and without, because nothing above the band depends
+on whether the trick has one. Every earlier column has two different numbers in those two rows, and
+the gap between them *was* the problem. The two phone rows differ by 19px only because the two
+tricks have heroes of different heights, not because of the video.
+
+The 360px desktop cap is no longer load-bearing. It is kept, widened to 640px, for the one thing it
+still does: stop a 16:9 player being drawn the full 1136px width of the panel.
 
 On the **desktop** the player is capped: a **360px track** takes the frame from 506 × 316 to
 328 × 205 and the band from 785 to 665, which is 55px of yellow on screen at 720 rather than none.
