@@ -302,10 +302,17 @@ things it used to hold are not on it. Each is recorded here rather than left as 
   own. It is recorded here because it is the largest visible difference on the screen, not because
   anything is pending on it. The board is still what `/crew` is for.
 
-Two more calls the section is silent on. **"Working on it" and "Start here" both show four cards
-on desktop and the first two on a phone**, cut in CSS at 860px rather than sliced — a count
-decided in the browser is a count the server guessed differently, and the grid would be rebuilt on
-hydration (LESSONS §3a). And **"Your spots" links to `/spots`**, not to `/find`: the faves are
+  **And the cards follow what the rider has too, from 2026-09-18** *(Rachid, in chat)*. The link
+  was fixed above; the grid under it was not, and stayed the `trying` slice — so the rider who
+  read "All 3 of yours" was still shown only the one they were learning. It is every tracked
+  trick now, learning first and then the ordinary stage order, with the stage row on every one of
+  them rather than only the ones in progress. The cap is untouched. See the plan's T22 section
+  for the three calls that came with it.
+
+Two more calls the section is silent on. **"Your tricks" shows four cards on desktop and the
+first two on a phone**, cut in CSS at 860px rather than sliced — a count decided in the browser
+is a count the server guessed differently, and the grid would be rebuilt on hydration
+(LESSONS §3a). And **"Your spots" links to `/spots`**, not to `/find`: the faves are
 spots, and `/find` is the group's summary rather than the list. "Next up" links to `/find` as §3.4
 says.
 

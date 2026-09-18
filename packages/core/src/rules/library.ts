@@ -229,3 +229,48 @@ export function prereqTricks(trick: Trick, tricks: readonly Trick[] = TRICKS): T
   const byId = new Map(tricks.map((t) => [t.id, t]));
   return trick.pre.map((id) => byId.get(id)).filter((t): t is Trick => !!t && t.isLive);
 }
+
+/**
+ * The stage order the dashboard draws tracked tricks in: **learning first**,
+ * then the ordinary `STAGES` order for the rest (Rachid, 2026-09-18, in chat).
+ *
+ * Not the same question as `STAGES`, which is the order a rider *picks* a stage
+ * in — a ladder from "want to" up to "every time", and right for a picker. This
+ * is the order a rider wants to *read* their own list in, and what they came to
+ * the dashboard for is the thing they are mid-way through. The ladder is still
+ * underneath it: lifting `trying` to the front is the only departure.
+ */
+export const DASHBOARD_STAGE_ORDER: readonly StageId[] = [
+  'trying',
+  ...STAGE_IDS.filter((id) => id !== 'trying'),
+];
+
+/**
+ * A rider's tracked tricks, flattened into the order Home shows them.
+ *
+ * `groupTricksByStage` answers "where am I" for `/library?mine=1`, which draws
+ * a heading per stage and therefore wants groups. The dashboard draws one grid
+ * with no headings, so it wants the same tricks in one list — and it takes a
+ * slice off the front, which makes the order of the *whole* list the thing that
+ * decides what a rider actually sees. That is a rule about the product, so it
+ * is here and unit-tested rather than inline in a server component.
+ *
+ * Built on `groupTricksByStage` rather than beside it: difficulty still sorts
+ * within a stage, empty stages still cost nothing, and the two orderings cannot
+ * drift apart. Untracked tricks are absent by construction — no stage, no
+ * group. Nothing here knows about the paywall or the sport; hand it the tricks
+ * you want considered.
+ */
+export function trackedTricksForDashboard(
+  tricks: readonly Trick[],
+  byId: Readonly<Record<string, StageId>> = {},
+  sort: TrickSort = 'easiest',
+): Trick[] {
+  const groups = groupTricksByStage(tricks, byId, sort);
+  const out: Trick[] = [];
+  for (const stage of DASHBOARD_STAGE_ORDER) {
+    const group = groups.find((g) => g.stage === stage);
+    if (group) out.push(...group.tricks);
+  }
+  return out;
+}

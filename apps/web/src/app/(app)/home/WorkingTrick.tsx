@@ -16,7 +16,14 @@ import type { TrickCardView } from './view';
 import styles from './home.module.css';
 
 /**
- * One trick in "Working on it", with its stage row underneath (T22).
+ * One of the rider's own tricks on the dashboard, with its stage row
+ * underneath (T22).
+ *
+ * **It draws every tracked stage now, not just `trying`** (Rachid, 2026-09-18,
+ * in chat). The name is the one it was born with; what changed is the list it
+ * is drawn from — "Your tricks" is all of them, learning first, so this
+ * component is as likely to be showing something landed as something in
+ * progress.
  *
  * **The row is a sibling of the card, not a child of it, and that is a
  * constraint rather than a preference.** `TrickCard` is itself a `<button>` —
@@ -33,9 +40,11 @@ import styles from './home.module.css';
  * as it is there (plan §3, guarantee 3), and if it refuses, the row snaps back
  * and says why.
  *
- * A locked trick gets no row. It cannot appear in this list anyway — you cannot
- * be learning a trick you were never allowed to track — but a card whose stage
- * row would be refused on every tap should not draw one.
+ * A locked trick gets no row. It is rare rather than impossible — a rider whose
+ * plan lapsed keeps the stages they set while the trick is theirs, and a card
+ * whose stage row would be refused on every tap should not draw one. The
+ * refusal itself is the hook's either way (plan §3, guarantee 3); this is only
+ * about not offering a tap that cannot land.
  */
 export function WorkingTrick({ trick, onOpen }: { trick: TrickCardView; onOpen: () => void }) {
   const { toast } = useToast();
@@ -75,13 +84,16 @@ export function WorkingTrick({ trick, onOpen }: { trick: TrickCardView; onOpen: 
         });
 
         /*
-         * Say where it went (#190, owner's pick, 2026-09-01). "Working on it"
-         * is the `trying` slice, so any other stage takes the card out of the
-         * section under the rider's thumb — and the reward for a good session
-         * read as the thing they were working on being taken away. The move is
-         * correct; the surprise was the problem, so the toast names the
-         * destination rather than the screen holding a card the server says
-         * has gone.
+         * Say where it went (#190, owner's pick, 2026-09-01), and **kept after
+         * the section was widened** (2026-09-18).
+         *
+         * The widening fixed the sharp edge the toast was written for: the
+         * section is every tracked stage now, so a bump ordinarily moves the
+         * card down the grid rather than out of it. It does not fix it for
+         * everyone — the grid is still the first four (two on a phone), so a
+         * rider with a long list can bump a trick from the front of it to a
+         * position they cannot see. That is the case this sentence is still
+         * for, and it costs a rider with three tricks nothing to read it.
          */
         if (value === 'trying')
           toast(`Logged as ${STAGE[value].label.toLowerCase()}`, STAGE[value].color);

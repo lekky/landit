@@ -22,7 +22,7 @@ import {
   rodeToday,
   sportsOf,
   suggestedNextTricks,
-  trickById,
+  trackedTricksForDashboard,
   tricksFor,
   upcomingEvents,
   weekdayName,
@@ -509,38 +509,48 @@ function buildSportView(input: SportViewInput): SportView {
   const look = SPORTS[sport];
   const short = look.short.toLowerCase();
 
-  const inSport = (id: string): Trick | undefined => {
-    const trick = trickById(id, tricks);
-    return trick && trick.isLive && trick.sport === sport ? trick : undefined;
-  };
-
-  const staged = (stage: StageId): TrickCardView[] =>
-    Object.keys(byId)
-      .filter((id) => byId[id] === stage)
-      .map(inSport)
-      .filter((t): t is Trick => Boolean(t))
-      .map((t) => toCardView(t, byId[t.id], plan, recordIdBySlug[t.id]));
+  /*
+   * Every trick this rider tracks in this sport, learning first (Rachid,
+   * 2026-09-18, in chat).
+   *
+   * **It used to be the `trying` slice alone, and that was the bug.** The
+   * heading says "Your tricks" and the link beside it says "All N of yours",
+   * but the grid held only the ones at `trying` — so a rider with two landed
+   * and one being learned read a promise of three and was shown one, with
+   * nothing on the screen to say the other two were a tap away. Widening it
+   * also retires #190 properly: bumping a trick off Learning now moves its
+   * card **down this list** instead of taking it out of the section under the
+   * rider's thumb.
+   *
+   * The order is `trackedTricksForDashboard`'s, not this file's: learning
+   * first, then the ordinary stage order, difficulty within each. It is a rule
+   * about the product rather than a detail of this screen, so it is a pure
+   * unit-tested function in `@landit/core` and the native app gets it for free.
+   */
+  const trackedTricks = tricksFor(sport, tricks).filter((t) => t.isLive && byId[t.id]);
+  const ordered = trackedTricksForDashboard(trackedTricks, byId);
 
   /*
-   * Four, not all of them (§3.4).
+   * Four, not all of them (§3.4) — the cap did not move with the widening
+   * (Rachid, 2026-09-18, in chat).
    *
-   * Home is a dashboard now: the section is a slice with "All N of yours →"
-   * beside it, and the whole list lives on `/library?mine=1`. Four rather than
-   * two because the phone shows the first two by CSS and the desktop row is
-   * 4-up — a count decided in the browser is a count the server guessed
-   * differently, and the grid would be rebuilt on hydration.
+   * Home is a dashboard: the section is a slice with "All N of yours →" beside
+   * it, and the whole list lives on `/library?mine=1`. Four rather than two
+   * because the phone shows the first two by CSS and the desktop row is 4-up —
+   * a count decided in the browser is a count the server guessed differently,
+   * and the grid would be rebuilt on hydration.
    *
-   * "On the wish list" went with the same change. What it showed — the tricks a
-   * rider has marked "want to" — is the Progress card's third number, and the
-   * list itself is one tap away on `/library?mine=1`; a second grid of trick
-   * cards under the first was the largest thing on the phone's dashboard and
-   * the least often acted on.
+   * "On the wish list" went with the §3.4 change. What it showed — the tricks
+   * a rider has marked "want to" — is in this list now, in stage order, rather
+   * than in a second grid under the first.
    */
-  const workingTricks = staged('trying').slice(0, 4);
+  const dashboardTricks = ordered
+    .slice(0, 4)
+    .map((t) => toCardView(t, byId[t.id], plan, recordIdBySlug[t.id]));
 
-  // "Start here" only appears when nothing is in progress, and it never offers a
-  // trick this rider cannot track: the paywall is a refusal, not a tease.
-  const startHere = workingTricks.length
+  // "Start here" only appears when the rider tracks nothing at all, and it never
+  // offers a trick this rider cannot track: the paywall is a refusal, not a tease.
+  const startHere = dashboardTricks.length
     ? []
     : suggestedNextTricks(byId, plan, sport, tricks)
         // Plain `<`, not `localeCompare`: ordering from ICU is one more thing
@@ -634,12 +644,13 @@ function buildSportView(input: SportViewInput): SportView {
     libraryLabel: `${look.label} library`,
     summary,
     acrossSports,
-    // Counted off the same live, in-sport tricks the library counts, so the
-    // "All 12 of yours" on this screen and the "My tricks · 12" on that one
-    // cannot drift. Not `stats.working + stats.wanted`: that would miss the
-    // stages between them.
-    tracked: tricksFor(sport, tricks).filter((t) => t.isLive && byId[t.id]).length,
-    workingTricks,
+    // Counted off the very list the grid is sliced from, so the "All 12 of
+    // yours" on this screen, the cards under it and the "My tricks · 12" on
+    // `/library?mine=1` cannot drift — they are now one array and its length.
+    // Not `stats.working + stats.wanted`: that would miss the stages between
+    // them, which is the miscount the widening was about.
+    tracked: trackedTricks.length,
+    trackedTricks: dashboardTricks,
     startHere,
     challenge: challengeView,
     announcement,

@@ -178,14 +178,21 @@ export interface SportView {
    */
   readonly tracked: number;
   /**
-   * Up to four, and the phone shows the first two (§3.4).
+   * The front of `tracked`: up to four of the rider's own tricks, learning
+   * first and then in stage order, with the phone showing the first two (§3.4).
+   *
+   * **Every stage, not just `trying`** (Rachid, 2026-09-18, in chat). The
+   * section is headed "Your tricks" and linked "All N of yours", so a grid
+   * holding only the ones in progress under-reported the rider to themselves.
+   * The order comes from `trackedTricksForDashboard` in `@landit/core`.
    *
    * Four rather than two so the cut is CSS at the 860px line rather than a
    * width measured in JavaScript: a number decided in the browser is a number
    * the server guessed differently, and a dashboard that renders one grid on
    * the server and another on hydration is the mismatch LESSONS §3a is about.
    */
-  readonly workingTricks: readonly TrickCardView[];
+  readonly trackedTricks: readonly TrickCardView[];
+  /** Suggestions, and only for a rider whose `tracked` is 0. */
   readonly startHere: readonly TrickCardView[];
   readonly challenge: ChallengeView | null;
   readonly announcement: AnnouncementView | null;

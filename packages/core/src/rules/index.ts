@@ -152,6 +152,7 @@ export {
   type CrewActivityKind,
 } from './crew';
 export {
+  DASHBOARD_STAGE_ORDER,
   TRICK_SORTS,
   TRICK_STATUS_FILTERS,
   activeFilterCount,
@@ -159,6 +160,7 @@ export {
   groupTricksByStage,
   prereqTricks,
   sortTricks,
+  trackedTricksForDashboard,
   trickMatchesSearch,
   trickMatchesStatus,
   tricksUnlockedBy,

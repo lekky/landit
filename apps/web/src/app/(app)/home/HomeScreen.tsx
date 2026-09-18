@@ -49,22 +49,19 @@ export function HomeScreen({ view }: { view: HomeView }) {
 
   if (!current) return null;
 
-  const working = current.workingTricks.length > 0;
-  const primary = working ? current.workingTricks : current.startHere;
-
   /*
-   * Where the section's "more" link goes, and it is **not** the same question
-   * as which cards are under it (review, regression inventory).
+   * One question now, where there used to be two (Rachid, 2026-09-18, in chat).
    *
-   * The heading is "Your tricks" either way since 2026-09-17; what still
-   * follows the state is the list under it. The link follows what the rider
-   * *has*: any trick with a stage on it at all — landed, learning or want-to —
-   * means `/library?mine=1` has something in it, so that is where the link
-   * goes. Tying both to `working` sent the one rider most likely to have a
-   * want-to list, the one with nothing in progress, to the unfiltered library
-   * instead; "On the wish list" used to carry them and does not any more.
+   * The heading has been "Your tricks" either way since 2026-09-17 and the link
+   * has followed `tracked` since the same change — but the grid under them was
+   * still the `trying` slice, so a rider with two landed and one being learned
+   * read "All 3 of yours" over a single card. The cards follow `tracked` too
+   * now: has this rider tracked anything at all? Yes means their own tricks,
+   * learning first; no means suggestions from the library, which is also where
+   * the link then points.
    */
   const mine = current.tracked > 0;
+  const primary = mine ? current.trackedTricks : current.startHere;
 
   /*
    * The four record cards (§3.4), in the owner's order: Stickers, Sessions,
@@ -221,11 +218,11 @@ export function HomeScreen({ view }: { view: HomeView }) {
 
       <section>
         {/*
-          The way into "My tricks" (T22). When there is something in progress
-          this section is a slice of the rider's own list, so the link out goes
-          to the whole of it rather than to the library at large — and it says
-          how many are there, which is the reason to follow it. With nothing in
-          progress it is suggestions from the library, and the library is where
+          The way into "My tricks" (T22). For a rider who tracks anything this
+          section is the front of their own list, so the link out goes to the
+          whole of it rather than to the library at large — and it says how many
+          are there, which is the reason to follow it. For a rider who tracks
+          nothing it is suggestions from the library, and the library is where
           it should still point.
 
           **One heading either way: "Your tricks"** (Rachid, 2026-09-17, in
@@ -245,10 +242,18 @@ export function HomeScreen({ view }: { view: HomeView }) {
             `.gridPrimary`'s, not a slice, because a width measured in the
             browser is a width the server guessed differently and the grid would
             be thrown away on hydration (LESSONS §3a).
+
+            **The stage row is on every one of the rider's own cards**, not only
+            the ones at `trying` (Rachid, 2026-09-18, in chat). It is what makes
+            the widened section worth widening: a trick bumped off Learning
+            moves down this grid rather than out of it (#190), and a trick a
+            rider has lost is bumped back down without leaving the screen.
+            Suggestions get a plain card — there is no stage to move yet, and
+            `WorkingTrick` needs a `recordId` only a tracked trick has.
           */
           <div className={`grid-tricks ${styles.gridPrimary}`}>
             {primary.map((t) =>
-              working ? (
+              mine ? (
                 <WorkingTrick
                   key={t.slug}
                   trick={t}
