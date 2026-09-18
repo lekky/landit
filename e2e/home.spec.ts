@@ -1,4 +1,4 @@
-import { WEEKLY_RIDE_TARGET } from '@landit/core';
+import { TRICKS, WEEKLY_RIDE_TARGET, isTrickLocked } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
 import { finishOnboarding } from './support/onboarding';
@@ -19,6 +19,10 @@ import { finishOnboarding } from './support/onboarding';
 
 const password = 'a-long-local-test-password';
 const unique = () => Math.random().toString(36).slice(2, 10);
+
+// Scooter, because onboarding leaves the first sport chosen and the dashboard
+// follows the top bar's chip (D5) — so these are the tricks Home is counting.
+const scooterTricks = TRICKS.filter((t) => t.sport === 'scooter' && t.isLive);
 
 /*
  * Home reads the *database's* trick library, so "Start here" offers real
@@ -373,4 +377,64 @@ test('the trick cards and the section head open the library (T7)', async ({ page
   await card.click();
   await page.waitForURL(/\/library\/.+/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(name, { ignoreCase: true });
+});
+
+/*
+ * "Your tricks" holds every trick the rider tracks, learning first (Rachid,
+ * 2026-09-18, in chat).
+ *
+ * **The order is unit-tested and this is not a second copy of that.**
+ * `trackedTricksForDashboard` in `@landit/core` decides the sequence and
+ * `library.test.ts` proves it. What only a browser can show is that the screen
+ * *asks* it — the grid held the `trying` slice for weeks while the heading said
+ * "Your tricks" and the link said "All 3 of yours", and nothing failed, because
+ * every count on the dashboard was right and only the cards under them were
+ * wrong. So this asserts the one thing that disagreed: the number in the link
+ * and the number of cards are the same number.
+ */
+async function stageTrick(page: Page, slug: string, label: string): Promise<void> {
+  await page.goto(`/library/${slug}`);
+  await page.getByRole('button', { name: label, exact: true }).click();
+  // The toast, not the optimistic note beside the picker: only the toast means
+  // the server action came back (issues #64, #72, and LESSONS §1).
+  await expect(page.locator('.toast', { hasText: /Logged as/i }).first()).toBeVisible();
+}
+
+test('“Your tricks” shows the landed ones too, and its link counts what it shows', async ({
+  page,
+}) => {
+  await arriveAtHome(page, 'Tracked Rider');
+
+  const free = scooterTricks.filter((t) => !isTrickLocked(t, 'rookie')).slice(0, 3);
+  // Two landed and one being learned — the rider who used to be shown a single
+  // card over a link promising three.
+  await stageTrick(page, free[0]!.id, 'Sometimes');
+  await stageTrick(page, free[1]!.id, 'Most times');
+  await stageTrick(page, free[2]!.id, 'Learning');
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/home');
+
+  await expect(page.getByRole('button', { name: 'All 3 of yours →' })).toBeVisible();
+  const cards = page.locator('.grid-tricks .tcard');
+  await expect(cards).toHaveCount(3);
+
+  // Learning first, then the ordinary stage order — the landed pair follow it
+  // rather than being dropped.
+  await expect(cards.nth(0)).toContainText(free[2]!.name, { ignoreCase: true });
+  await expect(cards.nth(0)).toContainText('Learning');
+  await expect(cards.nth(1)).toContainText(free[0]!.name, { ignoreCase: true });
+  await expect(cards.nth(2)).toContainText(free[1]!.name, { ignoreCase: true });
+
+  /*
+   * And every one of them carries its stage row, which is what makes a bump
+   * move a card down the grid rather than out of it (#190). A landed card with
+   * no row would leave the rider back on the trick page to correct a stage.
+   */
+  for (const i of [0, 1, 2]) {
+    await expect(
+      page.locator('.grid-tricks > *').nth(i).getByRole('button', { name: 'Every time' }),
+      `the card at ${i} has no stage row`,
+    ).toBeVisible();
+  }
 });
