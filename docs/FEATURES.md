@@ -233,7 +233,10 @@ entitlement flags read-only); moderation queue for reports/appeals; an Ideas que
 `suggestions`, deliberately a separate tab over a separate collection. Every mutation is audited
 twice (app layer + hook layer). Under 900px wide the riders, tricks, stickers and spots tables
 show each row as a card with its column names printed in it, and events and challenges scroll
-sideways with the name column pinned; at 900px and above every table is unchanged.
+sideways with the name column pinned; at 900px and above every table is unchanged — except
+riders, which stays on cards until 1216px (2026-09-18, issue #405), that being the width its ten
+columns actually fit in. The admin panel is 886px wide at most, whatever the monitor, because the
+portal renders inside the app shell's 1180px page beside a 232px section rail.
 
 **The twelve sections are grouped into three, named, and shown as a drawer or a rail**
 (2026-09-14, replacing one wrapping row of pills): *Riders & money* (Overview, Riders, Plans),
@@ -247,7 +250,11 @@ label of their own (*Show*, or what they narrow where a screen has two sets), as
 control that cannot be mistaken for the navigation above it.
 
 Six tabs page on the server with their filters (and, where they have one, search) in the URL —
-riders (40), spots (40), events (25), moderation (25), challenges (25), notices (20). Per-row
+riders (40), spots (40), events (25), moderation (25), challenges (25), notices (20). Riders also
+carries its **order** in the URL (2026-09-18): newest sign-up first by default, oldest first, or
+last seen first — riders with no `last_seen` sorting last under that one, and sign-up breaking its
+ties. Each rider row shows tricks landed, **sessions logged and crews joined** (all time, every
+membership), the last two counted per page rather than per row. Per-row
 counts on events, challenges and notices are scoped to the page rather than read from the whole
 join collection. The other three are bounded catalogues that fetch in full and filter in the
 browser: tricks, stickers, plans.

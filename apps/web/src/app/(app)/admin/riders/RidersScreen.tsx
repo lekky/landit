@@ -8,6 +8,7 @@ import { useToast } from '@/providers/toast';
 import { runAction } from '@/lib/runAction';
 
 import { Pager, useTableNav } from '../Pager';
+import { ShowBar } from '../ShowBar';
 import { setRiderPlanAction } from '../actions';
 import type { AdminPlanOption, AdminRiderRow, AdminRiderStatus } from '../view';
 
@@ -47,11 +48,37 @@ const STATUS_LOOK: Readonly<Record<AdminRiderStatus, { label: string; color: str
   suspended: { label: 'suspended', color: 'var(--red)' },
 };
 
+/**
+ * The three orders the table can be read in.
+ *
+ * Deliberately three and not a control per column. The table shows ten things
+ * and only two of them are questions staff ask of the *whole* rider base —
+ * when somebody arrived, and when they were last here — while the rest are
+ * things you look up about a rider you have already found with the search box.
+ * Sortable headers would be twenty orders of machinery for the two that get
+ * asked, and they would be invisible below 1216px, where the header row is
+ * hidden and every rider is a card.
+ *
+ * Counts are omitted (`ShowBar` allows that) because these are orders, not
+ * filters: every option shows the same riders, so a number beside each would
+ * be the same number three times.
+ *
+ * "Last seen" descends — the riders using the app right now come first, and
+ * the quiet end of the rider base is the last page. Riders with no stamp at
+ * all sort to the very bottom; see `RIDER_SORTS` in `@landit/db`.
+ */
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'oldest', label: 'Oldest' },
+  { value: 'seen', label: 'Last seen' },
+] as const;
+
 export function RidersScreen({
   rows,
   plans,
   query,
   plan,
+  sort,
   page,
   totalPages,
   totalItems,
@@ -60,6 +87,8 @@ export function RidersScreen({
   plans: readonly AdminPlanOption[];
   query: string;
   plan: string;
+  /** One of `SORT_OPTIONS`, already narrowed on the server. */
+  sort: string;
   page: number;
   totalPages: number;
   totalItems: number;
@@ -113,6 +142,20 @@ export function RidersScreen({
     setFilter(next);
   };
 
+  /**
+   * Changing the order returns to page one, like every other filter here.
+   *
+   * It is not strictly a filter — the same riders match either way — but page 7
+   * of a table just re-ordered is a page of riders chosen by an order nobody is
+   * looking at any more, which is worse than starting again from the top.
+   */
+  const onSort = (value: string) => {
+    const next = params();
+    if (value === 'newest') next.delete('sort');
+    else next.set('sort', value);
+    setFilter(next);
+  };
+
   const onPlanChange = (rider: AdminRiderRow, slug: string) => {
     startTransition(async () => {
       const result = await runAction('admin_save', () =>
@@ -155,6 +198,13 @@ export function RidersScreen({
         ))}
       </div>
 
+      {/* Labelled "Sort", not "Show", because it narrows nothing — the bar is
+          the quieter control the 2026-09-14 redesign introduced precisely so a
+          setting on the screen does not read as somewhere to go, and an order
+          is the purest example of that. It sits under the plan pills and above
+          the panel, where every other screen's `ShowBar` sits. */}
+      <ShowBar label="Sort" options={SORT_OPTIONS} value={sort} onChange={onSort} />
+
       {/* `styles.table` is the same `padding: 0; overflow: hidden` this panel
           used to carry inline, moved to the class every other admin table uses.
           The `data-label`s below are the column names a phone prints in each
@@ -168,6 +218,8 @@ export function RidersScreen({
           <span className="lab">Rider</span>
           <span className="lab">Rides</span>
           <span className="lab">Landed</span>
+          <span className="lab">Sessions</span>
+          <span className="lab">Crews</span>
           <span className="lab">Age band</span>
           <span className="lab">Joined</span>
           <span className="lab">Last seen</span>
@@ -200,6 +252,21 @@ export function RidersScreen({
 
             <span className="d" style={{ fontSize: 19 }} data-label="Landed">
               {rider.landed}
+            </span>
+
+            {/* Sessions logged, all time, and crews joined — the two figures
+                that say whether an account is ridden and whether it is ridden
+                with anybody. Both are printed in the muted ink rather than the
+                display face `Landed` uses: `Landed` is the rider's score and
+                keeps the emphasis, these are context for it. A zero is shown
+                as a zero, not a dash — nobody has logged nothing by accident,
+                and an em dash would read as "we do not know". */}
+            <span className={styles.countCell} data-label="Sessions">
+              {rider.sessions}
+            </span>
+
+            <span className={styles.countCell} data-label="Crews">
+              {rider.crews}
             </span>
 
             {/* A band, never an age — there is no birth date to show. The
