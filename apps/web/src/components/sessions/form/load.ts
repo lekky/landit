@@ -37,6 +37,7 @@ import {
 
 import {
   editSessionValues,
+  eventsInFormWindow,
   localDateTimeIn,
   newSessionValues,
   sessionOpenSource,
@@ -153,7 +154,15 @@ function toFormSpot(row: {
 }
 
 function toFormEvent(row: EventsRecord): FormEvent {
-  return { id: row.id, name: row.name, date: row.date, lat: row.lat, lng: row.lng };
+  return {
+    id: row.id,
+    name: row.name,
+    date: row.date,
+    venue: row.venue,
+    town: row.town,
+    lat: row.lat,
+    lng: row.lng,
+  };
 }
 
 async function eventById(client: Client, id: string): Promise<EventsRecord | null> {
@@ -218,11 +227,13 @@ export async function loadNewSessionForm(
   };
 
   const visibilityDefault = sessionVisibilityDefault(rider.session_visibility_default);
-  const todaysEvents = base.events.filter((e) => e.date.slice(0, 10) === today);
+  // Today and the month behind it, so a jam written up on the Monday can still
+  // be named; the link's own event is kept whatever its date.
+  const inWindow = eventsInFormWindow(base.events, today);
   const events =
-    prefillEvent && !todaysEvents.some((e) => e.id === prefillEvent.id)
-      ? [...todaysEvents, prefillEvent]
-      : todaysEvents;
+    prefillEvent && !inWindow.some((e) => e.id === prefillEvent.id)
+      ? [...inWindow, prefillEvent]
+      : inWindow;
   const recentSpotIds = base.recentSpotIds.filter((id) => spots.some((s) => s.id === id));
 
   return {
@@ -293,11 +304,9 @@ export async function loadEditSessionForm(
   ]);
 
   const day = toDayKey(saved.startedAt, timezone);
-  const todaysEvents = base.events.filter((e) => e.date.slice(0, 10) === today);
+  const inWindow = eventsInFormWindow(base.events, today);
   const events =
-    attached && !todaysEvents.some((e) => e.id === attached.id)
-      ? [...todaysEvents, attached]
-      : todaysEvents;
+    attached && !inWindow.some((e) => e.id === attached.id) ? [...inWindow, attached] : inWindow;
   const savedSpot = spots.find((s) => s.id === saved.spotId);
   const sports = (rider.sports ?? []) as SportId[];
 

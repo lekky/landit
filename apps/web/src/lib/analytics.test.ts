@@ -309,6 +309,9 @@ describe('the event catalogue', () => {
         // these carries a spot, an event, a time, a duration or a trick.
         'session_deleted',
         'session_edited',
+        // How an event got onto a session: the band's offer, or the picker
+        // added 2026-09-18. `via` only, never which event or which day.
+        'session_event_attached',
         'session_grace_used',
         'session_log_opened',
         'session_logged',

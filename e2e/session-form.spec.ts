@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { POCKETBASE_URL } from './support/seed-library';
 import { finishOnboarding, pickEverySport } from './support/onboarding';
+import { seedSchedule } from './support/seed-schedule';
 
 /**
  * The session form (T38), for a rider on the free plan — and its three steps
@@ -344,4 +345,49 @@ test('an edit saves from whichever step it is on', async ({ page }) => {
 
   await page.waitForURL((url) => !url.pathname.endsWith('/edit'));
   await expect(page.getByText('Kept the speed through the bowl.')).toBeVisible();
+});
+
+test('a rider names the event they were at, days after it happened', async ({ page }) => {
+  /*
+   * The gap this closes (T53, owner in chat 2026-09-18). An event used to reach
+   * a session only by being offered: from the event's own page on its own day,
+   * or from the purple band, which needs an event dated *today* whose pin is
+   * within 1 km of a spot on the map. Neither can serve the ordinary case of
+   * writing a jam up afterwards, and only a rendered page can show that the way
+   * in works — the pure part of it (`eventsOnDay`, `sessionFormDay`) is unit
+   * tested, and would pass just as happily behind a press nobody can reach.
+   *
+   * `seedSchedule` already seeds an event twenty days back ("E2E Last Month
+   * Session"), which is inside the thirty-day window and nowhere near a spot —
+   * exactly the session that could not be logged before.
+   */
+  await seedSchedule();
+  const spotName = await aLiveSpotName();
+  await newRider(page);
+  await page.goto('/progress/sessions/new');
+
+  await pickSpot(page, spotName);
+
+  // Twenty days ago, which is when the seeded event was on.
+  const wasOn = new Date(Date.now() - 20 * 86_400_000).toISOString().slice(0, 10);
+  await page.getByRole('radio', { name: 'Pick a time' }).click();
+  await page.getByLabel('Day').fill(wasOn);
+
+  await page.getByRole('button', { name: 'Were you at an event?' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Were you at an event?' });
+  await sheet.getByRole('button', { name: /E2E Last Month Session/ }).click();
+
+  // The band now speaks for the rider's answer rather than an offer.
+  await expect(page.getByText('attached to this session')).toBeVisible();
+  await expect(page.getByText('E2E Last Month Session')).toBeVisible();
+
+  // And it is on the session the server saved, not just on the form: on to the
+  // last step, save, and read the event pill back off the diary.
+  await page.getByRole('button', { name: 'Next', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Next', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Save session' }).click();
+  await expect(page.getByText('Session logged')).toBeVisible();
+
+  await page.goto('/progress/sessions');
+  await expect(page.getByRole('link', { name: 'E2E Last Month Session' }).first()).toBeVisible();
 });

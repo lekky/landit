@@ -12,6 +12,7 @@ import {
   STAGE,
   clipLinkProblem,
   clipWatchUrl,
+  formatDayLong,
   isLandedStage,
   parseClipLink,
   stagesAbove,
@@ -47,6 +48,8 @@ import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES } from '@/lib/routes';
 import {
   eventsAtSpotToday,
+  eventsOnDay,
+  sessionFormDay,
   trickStageLine,
   visibilityLine,
   type SessionFormValues,
@@ -56,8 +59,9 @@ import styles from './form.module.css';
 // Type only, so the cycle with `SavedState` (which imports `ChevronRight` from
 // here) is erased rather than real.
 import type { FreshSection } from './SavedState';
+import { EventPickerSheet } from './EventPickerSheet';
 import { SpotSearchSheet } from './SpotSearchSheet';
-import type { FormSpot, FormTrick, SessionFormData } from './types';
+import type { FormEvent, FormSpot, FormTrick, SessionFormData } from './types';
 
 /**
  * The full form's twelve fields, in the handoff's order (1c phone, 2g desktop).
@@ -305,9 +309,27 @@ export function WhereField(props: {
 }) {
   const { data, values, onChange, spots } = props;
   const [searching, setSearching] = useState(false);
+  const [picking, setPicking] = useState(false);
   const spot = spots.get(values.spotId) ?? null;
   const attached = values.eventId ? data.events.find((e) => e.id === values.eventId) : null;
   const offered = !values.eventId ? eventsAtSpotToday(data.events, spot, data.today)[0] : undefined;
+  /*
+    The day being asked about is the session's, not today's: a rider writing up
+    Saturday's jam on the Monday is the case the offer band could never serve.
+  */
+  const day = sessionFormDay(values, data.today);
+  const dayEvents = eventsOnDay(data.events, day, spot);
+
+  /** `via` is the only thing that travels — never which event (`analytics.ts`). */
+  const attach = (eventId: string, via: 'offer' | 'picker') => {
+    onChange({ eventId });
+    capture(ANALYTICS_EVENTS.sessionEventAttached, { via });
+  };
+
+  const pickEvent = (event: FormEvent) => {
+    attach(event.id, 'picker');
+    setPicking(false);
+  };
   const recent = data.recentSpotIds
     .filter((id) => id !== values.spotId)
     .map((id) => spots.get(id))
@@ -397,20 +419,46 @@ export function WhereField(props: {
             Remove
           </button>
         </div>
-      ) : offered ? (
-        <div className={styles.eventBand}>
-          <FlagGlyph />
-          <div className={styles.eventText}>
-            <b>{offered.name}</b> is on here today.
-          </div>
-          <button
-            type="button"
-            className={styles.eventAdd}
-            onClick={() => onChange({ eventId: offered.id })}
-          >
-            Add
+      ) : (
+        <>
+          {offered ? (
+            <div className={styles.eventBand}>
+              <FlagGlyph />
+              <div className={styles.eventText}>
+                <b>{offered.name}</b> is on here today.
+              </div>
+              <button
+                type="button"
+                className={styles.eventAdd}
+                onClick={() => attach(offered.id, 'offer')}
+              >
+                Add
+              </button>
+            </div>
+          ) : null}
+          {/*
+            The way in when nothing is offered — which, until this row, was most
+            of the time: the band only speaks for an event on today whose pin is
+            within 1 km of a spot on the map, so a jam in a car park or one
+            logged the next morning had no way onto a session at all. It sits
+            under the offer rather than instead of it, so a rider who was at a
+            different event can still say so.
+          */}
+          <button type="button" className={styles.eventPick} onClick={() => setPicking(true)}>
+            <FlagGlyph />
+            <span>{offered ? 'At a different event?' : 'Were you at an event?'}</span>
+            <ChevronRight />
           </button>
-        </div>
+        </>
+      )}
+
+      {picking ? (
+        <EventPickerSheet
+          events={dayEvents}
+          dayLabel={formatDayLong(day)}
+          onPick={pickEvent}
+          onClose={() => setPicking(false)}
+        />
       ) : null}
 
       {searching ? (

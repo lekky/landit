@@ -338,6 +338,21 @@ export const ANALYTICS_EVENTS = {
    */
   sessionLogged: 'session_logged',
   /**
+   * An event was attached to a session on the form. Carries `via` — `'offer'`
+   * where the purple band offered it ("X is on here today", the spot inside
+   * 1 km of the event's pin) or `'picker'` where the rider opened "Were you at
+   * an event?" and chose one.
+   *
+   * **Never which event, and never the day.** The rule above stands: what
+   * travels is which control was used.
+   *
+   * It exists because the offer used to be the only way in, and nobody could
+   * tell whether riders were ignoring events or simply never being asked. Two
+   * fixed strings answer that: a picker that carries the presses means the
+   * 1 km offer was missing them, and one nobody touches means it was enough.
+   */
+  sessionEventAttached: 'session_event_attached',
+  /**
    * A trick on the session form was moved up the stage ladder by the picker.
    *
    * Carries `from` and `to` — two of the five stage ids, or `'none'` for a

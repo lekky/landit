@@ -1433,3 +1433,36 @@
 .customActions > :last-child {
   margin-left: auto;
 }
+
+/*
+  "Were you at an event?" — the press that opens the event picker (2026-09-18).
+  The band's purple, so the two read as the same subject, but drawn as a row
+  rather than a notice: this one is a question, not an announcement. 44px tall,
+  the rethink's touch floor.
+*/
+.eventPick {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 2.5px dashed #8a3be0;
+  background: #fffdf5;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #12100b;
+}
+.eventPick span {
+  flex: 1;
+  min-width: 0;
+}
+.eventPick:hover {
+  background: #f7f0ff;
+}

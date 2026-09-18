@@ -7,7 +7,9 @@ import {
   SPORT_IDS,
   STAGE,
   STAGE_IDS,
+  addDays,
   distanceKm,
+  isDayWithin,
   isSessionDuration,
   isSessionFeel,
   isSessionWeather,
@@ -747,5 +749,69 @@ export function eventsAtSpotToday(
     .map((e) => ({ e, km: distanceKm(spot, e) }))
     .filter(({ km }) => km <= withinKm)
     .sort((a, b) => a.km - b.km)
+    .map(({ e }) => e);
+}
+
+/**
+ * How far back the form carries events, so "were you at an event?" can be
+ * answered on a session the rider is writing up afterwards. A session cannot
+ * start in the future, so the window only ever runs backwards from today.
+ *
+ * **A tunable default the design does not state**, recorded in plan §7 T38
+ * alongside the 1 km rule above. Thirty days is a month of weekends: long
+ * enough for "I never got round to logging that jam", short enough that the
+ * form is not handed the whole calendar.
+ */
+export const EVENT_PICKER_DAYS_BACK = 30;
+
+/**
+ * The events the form is given: the ones a session being written could
+ * plausibly have been at. Takes any record with a date, so the server can hand
+ * it rows and the browser gets only what it can use.
+ */
+export function eventsInFormWindow<T extends { readonly date: string }>(
+  events: readonly T[],
+  today: DayKey,
+  daysBack: number = EVENT_PICKER_DAYS_BACK,
+): T[] {
+  const from = addDays(today, -Math.abs(daysBack));
+  return events.filter((e) => isDayWithin(e.date.slice(0, 10) as DayKey, from, today));
+}
+
+/**
+ * The day a session is being logged for: the picked date, or today when the
+ * rider left it on "Right now". What the event picker lists is a day's worth of
+ * events, and this is that day.
+ */
+export function sessionFormDay(
+  values: Pick<SessionFormValues, 'when' | 'pickedAt'>,
+  today: DayKey,
+): DayKey {
+  if (values.when !== 'pick') return today;
+  const picked = values.pickedAt.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(picked) ? (picked as DayKey) : today;
+}
+
+/**
+ * Every event on a given day, for the picker behind "Were you at an event?".
+ *
+ * Nearest to the spot first when there is a spot to measure from — both points
+ * are ours, a spot's and an event's, never the rider's — and by name when there
+ * is not, which is what a rider who typed their own place gets.
+ */
+export function eventsOnDay<T extends EventPlace>(
+  events: readonly T[],
+  day: DayKey,
+  spot: { readonly lat: number; readonly lng: number } | null = null,
+): T[] {
+  const onDay = events.filter((e) => e.date.slice(0, 10) === day);
+  const point = spot && Number.isFinite(spot.lat) && Number.isFinite(spot.lng) ? spot : null;
+  if (!point) return [...onDay].sort((a, b) => a.name.localeCompare(b.name));
+  return onDay
+    .map((e) => ({
+      e,
+      km: Number.isFinite(e.lat) && Number.isFinite(e.lng) ? distanceKm(point, e) : Infinity,
+    }))
+    .sort((a, b) => a.km - b.km || a.e.name.localeCompare(b.e.name))
     .map(({ e }) => e);
 }

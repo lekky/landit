@@ -45,6 +45,9 @@ export interface FormEvent {
   readonly id: string;
   readonly name: string;
   readonly date: string;
+  /** Where it is, for the picker's second line: "Rampworx · Liverpool". */
+  readonly venue: string;
+  readonly town: string;
   readonly lat: number;
   readonly lng: number;
 }
@@ -85,7 +88,11 @@ export interface SessionFormData {
   readonly spots: readonly FormSpot[];
   /** The rider's three most recent spots, newest first. */
   readonly recentSpotIds: readonly string[];
-  /** Live events on today, plus the one attached to the session being edited. */
+  /**
+   * Live events the session could have been at: today and the thirty days
+   * behind it (`EVENT_PICKER_DAYS_BACK`), plus the one a link named or the one
+   * attached to the session being edited, whatever its date.
+   */
   readonly events: readonly FormEvent[];
   readonly tricks: readonly FormTrick[];
   readonly mates: readonly FormMate[];

@@ -6,6 +6,8 @@ import {
   editSessionValues,
   escalateQuickLog,
   eventsAtSpotToday,
+  eventsInFormWindow,
+  eventsOnDay,
   formIsDirty,
   inOurWords,
   localDateTimeIn,
@@ -16,6 +18,7 @@ import {
   sessionInputFrom,
   sessionOpenSource,
   sessionPatchFrom,
+  sessionFormDay,
   sessionQuotaWarning,
   sessionStampLabel,
   sessionWallPips,
@@ -337,5 +340,47 @@ describe('an event on at the spot today', () => {
   it('offers only a live event on today within reach of the spot', () => {
     expect(eventsAtSpotToday(events, spot, '2026-09-13').map((e) => e.id)).toEqual(['a']);
     expect(eventsAtSpotToday(events, null, '2026-09-13')).toEqual([]);
+  });
+});
+
+describe('the events the form is given, and the day it asks about', () => {
+  const rows = [
+    { id: 'a', name: 'A month ago', date: '2026-08-14 00:00:00.000Z' },
+    { id: 'b', name: 'Too long ago', date: '2026-08-13 00:00:00.000Z' },
+    { id: 'c', name: 'Today', date: '2026-09-13 00:00:00.000Z' },
+    { id: 'd', name: 'Tomorrow', date: '2026-09-14 00:00:00.000Z' },
+  ];
+
+  it('keeps today and the thirty days behind it, and nothing ahead', () => {
+    // Nothing in the future: a session cannot start in one.
+    expect(eventsInFormWindow(rows, '2026-09-13').map((e) => e.id)).toEqual(['a', 'c']);
+  });
+
+  it('asks about the picked day, not today', () => {
+    const now = { when: 'now', pickedAt: '2026-09-11T10:00' } as const;
+    const picked = { when: 'pick', pickedAt: '2026-09-11T10:00' } as const;
+    expect(sessionFormDay(now, '2026-09-13')).toBe('2026-09-13');
+    expect(sessionFormDay(picked, '2026-09-13')).toBe('2026-09-11');
+    // A half-typed date falls back to today rather than emptying the picker.
+    expect(sessionFormDay({ when: 'pick', pickedAt: '' }, '2026-09-13')).toBe('2026-09-13');
+  });
+});
+
+describe('the events on the day being logged', () => {
+  const spot = { lat: 52.49, lng: -0.69 };
+  const events = [
+    { id: 'far', name: 'Alpha jam', date: '2026-09-11 00:00:00.000Z', lat: 53.4, lng: -2.2 },
+    { id: 'near', name: 'Zed jam', date: '2026-09-11 00:00:00.000Z', lat: 52.492, lng: -0.692 },
+    { id: 'other', name: 'Other day', date: '2026-09-12 00:00:00.000Z', lat: 52.49, lng: -0.69 },
+  ];
+
+  it('lists that day only, nearest to the spot first', () => {
+    expect(eventsOnDay(events, '2026-09-11', spot).map((e) => e.id)).toEqual(['near', 'far']);
+  });
+
+  it('falls back to names where there is no spot to measure from', () => {
+    // What a rider who typed their own place gets: no point, so no distance.
+    expect(eventsOnDay(events, '2026-09-11', null).map((e) => e.id)).toEqual(['far', 'near']);
+    expect(eventsOnDay(events, '2026-09-13', spot)).toEqual([]);
   });
 });
