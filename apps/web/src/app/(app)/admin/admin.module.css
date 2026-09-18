@@ -543,29 +543,164 @@
  * (SUSPENDED) with its button; `.accountCell` wraps rather than overflows if a
  * longer one is ever added.
  *
- * Below 900px the grid is dropped and each rider becomes a labelled card — see
- * "Tables on a phone" further down. This paragraph used to say that `.arow`'s
+ * Below 1216px the grid is dropped and each rider becomes a labelled card — on
+ * a phone by the "Tables on a phone" block further down, and between 900px and
+ * 1216px by the block immediately after this one, which exists because this
+ * table needs more width than the 900px every other card table switches at
+ * (issue #405). This paragraph used to say that `.arow`'s
  * wrapping flex took back over there and was "the right answer on a phone". It
  * was not (issue #371): eight cells wrapped three or four to a line in DOM
  * order, under a header row that had wrapped differently, so a bare "0" or
  * "Adult" sat under nothing and staff could not read the table at all. The
  * half of that paragraph that stands is that this grid squeezed to phone width
- * would be no better — eight pinned columns in 350px is one column of clipped
+ * would be no better — ten pinned columns in 350px is one column of clipped
  * text — which is why a phone gets cards instead of this template.
+ *
+ * ## The width this table actually has, and why the minimums are what they are
+ *
+ * **892px, and it is fixed** (issue #405). The portal renders inside the app
+ * shell's `.page`, which is `max-width: 1180px` with 18px of padding, and at
+ * 900px and up `.body` above spends 232px of that on the section nav plus a
+ * 20px gap. So the widest this panel is ever drawn is 1180 − 36 − 252 = 892px,
+ * on a 4K monitor exactly as on a 1280px laptop. A row then spends 32px on
+ * `.arow`'s padding and, with the gap narrowed to 8px below, 72px on its nine
+ * gaps, leaving **750px for the ten tracks** (the panel's own borders take the
+ * last few: measured at 886px of panel, not the 892px the arithmetic gives).
+ *
+ * That budget is why #405 happened and why it was never really the 900–990px
+ * band it was reported as. The eight tracks here before 2026-09-18 summed to
+ * 828px of minimum against 776px of budget, and `.table` is `overflow: hidden`,
+ * so the Account cell's right-hand end — the Open button — was clipped at
+ * *every* width, with the narrow band merely being where it got bad enough to
+ * notice. Adding Sessions and Crews to a table that was already over budget is
+ * what turned that into something to fix rather than something to inherit, so
+ * every track below was re-cut to it: the ten now sum to 748px, measured in the
+ * browser rather than computed and hoped for — which is also how the Rides
+ * track's 98px was arrived at, that being what a SKATEBOARD chip measures.
+ *
+ * The minimums are label-driven, not value-driven, because the headings are the
+ * widest thing in most of these columns — a count is two characters and
+ * "SESSIONS" is eight, in an 11px condensed face at 0.16em of tracking. Each
+ * one is the width its heading needs on a single line, which is also what stops
+ * the header row growing a second line and un-aligning itself from the rows
+ * beneath it. Rides is the exception and is sized to its content instead: three
+ * sport chips wrap, but a single chip cannot, so a track narrower than
+ * SKATEBOARD puts that chip through the Landed column.
+ *
+ * **Account keeps its fixed 150px**, and everything else gave up the room
+ * instead. It holds SUSPENDED and the Open button side by side, it is the cell
+ * that #405 is about, and it is the one track that cannot shrink without
+ * putting the button back under the clip it was just rescued from.
  */
-@media (min-width: 900px) {
+@media (min-width: 1216px) {
   .riderRow.riderRow {
     display: grid;
+    /*
+     * 8px rather than the 12px `.arow` gives every other row, which is where
+     * the last 36px of the budget came from. Ten columns need nine gaps, so
+     * four pixels each is a whole column's worth — the difference between the
+     * Rides cell holding SKATEBOARD and holding it badly. It is a change to the
+     * gap of this grid, not to `.arow`, which is shared and untouched.
+     */
+    column-gap: 8px;
     grid-template-columns:
-      minmax(150px, 2.2fr) /* rider */
-      minmax(104px, 1.3fr) /* rides */
-      56px /* landed */
-      minmax(72px, 0.6fr) /* age band */
-      minmax(76px, 0.6fr) /* joined */
-      minmax(88px, 0.8fr) /* last seen */
-      minmax(132px, 1fr) /* plan override */
+      minmax(100px, 2.1fr) /* rider */
+      minmax(98px, 1fr) /* rides — SKATEBOARD is 98px, the widest chip */
+      48px /* landed */
+      minmax(62px, 0.5fr) /* sessions */
+      minmax(42px, 0.4fr) /* crews */
+      minmax(50px, 0.5fr) /* age band */
+      minmax(48px, 0.5fr) /* joined */
+      minmax(62px, 0.7fr) /* last seen */
+      minmax(88px, 0.9fr) /* plan override */
       150px; /* account */
   }
+}
+
+/*
+ * Riders keeps its cards until the grid can actually hold them (issue #405).
+ *
+ * Every other card table switches at 900px, because 900px is where `.body`
+ * above turns into nav-plus-content and the content column stops being phone
+ * width. This one cannot use that number. Its ten tracks need 852px including
+ * gaps, and the content column only reaches that at a **1216px** viewport —
+ * below it the column is narrower than the row's own minimum, the grid
+ * overflows a panel that is `overflow: hidden`, and the Account cell's Open
+ * button is cut off. That is #405: reported as a 900–990px band, actually
+ * every width from 900 up, and the reason the table looked fine to whoever
+ * added a column is that the overflow hides rather than scrolls.
+ *
+ * So the switch is moved to where the grid fits and this block covers the gap
+ * it leaves. It is the phone block's rules again rather than a shared one,
+ * because that block is four tables' and the other three switch at 900px on
+ * purpose — tricks, stickers and spots have their own column budgets and their
+ * own issues (#195, #494), and dragging them to 1216px on the way past would be
+ * three screens changed to fix one. **If the rules below and the ones under
+ * "Tables on a phone" ever disagree, that block is the original.**
+ *
+ * A laptop at 1280px is above this band, so the common staff window gets the
+ * table. A half-screen window at 1100px gets legible cards instead of a table
+ * with its right-hand end shaved off, which is the trade this makes.
+ */
+@media (min-width: 900px) and (max-width: 1215.98px) {
+  .riderRow.cardHead.cardHead {
+    display: none;
+  }
+
+  .riderRow.cardRow.cardRow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 14px;
+    align-items: start;
+    padding: 14px 16px;
+  }
+
+  .riderRow.cardRow > :first-child,
+  .riderRow.cardRow > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .riderRow.cardRow > [data-label] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px 6px;
+  }
+
+  .riderRow.cardRow > [data-label]::before {
+    content: attr(data-label);
+    flex: 0 0 100%;
+    font-family: var(--fc);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    line-height: 1.3;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .riderRow.cardRow .controlCell > * {
+    flex: 0 1 auto;
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+  }
+}
+
+/*
+ * The two counts beside `Landed`.
+ *
+ * Quieter than the figure they sit next to on purpose: `Landed` is printed in
+ * the display face at 19px because it is the rider's score, and two more of
+ * those would make a row of three competing numbers with no hierarchy. These
+ * are context for it, so they take the same condensed 13.5px the Joined and
+ * Last seen cells use — read when looked at, ignored when scanning.
+ */
+.countCell {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--ink-2);
 }
 
 /*

@@ -1,5 +1,12 @@
 import { DEFAULT_TIMEZONE, LANDED_STAGES, toDayKey, type SportId } from '@landit/core';
-import { landedCountsFor, listAdminRiders, listPlans } from '@landit/db';
+import {
+  DEFAULT_RIDER_SORT,
+  isAdminRiderSort,
+  landedCountsFor,
+  listAdminRiders,
+  listPlans,
+  relationCountsFor,
+} from '@landit/db';
 import type { Metadata } from 'next';
 
 import { monthYear, relativeTime } from '@/lib/dates';
@@ -20,6 +27,10 @@ import { RidersScreen } from './RidersScreen';
  * query runs in SQLite over an index instead of shipping the whole rider base
  * to a staff laptop to be filtered with `.includes`, and it means a staff
  * member can send somebody a link to what they are looking at.
+ *
+ * The sort (added 2026-09-18) is in the URL under the same rule and gains most
+ * from it: "riders who have not been back in a month" is a thing one staff
+ * member wants to hand another, and a link is how they do that.
  */
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +46,7 @@ const PER_PAGE = 40;
 export default async function AdminRidersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; plan?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; plan?: string; page?: string; sort?: string }>;
 }) {
   const staff = await requireStaff();
   const pb = staff.superuser;
@@ -43,6 +54,12 @@ export default async function AdminRidersPage({
 
   const query = (params.q ?? '').slice(0, 60);
   const pageNumber = Math.max(1, Number(params.page) || 1);
+  // Narrowed against the db package's own vocabulary rather than passed
+  // through: the sort reaches PocketBase in the same request as the filter,
+  // and that filter language is where the privacy rules are written. An
+  // unrecognised `?sort=` falls back to the default, for the same reason a
+  // mangled `?plan=` shows the whole table.
+  const sort = isAdminRiderSort(params.sort) ? params.sort : DEFAULT_RIDER_SORT;
 
   const plans = await listPlans(pb);
   // A plan slug from the query string is only honoured if it names a real plan.
@@ -57,14 +74,22 @@ export default async function AdminRidersPage({
   const page = await listAdminRiders(
     pb,
     { query, plan, matchEmail: true },
-    { page: pageNumber, perPage: PER_PAGE },
+    { page: pageNumber, perPage: PER_PAGE, sort },
   );
 
-  const landed = await landedCountsFor(
-    pb,
-    page.items.map((r) => r.id),
-    LANDED_STAGES,
-  );
+  const ids = page.items.map((r) => r.id);
+
+  // Three reads for the whole page, not three per row. Each is scoped to the
+  // forty ids on screen and returns one column, so paging the table makes
+  // these cheaper too — the shape `landedCountsFor` established and
+  // `relationCountsFor` generalised. In parallel because none of them needs
+  // another's answer, and serially they are three round trips of latency on
+  // the screen staff open first.
+  const [landed, sessions, crews] = await Promise.all([
+    landedCountsFor(pb, ids, LANDED_STAGES),
+    relationCountsFor(pb, 'sessions', 'user', ids),
+    relationCountsFor(pb, 'crew_members', 'user', ids),
+  ]);
 
   const now = new Date().toISOString();
 
@@ -94,6 +119,10 @@ export default async function AdminRidersPage({
       avatarKey: rider.avatar_key || null,
       sports: (rider.sports ?? []).map((id) => SPORT_LOOKS[id as SportId]).filter(Boolean),
       landed: landed[rider.id] ?? 0,
+      // Absent from the tally means no rows, which is zero — see
+      // `relationCountsFor`.
+      sessions: sessions[rider.id] ?? 0,
+      crews: crews[rider.id] ?? 0,
       joined: rider.created ? monthYear(rider.created) : '—',
       seen,
       seenToday,
@@ -116,6 +145,7 @@ export default async function AdminRidersPage({
       plans={planOptions}
       query={query}
       plan={plan ?? 'all'}
+      sort={sort}
       page={page.page}
       totalPages={page.totalPages}
       totalItems={page.totalItems}

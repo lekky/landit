@@ -50,6 +50,25 @@ export interface AdminRiderRow {
   readonly sports: readonly SportLook[];
   /** Tricks taken to a landed stage. */
   readonly landed: number;
+  /**
+   * Sessions the rider has logged, all time.
+   *
+   * The counterpart to `landed`, and the pair is the point: `landed` says how
+   * much of the library a rider has eaten, this says how often they actually
+   * ride. An account can be high on one and zero on the other, and until
+   * 2026-09-18 the table showed only the first — so a rider who logs every
+   * Saturday but is working through one trick read as barely there.
+   */
+  readonly sessions: number;
+  /**
+   * Crews the rider belongs to, however they got in.
+   *
+   * Founding one and being invited into one both count: the question this
+   * answers is whether the rider has anybody to ride with, and a crew of their
+   * own is an answer to it. A count only — no crew is named on this row, which
+   * would be telling staff about riders who are not the subject of it.
+   */
+  readonly crews: number;
   /** "Mar 2026". */
   readonly joined: string;
   /**

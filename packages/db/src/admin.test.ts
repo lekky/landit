@@ -14,6 +14,7 @@ import {
   listAdminChallengesPage,
   listAdminEvents,
   listAdminPlans,
+  isAdminRiderSort,
   listAdminRiders,
   listAdminEventsPage,
   listAdminSpots,
@@ -295,6 +296,70 @@ describe('listAdminRiders', () => {
     await listAdminRiders(client, { matchEmail: true });
 
     expect(filterOf(calls)).toBe('');
+  });
+
+  const sortOf = (calls: readonly Call[]) =>
+    (calls.find((c) => c.method === 'getList')?.args[2] as { sort?: string })?.sort ?? '';
+
+  it('is newest first when no order is asked for', async () => {
+    const { client, calls } = fakeClient();
+
+    await listAdminRiders(client);
+
+    // The default this function always had. Every caller written before `sort`
+    // existed reads exactly as it did, which is what makes the option additive.
+    expect(sortOf(calls)).toBe('-created');
+  });
+
+  it('spells each order the caller may name', async () => {
+    for (const [sort, expected] of [
+      ['newest', '-created'],
+      ['oldest', 'created'],
+      ['seen', '-last_seen,-created'],
+    ] as const) {
+      const { client, calls } = fakeClient();
+      await listAdminRiders(client, {}, { sort });
+      expect(sortOf(calls)).toBe(expected);
+    }
+  });
+
+  it('breaks ties on last seen by sign-up, so a page does not reshuffle', async () => {
+    const { client, calls } = fakeClient();
+
+    await listAdminRiders(client, {}, { sort: 'seen' });
+
+    // Riders with no stamp at all share one value, and there are as many of
+    // them as there are accounts nobody has signed into since `last_seen`
+    // existed. Without the second key their order is the query planner's to
+    // choose, and a staff member paging through them would see rows move.
+    expect(sortOf(calls)).toBe('-last_seen,-created');
+  });
+
+  it('never lets a caller compose the sort expression itself', async () => {
+    const { client, calls } = fakeClient();
+
+    // The cast is the point of the test: it is what a screen passing an
+    // unchecked query-string value through would look like. The sort reaches
+    // PocketBase in the same request as the filter, and that filter language is
+    // where the privacy rules are written — so an unrecognised word has to fall
+    // back to the default rather than travel.
+    await listAdminRiders(client, {}, { sort: 'created,id' as never });
+
+    expect(sortOf(calls)).toBe('-created');
+  });
+});
+
+describe('isAdminRiderSort', () => {
+  it('accepts exactly the three orders the table offers', () => {
+    expect(isAdminRiderSort('newest')).toBe(true);
+    expect(isAdminRiderSort('oldest')).toBe(true);
+    expect(isAdminRiderSort('seen')).toBe(true);
+  });
+
+  it('refuses anything else, including what a mangled link carries', () => {
+    for (const value of ['', 'created', '-created', 'SEEN', 'toString', undefined, null, 7, {}]) {
+      expect(isAdminRiderSort(value)).toBe(false);
+    }
   });
 });
 

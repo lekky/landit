@@ -276,21 +276,83 @@ function riderFilter(filter: AdminRiderFilter): ListOptions {
 }
 
 /**
- * One page of riders, newest first.
+ * The orders the riders table can be read in.
+ *
+ * A closed vocabulary rather than a sort string the caller composes, and that
+ * is the whole reason this type exists. The sort expression reaches PocketBase
+ * in the same request as the filter, which is written in the language the
+ * privacy rules are written in (see `collections.ts` and `orChain`); a caller
+ * handing through a query-string value would be interpolating a stranger's text
+ * into it. Four words the caller may say, mapped here to the expression, means
+ * a mangled `?sort=` in somebody's URL falls back to the default instead of
+ * reaching the database at all.
+ */
+export type AdminRiderSort = 'newest' | 'oldest' | 'seen';
+
+/**
+ * How each order is spelled to PocketBase.
+ *
+ * `seen` descends, so the riders using Land The Trick right now are on page
+ * one. Riders with no `last_seen` at all sort **last** under it, which is what
+ * an empty string does against a date in SQLite and is also the right answer:
+ * an account that has never authenticated since the stamp existed is not the
+ * most recently active thing in the table. `-created` is the tiebreaker on
+ * `seen` so a page of riders sharing an empty stamp still has a stable order
+ * rather than whatever the query planner returns that minute — a page that
+ * reshuffles between loads is a page staff cannot page through.
+ */
+const RIDER_SORTS: Readonly<Record<AdminRiderSort, string>> = {
+  newest: '-created',
+  oldest: 'created',
+  seen: '-last_seen,-created',
+};
+
+/** The order the table opens in when nobody has asked for one. */
+export const DEFAULT_RIDER_SORT: AdminRiderSort = 'newest';
+
+/**
+ * Is this a sort the riders table offers?
+ *
+ * For the screen to narrow a query-string value with, so that the only strings
+ * reaching `listAdminRiders` are ones this module named.
+ */
+export function isAdminRiderSort(value: unknown): value is AdminRiderSort {
+  // `Object.hasOwn`, never `in`: `in` walks the prototype chain, so `'toString'
+  // in RIDER_SORTS` is true and `?sort=toString` would pass this gate and then
+  // index the map to a **function**, which is what would actually be sent as
+  // the sort expression. Caught by the test below rather than by review.
+  return typeof value === 'string' && Object.hasOwn(RIDER_SORTS, value);
+}
+
+/**
+ * One page of riders, newest first unless asked otherwise.
  *
  * Paged rather than listed because `users` is the one collection with no upper
  * bound on it — `getFullList` follows every page, so a riders table built on it
  * gets slower with every sign-up and eventually times out on the screen staff
  * open first.
+ *
+ * `sort` was added on 2026-09-18 and defaults to what this function always did,
+ * so every existing caller reads exactly as it did before.
  */
 export async function listAdminRiders(
   client: Client,
   filter: AdminRiderFilter = {},
-  page: { readonly page?: number; readonly perPage?: number } = {},
+  page: {
+    readonly page?: number;
+    readonly perPage?: number;
+    readonly sort?: AdminRiderSort;
+  } = {},
 ): Promise<Page<UsersRecord>> {
   return records(client, 'users').page({
     ...riderFilter(filter),
-    sort: '-created',
+    // Looked up and then defaulted *again*, rather than trusting `page.sort` to
+    // be one of three words because its type says so. The type is a
+    // compile-time promise and this value ends up in the same request as the
+    // privacy rules' filter language; a caller in plain JS, or one that cast
+    // a query-string value, would otherwise put `undefined` — or whatever it
+    // named — where the sort expression goes.
+    sort: RIDER_SORTS[page.sort as AdminRiderSort] ?? RIDER_SORTS[DEFAULT_RIDER_SORT],
     page: page.page ?? 1,
     perPage: page.perPage ?? 40,
   });
