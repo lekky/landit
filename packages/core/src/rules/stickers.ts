@@ -18,11 +18,16 @@ function threshold(sticker: Sticker, fallback = Number.POSITIVE_INFINITY): numbe
 }
 
 /**
- * The launch-window cutoff for the `day-one` founder award: one month after
- * the site went live on 2026-08-17. A constant, deliberately — the window is
- * historical fact, not a tunable.
+ * The launch-window cutoff for the `day-one` founder award: the end of the
+ * launch year, the site having gone live on 2026-08-17. Inclusive — a rider
+ * who signed up on 2026-12-31 is a founder; 2027-01-01 is not.
+ *
+ * A constant, deliberately: the window is a decision about a date, not a
+ * threshold staff retune from the admin portal. Widened from 2026-09-17 —
+ * one month live — on 2026-09-18 (Rachid, in chat), which is why the award
+ * copy reads "Joined in our first year" rather than naming a month.
  */
-export const FOUNDER_JOINED_BY = '2026-09-17';
+export const FOUNDER_JOINED_BY = '2026-12-31';
 
 const count = (value: number | undefined): number => value ?? 0;
 

@@ -161,9 +161,10 @@ function computeStats(app, userId) {
       user.get('sports') !== null &&
       String(user.get('sports')) !== '',
     accountAgeDays: isNaN(createdMs) ? 0 : Math.floor((Date.now() - createdMs) / 86400000),
-    // The launch window is historical fact: one month from 2026-08-17 live.
-    // Mirrors FOUNDER_JOINED_BY in @landit/core.
-    isFounder: created !== '' && created.slice(0, 10) <= '2026-09-17',
+    // The launch window runs to the end of the launch year, the site having
+    // gone live 2026-08-17. Inclusive, and widened from one month on
+    // 2026-09-18. Mirrors FOUNDER_JOINED_BY in @landit/core.
+    isFounder: created !== '' && created.slice(0, 10) <= '2026-12-31',
     planPaid: plan === 'shredder' || plan === 'legend',
     stageDropped: hasEverDroppedStage(app, userId),
   };

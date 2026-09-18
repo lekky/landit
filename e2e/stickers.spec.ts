@@ -135,7 +135,7 @@ test('a fresh wall shows the award set, locked — bar the founder badge', async
   expect(count).toMatch(/^\d+ of \d+$/);
   expect(Number(count.split(' of ')[1])).toBeGreaterThan(5);
 
-  // A rider who signed up during the launch window (before 2026-09-17) holds
+  // A rider who signed up during the launch window (on or before 2026-12-31) holds
   // `day-one` from their first second — deliberately, T24's founder badge. A
   // rider after it holds nothing. Either way: at most one earned, the heading
   // agrees with the badges, and the wall is otherwise locked.

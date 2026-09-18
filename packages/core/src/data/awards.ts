@@ -4143,7 +4143,7 @@ export const AWARDS = [
     sport: null,
     hue: '#ff3d78',
     ico: 'star',
-    cond: 'Joined in the first month live',
+    cond: 'Joined in our first year',
     isLive: true,
     img: 'day-one.png',
     stars: 0,
