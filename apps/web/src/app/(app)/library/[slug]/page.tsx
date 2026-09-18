@@ -1,6 +1,7 @@
 import {
   CATS,
   DEFAULT_TIMEZONE,
+  trickSessionSummary,
   NO_VIDEO_LINKS,
   SITE_URL,
   SPORTS,
@@ -13,6 +14,7 @@ import {
   fullPrereqChain,
   isTrickLanded,
   isTrickLocked,
+  lowdownTeaser,
   prereqTricks,
   similarTricks,
   trickById,
@@ -46,15 +48,27 @@ import {
   type PlansRecord,
   type UsersRecord,
 } from '@landit/db';
-import { Difficulty, Equipment, Panel, SportChip, Tag } from '@landit/ui-web';
+import {
+  Accordion,
+  Difficulty,
+  Equipment,
+  Panel,
+  SportChip,
+  Tag,
+  foregroundFor,
+} from '@landit/ui-web';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import type { CSSProperties } from 'react';
 
 import { GlossaryText } from '@/components/glossary/GlossaryText';
+import { riderFor, trickSessionsForOwner } from '@/components/sessions/blocks/rider';
 import { TrickSessionsBlock } from '@/components/sessions/blocks/TrickSessionsBlock';
 import { shortDate } from '@/lib/dates';
+import { trickBlockMeta } from '@/lib/sessionDetail';
 import { jsonLdText, trickHowToLd } from '@/lib/structuredData';
+import { practiseAdvice } from '@/lib/practise';
 import { ROUTES, trickHref } from '@/lib/routes';
 import { SPORT_LOOKS, lowerLabel } from '@/lib/sports';
 import { anonymousClient, currentRider } from '@/lib/session';
@@ -66,7 +80,6 @@ import { FactsStrip } from './FactsStrip';
 import { GuardianLine } from './GuardianLine';
 import { HistoryPanel } from './HistoryPanel';
 import { LockedTrick } from './LockedTrick';
-import { SectionHead } from './SectionHead';
 import { LogPanel, type NoteView } from './LogPanel';
 import { MistakesList } from './MistakesList';
 import { PractiseLine } from './PractiseLine';
@@ -103,6 +116,16 @@ import styles from './trick.module.css';
  */
 
 type Params = { params: Promise<{ slug: string }> };
+
+/**
+ * The width past which the sections stop being disclosure rows (§3.8: "Desktop
+ * does not use it: the page keeps its two columns and plain panels").
+ *
+ * 820, because that is where `.grid` already becomes two columns — one number
+ * for "is this the wide page", not two that could disagree by a pixel and give
+ * a 821px window a one-column stack of plain panels.
+ */
+const PLAIN_ABOVE = 820;
 
 /** "2 Apr 2026". Formatted here, on the server, and passed down as a string —
  * anything locale-derived that renders on both sides is a hydration risk, and a
@@ -176,6 +199,10 @@ async function load(slug: string) {
       videos: [],
       heldTotal: 0,
       allowance: NO_VIDEO_LINKS,
+      // No rider, no diary, no read: `riderFor` returns before any request when
+      // there is no cookie, and this branch never gets that far.
+      sessionsCount: 0,
+      sessionsMeta: null as string | null,
     };
   }
 
@@ -200,6 +227,27 @@ async function load(slug: string) {
   const entries = trickLogEntries(log, trickRecords);
   const landed = firstLanded(entries)[slug];
   const timezone = session.rider.timezone || DEFAULT_TIMEZONE;
+
+  /*
+   * How many sessions the rider has worked this trick in, and the line that
+   * says so — the disclosure row's sub-line, and the answer to whether the row
+   * is drawn at all (T49, after the independent review's B3).
+   *
+   * **It costs nothing for anyone the block would not draw for.** `riderFor`
+   * gates on `sessionsEnabledFor`, sessions are still owner-only preview (T41),
+   * and this asks the same question behind the same gate. For the one rider it
+   * does read for, `trickSessionsForOwner` is `cache`d and `TrickSessionsBlock`
+   * calls it with the same client, so the rows are fetched once and counted
+   * twice rather than fetched twice.
+   */
+  const sessionViewer = await riderFor(session);
+  const sessionsOnTrick = sessionViewer
+    ? trickSessionSummary(
+        await trickSessionsForOwner(sessionViewer.client, sessionViewer.rider.id, record.id),
+        record.id,
+        timezone,
+      )
+    : null;
 
   return {
     session,
@@ -237,6 +285,13 @@ async function load(slug: string) {
      */
     awardEarnedLabel:
       held && held.earned_at ? `Earned ${shortDate(held.earned_at, timezone)}` : null,
+    // "6 sessions · first tried 2 Sep", the same sentence the block's own head
+    // carried before it moved into a row (`trickBlockMeta`), formatted on the
+    // server like every other date on this page (LESSONS §3a).
+    sessionsCount: sessionsOnTrick?.count ?? 0,
+    sessionsMeta: sessionsOnTrick?.count
+      ? trickBlockMeta(sessionsOnTrick.count, sessionsOnTrick.firstTriedOn)
+      : null,
     // Every date and the summary line formatted here, in the rider's zone,
     // from the same log rows `landedLabel` is read from (LESSONS §3a).
     history: trickHistory(entries, slug, { timezone }) as TrickHistory | null,
@@ -421,15 +476,17 @@ export default async function TrickPage({ params }: Params) {
   const mistakes = trick.mistakes && trick.mistakes.length > 0 ? trick.mistakes : null;
 
   /*
-   * The award line, in two places that are never both on screen: the hero
-   * subline above the breakpoint, the cream strip below it. `cond` is staff
-   * copy — "Land the Tailwhip" — so a retune reaches this the way it reaches
-   * the sticker wall, which is why it is read rather than written out here
-   * (LESSONS §4). The award's *name* would be no use: every trick award is
-   * named after its trick, and the name is already the heading above it and
-   * lettered across the badge beside it.
+   * The staff-picked tutorial, or nothing (T35).
+   *
+   * `hidden` is the second half of the same condition, and it is checked here
+   * rather than in the mapping because the staff portal reads tricks through
+   * that mapping and has to be able to see a hidden video in order to put it
+   * back. A hidden video renders exactly like no video: no card, no gap, no
+   * hint that other tricks have one. That is what makes the nightly liveness
+   * check safe to let run unattended — the worst it can do is return a trick
+   * to the state most of the library is already in.
    */
-  const awardLine = data.award ? `The award · ${data.award.cond}` : null;
+  const video = trick.video && !trick.video.hidden ? trick.video : null;
 
   /*
    * What this page is, said in schema.org rather than left to be inferred
@@ -464,10 +521,18 @@ export default async function TrickPage({ params }: Params) {
       <Panel className={styles.panel}>
         <div className={styles.header} style={{ background: category.color }}>
           {/*
-            The badge overhangs the band below it. Nothing at all when the
-            trick has no live award — a trick staff add tomorrow has none until
-            one is seeded, and a hero missing a badge reads better than one
-            holding a box that explains its own emptiness.
+            The badge overhangs the band below it, as it did before D7 (owner,
+            2026-09-17, amending D7 and D7a). Nothing at all when the trick has
+            no live award — a trick staff add tomorrow has none until one is
+            seeded, and a hero missing a badge reads better than one holding a
+            box that explains its own emptiness. Earned or not, it is here:
+            one shape for the page (owner, 2026-09-17).
+
+            What sent it away in the first place was that the hero had no room
+            for the badge, the award's condition *and* the earned date, so the
+            condition ended up printed twice. It keeps only the badge now; the
+            condition and the date are the strip directly below, which is where
+            the owner's layout puts them.
           */}
           {data.award?.img && (
             <AwardBadge
@@ -483,7 +548,16 @@ export default async function TrickPage({ params }: Params) {
               <SportChip sport={SPORT_LOOKS[trick.sport]} />
             </div>
             <h1 className={`d ${styles.name}`}>{trick.name}</h1>
-            {awardLine && <div className={`cond ${styles.awardLine}`}>{awardLine}</div>}
+            {/*
+              The one-line lowdown (rethink §3.8). `lowdownTeaser` is the same
+              rule the locked page teases with and the same one the library
+              card shows — the first sentence of the staff copy, or a cut of it
+              on a trick whose lowdown is one long sentence. It is here because
+              the full lowdown is now behind a closed row on a phone, and a
+              hero that says the trick's name and nothing about it would be a
+              page a rider has to open something to understand.
+            */}
+            <p className={`cond ${styles.heroTeaser}`}>{lowdownTeaser(trick.about)}</p>
           </div>
           {/*
             The first-landed date, as an ink chip in the hero — desktop only
@@ -513,161 +587,254 @@ export default async function TrickPage({ params }: Params) {
           </div>
         </div>
 
-        {/* Phone only (see `.awardStrip`): where the badge overhangs instead,
-            so the ladder below can have the full width of the screen. */}
-        {awardLine && (
-          <div className={styles.awardStrip}>
-            <div className="cond">{data.award?.cond}</div>
-            {data.awardEarnedLabel && (
-              <div className={`lab ${styles.awardStripEarned}`}>{data.awardEarnedLabel}</div>
-            )}
-          </div>
-        )}
+        {/*
+          **No award strip under the hero** (owner, 2026-09-17, in chat: "drop
+          this bit it's not needed"). D7 gave the award's condition and its
+          earned date a card of their own beside the video; the badge went back
+          to the hero on the same day and these two lines went with it for a
+          while, as a strip. The strip is gone now — the badge in the hero is
+          what the page says about the award, and it carries the trick's name
+          in its own art plus the LANDED or NOT YET mark for its state.
 
-        {session ? (
-          <StagePanel
-            trickId={record.id}
-            slug={trick.id}
-            stage={stage}
-            landedLabel={landedLabel}
-            share={data.share}
-          />
-        ) : (
-          /* The same band, with the one thing a visitor can do in it. The page
-             keeps its shape signed out — the loudest strip on it does not
-             quietly disappear for someone who has not signed in yet. */
-          <div className={styles.band}>
-            <div className={styles.bandHead}>
-              <span className={`lab ${styles.bandTitle}`}>Can you do it?</span>
+          `#sticker` went with it. Nothing links to it: the jump row that used
+          to was dropped on 2026-09-17, and the locked page has never drawn one.
+        */}
+
+        {/*
+          `#ladder` — where the Log sheet's "Log a trick" lands (§3.5). On the
+          wrapper rather than inside `StagePanel` so the anchor exists for a
+          visitor too: a signed-out rider who follows a shared link with the
+          hash still arrives at the band, which is where the sign-in line is.
+        */}
+        <div id="ladder" className={styles.ladderAnchor}>
+          {session ? (
+            <StagePanel
+              trickId={record.id}
+              slug={trick.id}
+              stage={stage}
+              landedLabel={landedLabel}
+              share={data.share}
+            />
+          ) : (
+            /* The same band, with the one thing a visitor can do in it. The page
+               keeps its shape signed out — the loudest strip on it does not
+               quietly disappear for someone who has not signed in yet. */
+            <div className={styles.band}>
+              <div className={styles.bandHead}>
+                <span className={`lab ${styles.bandTitle}`}>Can you do it?</span>
+              </div>
+              <p className={styles.signIn}>
+                <Link href={ROUTES.signIn}>Sign in</Link> to mark this one off — every trick you
+                land is kept, and only you can see it.
+              </p>
             </div>
-            <p className={styles.signIn}>
-              <Link href={ROUTES.signIn}>Sign in</Link> to mark this one off — every trick you land
-              is kept, and only you can see it.
-            </p>
+          )}
+        </div>
+
+        {/*
+          "Watch it", under the stage ladder (owner, 2026-09-17, amending D7
+          and D7a).
+
+          **The instruction that asked for prominence, kept.** T35's note here
+          read: "first in the column and therefore the first thing under the
+          stage ladder on a phone — *the owner asked for prominence where there
+          is a video (2026-09-12, in chat)*". D7 moved it above the ladder and
+          D7a put it first on a phone, on the reasoning that the video is what
+          a rider came to see. This puts it back under the band, because the
+          ladder is the only thing on this page a rider *does*, and a tutorial
+          above it pushed that below the fold on a small phone with a video —
+          the open question §3.8 carried. Directly under the band is still the
+          most prominent slot on the page that leaves the doing first.
+
+          Unchanged in what it is and what it costs: still click-to-play, so
+          nothing reaches Google before the press, still absent entirely on a
+          trick nobody has picked one for, and still never another sport's
+          video. Full width now at both widths — it shares a row with nothing.
+        */}
+        {video && (
+          <div className={styles.cardBand}>
+            <section id="watch" className={styles.videoCard} aria-labelledby="watch-it">
+              <h2 id="watch-it" className={`lab ${styles.cardLabel}`}>
+                Watch it
+              </h2>
+              <WatchPanel trick={trick} video={video} />
+            </section>
           </div>
         )}
 
-        <div className={styles.grid}>
+        {/*
+          The three short jump buttons (§3.8's "Sticker · Watch · Clip") were
+          dropped at both widths on 2026-09-17 (Rachid, in chat: "drop them",
+          then "yeah drop them both"). On a phone the sticker card and the
+          video sit directly above them and the sections below are rows a rider
+          can already see, so the row scrolled to things that were on screen;
+          on a desktop the two columns put the same sections in view. Their
+          `#sticker` / `#watch` / `#clips` anchors stay on the sections
+          themselves, so a link from elsewhere still lands.
+        */}
+
+        {/*
+          Only on a trick staff have flagged; never inferred from `diff`.
+
+          Outside the rows rather than inside one: it is the one thing on this
+          page a grown-up is meant to read, and a safety note behind a chevron
+          is a safety note nobody opened. It was in the reading column beside
+          the kit; full width under the band is where it is now on-screen at
+          both widths without anybody pressing anything.
+        */}
+        {trick.supervise && (
+          <div className={styles.guardianRow}>
+            <GuardianLine />
+          </div>
+        )}
+
+        {/*
+          The sections. One row each on a phone and a plain panel above 820px,
+          from one piece of markup: `Accordion` takes `plainAbove` and holds
+          itself open past that width, and `.section` below repaints its head as
+          this page's diamond-and-rule heading (rethink §3.8).
+
+          The columns still exist, because the desktop page still has two of
+          them; on a phone `.column` is `display: contents` and `order` puts the
+          rows in the order §3.8 asks for, which is the mechanism the page has
+          used since T31 rather than a new one.
+
+          The body copy — the lowdown, the tips, the fun fact and each mistake's
+          fix — goes through `GlossaryText` (T29), which links the first mention
+          of a glossary word to `/glossary?from=<slug>` as a dotted underline
+          and changes nothing else. It is a pure function of the string, so the
+          page stays a server component and there is nothing for a hydration
+          mismatch to throw away.
+        */}
+        <div className={styles.grid} style={{ '--acc-accent': category.color } as CSSProperties}>
           <div className={styles.column}>
             {/*
-              The body copy — the lowdown, the tips, the fun fact and each
-              mistake's fix — goes through `GlossaryText` (T29), which links
-              the first mention of a glossary word to `/glossary?from=<slug>`
-              as a dotted underline and changes nothing else. It is a pure
-              function of the string, so the page stays a server component
-              and there is nothing for a hydration mismatch to throw away.
-              The trick's sport narrows the glossary to the words that sport
-              uses; the slug is what turns on "Back to the trick" over there.
-            */}
-            {/*
-              "Watch it" (T35), first in the column and therefore the first
-              thing under the stage ladder on a phone — the owner asked for
-              prominence where there is a video (2026-09-12, in chat), and this
-              is the most prominent slot that leaves T26's award-led hero alone.
+              **The rider's own sessions on this trick, first** — high in the
+              reading column rather than near the foot of it (Rachid,
+              2026-09-13, in chat). "It was below the road and above only
+              'Where to practise', which on a trick with tips, mistakes and a
+              fun fact meant a rider scrolled past everything the page could
+              teach them to reach the one part that is theirs."
 
-              **Nothing at all when the trick has no video**, which is most of
-              them: no placeholder, no "coming soon", and never the equivalent
-              trick's video from another sport. The condition lives here, beside
-              the section, the same way the cross-sport panel's does — an empty
-              panel and an empty gap are both impossible.
+              T49's first cut folded it into the `#clips` row at the bottom of
+              the second column, which put it back past everything *and* behind
+              a chevron — the same defect that instruction was given about. It
+              is the first row here instead, at both widths, so the instruction
+              holds inside layout A (independent review of 2026-09-17, B3).
+
+              Drawn only when there is something in it: the count decides, and
+              on a rider the sessions preview does not cover there is no count,
+              no row and no read at all. The block's own head is off, because
+              this row's heading and sub-line already say what it said.
             */}
-            {/*
-              `hidden` is the second half of the same condition, and it is
-              checked here rather than in the mapping because the staff portal
-              reads tricks through that mapping and has to be able to see a
-              hidden video in order to put it back. A hidden video renders
-              exactly like no video: no head, no panel, no gap, no hint that
-              other tricks have one. That is what makes the nightly liveness
-              check safe to let run unattended — the worst it can do is return a
-              trick to the state most of the library is already in.
-            */}
-            {trick.video && !trick.video.hidden && (
-              <div className={styles.secWatch}>
-                <SectionHead color={category.color}>Watch it</SectionHead>
-                <WatchPanel trick={trick} video={trick.video} />
-              </div>
+            {session && data.sessionsCount > 0 && (
+              <Accordion
+                plainAbove={PLAIN_ABOVE}
+                className={`${styles.section} ${styles.secSessions}`}
+                title="Your sessions on this trick"
+                sub={data.sessionsMeta}
+              >
+                <TrickSessionsBlock
+                  trickId={record.id}
+                  trickName={trick.name}
+                  session={session}
+                  heading={false}
+                />
+              </Accordion>
             )}
 
             {/*
-              The rider's own sessions on this trick, high in the reading column
-              rather than near the foot of it (Rachid, 2026-09-13, in chat).
-              It was below the road and above only "Where to practise", which on
-              a trick with tips, mistakes and a fun fact meant a rider scrolled
-              past everything the page could teach them to reach the one part
-              that is theirs. Under the video, because that is what a rider
-              came to the page for the first time to see.
-
-              Above the lowdown rather than below it, which reads the wrong way
-              round only until you notice who is looking: the block renders
-              nothing at all until there is a session on it, so a rider meeting
-              the trick for the first time never sees it here, and a rider who
-              has worked it forty times does not need "what it is" first.
+              The fun fact rides in the lowdown's body rather than taking a row
+              of its own. It is two lines about the trick, which is what the
+              lowdown is; a closed row named "Fun fact" would be a chevron
+              guarding a sentence.
             */}
-            <TrickSessionsBlock trickId={record.id} trickName={trick.name} session={session} />
-
-            <div className={styles.secLowdown}>
-              <SectionHead color={category.color}>The lowdown</SectionHead>
+            {/*
+              Open when the page loads (owner, 2026-09-17). It is the row that
+              answers "what is this trick", and a rider who arrived to find out
+              should not have to press anything to be told. Every other row
+              stays shut: opening them all would make the page a scroll again,
+              which is what the rows are for.
+            */}
+            <Accordion
+              defaultOpen
+              plainAbove={PLAIN_ABOVE}
+              className={`${styles.section} ${styles.secLowdown}`}
+              title="The lowdown"
+            >
               <p className={styles.prose}>
                 <GlossaryText text={trick.about} from={trick.id} sport={trick.sport} />
               </p>
-            </div>
-
-            <div className={`${styles.kit} ${styles.secKit}`}>
-              <span className={styles.kitIcon} style={{ background: sport.color }}>
-                <Equipment name={SPORT_LOOKS[trick.sport].icon} size={22} strokeWidth={2.3} />
-              </span>
-              <div className={styles.kitText}>
-                <div className="lab" style={{ color: 'var(--ink-3)' }}>
-                  What you need
-                </div>
-                <div className={`cond ${styles.kitCopy}`}>
-                  {sport.kit}
-                  {trick.diff >= 4 ? '. Learn this one into foam or resi first' : ''}
-                </div>
+              <div className={styles.fact} style={{ borderLeftColor: category.color }}>
+                <span className={`d ${styles.factLabel}`} style={{ color: category.color }}>
+                  Fun fact
+                </span>
+                <p className={styles.factBody}>
+                  <GlossaryText text={trick.fact} from={trick.id} sport={trick.sport} />
+                </p>
               </div>
-            </div>
+            </Accordion>
 
-            {/* Only on a trick staff have flagged; never inferred from `diff`. */}
-            {trick.supervise && (
-              <div className={styles.secGuardian}>
-                <GuardianLine />
-              </div>
-            )}
-
-            <div className={styles.secTips}>
-              <SectionHead color={category.color}>Tips</SectionHead>
+            <Accordion
+              plainAbove={PLAIN_ABOVE}
+              className={`${styles.section} ${styles.secTips}`}
+              title="Tips"
+            >
               <p className={styles.prose}>
                 <GlossaryText text={trick.tips} from={trick.id} sport={trick.sport} />
               </p>
-            </div>
+            </Accordion>
 
-            {/* Section D, between the tips and the fun fact, as the pack draws it. */}
+            {/* Section D, between the tips and the kit, as it is on desktop. */}
             {mistakes && (
-              <div className={styles.secMistakes}>
-                <SectionHead color={category.color}>{"Why it isn't working"}</SectionHead>
+              <Accordion
+                plainAbove={PLAIN_ABOVE}
+                className={`${styles.section} ${styles.secMistakes}`}
+                title="Why it isn't working"
+                sub={
+                  mistakes.length === 1 ? '1 common mistake' : `${mistakes.length} common mistakes`
+                }
+              >
                 <MistakesList mistakes={mistakes} slug={trick.id} sport={trick.sport} />
-              </div>
+              </Accordion>
             )}
 
-            <div
-              className={`${styles.fact} ${styles.secFact}`}
-              style={{ borderLeftColor: category.color }}
+            <Accordion
+              plainAbove={PLAIN_ABOVE}
+              className={`${styles.section} ${styles.secKit}`}
+              title="What you need"
             >
-              <span className={`d ${styles.factLabel}`} style={{ color: category.color }}>
-                Fun fact
-              </span>
-              <p className={styles.factBody}>
-                <GlossaryText text={trick.fact} from={trick.id} sport={trick.sport} />
-              </p>
-            </div>
+              <div className={styles.kit}>
+                <span
+                  className={styles.kitIcon}
+                  style={{
+                    background: sport.color,
+                    color: foregroundFor(sport.color) ?? 'var(--on-light)',
+                  }}
+                >
+                  <Equipment name={SPORT_LOOKS[trick.sport].icon} size={22} strokeWidth={2.3} />
+                </span>
+                <div className={styles.kitText}>
+                  <div className={`cond ${styles.kitCopy}`}>
+                    {sport.kit}
+                    {trick.diff >= 4 ? '. Learn this one into foam or resi first' : ''}
+                  </div>
+                </div>
+              </div>
+            </Accordion>
 
             {/*
               The road to it and what it opens up, then where to practise it.
-              Under the copy rather than beside the log, which is where the
+              After the copy rather than beside the log, which is where the
               pack puts them: these are links onward, and the end of the
               reading column is where a rider is ready for them.
             */}
-            <div className={styles.secRoad}>
+            <Accordion
+              plainAbove={PLAIN_ABOVE}
+              className={`${styles.section} ${styles.ownTitle} ${styles.secRoad}`}
+              title="The road to it"
+              sub={road.length === 1 ? '1 step' : `${road.length} steps`}
+            >
               <RoadPanel
                 trick={trick}
                 steps={road}
@@ -676,81 +843,113 @@ export default async function TrickPage({ params }: Params) {
                 unlocks={unlocks}
                 unlockPlanName={data.unlockPlanName}
               />
-            </div>
+            </Accordion>
 
-            <div className={styles.secPractise}>
-              <PractiseLine slug={trick.id} cat={trick.cat} sport={trick.sport} />
-            </div>
+            {/* `practiseAdvice` has no honest answer for `hybrid`, and the line
+                draws nothing for it — so the row is not offered either. */}
+            {practiseAdvice(trick.cat) && (
+              <Accordion
+                plainAbove={PLAIN_ABOVE}
+                className={`${styles.section} ${styles.ownTitle} ${styles.secPractise}`}
+                title="Where to practise"
+              >
+                <PractiseLine slug={trick.id} cat={trick.cat} sport={trick.sport} />
+              </Accordion>
+            )}
           </div>
 
           <div className={styles.column}>
-            <div className={styles.secFacts}>
+            <Accordion
+              plainAbove={PLAIN_ABOVE}
+              className={`${styles.section} ${styles.secFacts}`}
+              title="Where it sits"
+            >
               <FactsStrip
                 facts={facts}
                 categoryLabel={categoryLabel(trick.cat, trick.sport)}
                 sportLabel={sportInSentence}
                 hard={trick.hard}
               />
-            </div>
+            </Accordion>
 
             {/*
               Section G, under the facts as the pack's 1d artboard has it. The
-              wrapper is conditional as well as the panel, so a trick with no
-              equivalent leaves no empty flex item — and its gap — behind.
+              row is conditional as well as the panel, so a trick with no
+              equivalent leaves no empty chevron behind.
             */}
             {equivalents.length > 0 && (
-              <div className={styles.secCrossSport}>
+              <Accordion
+                plainAbove={PLAIN_ABOVE}
+                className={`${styles.section} ${styles.ownTitle} ${styles.secCrossSport}`}
+                title="Same trick, other sports"
+                sub={
+                  equivalents.length === 1 ? '1 other sport' : `${equivalents.length} other sports`
+                }
+              >
                 <CrossSportPanel trick={trick} equivalents={equivalents} />
-              </div>
+              </Accordion>
             )}
 
             {/*
-              The rider's own history with the trick. Signed in only, with no
+              The history, the notes and the video links, in one row
+              (§3.8: "Your history / notes / clips"). Signed in only, with no
               tease for a visitor: the band above already carries the one
               sign-in line this page needs, and "sign in to see your history"
-              would suggest there is one waiting.
-            */}
-            {data.history && (
-              <div className={styles.secHistory}>
-                <HistoryPanel
-                  history={data.history}
-                  /* Only when the band is not already carrying it: a rider on a
-                     stage resets through "Stop tracking", and a rider who
-                     stopped first would otherwise have no way back to rows they
-                     never meant to write. */
-                  clear={
-                    !stage && data.history.entries.length > 0
-                      ? {
-                          trickId: record.id,
-                          slug: trick.id,
-                          count: data.history.entries.length,
-                          holdsBadge: data.awardEarnedLabel !== null,
-                        }
-                      : null
-                  }
-                />
-              </div>
-            )}
+              would suggest there is one waiting. `clips` has no rule arm a
+              guest can match either (plan §3 guarantee 2), so there is nothing
+              to draw for one.
 
-            {/*
-              Video links (T15b). Signed-in only: `clips` has no rule arm a
-              guest can match, so there is nothing to draw for one and no
-              "sign in to see videos" tease either — the trick page never
-              suggests a rider has videos on it.
+              `#clips` is where the Log sheet's "Add a clip link" lands (§3.5),
+              and `Accordion` opens the row the fragment names rather than
+              scrolling a shut box into view — on the **videos** tab, which is
+              what the sheet said it would do.
+
+              The rider's sessions on the trick were briefly in here too, and
+              are not: see the first row of the left column.
             */}
             {session && (
-              <LogPanel
-                trickId={record.id}
-                slug={trick.id}
-                sport={trick.sport}
-                trickName={trick.name}
-                stage={stage}
-                notes={data.notes}
-                todayLabel={data.todayLabel}
-                videos={data.videos}
-                allowance={data.allowance}
-                heldTotal={data.heldTotal}
-              />
+              <Accordion
+                id="clips"
+                plainAbove={PLAIN_ABOVE}
+                className={`${styles.section} ${styles.secMine}`}
+                title="Your history, notes and videos"
+                sub="Only you can see these"
+              >
+                <div className={styles.mine}>
+                  {data.history && (
+                    <HistoryPanel
+                      history={data.history}
+                      /* Only when the band is not already carrying it: a rider on a
+                         stage resets through "Stop tracking", and a rider who
+                         stopped first would otherwise have no way back to rows they
+                         never meant to write. */
+                      clear={
+                        !stage && data.history.entries.length > 0
+                          ? {
+                              trickId: record.id,
+                              slug: trick.id,
+                              count: data.history.entries.length,
+                              holdsBadge: data.awardEarnedLabel !== null,
+                            }
+                          : null
+                      }
+                    />
+                  )}
+
+                  <LogPanel
+                    trickId={record.id}
+                    slug={trick.id}
+                    sport={trick.sport}
+                    trickName={trick.name}
+                    stage={stage}
+                    notes={data.notes}
+                    todayLabel={data.todayLabel}
+                    videos={data.videos}
+                    allowance={data.allowance}
+                    heldTotal={data.heldTotal}
+                  />
+                </div>
+              </Accordion>
             )}
           </div>
         </div>

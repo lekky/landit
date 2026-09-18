@@ -1,10 +1,14 @@
 'use client';
 
-import { CREW_NAME_MAX_LENGTH, MAX_OWNED_CREWS } from '@landit/core';
-import { Avatar, Button, Empty, Icon, Panel, SportChip, Tag } from '@landit/ui-web';
+import { CREW_NAME_MAX_LENGTH, crewCapMessage } from '@landit/core';
+import { Avatar, Button, Empty, Icon, Modal, Panel, SportChip, Tag } from '@landit/ui-web';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useActionState, useState, useTransition } from 'react';
 
+import { FEED_META, FEED_WHO, FeedLine, FeedList } from '@/components/feed/FeedLine';
+import { TAB_PANEL, TabRow } from '@/components/shell/TabRow';
+import { useTabParam } from '@/components/shell/useTabParam';
 import { ROUTES, riderHref } from '@/lib/routes';
 import { runActionOr } from '@/lib/runAction';
 
@@ -30,13 +34,56 @@ import styles from './crew.module.css';
  * the server (`view.ts`), so nothing here fetches and nothing here decides who
  * may see what.
  */
+/**
+ * Board · Activity · Members (rethink §3.10, T52).
+ *
+ * The ids are the catalogue ones `tabs_switched` carries as `tab`, under the
+ * group `crew`, and they are what `?tab=` spells.
+ */
+const CREW_TABS = ['board', 'activity', 'members'] as const;
+type CrewTab = (typeof CREW_TABS)[number];
+
 export function CrewScreen({ view }: { view: CrewView }) {
+  const router = useRouter();
   const [inviting, setInviting] = useState(false);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [minting, startMinting] = useTransition();
+  /**
+   * Which of the two ways into another crew is open, if either.
+   *
+   * §3.10 asks for "Start another" and "Join with a code" as two small ghost
+   * buttons that reveal the existing forms, in place of the one `<details>` that
+   * used to open both at once. One at a time: they are alternatives — you are
+   * either starting a crew or redeeming somebody's code — and a phone that
+   * opened both put two forms and four controls under a rider who wanted one.
+   */
+  const [opening, setOpening] = useState<'start' | 'join' | null>(null);
+  /*
+    Leaving asks first (owner, 2026-09-17: "leave crew needs a confirmation").
+
+    Heavier than a confirm normally deserves, and deliberately: crews are
+    invite-only with no discovery (plan §6.1), so a rider who leaves by
+    mis-tapping cannot walk back in — somebody has to send them a fresh code.
+    The dialog names the crew and says that consequence in a line, which is the
+    part a rider needs to decide with.
+  */
+  const [leaving, setLeaving] = useState(false);
+  /* Crews **owned**, against the plan's allowance: joining is never capped. */
+  const atCrewCap = view.crews.filter((c) => c.isOwner).length >= view.crewCap;
 
   const crew = view.selected;
+
+  /*
+   * The tab is in `?tab=`, the Progress pattern (§3.10, `useTabParam`).
+   *
+   * A rider opens a mate from the board, reads their profile and presses Back —
+   * and with the tab in `useState` they would land on Board however they left.
+   * It rides beside `?crew=`, which the hook carries through untouched, so a
+   * rider in two crews keeps both answers in one address.
+   */
+  const [tab, setTab] = useTabParam(CREW_TABS, 'board');
+  const active = tab as CrewTab;
 
   const openInvite = () => {
     if (!crew) return;
@@ -72,7 +119,13 @@ export function CrewScreen({ view }: { view: CrewView }) {
             Crews open up as soon as your parent or guardian says yes. Everything else — the
             library, your tricks, your streak — works exactly as it does now.
           </p>
-          <Link className={styles.gateLink} href={ROUTES.account}>
+          {/*
+            Straight to the guardian screen, not to the list (issue #558).
+            `/account` is eight rows now, and the child this panel is written
+            for had to find "Your guardian" among them — on the one screen where
+            they have exactly one thing to do.
+          */}
+          <Link className={styles.gateLink} href={ROUTES.accountGuardian}>
             Ask them again from your account →
           </Link>
         </Panel>
@@ -103,23 +156,50 @@ export function CrewScreen({ view }: { view: CrewView }) {
         </div>
       </div>
 
+      {/*
+        A `<select>`, not a row of pills (owner, 2026-09-17) — the same call
+        `/events` made about country, for the same reason: "a pill per country
+        is a hundred pills once the calendar is worldwide". A Legend runs ten
+        crews, and ten pills is three or four wrapped rows on a phone before a
+        rider reaches the board. One control, one line, at every width: a
+        switcher that existed only under a breakpoint would give the screen two
+        shapes to learn, which is the argument §3.10 already makes about the
+        tabs below it.
+
+        It borrows the country control's clothes down to the iOS menulist
+        patch, so the two selects a rider meets read as one control.
+      */}
       {view.crews.length > 1 ? (
-        <div className={styles.switcher}>
+        <label className={styles.switcher}>
           <span className="lab">Your crews</span>
-          {view.crews.map((c) => (
-            // A link wearing the pill's clothes, not a button inside an anchor:
-            // the design system styles `.pill` by class, and the module class
-            // outranks the token sheet's `a:hover` (LESSONS §3a).
-            <Link
-              key={c.id}
-              href={`${ROUTES.crew}?crew=${c.id}`}
-              className={`pill ${c.id === crew?.id ? 'on' : ''} ${styles.switcherLink}`}
-              aria-current={c.id === crew?.id ? 'page' : undefined}
-            >
-              {c.name}
-            </Link>
-          ))}
-        </div>
+          <select
+            className="cond"
+            value={crew?.id ?? ''}
+            onChange={(picked) => {
+              const id = picked.target.value;
+              const at = view.crews.findIndex((c) => c.id === id);
+              /*
+                Positional, never the crew's name or id — both are rider facts,
+                and an id in a third-party store is a membership graph. This is
+                the `crew-1`, `crew-2` shape `analytics.ts` already reserves for
+                What's new's crew tabs, on the same reasoning.
+
+                A `<select>` only fires `onChange` on an actual change, so the
+                "pressing the tab you are already on sends nothing" rule that
+                `TabRow` enforces in code holds here for free.
+              */
+              capture(ANALYTICS_EVENTS.tabsSwitched, { group: 'crew', tab: `crew-${at + 1}` });
+              router.push(`${ROUTES.crew}?crew=${id}`);
+            }}
+            aria-label="Choose a crew"
+          >
+            {view.crews.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
       ) : null}
 
       {inviteError ? <p className={styles.error}>{inviteError}</p> : null}
@@ -131,10 +211,58 @@ export function CrewScreen({ view }: { view: CrewView }) {
               <p className={styles.gateBody}>{crew.problem}</p>
             </Panel>
           ) : (
-            <div className={styles.grid}>
-              <Board rows={crew.board} onInvite={openInvite} />
-              <Feed items={crew.feed} />
-            </div>
+            <>
+              {/*
+                Board · Activity · Members (§3.10, D6).
+
+                The board and the feed used to sit side by side in a
+                `1fr / 340px` grid that stacked on a phone, which made the
+                activity the second half of a long scroll and gave the crew's
+                membership nowhere of its own. Three tabs at **every width**:
+                §3.3 lists this row among `TabRow`'s users without a width on
+                it, §3.10 names all three tabs, and a row that existed only
+                below 860px would leave Members homeless on a desktop and give
+                the screen two shapes to learn. Recorded in
+                `docs/app-shell-rethink.md` §3.10 against §7's older
+                "board left, activity right".
+
+                Nothing new is exposed by the third tab. Every field on a
+                Members row — the name, the handle, the avatar, the sports, who
+                started the crew — is already on the board above it, from the
+                same `crew-board` route (plan §3 guarantee 1). There is no
+                search, no directory and nothing to press but a rider's own
+                profile, which the board already links.
+              */}
+              <TabRow
+                items={[
+                  { id: 'board', label: 'Board' },
+                  { id: 'activity', label: 'Activity' },
+                  /*
+                    No count on this tab (review nit 10). `TabRowItem`'s `note`
+                    exists to give a reason to press a tab — "Not yet 118" is a
+                    wall worth opening where "Not yet" is a word — and here the
+                    reason is already answered ten pixels above it: the header
+                    reads "RAMP RATS · 3 RIDERS". One number, once.
+                  */
+                  { id: 'members', label: 'Members' },
+                ]}
+                value={active}
+                group="crew"
+                label="What to show for this crew"
+                onChange={setTab}
+              />
+
+              <div
+                key={active}
+                role="tabpanel"
+                aria-label={TAB_LABEL[active]}
+                className={TAB_PANEL}
+              >
+                {active === 'board' ? <Board rows={crew.board} onInvite={openInvite} /> : null}
+                {active === 'activity' ? <Feed items={crew.feed} /> : null}
+                {active === 'members' ? <Members rows={crew.board} /> : null}
+              </div>
+            </>
           )}
 
           <div className={styles.footRow}>
@@ -144,12 +272,9 @@ export function CrewScreen({ view }: { view: CrewView }) {
                 : 'Invite-only — nobody can find this crew or ask to join it.'}
             </p>
             {crew.membershipId ? (
-              <form action={leaveCrewAction} onSubmit={() => capture(ANALYTICS_EVENTS.crewLeft)}>
-                <input type="hidden" name="membership" value={crew.membershipId} />
-                <Button type="submit" variant="ghost" size="sm">
-                  Leave crew
-                </Button>
-              </form>
+              <Button variant="ghost" size="sm" onClick={() => setLeaving(true)}>
+                Leave crew
+              </Button>
             ) : null}
           </div>
         </>
@@ -161,12 +286,77 @@ export function CrewScreen({ view }: { view: CrewView }) {
         Counted on crews *owned*, not crews belonged to: the server's ceiling is
         on ownership (minting invites is what it limits), and a rider may sit on
         more boards than they run. Joining with a code is never capped.
+
+        The number is the **rider's plan's** (owner, 2026-09-17: "1 for free, 3
+        for 3.99 and 10 for the top tier"), read off the `plans` record in
+        `page.tsx` — the same record the hook reads before it refuses a create,
+        so this row cannot offer what the server would turn down.
       */}
-      {crew && view.crews.filter((c) => c.isOwner).length < MAX_OWNED_CREWS ? (
-        <details className={styles.more}>
-          <summary className="lab">Start another crew, or join one with a code</summary>
-          <NoCrew compact />
-        </details>
+      {crew ? (
+        <div className={styles.more}>
+          <div className={styles.moreButtons}>
+            {/*
+              **"Start another" is what the cap hides; "Join with a code" never
+              is.** Joining is uncapped at every tier — the limit is on minting
+              invite codes, not on having mates — and hiding both behind one
+              test would have shut a rider out of a crew somebody had already
+              invited them to, which is the opposite of what the cap is for.
+            */}
+            {atCrewCap ? (
+              <p className={styles.capNote}>
+                {crewCapMessage(view.crewCap, view.planName)}{' '}
+                <Link className={styles.capLink} href={ROUTES.plans}>
+                  See plans
+                </Link>
+              </p>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                className={styles.moreButton}
+                aria-expanded={opening === 'start'}
+                onClick={() => setOpening((was) => (was === 'start' ? null : 'start'))}
+              >
+                Start another
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              className={styles.moreButton}
+              aria-expanded={opening === 'join'}
+              onClick={() => setOpening((was) => (was === 'join' ? null : 'join'))}
+            >
+              Join with a code
+            </Button>
+          </div>
+          {opening ? <NoCrew compact only={opening} /> : null}
+        </div>
+      ) : null}
+
+      {leaving && crew && crew.membershipId ? (
+        <Modal onClose={() => setLeaving(false)} width={460} label={`Leave ${crew.name}?`}>
+          <div className={styles.leaveBody}>
+            <h2 className={`d ${styles.leaveTitle}`}>Leave {crew.name}?</h2>
+            <p className={styles.leaveCopy}>
+              You come off the board and the activity feed.{' '}
+              <b>You will need a new invite code to come back</b> — nobody can search for a crew or
+              ask to join one.
+              {crew.isOwner ? ' The crew carries on with whoever is left in it.' : ''}
+            </p>
+            <div className={styles.leaveActions}>
+              <Button size="sm" variant="ghost" onClick={() => setLeaving(false)}>
+                Stay in
+              </Button>
+              <form action={leaveCrewAction} onSubmit={() => capture(ANALYTICS_EVENTS.crewLeft)}>
+                <input type="hidden" name="membership" value={crew.membershipId} />
+                <Button type="submit" size="sm">
+                  Leave crew
+                </Button>
+              </form>
+            </div>
+          </div>
+        </Modal>
       ) : null}
 
       {inviting && crew && inviteCode ? (
@@ -185,6 +375,13 @@ export function CrewScreen({ view }: { view: CrewView }) {
 function riderCount(n: number): string {
   return `${n} ${n === 1 ? 'rider' : 'riders'}`;
 }
+
+/** What a screen reader is told the panel under the row is. */
+const TAB_LABEL: Readonly<Record<CrewTab, string>> = {
+  board: 'This month’s board',
+  activity: 'Just happened',
+  members: 'Members',
+};
 
 /* ----------------------------------------------------------------- board -- */
 
@@ -273,6 +470,71 @@ function Board({
   );
 }
 
+/* --------------------------------------------------------------- members -- */
+
+/**
+ * Who is in the crew — the board's own rows, without the ranking.
+ *
+ * **It reads nothing the board did not already read.** These are
+ * `SelectedCrewView.board`, from `GET /api/landit/crew-board/{crew}`, which is
+ * the one route allowed to name a rider whose profile is private (plan §3
+ * guarantee 1: by name and score, to a crew-mate). So the third tab is the
+ * second view of a payload the first tab already had, and there is no second
+ * request, no `users` read and nothing on screen that was not one tap away.
+ *
+ * What it drops is the two scores and the rank, because a roster is a list of
+ * who is here rather than a second league table — and what it adds is the one
+ * fact the board has never shown, which of them started the crew.
+ */
+function Members({ rows }: { rows: readonly BoardRowView[] }) {
+  return (
+    <Panel className={styles.panel}>
+      <div className={styles.panelHead}>
+        <span className="lab">Who is in it</span>
+      </div>
+      {rows.length === 0 ? (
+        <p className={styles.panelEmpty}>
+          Nobody here yet. Invites are the only way in — there is no list of crews to browse and
+          nobody can ask to join.
+        </p>
+      ) : (
+        rows.map((row) => (
+          <Link
+            key={row.id}
+            href={riderHref(row.handle)}
+            className={`${styles.row} ${row.isMe ? styles.rowMe : ''}`}
+          >
+            <Avatar avatarId={row.avatarKey} name={row.name} size={38} />
+            <span className={styles.rowWho}>
+              <span className={`cond ${styles.rowName}`}>
+                {row.name}
+                {row.isMe ? ' (you)' : ''}
+                {row.isOwner ? (
+                  <Tag color="var(--sky)" className={styles.flair}>
+                    Started it
+                  </Tag>
+                ) : null}
+              </span>
+              <span className={styles.rowSports}>
+                {row.sports.map((sport) => (
+                  <SportChip key={sport.label} sport={sport} small />
+                ))}
+              </span>
+            </span>
+            <span className={styles.rowStats}>
+              <Icon name="back" size={16} strokeWidth={2.4} className={styles.chevron} />
+            </span>
+          </Link>
+        ))
+      )}
+      <p className={styles.membersNote}>
+        A rider whose profile is private still holds their place here. Opening one shows you
+        whatever they have chosen to show.
+      </p>
+    </Panel>
+  );
+}
+
 /* ------------------------------------------------------------------ feed -- */
 
 function Feed({ items }: { items: readonly FeedItemView[] }) {
@@ -287,26 +549,32 @@ function Feed({ items }: { items: readonly FeedItemView[] }) {
           place on the board.
         </p>
       ) : (
-        <div className={styles.feed}>
+        /*
+          The row is `FeedLine` in `components/feed/` since T47, where What's
+          new's crew tab draws the same one. Same markup, same styles, moved
+          rather than copied — a change to this row is now a change in one file
+          (T47 review S5).
+        */
+        <FeedList>
           {items.map((item) => (
-            <div key={item.id} className={styles.feedItem}>
-              <Avatar avatarId={item.avatarKey} name={item.name} size={32} />
-              <div className={styles.feedBody}>
-                <p className={styles.feedLine}>
-                  <Link href={riderHref(item.handle)} className={styles.feedWho}>
-                    {item.name}
-                  </Link>{' '}
-                  {item.line}
-                </p>
-                <div className={styles.feedMeta}>
-                  <span className={`lab ${styles.feedWhen}`}>{item.when}</span>
+            <FeedLine
+              key={item.id}
+              disc={<Avatar avatarId={item.avatarKey} name={item.name} size={32} />}
+              meta={
+                <>
+                  <span className={`lab ${FEED_META}`}>{item.when}</span>
                   {item.sport ? <SportChip sport={item.sport} small /> : null}
                   {item.hue ? <Tag color={item.hue}>Sticker</Tag> : null}
-                </div>
-              </div>
-            </div>
+                </>
+              }
+            >
+              <Link href={riderHref(item.handle)} className={FEED_WHO}>
+                {item.name}
+              </Link>{' '}
+              {item.line}
+            </FeedLine>
           ))}
-        </div>
+        </FeedList>
       )}
     </Panel>
   );
@@ -321,7 +589,20 @@ function Feed({ items }: { items: readonly FeedItemView[] }) {
  * invite-only with no discovery — is a fact about what this component does not
  * render as much as about what the server refuses.
  */
-function NoCrew({ compact = false }: { compact?: boolean }) {
+function NoCrew({
+  compact = false,
+  only,
+}: {
+  compact?: boolean;
+  /**
+   * Draw one of the two panels rather than both (T52).
+   *
+   * The empty state still offers both, because a rider with no crew has two
+   * ways in and no reason to prefer either. A rider who already has one asked
+   * for one of them by name, and gets that one.
+   */
+  only?: 'start' | 'join';
+}) {
   const [createState, create, creating] = useActionState<CrewFormState | undefined, FormData>(
     createCrewAction,
     undefined,
@@ -345,55 +626,59 @@ function NoCrew({ compact = false }: { compact?: boolean }) {
       ) : null}
 
       <div className={styles.startForms}>
-        <Panel flat className={styles.startPanel}>
-          <div className="lab">Start a crew</div>
-          <form
-            action={create}
-            className={styles.startForm}
-            onSubmit={() => capture(ANALYTICS_EVENTS.crewCreated, { outcome: 'attempted' })}
-          >
-            <div className="field">
-              <label htmlFor="crew-name">What is it called?</label>
-              <input
-                id="crew-name"
-                name="name"
-                maxLength={CREW_NAME_MAX_LENGTH}
-                placeholder="Ramp Rats"
-                autoComplete="off"
-              />
-            </div>
-            {createState?.error ? <p className={styles.error}>{createState.error}</p> : null}
-            <Button type="submit" disabled={creating} size="sm">
-              {creating ? 'Starting…' : 'Start it'}
-            </Button>
-          </form>
-        </Panel>
+        {only === 'join' ? null : (
+          <Panel flat className={styles.startPanel}>
+            <div className="lab">Start a crew</div>
+            <form
+              action={create}
+              className={styles.startForm}
+              onSubmit={() => capture(ANALYTICS_EVENTS.crewCreated, { outcome: 'attempted' })}
+            >
+              <div className="field">
+                <label htmlFor="crew-name">What is it called?</label>
+                <input
+                  id="crew-name"
+                  name="name"
+                  maxLength={CREW_NAME_MAX_LENGTH}
+                  placeholder="Ramp Rats"
+                  autoComplete="off"
+                />
+              </div>
+              {createState?.error ? <p className={styles.error}>{createState.error}</p> : null}
+              <Button type="submit" disabled={creating} size="sm">
+                {creating ? 'Starting…' : 'Start it'}
+              </Button>
+            </form>
+          </Panel>
+        )}
 
-        <Panel flat className={styles.startPanel}>
-          <div className="lab">Join with a code</div>
-          <form
-            action={joinCrew}
-            className={styles.startForm}
-            onSubmit={() =>
-              capture(ANALYTICS_EVENTS.crewJoined, { outcome: 'attempted', from: 'crew' })
-            }
-          >
-            <div className="field">
-              <label htmlFor="crew-code">The code a mate sent you</label>
-              <input
-                id="crew-code"
-                name="code"
-                placeholder="ABCDE-FGHJK"
-                autoComplete="off"
-                spellCheck={false}
-              />
-            </div>
-            {joinState?.error ? <p className={styles.error}>{joinState.error}</p> : null}
-            <Button type="submit" disabled={joining} size="sm" variant="ghost">
-              {joining ? 'Checking…' : 'Join'}
-            </Button>
-          </form>
-        </Panel>
+        {only === 'start' ? null : (
+          <Panel flat className={styles.startPanel}>
+            <div className="lab">Join with a code</div>
+            <form
+              action={joinCrew}
+              className={styles.startForm}
+              onSubmit={() =>
+                capture(ANALYTICS_EVENTS.crewJoined, { outcome: 'attempted', from: 'crew' })
+              }
+            >
+              <div className="field">
+                <label htmlFor="crew-code">The code a mate sent you</label>
+                <input
+                  id="crew-code"
+                  name="code"
+                  placeholder="ABCDE-FGHJK"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </div>
+              {joinState?.error ? <p className={styles.error}>{joinState.error}</p> : null}
+              <Button type="submit" disabled={joining} size="sm" variant="ghost">
+                {joining ? 'Checking…' : 'Join'}
+              </Button>
+            </form>
+          </Panel>
+        )}
       </div>
     </div>
   );

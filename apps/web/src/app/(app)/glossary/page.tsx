@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 
 import { publicTricks } from '@/lib/publicTricks';
 import { ROUTES } from '@/lib/routes';
+import { currentRider } from '@/lib/session';
 
 import { GlossaryScreen } from './GlossaryScreen';
 
@@ -25,15 +26,23 @@ export const metadata: Metadata = {
  * database falls back to the canonical names rather than answering 500 —
  * same rule the sitemap keeps, and for the same reason.
  *
- * **The filter and the way back are in the address.** `?sport=skate` narrows
- * the list so it can be linked and bookmarked (`/library?mine=1` made the same
- * choice), and `?from=<trick>` is what a dotted word in a trick's copy sends,
- * so "Back to the trick" goes to the page the reader left. Both are read here
- * on the server so the first paint is already the right list — filtering after
- * hydration would draw eighty-four terms and then take most of them away.
- * Both are validated against the catalogue rather than trusted: a `sport`
- * that is not one of ours opens the whole glossary, and a `from` that names no
- * trick offers the library instead.
+ * **The way back is in the address, and `?sport=` now seeds the scope.**
+ * `?from=<trick>` is what a dotted word in a trick's copy sends, so "Back to
+ * the trick" goes to the page the reader left. `?sport=skate` was the filter
+ * row's own address; since T50 the filter is `SportScopeSelect`, a per-device
+ * choice the server cannot see, so the param is read here as the screen's
+ * **default** — an old link or bookmark still opens on that sport for a reader
+ * who has not chosen one on this device — and the control no longer writes it.
+ * Both are validated against the catalogue rather than trusted: a `sport` that
+ * is not one of ours opens the whole glossary, and a `from` that names no trick
+ * offers the library instead.
+ *
+ * **`signedIn` is read here.** The scope control takes "is anybody signed in"
+ * as its own input (LESSONS §3a; rethink §3.7's T48 paragraph), because with no
+ * rider there is no sport chip and "Your sport" would be a claim about a
+ * stranger. The route group's layout already resolves the rider for the top
+ * bar, so this page is dynamic either way — the same trade `/events` and
+ * `/spots` make for the same control.
  */
 export default async function GlossaryPage({
   searchParams,
@@ -46,6 +55,7 @@ export default async function GlossaryPage({
   const requestedSport = one(params.sport);
   const sport = SPORT_IDS.find((id) => id === requestedSport) ?? null;
 
+  const session = await currentRider();
   const records = await publicTricks();
   const tricks: Record<string, { name: string; sport: SportId }> = Object.fromEntries(
     records.length
@@ -56,5 +66,5 @@ export default async function GlossaryPage({
   const requestedFrom = one(params.from);
   const from = requestedFrom && tricks[requestedFrom] ? requestedFrom : null;
 
-  return <GlossaryScreen sport={sport} from={from} tricks={tricks} />;
+  return <GlossaryScreen sport={sport} from={from} tricks={tricks} signedIn={Boolean(session)} />;
 }

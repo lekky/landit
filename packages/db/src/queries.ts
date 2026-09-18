@@ -13,7 +13,7 @@ import {
 } from '@landit/core';
 
 import type { Client } from './clients';
-import { records } from './collections';
+import { records, type FilterParams } from './collections';
 import type {
   AnnouncementDismissalsRecord,
   AnnouncementsRecord,
@@ -654,6 +654,39 @@ export async function listEvents(client: Client, sport?: SportId): Promise<Event
   });
 }
 
+/** A PocketBase record id: fifteen lowercase alphanumerics. */
+const EVENT_ID = /^[a-z0-9]{15}$/;
+
+/**
+ * The live events with these ids, soonest first (T46, additive).
+ *
+ * The same shape as `getSpotsByIds` in `spots.ts`, and it exists for the same
+ * reason: a caller that already knows *which* records it wants should not read
+ * the whole collection to find them. Home's "Next up" knows exactly that — the
+ * rider's own `event_attendance` names them — and reading all 74 live events to
+ * draw one row made every rider, including every first-day account with no
+ * attendance at all, pay for the whole calendar.
+ *
+ * `is_live` is in the filter as well as in the collection's list rule, so a
+ * staff-hidden event does not come back even by id. Ids that are not shaped
+ * like ids are dropped rather than interpolated; nothing a rider typed reaches
+ * a filter from here.
+ */
+export async function getEventsByIds(
+  client: Client,
+  ids: readonly string[],
+): Promise<EventsRecord[]> {
+  const wanted = [...new Set(ids.filter((id) => EVENT_ID.test(id)))];
+  if (!wanted.length) return [];
+  const params = Object.fromEntries(wanted.map((id, i) => [`id${i}`, id]));
+  const byId = wanted.map((_, i) => `id = {:id${i}}`).join(' || ');
+  return records(client, 'events').list({
+    filter: `is_live = true && (${byId})`,
+    params,
+    sort: 'date',
+  });
+}
+
 /* --------------------------------------------------------- announcements -- */
 
 /**
@@ -1022,5 +1055,225 @@ export async function emailGuardianUpgrade(
   return client.send('/api/landit/plans/guardian-upgrade', {
     method: 'POST',
     body: { url: input.checkoutUrl, plan: input.planName },
+  });
+}
+
+/* ------------------------------------------------------------- what's new -- */
+
+/**
+ * The stickers this rider earned since a date, newest first.
+ *
+ * `listRiderStickers` reads every sticker a rider has ever earned, which is the
+ * right shape for the wall and the wrong one for a read that happens on **every**
+ * page render to decide whether the bell shows a badge. What's new looks back
+ * thirty days; this is that window, applied by the database rather than by the
+ * caller after the rows have crossed (T47 review S1).
+ *
+ * `since` is a stored datetime, not a day key: `earned_at` carries a clock and
+ * the comparison should too.
+ */
+export async function listRiderStickersSince(
+  client: Client,
+  userId: string,
+  since: string,
+): Promise<RiderStickersRecord[]> {
+  return records(client, 'rider_stickers').list({
+    filter: 'user = {:user} && earned_at >= {:since}',
+    params: { user: userId, since },
+    sort: '-earned_at',
+  });
+}
+
+/**
+ * The challenges that are **running now and close inside this window**.
+ *
+ * Two narrowings, and each answers a separate finding. `listChallenges` has no
+ * filter at all, so it reads every challenge that has ever existed for every
+ * sport — 81 rows in the seeded database, three more every week — to answer a
+ * question about the next three days (T47 review S1). And §3.6 says the *live*
+ * challenge's deadline, where the code only checked the end date: a challenge
+ * that has not started yet cannot be the one a rider is logging against, and
+ * state is derived from the dates and never stored (review S8).
+ *
+ * So `starts <= now` is the live half and `ends` between the bounds is the
+ * deadline half. Both ends are day keys, widened to whole days here because
+ * PocketBase stores a `date` field as a datetime and a bare `YYYY-MM-DD` upper
+ * bound would drop everything ending on the last day of the window.
+ */
+export async function listChallengesEnding(
+  client: Client,
+  from: string,
+  to: string,
+): Promise<ChallengesRecord[]> {
+  return records(client, 'challenges').list({
+    filter: 'starts <= {:started} && ends >= {:from} && ends <= {:to}',
+    params: {
+      started: `${from} 23:59:59.999Z`,
+      from: `${from} 00:00:00.000Z`,
+      to: `${to} 23:59:59.999Z`,
+    },
+    sort: 'ends',
+  });
+}
+
+/**
+ * This rider's log rows for particular challenges.
+ *
+ * `listChallengeLog` reads a rider's whole logging history to count entries
+ * against one week's challenge. This asks the question that was actually being
+ * asked (T47 review S1). `challenge_log` is `listRule: OWN`, so a call naming
+ * somebody else's id returns nothing — the rule decides, not this function.
+ */
+export async function listChallengeLogFor(
+  client: Client,
+  userId: string,
+  challengeIds: readonly string[],
+): Promise<ChallengeLogRecord[]> {
+  if (challengeIds.length === 0) return [];
+
+  const params: FilterParams = { user: userId };
+  const clauses = challengeIds.map((id, index) => {
+    params[`challenge${index}`] = id;
+    return `challenge = {:challenge${index}}`;
+  });
+
+  return records(client, 'challenge_log').list({
+    filter: `user = {:user} && (${clauses.join(' || ')})`,
+    params,
+  });
+}
+
+/**
+ * This rider's attendance rows for particular events.
+ *
+ * The narrow read behind "an event you said yes to that is this week": the
+ * events inside the window are known first, so the attendance question is about
+ * those and not about every event the rider has ever said yes to.
+ *
+ * It carries `created`, which is **when the rider said yes** — the stamp
+ * What's new dates that line from, so an event a rider opts into inside the
+ * window still arrives as news (T47 review B2).
+ */
+export async function listEventAttendanceFor(
+  client: Client,
+  userId: string,
+  eventIds: readonly string[],
+): Promise<EventAttendanceRecord[]> {
+  if (eventIds.length === 0) return [];
+
+  const params: FilterParams = { user: userId };
+  const clauses = eventIds.map((id, index) => {
+    params[`event${index}`] = id;
+    return `event = {:event${index}}`;
+  });
+
+  return records(client, 'event_attendance').list({
+    filter: `user = {:user} && (${clauses.join(' || ')})`,
+    params,
+  });
+}
+
+/**
+ * The riders among these ids that the caller **may read**, and no others.
+ *
+ * The privacy test, asked of the API rules rather than restated here.
+ * `users.listRule` is the three-way rule from plan §3 guarantee 1 — your own
+ * record always, a `public` or `members` rider to a signed-in viewer, a
+ * `private` one to nobody, and never a consent-limited or suspended rider — so
+ * an id that comes back is a rider the caller can already see and an id that
+ * does not is one they cannot. That is exactly the test
+ * `hooks/85_crews.pb.js` spells out for the crew feed, which is why What's new
+ * can use this to decide whose crew join it may mention without keeping a second
+ * copy of the rule (T47 review B3).
+ *
+ * **Not the crew board.** The board names a private rider by name and score,
+ * which is guarantee 1's one carve-out and is deliberately narrow; a join is
+ * activity rather than a place on a table, and the crew feed's own comment says
+ * that carve-out does not stretch to activity.
+ */
+export async function listReadableRiders(
+  client: Client,
+  ids: readonly string[],
+): Promise<UsersRecord[]> {
+  const wanted = [...new Set(ids)];
+  if (wanted.length === 0) return [];
+
+  const params: FilterParams = {};
+  const clauses = wanted.map((id, index) => {
+    params[`id${index}`] = id;
+    return `id = {:id${index}}`;
+  });
+
+  return records(client, 'users').list({ filter: clauses.join(' || '), params });
+}
+
+/**
+ * The live events in a date window, for What's new (rethink §3.6).
+ *
+ * `listEvents` reads every live event there is, which is the right shape for a
+ * screen that lists them and the wrong one for a read that happens on **every**
+ * page render to decide whether the bell shows a badge. The window is a filter
+ * the database applies, so what crosses is the handful of events inside the
+ * next week rather than the catalogue.
+ *
+ * Both ends are **day keys** and both are inclusive, because `events.date` is a
+ * calendar day and the question ("is it within seven days?") is a day question.
+ * They are widened to the whole of each day here rather than by the caller:
+ * PocketBase stores a `date` field as a datetime, so a bare `YYYY-MM-DD` upper
+ * bound would drop everything on the last day of the window.
+ *
+ * It is a *read*, not a rule: what counts as news is decided by
+ * `whatsNewLines` in `@landit/core`, and this only narrows what it has to look
+ * at.
+ */
+export async function listEventsBetween(
+  client: Client,
+  from: string,
+  to: string,
+): Promise<EventsRecord[]> {
+  return records(client, 'events').list({
+    filter: 'is_live = true && date >= {:from} && date <= {:to}',
+    params: { from: `${from} 00:00:00.000Z`, to: `${to} 23:59:59.999Z` },
+    sort: 'date',
+  });
+}
+
+/**
+ * Riders who joined these crews since a date.
+ *
+ * `crew_members` is readable only by members of the crew in question — that is
+ * the rule, not a filter here — so a caller passing a crew they are not in gets
+ * nothing back rather than an error. The crew ids come from `listCrews`, which
+ * answers with exactly the caller's crews and takes no search parameter, so
+ * there is no shape in which this becomes a way to look at a crew you are not
+ * in (plan §6.1).
+ *
+ * **It carries no names.** A membership row is a crew, a rider id and a date;
+ * turning the id into a name is `getCrewBoard`'s job, because a member whose
+ * profile is private still appears on their crew's board by name and is not
+ * readable through `users` (plan §3 guarantee 1). Expanding `user` here would
+ * quietly produce a feed that names the public riders and not the private ones.
+ *
+ * An empty `crewIds` skips the request entirely: a filter of `""` would be a
+ * read of every membership row the rules allow, to answer a question nobody
+ * asked.
+ */
+export async function listCrewJoins(
+  client: Client,
+  crewIds: readonly string[],
+  since: string,
+): Promise<CrewMembersRecord[]> {
+  if (crewIds.length === 0) return [];
+
+  const params: FilterParams = { since };
+  const clauses = crewIds.map((id, index) => {
+    params[`crew${index}`] = id;
+    return `crew = {:crew${index}}`;
+  });
+
+  return records(client, 'crew_members').list({
+    filter: `(${clauses.join(' || ')}) && joined >= {:since}`,
+    params,
+    sort: '-joined',
   });
 }

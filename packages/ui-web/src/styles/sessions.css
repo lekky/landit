@@ -170,6 +170,35 @@ a.trickpill:focus-visible {
   outline: 3px solid var(--blue);
   outline-offset: 2px;
 }
+/*
+ * **A tap is not a hover** (owner, 2026-09-17: "the how it felt and weather
+ * pop outs are a bit messy", with five screenshots of the same chosen cell
+ * drawn four different ways).
+ *
+ * On a finger the `:hover` lift above stuck to whichever cell was touched
+ * last, so "Fine" could sit 4px proud in one row while "Cloud" sat flat in the
+ * next, and the chosen cell looked different depending on the rider's last
+ * gesture rather than on what they had chosen. The chosen cell is now said by
+ * its fill and its ring alone, and every cell in both rows carries the same
+ * 2px shadow until it is pressed.
+ *
+ * The press stays, restated after the reset so it still lands, and the
+ * keyboard's focus ring stays with it — the same pair `.modal-close` keeps
+ * under "touch hygiene" in `additions.css`.
+ */
+@media (hover: none) {
+  .segpick .seg {
+    -webkit-tap-highlight-color: transparent;
+  }
+  .segpick .seg:hover:not(:disabled) {
+    transform: none;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .segpick .seg:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+}
 
 /* -------------------------------------------------------------- stages -- */
 

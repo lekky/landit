@@ -153,7 +153,6 @@ export default async function StickersPage() {
       label: SPORTS[sport].label,
       color: SPORTS[sport].color,
       icon: SPORTS[sport].icon,
-      earnedLabel: `${wall.filter((s) => s.earned).length} earned`,
     });
   }
 

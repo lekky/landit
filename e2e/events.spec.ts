@@ -144,6 +144,41 @@ async function watchGeolocation(page: Page): Promise<void> {
 
 const geoCalls = (page: Page) => page.evaluate(() => window.__geoCalls);
 
+/**
+ * Wait until the calendar is actually listening.
+ *
+ * **A server-rendered control is visible before it works.** Every control on
+ * this screen is painted by the server and only becomes live when React
+ * hydrates — and the Details modal needs more than React: it opens from
+ * `useSearchParams()` reading a native `pushState`, which Next only reflects
+ * once its own router has attached. A press that lands before that changes the
+ * address and opens nothing, which is what two tests in this file were doing
+ * intermittently in a full run and never on their own (issue #557, and the
+ * independent review of 2026-09-17 measured the same thing twice).
+ *
+ * `aria-pressed` flipping is the proof, the way `spots.spec.ts`' own
+ * `whenInteractive` uses it: the pill's state lives in React, so the attribute
+ * cannot change until the component owns the DOM node. It polls the press
+ * rather than asserting it once, because the race is exactly that the first
+ * press can be too early.
+ *
+ * The kind pill rather than the scope select, because this puts the screen back
+ * the way it found it: "Everything" is where the row opens and nothing is
+ * stored. Only `/events` has a Comp on it, which is the one route the callers
+ * use.
+ */
+async function whenInteractive(page: Page): Promise<void> {
+  const comp = page.getByRole('button', { name: 'Comp', exact: true });
+  await expect
+    .poll(async () => {
+      await comp.click();
+      return comp.getAttribute('aria-pressed');
+    })
+    .toBe('true');
+  await page.getByRole('button', { name: 'Everything' }).click();
+  await expect(comp).toHaveAttribute('aria-pressed', 'false');
+}
+
 test('the list shows an upcoming event with its date block and its details', async ({ page }) => {
   await newRider(page);
   await page.goto('/events');
@@ -152,6 +187,7 @@ test('the list shows an upcoming event with its date block and its details', asy
   await expect(page.getByText('E2E Northern Jam')).toBeVisible();
   await expect(page.getByText('Projekts MCR · Manchester · All levels')).toBeVisible();
 
+  await whenInteractive(page);
   await page.getByRole('button', { name: 'Details' }).first().click();
   const modal = page.getByRole('dialog');
   await expect(modal).toBeVisible();
@@ -266,64 +302,85 @@ test('the archive index only offers corners that hold something', async ({ page 
   await expect(page.locator('meta[name="robots"][content*="noindex"]')).toHaveCount(1);
 });
 
-test('the calendar opens on every sport, whatever the rider rides', async ({ page }) => {
+test('every sport is offered on the calendar, whatever the rider rides', async ({ page }) => {
   /*
-   * The defect (owner, 2026-09-12: "it should default to every sport… but also
-   * it only shows every sport or good for skate. Where are the other options?").
+   * The half of the 2026-09-12 defect that still stands (owner: "it only shows
+   * every sport or good for skate. Where are the other options?").
    *
-   * A rider who records one sport got a calendar filtered to it, and a filter
-   * they could not widen past two states — the tab row that chose the sport is
-   * not rendered below two sports. Both halves are asserted here: what the
-   * screen opens showing, and what it offers.
+   * A rider who records one sport had a filter they could not widen past two
+   * states, because the tab row that chose the sport is not rendered below two
+   * sports. That is what this pins: every sport there is, offered to a rider
+   * who rides one of them, on a control that is always on the screen.
+   *
+   * **The default moved on 2026-09-16** (O1, Rachid in chat), which is why this
+   * test no longer asserts "every sport" as the opening state — see the test
+   * below. O1 sets the default per screen from the quality of the data: staff
+   * tag all 74 events, so the calendar opens on the rider's own sport, where
+   * `/spots` keeps "every spot" because its tags are thin. The thing 2026-09-12
+   * actually fixed — that no sport is ever unreachable — is untouched.
    */
   await newRiderOneSport(page);
   await page.goto('/events');
 
-  // An event for a sport this rider does not ride is on the calendar anyway,
-  // because the calendar is what is on and not what they ride.
-  await expect(page.getByText('E2E BMX Only Comp')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Every sport' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
-
-  // And every sport is offered, to a rider who rides one of them.
-  const row = page.getByRole('group', { name: 'Filter events by sport' });
-  await expect(row.getByRole('button')).toHaveCount(SPORT_IDS.length + 1);
-  // The global tab row is gone from this screen — the filter row replaced it.
+  const scope = page.getByLabel('Show events for');
+  /*
+   * `SPORT_IDS.length + 1`, not `+ 2`: the options are "Your sport (…)",
+   * "All sports", and one entry per *other* sport. The rider's own sport is the
+   * first option rather than a second copy of itself.
+   */
+  await expect(scope.locator('option')).toHaveCount(SPORT_IDS.length + 1);
+  // The global tab row is gone from this screen — the scope select replaced the
+  // multi-select that replaced it.
   await expect(page.getByRole('tablist', { name: 'Events by sport' })).toHaveCount(0);
+
+  // And widening reaches an event for a sport this rider does not ride, because
+  // the calendar is what is on and not what they ride.
+  await scope.selectOption('all');
+  await expect(page.getByText('E2E BMX Only Comp')).toBeVisible();
 });
 
-test('the sport pills narrow the calendar, one sport or several', async ({ page }) => {
+test('the calendar opens on the rider’s own sport, and widens in one choice', async ({ page }) => {
   /*
-   * "Pick everything, or one of each, or multiple" (owner, 2026-09-12). The
-   * control this replaced could say one sport or all of them and nothing in
-   * between.
+   * O1, 2026-09-16 (Rachid, in chat): "the default follows the quality of the
+   * data… Events opens on your sport (74 staff-tagged events)". It is a
+   * deliberate reversal of the 2026-09-12 default, made four days later and
+   * with the reason written down; `/spots` was left as it was in the same
+   * decision.
+   *
+   * The multi-select this replaced could also say "scooter and BMX". That is
+   * what O1 gave up: one sport is chosen once, in the top bar, and a list
+   * either follows it, widens, or is pointed at one other sport.
    */
   await newRider(page);
   await page.goto('/events');
 
-  const row = page.getByRole('group', { name: 'Filter events by sport' });
+  const scope = page.getByLabel('Show events for');
   const bmxOnly = page.getByText('E2E BMX Only Comp');
   const everySport = page.getByText('E2E Northern Jam');
 
-  // One sport: the BMX-only comp goes when the calendar is narrowed to skate,
-  // and the event that is good for every sport stays.
-  await row.getByRole('button', { name: /^Skate/ }).click();
+  // It opens following the chip, which for a new rider is their first sport —
+  // so the BMX-only comp is not on the list and the one that is good for
+  // every sport is.
+  await expect(scope).toHaveValue('chip');
+  await expect(everySport).toBeVisible();
   await expect(bmxOnly).toHaveCount(0);
-  await expect(everySport).toBeVisible();
 
-  // Several: adding BMX brings it back rather than replacing skate. Any of the
-  // chosen sports matches, so this is both calendars at once.
-  await row.getByRole('button', { name: /^BMX/ }).click();
-  await expect(row.getByRole('button', { name: /^Skate/ })).toHaveAttribute('aria-pressed', 'true');
+  // One choice widens it to the whole calendar.
+  await scope.selectOption('all');
   await expect(bmxOnly).toBeVisible();
   await expect(everySport).toBeVisible();
 
-  // And back to everything, which is where it started.
-  await page.getByRole('button', { name: 'Every sport' }).click();
-  await expect(row.getByRole('button', { name: /^BMX/ })).toHaveAttribute('aria-pressed', 'false');
+  // And one choice narrows it to a sport the rider does not ride, by name.
+  await scope.selectOption('bmx');
   await expect(bmxOnly).toBeVisible();
+  await expect(everySport).toBeVisible();
+  await scope.selectOption('skate');
+  await expect(bmxOnly).toHaveCount(0);
+
+  // There is no way to ask for two sports at once any more, which is the thing
+  // O1 decided rather than a limitation of the widget.
+  await expect(scope).not.toHaveAttribute('multiple', /.*/);
+  await expect(page.getByRole('group', { name: 'Filter events by sport' })).toHaveCount(0);
 });
 
 test('the kind pills offer the kinds the half on screen actually holds', async ({ page }) => {
@@ -342,6 +399,84 @@ test('the kind pills offer the kinds the half on screen actually holds', async (
   await expect(page.getByRole('button', { name: 'Comp', exact: true })).toHaveCount(0);
 });
 
+test('the filters are one bar on a desktop and fold behind a button on a phone', async ({
+  page,
+}) => {
+  /*
+   * Two owner passes, the same day.
+   *
+   * Rachid, 2026-09-17, in chat, looking at `/events` at about 1740px: "bad
+   * layout on screenshot" — it was three full-width rows, which reads as a form
+   * rather than as a bar. That is the desktop half below: four controls on one
+   * line with Sort at the right-hand end.
+   *
+   * Then, on a phone the same day: "events page, this is all messy it needs to
+   * be cleaner and simpler proper sectioned" — eight controls before the first
+   * event. So below 861px they **fold behind one "Filters & sort"**, the
+   * library's own control, closed until it is pressed, and what is applied is
+   * named above the list either way.
+   *
+   * Asserted by geometry and by visibility rather than by class, because what
+   * the owner saw was geometry.
+   */
+  await newRider(page);
+  await page.goto('/events');
+
+  const scope = page.getByLabel('Show events for');
+  const country = page.getByLabel('Filter events by country');
+  const everything = page.getByRole('button', { name: 'Everything', exact: true });
+  const sort = page.getByRole('group', { name: 'Sort events' });
+  const fold = page.getByRole('button', { name: 'Filters & sort' });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const rowTop = async (thing: typeof scope) => Math.round((await thing.boundingBox())!.y);
+  const scopeTop = await rowTop(scope);
+  expect(await rowTop(country)).toBe(scopeTop);
+  expect(await rowTop(everything)).toBe(scopeTop);
+  expect(await rowTop(sort)).toBe(scopeTop);
+
+  // Sort is the right-hand end of the bar, not a control stranded mid-row.
+  const bar = (await everything.boundingBox())!;
+  expect((await sort.boundingBox())!.x).toBeGreaterThan(bar.x + bar.width);
+
+  // One height for every control on it — the pills were 35px beside a 44px
+  // select, which is the other half of what the owner was looking at.
+  expect((await everything.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  expect((await country.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+  // The disclosure is the phone's alone; a bar that fits needs no button.
+  await expect(fold).toBeHidden();
+
+  /*
+   * On a phone: the button, and nothing else until it is pressed. The first
+   * event is what a rider came for, so it is what the screen leads with.
+   */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(fold).toBeVisible();
+  await expect(scope).toBeHidden();
+  await expect(country).toBeHidden();
+  await expect(everything).toBeHidden();
+  await expect(sort).toBeHidden();
+
+  await fold.click();
+  await expect(scope).toBeVisible();
+  await expect(country).toBeVisible();
+
+  /*
+   * Inside the fold they are a column, read top to bottom, in the order the
+   * desktop bar reads left to right: sport → country → sort → kind. The pills
+   * go last at both widths, which is the part of that order that is a choice.
+   */
+  const openScope = await rowTop(scope);
+  expect(await rowTop(country)).toBeGreaterThan(openScope);
+  expect(await rowTop(sort)).toBeGreaterThan(await rowTop(country));
+  expect(await rowTop(everything)).toBeGreaterThan(await rowTop(sort));
+
+  // Pressing it again folds them away.
+  await fold.click();
+  await expect(country).toBeHidden();
+});
+
 test('an event row is a link to its own page, and says which door it is', async ({ page }) => {
   await newRider(page);
   await page.goto('/events');
@@ -358,6 +493,7 @@ test('the Details modal has an address, and the back button closes it', async ({
   await newRider(page);
   await page.goto('/events');
 
+  await whenInteractive(page);
   const details = page.getByRole('button', { name: 'Details' }).first();
   await details.click();
 
@@ -435,34 +571,43 @@ test('a visitor who is not signed in reads the whole calendar', async ({ page })
 });
 
 /*
- * A rider's own events — the third tab (Rachid, 2026-09-13, in chat).
+ * A rider's own events (Rachid, 2026-09-13, in chat), reached from the Find
+ * hub since the app shell rethink (§3.7).
  *
  * "I'm going" was write-only: a rider could mark an event and the only thing
- * the product said back was a counter at the foot of the calendar. What these
- * assert is that the tab is wired to the rider's own attendance and to nobody
- * else's — the split between the two tenses is proved as a property in
+ * the product said back was a counter at the foot of the calendar. It got a
+ * third tab in the calendar's switch; the rethink makes that switch two pills —
+ * Upcoming and Past, which are each other's exact complement — and puts a
+ * rider's own events on `/find` as "You're going", with a "Mine →" link into
+ * the route. What these assert is that the route is still wired to the rider's
+ * own attendance and to nobody else's, and that there is still a way in; the
+ * split between the two tenses is proved as a property in
  * `packages/core/src/rules/events.test.ts`.
  */
-test('a rider’s own events get a tab, in both tenses', async ({ page }) => {
+test('a rider’s own events are reached from the Find hub, in both tenses', async ({ page }) => {
   const email = await newRider(page);
   // The one state the screen cannot produce for itself: attendance at an event
   // that is already over.
   await markAttending(email, 'e2e-gone');
   await page.goto('/events');
 
-  const tab = page.getByRole('link', { name: /^Mine/ });
-  await expect(tab).toBeVisible();
+  // The Mine pill is gone from the calendar; the tally at the foot of it is one
+  // of the two remaining doors and the hub is the other.
+  await expect(page.getByRole('link', { name: /^Mine \d/ })).toHaveCount(0);
 
   const jam = page.locator('[class*="row"]').filter({ hasText: 'E2E Northern Jam' });
   await jam.getByRole('button', { name: "I'm going" }).click();
   await expect(page.getByText("You're down for E2E Northern Jam.")).toBeVisible({
     timeout: 15_000,
   });
-  // The count moves in the same frame as the button turns green: a number that
-  // needed a reload would read as the press not having worked.
-  await expect(tab).toContainText('2');
 
-  await tab.click();
+  // The hub says it back, which is the thing "I'm going" was missing for a
+  // month: a rider marks an event and the first screen of the Find group has it.
+  await page.goto('/find');
+  await expect(page.getByRole('heading', { name: 'You’re going' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'E2E Northern Jam' })).toBeVisible();
+
+  await page.getByRole('link', { name: /^Mine/ }).click();
   await page.waitForURL('**/events/mine');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Your events');
 
@@ -483,6 +628,78 @@ test('a rider’s own events get a tab, in both tenses', async ({ page }) => {
   await expect(page.getByText(/riders going/i)).toHaveCount(0);
 });
 
+test('a rider’s own events are every sport, whatever the chip says', async ({ page }) => {
+  /*
+   * The defect the independent review of 2026-09-17 found (B1), pinned.
+   *
+   * O1 opens the *calendar* on the rider's own sport, and the first cut read
+   * that one scope for every screen this component draws — including
+   * `/events/mine`. Measured then: a rider down for two events across two
+   * sports opened their own list and saw one. That screen is a record of
+   * decisions they already made, not a calendar to browse, and a sport filter
+   * over it can only ever hide one of them.
+   *
+   * The two events are chosen for exactly that: the jam is good for every
+   * sport, the comp is BMX only, and a new rider's chip is scooter. Under the
+   * old behaviour the comp was missing from a list the rider had put it on.
+   */
+  const email = await newRider(page);
+  await markAttending(email, 'e2e-jam');
+  await markAttending(email, 'e2e-bmx-only');
+
+  await page.goto('/events/mine');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Your events');
+  await expect(page.getByRole('link', { name: 'E2E Northern Jam' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'E2E BMX Only Comp' })).toBeVisible();
+
+  // And there is no control offering to narrow it, which is the other half:
+  // a widened list behind a filter a rider can re-narrow is the same bug one
+  // press away.
+  await expect(page.getByLabel('Show events for')).toHaveCount(0);
+
+  // The calendar it is cut from still opens on their sport, so this is the
+  // screen being different rather than the default being abandoned.
+  await page.goto('/events');
+  await expect(page.getByLabel('Show events for')).toHaveValue('chip');
+});
+
+test('a visitor’s calendar is every sport, and the pill count matches what they see', async ({
+  page,
+}) => {
+  /*
+   * The independent review's S1. Signed out there is no sport chip in the top
+   * bar — T45 hides the whole right-hand group with the rider — and
+   * `useSport()` still answers with its first sport, so the first cut opened a
+   * visitor's calendar narrowed to scooter under a control reading "Your sport
+   * (Scooter)".
+   *
+   * Two things are asserted and they are different failures. The words: a
+   * visitor is never told a sport is theirs. And the arithmetic: the Upcoming
+   * pill counts the whole half, so a narrowed list under it made the screen
+   * disagree with itself.
+   */
+  await page.goto('/events');
+
+  const scope = page.getByLabel('Show events for');
+  await expect(scope).toHaveValue('all');
+  await expect(scope.locator('option[value="chip"]')).toHaveCount(0);
+  await expect(scope.locator('option').first()).toHaveText('All sports');
+
+  // The BMX-only comp is on a visitor's calendar, because the calendar is what
+  // is on and they have told us nothing about what they ride.
+  await expect(page.getByText('E2E BMX Only Comp')).toBeVisible();
+
+  // The pill's number and the list agree. Read off the pill rather than
+  // hard-coded, so a seeded event added later moves both together.
+  const pill = page.getByRole('link', { name: /^Upcoming/ });
+  const counted = Number((await pill.innerText()).replace(/[^0-9]+/g, ''));
+  expect(counted).toBeGreaterThan(0);
+  // Capped at the page size, because a long calendar pages — the seeded one is
+  // two events, and the cap is what stops this becoming a flake on a fuller
+  // database rather than an assertion about the filter.
+  await expect(page.locator('[class*="rowBody"]')).toHaveCount(Math.min(counted, 20));
+});
+
 test('a rider who has marked nothing is told what the button does', async ({ page }) => {
   await newRider(page);
   await page.goto('/events/mine');
@@ -495,15 +712,24 @@ test('a rider who has marked nothing is told what the button does', async ({ pag
   await expect(page.getByRole('link', { name: /See what’s coming up/ })).toBeVisible();
 });
 
-test('the Mine tab is not offered to a visitor, and cannot be read by one', async ({ page }) => {
+test('a rider’s own events are not offered to a visitor, and cannot be read by one', async ({
+  page,
+}) => {
   await page.goto('/events');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('What’s coming up');
-  // A tab that could only ever read "Mine 0" and lead to a sign-in wall is an
-  // advert for a locked door.
+  // A control that could only ever read "Mine 0" and lead to a sign-in wall is
+  // an advert for a locked door.
+  await expect(page.getByRole('link', { name: /^Mine/ })).toHaveCount(0);
+
+  // Same on the hub, which is where the way in moved (rethink §3.7): "You're
+  // going" and its "Mine →" are not rendered for somebody with no account, so
+  // the public screen advertises nothing a visitor cannot open.
+  await page.goto('/find');
+  await expect(page.getByRole('heading', { name: 'You’re going' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: /^Mine/ })).toHaveCount(0);
 
   // And the address itself is one rider's attendance, which is nobody else's
-  // to read: `/events` and `/events/past` are public, this one is not.
+  // to read: `/events`, `/events/past` and `/find` are public, this one is not.
   await page.goto('/events/mine');
   await page.waitForURL('**/signin?next=*');
   expect(new URL(page.url()).searchParams.get('next')).toBe('/events/mine');
@@ -634,51 +860,13 @@ test('the calendar opens nearest-first when the browser already allows it', asyn
   expect(await geoCalls(page)).toBe(1);
 });
 
-test('the What’s on drawer is the way back to spots on a phone', async ({ page }) => {
-  // The other half of the pair `e2e/spots.spec.ts` checks. A rider who taps
-  // the bottom bar's "What's on" lands on Spots, and if Events could not get
-  // them back the fold would be a one-way door.
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/events');
-
-  const drawer = page.getByRole('group', { name: 'What’s on', exact: true });
-  await expect(drawer.getByRole('link', { name: 'Events', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
-  );
-
-  await drawer.getByRole('link', { name: 'Spots', exact: true }).click();
-  await page.waitForURL('**/spots');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Where to ride');
-});
-
-test('on a phone, tapping the lit cell reopens the drawer instead of moving the rider', async ({
-  page,
-}) => {
-  /*
-   * The one case where a bottom-bar cell is not a link.
-   *
-   * A rider on Events who taps "What's on" is asking what else is in here, and
-   * the old bar answered by dragging them to Spots. Now it shows them the two
-   * names and leaves them where they are — which is also the only way back to
-   * the drawer once it has been dismissed.
-   */
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/events');
-
-  const drawer = page.getByRole('group', { name: 'What’s on', exact: true });
-  const cell = page
-    .getByRole('navigation', { name: 'Main, compact', exact: true })
-    .getByRole('link', { name: 'What’s on', exact: true });
-
-  // Dismissed by a tap on the page, which is how a rider gets it out of the way.
-  await page.getByRole('heading', { level: 1 }).click();
-  await expect(drawer).toBeHidden();
-  await expect(cell).toHaveAttribute('aria-expanded', 'false');
-
-  await cell.click();
-  await expect(drawer).toBeVisible();
-  await expect(cell).toHaveAttribute('aria-expanded', 'true');
-  // Still on Events: the tap opened the drawer and navigated nowhere.
-  expect(new URL(page.url()).pathname).toBe('/events');
-});
+/*
+ * Two tests stood here and went with the section drawer they exercised (T45,
+ * 2026-09-16): "the What’s on drawer is the way back to spots on a phone" and
+ * "tapping the lit cell reopens the drawer instead of moving the rider".
+ *
+ * The bottom bar no longer folds Spots and Events into one "What’s on" cell,
+ * so there is no fold to be a one-way door and no lit cell that is not a link.
+ * Both screens sit under **Find**, which lights on either of them, and the way
+ * between them is the tab row T48 puts at the top of each.
+ */

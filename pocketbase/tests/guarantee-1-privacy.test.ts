@@ -271,9 +271,17 @@ describe('guarantee 1 — profile privacy is enforced by the API, not the UI', (
   });
 
   it('will not show a crew to a rider who is not in it (no discovery)', async () => {
+    /*
+     * Its own rider, because the test above already spent this one's crew
+     * allowance: since 2026-09-17 a free rider creates **one** crew, not five
+     * (the owner's per-plan cap, `85_crews.pb.js`). What is under test here is
+     * discovery, not the cap, so the cheapest fix is a rider who has not made
+     * a crew yet rather than a plan that lets them make two.
+     */
+    const founder = await makeRider({ privacy: 'members' }, { consent_state: 'not_required' });
     const crew = await call<{ id: string }>('POST', '/api/collections/crews/records', {
-      token: membersRider.token,
-      body: { name: 'Hidden Crew', slug: `hidden-${membersRider.handle}` },
+      token: founder.token,
+      body: { name: 'Hidden Crew', slug: `hidden-${founder.handle}` },
     });
     expect(crew.status).toBe(200);
 
@@ -283,7 +291,7 @@ describe('guarantee 1 — profile privacy is enforced by the API, not the UI', (
     expect(peek.status).toBe(404);
 
     const own = await call('GET', `/api/collections/crews/records/${crew.body.id}`, {
-      token: membersRider.token,
+      token: founder.token,
     });
     expect(own.status).toBe(200);
   });

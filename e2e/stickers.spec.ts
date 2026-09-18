@@ -1,6 +1,7 @@
+import { AWARDS, SPORTS, TRICKS, isTrickLocked, tricksFor, type SportId } from '@landit/core';
 import { expect, test, type Page } from '@playwright/test';
 
-import { finishOnboarding } from './support/onboarding';
+import { finishOnboarding, pickEverySport } from './support/onboarding';
 
 /*
  * The two browser globals the modal test reads inside `page.evaluate`. This
@@ -30,6 +31,31 @@ declare const window: {
 const password = 'a-long-local-test-password';
 const unique = () => Math.random().toString(36).slice(2, 10);
 
+/**
+ * A skate trick a brand-new rookie can land that puts a **skate** badge on the
+ * wall: live, free, no prerequisites, and carrying a live trick award of its
+ * own scoped to the sport.
+ *
+ * The last clause is what makes the scoping test mean anything. Landing any
+ * trick also awards shared badges — First Land, and Day One inside the launch
+ * window — and those sit on every wall, so a rider whose only landing awarded
+ * shared badges has the same count on all three and the bug this pins would
+ * pass. Read from the canonical data rather than named, so a library edit moves
+ * the test instead of breaking it.
+ */
+const skateStarter = tricksFor('skate', TRICKS).find(
+  (t) =>
+    t.isLive &&
+    !isTrickLocked(t, 'rookie') &&
+    t.pre.length === 0 &&
+    AWARDS.some((a) => a.isLive && a.kind === 'trick' && a.sport === 'skate' && a.trick === t.id),
+)!;
+
+/** The badge landing it earns — the one badge that is on skate's wall only. */
+const skateBadge = AWARDS.find(
+  (a) => a.isLive && a.kind === 'trick' && a.sport === 'skate' && a.trick === skateStarter.id,
+)!.name;
+
 function birthDate(years: number): string {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear() - years, now.getUTCMonth(), now.getUTCDate()))
@@ -48,6 +74,26 @@ async function arrive(page: Page, name: string): Promise<void> {
   await page.getByRole('button', { name: 'Create account' }).click();
 
   await page.waitForURL('**/onboarding');
+  await finishOnboarding(page);
+  await page.waitForURL('**/home');
+}
+
+/**
+ * The same arrival, on every sport — which is what puts the top bar's chip on
+ * screen at all. It is hidden for a rider who tracks one sport ("nothing below
+ * two", §3.1), and one test below needs to switch it.
+ */
+async function arriveOnEverySport(page: Page, name: string): Promise<void> {
+  await page.goto('/signup');
+  await page.getByLabel('Your name').fill(name);
+  await page.getByLabel('Email').fill(`e2e-${unique()}@landit.invalid`);
+  await page.getByLabel('Password').fill(password);
+  await page.getByLabel('Where you live').selectOption('GB');
+  await page.getByLabel('Date of birth').fill(birthDate(24));
+  await page.getByRole('button', { name: 'Create account' }).click();
+
+  await page.waitForURL('**/onboarding');
+  await pickEverySport(page);
   await finishOnboarding(page);
   await page.waitForURL('**/home');
 }
@@ -89,15 +135,21 @@ async function markSometimes(page: Page): Promise<void> {
  * collection and pass by finding nothing, which is the failure mode this
  * file's own header warns about (LESSONS §5).
  *
- * Retried on `aria-pressed` for the reason `markSometimes` gives: the control
+ * Retried on `aria-selected` for the reason `markSometimes` gives: the control
  * is server-rendered, so it is on screen before React owns it, and a press
  * before hydration does nothing at all.
+ *
+ * A `tab`, not a pressed `button`, since T46: the switch is the boxed `TabRow`
+ * every screen uses (§3.10), which is a `role="tablist"` of tabs. It was an
+ * underline bar of toggles only because a sport tab row used to sit above it
+ * and two identical rows read as one control (#379 item 5) — the sport row went
+ * with D5, and so did the reason.
  */
 async function showWholeWall(page: Page): Promise<void> {
-  const notYet = page.getByRole('button', { name: /^Not yet \d+$/ });
+  const notYet = page.getByRole('tab', { name: /^Not yet \d+$/ });
   await expect(async () => {
     await notYet.click();
-    await expect(notYet).toHaveAttribute('aria-pressed', 'true');
+    await expect(notYet).toHaveAttribute('aria-selected', 'true');
   }).toPass({ timeout: 20_000 });
 }
 
@@ -122,6 +174,57 @@ test('the wall is signed-in only', async ({ page }) => {
   await page.waitForURL('**/signin');
 });
 
+test('the wall is under Home, and has one tab row rather than two (T46)', async ({ page }) => {
+  await arrive(page, 'Walled Rider');
+  await page.goto('/stickers');
+
+  // §2.3: a Home back link, and a real link rather than `history.back()`.
+  const back = page.getByRole('main').getByRole('link', { name: 'Home' }).first();
+  await expect(back).toHaveAttribute('href', '/home');
+
+  /*
+   * D5: the sport row goes. It used to sit above the heading, and the Earned /
+   * Not yet switch was drawn as an underline bar inside the ink panel purely to
+   * avoid reading as a second copy of it (#379 item 5). With the sport row gone
+   * the switch is the boxed row every other screen uses, in the header, and
+   * there is exactly one tab row on the page.
+   */
+  await expect(page.getByRole('main').getByRole('tablist')).toHaveCount(1);
+  const tabs = page.getByRole('tablist', { name: 'Which badges to show' });
+  await expect(tabs.getByRole('tab')).toHaveCount(2);
+  // The counts came with it: "Not yet 109" is a reason to press, "Not yet" is a
+  // word.
+  await expect(tabs.getByRole('tab', { name: /^Earned \d+$/ })).toBeVisible();
+  await expect(tabs.getByRole('tab', { name: /^Not yet \d+$/ })).toBeVisible();
+
+  /*
+   * And a panel for them to control. A screen reader told "Earned, tab, 1 of 2"
+   * and then told about no panel at all is half a pattern — the wall had the
+   * tablist and not the tabpanel, which is the half a `role="tablist"` count
+   * would never have caught.
+   */
+  const panel = page.getByRole('tabpanel');
+  await expect(panel).toHaveCount(1);
+  await expect(panel).toHaveAttribute('aria-label', /^(Earned|Not yet)$/);
+
+  /*
+   * And the two of them fit, down to 320px. `.tabrow .sporttab` is `flex: 1`
+   * and `white-space: nowrap` (§3.3), so a row that does not fit grows past its
+   * share and pushes the whole document sideways rather than wrapping — which
+   * is what the three-tab row on Progress did before it was tightened. Two
+   * tabs carrying three-digit counts is the case worth measuring here.
+   */
+  for (const width of [430, 375, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto('/stickers');
+    await expect
+      .poll(() => page.locator('html').evaluate((el) => el.scrollWidth - el.clientWidth), {
+        message: `the wall scrolls sideways at ${width}px`,
+      })
+      .toBe(0);
+  }
+});
+
 test('a fresh wall shows the award set, locked — bar the founder badge', async ({ page }) => {
   await arrive(page, 'Fresh Rider');
   await page.goto('/stickers');
@@ -143,7 +246,7 @@ test('a fresh wall shows the award set, locked — bar the founder badge', async
   expect(earned).toBeLessThanOrEqual(1);
 
   // The earned tab's own count agrees with the heading.
-  await expect(page.getByRole('button', { name: `Earned ${earned}` })).toBeVisible();
+  await expect(page.getByRole('tab', { name: `Earned ${earned}` })).toBeVisible();
 
   // The locked half lives behind "Not yet" now; the heading above still counts
   // the whole wall either way. The halves are disjoint, so that side holds
@@ -164,8 +267,8 @@ test('the two tabs are disjoint halves, shelved the same way, and visibly differ
   // disjoint, nothing locked is drawn there at all. This is also what protects
   // the once-only pop: the wall acknowledges fresh awards on mount whatever
   // view is showing, so the default has to be the view that draws them.
-  const earnedTab = page.getByRole('button', { name: /^Earned \d+$/ });
-  await expect(earnedTab).toHaveAttribute('aria-pressed', 'true');
+  const earnedTab = page.getByRole('tab', { name: /^Earned \d+$/ });
+  await expect(earnedTab).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('.sticker.locked')).toHaveCount(0);
 
   /*
@@ -187,7 +290,7 @@ test('the two tabs are disjoint halves, shelved the same way, and visibly differ
   expect(onEarned.length).toBeGreaterThan(0);
 
   await showWholeWall(page);
-  await expect(earnedTab).toHaveAttribute('aria-pressed', 'false');
+  await expect(earnedTab).toHaveAttribute('aria-selected', 'false');
 
   const onNotYet = await badgeNames();
   expect(onNotYet.length).toBeGreaterThan(0);
@@ -397,4 +500,145 @@ test('the trick page has its Share it button now the card exists (issue #51)', a
   await expect(card.getByText(`Landed the ${name}`, { exact: false }).first()).toBeVisible();
   await expect(card.getByText(/Tracked on Land The Trick\./)).toBeVisible();
   await expect(card).not.toContainText(/\d+ days? streak/i);
+});
+
+/**
+ * Switch the top bar's sport chip, and be sure the switch landed.
+ *
+ * The chip is a button holding React state and opening a sheet, so the press is
+ * retried for the reason `markSometimes` gives. `aria-label` is "Riding: Skate.
+ * Switch sport." — which is also the assertion that the choice took.
+ */
+async function switchSport(page: Page, id: SportId): Promise<void> {
+  const chip = page.getByRole('button', { name: /^Riding: / });
+  // The rows carry the sport's full name and the chip its short one, which is
+  // §3.1's own distinction. Waited on rather than the panel around them,
+  // because the chip opens a `Sheet` on a phone and a `Dropdown` on a desktop
+  // and this helper is about the choice rather than about either shape.
+  const row = page.getByRole('button', { name: new RegExp(`^${SPORTS[id].label}`) });
+
+  await expect(async () => {
+    await chip.click();
+    await expect(row).toBeVisible();
+  }).toPass({ timeout: 20_000 });
+
+  await row.click();
+  await expect(chip).toHaveAccessibleName(new RegExp(`^Riding: ${SPORTS[id].short}`));
+}
+
+/**
+ * The first number of the wall's "N of M" heading, once the wall is on the
+ * sport the chip is on.
+ *
+ * **The eyebrow is the wait, and it is not decoration.** Which sport's wall is
+ * drawn comes from `useSport()`, a client provider, so the server renders the
+ * first sport and hydration swaps it — and "N of M" is true of both, so a read
+ * taken straight after `goto` is a coin toss between two real numbers.
+ * Measured: the skate wall answered with the scooter one, twice out of two
+ * (LESSONS §5 — an assertion both screens satisfy is not a wait).
+ */
+async function earnedOnTheWall(page: Page, id: SportId): Promise<number> {
+  await page.goto('/stickers');
+  await expect(page.getByText(`Sticker wall · ${SPORTS[id].label} and shared`)).toBeVisible();
+  const heading = page.getByRole('heading', { level: 1 });
+  await expect(heading).toHaveText(/^\d+ of \d+$/);
+  return Number(/^(\d+) of/.exec((await heading.textContent()) ?? '')?.[1]);
+}
+
+/**
+ * The Stickers card's big number on Home, once Home is on the chip's sport.
+ *
+ * The library bar names the sport and is the same `SportView` the card comes
+ * from, so it is the wait for the same reason the wall's eyebrow is.
+ */
+async function cardCount(page: Page, id: SportId): Promise<number> {
+  await page.goto('/home');
+  await expect(page.getByText(`${SPORTS[id].label} library`)).toBeVisible();
+  const card = page.getByRole('main').getByRole('link', { name: /^Stickers/ });
+  await expect(card).toBeVisible();
+  return Number(/(\d+)/.exec((await card.innerText()).replace(/\s+/g, ' '))?.[1]);
+}
+
+/** The Stickers card's sub-line — "Newest: …", or "None yet". */
+async function cardSub(page: Page, id: SportId): Promise<string> {
+  await page.goto('/home');
+  await expect(page.getByText(`${SPORTS[id].label} library`)).toBeVisible();
+  const card = page.getByRole('main').getByRole('link', { name: /^Stickers/ });
+  await expect(card).toBeVisible();
+  return (await card.innerText()).replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Home's Stickers card follows the chip (integration review, F2).
+ *
+ * The card's count was every sticker on every wall and its "Newest:" was the
+ * newest of all of them — both sitting in a `SportView`, whose whole contract is
+ * "everything that changes when the rider switches sport". So a rider who earned
+ * a skate sticker and chipped back to scooter was told "1 · Newest: <a skate
+ * badge>" and then opened an empty scooter wall.
+ *
+ * The invariant is the card matching **the wall it opens**, at whichever sport
+ * the chip is on — not a hard-coded number, because how many stickers one
+ * landing awards belongs to the award rules and the seeded catalogue.
+ */
+test('the Stickers card counts the wall it opens, and names a badge that is on it', async ({
+  page,
+}) => {
+  await arriveOnEverySport(page, 'Scoped Rider');
+
+  /*
+   * Earn something on skate, and only on skate.
+   *
+   * The trick is named from the canonical data and opened by address rather
+   * than browsed to: this test is about which wall a number belongs to, and
+   * walking a grid to find a skate card would make it about the library's scope
+   * control as well.
+   */
+  await switchSport(page, 'skate');
+  await page.goto(`/library/${skateStarter.id}`);
+  await markSometimes(page);
+  await expect(page.locator('.toast', { hasText: 'Logged as sometimes' })).toBeVisible();
+
+  const skateCard = await cardCount(page, 'skate');
+  const skateWall = await earnedOnTheWall(page, 'skate');
+  expect(skateCard).toBe(skateWall);
+
+  // Back to a sport with nothing landed in it. The wall is shared badges only,
+  // and the card has to say the same.
+  await switchSport(page, 'scooter');
+  const scooterCard = await cardCount(page, 'scooter');
+  const scooterWall = await earnedOnTheWall(page, 'scooter');
+  expect(scooterCard).toBe(scooterWall);
+
+  /*
+   * And the two differ, which is what makes the two assertions above mean
+   * something: a card still reading the whole collection would match on one
+   * sport by luck and never on both.
+   */
+  expect(skateCard).toBeGreaterThan(scooterCard);
+
+  /*
+   * The name, too. "Newest:" was the newest badge the rider held anywhere, so
+   * the scooter card could name a skate one — a sentence about a wall that is
+   * one tap away and does not contain it.
+   */
+  const scooterSub = await cardSub(page, 'scooter');
+  // Not the skate badge, which is the wrong-wall case in its plainest form.
+  expect(scooterSub).not.toContain(skateBadge);
+
+  /*
+   * And, whichever badge it does name, that badge is **on the wall the card
+   * opens**. This is the assertion that does not depend on which of several
+   * badges a landing awarded last: the card offers a name, and the wall behind
+   * the card has to be able to show it. A badge carries its name only to a
+   * screen reader — the art is the art — so it is found by its role.
+   */
+  const named = /Newest: (.+)$/.exec(scooterSub)?.[1]?.trim();
+  expect(named, `the card said "${scooterSub}"`).toBeTruthy();
+
+  await page.goto('/stickers');
+  await expect(page.getByText(`Sticker wall · ${SPORTS.scooter.label} and shared`)).toBeVisible();
+  await expect(
+    page.getByRole('tabpanel').getByRole('img', { name: `${named} sticker, earned` }),
+  ).toBeVisible();
 });

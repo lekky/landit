@@ -205,6 +205,11 @@ export function baseFixtures(): Promise<Fixtures> {
       sessions_unlimited: false,
       session_clip_cap: 0,
       session_clips_unlimited: false,
+      // One crew on the free plan (owner, 2026-09-17). Mirrors `CREW_CAPS` in
+      // `@landit/core`; `crews.test.ts` reads the number back off the record
+      // rather than assuming it, so a drift here cannot make the cap test pass
+      // for the wrong reason.
+      crew_cap: 1,
       is_live: true,
     });
     await ensureRecord('plans', "slug = 'shredder'", {
@@ -226,6 +231,7 @@ export function baseFixtures(): Promise<Fixtures> {
       // `SHREDDER_SESSION_CLIP_CAP`, a tunable default. Read back, never assumed.
       session_clip_cap: 10,
       session_clips_unlimited: false,
+      crew_cap: 3,
       is_live: true,
     });
     await ensureRecord('plans', "slug = 'legend'", {
@@ -245,6 +251,10 @@ export function baseFixtures(): Promise<Fixtures> {
       sessions_unlimited: true,
       session_clip_cap: 0,
       session_clips_unlimited: true,
+      // Ten crews on the top plan. A number rather than an "unlimited" boolean,
+      // because the owner gave a number (2026-09-17) — crews mint invite codes,
+      // and "unlimited" and "anti-spam" do not belong in the same field.
+      crew_cap: 10,
       is_live: true,
     });
 

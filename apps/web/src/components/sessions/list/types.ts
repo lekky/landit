@@ -126,7 +126,5 @@ export interface SessionsView {
   readonly timezone: string;
   /** `YYYY-MM` on the rider's clock. */
   readonly currentMonthKey: string;
-  /** The sport chips to offer; empty for a one-sport rider. */
-  readonly filterSports: readonly { readonly id: SportId; readonly label: string }[];
   readonly sidebar: SessionsSidebarView;
 }

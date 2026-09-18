@@ -274,7 +274,7 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 | `rider_stickers` | `earned_at` plus `seen_at`, so a sticker is never re-announced |
 | `plans`, `subscriptions` | See §2.4. No seat collection — Crew Pass dropped. `plans` still carries `clip_cap_bytes`, dormant since 2026-08-17 and kept only because `listPlans` orders the plan cards by it (§6.6) |
 | `guardian_consents` | Rider, guardian email, hashed approval token + expiry, requested/granted/revoked timestamps, `method` (`email_approval` at launch). Backs the sign-up consent flow (§6.2). Revocation is a state, not a delete — the record is the evidence |
-| `crews`, `crew_members`, `crew_invites` | Real crews — the prototype has one demo crew |
+| `crews`, `crew_members`, `crew_invites` | Real crews — the prototype has one demo crew. **How many a rider may create is their plan's** (`plans.crew_cap`, owner 2026-09-17: 1 / 3 / 10), enforced in `85_crews.pb.js`; joining with a code is uncapped at every tier. **A crew whose last member leaves is deleted** (same date, closing the half of issue #143 the hook had been carrying an open question about) |
 | `challenges`, `challenge_log` | Per sport per week. State derived from dates |
 | `spots` | Includes `status` (`pending`/`live`/`rejected`) and `submitted_by` — that is the review queue |
 | `events`, `event_attendance` | "I'm going" |
@@ -284,6 +284,8 @@ Straight port of the handoff's model onto PocketBase collections. Notable shapes
 | `sessions` | Added 2026-09-13 (T36, §1 D1–D6). One logged ride: `user`, `started_at`, `duration_minutes` (30/60/120/180), `sport`, `spot`, optional `event`, `aim`, `feel`, `weather`, `notes`, `rode_with` (crew-mates only), `clip_platform` + `clip_id` (the parsed id, never a URL), `visibility` (`public \| members \| private`), `month_key` (the rider-clock month it was logged in, which the quota counts) and `grace`. Read rule: the stricter of session and profile, Crew = shares a crew, nothing from a consent-limited or suspended owner. Hook `66_sessions.pb.js` |
 | `session_tricks` | Added 2026-09-13 (T36). `(session, trick) → landed`, with `user` copied from the session and `stage_from`/`stage_to` written once by the hook when a landing promotes the trick. Exactly as visible as its session. Paywalled like `trick_log` |
 | `session_grace` | Added 2026-09-13 (T36). One row per account that has used the once-per-account "save this one anyway". Unique on `user`, no create, update or delete rule, so deleting the session that spent it does not give it back |
+| `sessions.spot_name` | Added 2026-09-17 (owner, in chat). Where it was **in the rider's own words**, for a place the map does not have. Used only when `spot` is empty — the hook clears one whenever the other is set, so a session never carries two answers to "where" — capped at 80 and refused if it carries a control character. It is rider-typed text, so it never reaches analytics and never appears in the crew feed or What's new, which are sentences the product wrote; it rides on the session's own visibility like `notes`. **Nothing renders it as a link and no lookup matches it back to a spot**, which is what makes "free text ones don't link to a page" true rather than intended |
+| `plans.crew_cap` | Added 2026-09-17 (owner, in chat: "1 for free, 3 for 3.99 and 10 for the top tier"). How many crews a plan may **create**. An entitlement on the plan record like every other, so staff tune it without a deploy and nothing compares a plan slug to `shredder`. Capacity, not achievement (§2.4). Absent reads as **one**, not zero: the fail-closed direction for a cap on creating is the smallest allowance |
 | `users.session_visibility_default`, `plans.session_*` | Added 2026-09-13 (T36). Who sees new sessions (empty reads as `private`), and the two session allowances as count + boolean: `session_month_cap` / `sessions_unlimited`, `session_clip_cap` / `session_clips_unlimited` |
 | `reports` | Reporter (nullable — the OSA wants a route for non-users too), subject (`profile` / `clip` / `spot`), reason, status, outcome, `complaint_of` self-link for appeals against our own moderation decisions. The safeguarding page promises reporting; the prototype has no flow for it — the collection goes in now so the buttons have somewhere to write |
 
@@ -2852,7 +2854,9 @@ owner:
   gains Halfpipe and DIY). **No licence was granted, and the owner chose to take the facts
   regardless;** the licence column says so rather than hiding it — `ODbL-1.0 AND LicenseRef-none`
   and `LicenseRef-none` — because that column exists for the day somebody asks which rows may be
-  handed on. The credit line names OpenStreetMap contributors and GeoNames (the towns, CC BY 4.0);
+  handed on. The credit names OpenStreetMap contributors and GeoNames (the towns, CC BY 4.0) — in the
+  terms of use since 2026-09-17, under "Data sources and licences", with a short "Spot data
+  sources" link under the map where the paragraph used to be;
   Trucks and Fins, having granted nothing, is not named. **The site is behind a bot shield and the
   importer never fetches it:** `scripts/import-world.mts` reads the list page and the filter lists
   as captured in an ordinary browser, and fetches only OpenStreetMap (Overpass, twelve bands),
@@ -2892,7 +2896,8 @@ owner:
   already seeded — researched, French or the world rows — is dropped. What survives is **7,660
   parks, 348 of them in the UK**, taking the live list to 36,391. They are plain OpenStreetMap,
   so `source: 'osm'` under `ODbL-1.0` with nothing else mixed in, credited under the same
-  "OpenStreetMap contributors" line the credit names once (`spotCredits`), and `noindex` like the
+  "OpenStreetMap contributors" line the credit names once (`spotCredits`, rendered into the terms
+  of use by `spotCreditLine` since 2026-09-17), and `noindex` like the
   rest of the import: 83% have no name of their own and read "Skatepark" (or "Pump track", where
   a name says it is one — which also lists it for BMX) with the town doing the rest. The importer
   measures outlines by id with Overpass `out geom`, kept in `osm-areas.json` in its cache so a
@@ -4087,7 +4092,22 @@ Three things about the shape are worth keeping, because they were not free choic
 **What this does to the paid tiers is not settled.** Shredder's pitch sells the gap between free
 and paid, and that gap has halved; issue #129 (Legend has lost its headline perk) now covers both
 tiers rather than one. The free share also drifts down on its own as staff add tricks, because
-twenty is a count and not a proportion — the same property that makes it safe to print on a card.
+twenty is a count and not a proportion.
+
+**Superseded 2026-09-17: the count is not printed anywhere a rider reads** (Rachid, in chat, on
+PR #572: "dont mention counts of tricks in free text as its always subject to change, so remove it
+everywhere"). The sentence above closed "— the same property that makes it safe to print on a
+card", which was the rule from 2026-09-04 and is reversed. The reasoning it rested on was about
+*accuracy*: twenty is per-sport, deliberated and pinned by `data.test.ts`, so a card quoting it
+could not go quietly wrong. What it did not weigh is that the allowance is a **pricing lever**, and
+it has already moved once (ten → twenty in eight days). Every move drags a copy edit across the
+plan cards, the landing page, the library banner, a locked trick, two PocketBase migrations and the
+specs behind all of them — and a test that pins a number cannot catch the sentence nobody
+remembered to change. So the copy says *what* the free tier is, hand-picked and in every sport, and
+the app shows what a rider actually gets. **The allowance itself is unchanged**:
+`FREE_TRICKS_PER_SPORT` is still twenty a sport and the hook still enforces it; only the words
+went. `packages/core/src/data/plans.ts` carries the rule, `data.test.ts` fails on a count in any
+plan string, and `1789948800_plan_copy_no_counts.js` carries it to a running box.
 
 **`supervise`, a new optional field on `Trick`.** It marks a trick a guardian should know about,
 per trick rather than inferred from `diff`. The line: the rider goes upside down (a flip or an
@@ -5290,6 +5310,20 @@ chat, answering issue #507 ahead of turning sessions on for everyone). Depends o
   - **`down` is a no-op, deliberately.** There is no single previous state to restore — each box
     drifted somewhere different — and reinstating the prototype's copy would put "Exclusive avatar
     drops" back on a live card.
+- **`1789948800_plan_copy_no_counts.js` takes the count of free tricks out of the cards on a
+  running box** (Rachid, 2026-09-17, in chat, on PR #572) — the same three fields, the same blast
+  radius, pinned to canonical by `pocketbase/tests/plan-copy-no-counts.test.ts`. Three sentences
+  changed: Rookie's pitch and its second perk, and Shredder's "not just the twenty we picked for
+  you". A **fourth** file rather than an edit to `1789776000` because production has already run
+  that one and PocketBase will not re-run it — an edit would live in the repository and never reach
+  a card. `plan-copy-refresh.test.ts` stops pinning plan copy as a consequence and keeps its
+  structural assertions, the same handover it received from `free-tier-twenty.test.ts`; only one
+  file may pin copy at a time, or copy can never change again.
+  - **`down` writes the 2026-09-12 wording**, unlike `1789776000`'s. Here there *is* a single
+    previous state — the copy that migration wrote — so a rollback leaves three accurate cards
+    rather than a mixture. `COPY_WITH_COUNTS` is a snapshot and is deliberately not pinned to core.
+  - **The allowance does not change.** `FREE_TRICKS_PER_SPORT` and the hook that enforces it are
+    untouched; this is a copy migration and `data.test.ts` still asserts twenty free tricks a sport.
 - **No new analytics event.** `/plans` is already counted (`$pageview`, `checkout_started` carrying
   the plan slug); this adds a line to a counted screen rather than a rider action.
 
@@ -5309,35 +5343,121 @@ Crew; the raised LOG cell and the four-action Log sheet (a new `Sheet` primitive
 `ui-web`); the sport switch chip with its sheet and menu; the `TabRow` variant on `Tabs`; `BackLink`;
 `Dropdown`; motion tokens; the streak chip and the section drawer removed; the email banner as a
 one-line strip; a `/find` placeholder redirecting to `/spots` until T48; the new analytics events;
-`e2e/shell.spec.ts` at 375, 861, 960 and 1280px. Alone in its wave: everything else uses what it adds.
+`e2e/shell.spec.ts` at 375, 861, 960 and 1280px. Alone in its wave: everything else uses what it
+adds. **Built 2026-09-17** (PR #539): `nav.ts` keeps its shape and gains `DESTINATIONS`, a
+written-out list of everywhere a rider can go, because with both bars on the same four groups the
+old covers-everything test proved nothing; `packages/ui-web` gains `Sheet`, `Dropdown`, a `bell`
+icon, the five motion tokens and `variant="boxed"` on `Tabs`, all additive, while `TabRow` itself
+lives in `apps/web` because two of its four duties — the analytics call and the `next/link` form —
+cannot live in the package. All six of spec §5's events are added to the catalogue in this one PR so
+the three Wave B branches do not each edit the same region of `analytics.ts`; three of them fire
+here. Signed out the LOG cell is a link to `/signin` rather than a button that could do nothing, and
+the chip's name is on at every width, paid for by shrinking the wordmark below 400px. `/find`
+redirects to `/spots` and `/whats-new` is a one-line placeholder until T48 and T47. The T45
+paragraphs in `docs/app-shell-rethink.md` §3.1, §3.2 and §3.5 record what the spec was silent on.
 
 **T46 · Home as a dashboard of link cards.** `t46-home-cards`. Depends on T45. The four record
 cards both widths, the new Home order, Home back links and lit-cell rules on Progress, Sessions,
 Stickers and Challenge, Progress and Stickers tab rows, sport tab rows removed from those screens.
+**Built 2026-09-17** (PR #548), closing issue #522 on **option 1** (Rachid, 2026-09-16, in chat):
+`/progress` stays "Where you're at" and does not redirect, and the two screens have separate cards.
+Three cards is the ordinary case, not four — the Sessions card is drawn only for a rider the preview
+covers (T41), so the row fills itself rather than holding an empty track, and the two extra reads it
+needs are made behind the same gate. Home drops the four-badge row and the wish-list grid, which the
+Stickers and Progress cards now say in less room; the crew board's slot is the crew's *activity*,
+which is the spec's own call. Progress and Stickers keep their tab in `?tab=` rather than in
+`useState` (`useTabParam`, new and additive) — a rider who opens a skill-tree node and presses Back
+was landing on Record, having lost their place. `ProgressTabs` is removed from `/progress` only, and
+the header collision that left on `/progress/sessions` is T50's. The T46 paragraphs in
+`docs/app-shell-rethink.md` §3.4 and §3.10 record what the spec was silent on.
 
 **T47 · What's new.** `t47-whats-new`. Depends on T45. The one additive field
 `users.whats_new_seen_at` with its hook; the feed derived in `packages/core` from the rider's own
-record and the crew feed's six sentences (nothing stored per item, nothing typed by anyone); the
-panel as a page on the phone and a dropdown on desktop; the bell count.
+record and the crew feed's six sentences (nothing stored per item — **every line is a frame the
+product wrote**, and the only free text that reaches one is a crew's name and a rider's display
+name, both of which the crew screen already shows to the same people; "nothing typed by anyone" was
+the original wording here and was not accurate); the panel as a page on the phone and a dropdown on
+desktop; the bell count. **Built 2026-09-17** (PR #543), closing issue #550: the count is one
+derived computation from four windowed reads fired together plus up to four more that depend on what
+those found, memoised per request and failing soft to zero, because the bell is in the top bar of
+every signed-in screen; the **panel's** contents are fetched when it opens. The badge counts the You
+lines and not the crew tabs, so a rider is never notified about their own logging. A private
+crew-mate's join is not mentioned — the test is `users.listRule`, which is the crew feed's rule
+rather than the crew board's carve-out. Opening the panel stamps and re-renders, but only when
+there was something to clear and the read succeeded. The tab row is hidden for a rider in one crew,
+and `tabs_switched` carries `crew-1`, never a crew id. The T47 paragraphs in
+`docs/app-shell-rethink.md` §3.6 record what the spec was silent on, including the two rider-typed
+strings that do reach a line.
 
 **T48 · Find.** `t48-find`. Depends on T45. The `/find` summary, the tab row on Spots and Events,
 the sport-scope toggle (open question O1 in the spec), Upcoming · Past as pills, Mine folded into
-For you, the archive unchanged behind the Past pill.
+For you, the archive unchanged behind the Past pill. **Built 2026-09-17**: `/find` is a page rather
+than T45's redirect and joins `PUBLIC_ROUTES`; `SportScopeSelect` replaces `SportFilter` on both
+lists, so the multi-select combination and the per-sport counts go (and with them
+`countSpotsBySport` on `/spots`, one query less per load); Events' three-tab switch becomes two
+pills and `/events/mine` is reached from the hub's "You're going" with a "For you" back link, its
+gate, `noindex` and counts untouched. Closes issue #465. The T48 paragraphs in
+`docs/app-shell-rethink.md` §3.7 and §5 record what the spec was silent on.
 
 **T49 · Trick page.** `t49-trick-page`. Depends on T45. Layout A (sticker beside video), the
 `Accordion` primitive for the phone's sections, desktop columns kept, the Log sheet's trick picker
-landing on the ladder.
+landing on the ladder. **Built 2026-09-17**: the badge leaves the hero for a card of its own beside
+the staff video, the hero gains the one-line lowdown (`lowdownTeaser`, the same rule the locked page
+teases with), the band carries `#ladder` and the rider's own row carries `#clips`, and every section
+below is an `Accordion` on a phone and a plain diamond-and-rule panel above 820px — one piece of
+markup either way, through the new component's `plainAbove`. The rider's own sessions on the trick
+are the **first** row, which is where the 2026-09-13 instruction put them, and the staff video is
+capped at a 360px track so the band stays on a 1280 × 720 screen; on a phone the two cards stack, video first (D7a, Rachid, 2026-09-17, in chat). **No new analytics event**: the stage
+picker, Share, the video play and the clip form all keep firing what they fired, and an accordion
+opening is a reading position rather than a rider action. The T49 paragraphs in
+`docs/app-shell-rethink.md` §3.8 record what the spec was silent on — including that §3.8's "Clip"
+is drawn as "Video", because plan §6.6 withdrew the clip vocabulary from this page and
+`e2e/library.spec.ts` guards it.
 
 **T50 · Lists follow the chip.** `t50-lists-follow-chip`. Depends on T45. Sessions header, stats
 and toggle; the session form as three steps on the phone with the sport preset from the chip; the
-quick log's sport tag; the glossary toggle.
+quick log's sport tag; the glossary toggle. **Built 2026-09-17** (PR #560): `/progress/sessions`
+reads **Sessions** under the Home back link and `ProgressTabs` is deleted with the last screen that
+drew it, which closes the header collision T46 recorded. The sport scope and "At an event" become
+two controls rather than one row of alternatives, so "my BMX jam sessions" can be asked for at all,
+and both reset the pager. The form's three steps apply at **every** width — one component tree, not
+a phone one and a desktop one — with `Next` validating its own step, `Save` validating everything, a
+refusal landing on the step that can fix it, and an **edit** saving from wherever it is rather than
+walking to step three. The glossary's `?sport=` becomes the screen's default rather than its
+address, because the scope is a per-device choice the server cannot see. The T50 paragraphs in
+`docs/app-shell-rethink.md` §3.10 record what the spec was silent on, and the two reversals the
+review asks the owner to confirm.
 
 **T51 · Account as a settings list.** `t51-account-settings`. Depends on T45. Seven rows opening
-seven screens on the phone; list-plus-panel on desktop.
+seven screens on the phone; list-plus-panel on desktop. **Built 2026-09-17**: eight rows, not
+seven — the owner added "Your guardian" on 2026-09-16 and it goes first while the consent gate
+applies, so the gate's only control still has a way in. Six new routes (`/account/profile`,
+`/account/sports`, `/account/privacy`, `/account/sessions`, `/account/guardian`, `/account/data`),
+each gated as `/account` is, each `noindex`, all six in `GATED_ROUTES` and `DESTINATIONS` and
+claimed by the account menu's own row. The panels moved and did not change: `ProfilePanel` draws
+two of the rows from one component because `saveProfileAction` writes the whole profile every time,
+and the rest take a `headed` prop so the screen's `h1` is not their label repeated.
+`/account/close` is untouched behind a `(settings)` route group. The independent review found one
+functional regression and it is fixed: splitting the profile editor across two screens broke T23's
+"hold the whole change and write it in one post" rule, because the held draft does not survive a
+route change — so the goal picker is drawn on `/account/sports` when a toggle orphans the goal,
+rather than the rider being sent to the other screen. The T51 paragraphs in
+`docs/app-shell-rethink.md` §3.9 record what the spec was silent on.
 
 **T52 · The secondary screens.** `t52-secondary-screens`. Depends on T45. Crew tabs, rider
 profile tabs, spot page actions, Plans tabs, Coach / Suggest / Report / Close as pills and
-centred at 640px, the Tricks header.
+centred at 640px, the Tricks header. **Built 2026-09-17**: Crew's board and feed become Board ·
+Activity · Members at every width (the third tab is the board's own rows, from the crew-board
+route, so nothing new is exposed and a private rider is still absent from Activity); a rider
+profile is the card plus Landed · Stickers · Videos, the last drawn only where the `clips` rule
+returned something; the spot page trades its breadcrumb for a "Spots" back link, gains Faved ·
+Directions · Log here as three equal actions and draws "What's here" as coloured cards; Plans'
+segmented toggle becomes a `TabRow` with the yearly saving inside the Yearly tab; Suggest and
+Report keep their native radios under pill rows and they, Coach and Close account centre at
+640px; the library loses the last `SportSwitch` row (D5), puts All · Mine · Filters in one row
+above the two columns and moves the Rookie nudge four cards into the grid. The T52 paragraphs in
+`docs/app-shell-rethink.md` §3.10 record what the spec was silent on, including the one place it
+disagreed with itself (§7's "board left, activity right").
 
 Wave A is T45 alone. Wave B is T46 ∥ T47 ∥ T48 (route-disjoint). Wave C is T49 ∥ T50 ∥ T51 ∥ T52
 (route-disjoint). Each is one session, one branch, one PR, raised only when asked.

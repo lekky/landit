@@ -591,25 +591,98 @@ export const ANALYTICS_EVENTS = {
   billingPortalOpened: 'billing_portal_opened',
 
   /* --------------------------------------------------------- getting about -- */
-  /** The sport switcher in the top bar. */
+  /**
+   * The sport was switched.
+   *
+   * Carries `sport` and `from` — two of three fixed ids — and, since the app
+   * shell rethink, `where`. `'chip'` is the top bar's sport chip, which is now
+   * the only switcher in the product (D5): the in-page tab rows that fired this
+   * without a `where` are being removed screen by screen through T46 and T50,
+   * so a reading that spans those merges is measuring the move, not a habit.
+   */
   sportSwitched: 'sport_switched',
-  /** A nav destination was chosen. Carries the route, which is not a rider fact. */
+  /**
+   * A nav destination was chosen. Carries the route, which is not a rider fact.
+   *
+   * `to` is a group id from `components/shell/nav.ts` — `home`, `library`,
+   * `find` or `crew` — or an account-menu item's id. `where` is `mobile` (the
+   * bottom bar), `top` (the desktop nav), `account-menu` or `home-card` (T46).
+   *
+   * **Not the LOG cell.** It opens a sheet rather than going anywhere, so it
+   * fires `log_sheet_opened` and nothing sends `to: 'log'`.
+   */
   navClicked: 'nav_clicked',
   /**
-   * The bottom bar's section drawer was shown.
+   * The LOG sheet was opened — the middle cell on a phone, the yellow button
+   * beside the sport chip on a desktop.
    *
-   * Carries `section` (`whats-on` or `progress`) and `trigger` — `arrival` when
-   * the drawer announced itself on the way into the section, `tap` when the
-   * rider opened it themselves from the lit cell. Both are fixed strings from
-   * `components/shell/nav.ts`; neither can carry anything a rider typed.
-   *
-   * It exists to answer the one question the drawer is a bet on: whether
-   * anybody finds the second screen in a section. Before it, Spots and Events
-   * were one label and Progress and Stickers were another, and nothing in the
-   * product could say whether the folded half was ever reached. A `tap` is the
-   * strong signal — it means the caret was understood without being shown.
+   * Carries `where`: `'mobile'` or `'top'`. The sheet is the product's one
+   * front door onto logging (D3), so this is the denominator for everything
+   * underneath it: a rider who opens it and picks nothing is the thing worth
+   * knowing, and no other event can say it happened.
    */
-  navSectionOpened: 'nav_section_opened',
+  logSheetOpened: 'log_sheet_opened',
+  /**
+   * Which of the sheet's three a rider took: `rode`, `trick` or `session`.
+   * Three fixed strings written in `LogSheet.tsx`, and nothing else — not the
+   * trick picked, not the spot, not the stage.
+   *
+   * **`clip` was a fourth until 2026-09-17**, when the owner took "Add a clip
+   * link" off the sheet. Readings that span that date are counting a row that
+   * stopped existing, not a habit that stopped.
+   */
+  logActionPicked: 'log_action_picked',
+  /**
+   * A tab row was switched (§3.3). Carries `group` and `tab`, both catalogue
+   * ids from the screen's own tab list (`find`/`spots`, `progress`/`over-time`,
+   * `whats-new`/`crew-1`) — never a crew's name or id, both of which are rider
+   * facts. Where a row's tabs *are* records, the screen sets `analyticsId` on
+   * the item and the real id stays local state (T47: What's new numbers its
+   * crew tabs `crew-1`, `crew-2`, because a crew id in a third-party store is
+   * a membership graph).
+   *
+   * **Only on an actual switch.** Pressing the tab you are already on sends
+   * nothing: counting it would put fidgeting into every funnel built on this
+   * event. `TabRow` decides that, so no screen has to.
+   *
+   * It replaces the several per-screen switch events the tab rows are taking
+   * over from, and it exists because the rethink turns tab rows into the
+   * product's main way of getting about inside a group: a row nobody presses is
+   * a group whose second screen has gone dark, which is the failure the old
+   * section drawer was built to answer and could not measure.
+   */
+  tabsSwitched: 'tabs_switched',
+  /**
+   * The sport scope on a list was set (§3.3, O1). Carries `screen` and `scope`
+   * — one of `chip`, `all` or `other`, and never which other sport, because
+   * "the sport this rider chose that is not their own" is a rider fact where
+   * the three catalogue ids are not.
+   */
+  sportScopeSet: 'sport_scope_set',
+  /**
+   * What's new was opened. Carries `where` (`mobile` — the `/whats-new` page —
+   * or `top`, the desktop dropdown) and `unread`, an integer count of lines the
+   * rider had not seen. A count of product-written lines, not a description of
+   * the rider: T47 is what makes it anything other than 0.
+   *
+   * **Fired from two places, and neither is the bell's tap.** `top` comes from
+   * `BellButton` when the dropdown opens, because there opening *is* the press.
+   * `mobile` comes from `WhatsNewPanel`'s mount effect on the page, because on
+   * a phone the bell is a `Link`: a capture on its click raced the navigation,
+   * and a rider arriving by "All →", by a deep link or by the back button fired
+   * nothing at all.
+   */
+  whatsNewOpened: 'whats_new_opened',
+  /**
+   * "Mark all read" — carries `unread`, the count the panel **opened** with,
+   * which is the number that was on the bell. T47's.
+   *
+   * It fires only when that count was above zero. Opening the panel already
+   * stamps the bookmark, so a press at zero would carry the same number the
+   * `whats_new_opened` before it carried and measure nothing; gated this way it
+   * answers "how many lines did a rider clear by hand".
+   */
+  whatsNewRead: 'whats_new_read',
   /**
    * Something on the signed-out landing page was pressed.
    *

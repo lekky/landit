@@ -1,34 +1,51 @@
 /*
- * The confirm-your-email reminder.
+ * The confirm-your-email reminder — **one line** (app shell rethink §3.4).
  *
- * A panel, not a bar. The distinction matters: this renders *inside* `.page`,
- * so the bottom-rule-only treatment every full-bleed bar in the product uses
- * (`design-handoff/README.md`) landed here as a stray underline on a surface
- * the exact colour of the page behind it — `--wash` on `--wash`. Paper on ink
- * with the hard 3px rule and an unblurred offset gives it the edge it needs to
- * read as a thing rather than as loose text.
+ * It was a panel: a 34px ink square, a heading, a sentence of explanation, a
+ * bordered "Send it again" button and an underlined "Not now", wrapping onto
+ * three lines on a phone and holding 26px of the first screen a rider lands on.
+ * It gates nothing and it is a reminder about something that has not happened
+ * yet, and it was the loudest thing above the fold.
  *
- * Deliberately *not* the offline bar's yellow, and deliberately not `--sh`
- * either: that one reports something being wrong right now, and this is a
- * reminder about a thing that has not happened yet. Same language, smaller
- * shadow, no accent fill. Nothing here blurs a shadow or rounds a corner.
+ * So it is a strip: icon, "Confirm your email", a link, a close. Same cookie,
+ * same copy shortened, same register — quieter than the offline bar, which
+ * reports something wrong right now, and still a paper surface with the hard
+ * 3px keyline rather than loose text on `--wash`.
+ *
+ * The "why" sentence is kept but only above 640px, where it costs nothing. On a
+ * phone the title and the link say the whole thing, and a rider who wants the
+ * reason is one tap from the account screen.
  */
 
+/*
+ * **50px**, and that is the floor rather than a choice.
+ *
+ * Two of the strip's controls are 44px targets (§4's floor, and the × and the
+ * link are both at it), so the content box cannot be shorter than 44; the 3px
+ * keyline on each edge is the design's and takes the other 6. 44 + 6 = 50, and
+ * there is no vertical padding at all — the controls draw no box of their own,
+ * so letting them reach the keylines costs nothing and padding on top of them
+ * would only be height the strip does not need. It was 159px as a panel and 66
+ * while the padding was still there.
+ *
+ * The number is stated here, next to the rules that decide it, because a
+ * measurement written anywhere else is a promise the next session cannot check.
+ */
 .banner {
   display: flex;
   align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  padding: 13px 16px;
-  /* Matches `.page`'s own top padding, so the gap the banner leaves below it is
-     the same as the gap the top bar leaves above it. */
-  margin-bottom: 26px;
+  gap: 10px;
+  padding: 0 12px;
+  /* Half what the panel took: it is one line now, and the gap under it should
+     not read as a paragraph break before the screen's own heading. */
+  margin-bottom: 16px;
   background: var(--paper);
   color: var(--ink);
   border: var(--bd);
   box-shadow: var(--sh-sm);
-  font-size: 15px;
-  line-height: 1.35;
+  font-size: 14px;
+  line-height: 1.3;
+  min-height: 44px;
 }
 
 /*
@@ -42,66 +59,144 @@
   display: grid;
   place-items: center;
   flex: none;
-  width: 34px;
-  height: 34px;
+  width: 26px;
+  height: 26px;
   background: var(--ink);
   color: var(--paper);
 }
 
-/* Grows into whatever the mark leaves, and never drops below `flex-basis` —
-   which is what keeps the mark beside the words instead of stranded on a line
-   of its own once the actions wrap away below. */
 .text {
   display: flex;
   align-items: baseline;
-  flex-wrap: wrap;
-  flex: 1 1 240px;
-  gap: 4px 10px;
+  flex: 1 1 auto;
+  gap: 8px;
   min-width: 0;
+  /*
+   * One line, and a line that does not fit is cut rather than wrapped.
+   *
+   * The height is stated where it is set, on `.banner`, and not here — the
+   * comment that stood here claimed "exactly 44px" and the strip measured 54px
+   * (review S6). A comment carrying a measurement is a promise the next session
+   * reads as fact, so it belongs beside the rule that decides the number.
+   */
+  overflow: hidden;
+  white-space: nowrap;
 }
 .title {
-  font-size: 17px;
-  letter-spacing: 0.07em;
+  font-size: 14.5px;
+  letter-spacing: 0.06em;
+  flex: none;
 }
 .why {
-  color: var(--ink-2);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The reason costs nothing on a desktop and is the third thing on a phone. */
+@media (max-width: 640px) {
+  .why {
+    display: none;
+  }
+}
+
+/*
+ * The narrowest phones: the icon goes and the title tightens.
+ *
+ * With the two controls at their 44px targets, a 320px strip has about 130px
+ * for the title and "CONFIRM YOUR EMAIL" wants about 140 — measured, it was
+ * cut to "CONFIRM YOUR E". The lock is `aria-hidden` decoration and the words
+ * are the whole message, so the square is what goes.
+ */
+@media (max-width: 360px) {
+  .mark {
+    display: none;
+  }
+  .title {
+    font-size: 13.5px;
+    letter-spacing: 0.02em;
+  }
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 4px;
   margin-left: auto;
+  flex: none;
 }
 
-/* The dismiss stays a quiet underline. Two hard-edged buttons side by side
-   would give walking away the same weight as confirming, and this gates
-   nothing. */
+/*
+ * The resend is a link, not a button, and the dismiss is a bare ×. Two
+ * hard-edged buttons side by side would give walking away the same weight as
+ * confirming, and this gates nothing.
+ */
+/*
+ * 44px, **set rather than arrived at** (review S4).
+ *
+ * Padding computed from an assumed line box was how this came out 41.9px: the
+ * comment reasoned from a 19px line and Barlow Condensed at 13px gives about
+ * 16.9. `min-height` with the label centred in it is 44 whatever the font does,
+ * which is the point — a floor that depends on which font loaded is not a floor.
+ */
 .link {
   background: none;
   border: 0;
-  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
   font-family: var(--fc);
-  font-weight: 600;
-  font-size: 15px;
-  letter-spacing: 0.04em;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
   color: var(--ink-3);
   text-decoration: underline;
   text-underline-offset: 4px;
   cursor: pointer;
+  white-space: nowrap;
 }
 .link:hover {
   color: var(--orange);
 }
-
-.sent {
-  background: var(--green);
+.link:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
-@media (max-width: 700px) {
-  .actions {
-    margin-left: 0;
-    width: 100%;
-    justify-content: flex-end;
-  }
+/* The ×. 44px of hit area around a 19px glyph (review S4) — it draws no box, so
+   growing the target moves nothing beside it. */
+.close {
+  background: none;
+  border: 0;
+  padding: 0;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-size: 19px;
+  line-height: 1;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.close:hover {
+  color: var(--ink);
+}
+
+/*
+ * "On its way" — ink on a green fill, not green on paper (review S5).
+ *
+ * It was `color: var(--green)` on `--paper` for one revision, which measures
+ * about 3.28:1 where AA wants 4.5 — on the confirmation a child sees after
+ * asking for their email again. The design's own rule for a loud colour is ink
+ * on the fill (`primitives.css`'s note on `--btn-fg` argues it), and this is a
+ * `Tag`, which is where that rule already lives.
+ */
+.sent {
+  background: var(--green);
+  /* `.tag`'s own default is `--on-dark`, which on this green is about 3.0:1 —
+     the same miss the other way round. Ink on a loud fill is the design's rule
+     and `foregroundFor` answers in these two. */
+  color: var(--on-light);
+  white-space: nowrap;
 }

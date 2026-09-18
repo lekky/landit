@@ -1,0 +1,201 @@
+/*
+ * What's new (rethink §3.6).
+ *
+ * The rows are the crew feed's rows — 32px disc, one sentence, `.lab` meta —
+ * and since the T47 review they are literally that row:
+ * `components/feed/FeedLine.tsx` and its module, which `/crew` imports too. The
+ * first cut copied the styles into this file, which is two copies of a row a
+ * rider meets in two places (review S5).
+ *
+ * What is left here is this screen's own furniture. Nothing in it is a new
+ * colour, a new shadow or a new radius — the only round thing is the icon disc,
+ * which stands in the avatar's slot and takes the avatar's ring.
+ */
+
+/*
+ * On a desktop the page is the "All →" destination behind a 420px dropdown, so
+ * it is capped rather than run out to 1280px.
+ *
+ * 720px, not the 640 the centred screens use (§3.10): those are forms and this
+ * is a list of one-line sentences with a disc beside each. Measured at 1280 the
+ * lines ended a third of the way across and the rest of the row was empty
+ * paper, which reads as a broken layout rather than a short sentence. Left
+ * rather than centred, because the page's own eyebrow and heading start at the
+ * left margin and a panel centred under them would be a second alignment.
+ *
+ * *(Added by the T47 worker, 2026-09-17, pending owner confirmation —
+ * docs/app-shell-rethink.md §3.6.)*
+ */
+.pageWrap {
+  max-width: 720px;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.title {
+  margin: 0;
+}
+
+/*
+ * "Mark all read" — a text button at the 44px target without a 44px box.
+ *
+ * The same trick `.backLink` uses in the shell's module: padding out, margin
+ * pulled back, so a thumb has its target and the header keeps its baseline.
+ *
+ * **14, not 12** (review S4). 12px of padding on a 13px line box measured 40px
+ * at 320, 375 and 390 — the only control on this screen under §4's floor, and
+ * invisible to `shell.spec.ts`'s 44px assertion, which walks `.btn` and
+ * `.sporttab` and knows nothing about a text button. `e2e/whats-new.spec.ts`
+ * measures this one now.
+ */
+.markRead,
+.markRead:hover {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 14px 6px;
+  margin: -14px -6px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.markRead:hover {
+  color: var(--ink);
+}
+
+.markRead[disabled] {
+  cursor: default;
+  text-decoration: none;
+  opacity: 0.6;
+}
+
+.tabs {
+  margin-bottom: 12px;
+}
+
+/*
+ * The feed row's own styles are **not here** (review S5).
+ *
+ * They are `components/feed/feed.module.css`, which the crew screen uses too:
+ * §3.6 asks for "the existing crew-feed row", and the first cut of this file
+ * held a copy of it — `.feed`/`.row`/`.body`/`.line`/`.who`/`.meta`/`.when`
+ * beside `crew.module.css`'s `.feedItem` set, two of them byte-identical. Two
+ * copies agree until the day one of them changes.
+ *
+ * What is left below is the two things this screen has and the crew feed does
+ * not: the icon disc a You line carries where a crew row carries an avatar, and
+ * the scroll the dropdown puts the list in.
+ */
+
+.disc {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  border: 2.5px solid var(--ink);
+  display: grid;
+  place-items: center;
+  color: var(--on-light);
+}
+
+.empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+/* The desktop dropdown's "All →", under the eight lines it shows. */
+.all {
+  display: block;
+  padding: 12px 14px;
+  border-top: 3px solid var(--ink);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.all:hover {
+  background: var(--paper-2);
+}
+
+/*
+ * Inside the dropdown the panel is the whole surface, so it drops the keyline
+ * and the shadow it would otherwise draw *inside* the dropdown's own.
+ */
+.inDropdown {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+/*
+ * The list scrolls inside the dropdown rather than running off the bottom of
+ * the screen. Handed to `FeedList` as a class rather than reached for through
+ * a descendant selector, because the list's own class belongs to the shared
+ * feed module and a selector matching its hashed name would break the first
+ * time the bundler changed it.
+ */
+.dropdownFeed {
+  padding: 0 0 12px;
+  max-height: 52dvh;
+  overflow: auto;
+}
+
+/* ------------------------------------------------------------ the bell badge -- */
+
+/*
+ * The count badge pops when it goes **up while the page is open** (§3.6, §4).
+ *
+ * It lives here rather than in `shell.module.css` because it belongs to What's
+ * new: the bell's paint is T45's and unchanged, and this is the one thing the
+ * count added. `BellButton` imports it.
+ *
+ * `scale(.6) → 1.1 → 1` over **300ms**, which is §3.6's own number rather than
+ * a token. That is the opposite call to the one T45 made about the dropdown's
+ * duration, and for the stated reason: there the motion table gave dropdowns
+ * `--dur-ui` and the prose disagreed, so the table won. Nothing in the table
+ * covers a pop — `.pop` in `primitives.css` is already 0.5s of its own — and
+ * §4's row for this simply points back at §3.6. So this is the pop family's
+ * third member, not a fourth UI duration.
+ *
+ * A sticker arriving is a celebration and pops from nothing with a rotation; a
+ * number going from 2 to 3 is a nudge, so it starts from something and stays
+ * square.
+ *
+ * **Never on first paint.** The class is applied only when the previous count
+ * was lower, which a freshly mounted bell has no opinion about — a badge that
+ * pops every time a rider opens a page is decoration, and §4 is explicit that
+ * motion here is feedback for something that happened.
+ */
+.badgePop {
+  animation: badgepop 300ms var(--ease-spring);
+}
+
+@keyframes badgepop {
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

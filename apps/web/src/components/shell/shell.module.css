@@ -1,0 +1,695 @@
+/*
+ * The app shell's own furniture (app shell rethink, T45).
+ *
+ * A module rather than `packages/ui-web`, for the reason the section drawer's
+ * module gave before it: the design pack has no drawing of any of this, and
+ * `additions.css` is shared, additive-only code that the app's own bar
+ * furniture has no business growing into. What *is* shared went there — the
+ * sheet, the dropdown, the boxed tab row and the top bar's sport-coloured rule
+ * are design-system pieces other screens will use; the LOG cell, the sport
+ * chip, the bell and the option row are this shell's.
+ *
+ * ## Why so many rules are written twice
+ *
+ * Two of these surfaces live *inside* elements the shared stylesheet already
+ * claims. `.mobnav a` and `.nav a` are descendant selectors at specificity
+ * (0,1,1), and a lone module class is (0,1,0), so the LOG cell drawn the
+ * obvious way came out as a bar cell. Two classes is what wins it back —
+ * the same trap `sectionDrawer.module.css` documented and LESSONS §3a names.
+ */
+
+/* ------------------------------------------------------------- log cell -- */
+
+/*
+ * The middle cell of the phone's bar (D1): a yellow square raised above the
+ * bar with a plus in it, and LOG beneath in the bar's own label type.
+ *
+ * A `button`, not a link — it opens a sheet and goes nowhere — so it needs
+ * every property `.mobnav a` gives its siblings and a `<button>` does not
+ * inherit. The 58px square and the -30px lift are §3.1's; the label sits under
+ * it so the five cells still read as one row of labels.
+ */
+/*
+ * `.logCell.logCell`, doubled, and not by accident. `.mobnav button` in
+ * `primitives.css` is a descendant selector at (0,1,1) and a lone module class
+ * is (0,1,0), so written once this came out stacked, 10.5px and muted like a
+ * bar cell. Repeating the class is the smallest thing that outranks it without
+ * `!important` and without editing the shared transcription.
+ */
+.logCell.logCell,
+.logCell.logCell:hover {
+  background: none;
+  border: none;
+  padding: 10px 2px 13px;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  color: var(--yellow);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  position: relative;
+}
+/*
+ * **Absolutely positioned, and that is the whole point of it.**
+ *
+ * The square is raised above the bar's top edge, so it must not make the bar
+ * taller: `.mobnav`'s height is what the toast stack clears, what the site
+ * footer pads for and what the spots map sheet measures itself against, and a
+ * `margin-top: -30px` on an in-flow 58px square grew the bar from 52px to about
+ * 67px — enough for the spots sheet to overhang it by 6px, which
+ * `e2e/spots.spec.ts` caught. Out of flow, the cell is exactly the 52px its
+ * four siblings are and the square hangs over the page above it.
+ */
+.logSquare {
+  position: absolute;
+  left: 50%;
+  top: -30px;
+  transform: translateX(-50%);
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  background: var(--yellow);
+  color: var(--on-light);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press);
+}
+/*
+ * The plus turns into a cross while the sheet is open (§4), so the cell reads
+ * as "close" as well as "open". A rotation, not a second glyph: one element
+ * cannot be mid-way between two icons, and it can be mid-way through a turn.
+ */
+.logGlyph {
+  display: block;
+  transition: transform var(--dur-ui) var(--ease-out);
+}
+.logCell.logCell[aria-expanded='true'] .logGlyph {
+  transform: rotate(45deg);
+}
+/* The press keeps the centring the positioning depends on. */
+.logCell.logCell:active .logSquare {
+  transform: translateX(-50%) translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+/* ------------------------------------------------------ top bar buttons -- */
+
+/*
+ * The right-hand group: the sport chip, Log, the bell and the avatar. All
+ * 34px tall, so they line up with `.avatarbtn`, which sets the height of that
+ * end of the bar and is not being changed.
+ */
+.tbBtn {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: var(--ink-raise);
+  color: var(--paper);
+  border: 2px solid var(--ink-rule);
+  padding: 0;
+  flex: none;
+  position: relative;
+  transition:
+    transform var(--dur-press),
+    background var(--dur-press);
+}
+.tbBtn:hover {
+  background: var(--ink-rule);
+  color: var(--paper);
+}
+.tbBtn:active {
+  transform: translate(1px, 1px);
+}
+/*
+ * The unseen count. Pink on a 2px ink keyline at the top-right corner, and
+ * drawn only above zero — a badge reading 0 is a badge that has stopped
+ * meaning anything. T47 is what makes the number move; until then the bell has
+ * no badge at all.
+ */
+.tbBadge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  background: var(--pink);
+  color: var(--on-dark);
+  border: 2px solid var(--ink);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+/*
+ * Desktop only, at the same 860px `.nav` uses. A phone has the middle cell of
+ * the bottom bar, and two LOG controls on one screen would be two answers to
+ * the same question.
+ */
+@media (max-width: 860px) {
+  /* Doubled, so it outranks `.logBtn`'s own `display: flex` whatever order the
+     module's rules end up in. */
+  .desktopOnly.desktopOnly {
+    display: none;
+  }
+}
+
+/* The desktop's yellow Log button, beside the chip. */
+.logBtn,
+.logBtn:hover {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 11px;
+  background: var(--yellow);
+  color: var(--on-light);
+  border: 2.5px solid var(--paper);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  flex: none;
+  transition: transform var(--dur-press);
+}
+.logBtn:active {
+  transform: translate(1px, 1px);
+}
+
+/* ------------------------------------------------------------ sport chip -- */
+
+/*
+ * The sport, chosen once, in the top bar (D5) — icon and the sport's short
+ * name, filled with the sport's own colour behind a paper keyline like the
+ * avatar's. The fill cross-fades when the sport changes, with the bar's rule.
+ *
+ * **The foreground is set on the element, by `foregroundFor`** (integration
+ * review, nit 4). It was `--on-light` here, which is right for all three sports
+ * today and is right by luck: a sport's colour is a record staff can change, and
+ * a stylesheet cannot measure one. `SportSwitchChip.tsx` asks the same function
+ * every other coloured fill in the product asks, so a fourth sport, or a darker
+ * BMX, cannot go silently unreadable.
+ */
+.sportChip,
+.sportChip:hover {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 2.5px solid var(--paper);
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  flex: none;
+  white-space: nowrap;
+  transition:
+    background var(--dur-ui) var(--ease-out),
+    transform var(--dur-press);
+}
+.sportChip:active {
+  transform: translate(1px, 1px);
+}
+/*
+ * **The name is on at every width**, and the rule that hid it below 520px is
+ * gone (review B1).
+ *
+ * It was hidden to buy room, which reversed the decision the chip exists for:
+ * D5 is "the sport is chosen once, in a chip that carries the sport's icon
+ * *and* name", and a rider who has never opened the sheet was left decoding a
+ * 20px glyph on exactly the device the rethink is for. Measured with three
+ * sports at 320px, the bar has the room — the wordmark shrinks in its own
+ * 860px block and the four right-hand controls come to about 190px.
+ *
+ * Below 520px the type tightens instead: 12px and a little less tracking and
+ * padding, which buys ~14px without taking the word away.
+ */
+@media (max-width: 519px) {
+  .sportChip,
+  .sportChip:hover {
+    padding: 0 7px;
+    gap: 5px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+}
+
+/* The holder both dropdowns hang from: the panel is absolute against it. */
+.anchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/*
+ * A 44px hit area on a phone, **without moving the 34px paint** (review S7, F1).
+ *
+ * §3.1 draws the chip and the bell at 34px and §4 puts a 44px floor under
+ * anything tappable, so the target has to grow and the paint has to not.
+ *
+ * The first attempt copied the avatar's trick from `additions.css`'s
+ * touch-hygiene block — 5px of padding, the same 5px back as a negative margin
+ * — and that works there for a reason this does not share: `.accountmenu-trigger`
+ * has **no background**, so its padding is invisible and the avatar circle
+ * inside stays 34px. These two are filled, and a background paints the padding
+ * box: measured at 390px, the chip became a 48px orange slab and the bell a
+ * 48px dark one beside a 34px avatar.
+ *
+ * So the target is a transparent overlay instead. `::after` is `inset: -5px` of
+ * nothing, which reaches 44px in both directions and paints not one pixel; the
+ * element's own box, its fill and its 2.5px paper keyline are untouched. The
+ * press still lands on the button, because a pseudo-element is part of it.
+ */
+@media (max-width: 860px) {
+  .tbBtn::after,
+  .sportChip::after {
+    content: '';
+    position: absolute;
+    /* 34 + 5 + 5 = 44, which is the floor, not a size anything is drawn at. */
+    inset: -5px;
+  }
+  /* `.tbBtn` is already `position: relative` for its badge; the chip is not. */
+  .sportChip {
+    position: relative;
+  }
+}
+
+/* ------------------------------------------------------------ option row -- */
+
+/*
+ * One of the LOG sheet's four (§3.5), and the shape the settings list and the
+ * Home cards take later: an icon square with a fixed fill, a title, a line of
+ * explanation and an arrow.
+ */
+.optionRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  min-height: 64px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  color: var(--ink);
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press);
+}
+.optionRow:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+  color: var(--ink);
+}
+.optionRow:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+/* "Add a clip link" is the quiet one of the four: a dashed keyline, no shadow. */
+/*
+ * A row that has already done its job — "I rode today" once today's ride is
+ * counted (owner, 2026-09-17). Still a row, still readable, plainly inert: the
+ * shadow goes, the type quietens and the press does nothing, which is the same
+ * register the untracked sport row uses in the switcher.
+ */
+.optionRow:disabled {
+  box-shadow: none;
+  color: var(--ink-3);
+  cursor: default;
+}
+.optionRow:disabled .optionTitle {
+  color: var(--ink-3);
+}
+.optionRow:disabled:active {
+  transform: none;
+  box-shadow: none;
+}
+
+.optionRowQuiet {
+  border-style: dashed;
+  box-shadow: none;
+}
+.optionRowQuiet:hover {
+  box-shadow: none;
+  transform: translate(-1px, -1px);
+}
+.optionMark {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--ink);
+  color: var(--on-light);
+}
+.optionText {
+  flex: 1;
+  min-width: 0;
+}
+.optionTitle {
+  display: block;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+}
+.optionLine {
+  display: block;
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.35;
+}
+.optionArrow {
+  flex: none;
+  color: var(--ink-3);
+}
+
+/* -------------------------------------------------------------- sheet bits -- */
+
+.sheetHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.sheetNote {
+  font-size: 13px;
+  color: var(--ink-3);
+  margin: 0 0 12px;
+}
+.pickerSearch {
+  margin-bottom: 12px;
+}
+.pickerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 46dvh;
+  overflow: auto;
+}
+.pickerRow,
+.pickerRow:hover {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  min-height: 48px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  margin-bottom: 8px;
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 15.5px;
+  letter-spacing: 0.02em;
+}
+.pickerRow:hover {
+  background: var(--paper-2);
+}
+.pickerStage {
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.sportRow,
+.sportRow:hover {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  min-height: 52px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  color: var(--ink);
+  margin-bottom: 10px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.sportRowOn {
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.sportRowOff,
+.sportRowOff:hover {
+  background: var(--wash);
+  color: var(--ink-3);
+  box-shadow: none;
+  border-style: dashed;
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  font-size: 13.5px;
+}
+.sportSwatch {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border: 2px solid var(--ink);
+}
+/* The sport's name with its counts under it (§3.1). */
+.sportRowText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.sportRowCount {
+  font-family: var(--fc);
+  font-weight: 600;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  text-transform: none;
+}
+.sportTick {
+  flex: none;
+  margin-left: auto;
+  color: var(--ink);
+}
+/* The dropdown's inner padding, so the panel itself stays a plain surface. */
+.menuPad {
+  padding: 12px 12px 4px;
+}
+
+/* ---------------------------------------------------------------- tab row -- */
+
+/*
+ * **A tab row never widens the page** (issue #550, T47 review B1).
+ *
+ * `.tabrow .sporttab` in the design system is `flex: 1` with
+ * `white-space: nowrap`, and a flex item's `min-width` is `auto` — so a label
+ * that does not fit makes its box refuse to shrink below its content, the row
+ * grows past its container, and the **whole document** scrolls sideways.
+ * Measured on `/whats-new` at 320, 360, 375 and 390 with a 37-character crew
+ * name: 475px of document every time, the feed panel's right keyline off screen
+ * and the last tab cut mid-word.
+ *
+ * Three things, in the order #550 asked for — the words go last:
+ *
+ * 1. **The padding and the tracking tighten below 420px.** T46 proved these
+ *    numbers on Progress and filed #550 asking for them here, so this is that
+ *    fix promoted rather than a second guess at it. 420 rather than 380: a
+ *    three-tab row of ordinary words fits at 390 and a row of crew names does
+ *    not, and tightening type nobody is struggling with costs nothing.
+ * 2. **`min-width: 0`** is what actually stops the overflow, at every width.
+ *    Without it the rules above only postpone the failure to a longer name.
+ * 3. **The label clips with an ellipsis.** `.tab-label` is the box
+ *    `packages/ui-web` now wraps a plain tab label in, because `text-overflow`
+ *    needs one and the anonymous text run inside a flex container is not a box.
+ *    The full string stays in the DOM, so a screen reader reads all of it; a
+ *    pointer gets it from `title`, which `TabRow` sets from the item.
+ *
+ * Scoped to this class, so it reaches every row that goes through `TabRow` and
+ * nothing that does not — the sport switch and the sticker wall's own `Tabs`
+ * are untouched.
+ */
+.rowFit :global(.sporttab) {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rowFit :global(.tab-label) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .rowFit :global(.sporttab) {
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+}
+
+/*
+ * The 120ms cross-fade a `TabRow` switches a panel with (§4, review S10).
+ *
+ * The class is handed to the caller as `TAB_PANEL` rather than applied here,
+ * because the panel belongs to the screen and not to the row: `TabRow` draws
+ * four boxes and has no idea what is underneath them. Keyed on the tab id, so
+ * React remounts the panel and the animation runs on every switch.
+ *
+ * `--dur-press`, which is §4's number for a tab switch — the shortest of the
+ * three, because this is feedback for a press rather than something arriving.
+ */
+.tabPanel {
+  animation: tabfade var(--dur-press) var(--ease-out);
+}
+@keyframes tabfade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* -------------------------------------------------------------- back link -- */
+
+/*
+ * "← Home" at the top of a screen reached from a Home card (§2.3).
+ *
+ * A link to the parent route, never `history.back()`: a rider who arrived from
+ * a shared link, a search result or a notification still has somewhere to go.
+ * The hit area is padded out and the margin pulled back, so it is 44px to a
+ * thumb without moving anything around it.
+ */
+/*
+ * **44px tall, and only as wide as its words** (T46, the first task to put this
+ * on a screen; review S1).
+ *
+ * The padding was 12px, which with a 16px icon line measured **40px** — the one
+ * element in `<main>` under §4's "nothing tappable below 44px" on any of the
+ * four screens. 14 + 16 + 14 = 44, and the negative margin grows with it so
+ * nothing below moves.
+ *
+ * `align-self: flex-start` is the other half. `display: inline-flex` inside a
+ * stretching flex column resolves to the **full content width**, so at 390px
+ * the link measured 362px wide: 300px of blank paper to the right of "← HOME"
+ * navigated away when a thumb landed on it. A back link should be exactly as
+ * big as the thing it says.
+ */
+.backLink,
+.backLink:hover {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding: 14px 10px 14px 0;
+  margin: -14px 0 2px 0;
+}
+.backLink:hover {
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------- sport scope row -- */
+
+/*
+ * "Show: Your sport (Scooter)" — `SportScopeSelect` (§3.3, O1).
+ *
+ * The design's select treatment, which is the Country control on `/events`:
+ * a 2.5px ink keyline, the paper fill and the small hard offset, with the
+ * condensed face the rest of the furniture uses. Restated here rather than
+ * shared out of `events.module.css`, because a module is scoped to its own
+ * file and the alternative is a global class in `additions.css` for two
+ * controls — which is the shared, additive-only stylesheet the shell's own
+ * furniture has no business growing into (see this file's opening note).
+ *
+ * **44px, where the Country select is about 32.** §4's floor is that nothing
+ * tappable is below 44px, and this control is the one that used to be a row of
+ * pills a thumb could hit. The precedent sets the *look*; the floor sets the
+ * size, and where the two disagree the floor wins. `/events`' own Country
+ * select is not touched here — it is not this task's, and it has issue #552 of
+ * its own rather than a drive-by change to a control T48 did not come for.
+ */
+.scopePick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+/*
+ * `:global(.lab)`, because `.lab` is `packages/ui-web`'s and this module does
+ * not define it — written bare, the build hashes it into a class the JSX never
+ * writes and the rule is dead on arrival (LESSONS §3a, the seven dead rules).
+ */
+.scopePick :global(.lab) {
+  color: var(--ink-3);
+}
+/*
+ * **The browser's own menulist is turned off** (review S2).
+ *
+ * `additions.css` already patches exactly this for `.field select`, and says
+ * why in as many words: left alone, WebKit paints "a grey rounded menulist
+ * inside the ink keyline — the only radius and the only grey fill on the page".
+ * Zero border radius is the design's first rule, and this control is now
+ * permanent furniture on the two biggest screens in the product, so it is the
+ * wrong one to leave looking like a system widget.
+ *
+ * The chevron is the same inline SVG at the same ink, because it is the same
+ * control wearing the same treatment; the 38px of right padding is what keeps a
+ * long option ("Your sport (Scooter)") off it.
+ *
+ * Stated **unconditionally**, where `.field select`'s copy lives inside
+ * `@media (max-width: 860px)`. That block is the phone's touch-hygiene sweep
+ * and the fix arrived with it; the reason is not a phone reason. A desktop
+ * Chromium paints its own arrow too, and one control that looks the same at
+ * every width beats two that differ at 861px.
+ */
+.scopePick select {
+  min-height: 44px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  box-shadow: var(--sh-sm);
+  padding: 6px 10px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  max-width: 15rem;
+  min-width: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2312100b' stroke-width='2.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 12px 8px;
+  padding-right: 38px;
+}

@@ -20,6 +20,8 @@ declare const window: {
   sessionStorage: unknown;
   /* Two frames is how the sheet's scroll test waits for a scroll to land. */
   requestAnimationFrame: (run: () => void) => number;
+  /* And this is how it checks the wheel actually moved something. */
+  scrollY: number;
 };
 declare const navigator: object;
 declare const document: { cookie: string };
@@ -114,23 +116,27 @@ const card = (page: Page, name: string) =>
  * badge never appeared. Nothing was wrong with the product; the spec was
  * relying on a race it never stated.
  *
- * `aria-pressed` flipping is the proof: the pill's state lives in React, so the
- * attribute cannot change until the component owns the DOM node.
+ * **A choice that sticks is the proof.** The scope `<select>` is controlled by
+ * React, so before hydration a native `selectOption` sets the DOM value and the
+ * first React render puts it straight back to the server's; after hydration the
+ * change reaches `setScope` and the value is kept. Polling until it holds is
+ * therefore the same assertion the old sport pill's `aria-pressed` made, on the
+ * control that replaced it (rethink §3.3, O1) — and it retries rather than
+ * failing on the race, which is what the pill version could not do.
  *
- * It presses a *sport* pill and then puts it back, rather than pressing "Every
- * spot" as it used to. Since the filter became a multi-select the screen opens
- * on "Every spot" already pressed (2026-09-12), so that pill's `aria-pressed`
- * is `true` in the server's own markup and flipping nothing proves nothing. A
- * sport pill starts `false`, so it can only read `true` once React is live —
- * and pressing "Every spot" afterwards leaves the screen unfiltered, which is
- * what the rest of this file expects to find.
+ * It is put back to "Every spot" afterwards, which is what this screen opens on
+ * and what the rest of this file expects to find.
  */
 async function whenInteractive(page: Page): Promise<void> {
-  const sport = page.getByRole('button', { name: /^BMX/ });
-  await sport.click();
-  await expect(sport).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('button', { name: 'Every spot' }).click();
-  await expect(sport).toHaveAttribute('aria-pressed', 'false');
+  const scope = page.getByLabel('Show spots for');
+  await expect
+    .poll(async () => {
+      await scope.selectOption('bmx');
+      return scope.inputValue();
+    })
+    .toBe('bmx');
+  await scope.selectOption('all');
+  await expect(scope).toHaveValue('all');
 }
 
 async function findSpot(page: Page, name: string) {
@@ -179,13 +185,13 @@ test.describe('where to ride', () => {
 
     await expect(page.getByRole('heading', { name: 'Where to ride' })).toBeVisible();
 
-    // **The screen opens on every spot**, with nothing pressed but "Every spot"
-    // (owner, 2026-09-12). It used to open filtered to whatever sport the
-    // global switch was on, so this count was only true after a press.
-    await expect(page.getByRole('button', { name: 'Every spot' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    // **The screen opens on every spot** (owner, 2026-09-12; kept by O1 on
+    // 2026-09-16, which sets the default per screen from the quality of the
+    // data and leaves this one alone). It used to open filtered to whatever
+    // sport the global switch was on, so this count was only true after a
+    // press. The control is a `<select>` since the rethink; the default is the
+    // thing being pinned, not the widget.
+    await expect(page.getByLabel('Show spots for')).toHaveValue('all');
 
     // The count is the claim about the whole collection; the cards below it are
     // one page of that. Asserting the count is what proves the seed landed —
@@ -225,84 +231,96 @@ test.describe('where to ride', () => {
   test('offers every sport, BMX included', async ({ page }) => {
     /*
      * The defect this pins (owner, 2026-08-31: "doesn't have bmx"), now on the
-     * control that replaced the one it was written for.
+     * third control to answer this question on this screen.
      *
-     * This screen has had two sport controls and both could strand a rider.
-     * The prototype's "Switch to {other}" pill picked the first sport that was
-     * not the current one — a toggle at two sports, a dead end at three, with
-     * BMX unreachable. `SportSwitch` fixed that and introduced its own: it is
-     * fed by the rider's own `users.sports` and renders nothing below two, so a
-     * rider who records one sport saw no tabs and a pill hard-wired to that
-     * sport. The filter row is over `SPORT_IDS` and is the same for everybody.
+     * Two of the three could strand a rider. The prototype's "Switch to
+     * {other}" pill picked the first sport that was not the current one — a
+     * toggle at two sports, a dead end at three, with BMX unreachable.
+     * `SportSwitch` fixed that and introduced its own: it is fed by the rider's
+     * own `users.sports` and renders nothing below two, so a rider who records
+     * one sport saw no tabs and a pill hard-wired to that sport. The
+     * multi-select row was over `SPORT_IDS`, and so is `SportScopeSelect`
+     * (rethink §3.3, O1) — every sport there is, the same for everybody.
      *
-     * Counting the pills rather than naming them is deliberate: a fourth sport
-     * should move this assertion, not slip past it.
+     * Counting the options rather than naming them is deliberate: a fourth
+     * sport should move this assertion, not slip past it. There are
+     * `SPORT_IDS.length + 1` of them either way, but for two different reasons.
+     * Signed in — which is `find.spec.ts`' half of this — the list is "your
+     * sport", "every spot", and one entry per *other* sport. **This file is a
+     * visitor**, and a visitor is offered no "your sport" at all (review S1):
+     * they have no chip in the top bar, so the words would be a claim about
+     * somebody the product has never met. Their list is "every spot" and then
+     * every sport there is.
      */
     await page.goto('/spots');
-    const row = page.getByRole('group', { name: 'Filter spots by sport' });
-    // One per sport, plus "Every spot".
-    await expect(row.getByRole('button')).toHaveCount(SPORT_IDS.length + 1);
+    const scope = page.getByLabel('Show spots for');
+    await expect(scope.locator('option')).toHaveCount(SPORT_IDS.length + 1);
+    await expect(scope.locator('option[value="chip"]')).toHaveCount(0);
+    await expect(scope.locator('option').first()).toHaveText('Every spot');
     // And the global tab row is gone from this screen with it.
     await expect(page.getByRole('tablist', { name: 'Spots by sport' })).toHaveCount(0);
 
     await whenInteractive(page);
-    const bmx = row.getByRole('button', { name: /^BMX/ });
-    await bmx.click();
-    await expect(bmx).toHaveAttribute('aria-pressed', 'true');
+    await scope.selectOption('bmx');
+    await expect(scope).toHaveValue('bmx');
 
-    // And it is a real filter, not a pill that only highlights: a park that
-    // takes BMX and bans scooters is on the list under BMX and gone under
-    // Scooter.
+    // And it is a real filter, not a label that only changes: a park that takes
+    // BMX and bans scooters is on the list under BMX and gone under Scooter.
     await page.getByLabel('Search spots').fill(bmxNotScooterSpot.name);
     await expect(card(page, bmxNotScooterSpot.name)).toBeVisible();
 
-    await bmx.click();
-    await row.getByRole('button', { name: /^Scooter/ }).click();
+    /*
+     * By name, because this is a visitor. A signed-in rider reaches their own
+     * sport through `'chip'` — the first option, which keeps following the top
+     * bar — and it is not offered a second time by name; `find.spec.ts` pins
+     * that half. With no chip there is nothing to follow and every sport is
+     * simply listed.
+     */
+    await scope.selectOption('scooter');
     await expect(page.getByText(bmxNotScooterSpot.name, { exact: true })).toHaveCount(0);
   });
 
-  test('takes more than one sport at once', async ({ page }) => {
+  test('is one scope at a time, and remembers it on this device', async ({ page }) => {
     /*
-     * The ask this row was built for (owner, 2026-09-12: "I just want them to
-     * be able to pick everything, or one of each, or multiple"). Neither
-     * control this screen had before could express "scooter and BMX" — they
-     * were one sport or all of them.
+     * O1, 2026-09-16 (Rachid, in chat). The row this replaced was a
+     * multi-select built for "everything, or one of each, or multiple"
+     * (2026-09-12); the dropdown deliberately gives that up, because the sport
+     * is chosen once — in the top bar — and a list either follows it, widens,
+     * or is pointed at one other sport.
      *
-     * Any of the chosen sports, not all: a park that takes BMX and bans
-     * scooters belongs in "scooter and BMX", because the rider is asking for
-     * both lists at once.
+     * Two things are pinned here and they are the whole of the decision: there
+     * is no way to ask for two sports at once, and the answer survives a
+     * reload because it is kept per screen and per device.
      */
     await page.goto('/spots');
     await whenInteractive(page);
 
-    const row = page.getByRole('group', { name: 'Filter spots by sport' });
-    await row.getByRole('button', { name: /^Scooter/ }).click();
-    await row.getByRole('button', { name: /^BMX/ }).click();
+    const scope = page.getByLabel('Show spots for');
+    // One control, one answer. A multi-select would be a `<select multiple>` or
+    // a row of pressables; this is neither.
+    await expect(scope).not.toHaveAttribute('multiple', /.*/);
+    await expect(page.getByRole('group', { name: 'Filter spots by sport' })).toHaveCount(0);
 
-    // Both pills stay on — pressing the second does not replace the first.
-    await expect(row.getByRole('button', { name: /^Scooter/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    await expect(row.getByRole('button', { name: /^BMX/ })).toHaveAttribute('aria-pressed', 'true');
-    // "Every spot" is off, because this is a narrowing and says so.
-    await expect(page.getByRole('button', { name: 'Every spot' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-
+    await scope.selectOption('bmx');
+    await expect(scope).toHaveValue('bmx');
     await page.getByLabel('Search spots').fill(bmxNotScooterSpot.name);
     await expect(card(page, bmxNotScooterSpot.name)).toBeVisible();
 
-    // Pressing the last chosen sport off widens back to every spot rather than
-    // emptying the screen.
-    await page.getByRole('button', { name: 'Clear' }).click();
-    await row.getByRole('button', { name: /^Scooter/ }).click();
-    await row.getByRole('button', { name: /^BMX/ }).click();
-    await expect(page.getByRole('button', { name: 'Every spot' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    // Per device, so it is still BMX on the way back. The default is "every
+    // spot", which is what makes this assertion mean the choice was kept rather
+    // than that nothing happened.
+    await page.reload();
+    await expect(page.getByLabel('Show spots for')).toHaveValue('bmx');
+
+    /*
+     * And the calendar keeps its own answer: one key per screen. `'all'` and
+     * not `'chip'` because this is a visitor — O1's "Events opens on your
+     * sport" is about a rider whose sport the product knows, and a public page
+     * does not open narrowed for somebody who has told us nothing (review S1).
+     * `events.spec.ts` pins the signed-in default beside this one.
+     */
+    await page.goto('/events');
+    await expect(page.getByLabel('Show events for')).toHaveValue('all');
   });
 
   test('narrows the list by search and by sport', async ({ page }) => {
@@ -448,23 +466,71 @@ test.describe('where to ride', () => {
      * The hold takes the body out of flow at a negative offset, so while the
      * sheet is up `scrollY` is 0 however far down the list a rider had got —
      * true of the mechanism and useless as a probe, since it reads 0 whether
-     * the page is held or scrolled back to the top. Where the heading actually
-     * is cannot be fooled either way.
+     * the page is held or scrolled back to the top. Where something near the
+     * top of the page actually is cannot be fooled either way.
+     *
+     * The Find tab row rather than the `h1`, because the heading is clipped out
+     * of sight at this width (rethink §3.7: the row already says "Spots") and a
+     * 1px box is a worse ruler than a control that is really there. It has to
+     * be the *first* thing in the document, which the row is: "Show on map"
+     * scrolls the chosen card into view, so anything lower down can still be on
+     * screen when the page behind is held.
      */
-    const heading = page.getByRole('heading', { level: 1, name: 'Where to ride' });
-    const pageTop = async () => Math.round((await heading.boundingBox())!.y);
+    const anchor = page.getByRole('navigation', { name: 'Find: for you, spots or events' });
+    const pageTop = async () => Math.round((await anchor.boundingBox())!.y);
 
-    // Somewhere down the list, so there is a position worth keeping.
-    await page.mouse.wheel(0, 600);
+    /*
+     * Somewhere down the list, so there is a position worth keeping — and
+     * *proved* to be somewhere, rather than assumed.
+     *
+     * A wheel over a page that is momentarily too short to scroll moves
+     * nothing, and the assertion below would then be measuring a page that was
+     * never scrolled instead of one that was held. Since the scope control
+     * became a `<select>` the helper above leaves a widening request in flight
+     * for a beat, which is exactly when that happens.
+     */
+    await expect
+      .poll(async () => {
+        await page.mouse.wheel(0, 600);
+        return page.evaluate(() => window.scrollY);
+      })
+      .toBeGreaterThan(300);
     await settle();
 
-    await page.getByRole('button', { name: 'Show on map' }).first().click();
+    /*
+     * "Show on map" on a card that is **already on screen**, rather than
+     * `.first()`.
+     *
+     * Playwright scrolls a control into view before clicking it, so pressing
+     * the first card's button from halfway down the list scrolls the page back
+     * to the top — and the position this test exists to prove is kept is then
+     * the top of the page, which is kept for free. It read as a pass only
+     * because the old anchor happened to sit above the viewport at whatever
+     * offset the auto-scroll left; on CI it did not, and the assertion below
+     * measured 99 rather than a negative number.
+     *
+     * Choosing a button inside the viewport means nothing scrolls on the click,
+     * so `held` is the place the rider actually was.
+     */
+    const onMap = page.getByRole('button', { name: 'Show on map' });
+    const inView = await onMap.evaluateAll((nodes, height) => {
+      const index = nodes.findIndex((node) => {
+        const box = node.getBoundingClientRect();
+        return box.top > 80 && box.bottom < height - 80;
+      });
+      return index;
+    }, HEIGHT);
+    expect(inView, 'no "Show on map" button is on screen after the scroll').toBeGreaterThanOrEqual(
+      0,
+    );
+    await onMap.nth(inView).click();
+
     const scrim = page.locator('[class*="mapScrim"]');
     await expect(scrim).toBeVisible();
     await settle();
 
-    // Read after the sheet is up: pressing "Show on map" scrolls the chosen
-    // card into view, so this is the place the rider is actually left.
+    // Read after the sheet is up, which is the place the rider is actually
+    // left — and it is above the top of the viewport, because they had scrolled.
     const held = await pageTop();
     expect(held).toBeLessThan(0);
 
@@ -511,7 +577,15 @@ test.describe('where to ride', () => {
     // Nothing to close, and gone from the accessibility tree rather than merely
     // invisible: a column that is always on the page has no dismiss.
     await expect(page.getByRole('button', { name: 'Close' })).toHaveCount(0);
-    await expect(page.locator('[class*="mapNote"]')).toBeVisible();
+    /*
+     * The footer goes with the sheet (Rachid, 2026-09-17). It used to hold two
+     * paragraphs and show one at each width — `.mapNote` on the column,
+     * `.mapWarn` in the sheet — and the note is deleted, so above the line the
+     * whole strip is hidden rather than emptied. The full travel warning is
+     * still on the page here, under the map in `.notice`; asserting the strip
+     * is what proves the two layouts still change together at this one pixel.
+     */
+    await expect(page.locator('[class*="mapFoot"]')).toBeHidden();
     await expect(page.locator('[class*="mapWarn"]')).toBeHidden();
   });
 
@@ -520,9 +594,17 @@ test.describe('where to ride', () => {
     const chosen = await findSpot(page, scooterSpot.name);
     await chosen.getByRole('button', { name: 'Show on map' }).click();
 
-    // The map panel's header is ours, not Mapbox's, so it names the selection
-    // whether or not a map could be drawn.
-    await expect(page.getByRole('link', { name: 'Open in Maps' })).toBeVisible();
+    /*
+     * The map panel's header is ours, not the map's, so it names the selection
+     * whether or not a map could be drawn — which is what this asserts, by the
+     * name rather than by the "Open in Maps" link that used to sit beside it.
+     * The link went on 2026-09-17 (owner, in chat: "remove open in maps because
+     * there is a directions cta"): the panel below the map already carries
+     * Directions, and two controls for one destination is one too many on a
+     * phone.
+     */
+    await expect(page.locator('[class*="mapName"]')).toHaveText(scooterSpot.name);
+    await expect(page.getByRole('link', { name: 'Open in Maps' })).toHaveCount(0);
     await expect(chosen.getByRole('button', { name: 'On the map' })).toBeVisible();
   });
 
@@ -539,7 +621,8 @@ test.describe('where to ride', () => {
     const chosen = await findSpot(page, scooterSpot.name);
 
     // The stretched link's accessible name is the card's, not an arrow: the
-    // visible "Spot page →" is decorative and hidden from assistive tech.
+    // visible "Spot page" button is decorative and hidden from assistive tech,
+    // so a screen reader hears one link to the spot rather than two.
     const link = chosen.getByRole('link', { name: /open spot page$/i });
     await expect(link).toHaveAttribute('href', /^\/spots\/[a-z0-9-]+$/);
 
@@ -605,6 +688,171 @@ test.describe('where to ride', () => {
     // A "directions from here" link would carry an origin. Plan §6.4, standard
     // 10: we store — and send — the spot's location, never the rider's.
     expect(href).not.toMatch(/saddr|origin=/);
+  });
+
+  test('Directions says it opens Google Maps, in a new tab', async ({ page }) => {
+    /*
+     * Rachid, 2026-09-17, in chat: "the directions should make more clear it
+     * opens google maps". `mapsLink` is a google.com URL on every platform, so
+     * the claim is a fact rather than a guess — and the href is asserted here
+     * beside the words, which is what stops the label outliving the link.
+     *
+     * `target="_blank"` announces nothing on its own, so the accessible name
+     * carries the new tab as well.
+     */
+    await page.goto('/spots');
+    const directions = (await findSpot(page, scooterSpot.name)).getByRole('link', {
+      name: /Directions/,
+    });
+
+    await expect(directions).toHaveAttribute(
+      'aria-label',
+      `Directions to ${scooterSpot.name} in Google Maps, opens in a new tab`,
+    );
+    await expect(directions).toHaveAttribute('target', '_blank');
+    await expect(directions).toHaveAttribute('rel', /noopener/);
+    expect(await directions.getAttribute('href')).toContain('google.com/maps');
+    // Visibly a button now, not a caption (the owner's "should be ctas?").
+    await expect(directions).toHaveClass(/\bbtn\b/);
+  });
+
+  test('the three things a card offers are controls, and Report is one of them', async ({
+    page,
+  }) => {
+    /*
+     * Rachid, 2026-09-17: "the report/spot page/directions should be ctas? not
+     * just strings?". All three wear the design's small ghost button at §4's
+     * 44px floor. Report keeps its corner rather than joining the footer row,
+     * because that row is only drawn for a spot with coordinates and reporting
+     * has to be on every card (plan §6.1) — its destination is unchanged and is
+     * asserted in `e2e/report.spec.ts`.
+     */
+    await page.goto('/spots');
+    const chosen = await findSpot(page, scooterSpot.name);
+
+    const report = chosen.getByRole('link', { name: `Report ${scooterSpot.name}` });
+    await expect(report).toHaveClass(/\bbtn\b/);
+    expect((await report.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+    const directions = chosen.getByRole('link', { name: /Directions/ });
+    expect((await directions.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+    /*
+     * **Report is the quietest of the three, and that took a doubled selector**
+     * (orchestrator review, 2026-09-17: "Report is now the loudest control on
+     * the card").
+     *
+     * Written as a single module class it lost `box-shadow: none` to `.btn.sm`'s
+     * two classes, so the control a rider should reach for least shipped wearing
+     * the boldest offset on the card. The shadow is what this measures, because
+     * the shadow is what went wrong — a class-name assertion would have passed
+     * the whole time it was broken.
+     */
+    // `el.ownerDocument.defaultView!.getComputedStyle`, not the bare global:
+    // `getComputedStyle` is not a name in this file's types (the same note
+    // `library.spec.ts` and `profile.spec.ts` carry).
+    const shadow = await report.evaluate(
+      (el) => el.ownerDocument.defaultView!.getComputedStyle(el).boxShadow,
+    );
+    expect(shadow === 'none' || shadow === '').toBe(true);
+  });
+
+  test('the card’s three actions are one left-aligned row, and the glyph has room', async ({
+    page,
+  }) => {
+    /*
+     * Same review. Three controls of equal weight came out on three different
+     * lines — "Show on map" hard left, "Spot page" hard right, "Directions"
+     * alone on a row under them — because the row kept the `justify-content:
+     * flex-end` and the `flex: 1` spacer it had while they were captions.
+     *
+     * Measured rather than asserted by class: at a width where all three fit
+     * they share a row, and the leftmost of them starts at the row's own left
+     * edge. Wrapping is allowed and happens at 390 — what is not allowed is an
+     * orphan pinned to the right, which is what `flex-end` guaranteed.
+     */
+    // 1740 is the width the owner reviewed at, and the width where the list
+    // column is wide enough to hold all three on one line.
+    await page.setViewportSize({ width: 1740, height: 900 });
+    await page.goto('/spots');
+    const chosen = await findSpot(page, scooterSpot.name);
+
+    // "Show on map" while nothing is selected; it becomes "On the map" once it
+    // is, which is a different control state and not what this measures.
+    const map = chosen.getByRole('button', { name: 'Show on map' });
+    const directions = chosen.getByRole('link', { name: /Directions/ });
+
+    const mapBox = (await map.boundingBox())!;
+    const dirBox = (await directions.boundingBox())!;
+    // One row, and reading order: Directions is to the right of "Show on map"
+    // and level with it.
+    expect(Math.round(dirBox.y)).toBe(Math.round(mapBox.y));
+    expect(dirBox.x).toBeGreaterThan(mapBox.x);
+
+    /*
+     * Left-aligned: the row's first control starts where the row starts, rather
+     * than being pushed across by a spacer. This is the assertion that fails if
+     * `justify-content: flex-end` ever comes back — under it the three sat hard
+     * right, hard left and alone on a third line.
+     */
+    const rowLeft = await map.evaluate(
+      (el) => el.parentElement!.getBoundingClientRect().left + 0.5,
+    );
+    expect(mapBox.x).toBeLessThanOrEqual(rowLeft);
+
+    /*
+     * At 390 they wrap — three buttons do not fit on a phone — and that is
+     * allowed. What is not allowed is an orphan pinned to the right, so the
+     * *last* control still starts left of centre rather than ending at the
+     * row's right edge.
+     */
+    await page.setViewportSize({ width: 390, height: 844 });
+    const narrow = (await directions.boundingBox())!;
+    const row = await map.evaluate((el) => {
+      const r = el.parentElement!.getBoundingClientRect();
+      return { left: r.left, right: r.right };
+    });
+    expect(narrow.x, 'Directions is pinned right at 390').toBeLessThan(
+      row.left + (row.right - row.left) / 2,
+    );
+
+    /*
+     * **The external glyph has a gap.** `additions.css` gives `a.btn` a
+     * `display: inline-block` at two classes and an element, so a single module
+     * class could not make this anchor a flex box and the icon sat against the
+     * label reading "⧉DIRECTIONS". Asserting the computed `gap` is what catches
+     * that, where asserting the icon exists would not: it was always there.
+     */
+    for (const width of [1740, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      const style = await directions.evaluate((el) => {
+        const s = el.ownerDocument.defaultView!.getComputedStyle(el);
+        return { display: s.display, gap: s.columnGap };
+      });
+      expect(style.display, `display at ${width}`).toContain('flex');
+      expect(parseFloat(style.gap), `gap at ${width}`).toBeGreaterThan(0);
+    }
+  });
+
+  test('the long data credit is a link into the terms, not a paragraph', async ({ page }) => {
+    /*
+     * Rachid, 2026-09-17: "remove this 'Spot data: councils, venues and
+     * OpenStreetMap…' — that should be in a relevant legal doc instead".
+     *
+     * It is a licence term and not a courtesy (ODbL, Licence Ouverte 2.0,
+     * CC BY 4.0 all want attribution reachable from where the data is shown), so
+     * what has to hold is both halves: the paragraph is gone from the screen,
+     * and the route to the credit is still one press away at every width. The
+     * text itself is asserted on the document, in `e2e/legal.spec.ts`.
+     */
+    await page.goto('/spots');
+    await whenInteractive(page);
+
+    await expect(page.locator('body')).not.toContainText('Open Database Licence');
+
+    const link = page.getByRole('link', { name: 'Spot data sources' });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute('href', '/legal/terms#data-sources-and-licences');
   });
 
   test('serves the map worker as JavaScript, not a 404 page', async ({ page }) => {
@@ -769,36 +1017,10 @@ test.describe('where to ride', () => {
     await expect(page.getByText(/Sign in and you can put one forward/i)).toBeVisible();
   });
 
-  test('the What’s on drawer names events, which the bottom bar folds in here', async ({
-    page,
-  }) => {
-    /*
-     * Below 861px `.nav` is hidden and the bottom bar carries five sections
-     * rather than nine pages, so Spots and Events share one cell. That is only
-     * honest if each screen offers the other: highlighting a nav item is not
-     * navigation. Before this, Events had no entry on a phone at all.
-     */
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/spots');
-
-    /*
-     * The drawer opens on arrival, without a tap. That is the whole design: a
-     * cell that only opened a drawer would have cost a tap on the way to Spots,
-     * so instead arriving in the section announces what else is in it.
-     */
-    const drawer = page.getByRole('group', { name: 'What’s on', exact: true });
-    await expect(drawer.getByRole('link', { name: 'Spots', exact: true })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-
-    await drawer.getByRole('link', { name: 'Events', exact: true }).click();
-    await page.waitForURL('**/events');
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('What’s coming up');
-
-    // And it takes itself down once the rider has chosen: both screens are the
-    // same section, so nothing else would close it and it would sit over the
-    // screen it just opened.
-    await expect(drawer).toBeHidden();
-  });
+  /*
+   * "The What’s on drawer names events" stood here and went with the drawer
+   * (T45, 2026-09-16). The bottom bar no longer folds Spots and Events into one
+   * cell, so neither screen has to offer the other to keep the fold honest:
+   * both are under **Find**, and the row that moves between them is T48’s.
+   */
 });

@@ -246,27 +246,39 @@
   gap: 8px;
   flex-wrap: wrap;
 }
-.filterLabel {
-  font-family: var(--fc);
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  margin-right: 2px;
+/*
+ * The scope select's place on the filter row (T50).
+ *
+ * `SportScopeSelect` brings its own look — the `/events` Country control's
+ * treatment, at §4's 44px — so there is nothing to paint here beyond letting it
+ * shrink inside a wrapping flex row: `min-width: 0` on the wrapper, because a
+ * flex item's `min-width` is `auto` and a long option ("Your sport (Scooter)")
+ * would otherwise push the row wider than a 320px phone. Same failure §3.3
+ * records for `TabRow`, one control along.
+ */
+.scope {
+  min-width: 0;
 }
-.chips {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+/*
+ * "At an event" (review N1).
+ *
+ * It was one of five identical chips in a row; it is now the only pill on a
+ * line with the 44px scope select, and 28px of paint beside a 44px control was
+ * the first thing the eye landed on. `.tap` already gave it a 44px hit area
+ * below 700px — this makes the box the size of the target, at every width, and
+ * level with the control beside it. `inline-flex` + `align-items: center`
+ * rather than vertical padding, so the words stay centred as the box grows.
+ */
 .chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-family: var(--fc);
   font-weight: 700;
   font-size: 12.5px;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  padding: 5px 11px;
+  padding: 5px 13px;
   border: 2.5px solid var(--ink);
   background: var(--paper);
   color: var(--ink);
@@ -321,6 +333,62 @@
 .noMatch {
   margin: 0;
   font-size: 14.5px;
+  color: var(--ink-2);
+}
+
+/* ------------------------------------------------ the month, on a phone -- */
+
+/*
+ * Three stat blocks above the feed (rethink §3.10, T50).
+ *
+ * The desktop has had these numbers since T37, in the ink month card at the top
+ * of `.sidebar` — which is `display: none` below 700px, so a phone had none of
+ * them. Drawn in Home's stat treatment (3px keyline, 3px hard offset, a fixed
+ * fill, an Anton number over a `.lab`), because that is what a coloured number
+ * looks like in this product and a second treatment for the same idea is a
+ * second thing to learn.
+ *
+ * Rendered only below 700px (`.hideDesktop` in the JSX), so the desktop is not
+ * told its month twice.
+ */
+.phoneMonth {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/*
+ * `.lab` is on the same element rather than a descendant (the JSX writes
+ * `className="lab <hash>"`), so there is no descendant selector here and
+ * nothing to wrap in `:global(...)` — the trap LESSONS §3a records is a *bare*
+ * shared class reached through a combinator, and this is not one.
+ */
+.phoneMonthHead {
+  color: var(--ink-3);
+}
+.monthStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.monthStat {
+  border: 3px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 10px 11px;
+  min-width: 0;
+}
+.monthStatN {
+  line-height: 0.9;
+  /*
+   * "5h 45m" is a string where the other two are integers, and Anton at 30px
+   * does not fit it in a third of a 320px phone. It shrinks with the box rather
+   * than pushing the row wider — the same order the rest of the rethink uses:
+   * the type gives before the layout does.
+   */
+  font-size: clamp(21px, 7.4vw, 30px);
+  overflow-wrap: anywhere;
+}
+.monthStatL {
+  margin-top: 5px;
   color: var(--ink-2);
 }
 

@@ -105,6 +105,18 @@ function SuggestFormRound({
       <Panel className={styles.block}>
         <fieldset className={styles.fieldset}>
           <legend className="lab">What is this about?</legend>
+          {/*
+            Pill rows (§3.10, T52), where this was a column of native radio
+            dots with the label beside them.
+
+            **It is still a radio group, and the form still submits `topic`.**
+            The input is the same `<input type="radio" name="topic">` it always
+            was — clipped out of sight rather than replaced, so arrow keys still
+            walk the group, the label still activates it, a screen reader still
+            hears "radio, 2 of 5", and `fileSuggestionAction` receives exactly
+            the value it did before. What changed is what a rider sees and can
+            hit: a 44px box with the design's keyline instead of a 13px dot.
+          */}
           <div className={styles.choices}>
             {SUGGESTION_TOPICS.map((topic) => (
               <label key={topic.id} className={styles.choice}>
@@ -112,9 +124,10 @@ function SuggestFormRound({
                   type="radio"
                   name="topic"
                   value={topic.id}
+                  className={styles.choiceInput}
                   defaultChecked={about ? about === topic.id : topic.id === 'trick'}
                 />
-                <span>
+                <span className={`pill ${styles.choiceBox}`}>
                   <strong>{topic.label}</strong>
                   <span className={`cond ${styles.choiceBlurb}`}>{topic.blurb}</span>
                 </span>

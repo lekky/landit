@@ -3,217 +3,174 @@
 import { Icon } from '@landit/ui-web';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type MouseEvent,
-} from 'react';
+import { useState } from 'react';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
+import { ROUTES } from '@/lib/routes';
 
-import { activeSection, isNavActive, mobileNavFor, type NavItem } from './nav';
-import { SectionDrawer } from './SectionDrawer';
-import styles from './sectionDrawer.module.css';
+import { LogSheet } from './LogSheet';
+import { isNavActive, mobileNavFor, type NavItem } from './nav';
+import styles from './shell.module.css';
 
 /**
- * The fixed bottom bar. Five items, no more: below 861px `.mobnav` is a
- * `repeat(5, 1fr)` grid and the design specifies five (handoff, Responsive).
+ * The fixed bottom bar: **Home · Tricks · LOG · Find · Crew** (D1, Rachid,
+ * 2026-09-15, in chat, choosing shape A from three).
  *
- * It reads `MOBILE_NAV` rather than the top bar's list, because the five are
- * sections rather than the first five pages — see `nav.ts` for why.
+ * Five cells, `repeat(5, 1fr)`, as the design has always specified — but the
+ * middle one is not a destination. It is `LogCell`: a raised yellow square that
+ * opens the LOG sheet, because logging is what a rider opens this product to
+ * do and it was previously spread across four screens.
+ *
+ * ## What went, and why the file is so much shorter
+ *
+ * The bar used to fold nine destinations into five *sections*, two of which
+ * held more than one screen, and it grew a drawer to name the screens the
+ * folding hid — opened on arrival in a section and again on a tap of the lit
+ * cell. All of that is gone: four groups, four labels, no fold, no drawer, no
+ * `useCompactViewport`, no `nav_section_opened`. The screens the folded halves
+ * held are reached from Home's cards (T46) and the Find tab row (T48), which is
+ * navigation a rider can see rather than a caret they had to understand.
  *
  * It is always in the DOM; the stylesheet is what shows it below 861px and
  * hides `.nav` in the top bar. Keeping the decision in CSS means no layout
- * shift on load and no matchMedia in the shell.
- *
- * ## The section drawer
- *
- * Two of the five cells are sections holding two screens each, and until this
- * component grew a drawer the second screen in both was effectively invisible:
- * "What's on" names neither Spots nor Events, and Stickers sat behind Progress.
- * The row that used to reveal them, `SectionTabs`, was at the top of a
- * scrolling page wearing the sport switch's clothes (issue #379, item 5).
- *
- * The drawer opens **on arrival in a section as well as on a tap of the lit
- * cell** (owner, 2026-09-11, in chat, choosing this over two alternatives). The
- * distinction is the whole point and is worth stating, because the obvious
- * design is worse: a cell that *only* opens a drawer costs a tap on the way to
- * Spots and to Progress, and Progress is the screen riders open most after
- * Home. Announcing on arrival keeps every tap count exactly as it was and still
- * says the sibling's name.
- *
- * `compact` is the one place the shell asks about width in JavaScript, which
- * `AppShell` otherwise avoids on purpose. It is not for layout — CSS still owns
- * that, and the drawer is inside `.mobnav` so it is hidden above 860px whatever
- * this says. It is so that `navSectionOpened` is not reported for a drawer no
- * desktop rider ever saw.
+ * shift on load and no `matchMedia` in the shell — the drawer was the one thing
+ * that needed a width in JavaScript here, and it has taken that with it.
  */
 
-const COMPACT = '(max-width: 860px)';
-
-function subscribeToWidth(onChange: () => void) {
-  const query = window.matchMedia(COMPACT);
-  query.addEventListener('change', onChange);
-  return () => query.removeEventListener('change', onChange);
-}
-
-function useCompactViewport() {
-  return useSyncExternalStore(
-    subscribeToWidth,
-    () => window.matchMedia(COMPACT).matches,
-    // The server has no width. Rendering closed and letting the client open it
-    // is also what keeps the first paint identical to the markup.
-    () => false,
+/** The raised yellow square and its label, which both forms of the cell wear. */
+function LogFace() {
+  return (
+    <>
+      <span className={styles.logSquare} aria-hidden="true">
+        <Icon name="plus" size={30} strokeWidth={2.8} className={styles.logGlyph} />
+      </span>
+      LOG
+    </>
   );
 }
 
-/** Which section's drawer is showing, and what put it there. */
-type OpenDrawer = { section: string; via: 'arrival' | 'tap' };
+/**
+ * The middle cell, and what the cross on it does and does not mean.
+ *
+ * §4 asks the plus to turn into a cross while the sheet is open "so the cell
+ * reads as 'close' too". It does turn, and since the sheet and its scrim now
+ * stop at the top of the bar it is visible while they are up — which the first
+ * cut of this was not (review S1).
+ *
+ * **It is a state, not a second way out.** A sheet is `aria-modal`, and
+ * `inertOutside` makes everything outside the dialog `inert` — which is what
+ * `aria-modal` promises and what stops a rider tabbing into the page behind. An
+ * inert subtree takes no pointer events, so the cell cannot be pressed while
+ * the sheet is up, and the label therefore does not offer a close it cannot
+ * perform. Escape, a tap on the scrim and a drag down are the ways out, and the
+ * scrim is now everything on screen except the bar.
+ *
+ * Making the cell genuinely pressable would mean teaching `inertOutside` to
+ * keep one element live — shared code another task owns, and the same function
+ * issue #540 is about.
+ */
+function LogCell({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      className={styles.logCell}
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      aria-label="Log something"
+      onClick={onToggle}
+    >
+      <LogFace />
+    </button>
+  );
+}
 
-export function MobileNav({ sessionsEnabled }: { sessionsEnabled?: boolean }) {
-  // The five cells for this rider: with sessions on, Progress lands on them and
-  // carries a third tab. `nav.ts` says why the bar is sections and not screens.
+/**
+ * The same cell for a visitor with no account: a link to sign in.
+ *
+ * The bar stays five cells — `.mobnav` is `repeat(5, 1fr)` and a four-cell bar
+ * on the signed-out screens beside a five-cell one on the signed-in ones would
+ * be two bars to learn. What changes is what the cell does.
+ *
+ * Drawn as a button it was the loudest control on `/spots`, `/events` and
+ * `/library` for somebody it could do nothing for: "I rode today" bounced them
+ * to `/signin` with no explanation, and both trick pickers came back empty
+ * because `trickPickerAction` answers a session-less call with nothing (review
+ * B2). A link says where it goes before it is pressed, which is the honest
+ * version of the same invitation.
+ */
+function LogSignInCell() {
+  return (
+    <Link href={ROUTES.signIn} className={styles.logCell} aria-label="Sign in to log something">
+      <LogFace />
+    </Link>
+  );
+}
+
+export function MobileNav({
+  sessionsEnabled,
+  rodeToday,
+  signedIn,
+}: {
+  sessionsEnabled?: boolean;
+  /** Today's ride is already counted (owner, 2026-09-17). */
+  rodeToday?: boolean;
+  /** Whether there is a rider to log for. `AppShell` decides it from `rider`. */
+  signedIn?: boolean;
+}) {
   const items = mobileNavFor(sessionsEnabled);
   const pathname = usePathname();
-  const compact = useCompactViewport();
-  const holder = useRef<HTMLElement>(null);
-  const drawerId = useId();
+  const [logging, setLogging] = useState(false);
 
-  const section = activeSection(pathname, sessionsEnabled);
-  const sectionId = section?.id ?? null;
-
-  const [drawer, setDrawer] = useState<OpenDrawer | null>(null);
-
-  /*
-   * Arrival, derived rather than run in an effect.
-   *
-   * Adjusting state during render is the documented way to react to changed
-   * input — React re-renders before painting, so the drawer is never on screen
-   * in the wrong section for a frame. An effect would be a cascading render on
-   * every route change, which is the trap `AccountMenu` documents next door.
-   *
-   * **`compact` is part of what was decided, not just an input to it**, and
-   * that is not a detail: the server has no width, so the first render on a
-   * phone reads `compact` as `false`. Keyed on the section alone, a rider
-   * landing on `/spots` had their arrival decided during hydration — against a
-   * viewport nobody had measured yet — and the drawer never opened, because
-   * the section had not changed by the time the real answer arrived.
-   */
-  const [decided, setDecided] = useState<{ section: string | null; compact: boolean }>({
-    section: null,
-    compact: false,
-  });
-  if (decided.section !== sectionId || decided.compact !== compact) {
-    setDecided({ section: sectionId, compact });
-    setDrawer(compact && section?.tabs ? { section: section.id, via: 'arrival' } : null);
-  }
-
-  const close = useCallback(() => setDrawer(null), []);
-
-  useEffect(() => {
-    if (!drawer) return;
-    capture(ANALYTICS_EVENTS.navSectionOpened, { section: drawer.section, trigger: drawer.via });
-  }, [drawer]);
-
-  useEffect(() => {
-    if (!drawer) return;
-
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') close();
-    };
-    // `pointerdown` rather than `click`, for the reason `AccountMenu` gives: a
-    // click on a link inside would close this before the link's own handler ran.
-    const onPointer = (event: PointerEvent) => {
-      if (!holder.current?.contains(event.target as Node)) close();
-    };
-
-    document.addEventListener('keydown', onKey);
-    document.addEventListener('pointerdown', onPointer);
-
-    /*
-     * Scroll dismisses too, but not until the next frame.
-     *
-     * A route change can restore a scroll position, and that fires `scroll`
-     * immediately — which would close an arrival drawer before anybody saw it,
-     * on exactly the navigation that opened it.
-     */
-    let unscroll = () => {};
-    const armed = requestAnimationFrame(() => {
-      window.addEventListener('scroll', close, { passive: true, once: true });
-      unscroll = () => window.removeEventListener('scroll', close);
-    });
-
-    return () => {
-      cancelAnimationFrame(armed);
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('pointerdown', onPointer);
-      unscroll();
-    };
-  }, [drawer, close]);
-
-  /**
-   * A tap on a folded cell the rider is already inside opens the drawer instead
-   * of navigating.
-   *
-   * From anywhere else the cell is an ordinary link and arrival does the
-   * opening, so this is only ever the "show me the other one" case — including
-   * from `/events`, where the old behaviour yanked the rider back to `/spots`
-   * for asking what else was in here.
-   */
-  const onCellClick = (event: MouseEvent, item: NavItem) => {
-    if (compact && item.tabs && sectionId === item.id) {
-      event.preventDefault();
-      setDrawer((open) => (open?.section === item.id ? null : { section: item.id, via: 'tap' }));
-      return;
-    }
-    // The nav item's id, not its href: an id is a fixed name from `nav.ts`,
-    // while an href could one day carry a parameter.
-    capture(ANALYTICS_EVENTS.navClicked, { to: item.id, where: 'mobile' });
+  const cell = (item: NavItem) => {
+    const active = isNavActive(item, pathname);
+    return (
+      <Link
+        key={item.id}
+        href={item.href}
+        className={active ? 'on' : undefined}
+        aria-current={active ? 'page' : undefined}
+        // The group's id, not its href: an id is a fixed name from `nav.ts`,
+        // while an href could one day carry a parameter.
+        onClick={() => capture(ANALYTICS_EVENTS.navClicked, { to: item.id, where: 'mobile' })}
+      >
+        <Icon name={item.icon} size={21} strokeWidth={2.2} />
+        {item.label}
+      </Link>
+    );
   };
 
-  const open = items.find((item) => item.id === drawer?.section);
-
   return (
-    <nav className="mobnav" aria-label="Main, compact" ref={holder}>
-      {items.map((item) => {
-        const active = isNavActive(item, pathname);
-        const folded = Boolean(item.tabs);
-        const showing = drawer?.section === item.id;
-        return (
-          <Link
-            key={item.id}
-            href={item.href}
-            className={`${folded ? styles.cell : ''} ${active ? 'on' : ''}`.trim() || undefined}
-            aria-current={active ? 'page' : undefined}
-            aria-expanded={folded ? showing : undefined}
-            aria-controls={showing ? drawerId : undefined}
-            onClick={(event) => onCellClick(event, item)}
-          >
-            {folded ? (
-              <span
-                className={`${styles.caret} ${showing ? styles.caretOpen : ''}`.trim()}
-                aria-hidden="true"
-              />
-            ) : null}
-            <Icon name={item.icon} size={21} strokeWidth={2.2} />
-            {item.label}
-          </Link>
-        );
-      })}
-      {open?.tabs ? (
-        <SectionDrawer
-          id={drawerId}
-          tabs={open.tabs}
-          label={open.label}
-          cell={{ index: items.indexOf(open), of: items.length }}
-          pathname={pathname}
-          onNavigate={close}
+    <>
+      <nav className="mobnav" aria-label="Main, compact">
+        {items.slice(0, 2).map(cell)}
+        {signedIn ? (
+          <LogCell
+            open={logging}
+            onToggle={() => {
+              if (!logging) capture(ANALYTICS_EVENTS.logSheetOpened, { where: 'mobile' });
+              setLogging(!logging);
+            }}
+          />
+        ) : (
+          <LogSignInCell />
+        )}
+        {items.slice(2).map(cell)}
+      </nav>
+      {/*
+        Beside the bar, not inside it. `.mobnav a` and `.mobnav button` are
+        descendant selectors in the shared stylesheet, so a sheet rendered
+        inside the bar would have every button in it drawn as a bar cell —
+        stacked, 10.5px, uppercase, muted (the trap `sectionDrawer.module.css`
+        documented and LESSONS §3a names). It also keeps the sheet out of the
+        bar's stacking context, where `z-index: 70` would have capped it.
+      */}
+      {signedIn && logging && (
+        <LogSheet
+          sessionsEnabled={sessionsEnabled}
+          rodeToday={rodeToday}
+          onClose={() => setLogging(false)}
         />
-      ) : null}
-    </nav>
+      )}
+    </>
   );
 }

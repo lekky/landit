@@ -154,7 +154,14 @@ describe('crews are invite-only, with no discovery (plan §6.1)', () => {
   let crew: CrewRecord;
 
   beforeAll(async () => {
-    owner = await makeRider();
+    /*
+     * On the top plan, because this suite founds several crews with the same
+     * rider and since 2026-09-17 the free plan founds **one** (the owner's
+     * per-plan cap, enforced in `85_crews.pb.js` and covered by its own suite
+     * below). What is under test here is invite-only and discovery, and a rider
+     * refused for the wrong reason would prove neither.
+     */
+    owner = await makeRider({}, { plan: 'legend' });
     stranger = await makeRider();
     const created = await makeCrew(owner, { name: 'Ramp Rats' });
     expect(created.status).toBe(200);
@@ -518,6 +525,72 @@ describe('the feed is chronological, scoped and made of our own sentences', () =
   });
 });
 
+describe('how many crews a rider may create is their plan’s (owner, 2026-09-17)', () => {
+  /*
+   * "1 for free, 3 for 3.99 and 10 for the top tier" (Rachid, 2026-09-17, in
+   * chat), replacing the flat five `MAX_OWNED_CREWS` used to enforce.
+   *
+   * The numbers are **read back off the `plans` record**, never assumed here:
+   * the cap is an entitlement and lives on that record precisely so staff can
+   * move it without a deploy, and a test that hard-coded 1 and 3 would pass for
+   * the wrong reason the day somebody did. What is asserted is the rule — you
+   * get exactly your plan's number, the next one is refused, the refusal says
+   * so, and joining somebody else's crew is not capped at all.
+   */
+  const capOf = async (slug: string) => {
+    const { body } = await call<{ items: { crew_cap: number }[] }>(
+      'GET',
+      '/api/collections/plans/records',
+      { token: await superuser(), query: { filter: `slug='${slug}'` } },
+    );
+    return body.items[0]!.crew_cap;
+  };
+
+  it('lets a free rider create their plan’s worth and refuses the next', async () => {
+    const rider = await makeRider();
+    const cap = await capOf('rookie');
+    expect(cap).toBeGreaterThan(0);
+
+    for (let n = 0; n < cap; n += 1) {
+      expect((await makeCrew(rider)).status).toBe(200);
+    }
+
+    const refused = await makeCrew(rider);
+    expect(refused.status).toBe(400);
+    expect(refused.body.message).toContain(`${cap}`);
+  });
+
+  it('gives a paid rider their own plan’s larger number', async () => {
+    const rider = await makeRider({}, { plan: 'shredder' });
+    const cap = await capOf('shredder');
+    expect(cap).toBeGreaterThan(await capOf('rookie'));
+
+    for (let n = 0; n < cap; n += 1) {
+      expect((await makeCrew(rider)).status).toBe(200);
+    }
+    expect((await makeCrew(rider)).status).toBe(400);
+  });
+
+  it('does not count crews a rider only belongs to', async () => {
+    /*
+     * Joining with a code is uncapped at every tier: the limit is on minting
+     * invite codes, not on having mates. A free rider at their cap can still
+     * join somebody else's crew.
+     */
+    const host = await makeRider({}, { plan: 'shredder' });
+    const guest = await makeRider();
+    const cap = await capOf('rookie');
+    for (let n = 0; n < cap; n += 1) {
+      expect((await makeCrew(guest)).status).toBe(200);
+    }
+    expect((await makeCrew(guest)).status).toBe(400);
+
+    const crew = (await makeCrew(host, { name: 'Open House' })).body;
+    const invite = await mintInvite(host, crew.id);
+    expect((await join(guest, invite.body.code)).status).toBe(200);
+  });
+});
+
 describe('a crew keeps an owner when its owner leaves (issue #143)', () => {
   /** The crew as the server holds it, read with the fixture superuser. */
   const crewRecord = async (id: string) =>
@@ -590,7 +663,7 @@ describe('a crew keeps an owner when its owner leaves (issue #143)', () => {
     expect(after.body.items[0]!.role).toBe('owner');
   });
 
-  it('leaves a member alone when a member leaves, and an empty crew as it is', async () => {
+  it('deletes the crew when the last member leaves (owner, 2026-09-17)', async () => {
     const owner = await makeRider();
     const mate = await makeRider();
     const crew = (await makeCrew(owner, { name: 'Still Mine' })).body;
@@ -616,9 +689,16 @@ describe('a crew keeps an owner when its owner leaves (issue #143)', () => {
         })
       ).status,
     ).toBe(204);
-    // Nobody left to promote: the crew stays, ownerless, rather than being
-    // deleted from under people — that is the decision the issue leaves open.
-    expect((await crewRecord(crew.id)).status).toBe(200);
+    /*
+     * Nobody left, so the crew goes (owner, Rachid, 2026-09-17, in chat: "need
+     * to delete a crew if the last person leaves too").
+     *
+     * It used to stay, ownerless — the open half of issue #143 — which left a
+     * crew no screen could reach (nothing lists a crew you are not a member of)
+     * still counting against its owner's cap. 404 rather than 403: the record
+     * is gone, not hidden.
+     */
+    expect((await crewRecord(crew.id)).status).toBe(404);
   });
 });
 

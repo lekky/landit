@@ -23,10 +23,10 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
-import { SportFilter } from '@/components/filters/SportFilter';
+import { FindTabs } from '@/components/find/FindTabs';
+import { SportScopeSelect, useSportScope } from '@/components/shell/SportScopeSelect';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { runActionOr } from '@/lib/runAction';
-import { sportFilterProperty } from '@/lib/sportFilter';
 import { ROUTES, eventHrefFrom, pastEventsHref, signInHref } from '@/lib/routes';
 import { useToast } from '@/providers/toast';
 
@@ -50,8 +50,9 @@ import type { EventsView, EventView } from './view';
  * - **The list is filtered in the browser**, over rows the server shaped. It is
  *   a few dozen events; a round trip per pill would make the row feel broken.
  * - **The two halves of the calendar are two routes**, `/events` and
- *   `/events/past`, switched by the segmented control below the heading. It
- *   used to be a pair of pills over one list. The archive is the half worth
+ *   `/events/past`, switched by the two pills below the heading (rethink §3.7;
+ *   they were a segmented box of three until a rider's own events moved to the
+ *   Find hub). The archive is the half worth
  *   *arriving* on — somebody looking up what happened at their park last summer
  *   comes from a search result — and a pill has no address. It also closes the
  *   bug the design handoff records: a view that cannot express "both" cannot
@@ -134,6 +135,15 @@ import type { EventsView, EventView } from './view';
  */
 const PER_PAGE = 20;
 
+/**
+ * "Every sport", as the one list the sport filter reads as unfiltered.
+ *
+ * A module constant rather than a `[]` written at the call site, because it
+ * goes into the list memo's dependencies: a fresh array every render would
+ * re-filter the calendar on every render for a value that never changes.
+ */
+const SCOPE_EVERY: readonly SportId[] = [];
+
 export function EventsScreen({
   view,
   units,
@@ -201,16 +211,43 @@ export function EventsScreen({
 
   const [kind, setKind] = useState<EventKind | null>(null);
   /*
-   * Which sports the calendar is narrowed to. **Empty is every sport, and empty
-   * is where it opens** (Rachid, 2026-09-12, in chat).
+   * Which sports the calendar is narrowed to — the `SportScopeSelect` under the
+   * header (rethink §3.3, O1; Rachid, 2026-09-16, in chat).
    *
-   * It used to be `mySportOnly`, a boolean starting `true`, which meant the
-   * calendar opened hiding every event that was not for the one sport the
-   * global switch happened to be on. On a rider whose profile records a single
-   * sport that switch is not even rendered (`SportSwitch` needs two), so the
-   * hidden events had no control that could bring them back. See `SportFilter`.
+   * **It opens on the rider's own sport**, which is a reversal of the
+   * 2026-09-12 default and a deliberate one: O1 sets the default per screen
+   * from the quality of the data, and staff tag all 74 events, so "your sport"
+   * here is a narrowing that works rather than one that empties the list. What
+   * 2026-09-12 actually fixed was that *every* sport had to stay reachable
+   * whatever a rider's profile records, and that still holds — the select
+   * offers every sport there is, so a rider who records only skate can still
+   * open the calendar on BMX. `/spots` keeps "every spot" for the same reason
+   * it always had it.
+   *
+   * The first option tracks the top bar's chip rather than copying it, so the
+   * calendar follows a sport switch made anywhere (D5).
+   *
+   * **Two screens out of the four this component draws open on every sport
+   * instead**, and neither is O1 saying so — O1 decided a default for *a
+   * calendar of what is on*, for a rider whose sport the product knows.
+   *
+   * - **A rider's own events** (`mine`, review B1). That screen is a record of
+   *   decisions the rider already made, not a calendar to browse: measured, a
+   *   rider down for two events across two sports opened `/events/mine` and saw
+   *   one. A screen headed "The ones you're down for" that silently omits some
+   *   of them is the product being wrong about the rider. `SCOPE_EVERY` rather
+   *   than a different fallback, because a *stored* choice would otherwise win
+   *   over it — the point is that this screen has no sport scope at all, and
+   *   the control is not rendered on it either.
+   * - **A visitor** (review S1). Signed out there is no sport chip in the top
+   *   bar, so "your sport" is a claim about somebody we have never met, and
+   *   `/events` and `/events/past` are public, crawlable pages — the archive's
+   *   whole justification is a stranger arriving from a search result, and they
+   *   must not land on one sport's cut of it. `useSportScope` is told there is
+   *   no chip, which also takes the first option off the list.
    */
-  const [sports, setSports] = useState<readonly SportId[]>([]);
+  const scope = useSportScope('events', signedIn ? 'chip' : 'all', signedIn);
+  const sports = mine ? SCOPE_EVERY : scope.sports;
   /*
    * Opens on the reader's own country where the calendar has events in it, and
    * on Everywhere where it does not (`eventCountryForRegion`). The value comes
@@ -249,6 +286,24 @@ export function EventsScreen({
    */
   const [sortPref, setSortPref] = useState<'date' | 'nearest' | null>(null);
   /*
+   * **The filters fold away on a phone** (owner, Rachid, 2026-09-17, in chat:
+   * "events page, this is all messy it needs to be cleaner and simpler proper
+   * sectioned").
+   *
+   * Eight controls stood between a rider and the first event — the two halves,
+   * search, the location strip, sport, country, sort, five kind pills, and a
+   * line repeating the country. Each was right on its own; together they were a
+   * form to fill in before the screen would show its list.
+   *
+   * So on a phone they live behind one **Filters & sort** disclosure, which is
+   * the vocabulary the trick library already uses for exactly this (its own
+   * `filterwrap`, `primitives.css`) — Find stops being the odd screen out. The
+   * desktop bar is unchanged: it has the width, and hiding a bar that fits
+   * would be a fold for its own sake. What is applied is said above the list
+   * either way, so a folded panel never hides a narrowing.
+   */
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  /*
    * The order the list is **actually** in, which is not always the one asked
    * for: distance order needs a position, and a rider can refuse one, be
    * refused one by their browser, or turn one off after choosing Nearest. In
@@ -258,6 +313,27 @@ export function EventsScreen({
    */
   const sort: 'date' | 'nearest' =
     here.point && (sortPref ?? 'nearest') === 'nearest' ? 'nearest' : 'date';
+
+  /*
+   * How many narrowings are on, for the disclosure's count and for the line
+   * above the list.
+   *
+   * The **sport scope is not counted**, and that is deliberate: it follows the
+   * top bar's chip (O1), so it is not something the rider set on this screen
+   * and a badge saying "1" on a fresh calendar would be a filter nobody applied.
+   * Country counts only when it is not the one the screen opened on, for the
+   * same reason.
+   *
+   * **The sort is not in here either**, and for a different one: the list says
+   * its own order directly above the first row ("Nearest first"), so naming it
+   * here would be the same fact twice on one screen — and the pair read as two
+   * different claims when only one of them can change the list.
+   */
+  const applied = [
+    country && country !== view.defaultCountry ? country : null,
+    kind ? (view.kinds.find((k) => k.id === kind)?.id ?? null) : null,
+  ].filter((entry): entry is string => Boolean(entry));
+  const activeFilters = applied.length;
 
   const chooseSort = (next: 'date' | 'nearest') => {
     setSortPref(next);
@@ -406,17 +482,13 @@ export function EventsScreen({
 
   const goingCount = going.size;
   /*
-   * What the Mine tab counts, kept live without a reload.
-   *
-   * The server's `mineCount` spans both tenses and every country, so it cannot
-   * be recomputed from `going` — which only ever holds the rows *this* tab
-   * loaded. What can be recomputed is the change: `view.goingCount` is what
-   * `going` started as, so the difference is exactly what the rider has toggled
-   * this visit. Only an upcoming row can be toggled at all, so the delta is
-   * always a real change to their own list rather than an artefact of which tab
-   * they are on.
+   * The live Mine count has gone with the tab that carried it (§3.7). It was
+   * `view.mineCount + (going.size - view.goingCount)` — the server's total plus
+   * whatever the rider had toggled this visit — and nothing on this screen
+   * shows a count of the rider's own events any more. `view.mineCount` is still
+   * computed, because `/events/mine` renders from the same view; only the
+   * arithmetic that kept a tab's badge live is gone.
    */
-  const mineCount = view.mineCount + (going.size - view.goingCount);
   const archive = view.archive;
   const where = archive?.where ?? null;
 
@@ -431,84 +503,125 @@ export function EventsScreen({
   return (
     <div className={styles.page}>
       {/*
-        There is no `SportSwitch` here any more, and that is the point.
+        There is no `SportSwitch` row above this heading, and there is no pill
+        row below it either. Three controls have answered "which sports" on this
+        screen: the global sport tab row (T13, 2026-08-31), the multi-select
+        pill row that replaced it (2026-09-12), and now `SportScopeSelect`
+        (O1, 2026-09-16).
 
-        The global sport switch used to sit above this heading and decide what
-        the one sport pill below filtered to. It is a *preference* — which sport
-        you ride — and it is shared with home, the library, progress and
-        stickers, so looking up a BMX jam changed all four. Browsing what is on
-        is not a statement about what you ride, and a rider who records one
-        sport never saw the row at all. The filter row now carries every sport
-        itself (`SportFilter`), so this screen no longer reads or writes the
-        preference. Recorded in plan §7 T13, which put the row on `/spots`
-        deliberately in 2026-08-31.
+        What each one was reaching for survives. The tab row was a *preference*
+        shared with home, the library, progress and stickers, so looking up a
+        BMX jam changed all four — and it was not rendered at all for a rider
+        who records one sport, which left the other sports unreachable. The pill
+        row fixed both by offering `SPORT_IDS` as a set. The scope select keeps
+        every sport reachable and keeps browsing separate from what you ride,
+        and gives up the *combination*, which is what O1 decided.
+
+        The one thing that changed in substance is the default: this screen now
+        opens on the rider's own sport where the pill row opened on every sport.
+        That is O1's "the default follows the quality of the data" — staff tag
+        every event, so it is a narrowing that finds things.
       */}
-      <div className={styles.headRow}>
+      {/*
+        The Find group's tab row (§3.7): For you · Spots · Events, the same
+        three links the hub and `/spots` carry, with `tabs_switched` fired from
+        `TabRow` itself. Events stays lit on the archive and on a rider's own
+        events, because both are the calendar.
+      */}
+      <FindTabs current="events" className={styles.tabs} />
+
+      {/*
+        **No `BackLink` on a rider's own events** (review S3). §2.3 asks a
+        screen reached from somewhere else for a back link, and the first cut
+        gave this one "← For you" — which put two controls with the same words,
+        going to the same address, 40px apart on a phone, under a tab row whose
+        first tab is already "For you" and lit. §2.3's examples are screens with
+        no such row above them; here the row is the back link.
+      */}
+
+      {/*
+        The eyebrow, the title and the lede — **seen on desktop only** (§3.7).
+        Below 861px the tab row above already says "Events" in the lit box and
+        the pills below say which half; three lines of furniture before the
+        first event was most of a 390px screen.
+
+        Clipped rather than `display: none`, so the `h1` is still in the
+        accessibility tree: a phone with no heading at all would be a worse
+        screen, not a shorter one. The clip goes on **this** element rather than
+        on an inner wrapper, because `.page` is a flex column with an 18px gap
+        and a row that is merely empty still collects a gap on each side — 36px
+        of nothing between the tab row and the pills, which is most of what
+        hiding the heading was supposed to save. Absolutely positioned, it is
+        out of flow and the gap closes.
+
+        **A rider's own events keep theirs at every width**, because that screen
+        has no pills to say where it is: "Upcoming" and "Past" are the
+        calendar's two halves and `mine` is neither, so without the title a
+        phone would show a list of events with nothing on screen saying they are
+        the rider's own.
+      */}
+      <div className={mine ? styles.headRow : `${styles.headRow} ${styles.headWords}`}>
         <div>
           <span className="eyebrow">{mine ? 'Yours' : past ? 'The archive' : 'Events'}</span>
           <h1 className={`d ${styles.head}`}>
             {mine ? 'Your events' : past ? 'Events that have already happened' : 'What’s coming up'}
           </h1>
+          <p className={styles.lede}>
+            {mine
+              ? 'The ones you’re down for, and the ones you’ve been to. Only you can see this.'
+              : past
+                ? 'Nothing here is happening. Kept online because riders still look these up.'
+                : 'Comps, coached sessions and one-skill classes near you. Staff add them, so the list stays real.'}
+          </p>
         </div>
-        <p className={styles.lede}>
-          {mine
-            ? 'The ones you’re down for, and the ones you’ve been to. Only you can see this.'
-            : past
-              ? 'Nothing here is happening. Kept online because riders still look these up.'
-              : 'Comps, coached sessions and one-skill classes near you. Staff add them, so the list stays real.'}
-        </p>
       </div>
 
       {/*
-        The two halves, as two links.
+        The two halves of the calendar, as two pills (§3.7, D6).
 
-        Links rather than buttons because they are two addresses: a crawler
-        follows them, a rider can middle-click them, and the archive has a page
-        to be shared. `aria-current="page"` is what says which half you are on,
-        so the ink fill is not carrying the meaning on its own.
+        **Pills rather than the boxed tab row above.** D6 draws the line where
+        the rethink does: a tab row is how a rider gets about inside a group and
+        Find's is For you · Spots · Events, while these two narrow the one list
+        the Events tab holds. Two controls that look alike, stacked, would be
+        two rows a rider has to tell apart by reading them.
+
+        **Still links, because they are still two addresses**: a crawler follows
+        them, a rider can middle-click them, and the archive has a page to be
+        shared. `aria-current="page"` is what says which half you are on, so the
+        ink fill is not carrying the meaning on its own — and `.pill` is the
+        global class, taken directly rather than through `Pill`, which is a
+        `<button>` and cannot be a route.
+
+        **Mine is no longer here** (§3.7). It is "You're going" on `/find`, with
+        a "Mine →" link into `/events/mine`; the route, its gate, its `noindex`
+        and its count are untouched. A rider's own events were never a third
+        half of the calendar — the two pills are complements and a third that
+        overlaps both was the odd one out in a control about tense.
+
+        Not rendered on a rider's own events at all, for the same reason: a
+        control whose two options are both "no" is one a rider has to work out
+        the meaning of.
       */}
-      <nav className={styles.viewSwitch} aria-label="Upcoming, past or your own events">
-        <Link
-          href={ROUTES.events}
-          className={`cond ${styles.viewSwitchItem}`}
-          aria-current={view.scope === 'upcoming' ? 'page' : undefined}
-          onClick={() => capture(ANALYTICS_EVENTS.eventsViewSwitched, { view: 'upcoming' })}
-        >
-          Upcoming <span className={styles.viewSwitchCount}>{view.upcomingCount}</span>
-        </Link>
-        <Link
-          href={pastEventsHref()}
-          className={`cond ${styles.viewSwitchItem}`}
-          aria-current={past ? 'page' : undefined}
-          onClick={() => capture(ANALYTICS_EVENTS.eventsViewSwitched, { view: 'past' })}
-        >
-          Past <span className={styles.viewSwitchCount}>{view.pastCount}</span>
-        </Link>
-        {/*
-          A rider's own events, the third tab (Rachid, 2026-09-13, in chat).
-
-          **Only for somebody signed in.** A visitor has no attendance, so the
-          tab could only ever read "Mine 0" and lead to a sign-in wall — an
-          advert for a locked door, in the one control on the screen that is
-          otherwise about what is on. The row's own "Sign in to save" button is
-          where a visitor meets this feature, and it comes back here.
-
-          The count is live rather than the server's, so marking yourself down
-          for a jam moves the number in the same frame as the button turns
-          green (`mineCount`). It is the one number on this screen that is
-          about the reader, which is why it is never an analytics property.
-        */}
-        {signedIn && (
+      {!mine && (
+        <nav className={styles.viewSwitch} aria-label="Upcoming or past events">
           <Link
-            href={ROUTES.eventsMine}
-            className={`cond ${styles.viewSwitchItem}`}
-            aria-current={mine ? 'page' : undefined}
-            onClick={() => capture(ANALYTICS_EVENTS.eventsViewSwitched, { view: 'mine' })}
+            href={ROUTES.events}
+            className={`pill ${view.scope === 'upcoming' ? 'on' : ''} ${styles.viewSwitchItem}`}
+            aria-current={view.scope === 'upcoming' ? 'page' : undefined}
+            onClick={() => capture(ANALYTICS_EVENTS.eventsViewSwitched, { view: 'upcoming' })}
           >
-            Mine <span className={styles.viewSwitchCount}>{mineCount}</span>
+            Upcoming <span className={styles.viewSwitchCount}>{view.upcomingCount}</span>
           </Link>
-        )}
-      </nav>
+          <Link
+            href={pastEventsHref()}
+            className={`pill ${past ? 'on' : ''} ${styles.viewSwitchItem}`}
+            aria-current={past ? 'page' : undefined}
+            onClick={() => capture(ANALYTICS_EVENTS.eventsViewSwitched, { view: 'past' })}
+          >
+            Past <span className={styles.viewSwitchCount}>{view.pastCount}</span>
+          </Link>
+        </nav>
+      )}
 
       <div className={`search ${styles.search}`}>
         <Icon name="search" size={19} strokeWidth={2.6} />
@@ -525,35 +638,156 @@ export function EventsScreen({
         )}
       </div>
 
-      <div className={styles.filters}>
-        {/*
+      {/*
+        "Show: Your sport (Scooter)" (§3.3, O1).
+
+        **On its own line under the header, as §3.3 describes and `/spots`
+        already does** (review N7). The first cut left it at the right-hand end
+        of the kind pills, which is where `SportFilter` used to sit — it read
+        well enough, but it put the same control in two different places on two
+        screens a rider moves between with one tap.
+
+        **The calendar opens on the rider's own sport**, where `/spots` opens on
+        every spot. The difference is the data and nothing else: staff tag all
+        74 events, so "your sport" is a real narrowing here, and spot sport tags
+        are thin enough that the same default would hide most of the map. O1
+        says so in as many words.
+
+        **Not rendered on a rider's own events** (review B1). Their own list is
+        a handful of decisions they already made, not a calendar to browse, and
+        a sport filter over it could only ever hide one of them. The screen is
+        every sport, and there is no control offering to change that.
+
+        The per-sport counts went with the pills — a `<select>` has no room for
+        a number beside each option — so `view.countBySport` is no longer read
+        here. It stays on the view for `/events/past` and anything else that
+        wants it later.
+      */}
+      {/*
+        **One filter bar on a desktop, T48's stack on a phone** (Rachid,
+        2026-09-17, in chat: "bad layout on screenshot", looking at `/events` at
+        1740px).
+
+        It was three `.filters` rows — the scope select alone on one, Country
+        with Sort stranded at the far right of the next, the kind pills on a
+        third — which at 1740px is four sparse full-width bands of furniture
+        before the first event. Each row was right on its own and the set read as
+        a form to fill in rather than a bar to skim.
+
+        They are one row now, in the order a rider narrows: which sport, which
+        country, what kind, and then — pushed to the right, because it is a
+        question about the *list* rather than about what is in it — which order.
+        Below 861px `.filterBar` breaks back into the same three lines T48
+        shipped, by giving the scope select and the pills a full-width basis; a
+        phone gets the stack and a desktop gets the bar out of one set of
+        markup.
+      */}
+      {/*
+        The disclosure, phone only (`.filtersTab` is `display: none` above
+        860px). The count is what makes a folded panel honest: a rider can see
+        that something is narrowing the list without opening it, which is the
+        same job `fcount` does in the library's row.
+      */}
+      <button
+        type="button"
+        className={`sporttab ${styles.filtersTab}`}
+        onClick={() => setFiltersOpen((open) => !open)}
+        aria-expanded={filtersOpen}
+      >
+        <Icon name="grid" size={16} strokeWidth={2.4} />
+        <span className="tab-label">Filters &amp; sort</span>
+        {activeFilters > 0 && <span className="fcount">{activeFilters}</span>}
+      </button>
+
+      {/*
+        The fold is its own element, wrapping the bar rather than sharing a
+        class with it: `.filterwrap`'s `display: none` and `.filterBar`'s
+        `display: flex` are both one class deep, so on one element the later
+        stylesheet would simply win and the panel would never fold.
+      */}
+      <div className={`filterwrap${filtersOpen ? ' open' : ''}`}>
+        <div className={styles.filterBar}>
+          {/*
+          "Show: Your sport (Scooter)" (§3.3, O1).
+
+          **The calendar opens on the rider's own sport**, where `/spots` opens
+          on every spot. The difference is the data and nothing else: staff tag
+          all 74 events, so "your sport" is a real narrowing here, and spot sport
+          tags are thin enough that the same default would hide most of the map.
+          O1 says so in as many words.
+
+          **Not rendered on a rider's own events** (review B1). Their own list is
+          a handful of decisions they already made, not a calendar to browse, and
+          a sport filter over it could only ever hide one of them. The screen is
+          every sport, and there is no control offering to change that.
+
+          The per-sport counts went with the pills — a `<select>` has no room for
+          a number beside each option — so `view.countBySport` is no longer read
+          here. It stays on the view for `/events/past` and anything else that
+          wants it later.
+        */}
+          {!mine && (
+            <SportScopeSelect
+              state={scope}
+              everyLabel="All sports"
+              label="Show events for"
+              className={styles.scopeFilter}
+            />
+          )}
+          {/*
           A `<select>`, not a row of pills. The calendar is worldwide, so a pill
           per country is a wall of pills that pushes the list off the screen —
           and the options come from the events actually present, so no country
           here can find nothing.
         */}
-        <label className={styles.countryPick}>
-          <span className="lab" style={{ color: 'var(--ink-3)' }}>
-            Country
-          </span>
-          <select
-            className="cond"
-            value={country}
-            onChange={(event) => setCountry(event.target.value)}
-            aria-label="Filter events by country"
-          >
-            <option value="">Everywhere</option>
-            {view.countries.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
+          <label className={styles.countryPick}>
+            <span className="lab" style={{ color: 'var(--ink-3)' }}>
+              Country
+            </span>
+            <select
+              className="cond"
+              value={country}
+              onChange={(event) => setCountry(event.target.value)}
+              aria-label="Filter events by country"
+            >
+              <option value="">Everywhere</option>
+              {view.countries.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {/*
+          What kind of thing it is. **In the bar now, between the two selects
+          and Sort**, where it was a third row of its own: the pills are the
+          narrowing a rider reaches for most and burying them under two rows of
+          `<select>` made them the last thing on the bar rather than the
+          liveliest. They are one group, so they wrap together — never one
+          orphan pill on a line of its own.
+        */}
+          <div className={styles.kinds} role="group" aria-label="Filter events by kind">
+            <Pill on={kind === null} onClick={() => setKind(null)}>
+              Everything
+            </Pill>
+            {view.kinds.map((k) => (
+              <Pill
+                key={k.id}
+                on={kind === k.id}
+                onClick={() => setKind(k.id)}
+                style={
+                  kind === k.id
+                    ? { background: k.color, color: foregroundFor(k.color) ?? 'var(--on-dark)' }
+                    : undefined
+                }
+              >
+                {k.id}
+              </Pill>
             ))}
-          </select>
-        </label>
+          </div>
 
-        <span className={styles.spacer} />
-
-        {/*
+          {/*
           The order, as two options rather than one switch (Rachid, 2026-09-13,
           in chat).
 
@@ -574,75 +808,40 @@ export function EventsScreen({
           browser is asked again on every visit, nothing is stored, and the way
           to turn it off travels with the indicator below.
         */}
-        <span className={styles.sort} role="group" aria-label="Sort events">
-          <span className="lab" style={{ color: 'var(--ink-3)' }}>
-            Sort
+          <span className={styles.sort} role="group" aria-label="Sort events">
+            <span className="lab" style={{ color: 'var(--ink-3)' }}>
+              Sort
+            </span>
+            <Pill on={sort === 'date'} onClick={() => chooseSort('date')}>
+              {past ? 'Most recent' : 'Soonest'}
+            </Pill>
+            <Pill on={sort === 'nearest'} onClick={() => chooseSort('nearest')}>
+              Nearest
+            </Pill>
           </span>
-          <Pill on={sort === 'date'} onClick={() => chooseSort('date')}>
-            {past ? 'Most recent' : 'Soonest'}
-          </Pill>
-          <Pill on={sort === 'nearest'} onClick={() => chooseSort('nearest')}>
-            Nearest
-          </Pill>
-        </span>
 
-        {here.state === 'asking' && (
-          <span className={`cond ${styles.locating}`}>Asking your browser…</span>
-        )}
-        {here.state === 'on' && (
-          <span className={styles.locationOn}>
-            <span className={styles.locationDot} aria-hidden="true" />
-            <span className="lab">Using your location</span>
-            <button type="button" className={`cond ${styles.locationOff}`} onClick={here.forget}>
-              Turn off
-            </button>
-          </span>
-        )}
-        {/*
+          {here.state === 'asking' && (
+            <span className={`cond ${styles.locating}`}>Asking your browser…</span>
+          )}
+          {here.state === 'on' && (
+            <span className={styles.locationOn}>
+              <span className={styles.locationDot} aria-hidden="true" />
+              <span className="lab">Using your location</span>
+              <button type="button" className={`cond ${styles.locationOff}`} onClick={here.forget}>
+                Turn off
+              </button>
+            </span>
+          )}
+          {/*
           A refusal is said next to the control that caused it, and the list
           stays in date order underneath — `sort` may read `'nearest'` while
           `here.point` is missing, and the memo answers that with the calendar's
           own order rather than pretending to know a distance.
         */}
-        {here.state === 'refused' && (
-          <span className={`cond ${styles.locating}`}>{here.message}</span>
-        )}
-      </div>
-
-      <div className={styles.filters}>
-        <Pill on={kind === null} onClick={() => setKind(null)}>
-          Everything
-        </Pill>
-        {view.kinds.map((k) => (
-          <Pill
-            key={k.id}
-            on={kind === k.id}
-            onClick={() => setKind(k.id)}
-            style={
-              kind === k.id
-                ? { background: k.color, color: foregroundFor(k.color) ?? 'var(--on-dark)' }
-                : undefined
-            }
-          >
-            {k.id}
-          </Pill>
-        ))}
-        <span className={styles.spacer} />
-        <SportFilter
-          value={sports}
-          onChange={(next) => {
-            setSports(next);
-            // Catalogue facts only: which screen, and which sports. Never the
-            // rider's own sports, and never what else the row was filtered to.
-            capture(ANALYTICS_EVENTS.sportFilterSet, {
-              screen: 'events',
-              sports: sportFilterProperty(next),
-            });
-          }}
-          everyLabel="Every sport"
-          note={(id) => String(view.countBySport[id] ?? 0)}
-          label="Filter events by sport"
-        />
+          {here.state === 'refused' && (
+            <span className={`cond ${styles.locating}`}>{here.message}</span>
+          )}
+        </div>
       </div>
 
       {archive && <ArchiveIndex archive={archive} />}
@@ -663,15 +862,39 @@ export function EventsScreen({
         nothing is exactly when a rider most needs telling which filter it was.
         And the way out travels with it, as it does on the location badge.
       */}
-      {country && (
+      {(country || applied.length > 0) && (
         <p className={styles.showing}>
-          <span className="lab">Showing {country}</span>
+          {/*
+            What the list is narrowed by, said out loud above the results
+            (Rachid, 2026-09-12, in chat; widened 2026-09-17 when the controls
+            folded away on a phone).
+
+            It started as the country alone, because the screen opens narrowed
+            and the country control was off the bottom of a phone's first
+            screen. Now that every filter can be folded behind one button the
+            same argument covers all of them: a rider who cannot see the
+            controls must still be able to see what they are doing. Outside the
+            list rather than inside it, so a narrowing that finds nothing still
+            explains itself.
+          */}
+          <span className="lab">
+            Showing {[country || 'everywhere', ...applied.filter((a) => a !== country)].join(' · ')}
+          </span>
           <button
             type="button"
             className={`cond ${styles.showingAll}`}
-            onClick={() => setCountry('')}
+            /*
+              Clears what this line names, and nothing it does not: the country
+              and the kind. The order is left alone — it is stated by the list
+              itself and a rider who asked for nearest did not ask for that to
+              be undone by a button about filters.
+            */
+            onClick={() => {
+              setCountry('');
+              setKind(null);
+            }}
           >
-            See everywhere
+            {applied.length > 1 || (applied.length === 1 && !country) ? 'Clear' : 'See everywhere'}
           </button>
         </p>
       )}
@@ -856,7 +1079,11 @@ export function EventsScreen({
           cta="Show everything"
           onCta={() => {
             setKind(null);
-            setSports([]);
+            // "Everything" means every sport, whatever the scope was — and it
+            // is remembered, because the rider chose it here as much as they
+            // would have in the select. `setScope` fires `sport_scope_set`, so
+            // a widening from the empty state counts like any other.
+            scope.setScope('all');
             setCountry('');
             setSearch('');
           }}
@@ -908,9 +1135,11 @@ export function EventsScreen({
       {/*
         The counter that used to be the *only* thing "I'm going" ever said back.
 
-        It now has somewhere to send a rider, which is the whole point of the
-        third tab: a number with no list behind it is a dead end, and this was
-        one for a month. It stays on the calendar and is not repeated on
+        It has somewhere to send a rider, which is the whole point of
+        `/events/mine`: a number with no list behind it is a dead end, and this
+        was one for a month. It is now one of the calendar's two doors into that
+        screen — the other being the Find hub's "You're going" — which is why it
+        stayed when the Mine pill went (§3.7). It is not repeated on
         `/events/mine`, where the list itself is the answer and a panel counting
         the rows above it would be furniture.
       */}
@@ -1242,13 +1471,25 @@ function EventDetailModal({
         onClick={(clicked) => clicked.stopPropagation()}
       >
         <div className={styles.modalHead} style={{ background: event.kindColor }}>
-          <div className={styles.chips}>
-            <Tag color="var(--ink)">{event.kind}</Tag>
-            {event.sports.map((s) => (
-              <Tag key={s.id} color="var(--paper)" className={styles.tagInk}>
-                {s.label}
-              </Tag>
-            ))}
+          {/*
+            The Close, top right (owner, 2026-09-17). It borrows `.modal-close`
+            whole, exactly as the bottom sheet does, so every dialog a rider
+            meets closes the same way and in the same corner. It sits *on* the
+            chips' row rather than over it, so a four-sport event pushes the
+            title down instead of running under the square.
+          */}
+          <div className={styles.modalHeadTop}>
+            <div className={styles.chips}>
+              <Tag color="var(--ink)">{event.kind}</Tag>
+              {event.sports.map((s) => (
+                <Tag key={s.id} color="var(--paper)" className={styles.tagInk}>
+                  {s.label}
+                </Tag>
+              ))}
+            </div>
+            <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
+              <span aria-hidden="true">&times;</span>
+            </button>
           </div>
           {/*
             The title is the link to the full page as well as the dialog's
@@ -1345,20 +1586,18 @@ function EventDetailModal({
             listing before you set off — dates, prices and age limits move, and a session can be
             cancelled without us knowing.
           </p>
+          {/*
+            "I'm going" first, the full-page CTA after (owner, 2026-09-17).
+            Stacked on a phone that puts the thing a rider came to do nearest
+            the thumb; side by side above 560px it reads left to right the same
+            way. The Close that used to sit here is the square in the head now.
+
+            `?from=` is still the only way `event_page_opened` can tell this
+            door from the row's link — the two answer opposite questions about
+            whether the modal is enough on its own.
+          */}
           <div className={styles.modalActions}>
-            <Button variant="ghost" onClick={onClose}>
-              Close
-            </Button>
             <span className={`${styles.push} ${styles.modalRight}`}>
-              {/*
-                The full-page CTA the design puts beside "I'm going". `?from=`
-                is the only way `event_page_opened` can tell this door from the
-                row's link — the two answer opposite questions about whether the
-                modal is enough on its own.
-              */}
-              <Link className={styles.fullCta} href={eventHrefFrom(event.id, 'modal_cta')}>
-                View full page →
-              </Link>
               {event.past ? null : signedIn ? (
                 <Button
                   onClick={onToggle}
@@ -1372,11 +1611,10 @@ function EventDetailModal({
                   Sign in to save
                 </Link>
               )}
+              <Link className={styles.fullCta} href={eventHrefFrom(event.id, 'modal_cta')}>
+                View full page →
+              </Link>
             </span>
-            <p className={styles.ctaHint}>
-              The full page adds the map, what else is on nearby, other events at this venue, and a
-              link you can share.
-            </p>
           </div>
         </div>
       </div>

@@ -101,19 +101,19 @@
   align-items: center;
   gap: 10px;
 }
-.streakchip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--fc);
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.06em;
-  color: var(--yellow);
-  background: var(--ink-raise);
-  padding: 5px 11px;
-  border: 2px solid var(--ink-rule);
-}
+/*
+ * `.streakchip` stood here, and it is gone rather than left unused (D9, Rachid,
+ * 2026-09-16, in chat): the streak chip leaves the top bar at every width. It
+ * never showed below 520px anyway — the rule that hid it is gone too, from the
+ * 520px block at the foot of this file — and the streak is on Home's own card
+ * and, from T47, in What's new. The bar's right-hand end is now the sport chip,
+ * Log, the bell and the avatar, which is four things where five did not fit.
+ *
+ * A removal from a transcription, which is normally not allowed here. It is
+ * what the rethink's T45 row asks for, and the class had exactly one caller
+ * (`components/shell/TopBar.tsx`); leaving dead CSS behind to honour the
+ * transcription would be honouring the letter of it.
+ */
 .avatarbtn {
   width: 34px;
   height: 34px;
@@ -951,7 +951,19 @@
     right: 0;
     z-index: 70;
     background: var(--ink);
-    border-top: 3px solid var(--ink);
+    /*
+     * A paper keyline, not an ink one (owner, 2026-09-17: "on pages with a
+     * dark bg, the nav bar blends in so it needs some sort of thing to
+     * separate it").
+     *
+     * The bar is ink, so an ink rule on top of it drew nothing: against a
+     * paper page the bar's own edge did the separating, and against a dark
+     * page — the sessions diary, the spot and event heroes — the two merged
+     * into one black field with only the yellow LOG square breaking it. Paper
+     * is the one keyline that reads on both, and it is the design's own
+     * vocabulary rather than a shadow.
+     */
+    border-top: 3px solid var(--paper);
     padding-bottom: env(safe-area-inset-bottom);
   }
   .mobnav button {
@@ -1011,8 +1023,5 @@
   }
   .tcard .nm {
     font-size: 17px;
-  }
-  .streakchip {
-    display: none;
   }
 }

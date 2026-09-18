@@ -9,6 +9,11 @@
  * wherever the rider says they are.
  */
 
+/* The Find group's tab row, above everything else on the screen (§3.7). */
+.tabs {
+  margin: 16px 0 14px;
+}
+
 .head {
   display: flex;
   align-items: flex-end;
@@ -16,6 +21,35 @@
   gap: 12px;
   flex-wrap: wrap;
   margin: 18px 0;
+}
+
+/*
+ * The eyebrow and the title, **seen on desktop only** (§3.7).
+ *
+ * Below 861px the tab row above says "Spots" in the lit box, so the words here
+ * are the same word twice — about 90px of a 390px screen spent before the
+ * search box, on a screen whose whole point is the list.
+ *
+ * Taken out of sight rather than out of the document: `display: none` would
+ * take the `h1` from the accessibility tree as well as from the page, and a
+ * screen with no heading at all is a worse phone than one with a redundant
+ * one. This is the clip the card links already use further down this file.
+ */
+@media (max-width: 860px) {
+  .headWords {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  .head {
+    margin: 0 0 14px;
+  }
 }
 
 .title {
@@ -34,12 +68,33 @@
   font-size: 13px;
 }
 
+/*
+ * The filter bar — **given `/events`' treatment so the two lists read alike**
+ * (Rachid, 2026-09-17, in chat, asking for it after the calendar's).
+ *
+ * The row itself is unchanged in what it holds and in what order: the sport
+ * scope, Faves, the feature and area pills, then the location controls pushed
+ * right by `.spacer`. What matches the calendar now is the measure — a 14px
+ * column gap between controls against the 8px inside a control, and a 10px row
+ * gap when it wraps — and the 44px floor below.
+ */
 .filters {
   display: flex;
-  gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+  gap: 10px 14px;
   margin-bottom: 18px;
+}
+
+/*
+ * 44px at every width, for `/events`' reason: `additions.css` sets the floor
+ * inside its `@media (max-width: 860px)` touch block, so on a desktop these
+ * pills were 35px beside a 44px `<select>` — one bar, two control heights.
+ */
+.filters :global(.pill) {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .spacer {
@@ -125,11 +180,41 @@
  * choosing a park. Muted ink, no box — it is a caption to the map, not a
  * second notice competing with the yellow one.
  */
+/*
+ * "Spot data sources" — the one quiet line that keeps three data licences
+ * honoured now the full credit lives in the terms (Rachid, 2026-09-17).
+ *
+ * Deliberately the quietest thing in the column: it is a reference, not
+ * something a rider came here to read. The underline is what makes it findable
+ * at this size — at `--ink-3` and 12px, colour alone would not say "link".
+ *
+ * §4's 44px floor is met by a pseudo-element rather than by height or padding,
+ * the same move `.mapClose` makes a few hundred lines up: the words stay a
+ * 17px line tucked under the warning, and the thing a thumb lands on is 44px
+ * tall around them. `inset: min(0px, …)` only ever grows the box, so it cannot
+ * shrink a target that is already big enough.
+ */
 .credit {
   margin: 8px 0 0;
   font-size: 12px;
   line-height: 1.45;
   color: var(--ink-3);
+}
+
+.credit a {
+  position: relative;
+  color: var(--ink-3);
+  text-decoration: underline;
+}
+
+.credit a::before {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((100% - 44px) / 2));
+}
+
+.credit a:hover {
+  color: var(--ink);
 }
 
 /* --------------------------------------------------------- the two panes -- */
@@ -233,12 +318,59 @@
   flex: 1;
 }
 
-.report {
+/*
+ * Report, as the quietest of the card's three controls (Rachid, 2026-09-17).
+ *
+ * `.btn sm ghost` underneath, so the keyline, the press and the zero radius are
+ * the design's and are not restated. What this adds is the *quiet*: no shadow,
+ * a smaller face, and `--ink-3` until the pointer is on it. A hard offset under
+ * this one would make the corner of every card shout about reporting it.
+ *
+ * 44px, because §4 puts the floor there and this is a control a thumb uses on a
+ * phone. It is a real height rather than a pseudo-element — unlike the credit
+ * link, this box is visible, so growing an invisible target around it would
+ * leave a 34px button with 5px of dead air either side.
+ */
+/*
+ * **Doubled and scoped, because the quiet did not land** (orchestrator review,
+ * 2026-09-17: "Report is now the loudest control on the card").
+ *
+ * Written as a single `.report`, every line below lost: `box-shadow: none` to
+ * `.btn.sm`'s `2px 2px 0` (two classes), and `color` to `a.btn.ghost`'s
+ * `var(--ink)` (two classes and an element). What shipped was a full hard
+ * offset in the top-right corner — the boldest thing on the card, for the
+ * control a rider should reach for least.
+ *
+ * `.cardTop a.report.report` is three classes and an element and outranks both.
+ * The treatment is the keyline and nothing else: no offset, `--ink-3` until the
+ * pointer is on it, a smaller face. Still 44px, drawn with padding rather than
+ * a bare `min-height`, so the box a thumb lands on is the box a rider sees.
+ *
+ * Its destination, its `aria-label` and its working-signed-out behaviour (the
+ * OSA duty, plan §6.1) are untouched by any of this.
+ */
+.cardTop a.report.report {
   flex: none;
-  font-size: 12px;
-  letter-spacing: 0.05em;
-  /* A quiet corner control still has to be big enough to hit on a phone. */
-  padding: 2px 0 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 11px 12px;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  box-shadow: none;
+  color: var(--ink-3);
+}
+
+/*
+ * Hover is a colour and nothing else — no lift, no offset arriving from
+ * `.btn:hover`. The quietest control on the card stays the quietest while it is
+ * being pointed at.
+ */
+.cardTop a.report.report:hover {
+  color: var(--ink);
+  transform: none;
+  box-shadow: none;
+  background: var(--paper-2);
 }
 
 /*
@@ -273,6 +405,16 @@
   flex: 1;
 }
 
+/*
+ * A spot name that wraps (owner, 2026-09-17: "spot names overlap"). `.d` runs
+ * at `line-height: 0.92` for a headline that is one line; over two lines the
+ * cap heights and the descenders meet. 1.06 keeps the block tight and keeps the
+ * lines apart. The size stays where it was, inline, at 19px.
+ */
+.cardName {
+  font-size: 19px;
+  line-height: 1.06;
+}
 .cardMeta {
   color: var(--ink-3);
   margin: 4px 0 8px;
@@ -309,24 +451,94 @@
  * The two things a rider came for, ranged right so the button lands under the
  * thumb rather than in the middle of the card.
  */
+/*
+ * **One row, left-aligned, one gap** (orchestrator review of the owner pass,
+ * 2026-09-17).
+ *
+ * The first cut kept the old layout's `justify-content: flex-end` and a
+ * `flex: 1` spacer between "Show on map" and the other two, which was right
+ * when they were captions and wrong the moment they became buttons: three
+ * controls of equal weight came out on three different lines — one hard left,
+ * one hard right, one alone on a row under them — with a 14px gap in a card
+ * whose every other gap is 8.
+ *
+ * So: one line, reading order, `flex-start`, 8px. It still wraps — at 390 and
+ * in the ~560px desktop list column it has to — but it wraps as a **group from
+ * the left**, which is what `flex-end` and the spacer between them made
+ * impossible. No orphan pinned to the right.
+ */
 .cardActions {
   display: flex;
-  gap: 14px;
+  gap: 8px;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   margin-top: 12px;
   flex-wrap: wrap;
 }
 
-.directions {
-  font-size: 13px;
-  letter-spacing: 0.05em;
+/*
+ * The two buttons at the right-hand end of the row — "Spot page" and
+ * "Directions in Google Maps" (Rachid, 2026-09-17: "should be ctas? not just
+ * strings?").
+ *
+ * `.btn sm ghost` does the drawing; this is the geometry. **44px**, because §4
+ * sets the floor there and `.btn.sm` alone comes out at about 39.
+ *
+ * **Two ways of not overflowing, in this order.** The row wraps first
+ * (`.cardActions` is `flex-wrap: wrap`), so a button that no longer fits beside
+ * the others drops to a second line at full size rather than shrinking under
+ * the floor. And "Directions in Google Maps" is four words in caps — about
+ * 234px — which is wider than the whole card body at 320px, so the *words* are
+ * allowed to wrap inside the button as the last resort. Centred, because a
+ * two-line caps label ragged-left reads as broken.
+ *
+ * All three controls on this row are ghost. One primary would have to be "Show
+ * on map" or "Spot page", and the two are the same weight of decision — the
+ * design's orange is for the one thing a screen is *for*, and a list card is
+ * not one thing.
+ */
+/*
+ * **Doubled, and under `.cardActions`** — the specificity trap T52 hit on the
+ * spot page, in a new place (orchestrator review, 2026-09-17).
+ *
+ * `additions.css` carries `a.btn, a.btn:hover { display: inline-block }` at one
+ * element and two classes, and a single module class is one point short of it.
+ * So on the *anchor* — Directions, the only one of the three that is a link —
+ * `display: inline-flex` lost, and with it `gap` and `align-items`: the glyph
+ * sat jammed against the label reading "⧉DIRECTIONS". The `<span>` beside it
+ * was fine, which is exactly how a bug like this hides.
+ *
+ * `.cardActions .cardAction.cardAction` is three classes and outranks it. The
+ * rule below is the same shape `.stripPush .action.action` uses on the spot
+ * page, and for the same reason: which of two *tied* rules wins is decided by
+ * stylesheet order, which a CSS module does not get to know (LESSONS §3a).
+ */
+.cardActions .cardAction.cardAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 7px;
+  min-height: 44px;
+  flex: 0 1 auto;
 }
 
-/* Pushes the map button hard left and the page hint and Directions right. */
-.cardActionsPush {
-  flex: 1;
+/*
+ * The card's own hover reaches the decorative "Spot page" button.
+ *
+ * It is a `<span>` under the stretched link, so a pointer is never over it and
+ * `.btn:hover` can never fire — the card is what the rider is actually
+ * pointing at, and it is the card that says so.
+ */
+.cardLinked:hover .pageHint {
+  background: var(--yellow);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--ink);
 }
+
+/* `.cardActionsPush` went with the `flex-end` row it pushed things across
+   (2026-09-17): the three actions read left to right in one order now, so there
+   is nothing to push. */
 
 /*
  * "Show on map" — the explicit control that replaced the whole-card gesture.
@@ -361,14 +573,16 @@
  * already carries the card's real name and a second announcement of an arrow
  * helps nobody.
  */
-.pageHint {
-  font-size: 13px;
-  letter-spacing: 0.05em;
-  color: var(--ink-3);
-}
-
-.card:hover .pageHint {
-  color: var(--orange);
+/*
+ * Nothing of its own left but the transition it needs for the card's hover
+ * above — `.btn` already animates `transform` and `box-shadow`, and this adds
+ * the fill so the yellow arrives with them rather than snapping.
+ */
+.cardActions .pageHint.pageHint {
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s,
+    background 0.12s;
 }
 
 /* The one control under the cards, as wide as they are. */
@@ -481,12 +695,6 @@
 
 .mapName {
   font-size: 14px;
-}
-
-.mapLink {
-  margin-left: auto;
-  font-size: 13px;
-  letter-spacing: 0.05em;
 }
 
 /*
@@ -723,17 +931,36 @@
   display: none;
 }
 
+/*
+ * The external glyph sits beside the word rather than on top of it.
+ *
+ * Doubled and with the element, for the card's reason: this is an `<a class="btn
+ * sm ghost">` and `a.btn`'s `display: inline-block` in `additions.css` outranks
+ * a single module class, so `gap` would have applied to a box that is not a
+ * flex container. The sheet's own `.sheetActions > *` rule loses to it as well,
+ * which is why the display is restated here rather than relied on.
+ */
+.sheetActions a.sheetDirections.sheetDirections {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+/*
+ * The panel's footer, **and the sheet's alone** (Rachid, 2026-09-17).
+ *
+ * It held two paragraphs and showed one at a time: a note about how the map and
+ * the list relate, on a wide screen, and the travel warning in the sheet. The
+ * note is gone, so on a wide screen the strip would be a 3px keyline over 10px
+ * of nothing — hence `display: none` here and `block` in the sheet's media
+ * query, where the warning it now holds is the only thing in it.
+ */
 .mapFoot {
+  display: none;
   padding: 10px 14px;
   border-top: 3px solid var(--ink);
   margin-top: 12px;
-}
-
-.mapNote {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--ink-3);
-  letter-spacing: 0.03em;
 }
 
 /*
@@ -977,6 +1204,20 @@
    * plus the notch inset) — see the `.mapPanel` note below on why it clears the
    * nav rather than covering it.
    *
+   * `--sheet-panel-gap` is that plus the **30px the LOG square is raised** above
+   * the bar's top edge (`shell.module.css`), and only the *panel* uses it. The
+   * panel's bottom edge used to run across the middle of the yellow square
+   * (owner, 2026-09-17: "panel covers half the log button in nav", said of the
+   * sheet next door and true of this one too), and the shared `Sheet` now
+   * stands off by the same 30, so the two sheets on a phone sit on one line.
+   *
+   * **The scrim keeps the smaller gap on purpose.** Dimming only as far as the
+   * panel would leave a bright 30px band of the page — the "check before you
+   * travel" strip, sliced — showing between the sheet and the bar, which is
+   * what the owner saw in the same screenshot. The scrim runs to the top of
+   * `.mobnav`, the LOG square stands in the dimmed band where a rider can still
+   * see it, and the bar itself stays undimmed and usable.
+   *
    * `--sheet-h` is the height, and 78% is the owner's "at least 3/4 of the
    * screen" (Rachid, 2026-09-08, in chat) replacing the 52% it was. The second
    * term is a floor under the *page*, not the sheet: at least 56px of the list
@@ -987,7 +1228,8 @@
     display: flex;
     flex-direction: column;
     --sheet-gap: calc(63px + env(safe-area-inset-bottom));
-    --sheet-h: min(78vh, calc(100vh - 56px - var(--sheet-gap)));
+    --sheet-panel-gap: calc(var(--sheet-gap) + 30px);
+    --sheet-h: min(78vh, calc(100vh - 56px - var(--sheet-panel-gap)));
   }
 
   /*
@@ -1003,7 +1245,7 @@
    */
   @supports (height: 1dvh) {
     .grid {
-      --sheet-h: min(78dvh, calc(100dvh - 56px - var(--sheet-gap)));
+      --sheet-h: min(78dvh, calc(100dvh - 56px - var(--sheet-panel-gap)));
     }
   }
 
@@ -1085,7 +1327,7 @@
     position: fixed;
     left: 8px;
     right: 8px;
-    bottom: var(--sheet-gap);
+    bottom: var(--sheet-panel-gap);
     /*
      * Above the scrim below it, and above the sticky `.topbar` (60) it used to
      * merely tie with — a tie settled by source order is not an ordering, it is
@@ -1096,7 +1338,7 @@
     height: var(--sheet-h);
     min-height: 0;
     margin: 0;
-    transform: translateY(calc(100% + var(--sheet-gap)));
+    transform: translateY(calc(100% + var(--sheet-panel-gap)));
     transition: transform 180ms ease-out;
   }
 
@@ -1161,15 +1403,6 @@
     min-height: 0;
   }
 
-  /*
-   * Close takes the header's right-hand end, and "Open in Maps" gives up the
-   * `margin-left: auto` it holds on desktop — two auto margins in one flex row
-   * split the space between them and would leave the link stranded mid-header.
-   */
-  .mapLink {
-    margin-left: 0;
-  }
-
   .mapClose {
     display: block;
     margin-left: auto;
@@ -1183,11 +1416,8 @@
    * this is a line to be read, and it is aimed at children.
    */
   .mapFoot {
+    display: block;
     background: var(--yellow);
-  }
-
-  .mapNote {
-    display: none;
   }
 
   .mapWarn {
@@ -1204,7 +1434,7 @@
    * is put back when they close it.
    */
   .card {
-    scroll-margin-bottom: calc(var(--sheet-h) + var(--sheet-gap) + 12px);
+    scroll-margin-bottom: calc(var(--sheet-h) + var(--sheet-panel-gap) + 12px);
   }
 
   /*

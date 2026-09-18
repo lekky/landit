@@ -1,6 +1,8 @@
 import { SPORT_IDS } from '@landit/core';
 import { expect, test } from '@playwright/test';
 
+import { finishOnboarding } from './support/onboarding';
+
 /**
  * The app shell, driven through `/design/shell`.
  *
@@ -10,6 +12,20 @@ import { expect, test } from '@playwright/test';
  */
 
 const SHELL = '/design/shell';
+
+/**
+ * A hex as `rgb(r, g, b)`, which is how a browser reports a colour.
+ *
+ * The fixed example this comment used to give was scooter's, and it was a stale
+ * one: the sport colours were repainted on `main` before the rethink merged, so
+ * the number named a colour nothing in the product has. It is a hex in and an
+ * `rgb()` out — the callers pass `SPORTS[id].color`, which is where the truth is.
+ */
+function hexToRgb(hex: string): string {
+  const value = hex.trim().replace('#', '');
+  const n = parseInt(value, 16);
+  return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+}
 
 test('the top bar carries the nav above 860px and hands over to the bottom bar below it', async ({
   page,
@@ -41,6 +57,14 @@ test('the top bar never widens the page, at any width the nav is on show', async
    * still untouched. The assertion is the document's own scroll width, which is
    * the thing a rider would actually see go wrong, rather than any of the
    * numbers the fix happens to be made of.
+   *
+   * **375 and 960 and 1280 were added by the app shell rethink (T45).** The bar
+   * changed shape at both ends: the nav went from nine items to four, and the
+   * right-hand end went from a streak chip and an avatar to a sport chip, a Log
+   * button, a bell and an avatar. Four items is far more room than nine, but
+   * the right-hand group is wider than it was, and 960 is the width the spec
+   * measured the four-item nav against on the canvas. 375 is the phone, where
+   * `.nav` is hidden and the right-hand group is the whole test.
    */
   await page.goto(SHELL);
 
@@ -50,7 +74,7 @@ test('the top bar never widens the page, at any width the nav is on show', async
   // `scrollWidth` / `clientWidth` come with it.
   const root = page.locator('html');
 
-  for (const width of [861, 900, 934, 1040, 1041, 1440]) {
+  for (const width of [375, 861, 900, 934, 960, 1040, 1041, 1280, 1440]) {
     await page.setViewportSize({ width, height: 800 });
 
     await expect
@@ -58,6 +82,10 @@ test('the top bar never widens the page, at any width the nav is on show', async
         message: `the document scrolls sideways at ${width}px`,
       })
       .toBe(0);
+
+    // Below 861px `.nav` is `display: none` and `MobileNav` has the job, so the
+    // three checks below are about the widths where the nav is actually drawn.
+    if (width < 861) continue;
 
     const nav = page.getByRole('navigation', { name: 'Main', exact: true });
 
@@ -67,9 +95,9 @@ test('the top bar never widens the page, at any width the nav is on show', async
      * `.nav` carries `min-width: 0` and its own `overflow-x` as a safety net, so
      * the check above passes on that alone — it did, with the tightening
      * removed, which is exactly what a net is for and exactly why it cannot be
-     * the whole assertion. This is the half that proves all nine items really
-     * fit: a nav that scrolls has items nobody can see, and Playwright counts
-     * one scrolled out of view as visible.
+     * the whole assertion. This is the half that proves the items really fit: a
+     * nav that scrolls has items nobody can see, and Playwright counts one
+     * scrolled out of view as visible.
      */
     await expect
       .poll(() => nav.evaluate((el) => el.scrollWidth - el.clientWidth), {
@@ -78,60 +106,368 @@ test('the top bar never widens the page, at any width the nav is on show', async
       .toBe(0);
 
     // Fitting by dropping items would pass both checks and fail the point of
-    // them: all nine stay on show, only closer together.
-    await expect(nav.locator('> *'), `nine nav items at ${width}px`).toHaveCount(9);
+    // them: all four groups stay on show, only closer together.
+    await expect(nav.locator('> *'), `four nav groups at ${width}px`).toHaveCount(4);
   }
 });
 
-test('the bottom bar is five sections, in the order a phone wants them', async ({ page }) => {
+test('the bottom bar is four groups and a LOG cell, in the order D1 sets', async ({ page }) => {
   /*
-   * Five, because `.mobnav` is `repeat(5, 1fr)` and the design specifies five
-   * (handoff, Responsive). But five *sections*, not the first five entries of
-   * the top bar — which is what this used to assert, and what left Challenge,
-   * Events, Spots and Plans with no navigation entry at all below 861px.
+   * Five cells, because `.mobnav` is `repeat(5, 1fr)` and the design specifies
+   * five (handoff, Responsive) — but the middle one is not a destination.
    *
-   * The order is a phone's: Progress sits in the middle cell, the easiest
-   * reach one-handed (Rachid, 2026-09-14, in chat), with What's on beside Crew.
+   * **Home · Tricks · LOG · Find · Crew** (D1, Rachid, 2026-09-15, in chat,
+   * choosing shape A from three). The bar used to be five *sections*, two of
+   * which folded a second screen behind a drawer; before that it was the first
+   * five entries of a nine-item top bar, which left Challenge, Events, Spots
+   * and Plans with no navigation entry at all below 861px. That is the defect
+   * this test exists to stop coming back, and the four groups plus the account
+   * menu are what answers it now — `apps/web/src/lib/nav.test.ts` is where the
+   * whole promise is checked, destination by destination.
    */
   await page.setViewportSize({ width: 800, height: 800 });
   await page.goto(SHELL);
 
-  /*
-   * `> a`, not `> *`: the bar's own children are the five cells, but the
-   * section drawer is a sixth child of the same element — absolutely positioned
-   * against `.mobnav`, which is what sits it exactly on the bar's top edge
-   * without measuring a height that moves with the safe-area inset. It is not a
-   * cell, and counting it as one would make this test read as a regression. A
-   * sixth *link* still fails, which is what this test is actually guarding.
-   */
-  const items = page.getByRole('navigation', { name: 'Main, compact', exact: true }).locator('> a');
-  await expect(items).toHaveCount(5);
-  await expect(items).toHaveText([/Home/, /Tricks/, /Progress/, /What’s on/, /Crew/]);
+  const bar = page.getByRole('navigation', { name: 'Main, compact', exact: true });
+
+  // Five cells: four links and the LOG button, which goes nowhere.
+  await expect(bar.locator('> *')).toHaveCount(5);
+
+  const links = bar.locator('> a');
+  await expect(links).toHaveCount(4);
+  await expect(links).toHaveText([/Home/, /Tricks/, /Find/, /Crew/]);
 
   for (const [name, href] of [
     ['Home', '/home'],
     ['Tricks', '/library'],
-    /*
-     * `/progress`, still — **on this page**. The Progress cell lands on
-     * Sessions for a rider the preview covers (2026-09-13), but that is decided
-     * in `app/(app)/layout.tsx` from the rider record and handed to the bars.
-     * `/design/shell` renders `AppShell` directly with a sample rider and no
-     * gate of any kind, so what it draws is the sessions-off shape — which is
-     * the right thing for a reference sheet to draw, and the reason this line
-     * did not move with the change. `apps/web/src/lib/nav.test.ts` holds both
-     * shapes; `e2e/progress.spec.ts` walks the real one.
-     */
-    ['Progress', '/progress'],
-    ['What’s on', '/spots'],
+    // The Find group's own address, which is the 'For you' summary (T48).
+    ['Find', '/find'],
     ['Crew', '/crew'],
   ] as const) {
-    await expect(
-      page.getByRole('navigation', { name: 'Main, compact', exact: true }).getByRole('link', {
-        name,
-        exact: true,
-      }),
-    ).toHaveAttribute('href', href);
+    await expect(bar.getByRole('link', { name, exact: true })).toHaveAttribute('href', href);
   }
+
+  // LOG is the third cell, and it is a button: it opens a sheet rather than
+  // going anywhere, which is why it has no `href` to check.
+  const log = bar.getByRole('button', { name: 'Log something' });
+  await expect(log).toBeVisible();
+  await expect(log).toHaveAttribute('aria-expanded', 'false');
+
+  const order = await bar
+    .locator('> *')
+    .evaluateAll((nodes) => nodes.map((n) => n.tagName.toLowerCase()));
+  expect(order, 'LOG is not the middle cell').toEqual(['a', 'a', 'button', 'a', 'a']);
+});
+
+test('the LOG cell opens the sheet, and Escape closes it', async ({ page }) => {
+  /*
+   * The one front door onto logging (D3). The ways of recording a ride were in
+   * different places — the streak card, a trick page's stage picker, and the
+   * session form behind Progress — and a rider had to know which screen held
+   * which.
+   *
+   * "Log a session" is drawn only for a rider the preview covers (T41), and
+   * `/design/shell` renders `AppShell` with no gate at all, so what it shows is
+   * the sessions-off shape: two rows.
+   *
+   * **"Add a clip link" is asserted absent, not merely dropped from the list**
+   * (owner, 2026-09-17, amending D3). It opened the trick picker only to land
+   * on the video field the trick page already carries, and a row that comes
+   * back by accident is exactly what this line is here to catch. Clips are
+   * unchanged and still added on the trick page.
+   */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(SHELL);
+
+  const log = page
+    .getByRole('navigation', { name: 'Main, compact', exact: true })
+    .getByRole('button', { name: 'Log something' });
+  await log.click();
+
+  const sheet = page.getByRole('dialog', { name: 'Log something' });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole('button', { name: /I rode today/ })).toBeVisible();
+  await expect(sheet.getByRole('button', { name: /Log a trick/ })).toBeVisible();
+  await expect(sheet.getByRole('button', { name: /Add a clip link/ })).toHaveCount(0);
+  // The cell says it is holding something open. What the cross means, and why
+  // it is not a second way out, is the test further down.
+  await expect(log).toHaveAttribute('aria-expanded', 'true');
+
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+});
+
+test('the sport chip is the switcher, and the bar takes the sport colour', async ({ page }) => {
+  /*
+   * D5: the sport is chosen once, in the top bar, and the bar's bottom rule
+   * carries the answer. Six screens used to ask the same question with their
+   * own tab row, all writing to the same global state and none of them saying
+   * so. The rows go screen by screen through T46 and T50; the chip is here.
+   */
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(SHELL);
+
+  const chip = page.getByRole('button', { name: /^Riding: .+\. Switch sport\.$/ });
+  await expect(chip).toBeVisible();
+
+  /*
+   * The rule is a custom property set on `.topbar` from `useSport()`, which
+   * `additions.css` reads with the old ink as its fallback. So the inline
+   * property is what says the component decided, and `toHaveCSS` below is what
+   * says the stylesheet acted on it — the first alone would pass on a variable
+   * nothing read, and the second alone cannot tell a colour change from a
+   * repaint.
+   */
+  const rule = () =>
+    page.locator('.topbar').evaluate((el) => el.style.getPropertyValue('--sport-rule'));
+  const ruleBefore = await rule();
+  expect(ruleBefore, 'the top bar sets no sport colour at all').not.toBe('');
+  await expect(page.locator('.topbar')).toHaveCSS('border-bottom-color', hexToRgb(ruleBefore));
+
+  await chip.click();
+  const menu = page.getByRole('group', { name: 'Switch sport' });
+  await expect(menu).toBeVisible();
+  // One row per sport the rider tracks. `/design/shell` passes no `sports`, so
+  // the provider offers every sport there is.
+  await expect(menu.getByRole('button')).toHaveCount(SPORT_IDS.length);
+
+  await menu.getByRole('button').nth(1).click();
+  await expect(menu).toBeHidden();
+
+  // The rule under the bar changed with the chip, in both places.
+  await expect.poll(rule).not.toBe(ruleBefore);
+  await expect(page.locator('.topbar')).toHaveCSS('border-bottom-color', hexToRgb(await rule()));
+});
+
+test('the bell is a link at both widths, and opens a panel on a desktop', async ({ page }) => {
+  /*
+   * D4. T45 builds the control and the slot its count sits in; T47 builds what
+   * is behind it, so there is no badge yet and the panel says so in a line.
+   *
+   * **A link at both widths**, which is the half worth a test. It was a `<a>`
+   * on the phone branch and a `<button>` on the desktop one — and the width is
+   * only known in the browser, so every request was served the button and the
+   * phone swapped it after hydration. Before that, or if hydration failed, the
+   * phone's only way into a real page was a control that did nothing.
+   */
+  const bell = page.getByRole('link', { name: 'What’s new' });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(SHELL);
+  await expect(bell).toHaveAttribute('href', '/whats-new');
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(bell).toHaveAttribute('href', '/whats-new');
+
+  // On a desktop the press is taken back and the dropdown opens instead.
+  await bell.click();
+  await expect(page).toHaveURL(new RegExp(`${SHELL}$`));
+  await expect(page.getByRole('group', { name: 'What’s new' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('group', { name: 'What’s new' })).toBeHidden();
+
+  // And tabbing out of it closes it, which is the one dismissal a keyboard
+  // rider had no way to reach.
+  await bell.click();
+  await expect(page.getByRole('group', { name: 'What’s new' })).toBeVisible();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('group', { name: 'What’s new' })).toBeHidden();
+});
+
+test('the sport chip keeps its name at every width, down to 320px', async ({ page }) => {
+  /*
+   * D5 is "a chip that carries the sport's icon *and* name", and the first cut
+   * of this hid the name below 520px to buy room — on the one device the whole
+   * rethink is for. A rider who has never opened the sheet was left decoding a
+   * 20px glyph, which is the thing the decision was taken to end.
+   *
+   * 320 is the narrowest phone anyone still uses and the width where the bar
+   * has least to give: the wordmark, the chip with its word, the bell and the
+   * avatar. Three sports, because `/design/shell` passes no `sports` and the
+   * provider therefore offers every one there is — the widest the short names
+   * get.
+   */
+  for (const width of [430, 390, 375, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto(SHELL);
+
+    const chip = page.getByRole('button', { name: /^Riding: .+\. Switch sport\.$/ });
+    const text = (await chip.innerText()).trim();
+    expect(text, `the chip has no name at ${width}px`).not.toBe('');
+
+    // And the bar it sits in does not push the document sideways to hold it.
+    await expect
+      .poll(() => page.locator('html').evaluate((el) => el.scrollWidth - el.clientWidth), {
+        message: `the document scrolls sideways at ${width}px`,
+      })
+      .toBe(0);
+  }
+});
+
+test('on a phone, the chip and the bell are 44px targets around 34px of paint', async ({
+  page,
+}) => {
+  /*
+   * §3.1 draws both at 34px and §4 puts a 44px floor under anything tappable,
+   * so **both numbers are asserted**. Height alone is not enough, and that is
+   * not a hypothetical: the first fix grew the target by padding an element
+   * that has a fill, a background paints the padding box, and the chip became a
+   * 48px orange slab beside a 34px avatar. A test that only asked "is it 44 or
+   * more" passed all the way through that, and would pass at 80.
+   *
+   * The paint is the element's own border box; the target is the box plus the
+   * transparent `::after` that reaches 5px past it on every side, which is what
+   * `boundingBox` on a Playwright locator does *not* include — so the target is
+   * measured from the pseudo-element's own rect.
+   */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(SHELL);
+
+  /*
+   * A string, not a function: this project's e2e tsconfig has no DOM lib, so
+   * `window` and `getComputedStyle` are not names here (the same reason the
+   * iOS-zoom test further down plants its fixture as a string).
+   */
+  const hitArea = async (selector: string) =>
+    (await page.evaluate(`(() => {
+      const after = getComputedStyle(document.querySelector('${selector}'), '::after');
+      return { top: after.top, bottom: after.bottom, content: after.content };
+    })()`)) as { top: string; bottom: string; content: string };
+
+  for (const [what, selector, locator] of [
+    ['the sport chip', '[aria-label^="Riding: "]', page.getByRole('button', { name: /^Riding: / })],
+    ['the bell', '[aria-label^="What’s new"]', page.getByRole('link', { name: /^What’s new/ })],
+  ] as const) {
+    const paint = (await locator.boundingBox())!;
+    expect(Math.round(paint.height), `${what} is not painted at 34px`).toBe(34);
+
+    // `inset: -5px` of nothing on each side, so the target is the paint plus 10.
+    const target = await hitArea(selector);
+    expect(target.content, `${what} has no hit area`).not.toBe('none');
+    expect(target.top, `${what}'s hit area does not reach past its paint`).toBe('-5px');
+    expect(target.bottom).toBe('-5px');
+    expect(
+      Math.round(paint.height) + 10,
+      `${what} is under 44px on a phone`,
+    ).toBeGreaterThanOrEqual(44);
+  }
+
+  // The avatar is the precedent the other two follow, and it is transparent, so
+  // its own box really is both.
+  const avatar = (await page
+    .getByRole('button', { name: 'Your account and settings' })
+    .boundingBox())!;
+  expect(Math.round(avatar.height), 'the avatar is under 44px on a phone').toBeGreaterThanOrEqual(
+    44,
+  );
+
+  // On a desktop nothing is padded and all three are the drawn size.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  for (const [what, locator] of [
+    ['the sport chip', page.getByRole('button', { name: /^Riding: / })],
+    ['the bell', page.getByRole('link', { name: /^What’s new/ })],
+  ] as const) {
+    const box = (await locator.boundingBox())!;
+    expect(Math.round(box.height), `${what} is not 34px on a desktop`).toBe(34);
+  }
+});
+
+test('signed out, the LOG cell is a link to sign in rather than a sheet', async ({ page }) => {
+  /*
+   * The bar is drawn for a visitor too — `/spots`, `/events` and `/library` all
+   * read signed out — and the raised yellow square is the loudest control on
+   * the page. As a button it opened a sheet whose every option dead-ended: "I
+   * rode today" bounced to `/signin` with no explanation, and both trick
+   * pickers came back empty because the action answers a session-less call with
+   * nothing.
+   *
+   * `/design/shell?rider=0` draws the same shell with nobody signed in, which
+   * is the only way to see it without signing out of a seeded rider.
+   */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${SHELL}?rider=0`);
+
+  const bar = page.getByRole('navigation', { name: 'Main, compact', exact: true });
+
+  // Still five cells: the bar does not change shape with the rider.
+  await expect(bar.locator('> *')).toHaveCount(5);
+  await expect(bar.getByRole('button', { name: 'Log something' })).toHaveCount(0);
+
+  const log = bar.getByRole('link', { name: 'Sign in to log something' });
+  await expect(log).toHaveAttribute('href', '/signin');
+
+  // And it is the middle cell, wearing the same square.
+  const order = await bar
+    .locator('> *')
+    .evaluateAll((nodes) => nodes.map((n) => n.tagName.toLowerCase()));
+  expect(order).toEqual(['a', 'a', 'a', 'a', 'a']);
+
+  await log.click();
+  await page.waitForURL('**/signin');
+});
+
+test('on a phone, the sheet stops at the top of the bar, so the cross is visible', async ({
+  page,
+}) => {
+  /*
+   * §4 asks the LOG plus to turn into a cross "so the cell reads as 'close'
+   * too". A sheet that runs to the bottom edge makes that undeliverable: the
+   * rotation happens behind the sheet and `inertOutside` puts the bar out of
+   * reach. So the panel ends where `.mobnav` begins — while the scrim still
+   * covers the page, which is what keeps a tap anywhere else a dismissal.
+   */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(SHELL);
+
+  const bar = page.getByRole('navigation', { name: 'Main, compact', exact: true });
+  const log = bar.getByRole('button', { name: 'Log something' });
+  await log.click();
+
+  const sheet = page.getByRole('dialog', { name: 'Log something' });
+  await expect(sheet).toBeVisible();
+
+  const barTop = (await bar.boundingBox())!.y;
+  await expect
+    .poll(
+      async () => {
+        const box = await sheet.boundingBox();
+        return box ? Math.round(box.y + box.height) : Infinity;
+      },
+      { message: 'the sheet covers the bottom bar' },
+    )
+    .toBeLessThanOrEqual(Math.round(barTop) + 1);
+
+  /*
+   * The scrim covers the page and stops where the bar starts.
+   *
+   * Everything a rider can see except the bar is under it, so the page behind
+   * is dimmed and a tap anywhere on it is still a dismissal — and the cross is
+   * not behind a transparent sheet of glass, which is the same defect one layer
+   * further out.
+   */
+  const scrim = (await page.locator('.sheet-scrim').boundingBox())!;
+  expect(Math.round(scrim.y)).toBe(0);
+  expect(Math.round(scrim.y + scrim.height)).toBe(Math.round(barTop));
+
+  /*
+   * The cross is visible, and it is a state rather than a second way out.
+   *
+   * A sheet is `aria-modal`, so `inertOutside` makes everything outside the
+   * dialog inert — which is the promise `aria-modal` makes — and an inert
+   * subtree takes no pointer events. So the cell shows that the sheet is open
+   * and the dialog owns the dismissals: Escape, the scrim, a drag down.
+   */
+  const cell = bar.getByRole('button', { name: 'Log something' });
+  await expect(cell).toBeVisible();
+  await expect(cell).toHaveAttribute('aria-expanded', 'true');
+  await expect(cell.locator('svg')).toHaveCSS(
+    'transform',
+    'matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)',
+  );
+
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+  await expect(cell).toHaveAttribute('aria-expanded', 'false');
 });
 
 test('no bottom-bar label wraps, down to the narrowest phone anyone still uses', async ({
@@ -139,22 +475,22 @@ test('no bottom-bar label wraps, down to the narrowest phone anyone still uses',
 }) => {
   /*
    * A wrapped label takes the row's height with it and pushes the icons out of
-   * line. "What's on" is the longest of the five and the one that made this
-   * worth measuring rather than eyeballing: about 58px of Barlow Condensed
-   * against a 71px cell at 375px, and about 60px of cell at 320px.
-   *
-   * Measured as the label's own line count rather than as a width, because the
-   * width the arithmetic predicts is the width in the font that loaded, and a
-   * fallback font is exactly the case this is a net for.
+   * line. "What's on" was the longest of the old five and the one that made
+   * this worth measuring rather than eyeballing: about 58px of Barlow Condensed
+   * against a 71px cell at 375px, and about 60px of cell at 320px. The four
+   * labels the rethink leaves — Home, Tricks, Find, Crew — are all shorter, so
+   * this has gone from a squeeze to a net. It stays a net: the numbers the
+   * arithmetic predicts are the numbers in the font that loaded, and a fallback
+   * font is exactly the case it is here for.
    */
   for (const width of [430, 375, 320]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto(SHELL);
 
-    // `> a` for the reason the five-cell test above gives: the drawer is a
-    // sibling of the cells, not one of them. This test is also what proves the
-    // caret on a folded cell costs no height — it is absolutely positioned
-    // precisely so that two cells of five cannot make the whole bar taller.
+    // `> a`, so the four link cells are compared with each other. The LOG cell
+    // is deliberately not one of them: its 58px square is raised 30px above the
+    // bar, so its box is taller by design and averaging it in would turn the
+    // design into a failure.
     const items = page
       .getByRole('navigation', { name: 'Main, compact', exact: true })
       .locator('> a');
@@ -287,31 +623,24 @@ test('sign out is the last row of the menu, for staff and riders alike', async (
   }
 });
 
-test('every nav item whose screen exists is a real link', async ({ page }) => {
+test('every nav group is a real link, at both widths', async ({ page }) => {
   await page.goto(SHELL);
 
   // The nav's half of `landing.spec.ts`'s "a built screen is a real link".
   // Wave 5's four sessions each shipped a screen reachable by URL and left
   // `components/shell/nav.ts` alone, so that four concurrent rebases could not
   // drop a sibling's line from the one file that decides whether a screen has a
-  // way in. `chore-wire-wave5-links` wired all five afterwards; this is what
-  // stops one going missing.
+  // way in. That is still what this guards; the list is four now rather than
+  // nine, and the five screens that lost a cell are reached from Home, the
+  // library and the avatar instead (`apps/web/src/lib/nav.test.ts`).
   const nav = page.getByRole('navigation', { name: 'Main', exact: true });
   for (const [name, href] of [
     ['Home', '/home'],
     ['Tricks', '/library'],
-    // `/progress` on this page for the reason the compact bar's list gives.
-    ['Progress', '/progress'],
-    ['Stickers', '/stickers'],
+    // The Find group's own address — the 'For you' summary (T48), not a label
+    // standing in for a screen.
+    ['Find', '/find'],
     ['Crew', '/crew'],
-    ['Challenge', '/challenge'],
-    ['Events', '/events'],
-    ['Spots', '/spots'],
-    // T15's, and the last one. Every item in `components/shell/nav.ts` is now a
-    // real link, so the "a screen that is not built yet is a label" half of this
-    // rule no longer has an exemplar in the nav — it still has one in
-    // `landing.spec.ts` while any footer entry is unbuilt.
-    ['Plans', '/plans'],
   ] as const) {
     await expect(nav.getByRole('link', { name, exact: true })).toHaveAttribute('href', href);
   }
@@ -484,6 +813,71 @@ test('on a phone, small buttons and sport tabs are 44px tall; on a desktop they 
   // the 36px `.btn.sm` the handoff drew.
   await page.setViewportSize({ width: 1200, height: 800 });
   expect((await small.boundingBox())!.height).toBeLessThan(44);
+});
+
+test('the back link is a 44px target as wide as its words, not as wide as the page', async ({
+  page,
+}) => {
+  /*
+   * `BackLink` is a shell component (§2.3) and T46 is the first task to put it
+   * on a screen, which is when both halves of this were measured for the first
+   * time.
+   *
+   * **Height.** 12px of padding round a 16px icon line is 40, and §4's floor is
+   * 44 — the only element in `<main>` under it on any of the four screens the
+   * link is on.
+   *
+   * **Width.** `display: inline-flex` inside a stretching flex column resolves
+   * to the full column width, so at 390px the link measured 362px wide: about
+   * 300px of blank paper beside "← HOME" that navigated away when a thumb
+   * landed on it. That is the half a height-only assertion would sail past, so
+   * it is asserted against the words rather than against a number — a back link
+   * should be as big as the thing it says and no bigger.
+   *
+   * Measured on a real screen rather than on `/design/shell`, because the
+   * stretching is the *container's* doing: a fixture would prove the component
+   * and miss the caller.
+   */
+  await page.goto('/signup');
+  await page.getByLabel('Your name').fill('Backlink Rider');
+  await page
+    .getByLabel('Email')
+    .fill(`e2e-back-${Math.random().toString(36).slice(2, 10)}@landit.invalid`);
+  await page.getByLabel('Password').fill('a-long-local-test-password');
+  await page.getByLabel('Where you live').selectOption('GB');
+  const now = new Date();
+  await page
+    .getByLabel('Date of birth')
+    .fill(
+      new Date(Date.UTC(now.getUTCFullYear() - 24, now.getUTCMonth(), now.getUTCDate()))
+        .toISOString()
+        .slice(0, 10),
+    );
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await page.waitForURL('**/onboarding');
+  await finishOnboarding(page);
+  await page.waitForURL('**/home');
+
+  await page.setViewportSize(PHONE);
+
+  for (const path of ['/progress', '/stickers', '/challenge']) {
+    await page.goto(path);
+    const back = page.getByRole('main').getByRole('link', { name: 'Home' }).first();
+    const box = (await back.boundingBox())!;
+
+    expect(Math.round(box.height), `the back link is under 44px on ${path}`).toBeGreaterThanOrEqual(
+      44,
+    );
+
+    // Its words, laid out: the link may be a little wider for its padding, but
+    // it must not have swallowed the column.
+    const words = await back.evaluate((el) => {
+      const range = el.ownerDocument.createRange();
+      range.selectNodeContents(el);
+      return range.getBoundingClientRect().width;
+    });
+    expect(box.width, `the back link stretches the column on ${path}`).toBeLessThan(words + 40);
+  }
 });
 
 test('on a phone, no field is small enough for iOS to zoom the page into it', async ({ page }) => {

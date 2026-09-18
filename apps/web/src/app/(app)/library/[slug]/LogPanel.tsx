@@ -8,7 +8,7 @@ import {
   type VideoLinkAllowance,
 } from '@landit/core';
 import { Button, Icon, Modal, Panel, foregroundFor } from '@landit/ui-web';
-import { useOptimistic, useState, useTransition } from 'react';
+import { useEffect, useOptimistic, useState, useTransition } from 'react';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { runAction } from '@/lib/runAction';
@@ -109,6 +109,28 @@ export function LogPanel({
 }) {
   const { toast } = useToast();
   const [tab, setTab] = useState<Tab>('notes');
+
+  /*
+   * **"Add a clip link" lands on the videos tab** (§3.5 item 4: "…then the
+   * existing video-link field on the trick page"; independent review of
+   * 2026-09-17, S4).
+   *
+   * The Log sheet's fourth action pushes `/library/<trick>#clips`, `Accordion`
+   * opens the row the fragment names, and until now the rider arrived at the
+   * notes form with the field they pressed for one unmarked tap away. The hash
+   * is read here rather than threaded through as a prop because it is the same
+   * signal the row itself answers to, and it arrives the same two ways: on the
+   * load, and on a `hashchange` when the sheet is opened from the page it lands
+   * on. Notes stay the default for every other arrival.
+   */
+  useEffect(() => {
+    const toVideos = () => {
+      if (window.location.hash === '#clips') setTab('videos');
+    };
+    toVideos();
+    window.addEventListener('hashchange', toVideos);
+    return () => window.removeEventListener('hashchange', toVideos);
+  }, []);
   const [draft, setDraft] = useState('');
   const [editing, setEditing] = useState<{ id: string; draft: string } | null>(null);
   const [confirming, setConfirming] = useState<NoteView | null>(null);
@@ -200,7 +222,11 @@ export function LogPanel({
     <Panel flat className={styles.panel}>
       <div className={styles.head}>
         <div className={styles.headRow}>
-          <h2 className={`d ${styles.title}`}>Your log</h2>
+          {/* `h3` since T49: this panel is inside the "Your history, notes and
+              videos" row, whose own title is the `h2`. Two `h2`s one inside the
+              other read as two sections where there is one (independent review
+              of 2026-09-17, N3). */}
+          <h3 className={`d ${styles.title}`}>Your log</h3>
           <span className={`lab ${styles.private}`}>
             <Icon name="lock" size={12} strokeWidth={2.6} />
             Only you can see this

@@ -1,27 +1,12 @@
 /*
  * The trick page and its locked twin (screenshots 09 and 10).
  *
- * The two share their furniture — the back link, the header band, the panel
- * that holds them — and differ in exactly the ways the design says they do: the
- * locked header is a hatch instead of the category colour, and its name is
- * `--ink-3` instead of white on a 3px ink shadow.
+ * The two share their furniture — the header band and the panel that holds them
+ * — and differ in exactly the ways the design says they do: the locked header
+ * is a hatch instead of the category colour, and its name is `--ink-3` instead
+ * of white on a 3px ink shadow. The back link is `BackLink`'s, in the shell's
+ * module, at §4's 44px like every other screen's.
  */
-
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: none;
-  border: none;
-  padding: 0;
-  margin-bottom: 14px;
-  color: var(--ink-3);
-  font-size: 13.5px;
-}
-
-.back:hover {
-  color: var(--ink);
-}
 
 /*
  * `--badge-w` is declared on the card rather than on the hero because three
@@ -137,6 +122,27 @@
 
 /* ------------------------------------------------------------- unlocked -- */
 
+/*
+ * `#ladder` (§3.5): the wrapper the Log sheet's "Log a trick" lands on. It
+ * draws nothing — the band inside it carries every pixel — and exists only so
+ * the anchor is there for a visitor as well as a rider, and so the scroll stops
+ * clear of the sticky top bar rather than under it.
+ */
+.ladderAnchor {
+  scroll-margin-top: 76px;
+}
+
+/* "Worth a grown-up knowing", full width under the band at both widths. */
+.guardianRow {
+  padding: 14px 22px 0;
+}
+
+@media (max-width: 820px) {
+  .guardianRow {
+    padding: 14px 14px 0;
+  }
+}
+
 .grid {
   padding: 22px;
   display: grid;
@@ -154,6 +160,132 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+/* --------------------------------------------------- sections as rows (T49) -- */
+
+/*
+ * Every section of this page is an `Accordion` (§3.8), and this is the two
+ * faces of one: a disclosure row on a phone, and above 820px the plain
+ * diamond-and-rule heading the 2026-09-07 pack draws, with its panel always
+ * under it.
+ *
+ * `plainAbove={820}` on the component is what makes the *semantics* right past
+ * that width — the row is held open and stops being a control. These rules are
+ * what make the *paint* right, including for the one frame before the client
+ * has a width to read: the server renders a shut `details`, the UA hides its
+ * contents, and without `::details-content` here a desktop would meet a page of
+ * headings with nothing under them and then have it fill in.
+ */
+.section {
+  scroll-margin-top: 76px;
+}
+
+/* On a phone the rows are their own boxes and want less air than two columns
+   of panels do. */
+@media (max-width: 820px) {
+  .grid {
+    gap: 10px;
+  }
+
+  /* The gap between a row and the next is the list's, not the section's. */
+  .section :global(.accordion-inner) > * + * {
+    margin-top: 14px;
+  }
+}
+
+@media (min-width: 821px) {
+  .section {
+    border: 0;
+    box-shadow: none;
+    background: none;
+  }
+
+  .section::details-content {
+    content-visibility: visible;
+  }
+
+  .section :global(.accordion-head) {
+    padding: 0;
+    min-height: 0;
+    gap: 10px;
+    cursor: default;
+  }
+
+  /* The diamond and the rule of `.sectionHead`, which this replaces. */
+  .section :global(.accordion-head)::before {
+    content: '';
+    width: 13px;
+    height: 13px;
+    border: 2.5px solid var(--ink);
+    background: var(--acc-accent);
+    transform: rotate(45deg);
+    flex: none;
+    box-sizing: border-box;
+  }
+
+  .section :global(.accordion-head)::after {
+    content: '';
+    flex: 1;
+    min-width: 24px;
+    height: 3px;
+    background: var(--ink);
+  }
+
+  .section :global(.accordion-title) {
+    flex: none;
+    font-family: var(--fd);
+    font-weight: 400;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+  }
+
+  /* The sub-line is the closed row's hint — a count, a reassurance. With the
+     panel open beside it, it is the same fact twice. */
+  .section :global(.accordion-sub) {
+    display: none;
+  }
+
+  .section :global(.accordion-chev) {
+    display: none;
+  }
+
+  .section :global(.accordion-body) {
+    grid-template-rows: 1fr;
+  }
+
+  .section :global(.accordion-inner) {
+    padding: 10px 0 0;
+    overflow: visible;
+  }
+
+  .section :global(.accordion-inner) > * + * {
+    margin-top: 16px;
+  }
+}
+
+/* The rider's own three panels, inside the one row §3.8 gives them. */
+.mine {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/*
+ * Three of the panels came with a title of their own, from the days when they
+ * sat in the right-hand column with nothing above them saying what they were.
+ * The row's own name is that now, at both widths, so the panel's copy of it is
+ * the same words twice, a line apart.
+ *
+ * Hidden rather than deleted: `CrossSportPanel`'s list is `aria-labelledby` its
+ * title, and a reference to a hidden element still names it — removing the
+ * element would leave a list of other sports called nothing.
+ */
+.ownTitle .panelTitle,
+.ownTitle .practiseLabel {
+  display: none;
 }
 
 /* ------------------------------------------------------- the award hero -- */
@@ -176,14 +308,17 @@
  * (`/stickers/tic-tac.png`), so the slot takes the file and the CSS carries
  * only the drop shadow and the mark.
  */
+/*
+ * T49 took the overhang off. The badge hung a third of itself into the band
+ * below, which is what the `-0.36` margin and the `z-index` were for and what
+ * the band's 158px left inset cleared; since D7 the badge is in a card of its
+ * own in the row under the hero, and a card whose contents hang out of the
+ * bottom of it is a card with a hole in its keyline.
+ */
 .badge {
   position: relative;
   flex: none;
   width: var(--badge-w);
-  /* Overhangs the band below. Above it in the stack, or the band's own
-     background would cover the bottom third of the art. */
-  margin-bottom: calc(var(--badge-w) * -0.36);
-  z-index: 2;
 }
 
 .badgeArt {
@@ -318,36 +453,79 @@
 }
 
 /*
- * The award line under the trick's name: "The award · Land the Tic Tac".
+ * The one-line lowdown under the trick's name (§3.8).
  *
- * `cond` is staff copy, so a retune reaches this line the way it reaches the
- * wall (LESSONS §4) — the same reason T25 rendered the condition rather than
- * the award's name, which every trick award repeats from its trick.
+ * It stands where "The award · Land the Tic Tac" used to. That line moved to
+ * the sticker card under the hero when T49 built one, and went with the card
+ * when the owner dropped it (2026-09-17) — so this sentence about the trick is
+ * what the hero says under the name, and the badge's own art and its LANDED or
+ * NOT YET mark are what it says about the award.
+ *
+ * `--on-light` rather than ink: the hero is the category colour, and every one
+ * of them is a mid-tone bright the design pairs with ink. 44ch so the sentence
+ * wraps to two lines at the most on a wide screen rather than running the width
+ * of the hero.
  */
-.awardLine {
-  font-size: 14px;
+.heroTeaser {
+  margin: 8px 0 0;
+  font-size: 15px;
+  line-height: 1.35;
   color: var(--ink);
-  margin-top: 4px;
+  max-width: 52ch;
+  text-wrap: pretty;
+}
+
+/* ------------------------------------------------------ the video band -- */
+
+/*
+ * The video, full width under the stage ladder (owner, 2026-09-17, amending
+ * D7 and D7a).
+ *
+ * D7 put the badge and the tutorial in one row directly under the name, on the
+ * argument that the two things a rider came to look at should not be a screen
+ * apart. The cost was measured by the independent review of 2026-09-17 (S5):
+ * on a 1280 x 720 window the yellow band's top sat at 785 on a trick with a
+ * video against 291 on `main`, so the page's only control went below the fold
+ * on exactly the tricks that have a tutorial — and the curation set is meant to
+ * grow. A 360px cap on the player got the band back to 665, which was a repair
+ * rather than a fix.
+ *
+ * The owner's arrangement removes the cause: the badge is back in the hero,
+ * the band comes straight after it, and the video sits underneath. The player
+ * needs no cap to keep the band on screen now, so the cap it keeps is only the
+ * one that stops a 1136px-wide frame on a desktop.
+ */
+.cardBand {
+  padding: 14px 22px;
+  border-bottom: 3px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.videoCard {
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  box-shadow: var(--sh-sm);
+  padding: 14px;
+  min-width: 0;
+  /* `#watch` lands here, under the sticky bar, for a link from off the page —
+     the jump row that used to point at it went 2026-09-17. */
+  scroll-margin-top: 76px;
 }
 
 /*
- * The cream strip, mobile only.
- *
- * On a phone the hero wraps and the black band's ladder needs the full width,
- * so the badge overhangs this instead and the award line moves into it with
- * the earned date. Above the breakpoint the strip is gone and the line sits in
- * the hero, which is why the two carry the same copy from the same props.
+ * The 360px cap went with the row that needed it: it held the video to the
+ * grid's right-hand column, and there is no column now. A cap is still worth
+ * having so the player is not drawn 1136px wide on a desktop, but it is the
+ * reading measure rather than a sidebar's width.
  */
-.awardStrip {
-  display: none;
-  background: var(--paper-2);
-  border-bottom: 3px solid var(--ink);
-  padding: 14px;
+.videoCard {
+  max-width: 640px;
 }
 
-.awardStripEarned {
+.cardLabel {
   color: var(--ink-3);
-  margin-top: 3px;
+  display: block;
+  margin-bottom: 9px;
 }
 
 .prose {
@@ -367,6 +545,14 @@
   padding: 11px 14px;
 }
 
+/*
+ * The fill is a sport's colour and the foreground is `foregroundFor`'s, set on
+ * the element beside it (integration review, nit 4). It was `--on-dark` here —
+ * paper on scooter's, skate's and BMX's oranges and lime, all three of which
+ * ink clears AA on and paper does not. A colour is a fact a sport record holds
+ * and staff can change; the stylesheet cannot measure it, so the answer belongs
+ * where the fill is chosen, as every other coloured disc in the product does it.
+ */
 .kitIcon {
   width: 34px;
   height: 34px;
@@ -374,7 +560,6 @@
   display: grid;
   place-items: center;
   flex: none;
-  color: var(--on-dark);
 }
 
 .kitText {
@@ -453,8 +638,13 @@
  * pushed aside by something that is not there any more. It now starts at the
  * band's own padding and takes the width back.
  */
+/*
+ * T49: no inset. The badge is in the row above rather than overhanging into
+ * this band, so there is nothing left to clear and the head starts at the
+ * band's own padding — which is also what the 720px block used to do by hand
+ * and no longer has to.
+ */
 .bandHead {
-  padding-left: calc(var(--badge-w) + 18px);
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -634,24 +824,6 @@
   font-weight: 700;
 }
 
-/* The same line where it shares the foot row with the buttons, so it does not
-   carry the paragraph's top margin into a flex row. */
-.bandNoteInline {
-  margin: 0;
-  font-size: 13.5px;
-  color: var(--ink-2);
-  max-width: 44ch;
-}
-
-.bandFoot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 14px;
-}
-
 .bandLabel {
   color: var(--ink-3);
 }
@@ -771,6 +943,17 @@
   padding: 22px 24px 0;
 }
 
+/*
+ * The locked block carries the hatch too (owner, 2026-09-17: "the 'this one is
+ * on shredder' should have the diagonal line background").
+ *
+ * The same 45° hatch as the header above it, the locked trick card and the
+ * skill tree — one pattern for one meaning, "you cannot have this yet". The
+ * lowdown teaser between them stays on plain paper: that is the trick talking,
+ * where this is the product talking, and the existing comment in
+ * `LockedTrick.tsx` draws the same line. A 3px ink rule separates the teaser
+ * from the hatch so the two do not bleed into each other.
+ */
 .lockBody {
   padding: 34px 24px;
   display: flex;
@@ -778,6 +961,8 @@
   align-items: center;
   gap: 14px;
   text-align: center;
+  background: repeating-linear-gradient(45deg, var(--hatch-a) 0 11px, var(--hatch-b) 11px 22px);
+  border-top: 3px solid var(--ink);
 }
 
 .lockMark {
@@ -841,25 +1026,9 @@
  * The band is the one thing on this page a rider taps, so it gets the width.
  */
 @media (max-width: 720px) {
-  .panel {
-    --badge-w: 112px;
-  }
-
   .header {
     padding: 14px 14px 16px;
     gap: 10px;
-  }
-
-  /*
-   * No overhang on a phone. The pack had the badge hanging into the cream
-   * strip with the copy set in beside it; the owner asked for that copy on the
-   * left edge (2026-08-31), and the two cannot both be there. The badge keeps
-   * its size and sits wholly in the hero instead — which also gives the strip
-   * the full width for the award name, the longest of which ("Land the
-   * Nose Manual") no longer wraps at 375px.
-   */
-  .badge {
-    margin-bottom: 0;
   }
 
   /*
@@ -867,34 +1036,35 @@
    * out along it rather than stacked (owner's mock-up, 2026-08-31). Stacked in
    * the corner it was three short lines deep beside a two-line title, and the
    * hero paid for all three; along the top it costs one line and leaves the
-   * badge and the name the width they want.
-   */
-  /*
-   * Two columns on a phone: the badge down the left across both rows, the
-   * difficulty and then the name down the right.
+   * name the width it wants.
    *
-   * Flex could not do this without a gap. The hero bottom-aligns its row, so a
-   * 112px badge beside a ~66px name block left 46px of green above the tags —
-   * space nothing was asking for, and the difficulty sitting on its own wrapped
-   * line above that only added to it. As a grid the badge simply spans both
-   * rows and the right-hand column packs tight against itself.
+   * **Two columns again since the owner put the badge back in the hero**
+   * (2026-09-17, amending D7). The badge takes a column down the left and the
+   * difficulty, the tags, the name and the one-line lowdown stack to its
+   * right. It was one column while T49 had the badge out of here, and a badge
+   * with no track of its own auto-placed itself into a third row under the
+   * name, which is not the arrangement.
+   *
+   * The gap is the badge's own `margin-right`, not `column-gap`: most of the
+   * library has an award but not all of it, and an empty first track with a
+   * column gap still indents the name by the gap.
    */
   .header {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    column-gap: 12px;
     row-gap: 4px;
     align-items: end;
   }
 
-  .badge {
-    grid-row: 1 / span 2;
-    grid-column: 1;
-    align-self: end;
-  }
-
   /* Rows named explicitly: auto-placement follows DOM order, which would put
      the name above the difficulty. */
+  .badge {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: start;
+    margin-right: 12px;
+  }
+
   .difficulty {
     grid-column: 2;
     grid-row: 1;
@@ -921,14 +1091,54 @@
     text-shadow: 2px 2px 0 var(--ink);
   }
 
-  /* The award line moves into the strip below, which has room for the date. */
-  .awardLine {
-    display: none;
+  .heroTeaser {
+    font-size: 14px;
+    margin-top: 6px;
   }
 
-  .awardStrip {
-    display: block;
+  /*
+   * The phone sizes, after the owner put the badge back in the hero and the
+   * video under the ladder (2026-09-17, amending D7 and D7a).
+   *
+   * D7a stacked the two cards here with the **video first**, on the reasoning
+   * that sharing a row cost the tutorial most of its area — two equal columns
+   * gave a 390px screen a 132 × 83 frame against main's 328 × 205 — and that a
+   * rider came to see the video. Full width answered the size complaint, and
+   * the video keeps it; what changed is the order. The ladder is the only
+   * thing on this page a rider *does*, and a full-width tutorial above it put
+   * the yellow band past the bottom edge on a small phone, which is the open
+   * question §3.8 carried. The band comes first now and the video is still
+   * full width directly under it.
+   *
+   * The badge is the hero's again, so none of the compacting the stacked
+   * sticker card needed applies; the card is two lines of text.
+   */
+  .panel {
+    --badge-w: 96px;
   }
+
+  .cardBand {
+    padding: 14px;
+  }
+
+  .videoCard {
+    max-width: none;
+  }
+
+  .videoCard {
+    padding: 11px;
+  }
+
+  /*
+   * The video's foot keeps its own row again.
+   *
+   * It was stacked here while the card was 158px wide and the title shrank to
+   * one word per line beside a `nowrap` "Something wrong?". A full-width card is
+   * the width `WatchPanel` was drawn for, so the four overrides that propped it
+   * up are gone rather than left to describe a layout that no longer exists;
+   * `.watchFoot` wraps the link onto its own line by itself on the narrowest
+   * screens.
+   */
 
   .band {
     padding: 14px;
@@ -974,8 +1184,6 @@
 
   .bandHead {
     justify-content: space-between;
-    /* No overhang on a phone, so nothing to clear. */
-    padding-left: 0;
   }
 
   .step {
@@ -1598,59 +1806,53 @@ a.practiseLink:hover {
   }
 
   /*
-   * "Watch it" (T35) leads the phone page, ahead of the history and the facts.
+   * §3.8's order: The lowdown, Tips, What you need, The road to it, Where to
+   * practise, Your history / notes / clips. Three rows the section does not
+   * name sit where they do on desktop — "Why it isn't working" between the tips
+   * and the kit, and the two catalogue readings after the practise line and
+   * before the rider's own.
    *
-   * The desktop column order puts it first already; on a phone the sections are
-   * re-ordered by hand, so first has to be said. The owner asked for prominence
-   * where there is a video (2026-09-12, in chat), and a rider who has opened a
-   * trick on their phone at the park wants to see it done before they read
-   * their own history with it.
+   * "Watch it" is not on this list any more: it is in the row under the hero
+   * (D7), which is further up the page than the order ever put it.
    */
-  .secWatch {
-    order: -12;
-  }
-
-  .secHistory {
-    order: -11;
-  }
-
-  .secFacts {
+  /* First, and the desktop column order says so too (review B3). */
+  .secSessions {
     order: -10;
   }
 
-  .secCrossSport {
+  .secLowdown {
     order: -9;
   }
 
-  .secLowdown {
+  .secTips {
     order: -8;
   }
 
-  .secKit {
+  .secMistakes {
     order: -7;
   }
 
-  .secGuardian {
+  .secKit {
     order: -6;
   }
 
-  .secTips {
+  .secRoad {
     order: -5;
   }
 
-  .secMistakes {
+  .secPractise {
     order: -4;
   }
 
-  .secFact {
+  .secFacts {
     order: -3;
   }
 
-  .secRoad {
+  .secCrossSport {
     order: -2;
   }
 
-  .secPractise {
+  .secMine {
     order: -1;
   }
 

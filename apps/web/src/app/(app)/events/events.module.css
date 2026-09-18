@@ -20,17 +20,51 @@
   margin-left: auto;
 }
 
-.spacer {
-  flex: 1;
-}
+/* `.spacer` is gone with the filter rows it pushed things across (2026-09-17):
+   the bar's Sort takes `margin-left: auto` instead, and an empty span whose only
+   job is to be in the right place is one more thing to keep there. */
 
 /* ------------------------------------------------------------- heading --- */
+
+/* The Find group's tab row, above everything else on the screen (§3.7). */
+.tabs {
+  margin: 16px 0 14px;
+}
 
 .headRow {
   display: flex;
   align-items: flex-end;
   gap: 14px;
   flex-wrap: wrap;
+}
+
+/*
+ * The eyebrow, the title and the lede, **seen on desktop only** (§3.7).
+ *
+ * Below 861px the tab row above says "Events" in the lit box and the two pills
+ * below say which half of the calendar is on screen, so these three lines were
+ * the same information a third time — measured at 390px, about 150px before the
+ * first event.
+ *
+ * Clipped rather than `display: none`, so the `h1` stays in the accessibility
+ * tree: a phone with no heading is a worse screen than one with a redundant
+ * heading, and the clip costs nothing. The class sits on `.headRow` itself, not
+ * on a wrapper inside it, so the row leaves `.page`'s flex flow and takes its
+ * two 18px gaps with it. A rider's own events keep the words at every width —
+ * see the comment in `EventsScreen.tsx`.
+ */
+@media (max-width: 860px) {
+  .headWords {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
 }
 
 .head {
@@ -46,11 +80,163 @@
   color: var(--ink-2);
 }
 
-.filters {
+/* ------------------------------------------------------- the filter bar -- */
+
+/*
+ * **One bar on a desktop, three lines on a phone** (Rachid, 2026-09-17, in
+ * chat: "bad layout on screenshot", at 1740px).
+ *
+ * It was three `.filters` rows, each `display: flex; flex-wrap: wrap`, stacked
+ * by `.page`'s 18px gap. At 1740 that is four sparse bands before the first
+ * event — `Show [All sports]` alone on one, `Country [UK]` with `Sort` stranded
+ * a thousand pixels away on the next, the kind pills on a third — and it reads
+ * as a form rather than as a bar.
+ *
+ * One row instead, in the order a rider narrows: sport, country, kind, and then
+ * Sort at the far right because it is a question about the list rather than
+ * about what is in it. The 14px column gap is wider than the 8px inside each
+ * group, so the groups read as groups; the 10px row gap is what the line breaks
+ * get when it wraps.
+ *
+ * **The phone keeps T48's stack** and gets it from this same row: the scope
+ * select and the pill group take a full-width flex basis below 861px, so the
+ * bar breaks at exactly the two places it used to be cut, and Country and Sort
+ * share the line between them as they did.
+ */
+.filterBar {
   display: flex;
-  gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+/*
+ * The phone's "Filters & sort" disclosure (owner, 2026-09-17: "events page,
+ * this is all messy it needs to be cleaner and simpler proper sectioned").
+ *
+ * The same control the trick library uses, borrowed rather than reinvented so
+ * the two screens a rider moves between with one tap fold their filters the
+ * same way — the global `.filterwrap` in `primitives.css` does the hiding, and
+ * it is already scoped to phones, so the desktop bar is untouched.
+ */
+.filtersTab {
+  display: none;
+  min-width: 0;
+  /* `visible`, so the count badge hanging off the corner is not clipped. */
+  overflow: visible;
+  position: relative;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 860px) {
+  .filtersTab {
+    display: flex;
+    align-self: flex-start;
+  }
+  /*
+   * Stacked inside the fold: the bar's flex row is a desktop shape, and a
+   * folded panel is read top to bottom rather than skimmed left to right.
+   */
+  .filterBar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  /*
+   * In the fold the bar is a column, so the `margin-left: auto` that pushes
+   * Sort to the far right of the desktop bar would push it to the right-hand
+   * edge of its own row and leave the label stranded mid-panel. Rows in a
+   * folded panel start at the left, like every other label on the screen.
+   */
+  .sort {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+}
+
+.filtersTab :global(.tab-label) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filtersTab :global(.fcount) {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  background: var(--pink);
+  color: var(--on-dark);
+  border: 2px solid var(--ink);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+/*
+ * The kind pills, as one group.
+ *
+ * Wrapping them together is what stops the thing §7 asks not to happen between
+ * 861 and 1200px: a bare row of five pills breaks wherever it runs out and
+ * leaves "Jam" alone on the next line, where a group drops all five at once.
+ */
+.kinds {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/*
+ * A 44px floor on the bar's pills, at every width.
+ *
+ * `additions.css` already sets it inside the touch-hygiene block, which is
+ * `@media (max-width: 860px)` — so on the desktop bar the pills measured 35px
+ * beside two 44px selects, which is the mismatched control heights half of the
+ * owner's note. It is stated here rather than widened there because that block
+ * is merged shared code and this is one screen's bar.
+ */
+.filterBar :global(.pill) {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (max-width: 860px) {
+  /*
+   * T48's stacking, restored by basis and order rather than by three separate
+   * rows: the scope select on its own line under the search, then Country with
+   * Sort at the right of the same line, then the pills. Same three lines, one
+   * set of markup.
+   *
+   * **`order` is what keeps it to three.** The desktop bar reads left to right
+   * in the order a rider narrows — sport, country, kind, then Sort at the far
+   * end — and taken straight into the stack that puts the pill group *between*
+   * Country and Sort, so Sort could not share Country's line and the phone got
+   * a fourth row. Below 861px the pills go last instead.
+   *
+   * `.sort`'s `margin-left: auto` still works: an auto margin absorbs the free
+   * space on its own flex line, so Sort sits hard right of Country here exactly
+   * as it sits hard right of the bar on a desktop.
+   */
+  .scopeFilter {
+    order: 1;
+    flex: 1 0 100%;
+  }
+  .countryPick {
+    order: 2;
+  }
+  .sort {
+    order: 3;
+  }
+  .kinds {
+    order: 4;
+    flex: 1 0 100%;
+  }
 }
 
 /* ---------------------------------------------------------- the rows ----- */
@@ -69,12 +255,19 @@
 
 /* The Soonest / Nearest control. A label and its two options read as one
    thing, so they sit in a group that wraps together rather than letting the
-   word "Sort" strand itself at the end of a line above its own pills. */
+   word "Sort" strand itself at the end of a line above its own pills.
+
+   `margin-left: auto` is what puts it at the right-hand end of the filter bar
+   (2026-09-17): it is the one control there that is about the list rather than
+   about what is in it, and it replaces the `<span class="spacer">` that used to
+   push it — a third thing in the flow whose only job was to be in the right
+   place. */
 .sort {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-left: auto;
 }
 
 /* "Coming up" / "Been to" — the group headings on a rider's own tab.
@@ -196,8 +389,15 @@
   margin-bottom: 6px;
 }
 
+/*
+ * The same two-line squash `.cardName` hit on /spots: `.d` sets
+ * `line-height: 0.92` for a headline that is one line, and an event's name
+ * runs to two on a phone, where the cap heights and the descenders meet.
+ * 1.06 is the value /spots settled on — tight block, lines apart.
+ */
 .name {
   font-size: 21px;
+  line-height: 1.06;
 }
 
 .meta {
@@ -263,12 +463,39 @@
   border-bottom: 3px solid var(--ink);
 }
 
+/*
+ * The chips and the Close on one line, the way `.sheet-headrow` carries a
+ * title and its Close (owner, 2026-09-17). Flow layout, not an absolute
+ * square: an event with four sports wraps its chips and pushes the title
+ * down, and nothing ever runs underneath the Close.
+ */
+.modalHeadTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  /* The gap the chips' own `margin-bottom` used to give the title. */
+  margin-bottom: 6px;
+}
+
+.modalHeadTop .chips {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
 .tagInk {
   color: var(--ink);
 }
 
+/*
+ * The row title's squash again, and worse here: 30px over three lines at
+ * `.d`'s `line-height: 0.92`, with a 2.5px shadow dropped behind each one, so
+ * the shadow of one line lands on the caps of the next. 1.06 is the same
+ * value the row and /spots use; the shadow clears inside it.
+ */
 .modalTitle {
   font-size: 30px;
+  line-height: 1.06;
   color: var(--on-dark);
   text-shadow: 2.5px 2.5px 0 var(--ink);
 }
@@ -341,7 +568,22 @@
   gap: 8px;
 }
 
+/*
+ * The Country control, brought up to the two rules the scope select beside it
+ * already meets (issue #552, review S2).
+ *
+ * **44px**, where the padding alone came out at about 37: §4 of the app shell
+ * rethink sets the floor at 44 for anything tappable, and this is a control a
+ * thumb uses on `/events` and `/events/past`.
+ *
+ * **No native menulist.** Left alone, WebKit paints a grey rounded box inside
+ * the ink keyline — the only radius and the only grey fill on the page — which
+ * `additions.css` already patches for `.field select` and explains there. Two
+ * selects one line apart, one of them a system widget, is the version of this
+ * that reads as a bug.
+ */
 .countryPick select {
+  min-height: 44px;
   border: 2.5px solid var(--ink);
   background: var(--paper);
   box-shadow: var(--sh-sm);
@@ -349,6 +591,14 @@
   font-size: 13px;
   letter-spacing: 0.04em;
   max-width: 15rem;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2312100b' stroke-width='2.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 12px 8px;
+  padding-right: 38px;
 }
 
 .locating {
@@ -462,37 +712,34 @@
    44px minimum height is the accessibility floor the handoff sets for every
    control on a phone, and this is one a thumb has to hit. */
 
+/*
+ * Upcoming · Past, as two pills (§3.7, D6) rather than the one segmented box
+ * they used to share with Mine.
+ *
+ * The pills are `packages/ui-web`'s `.pill` — keyline only, ink when on, which
+ * is D6's "pills keep their keyline-only look because they filter rather than
+ * navigate". What this file adds is the 44px floor (§4's touch target, which
+ * `.pill`'s 7px padding does not reach on its own) and the count's colour.
+ */
 .viewSwitch {
   display: flex;
-  width: max-content;
-  max-width: 100%;
-  border: 3px solid var(--ink);
-  box-shadow: 3px 3px 0 var(--ink);
-  background: var(--paper);
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.viewSwitchItem {
+.viewSwitchItem,
+.viewSwitchItem:hover {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   min-height: 44px;
-  padding: 9px 18px;
-  font-size: 14px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--ink);
-  border-right: 3px solid var(--ink);
-}
-
-.viewSwitchItem:last-child {
-  border-right: 0;
 }
 
 /* The global `a:hover { color: var(--pink) }` outranks a single class, so the
    hover is stated on the element itself (issue #297, and the same trap
    LESSONS §3a records for `.btn`). */
 .viewSwitchItem:hover {
-  color: var(--ink);
   background: var(--yellow);
 }
 
@@ -734,14 +981,6 @@
 .fullCta:active {
   transform: translate(2px, 2px);
   box-shadow: 1px 1px 0 var(--ink);
-}
-
-.ctaHint {
-  flex: 1 0 100%;
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--ink-3);
 }
 
 @media (max-width: 560px) {

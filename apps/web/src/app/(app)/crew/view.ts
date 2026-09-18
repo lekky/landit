@@ -73,6 +73,16 @@ export interface SelectedCrewView extends CrewSummaryView {
 
 export interface CrewView {
   readonly firstName: string;
+  /**
+   * How many crews this rider's plan may create, and what that plan is called
+   * (owner, 2026-09-17: "1 for free, 3 for 3.99 and 10 for the top tier").
+   *
+   * Read off the `plans` record rather than a constant, like every other
+   * entitlement (plan §2.4): staff can move the number without a deploy, and
+   * the screen cannot disagree with the hook that enforces it.
+   */
+  readonly crewCap: number;
+  readonly planName: string;
   /** `null` while a rider has no handle, which makes their profile unlinkable. */
   readonly handle: string | null;
   /** "Scooter, skateboard and BMX" — generated from `SPORT_IDS`, never a pair. */

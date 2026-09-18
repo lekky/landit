@@ -50,6 +50,16 @@ export interface ChallengeView {
   readonly pct: number;
   /** "Scooter" while it runs, "Starts 24 Aug" before it does. */
   readonly stateLabel: string;
+  /**
+   * "Ends Sunday" — the Challenge card's sub-line (§3.4).
+   *
+   * A weekday rather than a date because the window is a week and the card has
+   * one line: "Ends Sunday" is a thing a rider can act on, where "ends 30 Aug"
+   * has to be worked out. It is **not** a countdown and never says what is
+   * about to be lost (plan §6.4, Standard 13) — a week that has not started
+   * says when it does, and a finished one says so in the past tense.
+   */
+  readonly endsLabel: string;
 }
 
 export interface AnnouncementView {
@@ -60,22 +70,66 @@ export interface AnnouncementView {
   readonly hue: string;
 }
 
-export interface StickerView {
+/**
+ * One line of a crew's activity, as Home shows it (§3.4).
+ *
+ * Home used to draw the crew **board** — a ranked table of names and landed
+ * counts. The rethink puts the activity feed there instead, because the board
+ * is what `/crew` is for and a dashboard wants "what happened" rather than
+ * "who is ahead". Three lines, and the rest is one tap away.
+ *
+ * `line` is written by `crewActivityLine` in `@landit/core`, so the whole
+ * vocabulary of this panel is six unit-tested sentences the product wrote.
+ * Nothing a rider typed reaches it, which is what keeps "no rider-to-rider
+ * messaging" (plan §6.1) true of the shapes and not merely of the intent.
+ */
+export interface CrewLineView {
   readonly id: string;
+  /** The sentence, from `crewActivityLine`. */
+  readonly line: string;
+  /** "2h ago", already relative on the server. */
+  readonly when: string;
   readonly name: string;
-  readonly hue: string;
-  readonly icon?: string;
-  /** Printed award art under `/stickers/` (T24); absent on legacy records. */
-  readonly img?: string;
+  readonly avatarKey: string;
 }
 
-export interface CrewRiderView {
-  readonly id: string;
+/**
+ * The next event this rider said they are going to (§3.4, "Next up").
+ *
+ * Their own `event_attendance`, which is `OWN` — nobody else's attendance is on
+ * this screen or reachable from it. `null` when there is nothing ahead, and the
+ * section then invites them to go and find one rather than drawing an empty box.
+ */
+export interface NextEventView {
+  readonly slug: string;
   readonly name: string;
-  readonly handle: string;
-  readonly avatarKey: string;
-  readonly landed: number;
-  readonly isMe: boolean;
+  /** "Saturday 15 August" — the same table-driven form the greeting uses. */
+  readonly dateLabel: string;
+  readonly town: string;
+  /** The event kind's colour, so the card reads as the same thing `/events` drew. */
+  readonly hue: string;
+}
+
+/** One of the rider's favourite spots (§3.4, "Your spots"). */
+export interface FaveSpotView {
+  readonly slug: string;
+  readonly name: string;
+  readonly town: string;
+}
+
+/**
+ * The Sessions card's two numbers (§3.4).
+ *
+ * `null` for everybody the sessions preview is not open to (plan §7, T41) — and
+ * when it is null the card is not drawn at all, which is also why the two extra
+ * reads it needs are not made. A dashboard should not pay for a card nobody
+ * sees.
+ */
+export interface SessionsCardView {
+  /** Sessions ridden in the rider's own current month. */
+  readonly value: string;
+  /** "Corby Ramps · 14 Sep", or an invitation when there are none yet. */
+  readonly sub: string;
 }
 
 /** The streak card, already reconciled against the rider's own week. */
@@ -102,7 +156,17 @@ export interface SportView {
   readonly wanted: number;
   readonly total: number;
   readonly pct: number;
+  /**
+   * Stickers earned on **this sport's wall** — its own plus the shared ones,
+   * the scope `/stickers` uses for "<sport> and shared".
+   *
+   * It is scoped because it sits in a `SportView`: a card that counted every
+   * wall told a rider chipped to scooter that they had one sticker and then
+   * opened an empty scooter wall.
+   */
   readonly stickerCount: number;
+  /** The newest of those, by `earned_at`, for the card's sub-line. `null` at zero. */
+  readonly newestSticker: string | null;
   readonly libraryLabel: string;
   readonly summary: string;
   /** "6 landed across your sports", or nothing when there is only one. */
@@ -113,9 +177,16 @@ export interface SportView {
    * tricks", so it has to match what that screen then shows.
    */
   readonly tracked: number;
+  /**
+   * Up to four, and the phone shows the first two (§3.4).
+   *
+   * Four rather than two so the cut is CSS at the 860px line rather than a
+   * width measured in JavaScript: a number decided in the browser is a number
+   * the server guessed differently, and a dashboard that renders one grid on
+   * the server and another on hydration is the mismatch LESSONS §3a is about.
+   */
   readonly workingTricks: readonly TrickCardView[];
   readonly startHere: readonly TrickCardView[];
-  readonly wishList: readonly TrickCardView[];
   readonly challenge: ChallengeView | null;
   readonly announcement: AnnouncementView | null;
 }
@@ -135,8 +206,19 @@ export interface HomeView {
   /** "Saturday 15 August", built from a table rather than from ICU. */
   readonly dateLabel: string;
   readonly streak: StreakView;
-  readonly stickers: readonly StickerView[];
-  readonly crew: readonly CrewRiderView[];
+  /*
+   * The newest sticker is a name rather than the four badges the wall used to
+   * draw here: the card carries the count, the wall carries the collection, and
+   * a dashboard row of art that repeats what is one tap away is a row that costs
+   * a phone screen for nothing. It lives on `SportView` rather than here,
+   * because the card follows the chip.
+   */
+  /** The Sessions card, or `null` when the preview is not open to this rider. */
+  readonly sessionsCard: SessionsCardView | null;
+  /** Three lines of the rider's first crew's feed, newest first. */
+  readonly crewActivity: readonly CrewLineView[];
+  readonly nextEvent: NextEventView | null;
+  readonly faveSpots: readonly FaveSpotView[];
   readonly bySport: Readonly<Record<string, SportView>>;
   readonly sports: readonly SportId[];
 }

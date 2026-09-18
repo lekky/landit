@@ -34,8 +34,55 @@ export const CREW_NAME_MAX_LENGTH = 40;
  * this. It is the anti-spam number: crew creation mints invite codes, and an
  * account that can mint unlimited codes is an account that can paper the
  * internet with them.
+ *
+ * **Superseded by the per-plan cap** (owner, Rachid, 2026-09-17, in chat: "1
+ * for free, 3 for 3.99 and 10 for the top tier"). The number a rider actually
+ * gets is `Plan.crewCap`, read off the `plans` record by the crew hook and by
+ * whatever screen is drawing the limit — never a constant in code, for the same
+ * reason the paywall and the video-link cap are not (plan §2.4). This export
+ * keeps its value and its meaning as the **ceiling no plan exceeds**, so
+ * nothing that imported it changed underneath, and `CREW_CAPS` below carries
+ * the real numbers.
+ *
+ * @deprecated Per-plan cap: use `crewCapFor`, or the `plans` record server-side.
  */
 export const MAX_OWNED_CREWS = 5;
+
+/**
+ * The per-plan crew allowance (owner, 2026-09-17, in chat).
+ *
+ * Capacity, not achievement: paid tiers sell room, never stickers or stages
+ * (plan §2.4). Joining a crew with a code stays uncapped at every tier — this
+ * is a limit on *minting*, which is what makes it an anti-spam number rather
+ * than a wall between a rider and their mates.
+ *
+ * The numbers live here so `PLANS` and the migration that backfills the `plans`
+ * records read one source, exactly as `VIDEO_LINKS` and `SESSIONS` do.
+ */
+export const CREW_CAPS = {
+  rookie: 1,
+  shredder: 3,
+  legend: 10,
+} as const;
+
+/**
+ * How many crews this plan may create, given what the plan record says.
+ *
+ * **Absent reads as one, not zero.** A cap on creating fails closed at the
+ * smallest allowance rather than at nothing: a rider whose plan record cannot
+ * be read should still be able to run the crew they already have, and refusing
+ * every rider a first crew because a `plans` row is missing would be an outage
+ * dressed as a rule.
+ */
+export function crewCapFor(plan: { readonly crewCap?: number } | null | undefined): number {
+  const cap = plan?.crewCap;
+  return typeof cap === 'number' && cap > 0 ? cap : 1;
+}
+
+/** "You can run 3 crews on Shredder." — the refusal a rider reads. */
+export function crewCapMessage(cap: number, planName: string): string {
+  return `${planName} runs ${cap} ${cap === 1 ? 'crew' : 'crews'} at once.`;
+}
 
 /**
  * Is every character of this name printable?

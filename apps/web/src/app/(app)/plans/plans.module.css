@@ -34,57 +34,67 @@
 /* ------------------------------------------------------ the period toggle -- */
 
 /*
- * The saving tag sits above the toggle and out of flow, so the top margin buys
- * the headroom it no longer takes for itself. Without it the tag would collide
- * with the lede.
+ * The two-cell segmented control is gone (T52): Monthly · Yearly is a `TabRow`
+ * now (§3.10). **The tilted saving tag came back** (Rachid, 2026-09-17), so the
+ * headroom margin comes back with it — the tag is out of flow and without the
+ * space it would sit on the lede.
  */
 .toggleRow {
   display: flex;
-  align-items: center;
   justify-content: center;
   margin-top: 38px;
 }
 
-.toggle {
+/*
+ * The positioning context for the tag, and the thing the cap is on.
+ *
+ * It exists because the tag has to be anchored to the *row's* right-hand end
+ * rather than to the centred flex line: `.toggleRow` is as wide as the page and
+ * an absolute tag inside it would fly to the page's edge.
+ */
+.toggleWrap {
   position: relative;
-  display: inline-flex;
-  border: 3px solid var(--ink);
-  box-shadow: 3px 3px 0 var(--ink);
+  width: 100%;
+  max-width: 460px;
 }
 
 /*
- * Slapped over the top edge of the toggle's right-hand half, which is the
- * Yearly button — the same move the "Most riders" tag makes on a plan card, and
- * the reason the saving reads as belonging to Yearly rather than to whichever
- * period happens to be selected.
+ * Capped by the wrapper above, because a `TabRow`'s tabs each take an equal
+ * share of the row and this one is two tabs on a 1180px page: run out full
+ * width, "Monthly" would sit alone in the middle of 570px of paper. The cap is
+ * the width two tabs want and no more; below it the row is the full width of
+ * the phone, as every other row in the product is.
+ */
+.toggle {
+  width: 100%;
+}
+
+/*
+ * The saving, tilted over the top edge of the row's right-hand half — which is
+ * the Yearly tab, because a two-tab `.tabrow` is two `flex: 1` boxes with an 8px
+ * gap. The same move the "Most riders" tag makes on a plan card, and `main`'s
+ * treatment exactly: lime fill, ink text, `.tag`'s own keyline and tilt.
  *
- * Offsets resolve against the padding box, inside the 3px keyline, so
- * `bottom: calc(100% - 2px)` leaves the tag's lower edge 5px below the toggle's
- * outer top — the keyline covered and a couple of px bitten out of the button's
- * 9px of padding. The tilt drops the right-hand corner ~2px further, which is
- * why the bite is this shallow: any deeper and that corner crowds the cap
- * height of "Yearly". Anchoring by `bottom` rather than a negative `top` keeps
- * the bite fixed if the tag's own height moves with the font. `.tag` already
- * sets `white-space: nowrap`.
+ * `bottom: calc(100% - 2px)` leaves the tag's lower edge biting 2px into the
+ * tab, so the keyline is covered and a sliver of the tab's 9px of padding goes
+ * with it — no deeper, because the tilt drops the right-hand corner about 2px
+ * further and any more would crowd the cap height of "Yearly". Anchoring by
+ * `bottom` rather than a negative `top` keeps that bite fixed if the tag's own
+ * height moves with the font.
+ *
+ * **`right: 0`, where `main` had `-3px`.** There the toggle was an inline-flex
+ * control narrower than the page; here the row runs the full width of a 320px
+ * phone, and three pixels past its right edge is three pixels past the content
+ * column — a document that scrolls sideways, which is exactly what issue #550
+ * was. Flush is within a pixel of the old look and cannot overflow.
+ *
+ * `.tag` already sets `white-space: nowrap`, so the words never wrap onto the
+ * tab.
  */
 .savingTag {
   position: absolute;
   bottom: calc(100% - 2px);
-  right: -3px;
-}
-
-.toggleButton {
-  padding: 9px 20px;
-  font-size: 13.5px;
-  background: var(--paper);
-  color: var(--ink);
-  border: none;
-  cursor: pointer;
-}
-
-.toggleButton[data-on='true'] {
-  background: var(--ink);
-  color: var(--paper);
+  right: 0;
 }
 
 /* --------------------------------------------------------------- the cards -- */
@@ -458,9 +468,19 @@
   color: var(--ink);
 }
 
+/*
+ * **It spans the block it sits under** (Rachid, 2026-09-17, in chat: "TEXT
+ * doesn't span across the page").
+ *
+ * It carried `max-width: 76ch`, the typographer's comfortable measure, and on a
+ * 1180px page that stopped it about two thirds of the way across — under a
+ * table that runs the full width, which reads as a paragraph that failed to
+ * load rather than as a considered line length. The measure is the right rule
+ * for a column of prose and the wrong one for a caption under a block: this line
+ * is the table's footnote, so it takes the table's width.
+ */
 .sessionsNote {
   margin: 9px 0 0;
-  max-width: 76ch;
   font-size: 13px;
   line-height: 1.45;
   color: var(--ink-3);

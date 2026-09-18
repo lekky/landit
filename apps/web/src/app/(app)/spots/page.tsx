@@ -1,11 +1,10 @@
 import {
-  SPORT_IDS,
   regionFromAcceptLanguage,
   spotCountryForRegion,
   spotFeature,
   unitsForCountry,
 } from '@landit/core';
-import { countSpotsBySport, listOwnSpots, pageSpots } from '@landit/db';
+import { listOwnSpots, pageSpots } from '@landit/db';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
@@ -33,15 +32,27 @@ export const metadata: Metadata = {
  * live spot and let the browser filter and page it, which was 1.34 MB of HTML
  * once France's census landed. Now it renders the first screenful for the
  * query the screen will open with, and the screen asks `listActions.ts` for
- * everything after that. The count line and the sport tabs' notes are
- * counted here, over the whole collection, so they say what they always said.
+ * everything after that. The count line is counted here, over the whole
+ * collection, so it says what it always said. The per-sport counts went with
+ * the pill row they sat on (rethink §3.3, O1): a `<select>` has no room for a
+ * number beside each option, so `countSpotsBySport` is one query this page no
+ * longer makes.
  *
- * **The first page is every sport**, which is the query the screen opens on
- * since the filter row became a multi-select (2026-09-12). It used to be the
- * sport the provider would fall back to before it read `localStorage`, so a
- * rider whose stored choice differed saw the list swap once after hydration.
- * There is nothing to swap now: the screen no longer reads the sport
- * preference at all, so the server and the first client render agree.
+ * **The first page is every sport**, which is O1's default for this screen and
+ * therefore the query it opens on for anybody who has not chosen otherwise
+ * (rethink §3.3; the 2026-09-12 decision that spot tags are too thin to open
+ * narrowed is unchanged). The server and the first client render agree, because
+ * `useSportScope` hands the default to both: it is a `useSyncExternalStore`
+ * whose server snapshot is `null`, so there is no mismatch to reconcile and
+ * nothing that could throw the tree away (LESSONS §3a).
+ *
+ * A rider who *has* chosen a scope on this device sees their list a moment
+ * after hydration, when `localStorage` is first readable and the screen asks
+ * for that page. That swap is the price of a per-device preference the server
+ * cannot see, and it is deliberately not paid by a cookie: a display choice
+ * about which sports a list shows does not belong in a header sent with every
+ * request, and the default is the wider list, so what changes is a narrowing
+ * rather than a rider being shown somebody else's list first.
  *
  * **The list is whatever the rules hand back, and nothing here filters for
  * safety.** A rider's own pending and rejected submissions come back to them
@@ -84,13 +95,12 @@ export default async function SpotsPage({
     : regionFromAcceptLanguage((await headers()).get('accept-language'));
   const homeCountry = spotCountryForRegion(region);
 
-  const [first, counts, own] = await Promise.all([
+  const [first, own] = await Promise.all([
     pageSpots(
       client,
       { search: '', feature: feature?.id ?? null },
       { home: homeCountry, page: 1, perPage: SPOTS_PAGE },
     ),
-    countSpotsBySport(client, SPORT_IDS),
     session ? listOwnSpots(client) : Promise.resolve([]),
   ]);
 
@@ -98,7 +108,6 @@ export default async function SpotsPage({
     <SpotsScreen
       initialSpots={first.items.map(toSpotView)}
       initialTotal={first.total}
-      countsBySport={counts}
       ownSpots={own.map(toSpotView)}
       signedIn={!!session}
       units={unitsForCountry(region)}

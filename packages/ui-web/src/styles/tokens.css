@@ -24,6 +24,16 @@
 
   /* accents */
   --pink: #ff3d78;
+  /*
+   * The soft pink the sticker blocks are filled with (T46, additive).
+   *
+   * `--pink` is the loud one — the sticker wall's progress bar, a link's hover.
+   * This is the one a **fill** takes, where ink has to stay readable on top of
+   * it: Home's Stickers stat block has been `#FFB3C9` since T8, the Stickers
+   * record card matched it by hand, and a literal copied twice is the moment to
+   * mint the token rather than the third time. Same pixels, named.
+   */
+  --pink-soft: #ffb3c9;
   --orange: #ff5a1f;
   --yellow: #ffc23f;
   --lime: #9ce05b;
@@ -50,6 +60,26 @@
   --bd: 3px solid var(--ink);
   --sh: 5px 5px 0 var(--ink);
   --sh-sm: 3px 3px 0 var(--ink);
+
+  /*
+   * Motion, named (app shell rethink §4).
+   *
+   * The design already moved in one voice and the values were written out at
+   * every call site: `transition: .12s` on a button, `0.2s` on the scrim,
+   * `cubic-bezier(.2,1.3,.4,1)` on the modal. Naming the three durations and
+   * the two curves is what stops the shell's new surfaces — the sheet, the
+   * dropdown, the boxed tab row — each inventing a fourth. Nothing existing is
+   * repointed at them: these are additive, and a rule that already spells its
+   * own duration keeps it.
+   *
+   * The `prefers-reduced-motion` floor at the foot of `additions.css` clamps
+   * every duration in the package, these included.
+   */
+  --dur-press: 120ms; /* press and hover lift, chevrons */
+  --dur-ui: 200ms; /* tab cross-fade, accordion, dropdown, scrim, colour */
+  --dur-sheet: 260ms; /* a sheet or a modal rising toward the rider */
+  --ease-out: cubic-bezier(0.2, 0.9, 0.3, 1); /* closing and settling */
+  --ease-spring: cubic-bezier(0.2, 1.3, 0.4, 1); /* opening toward the rider */
 
   /*
    * Text on a fixed fill — a category tag, a stage strip, a primary button.

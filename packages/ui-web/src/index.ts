@@ -68,6 +68,7 @@ export {
   type AvatarId,
 } from './avatars';
 
+export { Accordion, type AccordionProps } from './components/Accordion';
 export { Avatar, type AvatarProps } from './components/Avatar';
 export {
   Button,
@@ -96,10 +97,14 @@ export {
   type TabsProps,
 } from './components/nav';
 export {
+  Dropdown,
   Modal,
+  Sheet,
   Toast,
   ToastStack,
+  type DropdownProps,
   type ModalProps,
+  type SheetProps,
   type ToastProps,
   type ToastStackProps,
 } from './components/overlays';

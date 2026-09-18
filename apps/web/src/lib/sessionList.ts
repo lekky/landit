@@ -1,4 +1,4 @@
-import { SPORT_IDS, type SessionFilter, type SportId } from '@landit/core';
+import { type SessionFilter, type SportId } from '@landit/core';
 
 /**
  * The Sessions tab's view logic (T37) — the few decisions the list makes that
@@ -7,37 +7,33 @@ import { SPORT_IDS, type SessionFilter, type SportId } from '@landit/core';
  * Core owns what a session *is* and how a list of them is filtered, grouped and
  * summed (`filterSessions`, `groupSessionsByMonth`, `sessionMonthSummary`,
  * `topSpots`). What is left here is presentation that still has a right and a
- * wrong answer: which filter chips a rider is offered, which page numbers fit
- * in a pager, which months start open, how tall a duration bar is. Here rather
+ * wrong answer: what the screen's two filter controls come to between them,
+ * which page numbers fit in a pager, which months start open, how tall a
+ * duration bar is. Here rather
  * than in the component because this app's unit tests may only reach `src/lib`
  * (`vitest.config.ts`).
  */
 
-/** A filter chip: everything, one sport, or "At an event". */
-export type SessionListFilterId = 'all' | 'event' | SportId;
-
-/** The core filter a chip stands for. */
-export function sessionFilterFor(id: SessionListFilterId): SessionFilter {
-  if (id === 'all') return {};
-  if (id === 'event') return { atEvent: true };
-  return { sport: id };
-}
-
 /**
- * The sports a rider gets a chip for, in the product's sport order.
+ * The core filter the diary's two controls come to between them (T50).
  *
- * The sports on their profile plus any sport they have a session in — a rider
- * who dropped BMX from their profile still has BMX sessions worth finding. A
- * single sport gets **no** chips at all: "Scooter" beside "All" would be two
- * buttons that do the same thing.
+ * The screen no longer has one row of chips where "All", a sport and "At an
+ * event" were three answers to the same question: the sport is the
+ * `SportScopeSelect`'s (rethink §3.3, O1) and "At an event" is a pill of its
+ * own, so a rider can ask for "BMX, at an event" — which the single row could
+ * not express. Two independent controls, one filter.
+ *
+ * `sports` is `SportScopeState.sports`: a one-sport list, or **empty for every
+ * sport**, which is the shape `scopeSports` already hands every screen. Only
+ * the first entry is read, because a scope is one answer and `SessionFilter`
+ * takes one sport; an empty list adds no sport clause at all rather than
+ * matching nothing.
  */
-export function sessionFilterSports(
-  riderSports: readonly string[],
-  sessionSports: readonly string[],
-): SportId[] {
-  const have = new Set<string>([...riderSports, ...sessionSports]);
-  const sports = SPORT_IDS.filter((id) => have.has(id));
-  return sports.length > 1 ? sports : [];
+export function sessionListFilter(sports: readonly SportId[], atEvent: boolean): SessionFilter {
+  return {
+    ...(sports[0] ? { sport: sports[0] } : {}),
+    ...(atEvent ? { atEvent: true } : {}),
+  };
 }
 
 /** "10 sessions", "1 session", "No sessions". */

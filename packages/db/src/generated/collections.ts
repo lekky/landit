@@ -479,6 +479,7 @@ export interface PlansRecord {
   sessions_unlimited: boolean;
   session_clip_cap: number;
   session_clips_unlimited: boolean;
+  crew_cap: number;
 }
 
 /** The shape accepted when creating a `plans` record. */
@@ -505,6 +506,7 @@ export interface PlansCreate {
   sessions_unlimited?: boolean;
   session_clip_cap?: number;
   session_clips_unlimited?: boolean;
+  crew_cap?: number;
 }
 
 /** The shape accepted when updating a `plans` record. */
@@ -646,6 +648,7 @@ export interface SessionsRecord {
   grace: boolean;
   created: string;
   updated: string;
+  spot_name: string;
 }
 
 /** The shape accepted when creating a `sessions` record. */
@@ -667,6 +670,7 @@ export interface SessionsCreate {
   visibility?: SessionsVisibility;
   month_key?: string;
   grace?: boolean;
+  spot_name?: string;
 }
 
 /** The shape accepted when updating a `sessions` record. */
@@ -1046,6 +1050,7 @@ export interface UsersRecord {
   heard_about: UsersHeardAbout;
   last_seen: string;
   session_visibility_default: UsersSessionVisibilityDefault;
+  whats_new_seen_at: string;
 }
 
 /** The shape accepted when creating a `users` record. */
@@ -1082,6 +1087,7 @@ export interface UsersCreate {
   heard_about?: UsersHeardAbout;
   last_seen?: string;
   session_visibility_default?: UsersSessionVisibilityDefault;
+  whats_new_seen_at?: string;
 }
 
 /** The shape accepted when updating a `users` record. */

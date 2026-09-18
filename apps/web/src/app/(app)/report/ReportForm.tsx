@@ -116,15 +116,22 @@ export function ReportForm({ signedIn, about, subjectId, appealOf }: ReportFormP
                 avoiding. `styles.choiceOff` is left in the stylesheet for the
                 next subject that ships ahead of its surface.
               */}
+              {/*
+                Pill rows (§3.10, T52). The input is the same native radio,
+                clipped rather than replaced, so `subject_type` posts exactly
+                what it did before and the group still works from a keyboard —
+                which on this form of all forms is the thing not to break.
+              */}
               {REPORT_SUBJECTS.map((subject) => (
                 <label key={subject.id} className={styles.choice}>
                   <input
                     type="radio"
                     name="subject_type"
                     value={subject.id}
+                    className={styles.choiceInput}
                     defaultChecked={about ? about === subject.id : subject.id === 'profile'}
                   />
-                  <span>
+                  <span className={`pill ${styles.choiceBox}`}>
                     <strong>{subject.label}</strong>
                     <span className={`cond ${styles.choiceBlurb}`}>{subject.blurb}</span>
                   </span>
@@ -139,10 +146,22 @@ export function ReportForm({ signedIn, about, subjectId, appealOf }: ReportFormP
         <fieldset className={styles.fieldset}>
           <legend className="lab">Why?</legend>
           <div className={styles.reasons}>
+            {/*
+              The reasons have no blurb, and they are still rows rather than a
+              wrapping row of chips: they are the list somebody upset is reading
+              down, in the order they would look for, and a reason that moved
+              position with the width of the screen would be harder to find
+              twice. Same clipped radio, same `reason` field.
+            */}
             {REPORT_REASONS.map((reason) => (
               <label key={reason.id} className={styles.choice}>
-                <input type="radio" name="reason" value={reason.id} />
-                <span>{reason.label}</span>
+                <input
+                  type="radio"
+                  name="reason"
+                  value={reason.id}
+                  className={styles.choiceInput}
+                />
+                <span className={`pill ${styles.choiceBox}`}>{reason.label}</span>
               </label>
             ))}
           </div>

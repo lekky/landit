@@ -1,23 +1,21 @@
 'use client';
 
 import {
-  GLOSSARY,
   GLOSSARY_LETTERS,
   SPORTS,
-  SPORT_IDS,
   glossaryFor,
   glossaryTerm,
   groupGlossaryByLetter,
   type SportId,
 } from '@landit/core';
-import { Icon, Panel, Tabs, type TabItem } from '@landit/ui-web';
+import { Icon, Panel } from '@landit/ui-web';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
+import { BackLink } from '@/components/shell/BackLink';
+import { SportScopeSelect, useSportScope } from '@/components/shell/SportScopeSelect';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
-import { ROUTES, glossarySportHref, trickHref } from '@/lib/routes';
-import { SPORT_LOOKS } from '@/lib/sports';
+import { ROUTES, trickHref } from '@/lib/routes';
 
 import styles from './glossary.module.css';
 
@@ -25,16 +23,21 @@ import styles from './glossary.module.css';
 const letterId = (letter: string) => `letter-${letter === '#' ? 'num' : letter.toLowerCase()}`;
 
 /**
- * The glossary screen: back link, heading, sport filter, the A–Z strip and
+ * The glossary screen: back link, heading, sport scope, the A–Z strip and
  * the entries grouped by letter (handoff `Glossary.dc.html`).
  *
- * A client component for two small reasons and no large one. The sport
- * filter rewrites the address as it narrows the list — `replace`, not `push`,
- * for the reason the library's "My tricks" switch gives: four filters are one
- * screen in four modes, not four places for Back to walk through. And the
- * deep-link counter has to read `location.hash`, which only a browser has.
- * Everything the screen *shows* it was handed by the server, already filtered,
- * so there is no flash of the wrong list.
+ * A client component for two small reasons and no large one. The sport scope
+ * is a per-device choice only a browser can read, and the deep-link counter has
+ * to read `location.hash`, which only a browser has. Everything else the screen
+ * shows is catalogue copy from `@landit/core`, so narrowing it costs no request.
+ *
+ * **The scope is `SportScopeSelect`, not the screen's own tab row** (rethink
+ * §3.10, T50). Every in-page sport row goes with D5 — the sport is chosen once,
+ * in the top bar — and this one is now the same "Show: Your sport (Scooter)"
+ * control that `/spots`, `/events` and the diary carry, opening on the rider's
+ * own sport per O1. Two things went with the tabs and are recorded in the spec:
+ * the per-sport counts, which a `<select>` has no room for, and `?sport=` as a
+ * *live* address, which now seeds the screen rather than being rewritten.
  *
  * **The highlight is `:target`, not state.** A term reached by `#kerb` is drawn
  * in paper-2 with a yellow rule down its left, entirely in CSS, so a deep link
@@ -45,6 +48,7 @@ export function GlossaryScreen({
   sport: initialSport,
   from,
   tricks,
+  signedIn,
 }: {
   /** `?sport=`, validated on the server. `null` is all sports. */
   readonly sport: SportId | null;
@@ -52,27 +56,34 @@ export function GlossaryScreen({
   readonly from: string | null;
   /** Live tricks by slug — a hidden trick is absent and gets no pill. */
   readonly tricks: Readonly<Record<string, { name: string; sport: SportId }>>;
+  /**
+   * Whether anybody is signed in — its own input, never inferred from a
+   * fallback that happens to name a real sport (LESSONS §3a, and the T48
+   * paragraph in §3.7 that met exactly this). The glossary is public and
+   * crawlable: with no rider the top bar has no sport chip, so "Your sport
+   * (Scooter)" would be a claim about somebody we have never met, following a
+   * preference they cannot see or change.
+   */
+  readonly signedIn: boolean;
 }) {
-  const router = useRouter();
-  const [sport, setSport] = useState<SportId | null>(initialSport);
+  /*
+   * `?sport=skate` is the screen's **default**, not a second source of truth.
+   *
+   * It was the filter's address before T50 and could be linked or bookmarked,
+   * so it still opens the list on that sport — but the control no longer
+   * rewrites it, because a per-device choice and a URL would then be two
+   * answers to one question and a `'chip'` scope has no address to write (it
+   * tracks the top bar and changes when the chip does). A rider who has chosen
+   * a scope on this device sees theirs; anyone arriving on the link with no
+   * choice stored sees the link's sport. Signed out and with no `?sport=`, the
+   * whole glossary, per the T48 rule.
+   */
+  const scope = useSportScope('glossary', initialSport ?? (signedIn ? 'chip' : 'all'), signedIn);
+  const sport = scope.sports[0] ?? null;
 
   const shown = useMemo(() => glossaryFor(sport), [sport]);
   const groups = useMemo(() => groupGlossaryByLetter(shown), [shown]);
   const present = useMemo(() => new Set(groups.map((group) => group.letter)), [groups]);
-
-  const tabs = useMemo<TabItem[]>(
-    () => [
-      { id: 'all', label: 'All', color: 'var(--ink)', note: GLOSSARY.length },
-      ...SPORT_IDS.map((id) => ({
-        id,
-        label: SPORTS[id].short,
-        icon: SPORT_LOOKS[id].icon,
-        color: SPORTS[id].color,
-        note: glossaryFor(id).length,
-      })),
-    ],
-    [],
-  );
 
   /*
    * A deep link counts once, on arrival. The hash names the term and `from`
@@ -93,29 +104,34 @@ export function GlossaryScreen({
     });
   }, [from, initialSport]);
 
-  const pick = (id: string) => {
-    const next = SPORT_IDS.find((candidate) => candidate === id) ?? null;
-    setSport(next);
-    router.replace(glossarySportHref(next, from), { scroll: false });
-  };
-
   return (
     <div>
-      <Link className={`cond ${styles.back}`} href={from ? trickHref(from) : ROUTES.library}>
-        <Icon name="back" size={16} /> {from ? 'Back to the trick' : 'All tricks'}
-      </Link>
+      {/*
+        `BackLink` rather than the screen's own 13.5px link: it measured 17px
+        tall where every other screen's is at §4's 44px. Where it goes and what
+        it says are unchanged — `?from=` still sends a reader back to the trick
+        whose copy linked a word.
+      */}
+      <BackLink
+        href={from ? trickHref(from) : ROUTES.library}
+        label={from ? 'Back to the trick' : 'All tricks'}
+      />
 
       <div className={styles.head}>
         <div>
           <span className="eyebrow">The words riders use</span>
           <h1 className={`d ${styles.title}`}>Glossary</h1>
         </div>
-        <Tabs
+        {/*
+          "Show: Your sport (Scooter)" (§3.3, O1). It fires `sport_scope_set`
+          from inside `useSportScope`, so the press is counted here as it is on
+          the three other screens that carry the control.
+        */}
+        <SportScopeSelect
+          state={scope}
+          everyLabel="All sports"
+          label="Show words for"
           className={styles.filter}
-          items={tabs}
-          value={sport ?? 'all'}
-          onChange={pick}
-          label="Sport"
         />
       </div>
 

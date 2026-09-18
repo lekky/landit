@@ -1,4 +1,4 @@
-import type { CategoryId, SportId } from '@landit/core';
+import type { CategoryId } from '@landit/core';
 import type { Route } from 'next';
 
 import type { LegalDocId } from '@/content/legal';
@@ -57,6 +57,38 @@ export const ROUTES = {
    * change may not do is make it unfindable.
    */
   accountClose: '/account/close',
+  /**
+   * The six routes below are the screens `/account` opens that did not already
+   * have an address (app shell rethink §3.9, T51).
+   *
+   * The list itself has **eight** rows: these six, plus `plans` and `coach`,
+   * which are screens of the product's own and are linked rather than owned.
+   * §3.9 asked for seven; the eighth, "Your guardian", is the owner's addition
+   * of 2026-09-16 and is drawn only while the consent gate applies.
+   *
+   * `/account` used to be one scroll holding every control the product has
+   * about a rider: the profile editor, the sports picker, two privacy
+   * settings, the guardian gate and the data export, one under the other. On a
+   * phone that is a screen a rider swipes through looking for the one thing
+   * they came for. It is a list of rows now, and each row is one of these.
+   *
+   * They are routes rather than client state for the reason `eventsMine` gives:
+   * a setting a rider can link to, bookmark and come back to after signing in
+   * is worth an address, and on a desktop the address is what decides which
+   * panel renders beside the list.
+   *
+   * All six are gated exactly as `/account` is — they redirect a signed-out
+   * visitor to sign in — and all six carry `noindex`. `/account/close` is
+   * deliberately **not** one of them: it keeps its own page and its own shape
+   * (see `accountClose` above), and the "Your data" row is where a rider finds
+   * it.
+   */
+  accountProfile: '/account/profile',
+  accountSports: '/account/sports',
+  accountPrivacy: '/account/privacy',
+  accountSessions: '/account/sessions',
+  accountGuardian: '/account/guardian',
+  accountData: '/account/data',
   library: '/library',
   /**
    * The glossary (T29): the words riders use, readable signed out like the
@@ -100,6 +132,28 @@ export const ROUTES = {
   coach: '/coach',
   /** T13's spots and map, on the same terms. */
   spots: '/spots',
+  /**
+   * Where to ride — the **Find** group's landing screen (app shell rethink §2.1,
+   * D2, 2026-09-15).
+   *
+   * One of the four groups both bars carry, holding Spots, Events, the archive
+   * and the rider's own events. It lands on the **For you** summary (T48): what
+   * the rider is going to, what is near them, and what is coming up, with the
+   * group's tab row above and the full list behind each section. Public, like
+   * the two screens its tabs lead to.
+   */
+  find: '/find',
+  /**
+   * What's new — the bell's page on a phone (rethink §3.6, D4).
+   *
+   * In the app group and not in either bar: the bell in the top bar is its only
+   * way in, at every width, and it lights no nav cell (§2.2). Like `/find` it is
+   * a placeholder here and the real panel is T47's. In-app only — push
+   * notifications are out of scope, and there is no rider-to-rider anything on
+   * it: every line is written by the product from the rider's own record and
+   * their crews' feeds.
+   */
+  whatsNew: '/whats-new',
   /**
    * Telling us something is wrong (T18).
    *
@@ -246,18 +300,14 @@ export const glossaryHref = (slug?: string, from?: string): Route => {
   return `${ROUTES.glossary}${search}${hash}` as Route;
 };
 
-/**
- * The glossary narrowed to one sport, or all of it — the filter row's address,
- * so `/glossary?sport=skate` can be linked and bookmarked like `/library?mine=1`.
- * `from` rides along so the way back survives a filter press.
+/*
+ * `glossarySportHref` was here, and went with the glossary's sport tab row in
+ * T50 (rethink §3.10). The row wrote `?sport=skate` on every press; the
+ * `SportScopeSelect` that replaced it keeps its answer per device, and a
+ * `'chip'` scope has no address to write because it tracks the top bar. The
+ * page still *reads* `?sport=` as the screen's default, so an old link or
+ * bookmark opens on that sport — nothing here built one but the row itself.
  */
-export const glossarySportHref = (sport: SportId | null, from?: string | null): Route => {
-  const params = new URLSearchParams();
-  if (sport) params.set('sport', sport);
-  if (from) params.set('from', from);
-  const search = params.toString();
-  return search ? (`${ROUTES.glossary}?${search}` as Route) : ROUTES.glossary;
-};
 
 /**
  * The spots list, optionally narrowed to one feature (T31).

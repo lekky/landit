@@ -138,16 +138,20 @@ export interface EventsView {
   readonly events: readonly EventView[];
   /** Which slice of the calendar these events are. */
   readonly scope: EventsScope;
-  /** How many events each tab holds, for the segmented control's counts. */
+  /** How many events each half holds, for the Upcoming / Past pills' counts. */
   readonly upcomingCount: number;
   readonly pastCount: number;
   /**
-   * How many events the rider is down for or has been to — the third tab's
-   * count, and the only number on this view that is about the reader.
+   * How many events the rider is down for or has been to — the only number on
+   * this view that is about the reader.
    *
-   * Present on every scope, not just `mine`, because the tab and its count are
-   * on all three screens. It is zero for a visitor, who has no attendance to
-   * count: the tab is not rendered for them at all (`EventsScreen`).
+   * Computed on every scope rather than only on `mine`, because it is cheap
+   * (the attendance join is already done) and because it used to feed the Mine
+   * tab's badge on all three screens. That tab is gone (rethink §3.7) and
+   * nothing renders this today; it is kept because `/events/mine` is still a
+   * route built from this view and a count of its own rows is the first thing
+   * that screen would want back. It is zero for a visitor, who has no
+   * attendance to count.
    */
   readonly mineCount: number;
   /** Present on the archive only. */

@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { EventSessionsBlock } from '@/components/sessions/blocks/EventSessionsBlock';
+import { BackLink } from '@/components/shell/BackLink';
 import { ROUTES, eventHref, reportHref, signInHref } from '@/lib/routes';
 import { anonymousClient, currentRider } from '@/lib/session';
 import { eventLd, jsonLdText } from '@/lib/structuredData';
@@ -227,17 +228,26 @@ export default async function EventPage({ params, searchParams }: Params) {
       />
       <PageOpened source={source} kind={view.kind} />
 
-      <nav className={styles.crumb} aria-label="Breadcrumb">
-        <Link href={ROUTES.events}>Events</Link>
-        {view.country && (
-          <>
-            <span aria-hidden="true">/</span>
-            <span>{view.country}</span>
-          </>
-        )}
-        <span aria-hidden="true">/</span>
-        <span>{view.town}</span>
-      </nav>
+      {/*
+        "Events", the group's back link (§2.3), where a three-part breadcrumb
+        used to be — the same correction `/spots/[slug]` took in T52, made on
+        the same group's other detail page after the independent review of the
+        combined branch found the two disagreeing (2026-09-17).
+
+        The trail said `Events / United Kingdom / Corby`, and its two tail
+        segments were plain text repeating the sub-line under the title, which
+        already reads "Corby Skatepark · Corby, United Kingdom". What was
+        load-bearing was the first segment — the way back to the calendar — and
+        it was 12.5px of unpadded type, the smallest target on the page.
+        `BackLink` is the product's one shape for that, at §4's 44px.
+
+        **Nothing a crawler reads is lost.** The page carries no `BreadcrumbList`
+        structured data — its JSON-LD is `eventLd`, an `Event` with a `Place` and
+        a `PostalAddress` — so the town and the country still reach a search
+        engine through `addressLocality` and `addressCountry`, as well as
+        through the `<h1>`, the sub-line and the metadata description.
+      */}
+      <BackLink href={ROUTES.events} label="Events" />
 
       <Panel className={styles.head}>
         <div
@@ -261,7 +271,13 @@ export default async function EventPage({ params, searchParams }: Params) {
           <div className={styles.sub}>{view.subLine}</div>
         </div>
 
-        <StatusBand view={view} hasNear={Boolean(near)} hasVenue={Boolean(venueBlock)} />
+        <StatusBand
+          view={view}
+          hasNear={Boolean(near)}
+          hasVenue={Boolean(venueBlock)}
+          going={going}
+          signedIn={signedIn}
+        />
       </Panel>
 
       <div className={styles.cols}>
@@ -430,12 +446,11 @@ export default async function EventPage({ params, searchParams }: Params) {
                   </>
                 ) : signedIn ? (
                   <>
-                    <GoingToggle
-                      slug={view.slug}
-                      name={view.name}
-                      kindColor={view.kindColor}
-                      initial={going}
-                    />
+                    {/* The toggle itself is in the countdown strip at the top of
+                        the page (owner, 2026-09-17); what stays here is the
+                        sentence explaining what saying yes does and does not
+                        do, which is an explanation rather than a second
+                        control. */}
                     <p className={styles.privateNote}>
                       <span className={styles.privateDot} aria-hidden="true" />
                       <span>
@@ -487,9 +502,6 @@ export default async function EventPage({ params, searchParams }: Params) {
                 >
                   Open in maps &rarr;
                 </a>
-                <p className={styles.note}>
-                  We hold the town, not a pin. The circle is the area, not the gate.
-                </p>
               </div>
             </Panel>
           )}
@@ -561,16 +573,38 @@ function StatusBand({
   view,
   hasNear,
   hasVenue,
+  going,
+  signedIn,
 }: {
   readonly view: EventPageView;
   readonly hasNear: boolean;
   readonly hasVenue: boolean;
+  /** The rider has said they are going. */
+  readonly going: boolean;
+  readonly signedIn: boolean;
 }) {
+  /*
+    **"I'm going" lives in this strip** (owner, 2026-09-17: "im going to this
+    should be right at the top in the 2 days away block").
+
+    It was in the rail, under the fold on a phone and below the whole listing on
+    a desktop — the one thing a rider does on this page, last. Here it sits with
+    the countdown that makes them want to press it. The rail keeps the privacy
+    sentence, which is an explanation rather than a control, and a signed-out
+    visitor still gets the sign-in route there.
+  */
+  const attend =
+    signedIn && view.state !== 'over' ? (
+      <div className={styles.attendRow}>
+        <GoingToggle slug={view.slug} name={view.name} kindColor={view.kindColor} initial={going} />
+      </div>
+    ) : null;
   if (view.state === 'today') {
     return (
       <div className={`${styles.status} ${styles.statusToday}`}>
         <div className={`d ${styles.big}`}>Happening today</div>
         <div className={styles.when}>{view.longDate} · All day</div>
+        {attend}
         {view.mapsUrl && (
           <div className={styles.push}>
             <a className="btn sm ink" href={view.mapsUrl} target="_blank" rel="noreferrer">
@@ -626,6 +660,7 @@ function StatusBand({
           {[view.price, view.places].filter(Boolean).join(' · ')}
         </span>
       </div>
+      {attend}
     </div>
   );
 }

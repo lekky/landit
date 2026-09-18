@@ -427,6 +427,21 @@ a.pill.on:hover {
   max-height: min(88vh, calc(100vh - 40px));
   overscroll-behavior: contain;
   touch-action: pan-y pinch-zoom;
+  /*
+   * **It hugs its content, in every engine** (owner, 2026-09-17: "delete
+   * session modal is huge" — the confirm drawn full-height on their phone with
+   * about 1,000px of empty paper under two buttons).
+   *
+   * `.scrim` is a grid and a grid item stretches by default; the rules here
+   * align it with `place-items` / `align-items`, which Chromium honours — the
+   * stretch does not reproduce here at any width from 375 to 860. Rather than
+   * leave a phone drawing it the other way, the height is pinned to the
+   * content and the item is aligned itself, which no engine can override from
+   * the parent. `max-height` above still caps a genuinely long one, and
+   * `overflow: auto` still scrolls it.
+   */
+  height: fit-content;
+  align-self: start;
 }
 @supports (height: 1dvh) {
   .modal {
@@ -565,6 +580,534 @@ a.pill.on:hover {
   padding: 12px 20px;
   background: var(--paper);
   border-top: var(--bd);
+}
+
+/* ------------------------------------------------------------------ sheet -- */
+
+/*
+ * The bottom sheet (`Sheet`, app shell rethink §3.2).
+ *
+ * The design pack has no drawing of one — the prototype was a desktop page —
+ * so it is built out of the vocabulary that is already here: paper, a 3px ink
+ * keyline, zero radius, and the modal's own scrim and spring. What makes it a
+ * sheet rather than a short modal is where it hangs from and what it clears:
+ * the bottom edge, above `.mobnav` (z-index 70) and under the toasts (200),
+ * with the home indicator paid for out of `env(safe-area-inset-bottom)`.
+ *
+ * It reuses `.scrim` for the fade and the overlay, and only re-lays the box:
+ * `place-items: end stretch` puts the panel on the bottom edge at full width
+ * where `.scrim`'s own `place-items: center` would float it in the middle.
+ */
+.sheet-scrim {
+  place-items: end stretch;
+  padding: 0;
+  /*
+   * **The sheet stops at the top of the bottom bar** (review S1).
+   *
+   * §4 says the LOG plus turns into a cross "so the cell reads as 'close'
+   * too" — and it did rotate, behind a sheet that reached the bottom edge and
+   * an `inertOutside` that made the bar unreachable. An affordance nobody can
+   * see or press is worse than none. So the *panel* ends where `.mobnav`
+   * begins: 63px of bar plus whatever the home indicator takes.
+   *
+   * The **scrim** stops there too, rather than the panel alone. The page it
+   * covers is everything a rider can see except the bar, which is the whole
+   * screen above it — so the page behind is still dimmed and a tap anywhere on
+   * it is still a dismissal. Leaving the scrim over the bar would have put a
+   * transparent sheet of glass over the cross, which is the same defect one
+   * layer further out.
+   */
+  bottom: calc(63px + env(safe-area-inset-bottom));
+}
+/* Above 860px there is no bottom bar to clear, and the sheet is a `Modal`
+   anyway — but a caller forcing `as="sheet"` on a desktop should not get a
+   phone's gap. */
+@media (min-width: 861px) {
+  .sheet-scrim {
+    bottom: 0;
+  }
+  /* No bottom bar up here, so no LOG square to stand clear of. */
+  .sheet {
+    margin-bottom: 0;
+  }
+}
+.sheet {
+  background: var(--paper);
+  border-top: var(--bd);
+  width: 100%;
+  max-height: 86dvh;
+  overflow: auto;
+  padding: 0 16px 28px;
+  /*
+   * **It clears the LOG square, not just the bar** (owner, 2026-09-17: "panel
+   * covers half the log button in nav").
+   *
+   * The scrim stops at the top of `.mobnav`, which is what keeps the bar and
+   * its cross visible — but the LOG cell is not in the bar: `.logSquare` is
+   * 58px hung 30px above its top edge (`shell.module.css`), so a panel that
+   * reached the scrim's own bottom edge sliced it in half. 30px is that lift,
+   * and it leaves the whole square standing in the dimmed band where a rider
+   * can see the plus turn into a cross (§4).
+   */
+  margin-bottom: 30px;
+  /*
+   * Above the bottom bar. `.scrim` is 180 and `.mobnav` is 70, so the stacking
+   * is already right; this is here for the sheet's own children (the grip is
+   * sticky) and to say the number out loud beside the bar's.
+   */
+  z-index: 1;
+  animation: sheetup var(--dur-sheet) var(--ease-spring);
+  transition: transform var(--dur-ui) var(--ease-out);
+}
+@keyframes sheetup {
+  from {
+    transform: translateY(100%);
+  }
+}
+/*
+ * Closing: 200ms ease-out with no overshoot (§3.2, review S2).
+ *
+ * "Open toward, close away" is §4's rule and the sheet only had the first half
+ * — it was unmounted the moment its flag flipped, so it vanished. `Sheet` now
+ * holds itself mounted for `--dur-ui` behind a closing state and wears these
+ * two classes while it does. The reduced-motion floor at the foot of this file
+ * clamps both, and `Sheet` reads the same token, so the wait and the animation
+ * cannot drift apart.
+ */
+.sheet-closing .sheet {
+  animation: sheetdown var(--dur-ui) var(--ease-out) forwards;
+}
+.sheet-closing {
+  animation: fadeout var(--dur-ui) var(--ease-out) forwards;
+}
+@keyframes sheetdown {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes fadeout {
+  to {
+    opacity: 0;
+  }
+}
+.sheet:focus {
+  outline: none;
+}
+/*
+ * The drag handle and the title are one grip: the region a pointer may start a
+ * close gesture in. The body below it scrolls normally, which is the whole
+ * reason the gesture is not on the panel.
+ */
+.sheet-grip {
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  padding: 10px 0 12px;
+  touch-action: none;
+  cursor: grab;
+}
+.sheet-handle {
+  display: block;
+  width: 44px;
+  height: 5px;
+  margin: 0 auto 12px;
+  background: var(--ink);
+}
+/*
+ * The title and the Close on one line (owner, 2026-09-17).
+ *
+ * The Close borrows `.modal-close` whole — the same 44px paper square, the same
+ * keyline and offset shadow, the same press — so the two dialogs a rider meets
+ * on a phone close the same way. A sheet with no title still draws it, because
+ * the control is what makes the sheet dismissable without knowing a gesture.
+ */
+.sheet-headrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.sheet-title {
+  font-size: 24px;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+/* With no title the square still sits hard right. */
+.sheet-headrow > .sheet-close {
+  margin-left: auto;
+}
+/*
+ * The title and whatever sits at the right of its line (§3.5's sport `Tag`).
+ *
+ * `baseline` rather than `center`: the title is Anton and the aside is usually
+ * a `Tag` in Barlow Condensed, and two type sizes centred against each other
+ * read as one of them floating.
+ */
+.sheet-titlerow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+/*
+ * The gutters a `Sheet` gives its children when it renders as a `Modal`.
+ *
+ * `.sheet` pads itself; `.modal` does not, by design — every caller brings its
+ * own. This is the sheet's, so the same children are laid out the same way at
+ * both widths. 4px more at the top than the sheet has, because the modal's own
+ * title bar has a keyline under it where the sheet's grip does not.
+ */
+.sheet-body {
+  padding: 16px 16px 20px;
+}
+
+/* --------------------------------------------------------------- dropdown -- */
+
+/*
+ * The desktop anchor panel (`Dropdown`, §3.2) — the bell's and the sport
+ * chip's, hung under the right edge of the button that opened it.
+ *
+ * The caller owns the positioning context, exactly as `.accountmenu` does for
+ * `.accountmenu-sheet`: a `position: relative` wrapper holding the trigger and
+ * this. `right: 0` is what aligns it to the button's right edge rather than its
+ * left, which is what keeps a 420px panel on screen under a button that is
+ * itself at the right-hand end of the bar.
+ */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 80;
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh);
+  color: var(--ink);
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  /*
+   * `--ease-spring`, not `--ease-out` (integration review, nit 1). §4's rule is
+   * "open toward, close away": sheets, modals and dropdowns open on the spring
+   * and settle on the ease. This opened on the ease, so the one surface of the
+   * three that a desktop rider meets most did not move like the other two. This
+   * is `Dropdown`'s own rule, added by T45 in this wave, so correcting it is not
+   * a change to anything that shipped before the rethink.
+   */
+  animation: dropin var(--dur-ui) var(--ease-spring);
+}
+@keyframes dropin {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+}
+
+/*
+ * The phone's drop-down panel (owner, 2026-09-17: "/whats-new feels better as a
+ * slide down panel").
+ *
+ * The bell used to navigate to `/whats-new` on a phone and open a `Dropdown`
+ * on a desktop. Reading the news is a glance, and a glance should not cost a
+ * page: the panel now drops from under the top bar at both widths, and the page
+ * keeps its place underneath.
+ *
+ * It is the full width of the screen rather than the desktop's 420px column,
+ * hangs from the bar rather than from the 34px button (a panel anchored to a
+ * button that small reads as a tooltip), and rises out from under the bar —
+ * `translateY(-100%)` inside `overflow: hidden` would need a wrapper, so the
+ * same 8px rise and fade the desktop uses is kept and the distance is what
+ * changes. §4's floor clamps it under `prefers-reduced-motion` like everything
+ * else.
+ *
+ * `position: fixed` takes it out of the anchor's box, which is what lets it span
+ * the screen; the top is the bar's own height. It stays a menu, not a dialog:
+ * the page behind is not held still and a tap outside dismisses it, which is
+ * `Dropdown`'s standing decision (§3.2) and the reason it is not a `Sheet`.
+ */
+@media (max-width: 860px) {
+  .dropdown-full {
+    position: fixed;
+    top: 55px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: min(72dvh, calc(100dvh - 55px - 16px));
+    animation: dropin-full var(--dur-ui) var(--ease-spring);
+  }
+}
+@keyframes dropin-full {
+  from {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+}
+
+/* --------------------------------------------------------------- tab row -- */
+
+/*
+ * `Tabs variant="boxed"` (§3.3, D6) — a row of separate boxes rather than a
+ * row of content-sized tabs.
+ *
+ * It is `.sporttab` underneath, so the keyline, the shadow, the press and the
+ * hover lift are the ones the design already draws and are not restated. What
+ * `.tabrow` adds is the geometry — equal shares, a 44px floor, no wrap — and
+ * the one colour rule: the active tab is the design's yellow at every width and
+ * on every screen, where a default row takes the colour from its item.
+ */
+.tabrow {
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+.tabrow .sporttab {
+  flex: 1;
+  justify-content: center;
+  min-height: 44px;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  padding: 9px 10px;
+  white-space: nowrap;
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press),
+    background var(--dur-press);
+}
+.tabrow .sporttab.on,
+.tabrow a.sporttab.on {
+  background: var(--yellow);
+  color: var(--on-light);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+/*
+ * The press, at every width and every pointer (§3.3, §4, review N7).
+ *
+ * `.sporttab:active` exists only inside `@media (hover: none)` further down
+ * this file — it arrived with the touch-hygiene block, where the question was
+ * what a *finger* gets — so a boxed tab clicked with a mouse lifted on hover
+ * and then did nothing on the click. The press is the design's one gesture and
+ * §4 names `TabRow` tabs as taking it.
+ */
+.tabrow .sporttab:active,
+.tabrow a.sporttab:active,
+.tabrow .sporttab.on:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+/* A boxed row drawn as links, which is what a route-changing row is (Find). */
+.tabrow a.sporttab,
+.tabrow a.sporttab:hover {
+  color: var(--ink);
+  display: flex;
+  text-align: center;
+}
+
+/* -------------------------------------------------------------- accordion -- */
+
+/*
+ * `Accordion` (§3.8) — the disclosure row the phone's trick page is a list of.
+ *
+ * The box is the design's ordinary raised surface, said again here rather than
+ * borrowed from `.panel`, because a row is not a panel: it is 3px of ink, the
+ * small shadow and paper, at the 56px §3.8 gives it, and `.panel`'s padding
+ * would fight the summary's own.
+ */
+.accordion {
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  /*
+   * A fragment link lands under a sticky top bar unless the target says how
+   * much bar there is. 76px is the bar at its tallest (11px of padding either
+   * side of a 34px chip, plus its 3px rule) with a little air over the row's
+   * own keyline.
+   */
+  scroll-margin-top: 76px;
+}
+/*
+ * The summary is the row. `list-style: none` plus the WebKit pseudo-element is
+ * what removes the UA's own triangle — one of them alone leaves it on one
+ * engine or the other — and `display: flex` is applied after, because setting
+ * `display` on a `summary` is itself what drops the marker in Blink.
+ */
+.accordion-head {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 14px;
+  cursor: pointer;
+  color: var(--ink);
+  transition:
+    transform var(--dur-press),
+    box-shadow var(--dur-press);
+}
+.accordion-head::-webkit-details-marker {
+  display: none;
+}
+/* §4's one gesture: every tappable box presses. */
+.accordion-head:active {
+  transform: translate(2px, 2px);
+}
+/*
+ * The design's focus ring, not the browser's (independent review, N2). This
+ * sheet already gives one to `.segpick .seg`, `.clipposter` and `a.trickpill`;
+ * the row is the control a phone page is made of and had the UA's 1px outline.
+ */
+.accordion-head:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--yellow);
+}
+/* The heading is the row's whole left-hand side. `margin: 0` because the
+   shared stylesheet gives every heading one and a row is not a paragraph. */
+.accordion-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.accordion-sub {
+  display: block;
+  font-family: var(--fb);
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.35;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+.accordion-chev {
+  flex: none;
+  transition: transform var(--dur-press) var(--ease-out);
+}
+.accordion[open] .accordion-chev {
+  transform: rotate(180deg);
+}
+/*
+ * `0fr → 1fr`: the only way to transition to a height nobody has measured. The
+ * inner box is what clips during the travel, and its padding is also what keeps
+ * the hard offset shadows of whatever is inside from being clipped at the end
+ * of it.
+ */
+.accordion-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-ui) var(--ease-out);
+}
+.accordion-body.is-grown {
+  grid-template-rows: 1fr;
+}
+.accordion-inner {
+  overflow: hidden;
+  min-height: 0;
+  padding: 0 12px 14px;
+}
+/*
+ * Held open, and no longer a control (`plainAbove`). The caller's own
+ * stylesheet repaints the head — this only takes the disclosure away.
+ *
+ * **The class arrives one render late, and that is the caller's to cover.** The
+ * server has no width to read, so `plainAbove` is answered "phone" there and
+ * these rules are not on until the client has measured. A caller using
+ * `plainAbove` therefore writes the same three declarations under its own media
+ * query — `::details-content { content-visibility: visible }`, the open row and
+ * the hidden chevron — so a wide screen never shows a shut box for a frame.
+ * The trick page's module is the worked example.
+ */
+.accordion-plain .accordion-head {
+  cursor: default;
+  /* With the chevron gone and the press gone, this is a heading drawn in a
+     row's clothes; nothing should be able to press it, which is the other half
+     of `tabIndex={-1}` in the component (review S3). */
+  pointer-events: none;
+}
+.accordion-plain .accordion-head:active {
+  transform: none;
+}
+.accordion-plain .accordion-head:focus-visible {
+  box-shadow: none;
+}
+.accordion-plain .accordion-chev {
+  display: none;
+}
+.accordion-plain .accordion-body {
+  grid-template-rows: 1fr;
+}
+.accordion-plain::details-content {
+  content-visibility: visible;
+}
+/*
+ * **On paper every row is open** (independent review of 2026-09-17, S1).
+ *
+ * A printed page's media queries evaluate against the *paper*, about 816 CSS px
+ * for A4 at 96dpi, which is below any `plainAbove` a caller is likely to set —
+ * so a trick page printed from a desktop came out as nine headings and 595
+ * characters where `main` gave 2083. A coach printing a trick, or a parent
+ * putting one on a fridge, is exactly who this is for.
+ *
+ * Two declarations, because a shut `details` hides its contents two ways: the
+ * grid row is at `0fr` and the UA has skipped rendering the subtree.
+ */
+@media print {
+  .accordion-body {
+    grid-template-rows: 1fr;
+  }
+  .accordion::details-content {
+    content-visibility: visible;
+  }
+  .accordion-chev {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------ the top bar at 400px -- */
+
+/*
+ * The narrowest phones: **the wordmark gives way, never the sport's name**.
+ *
+ * The right-hand end of the bar gained a sport chip and a bell in the app shell
+ * rethink, and D5 is explicit that the chip carries the sport's icon *and*
+ * name. Measured on the running branch at 320px, the wordmark at 42px plus the
+ * chip with its word plus the bell and the avatar came to 30px more than the
+ * viewport and the whole document scrolled sideways.
+ *
+ * Something had to shrink and the order is a decision, not an arithmetic: the
+ * mark is the one thing on the bar that tells a rider nothing they do not
+ * already know — they are in the app — while the chip's word is the only thing
+ * that says which library they are looking at. So the mark takes the cut, as it
+ * already does in the 861–1100px band further up this file, and the gaps
+ * tighten with it. `e2e/shell.spec.ts` measures 430, 390, 375 and 320.
+ */
+@media (max-width: 400px) {
+  .topbar-in {
+    gap: 8px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .topbar-in .logo img {
+    height: 32px;
+  }
+  .topbar-in .logo .wm {
+    font-size: 16px;
+  }
+}
+
+/* ---------------------------------------------------- the top bar's rule -- */
+
+/*
+ * The bottom rule takes the current sport's colour (§3.1, D5).
+ *
+ * A custom property with the old value as its fallback, so a bar rendered by
+ * anything that does not set it — a test, a page outside the app frame — is
+ * exactly the bar it was. The cross-fade is `--dur-ui`, which is what makes
+ * switching sport read as one change rather than as a repaint.
+ */
+.topbar {
+  border-bottom-color: var(--sport-rule, var(--ink));
+  transition: border-bottom-color var(--dur-ui) var(--ease-out);
 }
 
 /* ------------------------------------------------ reduced motion (global) -- */

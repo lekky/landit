@@ -36,24 +36,37 @@
   margin-bottom: 18px;
 }
 
-/* Beats `a:hover { color: var(--pink) }` in the token sheet on specificity. */
-.switcherLink,
-.switcherLink:hover {
-  color: inherit;
-  text-decoration: none;
+/*
+ * The crew picker, wearing `/events`' country control's clothes exactly —
+ * 44px, the ink keyline, the small offset shadow, and the same inlined
+ * chevron. The `appearance` reset is not decoration: left alone, WebKit paints
+ * a grey rounded menulist inside the keyline, which is the only radius and the
+ * only grey fill on the page. `additions.css` explains it at `.field select`.
+ */
+.switcher select {
+  min-height: 44px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  box-shadow: var(--sh-sm);
+  padding: 6px 10px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  max-width: 15rem;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2312100b' stroke-width='2.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 12px 8px;
+  padding-right: 38px;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
-  gap: 20px;
-}
-
-@media (max-width: 860px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-}
+/*
+ * The `1fr / 340px` grid that held the board and the feed side by side is gone
+ * (T52): they are two tabs of one row now (§3.10), so there is one panel on
+ * screen at a time and it takes the width it is given.
+ */
 
 .panel {
   padding: 0;
@@ -167,6 +180,27 @@
   flex: none;
 }
 
+@media (max-width: 560px) {
+  /*
+   * The actions get their own row on a phone, always — never "beside the name
+   * if the name is short enough" (owner, 2026-09-17).
+   *
+   * `.header` wraps and `.headerActions` is pushed right by `margin-left:
+   * auto`, so whether the two buttons sat on the title's line or under it was
+   * decided by how many characters the crew was called. A crew called RA put
+   * them up; a crew called SNN pushed them down; and every tap of the switcher
+   * re-laid the screen out under the rider's thumb, shifting everything below
+   * by a row. One shape for every crew.
+   */
+  .header {
+    display: block;
+  }
+
+  .headerActions {
+    margin-top: 14px;
+  }
+}
+
 @media (max-width: 420px) {
   .rowStats {
     gap: 12px;
@@ -177,51 +211,34 @@
   }
 }
 
+/* ---------------------------------------------------------------- members -- */
+
+/*
+ * The sentence under the roster (T52). It is the Members tab's version of the
+ * promise the activity feed's empty state makes: a private rider is on the
+ * board and in this list, and opening them shows only what they have opened.
+ */
+.membersNote {
+  margin: 0;
+  padding: 14px 16px;
+  border-top: 2px solid var(--wash);
+  color: var(--ink-3);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* ------------------------------------------------------------------- feed -- */
 
-.feed {
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-}
-
-.feedItem {
-  display: flex;
-  gap: 11px;
-}
-
-.feedBody {
-  min-width: 0;
-}
-
-.feedLine {
-  margin: 0;
-  font-size: 14.5px;
-  line-height: 1.35;
-}
-
-.feedWho,
-.feedWho:hover {
-  color: var(--ink);
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.feedMeta {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-top: 4px;
-  flex-wrap: wrap;
-}
-
-.feedWhen {
-  color: var(--ink-3);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-}
+/*
+ * The feed row's styles left this file in T47 (review S5).
+ *
+ * They are `apps/web/src/components/feed/feed.module.css` now, unchanged, and
+ * both this screen and What's new import the component that uses them — What's
+ * new's crew tab draws the same rows as this panel, and §3.6 asks for the same
+ * row rather than a second one that matches today. Nothing was redesigned in
+ * the move; the classes were `.feed`, `.feedItem`, `.feedBody`, `.feedLine`,
+ * `.feedWho`, `.feedMeta` and `.feedWhen`.
+ */
 
 /* -------------------------------------------------------- start, or join -- */
 
@@ -264,9 +281,32 @@
   padding-top: 16px;
 }
 
-.more summary {
-  cursor: pointer;
-  color: var(--ink-3);
+/*
+ * "Start another" and "Join with a code" (§3.10, T52), where a `<summary>` used
+ * to open both forms at once.
+ *
+ * **44px at every width** (review finding 4). The comment here used to say
+ * `.btn.sm` already gave them that; it does not — `additions.css` raises `.btn`
+ * to 44px only inside its coarse-pointer block, so these measured 36px at
+ * 1280 and 44px on a phone. §4's floor has no width on it, and the spot page in
+ * this same task states its own `min-height` for exactly that reason. Two
+ * buttons wrap onto two lines on a narrow phone rather than shrinking.
+ *
+ * `.btn.sm` is two classes, so the rule that sets the height is two as well —
+ * the specificity trick this repository uses wherever a module repaints a
+ * design-system button (see `spot.module.css`'s action row).
+ */
+.moreButtons {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.moreButtons .moreButton.moreButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
 }
 
 .footRow {
@@ -305,9 +345,22 @@
   line-height: 1.55;
 }
 
+/*
+ * The gate's one way out, at §4's 44px (issue #558).
+ *
+ * It measured 19px tall: a line of text with no padding, on the screen a child
+ * held behind the consent gate is most likely to be standing on, and the only
+ * control the panel has. The 10px of vertical padding and the 44px floor are
+ * what make it reachable by a thumb; the 12px of `margin-top` it had comes off
+ * by the same 10, so the words sit where they always did and only the target
+ * grows.
+ */
 .gateLink {
-  display: inline-block;
-  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 2px;
+  padding: 10px 12px 10px 0;
   font-family: var(--fc);
   letter-spacing: 0.04em;
 }
@@ -374,4 +427,71 @@
   font-size: 22px;
   margin-top: 3px;
   letter-spacing: 0.04em;
+}
+
+/*
+ * The "leave this crew?" confirm (owner, 2026-09-17: "leave crew needs a
+ * confirmation").
+ *
+ * The shape the delete-a-session confirm already uses — title, one paragraph of
+ * consequence, then Stay in / Leave crew — because they are the same kind of
+ * moment and a rider should not have to read two different dialogs to answer
+ * the same question. `Modal` draws no gutters of its own, so the body brings
+ * them.
+ */
+.leaveBody {
+  padding: 20px 22px 22px;
+}
+
+.leaveTitle {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.leaveCopy {
+  margin: 11px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.leaveCopy b {
+  color: var(--ink);
+}
+
+.leaveActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.leaveActions > :last-child {
+  margin-left: auto;
+}
+
+/*
+ * What a rider at their plan's crew allowance reads where "Start another" was
+ * (owner, 2026-09-17). A sentence rather than a disabled button: a control that
+ * cannot do anything teaches nothing, and the number is the plan's, so the way
+ * to change it is a plan rather than a retry.
+ *
+ * "Join with a code" stays beside it, always — joining is uncapped at every
+ * tier, and a rider invited to a mate's crew must not be shut out by a limit on
+ * making their own.
+ */
+.capNote {
+  margin: 0;
+  align-self: center;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+.capLink {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

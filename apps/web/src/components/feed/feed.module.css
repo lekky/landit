@@ -1,0 +1,55 @@
+/*
+ * The feed row, in one place (rethink §3.6, T47 review S5).
+ *
+ * Moved here from `app/(app)/crew/crew.module.css`, unchanged — the same 14px
+ * padding, 13px gap, 11px between the disc and the words, 14.5px line at 1.35,
+ * and the 10px `.lab` in `--ink-3` with 0.1em of tracking. The crew screen and
+ * What's new both import it, so the row a rider meets in two places is one row
+ * rather than two copies that agree today.
+ *
+ * Nothing new: no colour, no shadow, no radius that was not already here.
+ */
+
+.feed {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.row {
+  display: flex;
+  gap: 11px;
+}
+
+.body {
+  min-width: 0;
+}
+
+.line {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.35;
+}
+
+.who,
+.who:hover {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.when {
+  color: var(--ink-3);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}

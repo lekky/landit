@@ -357,6 +357,16 @@ session's to inherit.
 **Gate on exit codes, never on piped output.** A `| tail` or `| tee` returns the pipe's status,
 not the command's. This is the trap most likely to make a red build look green.
 
+**A green `pnpm test` says nothing about whether the test file compiles.** Vitest strips types
+rather than checking them, so a test that runs is a test that ran — and `pnpm build` is what
+actually type-checks `**/*.test.ts` along with everything else. T51 wrote a fixture casting a
+rider's unset stance to `Partial<UsersRecord>`, which is a value the generated union cannot
+express (issue #134); the single-file vitest run was green, the suite was green, and `pnpm build`
+failed on it a minute later. Cheap to lose once and worth knowing: when you are iterating on a
+test file with `vitest run <file>`, the fast loop is the one gate that cannot see a type error.
+The remedy is the gate order `CLAUDE.md` step 6 already gives — **build first**, then test, then
+lint — so the slowest signal is not the last one you collect.
+
 **Once a PR is asked for, seeing it merged is part of the task, not a follow-up.** A Wave 1
 session ended its turn saying it was "monitoring the checks" on a PR that was already green, and
 stopped. The PR sat open and mergeable until someone noticed. Poll until every required check
@@ -743,6 +753,22 @@ reversal.
 
 ## 5. Tests that cannot silently pass
 
+**When you delete a control, grep the e2e for the words on it — do not just re-run the specs you
+changed.** T52 removed a duplicate "Log a session here" from the spot page's sessions block, after
+an independent review pointed out that the hero's new "Log here" was a second copy of it rather than
+the same link moved. The task's own specs were updated and the six files it had touched were run
+locally: all green. `session-detail.spec.ts` — a file the task never opened, covering a screen it did
+not change — asserted that same accessible name on the same page, and CI's e2e job failed eighteen
+minutes later on a branch whose three local gates were all clean.
+
+The cost is one CI cycle, and the cheap version of the check is `grep -rn "<the words>" e2e/` at the
+moment of deletion: an accessible name is what every Playwright locator is written against, so
+removing one breaks tests by *string*, with no import to follow, no type error and no signal in the
+diff. The same grep is worth running for a **renamed** label — T52 also shortened "Filters & sort"
+to "Filters" for a while, which no spec happened to pin. And when a change removes something shared
+rather than adding to it, **run the whole suite locally once** rather than the subset the task
+touched; sixteen minutes beats finding out from a red check after a push.
+
 **Prove a guarantee as observed behaviour, not as rule text.** T2's four §3 guarantees are
 tested over HTTP against a real PocketBase instance: a private profile 404s to another rider, a
 clip's bytes are refused to a forged token, a rookie is refused a paid trick — including with a
@@ -956,6 +982,61 @@ share. A heading level, a panel class, a nav item and "some `h1` exists" are all
 of a navigation. And when an assertion after a navigation says an element has vanished, check what
 page the test is actually on before reading it as a regression: `console.log(page.url())` answered
 this in one run, after two spent on the wrong half of it.
+
+**Two `page.goto`s to the same path with different fragments is a coin toss** *(T49, 2026-09-17)*.
+The trick page's `#clips` test drove `goto('/library/x#ladder')` and then `goto('/library/x#clips')`.
+That second call is a same-document hop, and Chromium applied it about two times in three: measured
+with a console probe, the hash was still `#ladder` a second later, and the failure came back as "the
+row did not open" — a bug report about the component rather than about the driving. **Navigate away
+and back**, which is also the rider's own path, and the fragment is read on a real load.
+
+**A control that moves below the fold starts losing clicks to the toast** *(T49, 2026-09-17)*. The
+same task put a card-height row between the trick's name and its stage band, which pushed the band
+past a 1280 × 720 fold. The toast stack is `position: fixed` at the bottom centre; Playwright
+scrolls a button into view and then clicks where it is, so a press in the band while a toast was up
+landed on the toast — `locator.click: Test timeout of 30000ms exceeded`, a third of the time, in a
+test that had nothing to do with the change. **After asserting a toast, assert it has gone**
+(`expect(page.locator('.toast')).toHaveCount(0)`) before pressing anything else, and when a layout
+change makes an unrelated test flaky, measure where the control now is before calling the test
+flaky.
+
+**A container query is not a cascade layer** *(T49, 2026-09-17, from the independent review)*. A
+`@container (max-width: 260px)` block was written above the rules it meant to override, in the
+readable place beside the element it measures — and did nothing, because the base `.playMark` and
+`.posterOut` are declared later in the same file at the same (0,1,0) specificity and the later rule
+wins. Only the one declaration with no counterpart below it survived, which is what made it look
+like it worked. **A media or container query buys you no specificity**; put it after what it
+overrides, or raise it. And the way to know is to measure the element, not to read the block.
+
+**A local e2e failure is three questions, not one** *(fix-shell-owner-pass-4, 2026-09-18)*. One
+change produced, in the same session, four local e2e failures, then thirty-one, then three, then
+one — and the code never changed between the last three. The reasons were all environmental, and
+each has a tell:
+
+- **`apps/web/.env.local` leaks into the run's server side.** `playwright.config.ts` sets
+  `NEXT_PUBLIC_POCKETBASE_URL` for the browser but **not** `POCKETBASE_URL`, so everything the
+  server renders is read from whatever database that file names — the review instance, not
+  `.pb_e2e`. The tell is a page that renders the *canonical* half of a trick (name, copy, award art
+  from `@landit/core`) and silently drops the *database* half (the video). **Park the file for a
+  local run**, and remember a worktree without one is not a fair baseline.
+- **Default local parallelism is not CI's.** `workers` is unset locally, so Playwright runs one per
+  CPU against a single dev server; CI pins `workers: 1`. The tell is failures spread across
+  unrelated specs whose errors are `page.goto` **timeouts** rather than assertions. Thirty-one went
+  to three on `--workers=1`.
+- **`.pb_e2e` accumulates between runs.** Fixtures that pick "the first event" start finding another
+  spec's leftovers. The tell is an assertion that names one fixture and receives another's id. Clear
+  `pocketbase/.pb_e2e` before a run you intend to trust.
+
+So: before blaming the diff, run the same spec on an untouched worktree **under the same
+conditions** — same `.env.local` state, same worker count, same fresh database. Three of this
+session's four "regressions" were none.
+
+**And grep `e2e/` when you remove something a test can see** *(same session)*. Removing the Log
+sheet's fourth row swept `apps/web/src`, `packages/` and the spec document, and missed
+`e2e/shell.spec.ts`, which asserted the row was visible. Build, test and lint all stayed green —
+none of them run Playwright — so it cost a full red CI cycle. When a rider-visible element goes,
+`e2e/` is part of the sweep, and the assertion is better **inverted** (`toHaveCount(0)`) than
+deleted, so the thing coming back is still caught.
 
 ## 5a. The shell is not a text box
 

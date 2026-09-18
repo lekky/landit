@@ -4,7 +4,14 @@ import { expect, test, type Page } from '@playwright/test';
 import { finishOnboarding } from './support/onboarding';
 
 /**
- * The profile editor on `/account` (T23).
+ * The profile editor (T23), on the two screens it is now (T51).
+ *
+ * It was one panel on `/account` until the app shell rethink made that screen a
+ * list of rows (§3.9): the picture, the goal, the stance and the level are
+ * `/account/profile`, and the sports picker is `/account/sports`. One component
+ * still draws both — `saveProfileAction` writes the whole profile every time, so
+ * whichever half a rider is looking at has to hold all of it — which is why the
+ * assertions below are unchanged apart from the address each one opens.
  *
  * The assertion this file exists for is the first one: **a rider can change
  * what they ride after signing up, and it survives a reload**. Onboarding asked
@@ -35,14 +42,17 @@ function birthDate(years: number): string {
 }
 
 /**
- * An onboarded rider on the scooter library, at the account screen.
+ * An onboarded rider on the scooter library, at one of the profile screens.
  *
  * Deliberately the long way round rather than a seeded fixture: the profile
  * these tests edit is the one onboarding actually wrote, so a change to what
  * onboarding stores shows up here rather than being papered over by a fixture
  * that agrees with the test.
  */
-async function onboardedRider(page: Page): Promise<void> {
+async function onboardedRider(
+  page: Page,
+  screen: '/account/profile' | '/account/sports' = '/account/profile',
+): Promise<void> {
   await page.goto('/signup');
   await page.getByLabel('Your name').fill('Nadia Ellis');
   await page.getByLabel('Email').fill(`e2e-${unique()}@landit.invalid`);
@@ -55,11 +65,11 @@ async function onboardedRider(page: Page): Promise<void> {
   await finishOnboarding(page);
 
   await page.waitForURL('**/home');
-  await page.goto('/account');
+  await page.goto(screen);
 }
 
 test('a rider can take up a second sport after signing up, and it sticks', async ({ page }) => {
-  await onboardedRider(page);
+  await onboardedRider(page, '/account/sports');
 
   const skate = page.getByRole('button', { name: new RegExp(SPORTS.skate.label, 'i') });
   await expect(skate).toHaveAttribute('aria-pressed', 'false');
@@ -80,7 +90,7 @@ test('a rider can take up a second sport after signing up, and it sticks', async
 });
 
 test('the last sport a rider has cannot be turned off', async ({ page }) => {
-  await onboardedRider(page);
+  await onboardedRider(page, '/account/sports');
 
   // Onboarding starts a rider on one sport, so this is that one.
   await expect(
@@ -166,6 +176,53 @@ test('an unfinished goal is held rather than saved, and the old one survives', a
 
   await page.reload();
   await expect(page.getByLabel('Your goal')).toHaveValue('Land a bri flip before the summer');
+});
+
+/*
+ * The half of that rule the split screens nearly lost (T51, review B1).
+ *
+ * Turning a sport off takes any goal that belonged to it, which leaves the
+ * draft incomplete — so the *sport change* is held too, and both are written in
+ * one post once there is a goal again. That worked when the two controls shared
+ * a screen. Split across `/account/sports` and `/account/profile` it stopped:
+ * the held draft lives on the panel, a route change unmounts it, and the sport
+ * went with it — silently, after a "Saved". So the goal picker appears on the
+ * sports screen for exactly as long as it is needed, and this is the test that
+ * both halves land.
+ */
+test('a sport toggle that takes the goal is finished on the same screen, and both save', async ({
+  page,
+}) => {
+  await onboardedRider(page, '/account/sports');
+
+  // Two sports, and a goal that belongs to the second one.
+  await page.getByRole('button', { name: new RegExp(SPORTS.skate.label, 'i') }).click();
+  await expect(page.getByText('Saved')).toBeVisible();
+
+  await page.goto('/account/profile');
+  await page.getByRole('button', { name: 'Land a kickflip' }).click();
+  await expect(page.getByText('Saved')).toBeVisible();
+
+  // Now take that sport away. The skate goal goes with it, so nothing is
+  // written yet — and the picker that finishes the answer is on this screen.
+  await page.goto('/account/sports');
+  await page.getByRole('button', { name: new RegExp(SPORTS.skate.label, 'i') }).click();
+  await expect(page.getByText('Pick a goal, or write your own.')).toBeVisible();
+  await expect(page.getByText(/That sport carried your goal/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Ride street properly' }).click();
+  await expect(page.getByText('Saved')).toBeVisible();
+
+  // The point of the test: gone round the server and back, **both halves**.
+  await page.reload();
+  await expect(
+    page.getByRole('button', { name: new RegExp(SPORTS.skate.label, 'i') }),
+  ).toHaveAttribute('aria-pressed', 'false');
+  await page.goto('/account/profile');
+  await expect(page.getByRole('button', { name: 'Ride street properly' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
 });
 
 /*

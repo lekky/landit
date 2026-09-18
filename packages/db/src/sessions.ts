@@ -107,6 +107,12 @@ export function sessionFromRecord(
     durationMinutes: (isSessionDuration(duration) ? duration : 60) as SessionDurationMinutes,
     sport: row.sport as SportId,
     spotId: row.spot || '',
+    /*
+      A place the rider typed because the map does not have it (owner,
+      2026-09-17). Carried only when there is no spot: the hook clears one
+      whenever the other is set, and a reader that saw both would have to pick.
+    */
+    ...(!row.spot && row.spot_name ? { spotName: String(row.spot_name) } : {}),
     ...(row.event ? { eventId: row.event } : {}),
     ...(row.aim ? { aim: row.aim } : {}),
     // `null` rather than a default: a session saved without a feel must not
@@ -414,6 +420,11 @@ export interface SessionInput {
   readonly durationMinutes: SessionDurationMinutes;
   readonly sport: SportId;
   readonly spotId: string;
+  /**
+   * Where it was, in the rider's own words, when `spotId` is empty (owner,
+   * 2026-09-17). Plain text: it names the session and links to nothing.
+   */
+  readonly spotName?: string;
   readonly eventId?: string | null;
   readonly aim?: string;
   /** Optional since 2026-09-13. Omit it, or send `null`, to leave it unsaid. */
@@ -476,6 +487,9 @@ export async function createSession(
     duration_minutes: input.durationMinutes,
     sport: input.sport,
     spot: input.spotId,
+    // Only when there is no spot. The hook clears it either way, and sending
+    // both would ask the server to choose which "where" the rider meant.
+    spot_name: input.spotId ? '' : (input.spotName ?? ''),
     ...(input.eventId ? { event: input.eventId } : {}),
     aim: input.aim ?? '',
     feel: input.feel ?? '',
@@ -654,6 +668,7 @@ export async function updateSession(
   if (patch.durationMinutes !== undefined) body.duration_minutes = patch.durationMinutes;
   if (patch.sport !== undefined) body.sport = patch.sport;
   if (patch.spotId !== undefined) body.spot = patch.spotId;
+  if (patch.spotName !== undefined) body.spot_name = patch.spotName;
   if (patch.eventId !== undefined) body.event = patch.eventId ?? '';
   if (patch.aim !== undefined) body.aim = patch.aim;
   if (patch.feel !== undefined) body.feel = patch.feel ?? '';

@@ -36,6 +36,8 @@ export function AppShell({
   riderId,
   sports,
   sessionsEnabled,
+  rodeToday,
+  unread,
 }: {
   children: ReactNode;
   /** The signed-in rider, once there is one (T6). */
@@ -56,6 +58,13 @@ export function AppShell({
    * must not, for a rider the preview does not cover.
    */
   sessionsEnabled?: boolean;
+  /** Today's ride is already counted, so the Log sheet's first row says so. */
+  rodeToday?: boolean;
+  /**
+   * Unread What’s new lines, for the bell’s badge (T47). Passed through
+   * rather than read here: nothing in this frame reaches for rider data.
+   */
+  unread?: number;
 }) {
   return (
     <SportProvider sports={sports}>
@@ -77,13 +86,29 @@ export function AppShell({
             <a className="skiplink" href="#main">
               Skip to content
             </a>
-            <TopBar rider={rider} sessionsEnabled={sessionsEnabled} />
+            <TopBar
+              rider={rider}
+              sessionsEnabled={sessionsEnabled}
+              rodeToday={rodeToday}
+              unread={unread}
+            />
             <OfflineBanner />
             <main id="main" className="page">
               {children}
             </main>
             <SiteFooter />
-            <MobileNav sessionsEnabled={sessionsEnabled} />
+            {/*
+              `signedIn`, because the bottom bar's middle cell logs something
+              and there is nothing to log without a rider. `TopBar` already
+              decides this for the chip, the Log button and the bell from
+              `rider`; the bar is handed the same fact rather than a second
+              opinion about it.
+            */}
+            <MobileNav
+              sessionsEnabled={sessionsEnabled}
+              rodeToday={rodeToday}
+              signedIn={Boolean(rider)}
+            />
           </div>
         </ModalProvider>
       </ToastProvider>

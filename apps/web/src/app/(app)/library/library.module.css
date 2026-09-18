@@ -44,14 +44,192 @@
   margin-top: 9px;
 }
 
-.toggleState {
-  margin-left: auto;
+/*
+ * "Show: Your sport (Scooter)", one line between the header and the tab row
+ * (§3.3, O1 — added by T52 after the review).
+ *
+ * The control draws itself (`.scopePick` in the shell's module); what this adds
+ * is the gap either side of it, because `.head` carries its own bottom margin
+ * and `.sporttabs` its own.
+ */
+.scope {
+  margin: 0 0 14px;
 }
 
-/* The rookie banner: what the plan covers, stated once, with no urgency. */
+/* --------------------------------------------------------- the tab row -- */
+
+/*
+ * All · Mine · Filters (§3.10, T52).
+ *
+ * The wrapper carries `.sporttabs.tabrow` as well as this class, so the Filters
+ * button — which is a plain `<button class="sporttab">` sitting outside the tab
+ * list, because a disclosure is not a tab — is painted by the same
+ * `.tabrow .sporttab` rules as the two tabs beside it, including `flex: 1` and
+ * the 44px floor. One row to the eye, two controls to a screen reader.
+ *
+ * `.sporttabs` brings `flex-wrap: wrap` and `.tabrow` takes it away again, so
+ * the three boxes stay on one line and give up their padding and tracking
+ * first — `TabRow`'s own `.rowFit` does that for the two tabs, and the rule
+ * below does it for the button.
+ */
+.tricksRow {
+  align-items: stretch;
+}
+
+/*
+ * The row with nothing in it but the Filters box — a signed-out visitor, who
+ * has no tracked tricks and therefore no All · Mine. Above 860px the Filters
+ * box is not drawn either, so what is left is an empty flex line carrying
+ * `.sporttabs`' 18px of bottom margin.
+ */
+@media (min-width: 861px) {
+  .tricksRowAlone {
+    display: none;
+  }
+}
+
+/* Two tabs, so two shares of the row against the Filters box's one. */
+.tricksTabs {
+  flex: 2;
+  margin: 0;
+  min-width: 0;
+}
+
+/*
+ * The Filters disclosure, drawn as the row's third box and only on a phone.
+ * `.filter-toggle` has been `display: none` above 860px since the library was
+ * built, for the reason it still is: above that width the filter rail is on
+ * screen beside the grid and there is nothing to disclose.
+ */
+.filtersTab {
+  display: none;
+  min-width: 0;
+  /*
+   * `visible`, not `hidden`: the count badge hangs off the top-right corner
+   * (see below), so a box that clipped its own overflow would clip the badge.
+   * The label does its own clipping on the span, which is where `text-overflow`
+   * needs it anyway.
+   */
+  overflow: visible;
+  position: relative;
+}
+
+/*
+ * The label clips rather than widening the row, which is what `TabRow`'s own
+ * `.rowFit` does for the two tabs beside it — this box is outside that
+ * component, so it says it itself. `:global`, because `.tab-label` is
+ * `packages/ui-web`'s class (LESSONS §3a).
+ */
+.filtersTab :global(.tab-label) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .filtersTab {
+    display: flex;
+  }
+  /*
+   * **The search is its own row on a phone, whatever the sport is called**
+   * (owner, 2026-09-17: "the search should be full width for all equipment
+   * like skate; it isn't for your sport, and scooter").
+   *
+   * `.head` wraps, and whether it wrapped depended on the length of the
+   * heading beside it: "Skateboard library" pushed the field onto its own line
+   * and "BMX library" did not, so the same screen gave the same control two
+   * different widths and clipped its placeholder on the narrower one. A column
+   * decides it once, for every sport and every count.
+   */
+  .head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .search {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/*
+ * The active-filter count, in its new home (review finding 6).
+ *
+ * `.fcount` moved out of `button.filter-toggle` and into `button.sporttab` with
+ * the disclosure, and the only rule for the class anywhere is
+ * `.filter-toggle .fcount` inside `primitives.css`'s phone block — so the badge
+ * that told a rider at a glance how many narrowings were on rendered as a bare
+ * inherited number after the word FILTERS. These are that rule's own values,
+ * restated here rather than widened in shared code (CLAUDE.md step 5): the
+ * package's selector is correct for the control it names, and this is a
+ * different control.
+ *
+ * **It sits on the corner rather than in the row** (review L3). In the flow it
+ * took about 30px from a box that has roughly 100px of content width at 390,
+ * and the label gave way first — so "FILTERS & SORT" clipped to "FILTERS …"
+ * exactly when a rider had a filter on, which is when they are most likely to
+ * be reading it. Nit 11 asked for the word "sort" back; a badge that takes it
+ * away again whenever it appears has not given it back. This is the bell's own
+ * idiom (`.tbBadge`): a pink count on the top-right corner, outside the box,
+ * overlapping the keyline rather than the words.
+ *
+ * `:global`, because `.fcount` is `primitives.css`'s class and a bare one here
+ * would be hashed into a local name and match nothing — the dead-rule shape
+ * LESSONS §3a was written about.
+ */
+.filtersTab :global(.fcount) {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  background: var(--pink);
+  color: var(--on-dark);
+  border: 2px solid var(--ink);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 420px) {
+  .filtersTab {
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+
+  /*
+   * **The glyph goes and the words stay**, below 420px (review L3).
+   *
+   * With the badge moved off the row there were still four pixels missing at
+   * 390 — measured — so "FILTERS & SORT" clipped to "FILTERS & SOR…" whether a
+   * filter was on or not. The icon is `aria-hidden` decoration and 16px of it,
+   * plus the 8px `.sporttab` gap, is six times the shortfall; the two tabs
+   * beside it carry no icon either, so the row reads as three boxes of words.
+   *
+   * The order is T45's, from the verify-email strip and the sport chip's name:
+   * the decoration gives way first and the words last. A rider who cannot read
+   * "sort" does not know the sort is in there, which is the whole of nit 11.
+   */
+  .filtersTab > :global(svg) {
+    display: none;
+  }
+}
+
+/*
+ * The rookie banner: what the plan covers, stated once, with no urgency.
+ *
+ * It is a cell of `.grid-tricks` now rather than a band above it (T52), so it
+ * spans every column wherever the grid puts it — which is what "below the first
+ * card rows" means at a width the server cannot know.
+ */
 .banner {
+  grid-column: 1 / -1;
   padding: 13px 15px;
-  margin-bottom: 14px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -101,41 +279,12 @@
 }
 
 /*
- * The "All tricks / My tricks" switch (T22).
- *
- * One box split by an ink rule rather than two buttons with a gap, because it
- * is one choice: the shared border is what says the two sides are exclusive.
- * The selected side inverts to ink, which is how `Pill` marks its own selection
- * — the difference in *shape* is what separates one-of-two from many-of-many.
+ * The "All tricks / My tricks" switch (T22) is gone (T52): it is two tabs of
+ * the row above now, which is the one shape the product uses for a choice
+ * between views of a screen (D6). Its `.toggleState` "Hide / Show" went with
+ * the old filter toggle — `aria-expanded` is what said it, and the boxed row
+ * has no room for a third word.
  */
-.mineSwitch {
-  display: inline-flex;
-  border: var(--bd);
-  box-shadow: var(--sh-sm);
-  background: var(--paper);
-  margin-bottom: 14px;
-  max-width: 100%;
-}
-
-.mineOption {
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  padding: 9px 16px;
-  background: none;
-  border: 0;
-  color: var(--ink);
-  white-space: nowrap;
-}
-
-.mineOption + .mineOption {
-  border-left: 3px solid var(--ink);
-}
-
-.mineOption[aria-pressed='true'] {
-  background: var(--ink);
-  color: var(--paper);
-}
 
 /*
  * A stage heading in "My tricks": swatch, name, count, then a rule to the edge.

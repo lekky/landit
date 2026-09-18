@@ -29,6 +29,17 @@ export const PUBLIC_ROUTES: readonly Route[] = [
   ROUTES.home,
   ROUTES.library,
   ROUTES.glossary,
+  /*
+   * The Find hub (rethink §3.7, T48). Public on the same terms as the two
+   * screens its tabs lead to: the calendar is public data and a spot is a
+   * public place, and the two sections that are about the reader are not
+   * rendered for somebody with no account rather than being a gate.
+   *
+   * It was in neither list while it was T45's redirect to `/spots` — a sitemap
+   * should advertise the screen and not the signpost — and it is here now
+   * because it is the screen.
+   */
+  ROUTES.find,
   ROUTES.spots,
   ROUTES.events,
   /*
@@ -68,7 +79,27 @@ export const GATED_ROUTES: readonly Route[] = [
   ROUTES.crew,
   ROUTES.coach,
   ROUTES.account,
+  /*
+   * The six screens the account list opens (rethink §3.9, T51). Each is one of
+   * the panels `/account` used to hold, on an address of its own, and each is
+   * gated exactly as the screen it came off: a signed-out visitor is sent to
+   * sign in, and the page carries `noindex`. Listed one by one rather than
+   * matched by prefix, because this file is deliberately a list and not a
+   * filter (see the note at the top).
+   */
+  ROUTES.accountProfile,
+  ROUTES.accountSports,
+  ROUTES.accountPrivacy,
+  ROUTES.accountSessions,
+  ROUTES.accountGuardian,
+  ROUTES.accountData,
   ROUTES.onboarding,
+  /*
+   * What's new (rethink §3.6). A rider's own stickers, their crews' joins and
+   * the events they said yes to — one rider's record, so it answers a
+   * signed-out visitor the way `/crew` does.
+   */
+  ROUTES.whatsNew,
   /*
    * The suggestion box, which is the one route here that a reader might expect
    * to find in the list above: its sibling `/report` is public. It is not, and

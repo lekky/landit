@@ -200,7 +200,16 @@ test('a younger rider arrives at an account that says what it is waiting for', a
   await finishOnboarding(page);
 
   await page.waitForURL('**/home');
+
+  // The list says what the account is waiting for, and the row is the way in —
+  // the eighth row of the settings list, drawn only while the gate applies
+  // (rethink §3.9, T51; Rachid, 2026-09-16, in chat).
   await page.goto('/account');
+  await expect(page.getByRole('link', { name: /Your guardian/ })).toContainText(
+    'Waiting on a grown-up',
+  );
+
+  await page.goto('/account/guardian');
   await expect(page.getByText(/a grown-up needs to say yes/i)).toBeVisible();
   // What they can do comes first, and it is most of the product.
   await expect(page.getByText('Log every trick you land')).toBeVisible();
@@ -372,7 +381,32 @@ test('an unverified rider is reminded, once, and can put it away', async ({ page
   // onboarding is reachable and the rider is on it.
   await expect(banner).toContainText('the reset goes to this address');
 
-  await banner.getByRole('button', { name: 'Not now' }).click();
+  /*
+   * One line, and **50px** of it (rethink §3.4).
+   *
+   * The number is asserted rather than described, because it was described
+   * three times while being three different heights: the comment said 44 while
+   * it measured 54, then the 44px targets took it to 66. 50 is the floor — two
+   * controls at §4's 44px target, the design's 3px keyline on each edge, and no
+   * vertical padding — and this is what stops the next edit quietly spending it.
+   */
+  for (const width of [390, 375, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    const box = (await banner.boundingBox())!;
+    expect(Math.round(box.height), `the verify strip is not 50px at ${width}px`).toBe(50);
+  }
+  await page.setViewportSize({ width: 1280, height: 720 });
+
+  // Both of its controls clear the 44px floor, on the one screen every brand-new
+  // rider meets.
+  for (const name of ['Send again', 'Hide this reminder']) {
+    const control = (await banner.getByRole('button', { name }).boundingBox())!;
+    expect(Math.round(control.height), `"${name}" is under 44px`).toBeGreaterThanOrEqual(44);
+  }
+
+  // A bare × since the reminder became a one-line strip (rethink §3.4); the
+  // cookie behind it is unchanged, which is what the navigation below checks.
+  await banner.getByRole('button', { name: 'Hide this reminder' }).click();
   await expect(banner).toBeHidden();
 
   // Dismissal is a cookie the server reads, so it survives a navigation rather

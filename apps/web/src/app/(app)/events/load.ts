@@ -8,7 +8,7 @@ import {
 import { eventsFromRecords, listEventAttendance, listEvents } from '@landit/db';
 import { headers } from 'next/headers';
 
-import { anonymousClient, currentRider } from '@/lib/session';
+import { anonymousClient, currentRider, type RiderSession } from '@/lib/session';
 
 import { buildEventsView, type EventsScope, type EventsView } from './view';
 
@@ -36,8 +36,20 @@ export interface LoadedEvents {
 export async function loadEvents(
   scope: EventsScope = 'upcoming',
   where: { readonly year: number; readonly townSlug: string } | null = null,
+  /*
+   * A session the caller has already read, so it is not read twice.
+   *
+   * `/find` needs the same calendar *and* the rider's own faves and recent
+   * spots, and `currentRider()` is a round trip to PocketBase that re-checks
+   * the token rather than decoding it — so a hub that called this and then read
+   * the session itself would re-authenticate the rider to draw one page. The
+   * key's presence is what says "already read": `{ session: null }` is a
+   * visitor, and leaving the argument out is "read it here", which is every
+   * other caller and is unchanged.
+   */
+  known?: { readonly session: RiderSession | null },
 ): Promise<LoadedEvents> {
-  const session = await currentRider();
+  const session = known ? known.session : await currentRider();
   const client = session?.client ?? anonymousClient();
 
   /*
@@ -70,11 +82,11 @@ export async function loadEvents(
      * here any more (Rachid, 2026-09-12, in chat).
      *
      * This used to be the rider's sports, because the screen's filter could
-     * only reach the sport the global switch was on. The filter is now a
-     * multi-select over `SPORT_IDS` (`SportFilter`), so a rider who records
-     * only skate can still ask for BMX — and a count missing from
-     * `countBySport` would render on that BMX pill as "0" while the calendar
-     * behind it was full.
+     * only reach the sport the global switch was on. The screen's control has
+     * been a multi-select and is now `SportScopeSelect` (rethink §3.3, O1), and
+     * both offer every sport there is — so a rider who records only skate can
+     * still open the calendar on BMX, and `countBySport` is computed for every
+     * sport rather than for the subset one rider happens to ride.
      */
     sports: [...SPORT_IDS],
     going,

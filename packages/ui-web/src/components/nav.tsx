@@ -28,6 +28,46 @@ export type TabItem = {
   color?: string;
   /** Faded number on the right of the label, e.g. a trick count. */
   note?: string | number;
+  /**
+   * `title` for the tab, for a label the row may have to clip (T47).
+   *
+   * Only worth setting where the label is data rather than copy — a crew's
+   * name, not "Over time". A clipped label is still complete in the DOM, so a
+   * screen reader reads all of it either way; this is for the sighted reader
+   * with a pointer.
+   */
+  title?: string;
+  /**
+   * DOM `id` for the tab's button, so a panel can be `aria-labelledby` it (T50).
+   *
+   * ARIA's tabs pattern names a `tabpanel` after the tab that controls it, and
+   * a panel cannot point at an element that has no id — so this is what makes
+   * the reference possible. Without it a caller falls back to `aria-label` and
+   * a copy of the tab's words, which is the same name by a route that can drift
+   * from its source.
+   *
+   * It does not make the name unique: a tab and a control inside its panel may
+   * legitimately be called the same thing, and on the session form they are
+   * (the Notes step, and the notes textarea). Disambiguate by role.
+   *
+   * Optional, and absent by default: a row that does not pass one renders
+   * exactly the markup it rendered before.
+   */
+  elementId?: string;
+  /**
+   * `aria-describedby` for the tab, for something drawn *beside* it that names
+   * a property of this tab rather than of the row.
+   *
+   * Plans is the case it exists for: the lime "2 months free" tag is tilted over
+   * the Yearly tab's top edge, which says whose saving it is to anyone who can
+   * see where it sits and to nobody else. Put in the tab's label it would become
+   * part of the accessible name — "Yearly, 2 months free" as the name of a
+   * control — where it is a *description* of one. This is the reference that
+   * says so without touching the name.
+   *
+   * Optional and absent by default, like `elementId` above.
+   */
+  describedById?: string;
 };
 
 export type TabsProps = {
@@ -44,6 +84,16 @@ export type TabsProps = {
    * (`additions.css`). Rows of two or three fixed tabs generally do not need it.
    */
   compact?: boolean;
+  /**
+   * `boxed` is the app shell rethink's tab row (§3.3): each tab an equal share
+   * of the row at a 44px floor, the active one yellow with the 4px lift.
+   *
+   * A new value, not a new default. `default` is exactly the row this component
+   * has always drawn — tabs sized by their own content, the active one filled
+   * with whatever colour the item carries — which is what the sport switch and
+   * every other caller still gets without changing a line.
+   */
+  variant?: 'default' | 'boxed';
   className?: string;
   style?: CSSProperties;
 };
@@ -55,12 +105,14 @@ export function Tabs({
   onChange,
   label,
   compact = false,
+  variant = 'default',
   className,
   style,
 }: TabsProps) {
+  const boxed = variant === 'boxed';
   return (
     <div
-      className={cx('sporttabs', compact && 'sporttabs-compact', className)}
+      className={cx('sporttabs', compact && 'sporttabs-compact', boxed && 'tabrow', className)}
       style={style}
       role="tablist"
       aria-label={label}
@@ -71,12 +123,19 @@ export function Tabs({
           <button
             type="button"
             key={it.id}
+            id={it.elementId}
             role="tab"
             aria-selected={on}
+            aria-describedby={it.describedById}
             className={cx('sporttab', on && 'on')}
+            title={it.title}
             onClick={() => onChange(it.id)}
+            // A boxed row's active tab is the design's yellow lift (§3.3, D6),
+            // the same one on every screen, so it takes no colour from the item
+            // — `.tabrow .sporttab.on` paints it and an inline background would
+            // outrank that.
             style={
-              on
+              on && !boxed
                 ? {
                     background: it.color,
                     borderColor: 'var(--ink)',
@@ -99,7 +158,23 @@ export function Tabs({
                 <span className="tab-short">{it.shortLabel}</span>
               </>
             ) : (
-              it.label
+              /*
+               * Wrapped, where it used to be a bare text node (T47).
+               *
+               * A label a caller cannot predict the length of — a crew's name on
+               * What's new, 2 to 40 characters — has to be able to clip, and
+               * `text-overflow` needs a box of its own: the anonymous text run
+               * inside a flex container is not one, so an ellipsis set on the
+               * button did nothing and a 37-character crew name pushed the whole
+               * document 85px sideways on a 320px phone (issue #550, T47 review
+               * B1). The `.tab-full` / `.tab-short` pair above has always had its
+               * box; this gives the ordinary case the same one.
+               *
+               * Inert on its own: it inherits everything from `.sporttab` and is
+               * still one flex item where the text run was. Only a row that asks
+               * for it clips — `TabRow` in `apps/web` is the one that does.
+               */
+              <span className="tab-label">{it.label}</span>
             )}
             {it.note !== undefined && <span className="n">{it.note}</span>}
           </button>

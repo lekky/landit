@@ -3,8 +3,10 @@
 import { BILLING_PERIODS, type BillingPeriod } from '@landit/core';
 import { Button, Panel, Tag } from '@landit/ui-web';
 import Link from 'next/link';
-import { useActionState, useState } from 'react';
+import { useActionState } from 'react';
 
+import { TabRow, TAB_PANEL } from '@/components/shell/TabRow';
+import { useTabParam } from '@/components/shell/useTabParam';
 import { ROUTES } from '@/lib/routes';
 
 import { openBillingPortalAction } from './actions';
@@ -55,6 +57,24 @@ import styles from './plans.module.css';
  * on both sides of it was computed on the server (`view.ts`).
  */
 
+/**
+ * The saving tag's own id, so the Yearly tab can point `aria-describedby` at it.
+ *
+ * The tag is a sibling of the row rather than a child of the tab — a `TabRow`
+ * draws its own buttons — so the association cannot be structural and is made
+ * by reference instead.
+ */
+const SAVING_TAG_ID = 'plans-yearly-saving';
+
+/**
+ * A period tab's DOM id, so the cards under it can be `aria-labelledby` it.
+ *
+ * ARIA's tabs pattern names a `tabpanel` after the tab that controls it, and a
+ * panel cannot point at an element with no id. One function, so the tab and the
+ * panel cannot drift (the session form's three steps do the same).
+ */
+const periodTabId = (period: BillingPeriod) => `plans-period-${period}`;
+
 const FAQ: readonly { readonly q: string; readonly a: string }[] = [
   {
     q: 'Does the free tier expire?',
@@ -74,9 +94,6 @@ const FAQ: readonly { readonly q: string; readonly a: string }[] = [
   },
 ];
 
-/** Ties the Yearly button to the saving tag via `aria-describedby`. */
-const SAVING_TAG_ID = 'plans-yearly-saving';
-
 export function PlansScreen({
   view,
   showSessions,
@@ -85,7 +102,29 @@ export function PlansScreen({
   /** Owner-only preview (T41): the sessions comparison shows for `sessionsEnabledFor` alone. */
   showSessions: boolean;
 }) {
-  const [period, setPeriod] = useState<BillingPeriod>('monthly');
+  /*
+   * **The period is in `?tab=`, not in `useState`** (the Progress pattern,
+   * `useTabParam`; independent review of the combined branch, 2026-09-17).
+   *
+   * Two things it buys, and the first is the one a rider notices. A link to
+   * yearly pricing works: `/plans?tab=yearly` opens on the yearly prices, which
+   * is what somebody sharing "it's £39.99 a year" actually means to send. And
+   * Back keeps the tab — a rider who presses Yearly, opens a card's checkout and
+   * comes back lands on the prices they were reading rather than on Monthly.
+   *
+   * `replace`, not `push`, so pressing both tabs does not leave two history
+   * entries for Back to walk out through; and the default is spelled by
+   * *absence*, so the screen as it opens has one address rather than two that
+   * render the same thing. `useTabParam` validates against `BILLING_PERIODS`,
+   * so a hand-typed `?tab=nonsense` opens Monthly rather than an empty screen.
+   *
+   * It is still a `role="tablist"` with a `role="tabpanel"` under it: the panel
+   * changes in place and the document does not navigate. Only where the answer
+   * is stored moved.
+   */
+  const [tab, setTab] = useTabParam(BILLING_PERIODS, 'monthly');
+  const period = tab as BillingPeriod;
+  const setPeriod = setTab;
   const [portal, portalAction, portalPending] = useActionState<{ error?: string }, FormData>(
     openBillingPortalAction,
     {},
@@ -97,37 +136,66 @@ export function PlansScreen({
         <span className="eyebrow">Membership</span>
         <h1 className={`d ${styles.title}`}>A free tier that isn&rsquo;t a trial</h1>
         <p className={styles.lede}>
-          Twenty hand-picked tricks in every sport, full tracking and the sticker wall cost nothing,
-          forever. Paying opens the rest of the library and shows you the numbers behind your
-          riding.
+          {/*
+            "Loads", not "Twenty" (Rachid, 2026-09-17, in chat).
+
+            This sentence went first, on the reasoning that a ceiling at the top
+            of the page a rider is being sold on reads as a limit before the free
+            tier has been described. Later the same day the owner took the
+            number out **everywhere** — "dont mention counts of tricks in free
+            text as its always subject to change, so remove it everywhere" — so
+            this is no longer the odd one out: no plan card, no landing
+            paragraph, no locked trick and no library banner counts them now.
+
+            The number itself is unchanged. `FREE_TRICKS_PER_SPORT` and the hook
+            that enforces it are exactly where they were; `plans.ts` carries the
+            full reasoning and `plans.test.ts` fails if a count comes back.
+          */}
+          Loads of hand-picked tricks in every sport, full tracking and the sticker wall cost
+          nothing, forever. Paying opens the rest of the library and shows you the numbers behind
+          your riding.
         </p>
 
+        {/*
+          Monthly · Yearly, as a `TabRow` (§3.10, D6).
+
+          It was a two-cell segmented control of its own design. The row is the
+          product's one shape for a choice between views of a screen now, so the
+          plans page stops being the only place with a second one.
+
+          **The saving is the tilted lime tag again** (Rachid, 2026-09-17, in
+          chat: "the yearly should have a green 2 months free overlay thing — it
+          was present on main"). T52 moved the words inside the Yearly tab, as
+          the row's faded `.n`, on the reasoning that a boxed row has no edge to
+          slap a tag over. The reasoning was sound and the result was quieter
+          than the thing it replaced: a saving that is the reason to press
+          Yearly at all went from an overlay a reader cannot miss to a dimmed
+          number they read as a count. The owner reversed it, and §3.10 records
+          the reversal rather than dropping the paragraph.
+
+          It sits over the Yearly tab rather than over the row, which is the
+          whole point of the tilt: beside the control it would read as a
+          property of whatever is selected, so a visitor on Monthly would be
+          told they are getting two months free. Position carries that for a
+          sighted reader and nothing for anyone else, so `aria-describedby`
+          says it again to a screen reader — a *description* of the tab, not
+          part of its name, which is where the tab's own `note` had put it.
+        */}
         <div className={styles.toggleRow}>
-          <div className={styles.toggle} role="group" aria-label="Billing period">
-            {BILLING_PERIODS.map((value) => (
-              <button
-                key={value}
-                type="button"
-                className={`cond ${styles.toggleButton}`}
-                aria-pressed={period === value}
-                aria-describedby={
-                  value === 'yearly' && view.savingLabel ? SAVING_TAG_ID : undefined
-                }
-                data-on={period === value ? 'true' : undefined}
-                onClick={() => setPeriod(value)}
-              >
-                {value === 'monthly' ? 'Monthly' : 'Yearly'}
-              </button>
-            ))}
-            {/*
-              Slapped over the top edge of the toggle's right-hand half, which
-              is Yearly. Beside the whole control (as the prototype has it) the
-              tag reads as a property of whatever is currently selected, so a
-              visitor sitting on Monthly is told they are getting two months
-              free. Sitting it on the Yearly button says whose saving it is
-              without spending words on it, and `aria-describedby` says the same
-              thing to a screen reader, where position carries nothing.
-            */}
+          <div className={styles.toggleWrap}>
+            <TabRow
+              items={BILLING_PERIODS.map((value) => ({
+                id: value,
+                label: value === 'monthly' ? 'Monthly' : 'Yearly',
+                elementId: periodTabId(value),
+                ...(value === 'yearly' && view.savingLabel ? { describedById: SAVING_TAG_ID } : {}),
+              }))}
+              value={period}
+              group="plans"
+              label="Billing period"
+              className={styles.toggle}
+              onChange={setPeriod}
+            />
             {view.savingLabel && (
               <Tag
                 tilt
@@ -164,7 +232,31 @@ export function PlansScreen({
         </Panel>
       )}
 
-      <div className={styles.grid}>
+      {/*
+        The other half of the tab row: the thing that actually changes when a
+        period is pressed, named after the tab that changed it.
+
+        Without it a screen reader is told "Yearly, tab, 2 of 2" and then told
+        about no panel at all, so the row announces a relationship the document
+        does not have. `aria-labelledby` rather than a copy of the word in an
+        `aria-label`, because the tab already carries the name and two copies of
+        one name can drift.
+
+        **Only the cards are in it.** They are what the period changes — every
+        price on both sides was computed on the server (`view.ts`). The guardian
+        notices, the currency footnote, the sessions comparison and the FAQ all
+        read the same either way, and a panel that claimed them would be telling
+        a screen reader the FAQ answers change with the billing period.
+
+        Keyed on the period so React remounts it and §4's 120ms cross-fade runs
+        on every switch.
+      */}
+      <div
+        key={period}
+        role="tabpanel"
+        aria-labelledby={periodTabId(period)}
+        className={`${styles.grid} ${TAB_PANEL}`}
+      >
         {view.cards.map((card) => (
           <PlanCard key={card.slug} card={card} period={period} view={view} />
         ))}

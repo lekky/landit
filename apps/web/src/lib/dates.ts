@@ -20,6 +20,25 @@ export function shortDate(instant: Instant, timezone?: string): string {
   return `${day} ${month} ${key.slice(0, 4)}`;
 }
 
+/**
+ * "14 Sep" — a date inside the last year, where the year is noise (T46).
+ *
+ * Home's Sessions card and the sticker wall's date strip both want this, and
+ * both got it by regexing the year off `shortDate`'s output
+ * (`.replace(/ \d{4}$/, '')`). That works until `shortDate`'s format changes,
+ * at which point the regex silently stops matching and the year comes back —
+ * a formatter reading another formatter's output rather than the parts both are
+ * built from. This is the same three lines without the round trip, and it is
+ * the caller's job to be sure the year is genuinely not needed: on a card
+ * showing the *last* ride it is not, on an event page two summers old it is
+ * (`eventLongDate` in `@landit/core` argues that side).
+ */
+export function dayMonth(instant: Instant, timezone?: string): string {
+  const key = toDayKey(instant, timezone);
+  const month = MONTH_LABELS[Number(key.slice(5, 7)) - 1] ?? '';
+  return `${Number(key.slice(8, 10))} ${month}`;
+}
+
 /** "Mar 2026" — a joining date, where the day is noise. Same no-ICU rule. */
 export function monthYear(instant: Instant, timezone?: string): string {
   const key = toDayKey(instant, timezone);

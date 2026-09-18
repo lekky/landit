@@ -6,8 +6,14 @@
  * are drawn big enough to hit on a phone by somebody who is upset.
  */
 
+/*
+ * Centred at 640px on a desktop (§3.10, T52). It was 62ch against the left
+ * margin, which left two thirds of a wide page empty beside a form that is the
+ * only thing on it. Below 640 nothing changes.
+ */
 .page {
-  max-width: 62ch;
+  max-width: 640px;
+  margin-inline: auto;
 }
 
 .head {
@@ -43,33 +49,75 @@
   padding: 0;
 }
 
+/* ------------------------------------------------------------ pill rows -- */
+
+/*
+ * The two radio lists, as pill rows (§3.10, T52).
+ *
+ * Copied from `suggest.module.css` rather than shared, which is the arrangement
+ * the two screens already had and the note at the head of that file explains:
+ * they are siblings that agree today, and a shared module would make the next
+ * divergence in either one a change to the other. What is not copied is the
+ * decision — the input underneath is the same native radio it has always been,
+ * clipped rather than replaced, so the form posts what it posted, the group
+ * still walks under the arrow keys, and a screen reader still hears a radio.
+ * On the one screen in the product somebody may be using while upset, the
+ * control is the last thing to reinvent.
+ */
 .choices,
 .reasons {
   display: grid;
-  gap: 4px;
+  gap: 8px;
   margin-top: 10px;
 }
 
 .choice {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 8px;
+  display: block;
   cursor: pointer;
-  border: 2px solid transparent;
 }
 
-.choice:hover,
-.choice:focus-within {
-  border-color: var(--ink-1);
+/* Out of sight, never out of the tree — see `suggest.module.css`. */
+.choiceInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
 }
 
-.choice input {
-  margin-top: 3px;
-  flex: none;
+.choiceBox {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  min-height: 44px;
+  justify-content: center;
+  padding: 10px 14px;
+  text-align: left;
+  white-space: normal;
 }
 
-.choiceOff {
+.choice:hover .choiceBox {
+  background: var(--paper-2);
+}
+
+.choiceInput:checked + .choiceBox {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.choiceInput:focus-visible + .choiceBox {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/*
+ * Left in the stylesheet for the next subject that ships ahead of its surface
+ * — see `ReportForm`'s note on the video option. It dims the row rather than
+ * the old label.
+ */
+.choiceOff .choiceBox {
   opacity: 0.55;
   cursor: not-allowed;
 }
@@ -78,7 +126,13 @@
   display: block;
   color: var(--ink-3);
   font-size: 13px;
-  margin-top: 2px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  line-height: 1.4;
+}
+
+.choiceInput:checked + .choiceBox .choiceBlurb {
+  color: var(--ink-soft);
 }
 
 .count {

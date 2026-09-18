@@ -10,18 +10,7 @@
  * matching where `.sporttab` already goes `flex: 1`.
  */
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  margin-bottom: 14px;
-  color: var(--ink-3);
-  font-size: 13.5px;
-}
-
-.back:hover {
-  color: var(--ink);
-}
+/* The back link is `BackLink`'s, in the shell's module, at §4's 44px. */
 
 .head {
   display: flex;
@@ -328,16 +317,14 @@ a.seenLink:active {
     flex: none;
   }
 
+  /*
+   * The four-tab sport row used to become a 2 × 2 grid here. It is one
+   * `<select>` now (T50), which fits a 320px line on its own — so the phone
+   * rule is that it takes the width rather than sitting against the right edge
+   * under a 40px heading.
+   */
   .filter {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 12px;
+    margin: 0;
     width: 100%;
-  }
-
-  .filter :global(.sporttab) {
-    justify-content: center;
-    padding: 11px 10px;
-    font-size: 14px;
   }
 }

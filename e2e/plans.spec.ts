@@ -74,7 +74,9 @@ test('the prices are plan §6.7’s, and the toggle switches every card at once'
   await expect(rookie).toContainText('Free');
   await expect(rookie).toContainText('forever');
 
-  await page.getByRole('button', { name: 'Yearly', exact: true }).click();
+  // A tab of the row now rather than half a segmented control (T52, §3.10),
+  // and it still switches every card at once.
+  await page.getByRole('tab', { name: /^Yearly/ }).click();
 
   await expect(shredder).toContainText('£39.99');
   await expect(shredder).toContainText('per year');
@@ -90,17 +92,105 @@ test('the yearly saving badge is derived, not typed (LESSONS §4)', async ({ pag
   await expect(page.getByText('2 months free', { exact: true })).toBeVisible();
 });
 
-test('the saving belongs to Yearly, and says so to a screen reader', async ({ page }) => {
-  // The badge used to sit beside the whole toggle, where a visitor on the
-  // default Monthly reads it as describing Monthly. It is now anchored to the
-  // Yearly button; position carries that for a sighted reader and
-  // `aria-describedby` carries it for everyone else. A layout change that
-  // detaches the two fails here.
-  const yearly = page.getByRole('button', { name: 'Yearly', exact: true });
-  await expect(yearly).toHaveAccessibleDescription('2 months free');
-  await expect(
-    page.getByRole('button', { name: 'Monthly', exact: true }),
-  ).toHaveAccessibleDescription('');
+test('Monthly · Yearly is the product’s tab row, and the saving describes Yearly', async ({
+  page,
+}) => {
+  /*
+   * T52, §3.10, as amended by the owner on 2026-09-17 ("the yearly should have a
+   * green 2 months free overlay thing — it was present on main"). Two things at
+   * once, and the second is the one that is easy to lose in a redraw.
+   *
+   * The period picker is a `TabRow` — the same boxed row Progress, Stickers,
+   * Crew and a rider's profile use — rather than the one-off segmented control
+   * this screen had. That part of T52 stands.
+   *
+   * What reversed is where the saving lives. T52 made it the Yearly tab's own
+   * `note`, which put it inside the tab's accessible **name**; it is the tilted
+   * lime tag again, drawn over the tab and pointed at by `aria-describedby`, so
+   * it is a *description* of Yearly rather than part of what the control is
+   * called. The assertion that matters either way is the last one: a visitor
+   * sitting on Monthly is never told they are getting two months free.
+   */
+  const yearly = page.getByRole('tab', { name: 'Yearly', exact: true });
+  const monthly = page.getByRole('tab', { name: 'Monthly', exact: true });
+
+  await expect(page.getByRole('tablist', { name: 'Billing period' })).toBeVisible();
+  await expect(monthly).toHaveAttribute('aria-selected', 'true');
+
+  // The tag is a sibling of the row, so the association is by reference. The id
+  // the tab points at is the element carrying the words.
+  const describedBy = await yearly.getAttribute('aria-describedby');
+  expect(describedBy).toBeTruthy();
+  await expect(page.locator(`#${describedBy}`)).toHaveText('2 months free');
+
+  // And it is Yearly's alone: nothing describes Monthly.
+  await expect(monthly).not.toHaveAttribute('aria-describedby', /./);
+
+  await yearly.click();
+  await expect(yearly).toHaveAttribute('aria-selected', 'true');
+  await expect(monthly).toHaveAttribute('aria-selected', 'false');
+});
+
+test('the period tabs have a panel, and it is named after the tab that changed it', async ({
+  page,
+}) => {
+  /*
+   * A `role="tablist"` with no `role="tabpanel"` under it announces a
+   * relationship the document does not have: a screen reader is told "Yearly,
+   * tab, 2 of 2" and then told about no panel at all. Found by the independent
+   * review of the combined branch (2026-09-17); the sticker wall and the session
+   * form already did this, and Plans did not.
+   *
+   * The panel is the cards and only the cards — they are what the period
+   * changes. The FAQ, the guardian notices and the sessions comparison read the
+   * same either way, and a panel claiming them would be a claim that they change
+   * with the billing period.
+   */
+  const panel = page.getByRole('tabpanel');
+  await expect(panel).toHaveCount(1);
+
+  const monthlyId = await page
+    .getByRole('tab', { name: 'Monthly', exact: true })
+    .getAttribute('id');
+  expect(monthlyId).toBeTruthy();
+  await expect(panel).toHaveAttribute('aria-labelledby', monthlyId!);
+  await expect(panel).toContainText('Shredder');
+
+  await page.getByRole('tab', { name: 'Yearly', exact: true }).click();
+  const yearlyId = await page.getByRole('tab', { name: 'Yearly', exact: true }).getAttribute('id');
+  await expect(page.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', yearlyId!);
+});
+
+test('the period is in the address, so a link to yearly pricing works', async ({ page }) => {
+  /*
+   * The Progress pattern (`useTabParam`), brought to Plans by the same review.
+   * Two things it buys: "it's £39.99 a year" can be sent as a link, and a rider
+   * who opens a checkout from the yearly prices and presses Back lands on the
+   * yearly prices.
+   *
+   * The default is spelled by **absence**, so the screen as it opens has one
+   * address rather than two that render the same thing — and `replace` rather
+   * than `push`, so pressing both tabs does not leave two entries for Back to
+   * walk out through.
+   */
+  await page.goto('/plans?tab=yearly');
+  await expect(page.getByRole('tab', { name: 'Yearly', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByText('£39.99')).toBeVisible();
+
+  // Back to Monthly takes the parameter off rather than writing `?tab=monthly`.
+  await page.getByRole('tab', { name: 'Monthly', exact: true }).click();
+  await expect(page).toHaveURL(/\/plans$/);
+
+  // A hand-typed value that is not a billing period opens Monthly rather than
+  // an empty screen — `useTabParam` validates against `BILLING_PERIODS`.
+  await page.goto('/plans?tab=nonsense');
+  await expect(page.getByRole('tab', { name: 'Monthly', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
 });
 
 test('achievements are never for sale, and the page says so (plan §1, §2.4)', async ({ page }) => {
@@ -140,6 +230,44 @@ test('a signed-out visitor is offered an account, never a payment form', async (
 test('the free tier is described as free rather than as a trial', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toContainText('isn’t a trial');
   await expect(page.getByText('Does the free tier expire?')).toBeVisible();
+});
+
+test('no card counts the tricks it gives you (2026-09-17)', async ({ page }) => {
+  /*
+   * Rachid, 2026-09-17, in chat: "dont mention counts of tricks in free text as
+   * its always subject to change, so remove it everywhere". The allowance is a
+   * pricing lever — ten on 2026-09-04, twenty on 2026-09-12 — not a fact about
+   * the library, and a sentence quoting it goes stale the next time it moves.
+   *
+   * Asserted **on the rendered page**, not only on `PLANS`, because `/plans`
+   * reads its copy from the `plans` rows rather than from the repository
+   * (`view.ts`): core, the seed and a migration are three places the words
+   * live, and this is the one a rider actually sees.
+   * `data.test.ts` holds the same rule against core and
+   * `plan-copy-no-counts.test.ts` holds it against the migration.
+   */
+  const body = await page.locator('body').innerText();
+
+  expect(body).not.toMatch(
+    /\b(one|two|three|four|five|six|seven|eight|nine|ten|twenty|thirty|forty|fifty|\d+)\s+(free\s+|hand-picked\s+)*tricks?\b/i,
+  );
+  expect(body).not.toMatch(/\bthe (ten|twenty)\b/i);
+
+  // The sentences that used to carry it, named so a paste cannot bring them
+  // back quietly.
+  expect(body).not.toMatch(/twenty hand-picked tricks/i);
+  expect(body).not.toMatch(/twenty free tricks in each sport/i);
+  expect(body).not.toMatch(/not just the twenty we picked/i);
+
+  // What replaced them still says what the free tier is, so the page has not
+  // simply lost the claim.
+  await expect(page.locator('[data-plan="rookie"]')).toContainText(/hand-picked tricks/i);
+  await expect(page.locator('[data-plan="shredder"]')).toContainText(/the whole library/i);
+
+  // Numbers that are not counts of tricks are untouched: the five stages, and
+  // the video allowance rendered from `videoLinkCap`.
+  await expect(page.locator('[data-plan="rookie"]')).toContainText('5 stages');
+  await expect(page.locator('[data-plan="shredder"]')).toContainText(/10 video links/i);
 });
 
 /**

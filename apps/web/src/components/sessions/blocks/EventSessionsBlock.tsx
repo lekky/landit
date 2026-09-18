@@ -99,6 +99,35 @@ async function EventSessions({
     );
   }
 
+  /*
+    Over, and nothing logged: the offer, not a count (owner, 2026-09-17: "no log
+    a session at event"). The session form only volunteers an event that is at
+    the chosen spot on the day, so for a jam a rider is writing up the next
+    morning this link is the way the event gets attached at all.
+  */
+  if (mine.length === 0) {
+    return (
+      <section className={styles.event} aria-labelledby="event-sessions-title">
+        <p className={styles.eyebrow}>
+          {eventName} · {dateLabel}
+        </p>
+        <h2 id="event-sessions-title" className={styles.eventTitle}>
+          Were you there? Put it in your log.
+        </h2>
+        <p className={styles.eventCopy}>
+          The event fills itself in. You add the spot and how it went.
+        </p>
+        <LogSessionLink
+          href={newSessionHref({ event: eventId })}
+          source="event"
+          className={styles.purpleCta}
+        >
+          Log a session at this event
+        </LogSessionLink>
+      </section>
+    );
+  }
+
   const timezone = rider.timezone || DEFAULT_TIMEZONE;
   const names = await spotNames(
     client,

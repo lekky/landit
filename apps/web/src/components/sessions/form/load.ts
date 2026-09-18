@@ -5,8 +5,6 @@ import {
   clipWatchUrl,
   formatDayLong,
   formatPricePence,
-  isTrickFree,
-  isTrickLocked,
   sessionClipsRemaining,
   sessionQuotaResets,
   sessionVisibilityDefault,
@@ -14,7 +12,6 @@ import {
   type PlanId,
   type SportId,
   type StageId,
-  type Trick,
 } from '@landit/core';
 import {
   countSessionClips,
@@ -47,6 +44,7 @@ import {
   shortDayMonth,
 } from '@/lib/sessionForm';
 import type { NewSessionPrefill } from '@/lib/sessionRoutes';
+import { lockedForPlan } from '@/lib/trickLock';
 
 import type { FormEvent, FormMate, FormSpot, FormTrick, SessionFormData } from './types';
 
@@ -81,10 +79,10 @@ function upgradeFor(plans: readonly PlansRecord[]): SessionFormData['upgrade'] {
   return price ? { name: target.name, price } : null;
 }
 
-function locked(trick: Trick, plan: string): boolean {
-  // A plan slug the catalogue does not know unlocks nothing, the way the hook reads it.
-  return PLAN[plan as PlanId] ? isTrickLocked(trick, plan as PlanId) : !isTrickFree(trick);
-}
+// A plan slug the catalogue does not know unlocks nothing, the way the hook
+// reads it. The rule is `lib/trickLock.ts`'s so the LOG sheet's picker asks the
+// same question this one does.
+const locked = lockedForPlan;
 
 async function loadTricks(
   client: Client,
@@ -245,6 +243,9 @@ export async function loadNewSessionForm(
       visibilityDefault,
       nowLocal: localDateTimeIn(now, timezone),
     }),
+    // Whether the link chose the sport, which is the one case the top bar's
+    // chip must not overrule in the browser (T50, `types.ts`).
+    sportFromLink: Boolean(impliedSport && sports.includes(impliedSport)),
     sports: sports.length ? sports : [],
     spots: spots.map(toFormSpot),
     recentSpotIds,
@@ -317,6 +318,8 @@ export async function loadEditSessionForm(
       clipText: saved.clip ? clipWatchUrl(saved.clip) : '',
       timezone,
     }),
+    // Nothing overrides a saved sport; the flag is only read in `new` mode.
+    sportFromLink: false,
     // A session ridden on a sport the rider has since dropped still edits.
     sports: sports.includes(saved.sport) ? sports : [...sports, saved.sport],
     spots: spots.map(toFormSpot),

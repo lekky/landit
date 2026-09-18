@@ -30,29 +30,10 @@
   gap: 18px;
 }
 
-/* ---------------------------------------------------------- breadcrumb --- */
-
-.crumb {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-  flex-wrap: wrap;
-  font-family: var(--fc);
-  font-weight: 600;
-  font-size: 12.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-.crumb a,
-.crumb a:hover {
-  color: var(--ink);
-}
-
-.crumb a:hover {
-  color: var(--orange);
-}
+/* `.crumb` went with the `Events / United Kingdom / Corby` trail it drew
+   (2026-09-17): the page opens on `BackLink` now, which brings its own class
+   from the shell, and a rule nothing writes is a rule the next reader has to
+   work out is dead (LESSONS §3a). */
 
 /* ------------------------------------------------- band and status strip -- */
 
@@ -157,6 +138,21 @@
 
 .statusUpcoming {
   background: var(--paper-2);
+}
+
+/*
+ * "I'm going", in the strip with the countdown (owner, 2026-09-17: "im going to
+ * this should be right at the top in the 2 days away block").
+ *
+ * Its own line rather than a third thing in the strip's flex row: the toggle is
+ * the widest control here and a rider should not have to hunt for it between a
+ * date and a price. `width: 100%` makes the wrap deliberate instead of
+ * whatever the row has room for.
+ */
+.attendRow {
+  width: 100%;
+  display: flex;
+  margin-top: 2px;
 }
 
 /* The only lime band on the site, and it means exactly one thing. */

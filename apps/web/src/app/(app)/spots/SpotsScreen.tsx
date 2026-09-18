@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  spotCredits,
   distanceLabelIn,
   filterSpots,
   hasCoords,
@@ -17,11 +16,12 @@ import { Button, Empty, Icon, Panel, Pill, SportChip, Tag } from '@landit/ui-web
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { runActionOr } from '@/lib/runAction';
-import { sportFilterProperty } from '@/lib/sportFilter';
 
-import { SportFilter } from '@/components/filters/SportFilter';
+import { FindTabs } from '@/components/find/FindTabs';
+import { SportScopeSelect, useSportScope } from '@/components/shell/SportScopeSelect';
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
-import { reportHref, spotHref } from '@/lib/routes';
+import { legalSectionId } from '@/content/legal';
+import { legalHref, reportHref, spotHref } from '@/lib/routes';
 import { SPORT_LOOKS } from '@/lib/sports';
 import { useSport } from '@/providers/sport';
 
@@ -36,40 +36,6 @@ import { nearbyReadyBucket } from '@/lib/nearbyTiming';
 import { useFavourites } from './useFavourites';
 import styles from './spots.module.css';
 import { SPOTS_PAGE, type SpotView } from './view';
-
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
-/**
- * "councils, venues and OpenStreetMap (Open Database Licence); the French
- * Ministry of Sport’s equipment census via data.gouv.fr (Licence Ouverte 2.0,
- * updated 8 September 2026); OpenStreetMap contributors (…); GeoNames (CC BY
- * 4.0)". Every source the catalogue says must be named, in its order, then
- * every dataset those sources draw on (`spotCredits`). The date is spelled from a fixed table rather than a locale:
- * this screen hydrates, and nothing on it may be locale-derived (LESSONS §5).
- */
-function creditLine(): string {
-  return spotCredits()
-    .map((source) => {
-      const terms = [source.licenceName];
-      const day = source.snapshot ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(source.snapshot) : null;
-      if (day) terms.push(`updated ${Number(day[3])} ${MONTHS[Number(day[2]) - 1]} ${day[1]}`);
-      return `${source.name} (${terms.join(', ')})`;
-    })
-    .join('; ');
-}
 
 export type { SpotView } from './view';
 
@@ -95,9 +61,10 @@ const SHEET_WIDTH = '(max-width: 860px)';
 /**
  * The list query, as one string, so "did it change" is one comparison.
  *
- * The sports are joined in `SPORT_IDS` order — `SportFilter` hands them over
- * that way whatever order they were pressed in — so choosing scooter then BMX
- * and choosing BMX then scooter are the same query and do not refetch.
+ * The sports are joined in `SPORT_IDS` order, which `scopeSports` guarantees by
+ * only ever returning one sport or none. It used to matter more: the
+ * multi-select could produce "scooter and BMX" in either order, and this key is
+ * what made the two the same query rather than two.
  */
 function queryKey(search: string, sports: readonly SportId[], feature: string | null): string {
   return `${search.trim().toLowerCase()}|${sports.join('+')}|${feature ?? ''}`;
@@ -170,7 +137,6 @@ interface Loaded {
 export function SpotsScreen({
   initialSpots,
   initialTotal,
-  countsBySport,
   ownSpots,
   signedIn,
   units,
@@ -180,8 +146,14 @@ export function SpotsScreen({
   readonly initialSpots: readonly SpotView[];
   /** How many spots that first query matches in all. */
   readonly initialTotal: number;
-  /** Live spots per sport, over the whole collection, for the filter pills' counts. */
-  readonly countsBySport: Readonly<Record<string, number>>;
+  /*
+   * There is no per-sport count any more. The multi-select's pills carried one
+   * each ("BMX 210"), which answered "is it worth narrowing to this?" before a
+   * rider narrowed; a `<select>` has no room for a number beside each option
+   * and an option that carried one would read as part of the sport's name. The
+   * server-side `countSpotsBySport` call went with it, which is one query less
+   * on every load of this screen.
+   */
   /** The rider's own submissions that are not on the map: pending or turned down. */
   readonly ownSpots: readonly SpotView[];
   readonly signedIn: boolean;
@@ -244,17 +216,34 @@ export function SpotsScreen({
     if (favesOn && faves.ids.size === 0) setFavesOn(false);
   }
   /*
-   * Which sports the list is narrowed to. **Empty is every spot, and empty is
-   * where it opens** (Rachid, 2026-09-12, in chat).
+   * Which sports the list is narrowed to — the `SportScopeSelect` under the
+   * header (rethink §3.3, O1; Rachid, 2026-09-16, in chat).
    *
-   * It used to be `everySport`, a boolean starting `false` — so the screen
-   * opened filtered to whatever sport the global switch was on, and the only
-   * way to another sport was to change that switch, which changed home, the
-   * library and progress with it. On a rider who records one sport the switch
-   * is not rendered at all (`SportSwitch` needs two), so the other sports'
-   * spots were unreachable. See `SportFilter`.
+   * **Empty is every spot, and `'all'` is where it opens**, which is the
+   * 2026-09-12 decision unchanged: spot sport tags are thin — about 210 of
+   * 3,463 carry BMX — so a list that opened on one sport would be hiding most
+   * of the map from most riders.
+   *
+   * What changed on 2026-09-16 is the *control*. It was a multi-select over
+   * `SPORT_IDS` — "Every spot" plus one pill per sport, any combination — which
+   * answered the two things the sport tab row before it could not: a rider who
+   * records one sport could still reach BMX, and browsing was no longer a
+   * statement about what you ride. O1 keeps both of those and takes the
+   * combination away: the scope is one answer, so the row is a `<select>` that
+   * fits on one line at 320px (issue #465) and its first option *follows the
+   * top bar's sport chip* rather than being a second place the same choice is
+   * made. `scope.sports` is a one-sport list or an empty one, which is the same
+   * shape `filterSpots` and `spotListFilter` already took.
+   *
+   * **A visitor is never offered "your sport"** (review S1, found on `/events`
+   * and fixed on both). Signed out there is no sport chip in the top bar, so
+   * the words would be a claim about somebody the product has never met, and a
+   * stored `'chip'` from a previous session would quietly narrow a public page
+   * under a control that cannot explain itself. `useSportScope` is told there
+   * is no chip; the default here is "every spot" either way.
    */
-  const [sports, setSports] = useState<readonly SportId[]>([]);
+  const scope = useSportScope('spots', 'all', signedIn);
+  const sports = scope.sports;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /*
    * Whether the map sheet is up. **Only a phone can see this** — the sheet
@@ -1075,14 +1064,6 @@ export function SpotsScreen({
    * of a decorative arrow.
    */
 
-  /*
-   * How many live spots each sport has, for the filter pills' counts. Counted
-   * on the server over every live spot rather than the filtered list: the count
-   * answers "is it worth adding BMX?", and one that shrank as you typed a
-   * search would answer a question nobody asked.
-   */
-  const sportNote = useCallback((id: SportId) => String(countsBySport[id] ?? 0), [countsBySport]);
-
   const mine = useMemo(() => ownSpots.filter((spot) => spot.status === 'pending'), [ownSpots]);
   // `listRule` returns a rider's own submission at any status, so a rejected
   // one comes back too. It used to fall between two filters and simply vanish —
@@ -1093,21 +1074,30 @@ export function SpotsScreen({
   return (
     <div>
       {/*
-        There is no `SportSwitch` here any more (Rachid, 2026-09-12, in chat),
-        and the filter row below carries every sport instead.
+        The Find group's tab row (§3.7): For you · Spots · Events, the same
+        three links on all three screens, with `tabs_switched` fired by `TabRow`
+        itself. It replaces the old "What's on" cell's habit of dropping a rider
+        on one of the two lists with no way across to the other.
 
-        T13 put the tab row here in 2026-08-31, correcting a prototype pill that
-        could only ever reach two sports — that reasoning still holds and is why
-        the row is not being replaced by anything like it. What it could not fix
-        is that the row is a *preference*: it is global state shared with home,
-        the library, progress and stickers, so looking for a BMX park changed
-        all four, and it is fed by the rider's own `users.sports`, so a rider who
-        records one sport never saw it and had no way past "Good for Skate".
-        A filter over `SPORT_IDS` answers both, and answers the third thing
-        neither could: "scooter and BMX". Recorded in plan §7 T13.
+        There is no `SportSwitch` here and no pill row either. T13 put the sport
+        tab row here in 2026-08-31, the multi-select replaced it on 2026-09-12,
+        and O1 replaced *that* with the scope select below on 2026-09-16 — three
+        controls for one question, each fixing what the last could not. What
+        survives from all three is the rule they were all reaching for: browsing
+        for a park is not a statement about what you ride, and every sport is
+        reachable whatever a rider's profile records.
       */}
+      <FindTabs current="spots" className={styles.tabs} />
+
       <div className={styles.head}>
-        <div>
+        {/*
+          The eyebrow and the title, **on desktop only** (§3.7). On a phone the
+          tab row above already says "Spots" in the lit box, and a screen that
+          says it twice spends a third of a 390px viewport on furniture before
+          the search box. The `h1` is still in the document at every width, for
+          the reason a heading exists: the outline and anything reading it.
+        */}
+        <div className={styles.headWords}>
           <span className="eyebrow">Spots</span>
           <h1 className={`d ${styles.title}`}>Where to ride</h1>
         </div>
@@ -1152,24 +1142,18 @@ export function SpotsScreen({
       </div>
 
       <div className={styles.filters}>
-        <span className="lab" style={{ color: 'var(--ink-3)' }}>
-          Show
-        </span>
-        <SportFilter
-          value={sports}
-          onChange={(next) => {
-            setSports(next);
-            // Catalogue facts only: which screen, and which sports. Never the
-            // rider's own sports, never the search text, never a position.
-            capture(ANALYTICS_EVENTS.sportFilterSet, {
-              screen: 'spots',
-              sports: sportFilterProperty(next),
-            });
-          }}
-          everyLabel="Every spot"
-          note={sportNote}
-          label="Filter spots by sport"
-        />
+        {/*
+          "Show: Every spot" (§3.3, O1). One line where four pills used to wrap
+          onto two at 375px (issue #465), and one answer rather than a set: the
+          combination the pills allowed is what O1 deliberately gave up, on the
+          reasoning that the sport is chosen once, in the top bar, and a list
+          either follows that or is widened.
+
+          It fires `sport_scope_set` from inside `useSportScope`, so the press
+          is counted whichever screen the control is on and no screen can
+          forget it — the same reasoning `TabRow` fires `tabs_switched` itself.
+        */}
+        <SportScopeSelect state={scope} everyLabel="Every spot" label="Show spots for" />
         {/*
           Faves.
 
@@ -1345,9 +1329,16 @@ export function SpotsScreen({
                 <div className={styles.cardBody}>
                   <div className={styles.cardTop}>
                     <div className={styles.cardHeading}>
-                      <div className="d" style={{ fontSize: 19 }}>
-                        {spot.name}
-                      </div>
+                      {/*
+                        `.cardName` rather than `.d` alone: the display face is
+                        set at `line-height: 0.92`, which is right for one line
+                        and collides with itself on two — and a spot called
+                        "Cadishead Pumptrack" is two lines on a phone (owner,
+                        2026-09-17: "spot names overlap"). The class only
+                        re-spaces the lines; the face, the size and the caps are
+                        the design's.
+                      */}
+                      <div className={`d ${styles.cardName}`}>{spot.name}</div>
                       <div className={`lab ${styles.cardMeta}`}>
                         {[[spot.town, spot.country].filter(Boolean).join(', '), spot.type, distance]
                           .filter(Boolean)
@@ -1415,8 +1406,22 @@ export function SpotsScreen({
                         className={styles.cardFave}
                       />
                     )}
+                    {/*
+                      **Button-shaped, and the quietest of the three** (Rachid,
+                      2026-09-17). It was 12px of underlined grey, which is a
+                      footnote; it is now the same small ghost button the other
+                      two wear, one size down and with no shadow, so it reads as
+                      a control without competing with the two a rider came for.
+
+                      It keeps its corner rather than joining the row below,
+                      which is the decision above and unchanged: the row only
+                      exists on a spot with coordinates, and "this is wrong,
+                      gone, or not safe" has to be on every card. Its
+                      destination, its `aria-label` and its working-signed-out
+                      behaviour (the OSA duty, plan §6.1) are untouched.
+                    */}
                     <Link
-                      className={`cond ${styles.report}`}
+                      className={`btn sm ghost ${styles.report}`}
                       href={reportHref({ type: 'spot', id: spot.id })}
                       aria-label={`Report ${spot.name}`}
                     >
@@ -1452,23 +1457,68 @@ export function SpotsScreen({
                         <span className={styles.mapPickMark} aria-hidden="true" />
                         {on ? 'On the map' : 'Show on map'}
                       </Button>
-                      <span className={styles.cardActionsPush} />
                       {/*
-                        Decorative: the stretched link above already carries the
-                        card's name, and this only says where the box goes.
+                        **A button, and still decorative** (Rachid, 2026-09-17,
+                        in chat: "the report/spot page/directions should be
+                        ctas? not just strings?").
+
+                        It was "Spot page →" in 13px grey, which is a caption
+                        rather than an offer — the owner is right that the three
+                        things a rider can do from a card all read as footnotes.
+                        So it takes the design's small ghost button, the same
+                        shape "Show on map" wears at the other end of the row.
+
+                        **`aria-hidden` stays.** The whole card is already a link
+                        to this exact address, carrying the spot's name
+                        (`.cardLink`), and the stretched link sits *above* this
+                        span — so a press here goes to the page as it always did,
+                        and a screen reader hears one link to the spot rather
+                        than two. The button is affordance, not a second control;
+                        making it a real `<a>` would put a nameless duplicate in
+                        the accessibility tree for no gain.
+
+                        Its hover comes from the card, for the same reason: the
+                        pointer is over the stretched link, never over this.
                       */}
                       {spot.slug && (
-                        <span className={`cond ${styles.pageHint}`} aria-hidden="true">
-                          Spot page →
+                        <span
+                          className={`btn sm ghost ${styles.cardAction} ${styles.pageHint}`}
+                          aria-hidden="true"
+                        >
+                          Spot page
                         </span>
                       )}
+                      {/*
+                        **"Directions in Google Maps", and it says where it
+                        goes** (same conversation).
+
+                        `mapsLink` builds `google.com/maps/search/?api=1&query=…`
+                        on every platform — the one form that hands off to the
+                        native app on both phones — so the label is a fact, not a
+                        guess. It carries the spot's coordinates and nothing
+                        about the rider: no origin, no "directions from here"
+                        (§6.4 standard 10).
+
+                        The visible words and the icon say "this leaves the
+                        product"; `aria-label` says the same to a screen reader
+                        *and* says it opens a new tab, which `target="_blank"`
+                        otherwise announces to nobody.
+
+                        **The glyph goes after the label**, because that is what
+                        it means: the words name the destination and the mark
+                        says you are about to leave for it. A leading icon reads
+                        as a category badge on a row of buttons whose other two
+                        have none.
+                      */}
                       <a
-                        className={`cond ${styles.directions}`}
+                        className={`btn sm ghost ${styles.cardAction} ${styles.directions}`}
                         href={mapsLink(spot)}
                         target="_blank"
                         rel="noopener noreferrer"
+                        aria-label={`Directions to ${spot.name} in Google Maps, opens in a new tab`}
                       >
-                        Directions
+                        Directions in Google Maps
+                        <Icon name="external" size={14} strokeWidth={2.4} />
                       </a>
                     </div>
                   )}
@@ -1575,27 +1625,20 @@ export function SpotsScreen({
             <div className={styles.mapHead}>
               <span className="lab">Map</span>
               {selected && <span className={`cond ${styles.mapName}`}>{selected.name}</span>}
-              {selected && (
-                <a
-                  className={`cond ${styles.mapLink}`}
-                  href={mapsLink(selected)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Open in Maps
-                </a>
-              )}
               {/*
                 The way out of the sheet, and nothing at all on a wide screen —
                 `display: none` there, so it is out of the tab order and out of
                 the accessibility tree rather than merely invisible. A column
                 that is always on the page has nothing to close.
 
-                It is last in the source so it is last in the tab order. In
-                the sheet it takes the header's `margin-left: auto` and "Open in
-                Maps" gives it up, so Close is hard right whether or not a spot
-                is selected; on a wide screen the link keeps the auto and is the
-                rightmost thing, exactly as before.
+                It is last in the source so it is last in the tab order, and it
+                takes the header's `margin-left: auto`, so Close is hard right
+                whether or not a spot is selected.
+
+                The header's own "Open in Maps" link went on 2026-09-17
+                (Rachid, in chat): the panel below it already carries
+                Directions, and two controls for one destination is one too
+                many on a phone.
               */}
               <button
                 type="button"
@@ -1663,13 +1706,21 @@ export function SpotsScreen({
                   Open {selected.name} page →
                 </Link>
                 <div className={styles.sheetActions}>
+                  {/*
+                    The short word, for the spot page's reason: these two share
+                    the sheet's width in equal halves at 320px, and the card
+                    behind the sheet already carries "Directions in Google Maps"
+                    in full. The glyph and the accessible name do the saying.
+                  */}
                   <a
-                    className="btn sm ghost"
+                    className={`btn sm ghost ${styles.sheetDirections}`}
                     href={mapsLink(selected)}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label={`Directions to ${selected.name} in Google Maps, opens in a new tab`}
                   >
                     Directions
+                    <Icon name="external" size={14} strokeWidth={2.4} />
                   </a>
                   <Link
                     className="btn sm ghost"
@@ -1682,40 +1733,32 @@ export function SpotsScreen({
               </div>
             )}
 
-            <div className={styles.mapFoot}>
-              {/*
-                Two footers, one shown at a time, chosen by width in CSS for the
-                reason the notice below gives: a footer picked from a measured
-                viewport during render is a first paint that is a guess.
+            {/*
+              The footer is the sheet's alone now.
 
-                **They say different things because the sheet is a different
-                moment.** On a wide screen the map sits beside the list and the
-                thing worth saying is that the two are the same set. In the
-                sheet the list is behind it and one spot fills the view — a
-                rider is looking at where they are about to go, so this is the
-                last place "check before you travel" can still reach them before
-                Directions takes them out of the product entirely. It is the
-                short wording, because a sheet has no room for the long one.
-              */}
-              {/*
-                **Re-worded when the card became a link** (2026-09-06). It used
-                to read "tap a pin or a card — they follow each other", which
-                was true while the whole card selected the map and stopped being
-                true the moment it started navigating instead. A note explaining
-                a behaviour is a dated claim about the product, and this one's
-                date had passed (LESSONS §4).
-              */}
-              {/*
-                **Re-worded again 2026-09-11** (#388; owner, in chat): the map
-                now draws every matching spot, not only the cards on screen, so
-                "every live spot on this list is on the map" became the smaller
-                of two true claims. This is the larger one.
-              */}
-              <p className={`cond ${styles.mapNote}`}>
-                Every matching spot is on the map. The list shows {PAGE} at a time. Cards are links,
-                so the map only moves when you ask it to — press <strong>Show on map</strong> on a
-                card, a pin, or a number.
-              </p>
+              It carried a second paragraph explaining how the map and the list
+              relate — "Every matching spot is on the map. The list shows 24 at a
+              time. Cards are links, so the map only moves when you ask it to…" —
+              shown on a wide screen and hidden in the sheet. The owner took it
+              out on 2026-09-17 ("on the map, get rid of…"), and the instinct is
+              right for the reason the note itself twice recorded: it had been
+              re-worded on 2026-09-06 and again on 2026-09-11, each time because
+              the behaviour it described had moved under it. A paragraph
+              explaining an interface is a dated claim about the product
+              (LESSONS §4), and this one had already cost two edits. "Show on
+              map" says what it does on the button itself.
+
+              What stays is the warning, and it stays **in the sheet only**,
+              which is where it always showed: on a phone the list is behind the
+              map and one spot fills the view, so this is the last place "check
+              before you travel" reaches a rider before Directions takes them out
+              of the product. On a wide screen the same caution is in `.notice`
+              under the map, at full length, so nothing is lost — and with the
+              note gone the footer would otherwise be an empty bordered strip,
+              which is why the CSS now hides the whole thing above 860px rather
+              than only its contents.
+            */}
+            <div className={styles.mapFoot}>
               <p className={styles.mapWarn}>
                 <strong>Check before you travel:</strong> Spots may not be verified.
               </p>
@@ -1772,22 +1815,36 @@ export function SpotsScreen({
             </span>
           </p>
           {/*
-            **The credit line**, and it is a licence term rather than a
-            courtesy: the hand-researched spots were cross-checked against
-            OpenStreetMap (Open Database Licence), and France's parks come from
-            the Ministry of Sport's census under Licence Ouverte 2.0, which asks
-            for the source's name *and* when it was last taken. Both are read
-            from `SPOT_SOURCES` in `@landit/core` — the same table each row is
-            stamped from — so a new dataset credits itself the day it is added,
-            and a row's own source is never shown on its page (owner,
-            2026-09-07). Never folded into `MAP_ATTRIBUTION`: that string is the
-            tile credit and is kept byte-identical to what OpenFreeMap serves
-            so MapLibre de-duplicates it.
+            **The credit, as a link rather than the paragraph** (Rachid,
+            2026-09-17, in chat: "remove this 'Spot data: councils, venues and
+            OpenStreetMap…' — that should be in a relevant legal doc instead").
 
-            Not hidden on a narrow screen the way the long warning is. A
-            licence that asks to be named is not met by a shorter paragraph.
+            It is a licence term rather than a courtesy, and that is why it is
+            still here at all: the hand-researched spots were cross-checked
+            against OpenStreetMap (Open Database Licence), France's parks come
+            from the Ministry of Sport's census under Licence Ouverte 2.0, which
+            asks for the source's name *and* when it was last taken, and the
+            towns come from GeoNames under CC BY 4.0. All three want attribution
+            reasonably reachable from where the data is shown. A link one press
+            from the map meets that; deleting the words would not.
+
+            The full credit is "Data sources and licences" in the terms of use,
+            generated from the same `SPOT_SOURCES` table each row is stamped
+            from (`spotCreditLine` in `content/legal.ts`), so the dates cannot
+            drift from the data.
+
+            **The map's own attribution is untouched.** `MAP_ATTRIBUTION` is the
+            tile credit, kept byte-identical to what OpenFreeMap serves so
+            MapLibre de-duplicates it, and it stays drawn on the map.
+
+            Not hidden on a narrow screen the way the long warning is: a licence
+            that asks to be named is not met at one width only.
           */}
-          <p className={styles.credit}>Spot data: {creditLine()}.</p>
+          <p className={styles.credit}>
+            <Link href={legalHref('terms', legalSectionId('Data sources and licences'))}>
+              Spot data sources
+            </Link>
+          </p>
         </div>
       </div>
     </div>

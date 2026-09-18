@@ -116,6 +116,89 @@
 
 .body {
   padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/*
+ * The three steps' tab row (rethink §3.10, T50).
+ *
+ * `TabRow` brings the whole look — separate boxes, the 3px keyline, the yellow
+ * 4px lift on the active one, and `.rowFit`, which is what keeps "When & where"
+ * from widening a 320px phone. Nothing is painted here; the row only has to
+ * stop stretching to the height of a flex column.
+ */
+.steps {
+  flex: none;
+}
+
+/*
+ * "What you rode", as a statement rather than a control (§3.10).
+ *
+ * The sport art beside the tag, at the size the mate chips and the trick rows
+ * use for an inline glyph. No keyline and no fill of its own: `Tag` carries the
+ * sport's colour, and a box around a box would be the second border on a card
+ * that already has one.
+ */
+.sportPreset {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+}
+/*
+ * The resting state of "What you rode", on one line (owner, 2026-09-17): the
+ * label, the sport, and Change hard right. `flex-wrap` so a long sport name on
+ * a 320px phone drops the tag under the label rather than squeezing Change off
+ * the edge.
+ */
+.sportLine {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-height: 44px;
+}
+.changeLink {
+  margin-left: auto;
+  background: none;
+  border: none;
+  padding: 10px 0;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.changeLink:hover {
+  color: var(--ink);
+}
+
+/*
+ * "Keep Scooter" — the way out of the revealed picker that is not a choice
+ * (review N4). A ghost control rather than a fourth button in the row: it
+ * cancels, it does not select, and the row above it is where selecting happens.
+ */
+.keepSport {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 4px 12px;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 2.5px dashed var(--ink);
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
 }
 .cols {
   display: grid;
@@ -211,6 +294,13 @@
 .notes {
   resize: vertical;
   min-height: calc(4 * 1.45em + 22px);
+  line-height: 1.45;
+}
+/* The aim, on the same shape as the notes but a line shorter: it is a sentence
+   about today, not the write-up (owner, 2026-09-17). */
+.aim {
+  resize: vertical;
+  min-height: calc(3 * 1.45em + 22px);
   line-height: 1.45;
 }
 .pickRow {
@@ -316,18 +406,30 @@
   color: #6e665a;
   margin-top: 2px;
 }
+/*
+ * The Change button, on "Where" and now on "What you rode" (review N3).
+ *
+ * Two corrections, both of them pre-existing and both of them T50's now that
+ * this is a control every multi-sport rider meets on the form's second step:
+ * §4's 44px floor, where it was 32; and the tokens, where it was the same three
+ * values written as raw hex. The file's header says the values are the session
+ * handoff's — they are, and `--ink` / `--paper` are what those values are
+ * *called*, so a later change to the palette reaches this too.
+ */
 .miniBtn {
+  display: inline-flex;
+  align-items: center;
   flex: none;
   font-family: var(--fc);
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  border: 2.5px solid #12100b;
-  background: #fffdf5;
-  color: #12100b;
-  padding: 4px 10px;
-  min-height: 32px;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 4px 12px;
+  min-height: 44px;
   cursor: pointer;
 }
 .recentRow {
@@ -778,13 +880,36 @@
 .grab {
   display: none;
 }
+/*
+ * Two columns: everything that is words, then the Close (owner, 2026-09-17:
+ * "the black header is malformed").
+ *
+ * T50 put the sport tag in here and made the row wrap, because four things —
+ * title, tag, stamp, close — do not fit a 320px phone and a row that refuses to
+ * wrap takes the document sideways with it (issue #550). But wrapping treated
+ * the Close as a fourth word, so at 375px it dropped to a line of its own and
+ * left a tall black band with an X adrift in it. The wrap is kept where it is
+ * useful — inside the text column — and the Close is pinned to its own column,
+ * top right, whatever the width.
+ */
 .quickHead {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
+  column-gap: 12px;
   background: #12100b;
   color: #fffdf5;
   padding: 8px 8px 8px 18px;
+}
+.quickHeadText {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  min-width: 0;
+}
+.quickSport {
+  flex: none;
 }
 .quickTitle {
   font-family: var(--fd);
@@ -1255,4 +1380,56 @@
     text-align: center;
     justify-content: center;
   }
+}
+
+/*
+ * "Can't find it? Type where it was" — the spot picker's way out (owner,
+ * Rachid, 2026-09-17, in chat).
+ *
+ * Quiet by design: it sits under the results because it is the answer to "none
+ * of these", and it is a text link rather than a button so it never competes
+ * with the spots above it. The box it opens carries the design's own field
+ * treatment, and says in one line that what it saves is a name rather than a
+ * place with a page.
+ */
+.customOpen {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  font-family: var(--fc);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.customOpen:hover {
+  color: var(--ink);
+}
+
+.customBox {
+  margin-top: 6px;
+  padding: 12px;
+  border: var(--bd);
+  box-shadow: var(--sh-sm);
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.customActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.customActions > :last-child {
+  margin-left: auto;
 }

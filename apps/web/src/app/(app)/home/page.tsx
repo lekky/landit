@@ -9,17 +9,23 @@ import {
   challengeRangeLabel,
   challengeState,
   computeStats,
+  crewActivityLine,
   currentWeeklyStreak,
+  eventKindColor,
   formatDayLong,
   goalLabel,
+  groupSessionsByMonth,
   isTrickLocked,
   liveChallenge,
+  riderMonthKey,
   riderToday,
   rodeToday,
   sportsOf,
   suggestedNextTricks,
   trickById,
   tricksFor,
+  upcomingEvents,
+  weekdayName,
   weeklyEncouragement,
   weeklyProgress,
   weeklyProgressLabel,
@@ -32,11 +38,17 @@ import {
 } from '@landit/core';
 import {
   challengesFromRecords,
-  getCrewBoard,
+  eventsFromRecords,
+  getCrewFeed,
+  getSpotsByIds,
+  listAllOwnSessions,
   listAnnouncementDismissals,
   listAnnouncements,
   listChallenges,
   listCrewMemberships,
+  getEventsByIds,
+  listEventAttendance,
+  listFavouriteSpotIds,
   listRiderStickers,
   listStickers,
   listTrickPrereqs,
@@ -48,6 +60,7 @@ import {
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
+import { dayMonth, relativeTime } from '@/lib/dates';
 import { ROUTES } from '@/lib/routes';
 import { currentRider } from '@/lib/session';
 import { sessionsEnabledFor } from '@/lib/sessionsPreview';
@@ -57,10 +70,12 @@ import { HomeScreen } from './HomeScreen';
 import type {
   AnnouncementView,
   ChallengeView,
-  CrewRiderView,
+  CrewLineView,
+  FaveSpotView,
   HomeView,
+  NextEventView,
+  SessionsCardView,
   SportView,
-  StickerView,
   TrickCardView,
 } from './view';
 
@@ -91,11 +106,36 @@ export default async function HomePage() {
   const clock = { timezone };
   const today = riderToday(clock);
 
-  // The library comes from the database, not from `@landit/core`'s canonical
-  // constants. They agree today because the seed is built from those constants,
-  // but staff can edit tricks (T17) and a hidden or renamed trick has to
-  // disappear from Home the moment it disappears from `/library` — otherwise
-  // Home offers a card whose page 404s, which is exactly what CI caught.
+  /*
+   * The library comes from the database, not from `@landit/core`'s canonical
+   * constants. They agree today because the seed is built from those constants,
+   * but staff can edit tricks (T17) and a hidden or renamed trick has to
+   * disappear from Home the moment it disappears from `/library` — otherwise
+   * Home offers a card whose page 404s, which is exactly what CI caught.
+   *
+   * Two of these are new with the record cards (rethink §3.4): the events this
+   * rider said yes to, for "Next up", and their favourite spots, for "Your
+   * spots". Both are collections whose every rule is `OWN`, read with the
+   * rider's own client — so this screen cannot see anybody else's attendance or
+   * anybody else's faves, and the child-safety position that there is no
+   * stranger-contact surface is not being leaned on by this file, it is
+   * enforced under it.
+   *
+   * **Both are the rider's own small collections, and neither pulls a
+   * catalogue with it** (review S6). The first cut read every live event and
+   * every favourited spot: 74 events to draw one row, and up to 200 spot
+   * records to draw four cards — a whole calendar charged to every first-day
+   * account with no attendance at all. What is read here now is the attendance
+   * rows and the fave *ids*; the records they name are fetched below, keyed,
+   * and only if there are any.
+   *
+   * The **sessions** reads are not here, and that is deliberate: the Sessions
+   * card is drawn only for a rider the preview covers (T41), so its reads are
+   * made below, behind that gate. A dashboard should not pay for a card nobody
+   * is shown.
+   */
+  const sessionsEnabled = sessionsEnabledFor(rider);
+
   const [
     trickRecords,
     prereqRecords,
@@ -106,6 +146,8 @@ export default async function HomePage() {
     notices,
     dismissals,
     crews,
+    attendance,
+    faveSpotIds,
   ] = await Promise.all([
     listTricks(client),
     listTrickPrereqs(client),
@@ -116,6 +158,8 @@ export default async function HomePage() {
     listAnnouncements(client),
     listAnnouncementDismissals(client, rider.id),
     listCrewMemberships(client, rider.id),
+    listEventAttendance(client, rider.id),
+    listFavouriteSpotIds(client),
   ]);
 
   const tricks = tricksFromRecords(trickRecords, prereqRecords);
@@ -146,39 +190,70 @@ export default async function HomePage() {
   /* ------------------------------------------------------------ stickers -- */
 
   const stickerById = new Map(stickerRecords.map((s) => [s.id, s]));
-  const earned = earnedRecords
+
+  /*
+   * The Stickers card's two values, **scoped to one sport**.
+   *
+   * The card sits in a `SportView`, whose contract is "everything that changes
+   * when the rider switches sport" — and it used to carry a count of every
+   * sticker on every wall and a "newest" that could easily not be on the wall
+   * the card opens. A rider with one skate sticker, chipped to scooter, was told
+   * "1 · Newest: First skate trick" and then met an empty scooter wall.
+   *
+   * The scope is the wall's own, reused rather than re-derived: a shared sticker
+   * sits on every wall, a sport sticker only on its own
+   * (`app/(app)/stickers/page.tsx`, "<sport> and shared").
+   *
+   * Newest is sorted by `earned_at` rather than trusted from the read's order:
+   * the award rows come back in whatever order the collection gives, so "newest"
+   * has to be asked of the date. An empty string is how PocketBase spells
+   * "never", and it sorts to the bottom, which is where a row with no date
+   * belongs.
+   */
+  const earnedOnWall = [...earnedRecords]
+    .sort((a, b) => (a.earned_at < b.earned_at ? 1 : a.earned_at > b.earned_at ? -1 : 0))
     .map((row) => stickerById.get(row.sticker))
     .filter((s): s is (typeof stickerRecords)[number] => Boolean(s));
 
-  const stickers: StickerView[] = earned.slice(0, 4).map((s) => ({
-    id: s.slug,
-    name: s.name,
-    hue: s.hue,
-    ...(s.ico ? { icon: s.ico } : {}),
-    ...(s.img ? { img: s.img } : {}),
-  }));
+  const stickersFor = (sport: string) => {
+    const wall = earnedOnWall.filter((s) => !s.sport || s.sport === sport);
+    return { count: wall.length, newest: wall[0]?.name ?? null };
+  };
 
   /* ---------------------------------------------------------------- crew -- */
 
-  const crew: CrewRiderView[] = [];
+  // Three lines of the first crew's activity, where Home used to draw the
+  // board (§3.4). `buildCrewActivity` below says what is and is not in them.
   const firstCrew = crews[0];
-  if (firstCrew) {
-    try {
-      const board = await getCrewBoard(client, firstCrew.crew);
-      for (const row of board.riders.slice(0, 4)) {
-        crew.push({
-          id: row.id,
-          name: row.name || 'Rider',
-          handle: row.handle,
-          avatarKey: row.avatar_key,
-          landed: row.landed,
-          isMe: row.id === rider.id,
-        });
-      }
-    } catch {
-      // A crew whose board will not load is an empty panel, not a broken page.
-    }
-  }
+  const crewActivity = firstCrew ? await buildCrewActivity(client, firstCrew.crew, timezone) : [];
+
+  /* ------------------------------------------------- next up, your spots -- */
+
+  /*
+   * Both keyed reads, and both skipped entirely when there is nothing to key
+   * them with (review S6). In parallel with each other, so a rider with both
+   * pays one round trip rather than two.
+   */
+  const [nextEvent, faveSpotRecords] = await Promise.all([
+    buildNextEvent(client, attendance, clock),
+    // Four, newest favourite first — cut **before** the read, not after it.
+    // The flood cap is 200 faves, and the section draws four.
+    faveSpotIds.length
+      ? getSpotsByIds(client, faveSpotIds.slice(0, FAVE_SPOTS))
+      : Promise.resolve([]),
+  ]);
+
+  // `getSpotsByIds` already drops a spot the rider may no longer read, so a
+  // stale fave shortens the row rather than drawing a card it cannot fill in.
+  const faveSpots: FaveSpotView[] = faveSpotRecords.map((spot) => ({
+    slug: spot.slug,
+    name: spot.name,
+    town: spot.town,
+  }));
+
+  /* -------------------------------------------------------- sessions card -- */
+
+  const sessionsCard = sessionsEnabled ? await buildSessionsCard(client, rider.id, timezone) : null;
 
   /* ------------------------------------------------------------- per sport */
 
@@ -191,6 +266,7 @@ export default async function HomePage() {
 
   const bySport: Record<string, SportView> = {};
   for (const sport of sports) {
+    const stickers = stickersFor(sport);
     bySport[sport] = buildSportView({
       sport,
       snapshot,
@@ -200,7 +276,8 @@ export default async function HomePage() {
       goal,
       globalLanded,
       sportCount: sports.length,
-      stickerCount: earned.length,
+      stickerCount: stickers.count,
+      newestSticker: stickers.newest,
       challenges,
       clock,
       today,
@@ -215,7 +292,7 @@ export default async function HomePage() {
     // the Sessions tab, the `/progress/sessions` routes and the spot, event and
     // trick blocks ask (plan §7, T41). Unset `LANDIT_OWNER_ID` fails closed, so
     // a deploy nobody configured offers the logger to nobody.
-    sessionsEnabled: sessionsEnabledFor(rider),
+    sessionsEnabled,
     dateLabel: formatDayLong(today),
     streak: {
       headline: weeklyStreakLabel(weeks),
@@ -225,8 +302,10 @@ export default async function HomePage() {
       spare: Math.max(0, progress.rides - progress.target),
       rodeToday: rodeToday(streakState.lastRide, clock),
     },
-    stickers,
-    crew,
+    sessionsCard,
+    crewActivity,
+    nextEvent,
+    faveSpots,
     bySport,
     sports,
   };
@@ -235,6 +314,141 @@ export default async function HomePage() {
 }
 
 /* -------------------------------------------------------------- builders -- */
+
+/** How many faved spots "Your spots" draws — and therefore how many it reads. */
+const FAVE_SPOTS = 4;
+
+/**
+ * The next event this rider said yes to, or `null`.
+ *
+ * **Keyed on their own attendance, never on the calendar** (review S6). The
+ * first cut read every live event and picked one out of it, which charged the
+ * whole calendar — 74 events today and meant to grow — to every render of every
+ * rider's dashboard, including the majority who have said yes to nothing. Now a
+ * rider with no attendance costs **no events read at all**, and a rider with
+ * some reads exactly those.
+ *
+ * `event_attendance` relates to the event **record** while everything about an
+ * event on screen is keyed by slug, so the join happens once, here, in the one
+ * place holding both — the same shape `app/(app)/events/load.ts` uses, and for
+ * the same reason. `upcomingEvents` is `@landit/core`'s single definition of
+ * what is still ahead, so Home cannot call an event upcoming while the calendar
+ * calls it over.
+ */
+async function buildNextEvent(
+  client: Parameters<typeof getEventsByIds>[0],
+  attendance: readonly { readonly event: string }[],
+  clock: { timezone: string },
+): Promise<NextEventView | null> {
+  if (!attendance.length) return null;
+
+  const rows = await getEventsByIds(
+    client,
+    attendance.map((row) => row.event),
+  );
+  const next = upcomingEvents(eventsFromRecords(rows), clock)[0];
+  if (!next) return null;
+
+  return {
+    slug: next.id,
+    name: next.name,
+    dateLabel: formatDayLong(next.date),
+    town: next.town,
+    hue: eventKindColor(next.kind),
+  };
+}
+
+/**
+ * Three lines of a crew's activity, where Home used to draw the board (§3.4).
+ *
+ * Every sentence is `crewActivityLine`'s — six of them, written by the product
+ * from catalogue facts. Nothing a rider typed is in this panel and nothing can
+ * be: the feed route hands back a kind, a stage, a trick name and a sticker
+ * name, and this turns those into one of the six (plan §6.1).
+ *
+ * A function rather than a block inside the page because of the clock. `now` is
+ * read once here so three rows are timed against one instant, and a component
+ * body may not read it at all — `react-hooks/purity` refuses `Date.now()` in a
+ * render, for the good reason that a value which changes between two renders of
+ * the same tree is a value React cannot reconcile.
+ */
+async function buildCrewActivity(
+  client: Parameters<typeof getCrewFeed>[0],
+  crewId: string,
+  timezone: string,
+): Promise<CrewLineView[]> {
+  const now = Date.now();
+  try {
+    const feed = await getCrewFeed(client, crewId);
+    return feed.items.slice(0, 3).map((item) => ({
+      id: item.id,
+      line: crewActivityLine({
+        id: item.id,
+        kind: item.kind,
+        riderId: item.rider.id,
+        riderName: item.rider.name,
+        handle: item.rider.handle,
+        at: item.at,
+        ...(item.trick ? { trickName: item.trick } : {}),
+        ...(item.stage ? { stage: item.stage } : {}),
+        ...(item.sticker ? { stickerName: item.sticker } : {}),
+      }),
+      when: relativeTime(item.at, now, timezone),
+      name: (item.rider.name || 'Rider').trim(),
+      avatarKey: item.rider.avatar_key || '',
+    }));
+  } catch {
+    // A crew whose feed will not load is an empty panel, not a broken page.
+    return [];
+  }
+}
+
+/**
+ * The Sessions card: this month's count, and the last ride's spot and day.
+ *
+ * Only ever called for a rider the preview covers (plan §7, T41), which is what
+ * keeps its two extra reads off everybody else's dashboard. The diary is read
+ * whole because that is what `listAllOwnSessions` is — two requests however
+ * long it is — and the month is cut from it with `groupSessionsByMonth`, the
+ * same function the Sessions screen groups by, so "this month" cannot mean two
+ * different things on two screens.
+ *
+ * The spot name is fetched by id through `getSpotsByIds`, which drops anything
+ * the rider may not read: a spot taken off the map since they rode there leaves
+ * the card saying the day and not the place, rather than a blank.
+ */
+async function buildSessionsCard(
+  client: Parameters<typeof listAllOwnSessions>[0],
+  userId: string,
+  timezone: string,
+): Promise<SessionsCardView> {
+  const sessions = await listAllOwnSessions(client, { userId });
+  if (!sessions.length) {
+    return { value: '0', sub: 'Log your first ride and it lands here.' };
+  }
+
+  const thisMonth = riderMonthKey({ timezone });
+  const groups = groupSessionsByMonth(sessions, timezone);
+  const count = groups.find((group) => group.monthKey === thisMonth)?.count ?? 0;
+
+  // `listAllOwnSessions` sorts newest first, so the last ride is the first row.
+  const last = sessions[0];
+  const day = last ? dayMonth(last.startedAt, timezone) : '';
+  let place = '';
+  if (last?.spotId) {
+    try {
+      const spots = await getSpotsByIds(client, [last.spotId]);
+      place = spots[0]?.name ?? '';
+    } catch {
+      // A spot that will not load costs the card its place name, not its number.
+    }
+  }
+
+  return {
+    value: String(count),
+    sub: place ? `${place} · ${day}` : `Last ride ${day}`,
+  };
+}
 
 function toCardView(
   trick: Trick,
@@ -277,7 +491,10 @@ interface SportViewInput {
   goal: string | null;
   globalLanded: number;
   sportCount: number;
+  /** Stickers earned on **this sport's** wall — its own plus the shared ones. */
   stickerCount: number;
+  /** The newest of those, by `earned_at`, or `null`. */
+  newestSticker: string | null;
   challenges: readonly Challenge[];
   clock: { timezone: string };
   today: string;
@@ -304,8 +521,22 @@ function buildSportView(input: SportViewInput): SportView {
       .filter((t): t is Trick => Boolean(t))
       .map((t) => toCardView(t, byId[t.id], plan, recordIdBySlug[t.id]));
 
-  const workingTricks = staged('trying');
-  const wishList = staged('want').slice(0, 4);
+  /*
+   * Four, not all of them (§3.4).
+   *
+   * Home is a dashboard now: the section is a slice with "All N of yours →"
+   * beside it, and the whole list lives on `/library?mine=1`. Four rather than
+   * two because the phone shows the first two by CSS and the desktop row is
+   * 4-up — a count decided in the browser is a count the server guessed
+   * differently, and the grid would be rebuilt on hydration.
+   *
+   * "On the wish list" went with the same change. What it showed — the tricks a
+   * rider has marked "want to" — is the Progress card's third number, and the
+   * list itself is one tap away on `/library?mine=1`; a second grid of trick
+   * cards under the first was the largest thing on the phone's dashboard and
+   * the least often acted on.
+   */
+  const workingTricks = staged('trying').slice(0, 4);
 
   // "Start here" only appears when nothing is in progress, and it never offers a
   // trick this rider cannot track: the paywall is a refusal, not a tease.
@@ -339,6 +570,21 @@ function buildSportView(input: SportViewInput): SportView {
       stateLabel:
         state === 'live'
           ? look.label
+          : state === 'upcoming'
+            ? `Starts ${challengeRangeLabel(challenge).split(' to ')[0]}`
+            : 'Finished',
+      /*
+       * The Challenge card's one line of context (§3.4).
+       *
+       * A weekday while it runs, because the window is a week and that is the
+       * shortest true thing to say; the start date before it does; the past
+       * tense once it is over. Never a countdown and never what is about to be
+       * lost — plan §6.4, Standard 13, which is the same rule the streak card
+       * is built under.
+       */
+      endsLabel:
+        state === 'live'
+          ? `Ends ${weekdayName(challenge.ends)}`
           : state === 'upcoming'
             ? `Starts ${challengeRangeLabel(challenge).split(' to ')[0]}`
             : 'Finished',
@@ -384,6 +630,7 @@ function buildSportView(input: SportViewInput): SportView {
     total: stats.total,
     pct: stats.pct,
     stickerCount: input.stickerCount,
+    newestSticker: input.newestSticker,
     libraryLabel: `${look.label} library`,
     summary,
     acrossSports,
@@ -394,7 +641,6 @@ function buildSportView(input: SportViewInput): SportView {
     tracked: tricksFor(sport, tricks).filter((t) => t.isLive && byId[t.id]).length,
     workingTricks,
     startHere,
-    wishList,
     challenge: challengeView,
     announcement,
   };
