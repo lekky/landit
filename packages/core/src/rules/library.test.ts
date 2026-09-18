@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { TRICKS } from '../data/tricks';
 import type { Difficulty, StageId, Trick } from '../types';
 import {
+  DASHBOARD_STAGE_ORDER,
   TRICK_SORTS,
   TRICK_STATUS_FILTERS,
   activeFilterCount,
@@ -10,6 +11,7 @@ import {
   groupTricksByStage,
   prereqTricks,
   sortTricks,
+  trackedTricksForDashboard,
   trickMatchesSearch,
   trickMatchesStatus,
   tricksUnlockedBy,
@@ -292,5 +294,72 @@ describe('against the real library', () => {
         TRICKS.filter((t) => t.isLive).length,
       );
     }
+  });
+});
+
+describe('the dashboard order', () => {
+  it('puts the tricks a rider is learning first, then the ordinary stage order', () => {
+    expect(DASHBOARD_STAGE_ORDER).toEqual(['trying', 'want', 'some', 'most', 'every']);
+  });
+
+  it('flattens the rider’s tracked tricks into that order', () => {
+    // `byId` tracks them as every / trying / want. `groupTricksByStage` would
+    // return want → trying → every; the dashboard lifts `trying` to the front.
+    expect(trackedTricksForDashboard(library, byId).map((t) => t.id)).toEqual([
+      'tailwhip',
+      'barspin',
+      'bunny-hop',
+    ]);
+  });
+
+  it('keeps landed tricks in the list rather than dropping them', () => {
+    // The whole point of the widening (#190): a trick bumped off `trying` moves
+    // down the list instead of leaving it.
+    const landed: Record<string, StageId> = {
+      'bunny-hop': 'some',
+      tailwhip: 'most',
+      barspin: 'every',
+    };
+    expect(trackedTricksForDashboard(library, landed).map((t) => t.id)).toEqual([
+      'bunny-hop',
+      'tailwhip',
+      'barspin',
+    ]);
+  });
+
+  it('sorts by difficulty within a stage, and honours the chosen sort', () => {
+    const learning: Record<string, StageId> = {
+      'bunny-hop': 'trying',
+      tailwhip: 'trying',
+      barspin: 'trying',
+    };
+    expect(trackedTricksForDashboard(library, learning).map((t) => t.id)).toEqual([
+      'bunny-hop',
+      'barspin',
+      'tailwhip',
+    ]);
+    expect(trackedTricksForDashboard(library, learning, 'hardest').map((t) => t.id)).toEqual([
+      'tailwhip',
+      'barspin',
+      'bunny-hop',
+    ]);
+  });
+
+  it('leaves out anything untracked, and returns nothing for a rider with no stages', () => {
+    expect(trackedTricksForDashboard(library, byId).map((t) => t.id)).not.toContain('kickflip');
+    expect(trackedTricksForDashboard(library, {})).toEqual([]);
+    expect(trackedTricksForDashboard([], byId)).toEqual([]);
+  });
+
+  it('holds every tracked trick, so a slice off the front is the only thing that trims it', () => {
+    const all: Record<string, StageId> = {
+      'bunny-hop': 'every',
+      tailwhip: 'trying',
+      barspin: 'want',
+      kickflip: 'some',
+    };
+    expect(trackedTricksForDashboard(library, all)).toHaveLength(4);
+    // Untracked and not-live are still absent: `retired` has no stage.
+    expect(trackedTricksForDashboard(library, all).map((t) => t.id)).not.toContain('retired');
   });
 });
