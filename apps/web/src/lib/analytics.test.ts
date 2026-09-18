@@ -222,6 +222,12 @@ describe('the event catalogue', () => {
         // `failed` only, because a success redirects to a signed-out home.
         'account_close_opened',
         'account_closed',
+        // Which shell the app is read in, and the browser install that makes
+        // one. The product has been installable since T19 and could not say
+        // whether anybody installed it, which is the input a store decision
+        // needs. `surface` only — never anything about the device.
+        'app_installed',
+        'app_surface',
         // The archive's year-and-town index was worked rather than scrolled
         // past (2026-09-13). Carries `step` only — `'year'` or `'towns'` —
         // because the corner a rider lands on is already a page load.

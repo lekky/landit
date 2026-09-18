@@ -58,6 +58,40 @@ export function capture(event: AnalyticsEvent, properties?: Record<string, unkno
 export { ANALYTICS_EVENTS };
 
 /**
+ * Say which shell this page load is in, and listen for the rider installing it.
+ *
+ * Called once from `instrumentation-client.ts`, beside `startAnalytics`, for
+ * the same reason the analytics start there: it runs before the client bundle,
+ * so this fires on the page the rider actually landed on.
+ *
+ * **`display-mode` is how a browser answers this**, and it is the same answer
+ * for a home-screen icon and for the Play Store app — both are the manifest's
+ * `display: standalone`. That is a limit worth stating plainly rather than
+ * working around: nothing a page can read distinguishes the two reliably, and
+ * the honest event is the one that does not pretend to.
+ *
+ * Both `matchMedia` and `addEventListener` are wrapped, because this runs on
+ * every page load including a rider's first, and there is no counter worth a
+ * blank screen.
+ */
+export function reportAppSurface(): void {
+  if (!analyticsEnabled()) return;
+  try {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches;
+    capture(ANALYTICS_EVENTS.appSurface, { surface: standalone ? 'standalone' : 'browser' });
+
+    // Fires at most once per page load, and only for the browser's own install
+    // prompt — a Play install never reaches a page. No properties: that it
+    // happened is the whole of it.
+    window.addEventListener('appinstalled', () => capture(ANALYTICS_EVENTS.appInstalled), {
+      once: true,
+    });
+  } catch {
+    // Same silence as `capture`: the thing that failed is the reporting.
+  }
+}
+
+/**
  * Report that an action a rider submitted came back with an error.
  *
  * The forms that sign a rider up, sign them in and reset a password all

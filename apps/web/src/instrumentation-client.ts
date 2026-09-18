@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 
-import { startAnalytics } from '@/lib/analyticsClient';
+import { reportAppSurface, startAnalytics } from '@/lib/analyticsClient';
 import { sentryEnabled, sentryOptions } from '@/lib/sentry';
 
 /**
@@ -30,6 +30,15 @@ if (sentryEnabled()) {
  * test, because `/legal/cookies` promises all four to an audience of children.
  */
 startAnalytics();
+
+/**
+ * Which shell this load is in — a tab, or an installed icon — and whether the
+ * rider installs one while they are here.
+ *
+ * After `startAnalytics` because it captures, and a capture before `init` goes
+ * nowhere. Inert without a key, like everything above it.
+ */
+reportAppSurface();
 
 /**
  * Client-side navigation timing, which Next asks for by name. Harmless with

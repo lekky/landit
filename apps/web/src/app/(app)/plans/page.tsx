@@ -3,6 +3,7 @@ import { getActiveSubscription, listPlans } from '@landit/db';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
+import { isAndroidRequest } from '@/lib/androidApp';
 import { ROUTES } from '@/lib/routes';
 import { anonymousClient, currentRider } from '@/lib/session';
 import { sessionsEnabledFor } from '@/lib/sessionsPreview';
@@ -63,8 +64,14 @@ export default async function PlansPage() {
   // than where they are. Resolved here rather than in `PlansScreen` because
   // that component hydrates, and nothing locale-derived may be read in the
   // browser (LESSONS §5). Nothing is stored.
-  const country =
-    rider?.country || regionFromAcceptLanguage((await headers()).get('accept-language'));
+  const requestHeaders = await headers();
+  const country = rider?.country || regionFromAcceptLanguage(requestHeaders.get('accept-language'));
+
+  // Half of the Play Store check (owner, 2026-09-18, in chat: the app hides the
+  // purchase rather than carrying Play Billing). Android alone decides nothing
+  // — it only decides whether `AndroidAppGate` runs in the browser, which is
+  // where `display-mode` can be read. `lib/androidApp.ts` has the reasoning.
+  const androidRequest = isAndroidRequest(requestHeaders.get('user-agent'));
 
   // One answer for the whole page: the cards' session perk line and the
   // comparison table are the same rollout, and a page where one appeared
@@ -83,6 +90,7 @@ export default async function PlansPage() {
     checkoutLive: stripeConfig() !== null,
     hasSubscription: Boolean(subscription),
     country,
+    androidRequest,
   });
 
   return <PlansScreen view={view} showSessions={showSessions} />;

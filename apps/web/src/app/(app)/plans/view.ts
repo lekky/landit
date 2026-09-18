@@ -62,6 +62,16 @@ export interface PlansView {
   /** Whether a Stripe account is configured on this deployment at all. */
   readonly checkoutLive: boolean;
   /**
+   * Whether this reader is on Android, and so whether the checkout has to be
+   * checked a second time in the browser before it is offered.
+   *
+   * Half of the Play Store answer: the other half is `display-mode`, which only
+   * a browser can read. `plans/AndroidAppGate.tsx` does that half and
+   * `lib/androidApp.ts` says why it takes two. False everywhere else, and an
+   * iPhone or a laptop therefore never renders the gate at all.
+   */
+  readonly androidRequest: boolean;
+  /**
    * Whether this reader is being quoted a price in somebody else's currency,
    * and should be told so before they press a button (issue #170).
    *
@@ -113,6 +123,12 @@ export function buildPlansView(input: {
   readonly upgradeRoute: UpgradeRoute;
   readonly checkoutLive: boolean;
   readonly hasSubscription: boolean;
+  /**
+   * Whether the request came from an Android device (`isAndroidRequest`).
+   * Passed in rather than read here for the same reason `country` is: a view
+   * module reads no headers, and a test has to be able to build both.
+   */
+  readonly androidRequest: boolean;
   /**
    * Where the reader is, as the page resolved it: the declared country for a
    * signed-in rider, the request's `Accept-Language` region for a visitor, `''`
@@ -186,6 +202,7 @@ export function buildPlansView(input: {
     signedIn: input.signedIn,
     upgradeRoute: input.upgradeRoute,
     checkoutLive: input.checkoutLive,
+    androidRequest: input.androidRequest,
     pricesAreForeign: pricesAreForeignTo(input.country),
     hasSubscription: input.hasSubscription,
     currentPlanSlug: input.currentPlanSlug,
