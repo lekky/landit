@@ -29,8 +29,8 @@ All by Rachid, in chat, on the dates given.
 | D4 | **The bell ("What's new") has two tabs**: You, and one per crew. In-app only; push notifications are out of scope. | 2026-09-15 |
 | D5 | **The sport is chosen once**, in a top-bar chip that carries the sport's icon *and name*. The top bar's bottom rule takes the sport colour. Every in-page sport tab row goes. Lists that used to carry their own sport row follow the chip through one dropdown (O1 below). | 2026-09-15 |
 | D6 | Every tab row is a row of separate boxes with the 3px keyline and the hard offset shadow; the active tab lifts to a 4px offset in yellow (the `.sporttab` treatment). Pills keep their keyline-only look because they filter rather than navigate. | 2026-09-15 |
-| D7 | **Trick page: layout A** — the sticker and the video share one row directly under the name, then the stage ladder, then the sections. With no video the sticker card takes the row alone. | 2026-09-16 |
-| D7a | **On a phone the two cards stack, video first; the row is desktop's.** Sharing one row on a phone cost the tutorial three quarters of its area, and the video is what a rider came to see. With no video the sticker card is simply the one card. | 2026-09-17 |
+| D7 | **Trick page: the badge is in the hero, then the stage ladder, then the video, then the sections.** *Layout A until 2026-09-17, when the owner put the badge back in the hero and moved the video under the ladder: the row above the band pushed the page's only control below the fold on a phone with a tutorial. The award card's two lines — "Earned &lt;date&gt;" / "Land it at Sometimes" — went with the card and are on no screen now.* | 2026-09-16, amended 2026-09-17 |
+| D7a | ~~**On a phone the two cards stack, video first; the row is desktop's.**~~ *Superseded the same day by the owner's amendment to D7. The size complaint it fixed is kept — the video is full width at both widths — but it is under the band rather than above it, because the ladder is the only thing on this page a rider does.* | 2026-09-17, superseded 2026-09-17 |
 | D8 | **Desktop follows the same four groups in its top nav** (Home · Tricks · Find · Crew) with the sport chip, Log and the bell beside them. Progress, Sessions, Stickers and Challenge are reached from the Home cards; Plans and the rest from the avatar menu. Every desktop page gets the pass, not only the five with a new shape. | 2026-09-16 |
 | D9 | The streak chip leaves the top bar at every width. It never showed below 520px; the streak is on Home and in What's new. | 2026-09-16 |
 
@@ -797,9 +797,18 @@ at the right). Its order and contents are unchanged — this is the measure, not
 
 ### 3.8 Trick page (D7)
 
-Phone order: BackLink → hero band (category tag, difficulty, name, one-line lowdown) → **sticker + video row** (`StickerBadge` in a paper card with "Earned <date>" or "Land it at Sometimes", and the existing video block as a 16:9 thumbnail with a play square; with no video the sticker card spans the row) → the yellow "Can you do it?" band with the `StagePicker` and Share → **`Accordion`** rows for The lowdown, Tips, What you need, The road to it, Where to practise, Your history / notes / clips → More like this.
+Phone order *(amended by the owner, 2026-09-17)*: BackLink → hero band (**the award badge**, category
+tag, difficulty, name, one-line lowdown) → the yellow "Can you do it?" band with the `StagePicker`
+and Share → **"Watch it"**, full width, where the trick has a tutorial → **`Accordion`** rows for The
+lowdown, Tips, What you need, The road to it, Where to practise, Your history / notes / clips → More
+like this. **Desktop is the same order**, so the page has one shape to learn.
 
-**`Accordion`** (new, `packages/ui-web`, additive) — a row (3px keyline, `--sh-sm`, paper, `min-height: 56px`) with a Barlow Condensed 16px title, an optional 13px sub-line and a chevron that rotates 180° over 120ms; the body opens with `grid-template-rows: 0fr → 1fr` over 200ms ease-out. `<details>`/`<summary>` underneath for no-JS and accessibility. Open state is not persisted. Desktop does not use it: the page keeps its two columns and plain panels, with the sticker + video row above the ladder in the left column.
+*It was a **sticker + video row** directly under the name (D7), with the badge in a paper card
+carrying "Earned &lt;date&gt;" or "Land it at Sometimes". The row is gone, the badge is the hero's
+again, and the card's two lines are on no screen — see D7 and "the ladder below the fold", which
+this is the answer to.*
+
+**`Accordion`** (new, `packages/ui-web`, additive) — a row (3px keyline, `--sh-sm`, paper, `min-height: 56px`) with a Barlow Condensed 16px title, an optional 13px sub-line and a chevron that rotates 180° over 120ms; the body opens with `grid-template-rows: 0fr → 1fr` over 200ms ease-out. `<details>`/`<summary>` underneath for no-JS and accessibility. Open state is not persisted. Desktop does not use it: the page keeps its two columns and plain panels, with the badge in the hero and the video under the ladder (owner, 2026-09-17).
 
 
 **What "the sections" turned out to be, and where the three the list does not name went**
@@ -822,11 +831,12 @@ sits, Same trick other sports, and the rider's own. Three exceptions, each for i
   say it is one thing. The rider's *sessions* on the trick were briefly in there too and are not:
   see "the rider's sessions are not in it" below.
 
-**Everything is shut when the page opens** *(added by the T49 worker, 2026-09-17, pending owner
-confirmation)*. §3.8 says the open state is not persisted and does not say what the first paint
-looks like. Nothing is open: a phone page that is a hero, a row, a band and then nine names is the
-short scroll the rethink is for, and the hero's one-line lowdown is what stops "everything shut"
-meaning "a page that says nothing about the trick".
+**The lowdown opens with the page; everything else is shut** *(owner, 2026-09-17, in chat)*. §3.8
+says the open state is not persisted and does not say what the first paint looks like. The T49
+worker shut everything, on the argument that a hero, a band and then nine names is the short scroll
+the rethink is for. The owner opened the first row: it is the one that answers "what is this
+trick", and a rider who came to find out should not have to press anything. The rest stay shut,
+because opening them all is the scroll the rows replaced.
 
 **§3.8's "Clip" is drawn as "Video", and the fragment stays `#clips`** *(added by the T49 worker,
 2026-09-17, pending owner confirmation)*. The third jump button and the row it points at use the
@@ -875,12 +885,23 @@ video**, which is a minority today and a growing one, and not on the videoless m
 
 Top of the band, page coordinates, `main` against this branch at each of the three shapes:
 
-| | `main` | first cut | with the cap | with D7a's stack |
-| --- | --- | --- | --- | --- |
-| 1280 × 720, with a video | 291 | 785 | **665** | 665 |
-| 1280 × 720, no video | 291 | 527 | **519** | 519 |
-| 390 × 844, with a video | 312 | 554 | 573 | **760** |
-| 390 × 844, no video | 312 | 480 | 464 | **419** |
+| | `main` | first cut | with the cap | with D7a's stack | **owner's order** |
+| --- | --- | --- | --- | --- | --- |
+| 1280 × 720, with a video | 291 | 785 | **665** | 665 | **333** |
+| 1280 × 720, no video | 291 | 527 | **519** | 519 | **333** |
+| 390 × 844, with a video | 312 | 554 | 573 | **760** | **286** |
+| 390 × 844, no video | 312 | 480 | 464 | **419** | **305** |
+
+**The last column is the answer, and the shape of it matters more than the numbers**
+*(measured 2026-09-18 on this branch, `bunny-hop` with a tutorial and `tic-tac` without)*. Moving
+the video under the ladder does not shrink the cost — it removes it. At 1280 × 720 the band's top
+is **333 either way**: identical with a video and without, because nothing above the band depends
+on whether the trick has one. Every earlier column has two different numbers in those two rows, and
+the gap between them *was* the problem. The two phone rows differ by 19px only because the two
+tricks have heroes of different heights, not because of the video.
+
+The 360px desktop cap is no longer load-bearing. It is kept, widened to 640px, for the one thing it
+still does: stop a 16:9 player being drawn the full 1136px width of the panel.
 
 On the **desktop** the player is capped: a **360px track** takes the frame from 506 × 316 to
 328 × 205 and the band from 785 to 665, which is 55px of yellow on screen at 720 rather than none.

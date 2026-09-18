@@ -43,11 +43,16 @@ import { Icon } from '../icons';
  * preference: a rider who opened "Tips" on one trick has said nothing about the
  * next one.
  *
- * **A row whose `id` is the address opens itself.** The Log sheet's "Add a clip
- * link" lands on `/library/<trick>#clips`, and a fragment that scrolls to a shut
- * box is a link that did not work. The check runs on mount and again on
- * `hashchange`, so a second trip from the sheet to a page already open lands the
- * same way as the first.
+ * **A row whose `id` is the address opens itself.** A fragment that scrolls to a
+ * shut box is a link that did not work. The check runs on mount and again on
+ * `hashchange`, so a second trip to a page already open lands the same way as
+ * the first.
+ *
+ * This was written for the Log sheet's "Add a clip link", which landed on
+ * `/library/<trick>#clips`; the owner removed that row on 2026-09-17 and
+ * nothing in the app produces the fragment now. The behaviour stays, because
+ * `#clips` is still a valid address for that row — it simply has no caller
+ * inside the product.
  *
  * **`plainAbove` is what keeps a desktop out of it.** §3.8 says the desktop
  * page keeps its plain panels, and one server render cannot know the width. So

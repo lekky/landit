@@ -455,9 +455,11 @@
 /*
  * The one-line lowdown under the trick's name (§3.8).
  *
- * It stands where "The award · Land the Tic Tac" used to, and it is a better
- * use of the line: the award's condition is on the sticker card below, next to
- * the badge it describes, where a rider reads it once instead of twice.
+ * It stands where "The award · Land the Tic Tac" used to. That line moved to
+ * the sticker card under the hero when T49 built one, and went with the card
+ * when the owner dropped it (2026-09-17) — so this sentence about the trick is
+ * what the hero says under the name, and the badge's own art and its LANDED or
+ * NOT YET mark are what it says about the award.
  *
  * `--on-light` rather than ink: the hero is the category colour, and every one
  * of them is a mid-tone bright the design pairs with ink. 44ch so the sentence
@@ -473,100 +475,51 @@
   text-wrap: pretty;
 }
 
-/* -------------------------------------------- the sticker + video row (D7) -- */
+/* ------------------------------------------------------ the video band -- */
 
 /*
- * The sticker and the video, side by side directly under the name.
+ * The video, full width under the stage ladder (owner, 2026-09-17, amending
+ * D7 and D7a).
  *
- * D7 picked layout A, and §3.8 puts the row here at both widths: the badge is
- * out of the hero and the tutorial is out of the top of the reading column, and
- * the two things a rider came to look at share one row instead of being a
- * screen apart. Either card takes the row alone when the other has nothing in
- * it, which is the common case — most tricks have no video, and a trick staff
- * added yesterday has no award until one is seeded.
+ * D7 put the badge and the tutorial in one row directly under the name, on the
+ * argument that the two things a rider came to look at should not be a screen
+ * apart. The cost was measured by the independent review of 2026-09-17 (S5):
+ * on a 1280 x 720 window the yellow band's top sat at 785 on a trick with a
+ * video against 291 on `main`, so the page's only control went below the fold
+ * on exactly the tricks that have a tutorial — and the curation set is meant to
+ * grow. A 360px cap on the player got the band back to 665, which was a repair
+ * rather than a fix.
  *
- * Equal columns rather than a badge-sized track and the rest: a 16:9 player
- * given two thirds of a 1180px page is 440px tall and pushes the band — the one
- * control on this page — off the first screenful.
+ * The owner's arrangement removes the cause: the badge is back in the hero,
+ * the band comes straight after it, and the video sits underneath. The player
+ * needs no cap to keep the band on screen now, so the cap it keeps is only the
+ * one that stops a 1136px-wide frame on a desktop.
  */
-/*
- * **The player is capped, and the cap is what keeps the band on screen.**
- *
- * Measured by the independent review of 2026-09-17 (S5) on a 1280 × 720 window:
- * the yellow band's top sat at 785 on a trick with a curated video and at 527 on
- * one without, against 291 on `main` — so the row put the page's only control
- * below the fold, but only on the tricks that have a tutorial, and the curation
- * set is meant to grow.
- *
- * A 360px track takes the frame from 506 × 316 to **328 × 205** and the band
- * from 785 to **665**, which is 55px of yellow on screen at 720 rather than
- * none. 328 × 205 is not a small player: it is exactly the size `main` gave the
- * same tutorial on a phone. The arithmetic does not allow better — a 16:10
- * frame under this hero cannot leave the whole 79px band above a 720px fold
- * without shrinking to about 224px wide, which would be a worse trade than the
- * one it fixes.
- *
- * A track rather than a `max-width` on a `1fr` column, so the sticker card takes
- * the room the player gives up instead of leaving it as empty cream.
- */
-.stickerVideo {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
-  gap: 18px;
+.cardBand {
   padding: 14px 22px;
   border-bottom: 3px solid var(--ink);
   background: var(--paper-2);
 }
 
-.cardWide {
-  grid-column: 1 / -1;
-}
-
-.stickerCard,
 .videoCard {
   background: var(--paper);
   border: 2.5px solid var(--ink);
   box-shadow: var(--sh-sm);
   padding: 14px;
   min-width: 0;
-  /* `#sticker` and `#watch` land here, under the sticky bar, for a link from
-     off the page — the jump row that used to point at them went 2026-09-17. */
+  /* `#watch` lands here, under the sticky bar, for a link from off the page —
+     the jump row that used to point at it went 2026-09-17. */
   scroll-margin-top: 76px;
 }
 
-/* The same cap again, for the one arrangement the track cannot reach: a trick
-   with a video and no award would take `.cardWide` and span the row. No trick
-   in the catalogue is in that state today — all 259 carry a live sticker (the
-   independent review counted them) — but the branch exists, and a 1136px player
-   is not what it should draw. */
-.videoCard {
-  max-width: 360px;
-}
-
 /*
- * The badge beside its words above the breakpoint, over them below it. At 169px
- * — half of a 390px phone's row — there is no version of "badge left, two lines
- * right" that leaves either of them readable.
+ * The 360px cap went with the row that needed it: it held the video to the
+ * grid's right-hand column, and there is no column now. A cap is still worth
+ * having so the player is not drawn 1136px wide on a desktop, but it is the
+ * reading measure rather than a sidebar's width.
  */
-.stickerCard {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.stickerText {
-  min-width: 0;
-}
-
-.stickerCond {
-  font-size: 16px;
-  color: var(--ink);
-  text-wrap: balance;
-}
-
-.stickerState {
-  color: var(--ink-3);
-  margin-top: 4px;
+.videoCard {
+  max-width: 640px;
 }
 
 .cardLabel {
@@ -1085,20 +1038,35 @@
    * hero paid for all three; along the top it costs one line and leaves the
    * name the width it wants.
    *
-   * One column since T49 took the badge out of the hero: the difficulty on the
-   * first row, the tags, the name and the one-line lowdown under it.
+   * **Two columns again since the owner put the badge back in the hero**
+   * (2026-09-17, amending D7). The badge takes a column down the left and the
+   * difficulty, the tags, the name and the one-line lowdown stack to its
+   * right. It was one column while T49 had the badge out of here, and a badge
+   * with no track of its own auto-placed itself into a third row under the
+   * name, which is not the arrangement.
+   *
+   * The gap is the badge's own `margin-right`, not `column-gap`: most of the
+   * library has an award but not all of it, and an empty first track with a
+   * column gap still indents the name by the gap.
    */
   .header {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr);
     row-gap: 4px;
     align-items: end;
   }
 
   /* Rows named explicitly: auto-placement follows DOM order, which would put
      the name above the difficulty. */
-  .difficulty {
+  .badge {
     grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: start;
+    margin-right: 12px;
+  }
+
+  .difficulty {
+    grid-column: 2;
     grid-row: 1;
     align-self: start;
     flex-direction: row;
@@ -1109,7 +1077,7 @@
   }
 
   .headerText {
-    grid-column: 1;
+    grid-column: 2;
     grid-row: 2;
   }
 
@@ -1129,52 +1097,36 @@
   }
 
   /*
-   * **On a phone the two cards stack, video first** (Rachid, 2026-09-17, in
-   * chat, answering the question the independent review raised as B2; §1's D7
-   * line carries the decision). The row is the desktop's.
+   * The phone sizes, after the owner put the badge back in the hero and the
+   * video under the ladder (2026-09-17, amending D7 and D7a).
    *
-   * Sharing one row cost the tutorial more than the arrangement was worth. Two
-   * equal columns gave a 390px screen a **132 × 83** frame against the
-   * **328 × 205** the same video has on `main`; giving the video the larger
-   * share got it to 164 × 102, still a quarter of the area. Full width measures
-   * **302 × 189** — 85% of main's area against 16% — and is what the 2026-09-12
-   * "prominence where there is a video" instruction asked for.
+   * D7a stacked the two cards here with the **video first**, on the reasoning
+   * that sharing a row cost the tutorial most of its area — two equal columns
+   * gave a 390px screen a 132 × 83 frame against main's 328 × 205 — and that a
+   * rider came to see the video. Full width answered the size complaint, and
+   * the video keeps it; what changed is the order. The ladder is the only
+   * thing on this page a rider *does*, and a full-width tutorial above it put
+   * the yellow band past the bottom edge on a small phone, which is the open
+   * question §3.8 carried. The band comes first now and the video is still
+   * full width directly under it.
    *
-   * The video is **first** for the same reason, and the sticker card under it
-   * is drawn **compact**: the badge beside its two lines rather than over them,
-   * which is the desktop arrangement and measures 122px tall against the 257 the
-   * stacked one did. That is what keeps the yellow band on the first screenful
-   * — measured at 390, its top is 760 against an 844 viewport, where the tall
-   * card would have put it past the bottom edge.
+   * The badge is the hero's again, so none of the compacting the stacked
+   * sticker card needed applies; the card is two lines of text.
    */
   .panel {
     --badge-w: 96px;
   }
 
-  .stickerVideo {
-    grid-template-columns: minmax(0, 1fr);
+  .cardBand {
     padding: 14px;
-    gap: 12px;
   }
 
-  /*
-   * `order`, not a DOM move: the sticker is first in the markup because that is
-   * the desktop order and because it is the one card that is always there, and
-   * `.cardWide`'s `grid-column: 1 / -1` is a no-op in a single-column grid, so
-   * the "alone" states need nothing of their own here.
-   */
   .videoCard {
     max-width: none;
-    order: -1;
   }
 
-  .stickerCard,
   .videoCard {
     padding: 11px;
-  }
-
-  .stickerCond {
-    font-size: 15px;
   }
 
   /*

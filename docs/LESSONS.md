@@ -1008,6 +1008,36 @@ wins. Only the one declaration with no counterpart below it survived, which is w
 like it worked. **A media or container query buys you no specificity**; put it after what it
 overrides, or raise it. And the way to know is to measure the element, not to read the block.
 
+**A local e2e failure is three questions, not one** *(fix-shell-owner-pass-4, 2026-09-18)*. One
+change produced, in the same session, four local e2e failures, then thirty-one, then three, then
+one — and the code never changed between the last three. The reasons were all environmental, and
+each has a tell:
+
+- **`apps/web/.env.local` leaks into the run's server side.** `playwright.config.ts` sets
+  `NEXT_PUBLIC_POCKETBASE_URL` for the browser but **not** `POCKETBASE_URL`, so everything the
+  server renders is read from whatever database that file names — the review instance, not
+  `.pb_e2e`. The tell is a page that renders the *canonical* half of a trick (name, copy, award art
+  from `@landit/core`) and silently drops the *database* half (the video). **Park the file for a
+  local run**, and remember a worktree without one is not a fair baseline.
+- **Default local parallelism is not CI's.** `workers` is unset locally, so Playwright runs one per
+  CPU against a single dev server; CI pins `workers: 1`. The tell is failures spread across
+  unrelated specs whose errors are `page.goto` **timeouts** rather than assertions. Thirty-one went
+  to three on `--workers=1`.
+- **`.pb_e2e` accumulates between runs.** Fixtures that pick "the first event" start finding another
+  spec's leftovers. The tell is an assertion that names one fixture and receives another's id. Clear
+  `pocketbase/.pb_e2e` before a run you intend to trust.
+
+So: before blaming the diff, run the same spec on an untouched worktree **under the same
+conditions** — same `.env.local` state, same worker count, same fresh database. Three of this
+session's four "regressions" were none.
+
+**And grep `e2e/` when you remove something a test can see** *(same session)*. Removing the Log
+sheet's fourth row swept `apps/web/src`, `packages/` and the spec document, and missed
+`e2e/shell.spec.ts`, which asserted the row was visible. Build, test and lint all stayed green —
+none of them run Playwright — so it cost a full red CI cycle. When a rider-visible element goes,
+`e2e/` is part of the sweep, and the assertion is better **inverted** (`toHaveCount(0)`) than
+deleted, so the thing coming back is still caught.
+
 ## 5a. The shell is not a text box
 
 **Backticks inside a double-quoted shell argument execute.** Filing issue #48 — whose subject

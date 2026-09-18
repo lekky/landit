@@ -492,15 +492,18 @@ test('a trick shows its award, and landing the trick stamps it', async ({ page }
    * Every trick award is named after its trick, so the badge's name is the
    * trick's — asserted from the catalogue rather than typed in.
    *
-   * Since T49 the badge is in a card of its own in the row under the name (D7)
-   * rather than overhanging the hero, and the card says what it takes: "Land it
-   * at Sometimes" until it is held, the earned date after. "The award ·" was
-   * the hero subline that card replaced.
+   * **The badge is the hero's again, and it is the whole of what the page says
+   * about the award** (owner, 2026-09-17). T49 put it in a card of its own
+   * under the name (D7) with a line saying what it takes — "Land it at
+   * Sometimes" until held, the earned date after — and the owner dropped that
+   * card. So the state is carried by the mark over the art, which is what the
+   * alt text reads, and the condition line is asserted *absent* rather than
+   * quietly stopped being checked.
    */
   await expect(
     page.getByRole('img', { name: `${freeTrick.name} award, not earned yet` }),
   ).toBeVisible();
-  await expect(page.getByText('Land it at Sometimes')).toBeVisible();
+  await expect(page.getByText('Land it at Sometimes')).toHaveCount(0);
   await expect(page.getByText('First landed')).toHaveCount(0);
 
   // `some` is the lowest stage that counts as landed (`LANDED_STAGES`), so
@@ -529,8 +532,17 @@ test('a trick shows its award, and landing the trick stamps it', async ({ page }
   // And the rider's history with the trick now has a row for it (T31).
   await expect(page.getByText('★ first landed')).toBeVisible();
   await expect(page.getByText('Your history with this trick')).toBeVisible();
-  // The card now dates the badge rather than telling the rider how to get it.
-  await expect(page.getByText(/^Earned /)).toBeVisible();
+  /*
+   * **Neither line the award card carried is on the page any more** (owner,
+   * 2026-09-17, in chat: "drop this bit it's not needed"). The card dated the
+   * badge once it was held and said how to get it until then; both went with
+   * it. What is left is the stamped badge in the hero and "First landed" in
+   * the band, asserted above.
+   *
+   * Asserted as absent rather than deleted, so the day either line comes back
+   * it comes back on purpose.
+   */
+  await expect(page.getByText(/^Earned /)).toHaveCount(0);
   await expect(page.getByText('Land it at Sometimes')).toHaveCount(0);
 });
 
@@ -1039,77 +1051,64 @@ test('a rider who stopped tracking can clear the history, and it takes the badge
 /*
  * ------------------------------------------------- the trick page on layout A
  *
- * T49 (app shell rethink §3.8, D7). The page reorders: the sticker and the
- * video share one row under the name, the yellow band carries `#ladder`, and
- * every section below is an `Accordion` on a phone and a plain panel above
- * 820px. These are the assertions that notice if any of that comes apart —
- * the order is decided in CSS and in a client-side media query, and neither
- * fails loudly on its own.
+ * T49 (app shell rethink §3.8, D7), as the owner amended it on 2026-09-17: the
+ * badge is in the hero, the yellow band carries `#ladder` directly under it,
+ * the video sits below the band, and every section under that is an `Accordion`
+ * on a phone and a plain panel above 820px. These are the assertions that
+ * notice if any of it comes apart — the order is decided in CSS and in a
+ * client-side media query, and neither fails loudly on its own.
  *
  * The two tricks with a tutorial are reserved by `seed-trick-video.ts` and are
- * not touched here; the row's "with a video" state is asserted in
- * `trick-video.spec.ts`, which already owns that fixture.
+ * not touched here beyond their position.
  */
 
 const PHONE = { width: 390, height: 844 };
 
-test('the desktop shares the row; the phone stacks it, video first', async ({ page }) => {
-  // With no video: one card, spanning both columns of the row.
-  await page.goto(`/library/${freeTrick.id}`);
-  const sticker = page.locator('#sticker');
-  await expect(sticker).toBeVisible();
-  await expect(page.locator('#watch')).toHaveCount(0);
-  const row = page.locator('#sticker').locator('xpath=..');
-  const rowBox = (await row.boundingBox())!;
-  const aloneBox = (await sticker.boundingBox())!;
-  // Within the row's own padding — the card is the row, not half of it.
-  expect(aloneBox.width).toBeGreaterThan(rowBox.width - 60);
-
-  // With one: two cards side by side, tops level, neither the full width.
-  await page.goto('/library/bmx-wheelie');
-  const withVideo = (await page.locator('#sticker').boundingBox())!;
-  const watch = (await page.locator('#watch').boundingBox())!;
-  expect(withVideo.width).toBeLessThan(rowBox.width - watch.width);
-  expect(watch.x).toBeGreaterThan(withVideo.x + withVideo.width - 1);
-  expect(Math.abs(watch.y - withVideo.y)).toBeLessThan(2);
-
+test('the band comes before the video, and the badge is in the hero', async ({ page }) => {
   /*
-   * And the player is capped (independent review, S5). The row sits between the
-   * name and the band, so an uncapped 16:10 player on a wide screen pushed the
-   * only control on this page a long way below a laptop's fold: measured, the
-   * band's top went from 291 on `main` to 785. A 360px track brings it to 665.
+   * **The ladder first, the tutorial after** (owner, 2026-09-17, amending D7
+   * and D7a). D7 put the sticker and the video in one row *above* the band and
+   * D7a stacked them video-first on a phone; measured on a 1280 x 720 window
+   * the band's top then sat at 785 against 291 on `main`, so the only control
+   * on the page went under the fold on exactly the tricks with a tutorial.
+   *
+   * The award strip that briefly sat under the hero is gone too (owner, in
+   * chat: "drop this bit it's not needed"), so `#sticker` no longer exists on
+   * any trick page.
    */
-  expect(watch.width).toBeLessThanOrEqual(366);
+  await page.goto('/library/bmx-wheelie');
 
-  // And the row is above the band at both widths, which is what D7 decided.
+  await expect(page.locator('#sticker')).toHaveCount(0);
+
+  const watch = (await page.locator('#watch').boundingBox())!;
   const band = (await page.locator('#ladder').boundingBox())!;
-  expect(watch.y + watch.height).toBeLessThanOrEqual(band.y + 1);
-  // On a 1280 × 720 laptop the band's top is still on screen with a video on
-  // the page, which is what the cap is for.
+  expect(band.y + band.height).toBeLessThanOrEqual(watch.y + 1);
+
+  // The badge is the hero's, not a card's: it shares the header's box.
+  const badge = (await page.getByRole('img', { name: /award/ }).first().boundingBox())!;
+  expect(badge.y).toBeLessThan(band.y);
+
+  // A desktop player is capped so it is not drawn the full width of the panel.
+  expect(watch.width).toBeLessThanOrEqual(646);
+
+  // On a 1280 x 720 laptop the band is on screen without the video pushing it.
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto('/library/bmx-wheelie');
   expect((await page.locator('#ladder').boundingBox())!.y).toBeLessThan(720);
 
   /*
-   * **The phone stacks them, video first** (D7a, Rachid, 2026-09-17). Sharing
-   * the row on a phone cost the tutorial three quarters of its area; full width
-   * gives it back the size it has on `main`. The sticker card follows, under it.
+   * And on a phone, which is the width the change was made for: the band is on
+   * the first screenful at 844 even though the trick has a tutorial, which is
+   * what D7a's arrangement could not do.
    */
   await page.setViewportSize(PHONE);
   await page.goto('/library/bmx-wheelie');
+  const pBand = (await page.locator('#ladder').boundingBox())!;
   const pWatch = (await page.locator('#watch').boundingBox())!;
-  const pSticker = (await page.locator('#sticker').boundingBox())!;
-  expect(pWatch.y + pWatch.height).toBeLessThanOrEqual(pSticker.y + 1);
-  expect(Math.abs(pWatch.x - pSticker.x)).toBeLessThan(2);
-  expect(Math.abs(pWatch.width - pSticker.width)).toBeLessThan(2);
-  // Full width of the row, not half of it, and comfortably bigger than the
-  // 132px the two-column cut gave it.
+  expect(pBand.y).toBeLessThan(844);
+  expect(pBand.y + pBand.height).toBeLessThanOrEqual(pWatch.y + 1);
+  // Full width, not a column of a row — the size D7a won for it, kept.
   expect(pWatch.width).toBeGreaterThan(300);
-  // Still above the band, and the band still on the first screenful at 844.
-  expect(pSticker.y + pSticker.height).toBeLessThanOrEqual(
-    (await page.locator('#ladder').boundingBox())!.y + 1,
-  );
-  expect((await page.locator('#ladder').boundingBox())!.y).toBeLessThan(844);
 });
 
 test('a section on a phone is a details that opens, and a plain panel on a desktop', async ({
@@ -1121,18 +1120,31 @@ test('a section on a phone is a details that opens, and a plain panel on a deskt
   // The row is the native element, not a div wearing ARIA.
   const lowdown = page.locator('details').filter({ hasText: 'The lowdown' }).first();
   await expect(lowdown).toHaveJSProperty('tagName', 'DETAILS');
-  await expect(lowdown).not.toHaveAttribute('open', '');
+
+  /*
+   * **The lowdown is the one row that starts open** (owner, 2026-09-17). It is
+   * what answers "what is this trick", and a rider who came to find out should
+   * not have to press anything. Every other row still starts shut — "Tips"
+   * here is the proof, because a page that opened them all would be the scroll
+   * the rows replaced.
+   */
+  await expect(lowdown).toHaveAttribute('open', '');
+  await expect(page.locator('details').filter({ hasText: 'Tips' }).first()).not.toHaveAttribute(
+    'open',
+    '',
+  );
 
   const body = page.getByText(freeTrick.about.slice(0, 40));
+  await expect(body).toBeVisible();
+
+  // Shutting it is one press, and the copy goes behind it.
+  await page.getByRole('heading', { name: 'The lowdown' }).click();
   await expect(body).toBeHidden();
 
+  // Opening it again is the same press.
   await page.getByRole('heading', { name: 'The lowdown' }).click();
   await expect(lowdown).toHaveAttribute('open', '');
   await expect(body).toBeVisible();
-
-  // Shutting it again is the same press, and the copy goes back behind it.
-  await page.getByRole('heading', { name: 'The lowdown' }).click();
-  await expect(body).toBeHidden();
 
   /*
    * Above 820px there is no disclosure at all (§3.8): every section is open and
@@ -1251,7 +1263,8 @@ test('a row shut and opened again in the same second comes back', async ({ page 
   const row = page.locator('details').filter({ hasText: 'The lowdown' }).first();
   const head = page.getByRole('heading', { name: 'The lowdown' });
 
-  await head.click();
+  // It opens itself now (owner, 2026-09-17), so this starts where the old
+  // first press used to land rather than pressing to get there.
   await expect(row).toHaveAttribute('open', '');
 
   /*

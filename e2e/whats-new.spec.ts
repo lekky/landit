@@ -340,8 +340,24 @@ test('saying yes to an event this week badges the bell and sorts to the top', as
   await page.setViewportSize({ width: 390, height: 844 });
   await arrive(page, 'Going Rider');
 
-  // Clear the bell *after* earning whatever a new account earns, so the only
-  // thing that can light it again is the RSVP.
+  /*
+   * **The rider earns something before the RSVP, and that is the anchor.**
+   *
+   * The ordering below needs one line reliably *older* than "I'm going". This
+   * used to borrow the `day-one` founder sticker, which every account created
+   * inside the launch window is granted at sign-up — exactly what this file's
+   * own header says nothing here may do, because `FOUNDER_JOINED_BY` is
+   * 2026-09-17 and "a spec that counted it would pass today and fail the day
+   * after". It did: green in CI on the 17th, red on the 18th and every day
+   * since, on every branch.
+   *
+   * Landing a trick earns **First Land**, which has no window and cannot go
+   * away, and it is a line this test made happen rather than one it found.
+   */
+  await landATrick(page);
+
+  // Clear the bell *after* earning it, so the only thing that can light it
+  // again is the RSVP.
   await clearTheBell(page);
 
   /*
@@ -369,24 +385,24 @@ test('saying yes to an event this week badges the bell and sorts to the top', as
   const texts = await lines.allInnerTexts();
 
   const event = texts.findIndex((line) => line.includes(eventName));
-  const signUp = texts.findIndex((line) => line.includes('You earned the Day One sticker.'));
+  const earlier = texts.findIndex((line) => line.includes('You earned the First Land sticker.'));
 
   expect(event, `no event line among: ${texts.join(' | ')}`).toBeGreaterThanOrEqual(0);
   expect(texts[event]).toContain('You said you’re going.');
 
   /*
-   * **Above the sticker the rider was given when they signed up**, which is the
+   * **Above the sticker the rider earned before they pressed it**, which is the
    * assertion that isolates the fix.
    *
    * "Top of the list" would not: pressing "I'm going" earns the "Showed Up"
    * sticker, so the RSVP puts *two* lines on the page and the sticker is the
    * newer of them. What the old rule got wrong is that the event line was dated
-   * four days **before** this account existed — so it filed itself below every
-   * sticker, including Day One from sign-up minutes earlier, and never counted.
-   * This ordering is true with the fix and false without it.
+   * four days **before** the press — so it filed itself below everything the
+   * rider had already done, and never counted. This ordering is true with the
+   * fix and false without it.
    */
-  expect(signUp, 'no Day One line to compare against').toBeGreaterThanOrEqual(0);
-  expect(event, `event at ${event}, Day One at ${signUp}`).toBeLessThan(signUp);
+  expect(earlier, 'no First Land line to compare against').toBeGreaterThanOrEqual(0);
+  expect(event, `event at ${event}, First Land at ${earlier}`).toBeLessThan(earlier);
 });
 
 test('a private crew-mate’s join is not named in the You feed', async ({ browser }) => {

@@ -5,7 +5,6 @@ import {
   NO_VIDEO_LINKS,
   SITE_URL,
   SPORTS,
-  STAGE,
   TIERS_LABEL,
   categoryLabel,
   computeStats,
@@ -521,6 +520,28 @@ export default async function TrickPage({ params }: Params) {
 
       <Panel className={styles.panel}>
         <div className={styles.header} style={{ background: category.color }}>
+          {/*
+            The badge overhangs the band below it, as it did before D7 (owner,
+            2026-09-17, amending D7 and D7a). Nothing at all when the trick has
+            no live award — a trick staff add tomorrow has none until one is
+            seeded, and a hero missing a badge reads better than one holding a
+            box that explains its own emptiness. Earned or not, it is here:
+            one shape for the page (owner, 2026-09-17).
+
+            What sent it away in the first place was that the hero had no room
+            for the badge, the award's condition *and* the earned date, so the
+            condition ended up printed twice. It keeps only the badge now; the
+            condition and the date are the strip directly below, which is where
+            the owner's layout puts them.
+          */}
+          {data.award?.img && (
+            <AwardBadge
+              name={data.award.name}
+              img={data.award.img}
+              earned={data.awardEarnedLabel !== null}
+            />
+          )}
+
           <div className={styles.headerText}>
             <div className={styles.headerTags}>
               <Tag color="var(--ink)">{categoryLabel(trick.cat, trick.sport)}</Tag>
@@ -567,86 +588,17 @@ export default async function TrickPage({ params }: Params) {
         </div>
 
         {/*
-          The sticker and the video, one row directly under the name (D7,
-          rethink §3.8). The badge used to overhang the hero into the band
-          below it and the award's condition was repeated twice — once in the
-          hero on desktop, once in a cream strip on a phone — because neither
-          place had room for both it and the earned date. A card of its own has
-          room for both, at both widths, and it is what the row is for.
+          **No award strip under the hero** (owner, 2026-09-17, in chat: "drop
+          this bit it's not needed"). D7 gave the award's condition and its
+          earned date a card of their own beside the video; the badge went back
+          to the hero on the same day and these two lines went with it for a
+          while, as a strip. The strip is gone now — the badge in the hero is
+          what the page says about the award, and it carries the trick's name
+          in its own art plus the LANDED or NOT YET mark for its state.
 
-          With no video the sticker card takes the row on its own (§3.8); with
-          no award the video does; with neither there is no row, which is most
-          of the library on both counts.
+          `#sticker` went with it. Nothing links to it: the jump row that used
+          to was dropped on 2026-09-17, and the locked page has never drawn one.
         */}
-        {(data.award || video) && (
-          <div className={styles.stickerVideo}>
-            {data.award && (
-              <section
-                id="sticker"
-                className={`${styles.stickerCard}${video ? '' : ` ${styles.cardWide}`}`}
-                aria-label="The sticker"
-              >
-                {data.award.img && (
-                  <AwardBadge
-                    name={data.award.name}
-                    img={data.award.img}
-                    earned={data.awardEarnedLabel !== null}
-                  />
-                )}
-                <div className={styles.stickerText}>
-                  {/* Staff copy — "Land the Tailwhip" — so a retune reaches
-                      this the way it reaches the sticker wall (LESSONS §4). */}
-                  <div className={`cond ${styles.stickerCond}`}>{data.award.cond}</div>
-                  {/*
-                    Earned says when; unearned says what to do, in the stage's
-                    own word rather than a second name for it. `STAGE.some` is
-                    where the hook stamps a trick award, so the sentence and the
-                    rule cannot drift apart.
-                  */}
-                  <div className={`lab ${styles.stickerState}`}>
-                    {data.awardEarnedLabel ?? `Land it at ${STAGE.some.label}`}
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/*
-              The staff-picked tutorial (T35), unchanged in what it is and what
-              it costs: still click-to-play, so nothing reaches Google before
-              the press, still absent entirely on a trick nobody has picked one
-              for, and still never another sport's video. What moved is where it
-              sits — out of the top of the reading column and into the row the
-              owner's layout A puts it in.
-
-              **The instruction that put it at the top of the column, kept.**
-              T35's comment here read: "'Watch it' (T35), first in the column
-              and therefore the first thing under the stage ladder on a phone —
-              *the owner asked for prominence where there is a video
-              (2026-09-12, in chat)*, and this is the most prominent slot that
-              leaves T26's award-led hero alone." D7 (2026-09-16) moved it
-              higher still, above the ladder rather than under it, so the
-              instruction is honoured by the new position — but the *size* is
-              the part that has to be watched, and the first cut of this row
-              halved it twice over on a phone: 132 × 83 against main's 328 ×
-              205. The phone row now gives the player the larger share and the
-              poster drops its caption under 260px (`video.module.css`), and
-              whether a phone should stack the two cards outright is in §3.8
-              for the owner (independent review of 2026-09-17, B2).
-            */}
-            {video && (
-              <section
-                id="watch"
-                className={`${styles.videoCard}${data.award ? '' : ` ${styles.cardWide}`}`}
-                aria-labelledby="watch-it"
-              >
-                <h2 id="watch-it" className={`lab ${styles.cardLabel}`}>
-                  Watch it
-                </h2>
-                <WatchPanel trick={trick} video={video} />
-              </section>
-            )}
-          </div>
-        )}
 
         {/*
           `#ladder` — where the Log sheet's "Log a trick" lands (§3.5). On the
@@ -678,6 +630,37 @@ export default async function TrickPage({ params }: Params) {
             </div>
           )}
         </div>
+
+        {/*
+          "Watch it", under the stage ladder (owner, 2026-09-17, amending D7
+          and D7a).
+
+          **The instruction that asked for prominence, kept.** T35's note here
+          read: "first in the column and therefore the first thing under the
+          stage ladder on a phone — *the owner asked for prominence where there
+          is a video (2026-09-12, in chat)*". D7 moved it above the ladder and
+          D7a put it first on a phone, on the reasoning that the video is what
+          a rider came to see. This puts it back under the band, because the
+          ladder is the only thing on this page a rider *does*, and a tutorial
+          above it pushed that below the fold on a small phone with a video —
+          the open question §3.8 carried. Directly under the band is still the
+          most prominent slot on the page that leaves the doing first.
+
+          Unchanged in what it is and what it costs: still click-to-play, so
+          nothing reaches Google before the press, still absent entirely on a
+          trick nobody has picked one for, and still never another sport's
+          video. Full width now at both widths — it shares a row with nothing.
+        */}
+        {video && (
+          <div className={styles.cardBand}>
+            <section id="watch" className={styles.videoCard} aria-labelledby="watch-it">
+              <h2 id="watch-it" className={`lab ${styles.cardLabel}`}>
+                Watch it
+              </h2>
+              <WatchPanel trick={trick} video={video} />
+            </section>
+          </div>
+        )}
 
         {/*
           The three short jump buttons (§3.8's "Sticker · Watch · Clip") were
@@ -766,7 +749,15 @@ export default async function TrickPage({ params }: Params) {
               lowdown is; a closed row named "Fun fact" would be a chevron
               guarding a sentence.
             */}
+            {/*
+              Open when the page loads (owner, 2026-09-17). It is the row that
+              answers "what is this trick", and a rider who arrived to find out
+              should not have to press anything to be told. Every other row
+              stays shut: opening them all would make the page a scroll again,
+              which is what the rows are for.
+            */}
             <Accordion
+              defaultOpen
               plainAbove={PLAIN_ABOVE}
               className={`${styles.section} ${styles.secLowdown}`}
               title="The lowdown"
