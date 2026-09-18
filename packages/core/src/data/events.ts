@@ -33,6 +33,16 @@ import type { LandItEvent } from '../types';
  * `date` is a calendar day, `YYYY-MM-DD`. Regenerating this file means doing the
  * research again: it is a snapshot of what organisers had published on
  * 2026-08-18, and a calendar goes stale by simply existing.
+ *
+ * **The UK listings were re-checked on 2026-09-18, and only the UK ones.** Every
+ * future UK event was opened against its organiser's page again: prices, caps
+ * and sold-out notices were corrected, four listings were added, and one event
+ * that had been researched twice under two slugs became one. Every other country
+ * is still the 2026-08-18 snapshot, so a UK entry being current here says
+ * nothing about an Australian one. The pass also found the honest shape of the
+ * UK calendar: nothing credible is published beyond 2026-11-28. Winter jams go
+ * up four to six weeks out and the 2027 series calendars did not exist yet, so
+ * an empty spring is the sources being empty, not the research stopping early.
  */
 export const EVENTS = [
   {
@@ -995,12 +1005,12 @@ export const EVENTS = [
     phone: '+44 1536 202049',
     date: '2026-09-19',
     sports: ['scooter', 'bmx', 'skate'],
-    level: 'Under 13, 13+, Pro categories',
-    price: '£25 early bird, £35 on the door',
-    spots: 'Separate spectator pass',
+    level: 'Scooter U13/13+/Pro; BMX U10/U13/13+/Pro; skate all ages',
+    price: '£30.00',
+    spots: 'Sold out; no entry on the door',
     blurb:
       'A day of hosted jams from 10:30am to 7pm across scooter, BMX, skateboard, MTB airbag and WCMX, split into under 13, 13 plus and pro categories. Also on site: a car show, inflatables, face painting and food vendors.',
-    sourceUrl: 'https://www.adrenalinealley.co.uk/event/24th-anniversary-event-rider-pass/',
+    sourceUrl: 'https://www.adrenalinealley.co.uk/events/24th-anniversary-event-rider-pass/',
     lat: 52.49637,
     lng: -0.68939,
     isLive: true,
@@ -1449,7 +1459,7 @@ export const EVENTS = [
     spots: 'Limited places',
     blurb:
       'A two hour private coached scooter session with two-time world champion rider Jayden Sharman, followed by an all-day open session at the park. Runs 10am to 8:30pm.',
-    sourceUrl: 'https://www.adrenalinealley.co.uk/events/',
+    sourceUrl: 'https://www.adrenalinealley.co.uk/events/project-sharman-all-day-session-oct/',
     lat: 52.49637,
     lng: -0.68939,
     isLive: true,
@@ -3581,11 +3591,12 @@ export const EVENTS = [
     town: 'Shrewsbury',
     country: 'UK',
     venue: 'RAF Hangar 59',
+    address: "RAF Hangar 59, Dawson's Rough, Shrewsbury SY4 4PF",
     date: '2026-09-26',
     sports: ['bmx'],
-    level: 'National championship categories',
+    level: 'U9, U12, U15 and Elite 15+ park; Elite 15+ flatland',
     price: 'Not listed',
-    spots: 'Not listed',
+    spots: 'Registration required',
     blurb:
       "The British Cycling national BMX freestyle championships, run over Saturday 26 and Sunday 27 September at RAF Hangar 59 in Shrewsbury. Riders compete for the national champion's jersey across the championship categories. The same venue hosted round one of the 2026 national series in March.",
     sourceUrl:
@@ -3621,14 +3632,15 @@ export const EVENTS = [
     town: 'Folkestone',
     country: 'UK',
     venue: 'F51',
+    address: 'F51 Skatepark, Tontine Street, Folkestone CT20 1SD',
     date: '2026-10-17',
     sports: ['skate'],
     level: 'Under 12s and Under 16s, boys and girls categories',
     price: '£10 per person',
-    spots: 'Limited places',
+    spots: 'Booking essential; 50 riders max',
     blurb:
-      "A park-format round of Skateboard GB's junior series at F51 in Folkestone. The series is run as a jam with the emphasis on fun and progression, and is aimed at young skateboarders getting their first taste of competition.",
-    sourceUrl: 'https://skateboardgb.org/survival-of-the-sickest-events/',
+      "A park-format round of Skateboard GB's junior series at F51 in Folkestone, running 09:30 to 18:00. The series is run as a jam with the emphasis on fun and progression, and is aimed at young skateboarders getting their first taste of competition.",
+    sourceUrl: 'https://skateboardgb.org/event/folkestone-survival-of-the-sickest-2/',
     lat: 51.07917,
     lng: 1.17944,
     isLive: true,
@@ -4085,26 +4097,6 @@ export const EVENTS = [
     isLive: true,
   },
   {
-    id: 'lloyds-bmx-freestyle-champs-2026',
-    name: 'Lloyds National BMX Freestyle Championships 2026',
-    kind: 'Comp',
-    town: 'Shrewsbury',
-    country: 'UK',
-    venue: 'RAF Hangar 59',
-    date: '2026-09-26',
-    sports: ['bmx'],
-    level: 'Not listed',
-    price: 'Not listed',
-    spots: 'Registration required',
-    blurb:
-      "British Cycling's national BMX freestyle title event runs 26-27 September 2026 at RAF Hangar 59 in Shrewsbury. The facility was used as the training centre for the Paris 2024 Olympics, where Kieran Reilly took silver, and closes a three-round 2026 series that also visited 4 Motion in Darlington and Junction 4 in Darwen.",
-    sourceUrl:
-      'https://www.britishcycling.org.uk/bmx/article/20251218-BMX-Freestyle-National-Series-British-Cycling-announces-2026-Lloyds-National-BMX-Freestyle-Series-and-Championships-calendar-0',
-    lat: 52.70776,
-    lng: -2.75407,
-    isLive: true,
-  },
-  {
     id: 'dad-jam-bike-park-utrecht-2026',
     name: 'Dad Jam - Bike Park Utrecht',
     kind: 'Jam',
@@ -4452,6 +4444,86 @@ export const EVENTS = [
       'https://www.graystoneactionsports.co.uk/graystonenewsblog/graystone-clash-scooter-comp',
     lat: 53.4836,
     lng: -2.27589,
+    isLive: true,
+  },
+  {
+    id: 'oxside-street-jam-2026',
+    name: 'Oxside Street Jam 2026',
+    kind: 'Jam',
+    town: 'Leamington Spa',
+    country: 'UK',
+    venue: 'Leamington Spa Town Hall',
+    address: 'Leamington Spa Town Hall, Royal Leamington Spa CV32 4AT',
+    date: '2026-09-18',
+    sports: ['bmx'],
+    level: 'Not listed',
+    price: 'Not listed',
+    spots: 'Not listed',
+    blurb:
+      'The Oxside "Do Not Delete" BMX street jam, meeting at Leamington Spa Town Hall from 11:00 and running to 19:00 with a £1,000 cash-for-tricks prize purse. An after party at the Arches follows from 19:00 with a video premiere, sound system and food.',
+    sourceUrl: 'https://backyardbmx.com/pages/bmx-event-calendar',
+    lat: 52.29134,
+    lng: -1.5364,
+    isLive: true,
+  },
+  {
+    id: 'sheffield-castlegate-jam-2026',
+    name: 'Castlegate Jam',
+    kind: 'Jam',
+    town: 'Sheffield',
+    country: 'UK',
+    venue: 'Marioland Castlegate',
+    address: 'Marioland Castlegate, Exchange Street, Sheffield S2 5TS',
+    date: '2026-09-19',
+    sports: ['skate'],
+    level: 'Open to all abilities',
+    price: 'Not listed',
+    spots: 'Not listed',
+    blurb:
+      'A skateboard jam running 13:00 to 16:30 at Marioland Castlegate, put on by Skate Sheffield as part of the annual Castlegate Festival run by Sheffield City Council. The afternoon is a series of roughly 20-minute challenges - a longest two-person single-board ride, manual competitions and trick face-offs - rather than one judged contest.',
+    sourceUrl: 'https://skateboardgb.org/event/sheffield-castlegate-jam-2/',
+    lat: 53.38083,
+    lng: -1.47028,
+    isLive: true,
+  },
+  {
+    id: 'sound-as-a-pound-jam-2026',
+    name: 'Sound as a Pound Jam 2026',
+    kind: 'Jam',
+    town: 'Liverpool',
+    country: 'UK',
+    venue: 'Edge Lane Skatepark',
+    address: 'Edge Lane Skatepark, Rathbone Road, Old Swan, Liverpool L13 1BB',
+    date: '2026-09-26',
+    sports: ['bmx'],
+    level: 'Not listed',
+    price: 'Not listed',
+    spots: 'Not listed',
+    blurb:
+      'A Liverpool BMX street jam presented by 01925 and the One More Time Crew. Riders meet at Edge Lane skatepark at 13:00 before the session heads out into the streets.',
+    sourceUrl: 'https://backyardbmx.com/pages/bmx-event-calendar',
+    lat: 53.4072,
+    lng: -2.99168,
+    isLive: true,
+  },
+  {
+    id: 'southwater-skate-jam-2026',
+    name: 'Southwater Skate Jam and Parkour Showcase',
+    kind: 'Jam',
+    town: 'Southwater',
+    country: 'UK',
+    venue: 'Southwater Skate Park',
+    address: "Southwater Skate Park, Ben's Field, Stakers Lane, Southwater, West Sussex",
+    date: '2026-10-04',
+    sports: ['skate', 'scooter', 'bmx'],
+    level: 'All abilities, including riders with SEN',
+    price: 'Free',
+    spots: 'Not listed',
+    blurb:
+      'A free afternoon jam running 12:00 to 16:00 at Southwater Skate Park, run by Southwater Parish Council with Horsham District Council community funding. Competitions across skateboard, BMX, scooter and inline run alongside demonstrations from Team Extreme and parkour coaching from Crawley Parkour instructors.',
+    sourceUrl: 'https://www.southwater-pc.gov.uk/post/southwater-skate-jam-parkour-showcase',
+    lat: 51.02421,
+    lng: -0.35232,
     isLive: true,
   },
 ] as const satisfies readonly LandItEvent[];
