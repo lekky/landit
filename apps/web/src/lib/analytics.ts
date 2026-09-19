@@ -755,6 +755,43 @@ export const ANALYTICS_EVENTS = {
    */
   emptyStateAction: 'empty_state_action',
 
+  /* -------------------------------------------------------- the shell -- */
+  /**
+   * Which shell the app is being read in, reported once per page load.
+   *
+   * Carries `surface`, one of two fixed strings chosen here: `'standalone'`
+   * when the app was opened from a home-screen icon or from the Play Store app
+   * — a browser reports the manifest's own `display: standalone` in both cases
+   * — and `'browser'` for an ordinary tab.
+   *
+   * **Never anything about the device.** Not the model, not the screen, not the
+   * launcher. The one bit here is which shell, and PostHog already derives the
+   * operating system from the user agent it receives anyway; adding our own
+   * copy would be a second, more precise description of one child's phone.
+   *
+   * It exists because the product has been installable since T19 and has never
+   * been able to say whether a single rider installed it. That was tolerable
+   * while the icon was the whole feature; it is not tolerable as the input to a
+   * store decision, where "nobody installs it" and "everybody does" argue for
+   * opposite things. Fired once per load rather than per navigation, so the
+   * number is visits and not clicks.
+   */
+  appSurface: 'app_surface',
+  /**
+   * The browser's own install prompt was accepted — the rider now has an icon.
+   *
+   * Fired from the `appinstalled` event, which is the only honest moment: the
+   * prompt can be dismissed, deferred or never shown at all, and nothing before
+   * this point means a rider kept anything. Carries no properties; there is
+   * nothing to say beyond that it happened.
+   *
+   * **Not fired by a Play install.** A store install happens on Play, not in a
+   * page, so this counts the browser route alone and `app_surface` is what sees
+   * the rest. That is a limit of the event, not an oversight: the two numbers
+   * answer different questions and the store's own console answers the third.
+   */
+  appInstalled: 'app_installed',
+
   /* ----------------------------------------------------- requests lost -- */
   /**
    * A Server Function never reached the server — the request threw rather than

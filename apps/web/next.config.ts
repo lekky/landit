@@ -31,6 +31,21 @@ const nextConfig: NextConfig = {
    * `public/sw.js` — would mean it could not import the cache policy from
    * `@landit/core` and would carry a second copy of the allowlist instead.
    */
+  /**
+   * Android fetches the Digital Asset Links statement from exactly
+   * `/.well-known/assetlinks.json`. It does not follow a redirect to it and it
+   * does not look anywhere else, so the path is not ours to choose.
+   *
+   * Next's router ignores any directory beginning with a dot, which makes
+   * `app/.well-known/…` unreachable however it is spelled, and the file itself
+   * cannot live in `public/` because it names a signing certificate read from
+   * the environment at request time (`app/api/android/assetlinks/route.ts`).
+   * A rewrite is what joins the two: the required path, served by a route.
+   */
+  async rewrites() {
+    return [{ source: '/.well-known/assetlinks.json', destination: '/api/android/assetlinks' }];
+  },
+
   async headers() {
     return [
       {

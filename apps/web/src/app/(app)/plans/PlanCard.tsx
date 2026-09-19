@@ -3,11 +3,12 @@
 import type { BillingPeriod } from '@landit/core';
 import { Button, foregroundFor, Icon } from '@landit/ui-web';
 import Link from 'next/link';
-import { useActionState } from 'react';
+import { useActionState, type ReactNode } from 'react';
 
 import { ANALYTICS_EVENTS, capture } from '@/lib/analyticsClient';
 import { ROUTES } from '@/lib/routes';
 
+import { AndroidAppGate } from './AndroidAppGate';
 import { startUpgradeAction, type UpgradeFormState } from './actions';
 import type { PlanCardView, PlansView } from './view';
 
@@ -119,39 +120,41 @@ export function PlanCard({
         )}
 
         {buyable && (
-          <form
-            action={action}
-            className={styles.buy}
-            // Checkout *started*, which is all this side can honestly claim: the
-            // rider leaves for Stripe, and whether they paid comes back through
-            // the webhook, not through a browser. `upgradeRoute` is carried
-            // because "ask a grown-up" and "pay for it yourself" are two very
-            // different journeys behind one button (§6.2).
-            onSubmit={() =>
-              capture(ANALYTICS_EVENTS.upgradeStarted, {
-                plan: card.slug,
-                period,
-                route: view.upgradeRoute,
-              })
-            }
-          >
-            <input type="hidden" name="period" value={period} />
-            <label className={styles.confirm}>
-              <input type="checkbox" name="confirm_adult" value="yes" />
-              <span>
-                {view.upgradeRoute === 'guardian'
-                  ? 'A parent or carer is here and is 18 or over.'
-                  : 'I am 18 or over and I am the one paying.'}
-              </span>
-            </label>
-            <Button type="submit" wide disabled={pending} style={{ background: card.hue }}>
-              {pending
-                ? 'One moment…'
-                : view.upgradeRoute === 'guardian'
-                  ? `Ask a grown-up for ${card.name}`
-                  : `Get ${card.name}`}
-            </Button>
-          </form>
+          <BuyOrNot android={view.androidRequest} name={card.name}>
+            <form
+              action={action}
+              className={styles.buy}
+              // Checkout *started*, which is all this side can honestly claim: the
+              // rider leaves for Stripe, and whether they paid comes back through
+              // the webhook, not through a browser. `upgradeRoute` is carried
+              // because "ask a grown-up" and "pay for it yourself" are two very
+              // different journeys behind one button (§6.2).
+              onSubmit={() =>
+                capture(ANALYTICS_EVENTS.upgradeStarted, {
+                  plan: card.slug,
+                  period,
+                  route: view.upgradeRoute,
+                })
+              }
+            >
+              <input type="hidden" name="period" value={period} />
+              <label className={styles.confirm}>
+                <input type="checkbox" name="confirm_adult" value="yes" />
+                <span>
+                  {view.upgradeRoute === 'guardian'
+                    ? 'A parent or carer is here and is 18 or over.'
+                    : 'I am 18 or over and I am the one paying.'}
+                </span>
+              </label>
+              <Button type="submit" wide disabled={pending} style={{ background: card.hue }}>
+                {pending
+                  ? 'One moment…'
+                  : view.upgradeRoute === 'guardian'
+                    ? `Ask a grown-up for ${card.name}`
+                    : `Get ${card.name}`}
+              </Button>
+            </form>
+          </BuyOrNot>
         )}
 
         {state?.error && <p className={styles.error}>{state.error}</p>}
@@ -168,5 +171,45 @@ export function PlanCard({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * The checkout, or the reason there isn't one here.
+ *
+ * Off Android this is nothing at all — the form is returned untouched, and no
+ * gate, no effect and no second render happens for the overwhelming majority
+ * of readers. On Android the decision passes to `AndroidAppGate`, which can
+ * ask the browser whether this is the Play Store app (`lib/androidApp.ts`
+ * explains why the question needs both halves).
+ *
+ * The fallback keeps the card's shape — a disabled button where a live one
+ * would be — because the alternative is one card in a row of three that ends
+ * short, which reads as a rendering fault rather than a rule.
+ */
+function BuyOrNot({
+  android,
+  name,
+  children,
+}: {
+  android: boolean;
+  name: string;
+  children: ReactNode;
+}) {
+  if (!android) return <>{children}</>;
+
+  return (
+    <AndroidAppGate
+      fallback={
+        <div>
+          <Button wide variant="ghost" disabled>
+            {`${name} is not sold here`}
+          </Button>
+          <p className={styles.inApp}>Plans are changed outside the app.</p>
+        </div>
+      }
+    >
+      {children}
+    </AndroidAppGate>
   );
 }

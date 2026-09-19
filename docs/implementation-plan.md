@@ -11,6 +11,7 @@ what we decided, how the code is arranged, and what order it gets built in.
 | --- | --- | --- |
 | Product name | **Land The Trick** | **Renamed 2026-08-17 (Rachid, in chat); was "Land It".** The domain `landthetrick.com` was registered on 2026-08-16 because `landit.app` was owned by someone else, and `docs/infrastructure.md` recorded the brand/domain mismatch as deliberate. This closes it. Scope of the rename was the owner's call and was deliberately narrow: **every string a person reads** — app copy, page titles, share text, the two guardian emails, legal copy, the wordmark, and the docs — and **nothing else**. The package scope `@landit/*`, the `LandItEvent` type, `pocketbase/hooks/lib/landit.js`, the `landit_auth` cookie, the `landit.sport` storage key, the `x-landit-gated` header, the `LANDIT_*` environment variables and the `landit_*` Stripe metadata keys all keep their names — renaming them buys nothing a rider can see and costs a coordinated env change and a forced sign-out. The `design-handoff/design/` prototype is frozen and still reads "Land It" throughout, including the filenames `Land It.html` and `Land It - Avatars.html` that this plan and the design README cite. |
 | Platform | **Web first (Next.js), native later** | One repo, shared logic. See §2. |
+| App stores | **Android first, as a Trusted Web Activity wrapping the existing PWA. iOS deferred; the Expo rewrite deferred indefinitely** (Rachid, 2026-09-18, in chat) | A TWA is a Play listing whose whole contents are this site in the rider's own Chrome — so the Play app is `landthetrick.com`, one codebase, and a content change ships by deploying the site rather than by passing store review. It was chosen over the two alternatives on cost and on evidence. **Expo (§2.2, Phase 7) is a second product, not a port**: `core` (37k lines), `db` (54k) and the hooks carry over untouched, but ~52k lines of screens and ~22k of CSS get written again, the five things §2.1 names have no React Native equivalent, and every Server Function and the four `createSuperuserClient` call sites need an API contract that does not exist today. The one thing it uniquely buys is offline *logging*, and §2.3 already said the evidence for that is a rider finding the stage will not take at a park — which nobody has watched happen. **iOS is deferred because its costs are the ones that do not shrink**: in-app purchase or a deliberately purchase-free app, guideline 4.2's minimum-functionality bar for a web wrapper, privacy manifests, and rider blocking, which guideline 1.2 asks for and the product does not have. Two riders on this decision: the Play listing declares a **13+ target audience**, which is §6.2's "13+ is the audience, not a gate" and keeps Google's Families policy out of scope; and **the app sells nothing** — see the payments note in §2.4. |
 | Sports at launch | **Three: scooter, skateboard and BMX** | Decided 2026-08-16. BMX ships at launch, not as a fast-follow. Sport is already a dimension in the code, so the engineering was small, and T21 shipped it the same day. The trick library had no source in the design pack and was **researched from cited coaching sources, not authored** — the owner accepted that in preference to holding the sport back (see T21 in §7). What is still unsourced and still the owner's: BMX avatars and BMX-scoped stickers (issue #25). |
 | Offline level | **Read-only cache** on web; full local-first deferred to the native app | Departs from the handoff's recommendation — see §2.3. Built in T19; confirmed acceptable for launch 2026-08-17, which also settles `useOffline` as off. |
 | Backend | **PocketBase** (self-hosted on the VPS, one instance per product) | SQLite + auth + file storage + API rules in one binary. Replaced Supabase 2026-08-15 — see §2.6 for why and what it demands. |
@@ -145,6 +146,18 @@ this rider paid": Stripe, Apple, Google.
 Do not treat the Stripe subscription as the entitlement. Keep a `subscriptions` collection with a
 `source` field (`stripe` | `apple` | `google`) and resolve plan access from our own database. This
 costs almost nothing now and is expensive to unpick later.
+
+**The Play Store app sells nothing, and that is the whole of in-app purchase for now** (Rachid,
+2026-09-18, in chat). Google requires Play Billing for a digital subscription bought inside a
+Play-distributed app, and the TWA is exactly that — the same `/plans` screen, in the same Chrome.
+The choice was Play Billing (15%, receipt handling, three sources of truth arriving at once) or no
+purchase surface in the app, and the second ships first: inside the installed app the checkout is
+withheld and the card says so, everywhere else `/plans` is untouched. Nothing a server can read
+identifies the Play app, so the check is in two halves — Android from the user agent on the server,
+`display-mode: standalone` in the browser — and it **fails towards withholding**, which
+over-includes home-screen installs on Android and is accepted: a lost conversion costs less than
+the listing. `apps/web/src/lib/androidApp.ts` holds the reasoning. What this does *not* change is
+the entitlement model below, which was built for exactly this day.
 
 **The Crew Pass is dropped** (2026-08-15), not deferred by accident: it was the fiddliest part of
 payments (a seat model, seat invites/claims, seat management, cancel-mid-cycle edge cases), and its
@@ -501,7 +514,10 @@ challenge, events, spots + map.
 plus Moderation, Ideas and Video checks, none of which it has a counterpart for; see T17) and the
 audit log.
 
-**Phase 7 — Reach.** PWA and offline cache, then the Expo app on top of `core` and `db`.
+**Phase 7 — Reach.** PWA and offline cache, then a Play Store listing wrapping that PWA as a
+Trusted Web Activity (2026-09-18, §1) — and the Expo app on top of `core` and `db` only if riders
+ask for what only it can give them. The order changed after launch: the TWA reuses the PWA Phase 7
+already built, where Expo rewrites every screen.
 
 Phase 3 is the one worth protecting. Everything before it is setup and everything after is
 expansion; the trick loop is what riders actually come for.
@@ -5518,6 +5534,39 @@ is written here rather than left in a commit message.
   Its whole job is to say whether the offer was enough or riders simply were never asked.
 - **Server-side: nothing.** `66_sessions.pb.js` never constrained the event field — the relation is
   the schema's, events are public catalogue rows, and no guarantee in §3 is touched.
+
+**T54 · The PWA, made ready for a store.** `chore-pwa-store-ready`. Added 2026-09-18 (Rachid, in
+chat: "Let's go Android"). Depends on T19, which built the manifest and the offline cache this
+stands on. The repo half of the Play listing; the Play Console half is the owner's (see below).
+
+- **The manifest grew the parts a store and an install dialog read.** `lang`/`dir`, `categories`
+  (`sports` and `education` — **not** `fitness`, which would file a children's trick tracker beside
+  calorie counters and invite exactly the comparison §6.4 declines to make), three `shortcuts` off
+  the shell's own groups through `ROUTES` so a moved route breaks the build rather than the
+  long-press menu, the four landing captures as `screenshots`, and `prefer_related_applications:
+  false` so a browser cannot decide to promote the Play listing over an app the rider already has
+  installed.
+- **`/.well-known/assetlinks.json` is served from the environment, not the repo.** It is the site's
+  half of the domain handshake and it names a signing certificate that does not exist yet — the key
+  is the owner's, made in Play Console, and never handled by a session. So it is built per request
+  from `LANDIT_ANDROID_PACKAGE` and `LANDIT_ANDROID_FINGERPRINTS` and **404s while either is
+  unset**, the rule `LANDIT_PREVIEW_KEY` and `LANDIT_OWNER_ID` already follow. Publishing is then
+  two Coolify values and a restart. *Usually two* fingerprints: Play App Signing re-signs the
+  delivered binary, so an app naming only its upload key verifies on the owner's test build and
+  fails for every rider who installs from the store. A malformed one is dropped rather than served,
+  because Android does not refuse a mismatched app — it opens it with a URL bar across the top, and
+  nothing alerts.
+- **The checkout is withheld inside the installed Android app** (§2.4). Two halves, failing towards
+  withholding; `lib/androidApp.ts` and `plans/AndroidAppGate.tsx` carry the reasoning. `/plans`
+  still renders, with its prices and perks: what is removed is the purchase, not the information.
+- **Analytics.** `app_surface { surface: 'browser' | 'standalone' }` once per load, and
+  `app_installed` on the browser's own install event. The product has been installable since T19
+  and has never been able to say whether one rider installed it — which is tolerable for an icon
+  and not for the input to a store decision. Neither carries anything about the device.
+- **Not in this task**, and each named so it is not mistaken for an oversight: generating or signing
+  the `.aab`, the Play Console account, listing copy and art, iOS in any form, Play Billing, and
+  rider blocking (which Apple's guideline 1.2 will ask for and which is a §6.1 decision, not a
+  session's).
 
 ### Dependency graph
 
