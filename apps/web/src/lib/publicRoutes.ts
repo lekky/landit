@@ -51,6 +51,13 @@ export const PUBLIC_ROUTES: readonly Route[] = [
    */
   ROUTES.eventsPast,
   ROUTES.plans,
+  /*
+   * Why the product exists. Public, statically rendered, carrying its own
+   * canonical and openGraph, linked from the landing page and disallowed
+   * nowhere in `robots.ts` — it was absent here only because it was written
+   * after this list was (issue #536), which read as a decision and was not one.
+   */
+  ROUTES.story,
   ROUTES.report,
   ...LEGAL_DOC_IDS.map((id) => legalHref(id)),
 ];

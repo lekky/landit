@@ -161,6 +161,15 @@ describe('crews are invite-only, with no discovery (plan §6.1)', () => {
      * below). What is under test here is invite-only and discovery, and a rider
      * refused for the wrong reason would prove neither.
      */
+    /*
+     * The plan rows have to exist before the rider points at one. `plan` is a
+     * slug, not a relation, so a user can be patched to `legend` whether or not
+     * the record is there — and `planCrewCap` fails *closed* at one when it
+     * cannot read the plan. Without this line the suite passes only when some
+     * other file happened to mint the fixtures first, which is why it failed
+     * alone and flaked in parallel (#593, #582).
+     */
+    await baseFixtures();
     owner = await makeRider({}, { plan: 'legend' });
     stranger = await makeRider();
     const created = await makeCrew(owner, { name: 'Ramp Rats' });
@@ -188,7 +197,9 @@ describe('crews are invite-only, with no discovery (plan §6.1)', () => {
 
   it('gives the crew a server-chosen slug, whatever the body asked for', async () => {
     const created = await makeCrew(owner, { name: 'Bay Eight', slug: 'ramp-rats' });
-    expect(created.status).toBe(200);
+    // The body carries the refusal's reason; a bare `expected 400 to be 200`
+    // sent two sessions looking for the wrong cause.
+    expect(created.status, JSON.stringify(created.body)).toBe(200);
     expect(created.body.slug).not.toBe('ramp-rats');
     expect(created.body.slug).toMatch(/^bay-eight-[a-z0-9]{6}$/);
   });

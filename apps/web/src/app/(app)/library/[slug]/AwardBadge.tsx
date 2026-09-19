@@ -53,7 +53,7 @@ export function AwardBadge({
         width={512}
         height={512}
         /* One badge, above the fold, and the largest image on the page. */
-        priority
+        preload
         sizes="132px"
       />
       <span className={earned ? styles.stamp : styles.pending} aria-hidden="true">

@@ -1412,6 +1412,56 @@ died with exit 144 before this was obvious: the `pkill -f "next dev"` matched, a
 process group running the command that issued it. Kill in one call, start in the next, or use the
 tool's own background mode.
 
+## 9b. `pnpm e2e` in a Claude Code web session, and a local red that is not a regression
+
+Written down on 2026-09-18 because the same fifteen minutes had now been spent three times
+([#450](https://github.com/lekky/landit/issues/450), then
+[#533](https://github.com/lekky/landit/issues/533) after #450 was closed against an unrelated PR).
+The rule underneath it is the general one: **a workaround that lives only in a closed issue is a
+workaround nobody will find.** If a session had to discover something before it could run the
+gates, that belongs here, in the repository, on the day it was discovered.
+
+**The symptom.** In a Claude Code *web* session every spec fails at `browserType.launch`, before
+its first assertion. `/opt/pw-browsers/` carries `chromium-1194` and
+`chromium_headless_shell-1194`; `@playwright/test` wants `chromium_headless_shell-1234`. Nothing is
+wrong with the suite.
+
+**The workaround**, once per container — it needs no file in the repo and no `-c` flag, which is
+why it is preferred to a throwaway config:
+
+```bash
+mkdir -p /opt/pw-browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64
+ln -sfn /opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell         /opt/pw-browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell
+touch /opt/pw-browsers/chromium_headless_shell-1234/{INSTALLATION_COMPLETE,DEPENDENCIES_VALIDATED}
+```
+
+This does not apply to a desktop session, which has its own browsers.
+
+**Reading a local red afterwards.** A full local `pnpm e2e` is not expected to be green, and three
+of its failures are environmental rather than regressions. Check them off before diagnosing
+anything:
+
+- `offline.spec.ts`'s uncached-screen fallback fails on a clean checkout of `main`
+  ([#442](https://github.com/lekky/landit/issues/442)).
+- `events.spec.ts`'s phone drawer cell is a roughly 1-in-3 flake
+  ([#423](https://github.com/lekky/landit/issues/423)).
+- `challenge.spec.ts` throws `403 Only superusers can perform this action` from
+  `support/seed-schedule.ts` **on the second and later local runs**, because the first left rows in
+  `pocketbase/.pb_e2e` and the seeder then takes its `update` branch instead of `create`. Clearing
+  `.pb_e2e` between runs is the fix. CI never sees this one, because it seeds a fresh database
+  every time — which is exactly why a local red has to be read against this list rather than
+  against CI.
+
+**The same shape appears in the unit suite.** `pocketbase/tests/crews.test.ts` failed alone and
+flaked in parallel for weeks ([#593](https://github.com/lekky/landit/issues/593),
+[#582](https://github.com/lekky/landit/issues/582)) because its first `describe` never called
+`baseFixtures()`: the rider was patched to `plan: 'legend'`, `plan` is a slug rather than a
+relation so the patch succeeded whether or not the row existed, and `planCrewCap` fails *closed* at
+one when it cannot read a plan. It passed only when some other parallel file happened to mint the
+fixtures first. **A fixture a test file does not ask for itself is a test that depends on the order
+of the suite** — and a hook that fails closed will turn that dependency into a plausible-looking
+product failure rather than a missing-fixture error.
+
 ## 9a. Verified to the wire is not verified to the dashboard
 
 Google Analytics was added beside PostHog on 2026-09-06 and removed on 2026-09-07 (§6.8). It never
